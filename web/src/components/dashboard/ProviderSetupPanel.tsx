@@ -292,13 +292,17 @@ const ProviderSetupPanel: React.FC = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
 
+  const handleToggleExpanded = useCallback(() => {
+    setIsExpanded(prev => !prev);
+  }, []);
+
   return (
     <Box css={panelStyles(theme)} className="provider-setup-panel">
       <div className="scrollable-content">
         <Box className="provider-setup-container">
           <div
             className="collapse-header"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleToggleExpanded}
           >
             <div className="section-title">
               <Typography
@@ -371,47 +375,47 @@ const ProviderSetupPanel: React.FC = () => {
                         </a>
                       </div>
 
-                      <div className="provider-input-container">
-                        <TextField
-                          type="password"
-                          size="small"
-                          fullWidth
-                          placeholder={
-                            isConfigured ? "••••••••••••" : provider.placeholder
-                          }
-                          value={apiKeys[provider.key]}
-                          onChange={(e) =>
-                            handleKeyChange(provider.key, e.target.value)
-                          }
-                          className="provider-input"
-                          disabled={isSaving}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && hasInput) {
-                              handleSaveKey(provider.key);
+                        <div className="provider-input-container">
+                          <TextField
+                            type="password"
+                            size="small"
+                            fullWidth
+                            placeholder={
+                              isConfigured ? "••••••••••••" : provider.placeholder
                             }
-                          }}
-                        />
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => handleSaveKey(provider.key)}
-                          disabled={!hasInput || isSaving}
-                          startIcon={
-                            isSaving ? (
-                              <CircularProgress size={16} />
-                            ) : (
-                              <SaveIcon />
-                            )
-                          }
-                          sx={{ minWidth: "100px" }}
-                        >
-                          {isSaving
-                            ? "Saving..."
-                            : isConfigured
-                            ? "Update"
-                            : "Save"}
-                        </Button>
-                      </div>
+                            value={apiKeys[provider.key]}
+                            onChange={(e) =>
+                              handleKeyChange(provider.key, e.target.value)
+                            }
+                            className="provider-input"
+                            disabled={isSaving}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && hasInput) {
+                                handleSaveKey(provider.key);
+                              }
+                            }}
+                          />
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleSaveKey(provider.key)}
+                            disabled={!hasInput || isSaving}
+                            startIcon={
+                              isSaving ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <SaveIcon />
+                              )
+                            }
+                            sx={{ minWidth: "100px" }}
+                          >
+                            {isSaving
+                              ? "Saving..."
+                              : isConfigured
+                              ? "Update"
+                              : "Save"}
+                          </Button>
+                        </div>
                     </div>
                   );
                 })}

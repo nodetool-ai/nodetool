@@ -448,6 +448,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [compareMode, compareAssetB, selectAssetForCompare, handleChangeAsset]
   );
 
+  const handlePrevAsset = useCallback(() => {
+    if (currentIndex === null) {return;}
+    handleChangeAsset(Math.max(0, currentIndex - 1));
+  }, [currentIndex, handleChangeAsset]);
+
+  const handleNextAsset = useCallback(() => {
+    if (currentIndex === null) {return;}
+    handleChangeAsset(Math.min(assetsToUse.length - 1, currentIndex + 1));
+  }, [currentIndex, assetsToUse.length, handleChangeAsset]);
+
   const navigation = useMemo(() => {
     if (currentIndex === null) {
       return null;
@@ -480,20 +490,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           <>
             <IconButton
               className="prev-next-button left"
-              onMouseDown={() =>
-                handleChangeAsset(Math.max(0, currentIndex - 1))
-              }
+              onMouseDown={handlePrevAsset}
               disabled={prevAssets?.length === 0}
             >
               <KeyboardArrowLeftIcon />
             </IconButton>
             <IconButton
               className="prev-next-button right"
-              onMouseDown={() =>
-                handleChangeAsset(
-                  Math.min(assetsToUse.length - 1, currentIndex + 1)
-                )
-              }
+              onMouseDown={handleNextAsset}
               disabled={nextAssets?.length === 0}
             >
               <KeyboardArrowRightIcon />
@@ -503,7 +507,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         <div className="asset-navigation">
           <div className="prev-next-items left">
             {displayPrevAssets?.map((asset, idx) => {
-              // Calculate the actual index in the assetsToUse array
               const assetIndex = Math.max(
                 0,
                 currentIndex - prevAssets.length + idx
@@ -549,7 +552,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           </div>
           <div className="prev-next-items right">
             {displayNextAssets?.map((asset, idx) => {
-              // Calculate the actual index in the assetsToUse array
               const assetIndex = currentIndex + 1 + idx;
               const isCompareSelected = compareAssetA?.id === asset.id;
               return (
@@ -594,8 +596,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     assetsToUse,
     currentAsset,
     currentFolderName,
-    handleChangeAsset,
     handleThumbnailClick,
+    handlePrevAsset,
+    handleNextAsset,
     compareMode,
     compareAssetA,
     compareAssetB
