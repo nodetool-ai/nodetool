@@ -29,6 +29,8 @@ import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
+import WorkflowProfilerPanel from "./WorkflowProfilerPanel";
+import SpeedIcon from "@mui/icons-material/Speed";
 
 const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
@@ -117,6 +119,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle,
   handleVersionsToggle,
   handleWorkflowToggle,
+  handleProfilerToggle,
   activeView,
   panelVisible
 }: {
@@ -126,7 +129,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
   handleWorkflowToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow";
+  handleProfilerToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "profiler";
   panelVisible: boolean;
 }) {
   return (
@@ -273,6 +277,25 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <SettingsIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Profiler Button */}
+      <Tooltip
+        title="Performance Profiler"
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleProfilerToggle}
+          className={
+            activeView === "profiler" && panelVisible
+              ? "profiler active"
+              : "profiler"
+          }
+        >
+          <SpeedIcon />
+        </IconButton>
+      </Tooltip>
     </div>
   );
 });
@@ -381,6 +404,22 @@ const PanelRight: React.FC = () => {
                       />
                     </Box>
                   ) : null
+                ) : activeView === "profiler" ? (
+                  currentWorkflowId ? (
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        overflow: "auto"
+                      }}
+                    >
+                      <WorkflowProfilerPanel workflowId={currentWorkflowId} />
+                    </Box>
+                  ) : (
+                    <Box sx={{ p: 2, textAlign: "center", color: "text.secondary" }}>
+                      Open a workflow to see performance analysis
+                    </Box>
+                  )
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -404,6 +443,7 @@ const PanelRight: React.FC = () => {
         handleWorkspaceToggle={() => handlePanelToggle("workspace")}
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
+        handleProfilerToggle={() => handlePanelToggle("profiler")}
         activeView={activeView}
         panelVisible={isVisible}
       />

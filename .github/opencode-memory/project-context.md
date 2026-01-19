@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Feature Research (2026-01-19)
+
+**What**: Implemented Workflow Performance Profiler - a comprehensive performance analysis feature that analyzes workflow execution timing, identifies bottlenecks, calculates performance scores, and provides optimization recommendations.
+
+**Files**: web/src/stores/ProfilerStore.ts, web/src/components/panels/WorkflowProfilerPanel.tsx, web/src/components/performance/ExecutionTimeline.tsx, web/src/components/performance/PerformanceHistoryChart.tsx
+
+**Impact**: Users can now analyze workflow performance with visual timelines, identify slow nodes, track performance over time, and get AI-generated optimization recommendations.
+
+---
+
 ### FavoriteWorkflowsStore Test Fix (2026-01-19)
 
 **What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.

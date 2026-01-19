@@ -46,8 +46,17 @@ Last updated: 2026-01-17
 - **Node Documentation**: Inline documentation for each node type
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
-- **Node Groups**: Group related nodes together (Loop nodes)
-- **Connectable Nodes**: Visual indicators showing which nodes can connect
+  - **Node Groups**: Group related nodes together (Loop nodes)
+  - **Connectable Nodes**: Visual indicators showing which nodes can connect
+
+### Workflow Performance Profiling
+  - **Performance Profiler**: Analyze workflow execution timing and identify bottlenecks
+  - **Performance Score**: Calculate performance scores (0-100) based on execution time
+  - **Bottleneck Detection**: Automatically identify slowest nodes in workflows
+  - **Execution Timeline**: Visual timeline showing node execution durations
+  - **Performance History**: Track performance over multiple workflow runs
+  - **Optimization Recommendations**: AI-generated suggestions for improving performance
+  - **Performance Panel**: Dedicated panel in right sidebar for performance analysis
 
 ### Workflow Management
 - **Workflow Creation**: Create new workflows from scratch or templates
@@ -290,7 +299,6 @@ Last updated: 2026-01-17
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
