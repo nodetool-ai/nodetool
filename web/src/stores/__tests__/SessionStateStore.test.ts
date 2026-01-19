@@ -2,71 +2,61 @@ import useSessionStateStore from "../SessionStateStore";
 
 describe("SessionStateStore", () => {
   beforeEach(() => {
-    useSessionStateStore.setState({
-      clipboardData: null,
-      isClipboardValid: false
-    });
+    useSessionStateStore.setState(useSessionStateStore.getInitialState());
   });
 
-  describe("clipboardData", () => {
-    it("should initialize with null", () => {
-      expect(useSessionStateStore.getState().clipboardData).toBeNull();
-    });
-
-    it("should set clipboard data", () => {
-      const data = '{"type":"nodes","data":[1,2,3]}';
-      useSessionStateStore.getState().setClipboardData(data);
-
-      expect(useSessionStateStore.getState().clipboardData).toBe(data);
-    });
-
-    it("should clear clipboard data when set to null", () => {
-      useSessionStateStore.getState().setClipboardData('{"test":"data"}');
-      expect(useSessionStateStore.getState().clipboardData).not.toBeNull();
-
-      useSessionStateStore.getState().setClipboardData(null);
-      expect(useSessionStateStore.getState().clipboardData).toBeNull();
-    });
-
-    it("should overwrite existing clipboard data", () => {
-      useSessionStateStore.getState().setClipboardData('{"first":"data"}');
-      useSessionStateStore.getState().setClipboardData('{"second":"data"}');
-
-      expect(useSessionStateStore.getState().clipboardData).toBe('{"second":"data"}');
-    });
+  it("initializes with default values", () => {
+    const state = useSessionStateStore.getState();
+    expect(state.clipboardData).toBe(null);
+    expect(state.isClipboardValid).toBe(false);
   });
 
-  describe("isClipboardValid", () => {
-    it("should initialize with false", () => {
-      expect(useSessionStateStore.getState().isClipboardValid).toBe(false);
-    });
+  it("sets clipboard data", () => {
+    const testData = '{"type":"nodes","data":[{"id":"node-1"}]}';
+    useSessionStateStore.getState().setClipboardData(testData);
 
-    it("should set clipboard valid state to true", () => {
-      useSessionStateStore.getState().setIsClipboardValid(true);
+    const state = useSessionStateStore.getState();
+    expect(state.clipboardData).toBe(testData);
+  });
 
-      expect(useSessionStateStore.getState().isClipboardValid).toBe(true);
-    });
+  it("clears clipboard data when null is passed", () => {
+    useSessionStateStore.getState().setClipboardData("some data");
+    useSessionStateStore.getState().setClipboardData(null);
 
-    it("should set clipboard valid state back to false", () => {
-      useSessionStateStore.getState().setIsClipboardValid(true);
-      useSessionStateStore.getState().setIsClipboardValid(false);
+    const state = useSessionStateStore.getState();
+    expect(state.clipboardData).toBe(null);
+  });
 
-      expect(useSessionStateStore.getState().isClipboardValid).toBe(false);
-    });
+  it("sets clipboard validity", () => {
+    useSessionStateStore.getState().setIsClipboardValid(true);
 
-    it("should track clipboard validity independently from clipboard data", () => {
-      expect(useSessionStateStore.getState().isClipboardValid).toBe(false);
+    const state = useSessionStateStore.getState();
+    expect(state.isClipboardValid).toBe(true);
+  });
 
-      useSessionStateStore.getState().setClipboardData('{"test":"data"}');
-      expect(useSessionStateStore.getState().isClipboardValid).toBe(false);
+  it("sets clipboard validity to false", () => {
+    useSessionStateStore.getState().setIsClipboardValid(true);
+    useSessionStateStore.getState().setIsClipboardValid(false);
 
-      useSessionStateStore.getState().setIsClipboardValid(true);
-      expect(useSessionStateStore.getState().clipboardData).not.toBeNull();
-      expect(useSessionStateStore.getState().isClipboardValid).toBe(true);
+    const state = useSessionStateStore.getState();
+    expect(state.isClipboardValid).toBe(false);
+  });
 
-      useSessionStateStore.getState().setClipboardData(null);
-      expect(useSessionStateStore.getState().clipboardData).toBeNull();
-      expect(useSessionStateStore.getState().isClipboardValid).toBe(true);
-    });
+  it("can update both clipboard data and validity independently", () => {
+    useSessionStateStore.getState().setClipboardData("test data");
+    expect(useSessionStateStore.getState().clipboardData).toBe("test data");
+    expect(useSessionStateStore.getState().isClipboardValid).toBe(false);
+
+    useSessionStateStore.getState().setIsClipboardValid(true);
+    expect(useSessionStateStore.getState().clipboardData).toBe("test data");
+    expect(useSessionStateStore.getState().isClipboardValid).toBe(true);
+
+    useSessionStateStore.getState().setClipboardData("new data");
+    expect(useSessionStateStore.getState().clipboardData).toBe("new data");
+    expect(useSessionStateStore.getState().isClipboardValid).toBe(true);
+
+    useSessionStateStore.getState().setIsClipboardValid(false);
+    expect(useSessionStateStore.getState().clipboardData).toBe("new data");
+    expect(useSessionStateStore.getState().isClipboardValid).toBe(false);
   });
 });
