@@ -183,6 +183,7 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
             )}
           </Box>
         }
+        primaryTypographyProps={{ component: "div" }}
         secondary={
           <Box>
             <Typography variant="caption" color="text.secondary">
@@ -205,6 +206,7 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
             )}
           </Box>
         }
+        secondaryTypographyProps={{ component: "div" }}
       />
       <ListItemSecondaryAction>
         <Box sx={{ display: "flex", gap: 0.5 }}>
