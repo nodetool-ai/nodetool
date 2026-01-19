@@ -4,9 +4,9 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-17
+Last updated: 2026-01-19
 
-- **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
+- **Documentation Quality Audit**: Comprehensive audit confirms all 14 AGENTS.md files, 4 README files, and testing documentation are accurate and complete. Port consistency (7777 dev, 8000 prod) verified across all files.
 
 - **Auto-save Interval Fix**: Fixed auto-save interval settings not being applied when changed by user
 
