@@ -1,3 +1,26 @@
+/**
+ * Manages keyboard navigation focus state for the node editor.
+ *
+ * Enables Tab-based navigation between nodes and directional arrow
+ * navigation (up/down/left/right). Tracks focus history for "go back"
+ * functionality. Used by useNodeFocus hook to provide keyboard-only
+ * node selection and navigation.
+ *
+ * Features:
+ * - Sequential navigation: Tab/Shift+Tab for next/previous node
+ * - Directional navigation: Alt+Arrows for up/down/left/right
+ * - Focus history: Alt+Left or Ctrl+Left to go back
+ * - Visual focus indicator on focused node
+ *
+ * @example
+ * ```typescript
+ * import useNodeFocusStore from './NodeFocusStore';
+ *
+ * const store = useNodeFocusStore();
+ * store.enterNavigationMode();
+ * store.navigateFocus('next', nodes);
+ * ```
+ */
 import { create } from "zustand";
 import { Node } from "@xyflow/react";
 import { NodeData } from "./NodeData";
