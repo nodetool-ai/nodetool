@@ -4,7 +4,9 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-17
+Last updated: 2026-01-18
+
+- **Documentation Audit (2026-01-18)**: Fixed table formatting in docs/AGENTS.md, removed duplicate entry, updated file structure tree to match actual docs directory
 
 - **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
 
@@ -534,6 +536,30 @@ All hooks now include module-level JSDoc with @param, @returns, and @example tag
 **Verification**:
 - ✅ Linting: Passes
 - ✅ Documentation follows established JSDoc patterns
+
+---
+
+### Documentation Quality Audit (2026-01-19)
+
+**Areas Improved**: Documentation accuracy and completeness
+
+**Issues Fixed**:
+- Removed invalid reference to non-existent `.github/claude-instructions.md` from AGENTS.md
+- Fixed incorrect file extension in `web/src/hooks/AGENTS.md` (`useCopyPaste.ts` → `useCopyPaste.tsx`)
+- Enhanced `web/README.md` with comprehensive documentation (38 → 115 lines)
+
+**Verification Results**:
+- All npm commands verified against package.json ✅
+- Port consistency verified (7777 dev, 8000 prod) ✅
+- Linting passes (web, electron) ✅
+- Web tests: 3086/3092 pass ✅
+- Electron tests: 206/206 pass ✅
+- Mobile type checking fails (regression - missing type definitions) ⚠️
+
+**Files Audited**: 23 documentation files across all packages
+
+**Related Memory**:
+- `.github/opencode-memory/issues/documentation/documentation-quality-audit-2026-01-19.md`
 
 ---
 

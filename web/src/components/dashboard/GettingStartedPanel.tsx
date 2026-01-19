@@ -242,13 +242,25 @@ const InlineModelDownload: React.FC<{
   label?: React.ReactNode;
   isDefault?: boolean;
   tooltip?: string;
-}> = ({ model, label, isDefault, tooltip }) => {
+}> = ({ model, label: _label, isDefault, tooltip }) => {
   const { startDownload, downloads } = useModelDownloadStore((state) => ({
     startDownload: state.startDownload,
     downloads: state.downloads
   }));
   const downloadKey = model.repo_id || model.id;
+
   const inProgress = !!downloads[downloadKey];
+  
+  const handleDownload = useCallback(() => {
+    startDownload(
+      model.repo_id || "",
+      model.type || "hf.model",
+      model.path ?? null,
+      model.allow_patterns ?? null,
+      model.ignore_patterns ?? null
+    );
+  }, [startDownload, model.repo_id, model.type, model.path, model.allow_patterns, model.ignore_patterns]);
+
   if (inProgress) {
     return (
       <Box
@@ -269,18 +281,8 @@ const InlineModelDownload: React.FC<{
       aria-label={`Download ${model.repo_id || model.id}`}
       sx={{ ml: 1, verticalAlign: "middle" }}
       className={`model-download-button ${isDefault ? "default-model" : ""}`}
-      onClick={() =>
-        startDownload(
-          model.repo_id || "",
-          model.type || "hf.model",
-          model.path ?? null,
-          model.allow_patterns ?? null,
-          model.ignore_patterns ?? null
-        )
-      }
-    >
-      {label ?? "Download"}
-    </Button>
+      onClick={handleDownload}
+    />
   );
   return tooltip ? (
     <Tooltip title={tooltip} arrow>

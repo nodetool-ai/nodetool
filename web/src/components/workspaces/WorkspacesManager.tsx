@@ -197,6 +197,27 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     enabled: open
   });
 
+  // Memoized handlers
+  const handleRetry = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+  }, [queryClient]);
+
+  const handleDeleteWorkspace = useCallback((id: string) => {
+    setWorkspaceToDelete(id);
+    setDeleteConfirmOpen(true);
+  }, []);
+
+  const handleAddWorkspace = useCallback(() => {
+    setIsAdding(true);
+  }, []);
+
+  const handleCancelAdd = useCallback(() => {
+    setIsAdding(false);
+    setNewName("");
+    setNewPath("");
+    setIsDefault(false);
+  }, []);
+
   // Create workspace mutation
   const createMutation = useMutation({
     mutationFn: async (data: {
@@ -337,14 +358,6 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     [editName, updateMutation]
   );
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      setWorkspaceToDelete(id);
-      setDeleteConfirmOpen(true);
-    },
-    []
-  );
-
   const handleConfirmDelete = useCallback(() => {
     if (workspaceToDelete) {
       deleteMutation.mutate(workspaceToDelete);
@@ -470,7 +483,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                 </Typography>
                 <Button
                   variant="outlined"
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ["workspaces"] })}
+                  onClick={handleRetry}
                 >
                   Retry
                 </Button>
@@ -561,7 +574,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           <Tooltip title="Delete">
                             <IconButton
                               size="small"
-                              onClick={() => handleDelete(workspace.id)}
+                              onClick={() => handleDeleteWorkspace(workspace.id)}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -631,7 +644,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     }}
                   >
                     <Button
-                      onClick={() => setIsAdding(false)}
+                      onClick={handleCancelAdd}
                       color="inherit"
                     >
                       Cancel
@@ -648,7 +661,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
               ) : (
                 <Button
                   startIcon={<AddIcon />}
-                  onClick={() => setIsAdding(true)}
+                  onClick={handleAddWorkspace}
                   fullWidth
                   variant="outlined"
                 >
