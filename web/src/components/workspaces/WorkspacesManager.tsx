@@ -36,6 +36,7 @@ import { createErrorMessage } from "../../utils/errorHandling";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import PanelHeadline from "../ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
   css({
@@ -442,16 +443,20 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
         }}
       >
         <DialogTitle className="dialog-title">
-          <Typography variant="h6">Workspaces Manager</Typography>
-          <Tooltip title="Close">
-            <IconButton
-              aria-label="close"
-              onClick={onClose}
-              className="close-button"
-            >
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
+          <PanelHeadline
+            title="Workspaces Manager"
+            actions={
+              <Tooltip title="Close">
+                <IconButton
+                  aria-label="close"
+                  onClick={onClose}
+                  className="close-button"
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Tooltip>
+            }
+          />
         </DialogTitle>
         <DialogContent
           sx={{
@@ -532,6 +537,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                                 {workspace.name}
                               </Typography>
                             }
+                            secondaryTypographyProps={{ component: 'div' }}
                             secondary={
                               <>
                                 <Typography
@@ -540,7 +546,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                                 >
                                   {workspace.path}
                                 </Typography>
-                                <div className="workspace-badges">
+                                <span className="workspace-badges">
                                   {workspace.is_default && (
                                     <Chip
                                       size="small"
@@ -557,7 +563,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                                       variant="outlined"
                                     />
                                   )}
-                                </div>
+                                </span>
                               </>
                             }
                           />

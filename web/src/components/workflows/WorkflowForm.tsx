@@ -18,6 +18,7 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
+import PanelHeadline from "../ui/PanelHeadline";
 
 const AVAILABLE_TAGS = [
   "image",
@@ -40,23 +41,6 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(3),
       minWidth: "420px",
       maxWidth: "500px"
-    },
-    
-    // Header styling
-    ".workflow-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(2),
-      marginBottom: theme.spacing(4),
-      paddingBottom: theme.spacing(2),
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-      "& h3": {
-        margin: 0,
-        fontSize: "1.25rem",
-        fontWeight: 600,
-        color: theme.vars.palette.grey[0],
-        letterSpacing: "-0.02em"
-      }
     },
     
     // Section grouping
@@ -401,9 +385,7 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
 
   return (
     <div css={styles(theme)} className="workflow-form">
-      <div className="workflow-header">
-        <Typography variant="h3">Workflow Settings</Typography>
-      </div>
+      <PanelHeadline title="Workflow Settings" />
 
       {/* Basic Information Section */}
       <div className="settings-section">

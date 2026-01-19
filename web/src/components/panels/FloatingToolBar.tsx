@@ -190,12 +190,11 @@ const styles = (theme: Theme) =>
 
     /* Node menu button: secondary prominent, distinct color */
     ".floating-action-button.node-menu": {
-      backgroundColor: theme.vars.palette.secondary.main,
-      color: theme.vars.palette.grey[900],
-      borderColor: theme.vars.palette.secondary.main,
+      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[300],
       "&:hover": {
-        boxShadow: `0 6px 16px rgba(0,0,0,.35), 0 0 20px ${theme.vars.palette.secondary.main}25`,
-        transform: "scale(1.05)"
+        backgroundColor: theme.vars.palette.grey[700],
+        color: theme.vars.palette.grey[100]
       }
     },
 

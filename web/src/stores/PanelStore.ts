@@ -3,10 +3,7 @@ import { persist } from "zustand/middleware";
 
 export type LeftPanelView =
   | "assets"
-  | "workflowGrid"
-  | "collections"
-  | "packs"
-  | "jobs";
+  | "workflowGrid";
 export type PanelView = LeftPanelView;
 
 interface PanelState {

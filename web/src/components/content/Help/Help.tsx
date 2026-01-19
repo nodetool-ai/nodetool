@@ -7,8 +7,11 @@ import {
   Tab,
   Box,
   Dialog,
-  DialogContent
+  DialogContent,
+  Tooltip,
+  Link
 } from "@mui/material";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CloseButton from "../../buttons/CloseButton";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
@@ -19,6 +22,7 @@ import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface HelpItem {
   text: string;
@@ -64,10 +68,16 @@ const helpStyles = (theme: Theme) =>
       height: "calc(100% - 40px)",
       padding: "0 1em 2em 1em"
     },
+    ".tabs-row": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      margin: "0 1em 1em 1em"
+    },
     ".help-tabs": {
-      margin: "0 1em 1em 1em",
       paddingTop: "0",
       lineHeight: "1.5",
+      flex: 1,
       "& .MuiTabs-indicator": {
         backgroundColor: "var(--palette-primary-main)",
         height: "3px",
@@ -90,6 +100,39 @@ const helpStyles = (theme: Theme) =>
         paddingLeft: "0",
         marginRight: "0.5em",
         minWidth: "unset"
+      }
+    },
+    ".docs-button": {
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      color: theme.vars.palette.secondary.contrastText,
+      backgroundColor: theme.vars.palette.secondary.main,
+      textDecoration: "none",
+      fontSize: "0.85rem",
+      fontWeight: 500,
+      padding: "8px 14px",
+      borderRadius: "8px",
+      transition: "all 0.2s ease",
+      flexShrink: 0,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.secondary.light,
+        borderColor: theme.vars.palette.primary.main,
+        textDecoration: "none"
+      },
+      ".docs-button-text": {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        textTransform: "uppercase",
+        fontSize: theme.vars.fontSizeSmall,
+        fontFamily: theme.vars.fontFamily2,
+        lineHeight: 1.0,
+        fontWeight: 600,
+      },
+      "& svg": {
+        fontSize: "2rem",
+        // color: theme.vars.palette.primary.main
       }
     },
     ".tabpanel": {
@@ -235,16 +278,34 @@ const Help = ({
               <Typography variant="h2">Help</Typography>
               <CloseButton onClick={handleClose} />
             </div>
-            <Tabs
-              className="help-tabs"
-              value={helpIndex}
-              onChange={handleChange}
-              aria-label="help tabs"
-            >
-              <Tab label="Shortcuts" id="help-tab-0" />
-              <Tab label="Keyboard" id="help-tab-1" />
-              <Tab label="DataTypes" id="help-tab-2" />
-            </Tabs>
+            <div className="tabs-row">
+              <Tabs
+                className="help-tabs"
+                value={helpIndex}
+                onChange={handleChange}
+                aria-label="help tabs"
+              >
+                <Tab label="Shortcuts" id="help-tab-0" />
+                <Tab label="Keyboard" id="help-tab-1" />
+                <Tab label="DataTypes" id="help-tab-2" />
+              </Tabs>
+              <Tooltip title="Open Nodetool Documentation Website" placement="bottom"
+              enterDelay={TOOLTIP_ENTER_DELAY}
+               >
+              <Link
+                href="https://docs.nodetool.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="docs-button"
+              >
+                <div className="docs-button-text">
+                  <span>Nodetool</span>
+                  <span>Docs</span>
+                </div>
+                <OpenInNewIcon />
+              </Link>
+              </Tooltip>
+            </div>
             <div className="content">
               <TabPanel value={helpIndex} index={0}>
                 <ControlsShortcutsTab />
