@@ -14,10 +14,13 @@ import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
+import SpeedIcon from "@mui/icons-material/Speed";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
 interface ViewportStatusIndicatorProps {
   visible?: boolean;
+  showProfiler?: boolean;
+  onToggleProfiler?: () => void;
 }
 
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2] as const;
@@ -27,7 +30,9 @@ const ZOOM_CHANGE_THRESHOLD = 0.001;
 type ZoomPreset = (typeof ZOOM_PRESETS)[number];
 
 const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
-  visible = true
+  visible = true,
+  showProfiler = false,
+  onToggleProfiler
 }) => {
   const theme = useTheme();
   const { zoom } = useViewport();
@@ -243,6 +248,46 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
             <CenterFocusStrongIcon sx={{ fontSize: "1rem" }} />
           </IconButton>
         </Tooltip>
+
+        {onToggleProfiler && (
+          <>
+            <Box
+              sx={{
+                width: "1px",
+                height: "16px",
+                backgroundColor: theme.vars.palette.divider,
+                mx: 0.5
+              }}
+            />
+            <Tooltip
+              title={getShortcutTooltip("profileWorkflow") || "Open Workflow Profiler"}
+              placement="top"
+              arrow
+            >
+              <IconButton
+                onClick={onToggleProfiler}
+                size="small"
+                sx={{
+                  padding: "2px",
+                  color: showProfiler
+                    ? theme.palette.primary.main
+                    : theme.vars.palette.text.secondary,
+                  backgroundColor: showProfiler
+                    ? theme.vars.palette.action.selected
+                    : "transparent",
+                  "&:hover": {
+                    backgroundColor: showProfiler
+                      ? theme.vars.palette.action.selected
+                      : theme.vars.palette.action.hover,
+                    color: theme.palette.primary.main
+                  }
+                }}
+              >
+                <SpeedIcon sx={{ fontSize: "1rem" }} />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
       </Box>
 
       <Popover

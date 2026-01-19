@@ -58,6 +58,8 @@ const fitViewOptions = {
 interface ReactFlowWrapperProps {
   workflowId: string;
   active: boolean;
+  showProfiler?: boolean;
+  onToggleProfiler?: () => void;
 }
 
 
@@ -67,7 +69,9 @@ import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
-  active
+  active,
+  showProfiler,
+  onToggleProfiler
 }) => {
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
@@ -544,7 +548,10 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         />
       )}
       <MiniMapNavigator />
-      <ViewportStatusIndicator />
+      <ViewportStatusIndicator
+        showProfiler={showProfiler}
+        onToggleProfiler={onToggleProfiler}
+      />
     </div>
   );
 };

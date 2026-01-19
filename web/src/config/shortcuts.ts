@@ -466,6 +466,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show/hide node information panel",
     registerCombo: true
   },
+  {
+    title: "Workflow Profiler",
+    slug: "profileWorkflow",
+    keyCombo: ["Control", "P"],
+    category: "editor",
+    description: "Show/hide workflow performance profiler",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {

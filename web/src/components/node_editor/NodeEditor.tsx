@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useRef } from "react";
+import { memo, useState, useRef, useCallback } from 'react';
 import {
   Box,
   CircularProgress,
@@ -10,42 +10,43 @@ import {
   DialogActions,
   Button,
   TextField
-} from "@mui/material";
+} from '@mui/material';
 // store
-import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useNodeMenuStore from '../../stores/NodeMenuStore';
 //css
-import "../../styles/base.css";
-import "../../styles/nodes.css";
-import "../../styles/properties.css";
-import "../../styles/interactions.css";
-import "../../styles/special_nodes.css";
-import "../../styles/handle_edge_tooltip.css";
+import '../../styles/base.css';
+import '../../styles/nodes.css';
+import '../../styles/properties.css';
+import '../../styles/interactions.css';
+import '../../styles/special_nodes.css';
+import '../../styles/handle_edge_tooltip.css';
 // import "../../styles/collapsed.css";
 
 //hooks
-import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { useAssetUpload } from '../../serverState/useAssetUpload';
 // constants
-import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
-import isEqual from "lodash/isEqual";
-import { shallow } from "zustand/shallow";
-import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useTemporalNodes } from "../../contexts/NodeContext";
-import NodeMenu from "../node_menu/NodeMenu";
-import RunAsAppFab from "./RunAsAppFab";
-import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
-import { useTheme } from "@mui/material/styles";
-import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
-import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
-import CommandMenu from "../menus/CommandMenu";
-import { useCombo } from "../../stores/KeyPressedStore";
-import { isMac } from "../../utils/platform";
-import { EditorUiProvider } from "../editor_ui";
-import type React from "react";
-import FindInWorkflowDialog from "./FindInWorkflowDialog";
-import SelectionActionToolbar from "./SelectionActionToolbar";
-import NodeInfoPanel from "./NodeInfoPanel";
-import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
-import { useNodes } from "../../contexts/NodeContext";
+import DraggableNodeDocumentation from '../content/Help/DraggableNodeDocumentation';
+import isEqual from 'lodash/isEqual';
+import { shallow } from 'zustand/shallow';
+import ReactFlowWrapper from '../node/ReactFlowWrapper';
+import { useTemporalNodes } from '../../contexts/NodeContext';
+import NodeMenu from '../node_menu/NodeMenu';
+import RunAsAppFab from './RunAsAppFab';
+import { useNodeEditorShortcuts } from '../../hooks/useNodeEditorShortcuts';
+import { useTheme } from '@mui/material/styles';
+import KeyboardShortcutsView from '../content/Help/KeyboardShortcutsView';
+import { NODE_EDITOR_SHORTCUTS } from '../../config/shortcuts';
+import CommandMenu from '../menus/CommandMenu';
+import { useCombo } from '../../stores/KeyPressedStore';
+import { isMac } from '../../utils/platform';
+import { EditorUiProvider } from '../editor_ui';
+import type React from 'react';
+import FindInWorkflowDialog from './FindInWorkflowDialog';
+import SelectionActionToolbar from './SelectionActionToolbar';
+import NodeInfoPanel from './NodeInfoPanel';
+import WorkflowProfiler from './WorkflowProfiler';
+import { useInspectedNodeStore } from '../../stores/InspectedNodeStore';
+import { useNodes } from '../../contexts/NodeContext';
 
 declare global {
   interface Window {
@@ -65,6 +66,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [showProfiler, setShowProfiler] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -103,6 +105,23 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     true,
     active
   );
+
+  // Keyboard shortcut for Workflow Profiler (Ctrl+P / Meta+P)
+  const profilerCombo = isMac() ? ["meta", "p"] : ["control", "p"];
+  useCombo(
+    profilerCombo,
+    () => {
+      if (active) {
+        setShowProfiler((v) => !v);
+      }
+    },
+    true,
+    active
+  );
+
+  const handleFocusNode = useCallback((nodeId: string) => {
+    useInspectedNodeStore.getState().setInspectedNodeId(nodeId);
+  }, []);
 
   // OPEN NODE MENU
   const {
@@ -155,7 +174,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <CircularProgress /> Uploading assets...
             </div>
           )}
-          <ReactFlowWrapper workflowId={workflowId} active={active} />
+           <ReactFlowWrapper
+             workflowId={workflowId}
+             active={active}
+             showProfiler={showProfiler}
+             onToggleProfiler={() => setShowProfiler((v) => !v)}
+           />
           {active && (
             <>
               <RunAsAppFab workflowId={workflowId} />
@@ -163,6 +187,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 visible={selectedNodes.length >= 2}
               />
               <NodeInfoPanel />
+              {showProfiler && (
+                <WorkflowProfiler
+                  onClose={() => setShowProfiler(false)}
+                  onFocusNode={handleFocusNode}
+                />
+              )}
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}

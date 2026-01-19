@@ -484,7 +484,12 @@ _No entries yet - this memory system is new as of 2026-01-10_
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.
 
-**Impact**: Reduced unnecessary re-renders in auth-related components by ensuring they only update when their specific state changes. Improved TypeScript type safety by using proper error handling with AppError type guards.
+### Workflow Profiler (2026-01-19)
+**What**: Added Workflow Profiler - analyzes workflow performance with execution time estimates, parallelization detection, and bottleneck identification. Toggle via Ctrl+P / Meta+P or speed icon in viewport toolbar.
+
+**Files**: `WorkflowProfilerStore.ts`, `WorkflowProfiler.tsx`, `ViewportStatusIndicator.tsx`, `NodeEditor.tsx`, `shortcuts.ts`
+
+**Impact**: Users can now profile workflows before execution to understand potential performance characteristics.
 
 ---
 
