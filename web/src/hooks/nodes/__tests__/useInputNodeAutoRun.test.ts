@@ -348,6 +348,15 @@ describe("useInputNodeAutoRun", () => {
       complexNodes.find((n) => n.id === id)
     );
 
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: complexNodes,
+        edges: complexEdges,
+        workflow: defaultMockWorkflow,
+        findNode: (id: string) => complexNodes.find((n) => n.id === id)
+      })
+    });
+
     // Subgraph from input-1 includes: input-1, downstream-1, downstream-2
     // But NOT external-1
     mockSubgraph.mockReturnValue({
@@ -454,6 +463,15 @@ describe("useInputNodeAutoRun", () => {
       multiExternalNodes.find((n) => n.id === id)
     );
 
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: multiExternalNodes,
+        edges: multiExternalEdges,
+        workflow: defaultMockWorkflow,
+        findNode: (id: string) => multiExternalNodes.find((n) => n.id === id)
+      })
+    });
+
     // Subgraph from input-1: input-1, downstream-1, downstream-2
     mockSubgraph.mockReturnValue({
       nodes: [multiExternalNodes[2], multiExternalNodes[3], multiExternalNodes[4]],
@@ -553,6 +571,15 @@ describe("useInputNodeAutoRun", () => {
     mockFindNode.mockImplementation((id: string) =>
       nodesWithLiterals.find((n) => n.id === id)
     );
+
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: nodesWithLiterals,
+        edges: literalEdges,
+        workflow: defaultMockWorkflow,
+        findNode: (id: string) => nodesWithLiterals.find((n) => n.id === id)
+      })
+    });
 
     mockSubgraph.mockReturnValue({
       nodes: [nodesWithLiterals[0], nodesWithLiterals[3]],
