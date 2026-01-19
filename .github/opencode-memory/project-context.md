@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Audit & TypeScript Fix (2026-01-19)
+
+**What**: Completed performance audit confirming app is well-optimized. Fixed TypeScript errors in FavoriteWorkflowsStore.test.ts (removed non-existent `.actions` references).
+
+**Files**: web/src/stores/__tests__/FavoriteWorkflowsStore.test.ts, mobile/package.json, mobile/package-lock.json
+
+**Impact**: All type checks pass. Performance verified: all large components memoized, selective Zustand subscriptions, proper event listener cleanup, virtualized lists.
+
+---
+
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
