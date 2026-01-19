@@ -188,9 +188,11 @@ const WorkflowList = () => {
   }, [onDeselect]);
 
   const navigate = useNavigate();
-  const { copyWorkflow, createWorkflow } = useWorkflowManager((state) => ({
+  const { copyWorkflow, createWorkflow, updateWorkflow, getWorkflow } = useWorkflowManager((state) => ({
     copyWorkflow: state.copy,
-    createWorkflow: state.create
+    createWorkflow: state.create,
+    updateWorkflow: state.updateWorkflow,
+    getWorkflow: state.getWorkflow
   }));
 
 
@@ -250,11 +252,16 @@ const WorkflowList = () => {
             )
           };
         });
+        // Also update the workflow manager if this workflow is open (updates tabs)
+        const openWorkflow = getWorkflow(workflow.id);
+        if (openWorkflow) {
+          updateWorkflow({ ...openWorkflow, name: newName });
+        }
       } catch (err) {
         console.error("Failed to rename workflow:", err);
       }
     },
-    [queryClient]
+    [queryClient, getWorkflow, updateWorkflow]
   );
 
   const handleToggleFavorites = useCallback(() => {
