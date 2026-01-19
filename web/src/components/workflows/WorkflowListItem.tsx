@@ -49,7 +49,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const showGraphPreview = useShowGraphPreview();
   const isFavorite = useIsWorkflowFavorite(workflow.id);
   const { toggleFavorite } = useFavoriteWorkflowActions();
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -146,11 +146,11 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const tooltipContent = useMemo(() => {
     const hasDescription = workflow.description && workflow.description.trim().length > 0;
     const hasTags = workflow.tags && workflow.tags.length > 0;
-    
+
     if (!hasDescription && !hasTags) {
       return null;
     }
-    
+
     return (
       <Box sx={{ maxWidth: 300 }}>
         <Typography sx={{ fontSize: "var(--fontSizeNormal)", fontWeight: 500, mb: 0.5 }}>
@@ -158,7 +158,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         </Typography>
         {hasDescription && (
           <Typography
-          sx={{ fontSize: "var(--fontSizeSmall)",color: "grey.200", mb: hasTags ? 0.5 : 0 }}>
+            sx={{ fontSize: "var(--fontSizeSmall)", color: "grey.200", mb: hasTags ? 0.5 : 0 }}>
             {workflow.description}
           </Typography>
         )}
@@ -242,7 +242,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             }}
           />
         ) : (
-          <Typography 
+          <Typography
             className="name"
             onDoubleClick={handleNameDoubleClick}
             title="Double-click to rename"
@@ -257,7 +257,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             variant="contained"
             onClick={handleOpen}
             title="Open workflow"
-            sx={{ 
+            sx={{
               padding: "2px 10px",
               minWidth: "unset",
               fontSize: "0.7rem",
@@ -298,9 +298,9 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
 
   if (tooltipContent) {
     return (
-      <Tooltip 
-        title={tooltipContent} 
-        placement="right" 
+      <Tooltip
+        title={tooltipContent}
+        placement="right"
         arrow
         enterDelay={500}
         enterNextDelay={500}

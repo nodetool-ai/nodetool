@@ -17,7 +17,7 @@ import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
 import isEqual from "lodash/isEqual";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
@@ -135,7 +135,7 @@ const WorkflowList = () => {
   const favoriteWorkflowIds = useFavoriteWorkflowIds();
 
   const workflows = useMemo(() => {
-    if (!data?.workflows) {return [];}
+    if (!data?.workflows) { return []; }
     let filtered = data.workflows;
 
     if (filterValue !== "") {
@@ -188,6 +188,7 @@ const WorkflowList = () => {
   }, [onDeselect]);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { copyWorkflow, createWorkflow, updateWorkflow, getWorkflow } = useWorkflowManager((state) => ({
     copyWorkflow: state.copy,
     createWorkflow: state.create,
@@ -198,10 +199,16 @@ const WorkflowList = () => {
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
-      navigate("/editor/" + workflow.id);
-      usePanelStore.getState().setVisibility(false);
+      console.log("handleOpenWorkflow", workflow, location.pathname);
+      if (location.pathname.startsWith("/apps/")) {
+        navigate("/apps/" + workflow.id);
+        usePanelStore.getState().setVisibility(false);
+      } else {
+        navigate("/editor/" + workflow.id);
+        usePanelStore.getState().setVisibility(false);
+      }
     },
-    [navigate]
+    [navigate, location.pathname]
   );
 
   const duplicateWorkflow = useCallback(
@@ -244,7 +251,7 @@ const WorkflowList = () => {
         });
         // Update the cache optimistically
         queryClient.setQueryData<WorkflowListType>(["workflows"], (old) => {
-          if (!old) {return old;}
+          if (!old) { return old; }
           return {
             ...old,
             workflows: old.workflows.map((w) =>

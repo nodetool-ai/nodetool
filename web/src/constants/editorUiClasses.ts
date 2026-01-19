@@ -25,5 +25,3 @@ export const editorUiClasses = {
   scopeNode: "nt-editor-scope-node",
   scopeInspector: "nt-editor-scope-inspector"
 } as const;
-
-
