@@ -2196,3 +2196,130 @@ body::before {
   height: 0;
 }
 
+/* Kie.ai Promotion Styles */
+.boot-panel-installing {
+  max-width: 720px;
+}
+
+.kie-promotion {
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.08) 0%,
+    rgba(59, 130, 246, 0.08) 100%
+  );
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
+  text-align: left;
+  animation: fadeInUp 0.5s ease-out;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kie-promotion-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.kie-promotion-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--c_text_primary);
+}
+
+.kie-promotion-icon {
+  font-size: 24px;
+}
+
+.kie-promotion-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kie-promotion-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c_accent);
+}
+
+.kie-promotion-description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--c_text_secondary);
+}
+
+.kie-promotion-description strong {
+  color: var(--c_text_primary);
+  font-weight: 600;
+}
+
+.kie-features {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.kie-features li {
+  font-size: 13px;
+  color: var(--c_text_secondary);
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.kie-cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.kie-cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+  background: linear-gradient(135deg, #9f75f8 0%, #7c7ff5 100%);
+}
+
+.kie-cta-button:active {
+  transform: translateY(0);
+}
+
+.kie-disclaimer {
+  margin: 12px 0 0 0;
+  font-size: 12px;
+  color: var(--c_text_tertiary);
+  font-style: italic;
+  text-align: center;
+}
+
