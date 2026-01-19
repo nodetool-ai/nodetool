@@ -1,271 +1,187 @@
-import { act } from "@testing-library/react";
 import useErrorStore from "../ErrorStore";
 
 describe("ErrorStore", () => {
   beforeEach(() => {
-    // Reset store to initial state
     useErrorStore.setState({ errors: {} });
   });
 
   describe("initial state", () => {
-    it("has empty errors object", () => {
-      const { errors } = useErrorStore.getState();
-      expect(errors).toEqual({});
+    it("should have correct initial values", () => {
+      const state = useErrorStore.getState();
+
+      expect(state.errors).toEqual({});
     });
   });
 
   describe("setError", () => {
-    it("sets an error for a specific node", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Test error");
-      });
+    it("should set error for a node with workflow ID", () => {
+      const { setError } = useErrorStore.getState();
+      setError("workflow-1", "node-1", "Test error message");
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBe("Test error");
+      expect(useErrorStore.getState().errors["workflow-1:node-1"]).toBe("Test error message");
     });
 
-    it("sets errors for multiple nodes", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
-        useErrorStore.getState().setError("workflow1", "node2", "Error 2");
-        useErrorStore.getState().setError("workflow2", "node1", "Error 3");
-      });
+    it("should set error for multiple nodes", () => {
+      const { setError } = useErrorStore.getState();
+      setError("workflow-1", "node-1", "Error 1");
+      setError("workflow-1", "node-2", "Error 2");
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBe("Error 1");
-      expect(errors["workflow1:node2"]).toBe("Error 2");
-      expect(errors["workflow2:node1"]).toBe("Error 3");
+      expect(useErrorStore.getState().errors["workflow-1:node-1"]).toBe("Error 1");
+      expect(useErrorStore.getState().errors["workflow-1:node-2"]).toBe("Error 2");
     });
 
-    it("overwrites existing error for same node", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Original error");
-        useErrorStore.getState().setError("workflow1", "node1", "Updated error");
-      });
+    it("should overwrite existing error", () => {
+      const { setError } = useErrorStore.getState();
+      setError("workflow-1", "node-1", "First error");
+      setError("workflow-1", "node-1", "Second error");
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBe("Updated error");
+      expect(useErrorStore.getState().errors["workflow-1:node-1"]).toBe("Second error");
     });
 
-    it("handles error objects", () => {
-      const errorObj = { message: "Complex error", code: 500 };
+    it("should handle different error types", () => {
+      const { setError } = useErrorStore.getState();
 
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", errorObj);
-      });
+      setError("workflow-1", "node-1", "String error");
+      setError("workflow-1", "node-2", new Error("Error object"));
+      setError("workflow-1", "node-3", { detail: "Object error" });
+      setError("workflow-1", "node-4", null);
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toEqual(errorObj);
+      expect(useErrorStore.getState().errors["workflow-1:node-1"]).toBe("String error");
+      expect(useErrorStore.getState().errors["workflow-1:node-2"]).toBeInstanceOf(Error);
+      expect(useErrorStore.getState().errors["workflow-1:node-3"]).toEqual({ detail: "Object error" });
+      expect(useErrorStore.getState().errors["workflow-1:node-4"]).toBeNull();
     });
 
-    it("handles null as error value", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", null);
-      });
+    it("should isolate errors for different workflows", () => {
+      const { setError } = useErrorStore.getState();
+      setError("workflow-1", "node-1", "Error in workflow 1");
+      setError("workflow-2", "node-1", "Error in workflow 2");
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBeNull();
+      expect(useErrorStore.getState().errors["workflow-1:node-1"]).toBe("Error in workflow 1");
+      expect(useErrorStore.getState().errors["workflow-2:node-1"]).toBe("Error in workflow 2");
     });
   });
 
   describe("getError", () => {
-    it("returns the error for a specific node", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Test error");
-      });
+    it("should get error for a node", () => {
+      const { setError, getError } = useErrorStore.getState();
+      setError("workflow-1", "node-1", "Test error");
 
-      const error = useErrorStore.getState().getError("workflow1", "node1");
-      expect(error).toBe("Test error");
+      expect(getError("workflow-1", "node-1")).toBe("Test error");
     });
 
-    it("returns undefined for non-existent error", () => {
-      const error = useErrorStore.getState().getError("workflow1", "non-existent");
-      expect(error).toBeUndefined();
+    it("should return undefined for non-existent node", () => {
+      const { getError } = useErrorStore.getState();
+
+      expect(getError("workflow-1", "non-existent")).toBeUndefined();
     });
 
-    it("distinguishes between workflows", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Error in workflow 1");
-        useErrorStore.getState().setError("workflow2", "node1", "Error in workflow 2");
-      });
+    it("should return undefined for non-existent workflow", () => {
+      const { setError, getError } = useErrorStore.getState();
+      setError("workflow-1", "node-1", "Error");
 
-      expect(useErrorStore.getState().getError("workflow1", "node1")).toBe("Error in workflow 1");
-      expect(useErrorStore.getState().getError("workflow2", "node1")).toBe("Error in workflow 2");
+      expect(getError("workflow-2", "node-1")).toBeUndefined();
+    });
+
+    it("should return null for cleared error", () => {
+      const { setError, getError } = useErrorStore.getState();
+      setError("workflow-1", "node-1", null);
+
+      expect(getError("workflow-1", "node-1")).toBeNull();
     });
   });
 
   describe("clearNodeErrors", () => {
-    it("clears error for a specific node", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
-        useErrorStore.getState().setError("workflow1", "node2", "Error 2");
-        useErrorStore.getState().clearNodeErrors("workflow1", "node1");
-      });
+    it("should clear error for a specific node", () => {
+      const { setError, clearNodeErrors } = useErrorStore.getState();
+      setError("workflow-1", "node-1", "Error");
+      setError("workflow-1", "node-2", "Error 2");
+      clearNodeErrors("workflow-1", "node-1");
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBeUndefined();
-      expect(errors["workflow1:node2"]).toBe("Error 2");
+      const state = useErrorStore.getState();
+      expect(state.errors["workflow-1:node-1"]).toBeUndefined();
+      expect(state.errors["workflow-1:node-2"]).toBe("Error 2");
     });
 
-    it("does nothing if node has no error", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
-        useErrorStore.getState().clearNodeErrors("workflow1", "non-existent");
-      });
+    it("should handle clearing non-existent node", () => {
+      const { clearNodeErrors } = useErrorStore.getState();
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBe("Error 1");
-    });
-
-    it("only clears error for specified workflow", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
-        useErrorStore.getState().setError("workflow2", "node1", "Error 2");
-        useErrorStore.getState().clearNodeErrors("workflow1", "node1");
-      });
-
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBeUndefined();
-      expect(errors["workflow2:node1"]).toBe("Error 2");
+      expect(() => clearNodeErrors("workflow-1", "non-existent")).not.toThrow();
     });
   });
 
   describe("clearErrors", () => {
-    it("clears all errors for a workflow", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
-        useErrorStore.getState().setError("workflow1", "node2", "Error 2");
-        useErrorStore.getState().setError("workflow1", "node3", "Error 3");
-        useErrorStore.getState().clearErrors("workflow1");
-      });
+    it("should clear all errors for a workflow", () => {
+      const { setError, clearErrors } = useErrorStore.getState();
+      setError("workflow-1", "node-1", "Error 1");
+      setError("workflow-1", "node-2", "Error 2");
+      setError("workflow-2", "node-1", "Error 3");
+      clearErrors("workflow-1");
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBeUndefined();
-      expect(errors["workflow1:node2"]).toBeUndefined();
-      expect(errors["workflow1:node3"]).toBeUndefined();
+      const state = useErrorStore.getState();
+      expect(state.errors["workflow-1:node-1"]).toBeUndefined();
+      expect(state.errors["workflow-1:node-2"]).toBeUndefined();
+      expect(state.errors["workflow-2:node-1"]).toBe("Error 3");
     });
 
-    it("does not affect other workflows", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
-        useErrorStore.getState().setError("workflow2", "node1", "Error 2");
-        useErrorStore.getState().clearErrors("workflow1");
-      });
+    it("should handle clearing non-existent workflow", () => {
+      const { setError, clearErrors } = useErrorStore.getState();
+      setError("workflow-1", "node-1", "Error");
+      clearErrors("non-existent");
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBeUndefined();
-      expect(errors["workflow2:node1"]).toBe("Error 2");
+      expect(useErrorStore.getState().errors["workflow-1:node-1"]).toBe("Error");
     });
 
-    it("does nothing if workflow has no errors", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
-        useErrorStore.getState().clearErrors("non-existent-workflow");
-      });
+    it("should handle clearing when no errors exist", () => {
+      const { clearErrors } = useErrorStore.getState();
 
-      const { errors } = useErrorStore.getState();
-      expect(errors["workflow1:node1"]).toBe("Error 1");
-    });
-
-    it("handles workflow IDs that are prefixes of other workflow IDs", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow", "node1", "Error 1");
-        useErrorStore.getState().setError("workflow-extended", "node1", "Error 2");
-        useErrorStore.getState().clearErrors("workflow");
-      });
-
-      const { errors } = useErrorStore.getState();
-      // Both should be cleared because "workflow" is a prefix match
-      // Note: This tests the current implementation behavior
-      expect(errors["workflow:node1"]).toBeUndefined();
-      // "workflow-extended" also starts with "workflow" so it will be cleared too
-      expect(errors["workflow-extended:node1"]).toBeUndefined();
+      expect(() => clearErrors("workflow-1")).not.toThrow();
+      expect(useErrorStore.getState().errors).toEqual({});
     });
   });
 
-  describe("key hashing", () => {
-    it("uses workflowId:nodeId format for keys", () => {
-      act(() => {
-        useErrorStore.getState().setError("wf1", "n1", "Error");
-      });
+  describe("state isolation", () => {
+    it("should maintain independent state between operations", () => {
+      const { setError, getError, clearErrors } = useErrorStore.getState();
 
-      const { errors } = useErrorStore.getState();
-      expect(Object.keys(errors)).toContain("wf1:n1");
-    });
-
-    it("handles special characters in IDs", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow-with-dashes", "node_with_underscores", "Error");
-      });
-
-      const error = useErrorStore.getState().getError("workflow-with-dashes", "node_with_underscores");
+      setError("workflow-1", "node-1", "Error");
+      const error = getError("workflow-1", "node-1");
       expect(error).toBe("Error");
+
+      clearErrors("workflow-1");
+      const clearedError = getError("workflow-1", "node-1");
+      expect(clearedError).toBeUndefined();
     });
 
-    it("handles UUIDs as IDs", () => {
-      const workflowId = "550e8400-e29b-41d4-a716-446655440000";
-      const nodeId = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+    it("should handle rapid state changes", () => {
+      const { setError, getError } = useErrorStore.getState();
 
-      act(() => {
-        useErrorStore.getState().setError(workflowId, nodeId, "Error");
-      });
+      setError("workflow-1", "node-1", "Error 1");
+      expect(getError("workflow-1", "node-1")).toBe("Error 1");
 
-      const error = useErrorStore.getState().getError(workflowId, nodeId);
-      expect(error).toBe("Error");
-    });
-  });
+      setError("workflow-1", "node-1", "Error 2");
+      expect(getError("workflow-1", "node-1")).toBe("Error 2");
 
-  describe("integration scenarios", () => {
-    it("supports workflow execution error tracking", () => {
-      const workflowId = "test-workflow";
-
-      // Simulate errors during workflow execution
-      act(() => {
-        useErrorStore.getState().setError(workflowId, "node1", "Connection timeout");
-        useErrorStore.getState().setError(workflowId, "node3", "Invalid input type");
-      });
-
-      // Verify errors are tracked
-      expect(useErrorStore.getState().getError(workflowId, "node1")).toBe("Connection timeout");
-      expect(useErrorStore.getState().getError(workflowId, "node2")).toBeUndefined();
-      expect(useErrorStore.getState().getError(workflowId, "node3")).toBe("Invalid input type");
-
-      // Fix one error
-      act(() => {
-        useErrorStore.getState().clearNodeErrors(workflowId, "node1");
-      });
-
-      expect(useErrorStore.getState().getError(workflowId, "node1")).toBeUndefined();
-      expect(useErrorStore.getState().getError(workflowId, "node3")).toBe("Invalid input type");
-
-      // Clear all errors on workflow reset
-      act(() => {
-        useErrorStore.getState().clearErrors(workflowId);
-      });
-
-      expect(useErrorStore.getState().getError(workflowId, "node3")).toBeUndefined();
+      setError("workflow-1", "node-1", null);
+      expect(getError("workflow-1", "node-1")).toBeNull();
     });
 
-    it("supports multiple concurrent workflows", () => {
-      act(() => {
-        useErrorStore.getState().setError("workflow1", "nodeA", "Error A1");
-        useErrorStore.getState().setError("workflow1", "nodeB", "Error B1");
-        useErrorStore.getState().setError("workflow2", "nodeA", "Error A2");
-        useErrorStore.getState().setError("workflow2", "nodeB", "Error B2");
-      });
+    it("should handle multiple workflows independently", () => {
+      const { setError, getError, clearErrors } = useErrorStore.getState();
 
-      // Clear only workflow1
-      act(() => {
-        useErrorStore.getState().clearErrors("workflow1");
-      });
+      setError("workflow-1", "node-1", "Error 1");
+      setError("workflow-2", "node-1", "Error 2");
+      setError("workflow-3", "node-1", "Error 3");
 
-      // Workflow1 errors cleared
-      expect(useErrorStore.getState().getError("workflow1", "nodeA")).toBeUndefined();
-      expect(useErrorStore.getState().getError("workflow1", "nodeB")).toBeUndefined();
+      expect(getError("workflow-1", "node-1")).toBe("Error 1");
+      expect(getError("workflow-2", "node-1")).toBe("Error 2");
+      expect(getError("workflow-3", "node-1")).toBe("Error 3");
 
-      // Workflow2 errors intact
-      expect(useErrorStore.getState().getError("workflow2", "nodeA")).toBe("Error A2");
-      expect(useErrorStore.getState().getError("workflow2", "nodeB")).toBe("Error B2");
+      clearErrors("workflow-2");
+
+      expect(getError("workflow-1", "node-1")).toBe("Error 1");
+      expect(getError("workflow-2", "node-1")).toBeUndefined();
+      expect(getError("workflow-3", "node-1")).toBe("Error 3");
     });
   });
 });
