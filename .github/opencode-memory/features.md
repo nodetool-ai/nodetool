@@ -12,6 +12,8 @@ Last updated: 2026-01-17
 
 - **Node Resize Min Width**: Increased minimum node width from 100px to 200px for better UX
 
+- **Workflow Performance Profiler (Experimental)**: Real-time workflow performance profiling with bottleneck detection, execution timeline visualization, and optimization suggestions
+
 ---
 
 - **Improved Workspace Error Messages**: Better user-friendly error and empty state messages in workspace explorer with helpful guidance
@@ -285,12 +287,10 @@ Last updated: 2026-01-17
 - **Offline Mode**: Full offline workflow editing and execution
 - **Collaborative Editing**: Real-time multi-user editing
 - **Workflow Versioning UI**: Visual diff and merge for workflow versions
-- **Advanced Analytics**: Workflow performance analytics and profiling
 - **Plugin System**: Third-party plugin architecture
 - **Custom Node Types**: User-defined custom node types via UI
 - **Workflow Marketplace**: Share and discover community workflows
 - **Integration Testing E2E**: More comprehensive E2E test coverage
-- **Performance Profiling UI**: Built-in performance profiling tools
 
 ---
 
