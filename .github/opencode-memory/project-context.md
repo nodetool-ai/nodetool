@@ -84,23 +84,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### useInputNodeAutoRun Tests Fix (2026-01-19)
+### Handler Memoization - Welcome & AppToolbar (2026-01-19)
 
-**What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
+**What**: Memoized 6 navigation handlers in Welcome.tsx and fixed inline arrow function in AppToolbar.tsx to prevent unnecessary re-renders.
 
-**Files**: web/src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
+**Files**: web/src/components/content/Welcome/Welcome.tsx, web/src/components/panels/AppToolbar.tsx
 
-**Impact**: All 15 tests now pass, type checking and linting pass.
-
----
-
-### FavoriteWorkflowsStore Test Fix (2026-01-19)
-
-**What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
-
-**Files**: web/src/stores/__tests__/FavoriteWorkflowsStore.test.ts
-
-**Impact**: All 9 tests now pass, type checking passes.
+**Impact**: Stable navigation handlers improve welcome page responsiveness and workflow control efficiency.
 
 ---
 
