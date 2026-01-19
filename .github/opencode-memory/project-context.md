@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Vulnerability Fixes (2026-01-19)
+
+**What**: Fixed glob command injection (GHSA-5j98-mcp5-4vw2) and tar arbitrary file overwrite (GHSA-8qq5-rm4j-mr97) by adding npm overrides.
+
+**Files**: web/package.json, electron/package.json, mobile/package.json
+
+**Impact**: All high severity vulnerabilities fixed. Web: 0 high, Electron: 0 high, Mobile: 2 high remain (unfixable in react-native-syntax-highlighter).
+
+---
+
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
