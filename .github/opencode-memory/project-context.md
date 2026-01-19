@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Frequently Used Nodes (2026-01-19)
+
+**What**: Added frequently used nodes feature that tracks node usage frequency and displays most-used nodes in NodeMenu with keyboard shortcuts (Alt+1 through Alt+8).
+
+**Files**: web/src/stores/FrequentlyUsedNodesStore.ts, web/src/components/node_menu/FrequentlyUsedTiles.tsx, web/src/hooks/useCreateNode.ts, web/src/hooks/useNodeEditorShortcuts.ts, web/src/config/shortcuts.ts, web/src/components/node_menu/NamespaceList.tsx
+
+---
+
 ### useInputNodeAutoRun Tests Fix (2026-01-19)
 
 **What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.

@@ -750,6 +750,72 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+
+  // ---------- FREQUENTLY USED NODES ------------------------------------
+  {
+    title: "Add Frequently Used 1",
+    slug: "addFrequent1",
+    keyCombo: ["Alt", "1"],
+    category: "editor" as const,
+    description: "Add 1st most frequently used node",
+    registerCombo: false
+  },
+  {
+    title: "Add Frequently Used 2",
+    slug: "addFrequent2",
+    keyCombo: ["Alt", "2"],
+    category: "editor" as const,
+    description: "Add 2nd most frequently used node",
+    registerCombo: false
+  },
+  {
+    title: "Add Frequently Used 3",
+    slug: "addFrequent3",
+    keyCombo: ["Alt", "3"],
+    category: "editor" as const,
+    description: "Add 3rd most frequently used node",
+    registerCombo: false
+  },
+  {
+    title: "Add Frequently Used 4",
+    slug: "addFrequent4",
+    keyCombo: ["Alt", "4"],
+    category: "editor" as const,
+    description: "Add 4th most frequently used node",
+    registerCombo: false
+  },
+  {
+    title: "Add Frequently Used 5",
+    slug: "addFrequent5",
+    keyCombo: ["Alt", "5"],
+    category: "editor" as const,
+    description: "Add 5th most frequently used node",
+    registerCombo: false
+  },
+  {
+    title: "Add Frequently Used 6",
+    slug: "addFrequent6",
+    keyCombo: ["Alt", "6"],
+    category: "editor" as const,
+    description: "Add 6th most frequently used node",
+    registerCombo: false
+  },
+  {
+    title: "Add Frequently Used 7",
+    slug: "addFrequent7",
+    keyCombo: ["Alt", "7"],
+    category: "editor" as const,
+    description: "Add 7th most frequently used node",
+    registerCombo: false
+  },
+  {
+    title: "Add Frequently Used 8",
+    slug: "addFrequent8",
+    keyCombo: ["Alt", "8"],
+    category: "editor" as const,
+    description: "Add 8th most frequently used node",
+    registerCombo: false
   }
 ] as Shortcut[];
 

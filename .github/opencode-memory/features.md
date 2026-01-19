@@ -46,6 +46,7 @@ Last updated: 2026-01-17
 - **Node Documentation**: Inline documentation for each node type
 - **Favorite Nodes**: Mark frequently used nodes as favorites
 - **Recent Nodes**: Track recently used nodes for quick access
+- **Frequently Used Nodes**: Automatically track usage frequency and display most-used nodes with keyboard shortcuts (Alt+1 through Alt+8)
 - **Node Groups**: Group related nodes together (Loop nodes)
 - **Connectable Nodes**: Visual indicators showing which nodes can connect
 

@@ -27,6 +27,8 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useFrequentlyUsedNodesStore } from "../stores/FrequentlyUsedNodesStore";
+import useMetadataStore from "../stores/MetadataStore";
 
 /**
  * Hook that registers and manages all keyboard shortcuts for the node editor.
@@ -425,6 +427,32 @@ export const useNodeEditorShortcuts = (
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
+  // Frequently used nodes handlers
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const createNode = useNodes((state) => state.createNode);
+  const addNode = useNodes((state) => state.addNode);
+  const frequentlyUsed = useFrequentlyUsedNodesStore(
+    (state) => state.getFrequentlyUsed()
+  );
+
+  const handleAddFrequentNode = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= frequentlyUsed.length) {
+        return;
+      }
+      const nodeType = frequentlyUsed[index].nodeType;
+      const metadata = getMetadata(nodeType);
+      if (!metadata) {
+        return;
+      }
+      const mousePos = getMousePosition();
+      const rfPos = reactFlow.screenToFlowPosition(mousePos);
+      const newNode = createNode(metadata, rfPos);
+      addNode(newNode);
+    },
+    [frequentlyUsed, getMetadata, createNode, addNode, reactFlow]
+  );
+
   // ========================================================================
   // DERIVED VALUES AND CONSTANTS - AFTER ALL HOOKS
   // ========================================================================
@@ -655,6 +683,20 @@ export const useNodeEditorShortcuts = (
     };
     // selectedNodes length affects active flags for align shortcuts
   }, [selectedNodes.length, electronDetails, shortcutMeta]);
+
+  // Frequently used node shortcuts (Alt+1 through Alt+8)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!active) { return; }
+      if (event.altKey && event.key >= "1" && event.key <= "8") {
+        event.preventDefault();
+        const index = parseInt(event.key, 10) - 1;
+        handleAddFrequentNode(index);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active, handleAddFrequentNode]);
 
   // Return dialog state and handlers for external use
   return {

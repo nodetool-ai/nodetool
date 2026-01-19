@@ -5,6 +5,7 @@ import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../contexts/NodeContext";
 import { useRecentNodesStore } from "../stores/RecentNodesStore";
+import { useFrequentlyUsedNodesStore } from "../stores/FrequentlyUsedNodesStore";
 
 /**
  * Custom hook for creating new nodes in the workflow editor.
@@ -43,6 +44,9 @@ export const useCreateNode = (
     createNode: state.createNode
   }));
   const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
+  const incrementUsage = useFrequentlyUsedNodesStore(
+    (state) => state.incrementUsage
+  );
 
   const handleCreateNode = useCallback(
     (metadata: NodeMetadata) => {
@@ -57,6 +61,9 @@ export const useCreateNode = (
       // Track this node as recently used
       addRecentNode(metadata.node_type);
 
+      // Track usage frequency for frequently used feature
+      incrementUsage(metadata.node_type);
+
       // Close the node menu after creating a node
       closeNodeMenu();
     },
@@ -67,6 +74,7 @@ export const useCreateNode = (
       createNode,
       addNode,
       addRecentNode,
+      incrementUsage,
       closeNodeMenu
     ]
   );
