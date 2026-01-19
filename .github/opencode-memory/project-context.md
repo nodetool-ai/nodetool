@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Security Vulnerability Fixes (2026-01-19)
+
+**What**: Fixed 9 HIGH severity vulnerabilities across all packages using npm overrides. Web: glob command injection, Electron: tar arbitrary file overwrite, Mobile: tar arbitrary file overwrite.
+
+**Files**: web/package.json, electron/package.json, mobile/package.json
+
+**Impact**: All packages now show 0 vulnerabilities (npm audit). Previously: 10 web (1 high), 23 electron (6 high), 10 mobile (2 high) vulnerabilities.
+
+---
+
 ### FavoriteWorkflowsStore Test Fix (2026-01-19)
 
 **What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
@@ -76,176 +86,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ### Component Memoization (2026-01-18)
 
-**What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
+**What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsLists, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
 
 **Files**: 12 files in web/src/components/
 
 **Impact**: Reduced unnecessary re-renders in dashboard, workflow management, and context menu components.
-### Quality Checks Fixes (2026-01-18)
-
-**What**: Fixed TypeScript type errors and lint warnings in test files.
-
-**Files**: web/src/hooks/nodes/__tests__/useDynamicOutput.test.ts, web/src/hooks/nodes/__tests__/useDynamicProperty.test.ts, and 4 other test files
-
-**Impact**: All quality checks now pass (typecheck, lint, tests).
 
 ---
 
-### Debug Console Statement Removal (2026-01-17)
-
-**What**: Removed debug console.log statements from 6 production files (VersionHistoryPanel, ImageEditorModal, ImageEditorCanvas, MessageContentRenderer, NodeMenu, GlobalWebSocketManager).
-
-**Files**: web/src/components/version/VersionHistoryPanel.tsx, web/src/components/node/image_editor/ImageEditorModal.tsx, web/src/components/node/image_editor/ImageEditorCanvas.tsx, web/src/components/chat/message/MessageContentRenderer.tsx, web/src/components/node_menu/NodeMenu.tsx, web/src/lib/websocket/GlobalWebSocketManager.ts
-
-**Impact**: Cleaned up development debug statements from production code.
-
----
-
-### Mobile TypeScript Type Definitions Fix (2026-01-17)
-
-**What**: Fixed mobile package type checking by installing missing @types/jest and @types/node packages via npm install.
-
-**Files**: mobile/package.json, mobile/package-lock.json
-
-**Impact**: All packages now pass type checking (web, electron, mobile).
-### Workflow Settings UI Improvements (2026-01-17)
-
-**What**: Removed "Basic Information" headline from workflow settings, added descriptions to Execution and Advanced sections.
-
-**Files**: web/src/components/workflows/WorkflowForm.tsx
-### Workflow Versions Panel - Remove Pin Button (2026-01-17)
-
-**What**: Removed pin button and related functionality from workflow versions panel.
-
-**Files**: VersionListItem.tsx, VersionHistoryPanel.tsx
-
-**Impact**: Pin button no longer appears in version history list, simplifying the UI.
-
----
-
-### Performance Optimization: Large Component Memoization (2026-01-17)
-
-**What**: Added React.memo to 6 large unmemoized components (Welcome, SettingsMenu, Model3DViewer, EditorController, AssetViewer, AgentExecutionView) to prevent unnecessary re-renders.
-
-**Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, EditorController.tsx, AssetViewer.tsx, AgentExecutionView.tsx
-
-**Impact**: Large components (684-925 lines) now only re-render when props change, improving editor performance with complex workflows.
-
-### Workspace Explorer UX Improvements (2026-01-17)
-
-**What**: Improved error and empty state messages in workspace explorer with helpful guidance and retry button.
-
-**Files**: WorkspaceSelect.tsx, WorkspacesManager.tsx, WorkspaceTree.tsx
-
-**Impact**: Users now see helpful messages instead of "Failed to load workspaces" and "No files in workspace".
-
----
-
-
-**What**: Added React.memo to 20+ large components (500+ lines each) including Welcome, SettingsMenu, Model3DViewer, WorkflowAssistantChat, GlobalChat, and more.
-
-**Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, WorkflowAssistantChat.tsx, GlobalChat.tsx, and 15+ others
-
-**Impact**: Reduced unnecessary re-renders in large editor workflows. Bundle size unchanged (5.74 MB).
-
----
-
-### Performance Optimization: Handler Memoization (2026-01-17)
-
-**What**: Memoized inline handlers in NodeHeader (4), AssetTable (1), FormatButton (1), and TableActions (7) components. Added React.memo to AssetTable.
-
-**Files**: NodeHeader.tsx, AssetTable.tsx, FormatButton.tsx, TableActions.tsx
-
-**Impact**: Prevented unnecessary re-renders in high-frequency node components and asset management UI by providing stable function references.
-
----
-
-### TypeScript Type Improvements (2026-01-17)
-
-**What**: Improved TypeScript types in StatusStore and ErrorStore. Removed debug console statements from NodeMenuStore. Fixed unused variables in test files.
-
-**Files**: StatusStore.ts, ErrorStore.ts, NodeMenuStore.ts, NodeToolsSelector.test.tsx, and related components
-
-**Impact**: Better type safety while maintaining flexibility for complex objects. Removed debug logging from production code.
-
----
-
-### Performance Optimization: Inline Arrow Functions (2026-01-17)
-
-**What**: Extended inline handler memoization to 10+ additional components including color pickers, dashboard, context menus, and mini apps.
-
-**Files**: Login.tsx, GradientBuilder.tsx, SwatchPanel.tsx, HarmonyPicker.tsx, ColorPickerModal.tsx, LayoutMenu.tsx, WelcomePanel.tsx, ExamplesList.tsx, SelectionContextMenu.tsx, MiniAppResults.tsx
-
-**Impact**: Reduced re-renders in color picker, dashboard panels, context menus, and mini apps by providing stable function references.
-
----
-
-### Node Header Icon Fix (2026-01-16)
-
-**What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
-
-**Why**: Both actions used the same PlayArrowIcon, confusing users about their different purposes.
-
-**Files**: `web/src/components/context_menus/NodeContextMenu.tsx`, `web/src/components/node/NodeToolButtons.tsx`
-
----
-
-### Image Size Display in Nodes (2026-01-16)
-
-**What**: Added image dimensions display (width × height) at bottom right of image output nodes, shown in tiny monospace font with semi-transparent background.
-
-**Why**: Users can now see image size without clicking on the image, improving workflow visibility.
-
-**Files**: `web/src/components/node/ImageView.tsx`
-
----
-
-### Auto-save Interval Fix (2026-01-16)
-
-**What**: Fixed auto-save interval settings not being applied when changed by user.
-
-**Why**: The interval useEffect wasn't properly resetting when intervalMinutes changed due to dependency array issues with memoized callbacks.
-
-**Files**: `web/src/hooks/useAutosave.ts`
-
----
-
-### Mobile TypeScript Type Definitions Fix (2026-01-15)
-
-**What**: Fixed mobile package TypeScript type checking by adding `@types/react-native` package.
-
-**Why**: TypeScript couldn't find type definition files for 'jest', 'node', and 'react-native' even though tsconfig.json specified them in the types array. The `@types/react-native` package was missing from package.json.
-
-**Files**: `mobile/package.json`, `mobile/package-lock.json`
-
----
-
-### NodeExecutionTime Test Lint Fix (2026-01-15)
-
-**What**: Fixed lint warnings in NodeExecutionTime.test.tsx by removing unused duplicate function.
-
-**Why**: ESLint reported unused variable warning for `formatDuration` function that was duplicated unnecessarily.
-
-**Files**: `web/src/components/node/__tests__/NodeExecutionTime.test.tsx`
-
----
-
-### Quality Checks Verification (2026-01-15)
-
-**What**: Ran full quality checks and fixed issues found.
-
-**Result**:
-- ✅ Type checking: All packages pass
-- ✅ Linting: All packages pass (2 warnings fixed)
-- ✅ Tests: All 595 tests pass (206 web + 389 mobile)
-
-**Files**: Multiple files across web and mobile packages
-
----
-
-### Zoom Presets Feature (2026-01-14)
-
-**What**: Added zoom presets to the ViewportStatusIndicator component, including zoom in/out buttons, a dropdown menu with common zoom levels (25%, 50%, 75%, 100%, 150%, 200%), and keyboard shortcuts (Ctrl+/- for zoom in/out, Ctrl+5/0/00/200 for presets).
+> **Format**: `Feature (date): One line. Files: x, y`
+> **Limit**: 5 most recent entries. Delete oldest when adding new.
 
 **Files**:
 - `web/src/components/node_editor/ViewportStatusIndicator.tsx` - Enhanced with zoom presets dropdown and zoom in/out buttons
