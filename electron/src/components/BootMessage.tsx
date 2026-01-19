@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ServerStatus } from "../types";
 
 interface UpdateProgressData {
@@ -45,9 +45,75 @@ const PROVIDERS: Provider[] = [
     signupUrl: "https://huggingface.co/settings/tokens",
     capabilities: ["Text Generation", "Image Models", "Speech", "Embeddings"],
   },
+  {
+    name: "Replicate",
+    description: "Run open-source machine learning models in the cloud with a simple API.",
+    signupUrl: "https://replicate.com/",
+    capabilities: ["Image Generation", "Video", "Audio", "Text"],
+  },
+  {
+    name: "OpenAI",
+    description: "Access GPT-4, DALL-E, Whisper, and other powerful AI models from OpenAI.",
+    signupUrl: "https://platform.openai.com/api-keys",
+    capabilities: ["Chat", "Image Generation", "Speech", "Embeddings"],
+  },
+  {
+    name: "OpenRouter",
+    description: "Unified API for accessing multiple LLM providers with automatic fallbacks.",
+    signupUrl: "https://openrouter.ai/",
+    capabilities: ["Chat", "Multiple LLMs", "Cost Optimization"],
+  },
+  {
+    name: "Anthropic",
+    description: "Access Claude models for advanced reasoning, analysis, and code generation.",
+    signupUrl: "https://console.anthropic.com/",
+    capabilities: ["Chat", "Analysis", "Code Generation"],
+  },
+  {
+    name: "Cerebras",
+    description: "Ultra-fast inference for large language models with industry-leading speed.",
+    signupUrl: "https://cloud.cerebras.ai/",
+    capabilities: ["Fast Inference", "Chat", "Text Generation"],
+  },
+  {
+    name: "Gemini",
+    description: "Google's multimodal AI models for text, image, audio, and video understanding.",
+    signupUrl: "https://ai.google.dev/",
+    capabilities: ["Multimodal", "Chat", "Vision", "Video"],
+  },
+  {
+    name: "MiniMax",
+    description: "Advanced AI models for video generation and multimodal content creation.",
+    signupUrl: "https://www.minimax.io/",
+    capabilities: ["Video Generation", "Chat", "Audio"],
+  },
 ];
 
-const ProviderInfo: React.FC = () => {
+const ProviderCarousel: React.FC = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  const nextSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % PROVIDERS.length);
+  }, []);
+
+  const prevSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + PROVIDERS.length) % PROVIDERS.length);
+  }, []);
+
+  const goToSlide = useCallback((index: number) => {
+    setCurrentIndex(index);
+    setIsAutoPlaying(false);
+    // Resume auto-play after 10 seconds of inactivity
+    setTimeout(() => setIsAutoPlaying(true), 10000);
+  }, []);
+
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    const interval = setInterval(nextSlide, 4000);
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, nextSlide]);
+
   const handleOpenProvider = async (url: string) => {
     try {
       await window.api?.system?.openExternal?.(url);
@@ -56,35 +122,67 @@ const ProviderInfo: React.FC = () => {
     }
   };
 
+  const currentProvider = PROVIDERS[currentIndex];
+
   return (
-    <div className="provider-info">
-      <div className="provider-info-header">
-        <h3 className="provider-info-title">Supported Providers</h3>
-        <p className="provider-info-subtitle">
+    <div className="provider-carousel-container">
+      <div className="provider-carousel-header">
+        <h3 className="provider-carousel-title">Supported Providers</h3>
+        <p className="provider-carousel-subtitle">
           NodeTool integrates with these AI providers. Sign up to get API keys.
         </p>
       </div>
 
-      <div className="provider-grid">
-        {PROVIDERS.map((provider) => (
-          <div key={provider.name} className="provider-card">
-            <div className="provider-card-header">
-              <h4 className="provider-name">{provider.name}</h4>
+      <div className="provider-carousel">
+        <button 
+          className="provider-carousel-nav provider-carousel-prev" 
+          onClick={prevSlide}
+          type="button"
+          aria-label="Previous provider"
+        >
+          ‹
+        </button>
+        
+        <div className="provider-carousel-content">
+          <div className="provider-carousel-card">
+            <div className="provider-carousel-card-header">
+              <h4 className="provider-carousel-name">{currentProvider.name}</h4>
             </div>
-            <p className="provider-description">{provider.description}</p>
-            <div className="provider-capabilities">
-              {provider.capabilities.map((cap) => (
-                <span key={cap} className="capability-tag">{cap}</span>
+            <p className="provider-carousel-description">{currentProvider.description}</p>
+            <div className="provider-carousel-capabilities">
+              {currentProvider.capabilities.map((cap) => (
+                <span key={cap} className="provider-carousel-tag">{cap}</span>
               ))}
             </div>
             <button
-              className="provider-signup-link"
-              onClick={() => handleOpenProvider(provider.signupUrl)}
+              className="provider-carousel-link"
+              onClick={() => handleOpenProvider(currentProvider.signupUrl)}
               type="button"
             >
               Get API Key →
             </button>
           </div>
+        </div>
+
+        <button 
+          className="provider-carousel-nav provider-carousel-next" 
+          onClick={nextSlide}
+          type="button"
+          aria-label="Next provider"
+        >
+          ›
+        </button>
+      </div>
+
+      <div className="provider-carousel-dots">
+        {PROVIDERS.map((_, index) => (
+          <button
+            key={index}
+            className={`provider-carousel-dot ${index === currentIndex ? 'active' : ''}`}
+            onClick={() => goToSlide(index)}
+            type="button"
+            aria-label={`Go to ${PROVIDERS[index].name}`}
+          />
         ))}
       </div>
     </div>
@@ -206,7 +304,7 @@ const BootMessage: React.FC<BootMessageProps> = ({
           </div>
         )}
 
-        {isInstalling && <ProviderInfo />}
+        {isInstalling && <ProviderCarousel />}
       </div>
     </div>
   );
