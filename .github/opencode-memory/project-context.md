@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Inline Arrow Function Memoization (2026-01-19)
+
+**What**: Fixed inline arrow functions causing unnecessary re-renders in NodeExplorer and ImageEditorToolbar. Added React.memo to NodeExplorer.
+
+**Files**: web/src/components/node/NodeExplorer.tsx, web/src/components/node/image_editor/ImageEditorToolbar.tsx
+
+**Impact**: Reduced re-renders in node explorer and image editor toolbar by using stable function references.
+
+---
+
 ### FavoriteWorkflowsStore Test Fix (2026-01-19)
 
 **What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
