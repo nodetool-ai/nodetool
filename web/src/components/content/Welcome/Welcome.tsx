@@ -239,6 +239,30 @@ const Welcome = () => {
     setTabValue(newValue);
   };
 
+  const handleOpenDashboard = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
+
+  const handleOpenEditor = useCallback(() => {
+    navigate("/editor");
+  }, [navigate]);
+
+  const handleOpenTemplates = useCallback(() => {
+    navigate("/templates");
+  }, [navigate]);
+
+  const handleOpenChat = useCallback(() => {
+    navigate("/chat");
+  }, [navigate]);
+
+  const handleOpenAssets = useCallback(() => {
+    navigate("/assets");
+  }, [navigate]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
   const highlightText = (text: string, term: string) => {
     if (!term) {return text;}
     const parts = text.split(new RegExp(`(${term})`, "gi"));
@@ -387,9 +411,7 @@ const Welcome = () => {
             </Tooltip>
           </div>
           <Button
-            onClick={() => {
-              navigate("/dashboard");
-            }}
+            onClick={handleOpenDashboard}
             className="start-button"
           >
             Open Dashboard
@@ -458,7 +480,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/editor")}
+                        onClick={handleOpenEditor}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -482,7 +504,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/templates")}
+                        onClick={handleOpenTemplates}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -505,7 +527,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/chat")}
+                        onClick={handleOpenChat}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -528,7 +550,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/assets")}
+                        onClick={handleOpenAssets}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -561,7 +583,7 @@ const Welcome = () => {
                     <Box sx={{ mt: 1 }} className="clear-search-container">
                       <Button
                         size="small"
-                        onClick={() => setSearchTerm("")}
+                        onClick={handleClearSearch}
                         className="clear-search-button"
                       >
                         Clear search
@@ -753,7 +775,7 @@ const Welcome = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate("/templates")}
+                      onClick={handleOpenTemplates}
                       className="setup-test-button"
                     >
                       Open Templates
@@ -761,7 +783,7 @@ const Welcome = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate("/chat")}
+                      onClick={handleOpenChat}
                       className="setup-test-button"
                     >
                       Open Chat
@@ -898,14 +920,6 @@ const Welcome = () => {
                                   />
                                 )}
                               </Box>
-                              {(model as FeaturedModel).note && (
-                                <Typography
-                                  variant="body2"
-                                  className="model-note"
-                                >
-                                  {(model as FeaturedModel).note}
-                                </Typography>
-                              )}
                             </div>
                           </div>
                         </li>

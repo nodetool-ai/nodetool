@@ -592,7 +592,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
         className={`action-button run-stop-button stop-workflow ${
           !isWorkflowRunning ? "disabled" : "running"
         }`}
-        onClick={() => cancel()}
+        onClick={cancel}
         tabIndex={-1}
       >
         <StopIcon />
