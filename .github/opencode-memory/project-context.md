@@ -54,6 +54,26 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### FavoriteWorkflowsStore Test Fix (2026-01-19)
+
+**What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
+
+**Files**: web/src/stores/__tests__/FavoriteWorkflowsStore.test.ts
+
+**Impact**: All 9 tests now pass, type checking passes.
+
+---
+
+### Lint Warning Fix (2026-01-19)
+
+**What**: Fixed unused type definition warning by using `SurroundWithGroupOptions` type in function signature instead of inline type.
+
+**Files**: web/src/hooks/nodes/useSurroundWithGroup.ts
+
+**Impact**: No lint warnings or errors.
+
+---
+
 ### Component Memoization (2026-01-18)
 
 **What**: Added React.memo to 12 unmemoized components (Dashboard, ProviderSetupPanel, TemplatesPanel, WorkflowsList, WorkflowListView, WorkflowToolbar, OutputContextMenu, SelectionContextMenu, InputContextMenu, NodeContextMenu, PropertyContextMenu, EdgeContextMenu).
