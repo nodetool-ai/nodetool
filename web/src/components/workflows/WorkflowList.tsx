@@ -24,7 +24,6 @@ import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 
-
 const styles = (theme: Theme) =>
   css({
     "&": {

@@ -40,7 +40,7 @@ const PanelHeadline: React.FC<PanelHeadlineProps> = ({ title, actions }) => {
 
   return (
     <Box css={styles(theme)} className="panel-headline">
-      <Typography variant="h6" className="headline-title">
+      <Typography variant="h6" component="span" className="headline-title">
         {title}
       </Typography>
       {actions && <Box className="headline-actions">{actions}</Box>}

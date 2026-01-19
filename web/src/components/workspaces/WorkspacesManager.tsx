@@ -532,7 +532,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                                 >
                                   {workspace.path}
                                 </Typography>
-                                <div className="workspace-badges">
+                                <span className="workspace-badges">
                                   {workspace.is_default && (
                                     <Chip
                                       size="small"
@@ -549,7 +549,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                                       variant="outlined"
                                     />
                                   )}
-                                </div>
+                                </span>
                               </>
                             }
                           />

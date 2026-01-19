@@ -671,6 +671,7 @@ function FileBrowserDialog({
       >
         <Typography
           variant="h6"
+          component="span"
           sx={{ fontSize: "1.1rem", padding: "0 1em", margin: 0 }}
         >
           {title}
