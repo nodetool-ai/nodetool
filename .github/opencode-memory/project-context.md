@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Audit (2026-01-19)
+
+**What**: Comprehensive performance audit found codebase is already well-optimized with React.memo on 20+ large components, list virtualization via react-window, selective Zustand subscriptions, and proper useMemo/useCallback patterns.
+
+**Files**: .github/opencode-memory/insights/performance/audit-complete-20260119.md
+
+**Impact**: No significant performance issues found. All major optimization patterns are in place. Bundle size: 9.2MB main + 4.68MB vendor-plotly + 969KB vendor-three.
+
+---
+
 ### Component Memoization (2026-01-19)
 
 **What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.
