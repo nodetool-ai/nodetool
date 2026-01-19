@@ -4,7 +4,9 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-17
+Last updated: 2026-01-18
+
+- **Documentation Audit (2026-01-18)**: Fixed table formatting in docs/AGENTS.md, removed duplicate entry, updated file structure tree to match actual docs directory
 
 - **Workflow Settings UI**: Removed "Basic Information" headline, added descriptions to Execution and Advanced sections
 
