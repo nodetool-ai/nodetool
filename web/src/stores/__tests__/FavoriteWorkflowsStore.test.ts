@@ -15,7 +15,7 @@ describe("FavoriteWorkflowsStore", () => {
   describe("toggleFavorite", () => {
     it("should add workflow to favorites when not already favorited", () => {
       act(() => {
-        useFavoriteWorkflowsStore.getState().actions.toggleFavorite("workflow-1");
+        useFavoriteWorkflowsStore.getState().toggleFavorite("workflow-1");
       });
 
       const ids = useFavoriteWorkflowsStore.getState().favoriteWorkflowIds;
@@ -29,7 +29,7 @@ describe("FavoriteWorkflowsStore", () => {
       });
 
       act(() => {
-        useFavoriteWorkflowsStore.getState().actions.toggleFavorite("workflow-1");
+        useFavoriteWorkflowsStore.getState().toggleFavorite("workflow-1");
       });
 
       const ids = useFavoriteWorkflowsStore.getState().favoriteWorkflowIds;
@@ -41,8 +41,8 @@ describe("FavoriteWorkflowsStore", () => {
   describe("addFavorite", () => {
     it("should add workflow to favorites", () => {
       act(() => {
-        useFavoriteWorkflowsStore.getState().actions.addFavorite("workflow-1");
-        useFavoriteWorkflowsStore.getState().actions.addFavorite("workflow-2");
+        useFavoriteWorkflowsStore.getState().addFavorite("workflow-1");
+        useFavoriteWorkflowsStore.getState().addFavorite("workflow-2");
       });
 
       const ids = useFavoriteWorkflowsStore.getState().favoriteWorkflowIds;
@@ -55,7 +55,7 @@ describe("FavoriteWorkflowsStore", () => {
       });
 
       act(() => {
-        useFavoriteWorkflowsStore.getState().actions.addFavorite("workflow-1");
+        useFavoriteWorkflowsStore.getState().addFavorite("workflow-1");
       });
 
       const ids = useFavoriteWorkflowsStore.getState().favoriteWorkflowIds;
@@ -71,7 +71,7 @@ describe("FavoriteWorkflowsStore", () => {
       });
 
       act(() => {
-        useFavoriteWorkflowsStore.getState().actions.removeFavorite("workflow-1");
+        useFavoriteWorkflowsStore.getState().removeFavorite("workflow-1");
       });
 
       const ids = useFavoriteWorkflowsStore.getState().favoriteWorkflowIds;
@@ -86,7 +86,7 @@ describe("FavoriteWorkflowsStore", () => {
       });
 
       expect(
-        useFavoriteWorkflowsStore.getState().actions.isFavorite("workflow-1")
+        useFavoriteWorkflowsStore.getState().isFavorite("workflow-1")
       ).toBe(true);
     });
 
@@ -96,7 +96,7 @@ describe("FavoriteWorkflowsStore", () => {
       });
 
       expect(
-        useFavoriteWorkflowsStore.getState().actions.isFavorite("workflow-2")
+        useFavoriteWorkflowsStore.getState().isFavorite("workflow-2")
       ).toBe(false);
     });
   });
@@ -108,7 +108,7 @@ describe("FavoriteWorkflowsStore", () => {
       });
 
       act(() => {
-        useFavoriteWorkflowsStore.getState().actions.clearAll();
+        useFavoriteWorkflowsStore.getState().clearAll();
       });
 
       const ids = useFavoriteWorkflowsStore.getState().favoriteWorkflowIds;
