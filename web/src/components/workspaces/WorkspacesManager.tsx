@@ -524,6 +524,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                                 {workspace.name}
                               </Typography>
                             }
+                            secondaryTypographyProps={{ component: 'div' }}
                             secondary={
                               <>
                                 <Typography
