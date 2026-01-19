@@ -373,6 +373,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
         </IconButton>
       </Tooltip>
 
+      {/* Spacer to push runtime section to bottom */}
+      <div style={{ flexGrow: 1 }} />
+
       {/* Divider between workflow tools and runtime section */}
       <Divider sx={{ my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" }} />
 
