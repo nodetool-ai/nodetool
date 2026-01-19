@@ -18,7 +18,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   serializeDragData,
-  createDragCountBadge
+  createAssetDragImage
 } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 
@@ -285,9 +285,12 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
       // Create and set drag image using the unified utility
-      const dragImage = createDragCountBadge(assetIds.length);
+      // For global search, we might not have all selected assets in store correctly or they might be from different queries.
+      // But we can try to use store or just minimal info.
+      const allSelectedAssets = useAssetGridStore.getState().selectedAssets || [];
+      const dragImage = createAssetDragImage(asset, assetIds.length, allSelectedAssets);
       document.body.appendChild(dragImage);
-      e.dataTransfer.setDragImage(dragImage, 25, 30);
+      e.dataTransfer.setDragImage(dragImage, 10, 10);
       setTimeout(() => document.body.removeChild(dragImage), 0);
 
       // Update global drag state

@@ -32,3 +32,5 @@ export {
   createDragCountBadge,
   DRAG_DATA_MIME
 } from "./serialization";
+
+export { createAssetDragImage } from "./dragImage";
