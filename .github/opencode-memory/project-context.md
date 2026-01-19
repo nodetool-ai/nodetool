@@ -54,6 +54,26 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Mobile Type Definitions Fix (2026-01-19)
+
+**What**: Fixed mobile package type checking by installing @types/node and @types/jest packages.
+
+**Files**: mobile/package.json, mobile/package-lock.json
+
+**Impact**: All packages now pass type checking.
+
+---
+
+### Execution Time Store Test Fix (2026-01-19)
+
+**What**: Fixed timing precision issue in ExecutionTimeStore test by properly sequencing Date.now() mocks.
+
+**Files**: web/src/stores/__tests__/ExecutionTimeStore.test.ts
+
+**Impact**: All 389 tests pass.
+
+---
+
 ### Handler Memoization (2026-01-19)
 
 **What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.

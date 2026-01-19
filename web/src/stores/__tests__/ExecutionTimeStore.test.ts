@@ -89,9 +89,12 @@ describe("ExecutionTimeStore", () => {
     it("should return correct duration for completed execution", () => {
       const { startExecution, endExecution, getDuration } = useExecutionTimeStore.getState();
 
+      const baseTime = Date.now();
+      jest.spyOn(Date, "now").mockImplementation(() => baseTime);
+
       startExecution("workflow1", "node1");
-      const startTime = Date.now();
-      jest.spyOn(Date, "now").mockImplementation(() => startTime + 2500);
+
+      jest.spyOn(Date, "now").mockImplementation(() => baseTime + 2500);
       endExecution("workflow1", "node1");
 
       const duration = getDuration("workflow1", "node1");
