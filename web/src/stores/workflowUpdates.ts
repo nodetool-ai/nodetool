@@ -186,9 +186,9 @@ export const handleUpdate = (
     const toolCall = data as ToolCallUpdate;
     if (toolCall.node_id) {
       setToolCall(workflow.id, toolCall.node_id, toolCall);
-    } else {
-      log.error("ToolCallUpdate has no node_id");
     }
+    // Note: Chat-related ToolCallUpdates don't have node_id - this is expected.
+    // They are handled separately in chatProtocol.ts.
   }
 
   if (data.type === "task_update") {
