@@ -104,16 +104,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### FavoriteWorkflowsStore Test Fix (2026-01-19)
-
-**What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
-
-**Files**: web/src/stores/__tests__/FavoriteWorkflowsStore.test.ts
-
-**Impact**: All 9 tests now pass, type checking passes.
-
----
-
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
 
