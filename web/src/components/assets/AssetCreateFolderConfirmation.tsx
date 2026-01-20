@@ -189,6 +189,23 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     [setDialogOpen]
   );
 
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
+
+  const handleDismissAlert = useCallback(() => {
+    setShowAlert(null);
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleCreateFolder();
+      }
+    },
+    [handleCreateFolder]
+  );
+
   return (
     <>
       {dialogOpen && (
@@ -209,7 +226,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             className="asset-create-folder-dialog"
             css={dialogStyles(theme)}
             open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
+            onClose={handleClose}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
             componentsProps={{
@@ -245,7 +262,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
                 <Alert
                   className="asset-create-folder-error-alert"
                   severity="error"
-                  onClose={() => setShowAlert(null)}
+                  onClose={handleDismissAlert}
                 >
                   {showAlert}
                 </Alert>
@@ -254,11 +271,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
                 className="asset-create-folder-input input-field"
                 inputRef={inputRef}
                 value={folderName}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleCreateFolder();
-                  }
-                }}
+                onKeyDown={handleKeyDown}
                 onChange={(e) => setFolderName(e.target.value)}
                 fullWidth
                 autoCorrect="off"
@@ -268,7 +281,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             <DialogActions className="asset-create-folder-dialog-actions dialog-actions">
               <Button
                 className="asset-create-folder-cancel-button button-cancel"
-                onClick={() => setDialogOpen(false)}
+                onClick={handleClose}
               >
                 Cancel
               </Button>

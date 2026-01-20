@@ -60,12 +60,20 @@ const AssetMoveToFolderConfirmation: React.FC<
     Math.max(leftPosition, 50),
     screenWidth - objectWidth - 50
   );
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
+
+  const handleDismissAlert = useCallback(() => {
+    setShowAlert(null);
+  }, []);
+
   const theme = useTheme();
   return (
     <Dialog
       css={dialogStyles(theme)}
       open={dialogOpen}
-      onClose={() => setDialogOpen(false)}
+      onClose={handleClose}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
       PaperProps={{
@@ -97,14 +105,14 @@ const AssetMoveToFolderConfirmation: React.FC<
 
       <DialogContent className="dialog-content">
         {showAlert && (
-          <Alert severity="success" onClose={() => setShowAlert(null)}>
+          <Alert severity="success" onClose={handleDismissAlert}>
             {showAlert}
           </Alert>
         )}
         <FolderTree onSelect={handleSelectFolder} />
       </DialogContent>
       <DialogActions className="dialog-actions">
-        <Button className="button-cancel" onClick={() => setDialogOpen(false)}>
+        <Button className="button-cancel" onClick={handleClose}>
           Cancel
         </Button>
       </DialogActions>

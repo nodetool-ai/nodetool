@@ -37,6 +37,10 @@ const TagFilter = memo(({
     onSelectTag(tag);
   }, [onSelectTag]);
 
+  const handleSelectTagFactory = useCallback((tag: string) => {
+    return () => handleSelectTag(tag);
+  }, [handleSelectTag]);
+
   return (
     <Box className="tag-menu">
       <div className="button-row">
@@ -53,7 +57,7 @@ const TagFilter = memo(({
             Getting Started
           </Button>
         </Tooltip>
-        {sortedTags.map((tag) => (
+          {sortedTags.map((tag) => (
             <Tooltip
               key={tag}
               title={`Show ${tag} examples`}
@@ -61,7 +65,7 @@ const TagFilter = memo(({
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
               <Button
-                onClick={() => handleSelectTag(tag)}
+                onClick={handleSelectTagFactory(tag)}
                 variant="outlined"
                 className={selectedTag === tag ? "selected" : ""}
               >
