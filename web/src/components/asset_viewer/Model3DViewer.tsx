@@ -325,6 +325,8 @@ interface SceneHelpersProps {
 }
 
 function SceneHelpers({ showGrid, showAxes }: SceneHelpersProps) {
+  const axesHelperRef = useRef<THREE.AxesHelper>(null);
+
   return (
     <>
       {showGrid && (
@@ -343,8 +345,13 @@ function SceneHelpers({ showGrid, showAxes }: SceneHelpersProps) {
           infiniteGrid={true}
         />
       )}
-      {/* eslint-disable-next-line react/no-unknown-property */}
-      {showAxes && <axesHelper args={[2]} />}
+      {showAxes && (
+        <primitive
+          // eslint-disable-next-line react/no-unknown-property
+          object={new THREE.AxesHelper(2)}
+          ref={axesHelperRef}
+        />
+      )}
     </>
   );
 }
@@ -647,7 +654,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               >
                 {/* Lighting based on preset */}
                 {/* eslint-disable-next-line react/no-unknown-property */}
-                <ambientLight intensity={0.3} />
+                <primitive object={new THREE.AmbientLight(0xffffff, 0.3)} />
                 <Environment
                   preset={lightingPreset}
                   background={backgroundColor === "gradient"}

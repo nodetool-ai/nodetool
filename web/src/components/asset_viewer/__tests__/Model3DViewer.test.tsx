@@ -49,6 +49,20 @@ jest.mock("three", () => ({
     set() {
       return this;
     }
+  },
+  AmbientLight: class {
+    color: number | string;
+    intensity: number;
+    constructor(color?: number | string, intensity?: number) {
+      this.color = color ?? 0xffffff;
+      this.intensity = intensity ?? 1;
+    }
+  },
+  AxesHelper: class AxesHelper {
+    size: number;
+    constructor(size?: number) {
+      this.size = size ?? 1;
+    }
   }
 }));
 
