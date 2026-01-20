@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### useCallback Optimization (2026-01-20)
+
+**What**: Added useCallback to 15+ inline handlers in Welcome.tsx and FileBrowserDialog.tsx, plus React.memo to InlineModelDownload.
+
+**Files**: web/src/components/content/Welcome/Welcome.tsx, dialogs/FileBrowserDialog.tsx
+
+**Impact**: Prevents unnecessary re-renders by providing stable function references.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
@@ -78,7 +88,7 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 **What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.
 
-**Files**: web/src/components/panels/FloatingToolBar.tsx, web/src/components/node_menu/QuickActionTiles.tsx
+**Files**: web/src/components/panels/FloatingToolBar.tsx, node_menu/QuickActionTiles.tsx
 
 **Impact**: Two remaining large components now memoized, preventing unnecessary re-renders.
 

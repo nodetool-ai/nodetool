@@ -437,7 +437,7 @@ function FileBrowserDialog({
 
   // --- Handlers ---
 
-  const handlePathSubmit = async () => {
+  const handlePathSubmit = useCallback(async () => {
     const path = pathInputValue.trim();
 
     if (selectionMode === "file" && path) {
@@ -469,7 +469,7 @@ function FileBrowserDialog({
       handleNavigate(path);
     }
     setIsEditingPath(false);
-  };
+  }, [pathInputValue, selectionMode, handleNavigate]);
 
   const handleNavigate = useCallback((path: string) => {
     setCurrentPath(path);
@@ -593,10 +593,18 @@ function FileBrowserDialog({
     );
   };
 
-  const handleTreeItemClick = (event: React.MouseEvent, itemId: string) => {
+  const handleTreeItemClick = useCallback((event: React.MouseEvent, itemId: string) => {
     if (itemId.endsWith("_loading")) {return;}
     handleNavigate(itemId);
-  };
+  }, [handleNavigate]);
+
+  const handlePathKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {handlePathSubmit();}
+    if (e.key === "Escape") {
+      setPathInputValue(currentPath);
+      setIsEditingPath(false);
+    }
+  }, [currentPath, handlePathSubmit]);
 
   // --- Renderers ---
 
@@ -710,13 +718,7 @@ function FileBrowserDialog({
                 fullWidth
                 value={pathInputValue}
                 onChange={(e) => setPathInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {handlePathSubmit();}
-                  if (e.key === "Escape") {
-                    setPathInputValue(currentPath);
-                    setIsEditingPath(false);
-                  }
-                }}
+                onKeyDown={handlePathKeyDown}
                 onBlur={() => setIsEditingPath(false)}
                 autoFocus
                 sx={{ flex: 1 }}

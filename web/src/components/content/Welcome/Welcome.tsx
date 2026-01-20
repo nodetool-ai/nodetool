@@ -73,13 +73,24 @@ const InlineModelDownload: React.FC<{
   label?: React.ReactNode;
   isDefault?: boolean;
   tooltip?: string;
-}> = ({ model, label, isDefault, tooltip }) => {
+}> = memo(({ model, label, isDefault, tooltip }) => {
   const { startDownload, downloads } = useModelDownloadStore((state) => ({
     startDownload: state.startDownload,
     downloads: state.downloads
   }));
   const downloadKey = model.repo_id || model.id;
   const inProgress = !!downloads[downloadKey];
+
+  const handleDownload = useCallback(() => {
+    startDownload(
+      model.repo_id || "",
+      model.type || "hf.model",
+      model.path ?? null,
+      model.allow_patterns ?? null,
+      model.ignore_patterns ?? null
+    );
+  }, [startDownload, model]);
+
   if (inProgress) {
     return (
       <Box
@@ -100,15 +111,7 @@ const InlineModelDownload: React.FC<{
       aria-label={`Download ${model.repo_id || model.id}`}
       sx={{ ml: 1, verticalAlign: "middle" }}
       className={`model-download-button ${isDefault ? "default-model" : ""}`}
-      onClick={() =>
-        startDownload(
-          model.repo_id || "",
-          model.type || "hf.model",
-          model.path ?? null,
-          model.allow_patterns ?? null,
-          model.ignore_patterns ?? null
-        )
-      }
+      onClick={handleDownload}
     >
       {label ?? "Download"}
     </Button>
@@ -120,7 +123,9 @@ const InlineModelDownload: React.FC<{
   ) : (
     button
   );
-};
+});
+
+InlineModelDownload.displayName = "InlineModelDownload";
 
 interface FeaturedModel extends UnifiedModel {
   displayName?: string;
@@ -318,6 +323,34 @@ const Welcome = () => {
     return content;
   };
 
+  const handleOpenDashboard = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
+
+  const handleOpenEditor = useCallback(() => {
+    navigate("/editor");
+  }, [navigate]);
+
+  const handleOpenTemplates = useCallback(() => {
+    navigate("/templates");
+  }, [navigate]);
+
+  const handleOpenChat = useCallback(() => {
+    navigate("/chat");
+  }, [navigate]);
+
+  const handleOpenAssets = useCallback(() => {
+    navigate("/assets");
+  }, [navigate]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
   const handleToggleWelcomeOnStartup = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -387,9 +420,7 @@ const Welcome = () => {
             </Tooltip>
           </div>
           <Button
-            onClick={() => {
-              navigate("/dashboard");
-            }}
+            onClick={handleOpenDashboard}
             className="start-button"
           >
             Open Dashboard
@@ -426,7 +457,7 @@ const Welcome = () => {
               variant="outlined"
               placeholder="Search help and tips"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -458,7 +489,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/editor")}
+                        onClick={handleOpenEditor}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -482,7 +513,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/templates")}
+                        onClick={handleOpenTemplates}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -505,7 +536,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/chat")}
+                        onClick={handleOpenChat}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -528,7 +559,7 @@ const Welcome = () => {
                   >
                     <Card className="quick-card" elevation={0}>
                       <CardActionArea
-                        onClick={() => navigate("/assets")}
+                        onClick={handleOpenAssets}
                         className="quick-card-action"
                       >
                         <CardContent className="quick-card-content">
@@ -561,7 +592,7 @@ const Welcome = () => {
                     <Box sx={{ mt: 1 }} className="clear-search-container">
                       <Button
                         size="small"
-                        onClick={() => setSearchTerm("")}
+                        onClick={handleClearSearch}
                         className="clear-search-button"
                       >
                         Clear search
@@ -753,7 +784,7 @@ const Welcome = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate("/templates")}
+                      onClick={handleOpenTemplates}
                       className="setup-test-button"
                     >
                       Open Templates
@@ -761,7 +792,7 @@ const Welcome = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => navigate("/chat")}
+                      onClick={handleOpenChat}
                       className="setup-test-button"
                     >
                       Open Chat
