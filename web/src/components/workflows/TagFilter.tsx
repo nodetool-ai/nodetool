@@ -5,7 +5,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
-import { useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 interface TagFilterProps {
   tags: Record<string, Workflow[]>;
@@ -13,13 +13,29 @@ interface TagFilterProps {
   onSelectTag: (tag: string | null) => void;
 }
 
-const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag }) => {
+const TagFilter = memo(({
+  tags,
+  selectedTag,
+  onSelectTag
+}: TagFilterProps) => {
   const sortedTags = useMemo(() =>
     Object.keys(tags)
       .filter((tag) => tag !== "start")
       .sort((a, b) => a.localeCompare(b)),
     [tags]
   );
+
+  const handleSelectGettingStarted = useCallback(() => {
+    onSelectTag("getting-started");
+  }, [onSelectTag]);
+
+  const handleSelectAll = useCallback(() => {
+    onSelectTag(null);
+  }, [onSelectTag]);
+
+  const handleSelectTag = useCallback((tag: string) => {
+    onSelectTag(tag);
+  }, [onSelectTag]);
 
   return (
     <Box className="tag-menu">
@@ -30,7 +46,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
           <Button
-            onClick={() => onSelectTag("getting-started")}
+            onClick={handleSelectGettingStarted}
             variant="outlined"
             className={selectedTag === "getting-started" ? "selected" : ""}
           >
@@ -45,7 +61,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
               <Button
-                onClick={() => onSelectTag(tag)}
+                onClick={() => handleSelectTag(tag)}
                 variant="outlined"
                 className={selectedTag === tag ? "selected" : ""}
               >
@@ -59,7 +75,7 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
           <Button
-            onClick={() => onSelectTag(null)}
+            onClick={handleSelectAll}
             className={selectedTag === null ? "selected" : ""}
           >
             SHOW ALL
@@ -68,6 +84,8 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
       </div>
     </Box>
   );
-};
+});
+
+TagFilter.displayName = "TagFilter";
 
 export default TagFilter;

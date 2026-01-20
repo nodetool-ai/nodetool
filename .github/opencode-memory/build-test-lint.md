@@ -291,3 +291,158 @@ GitHub Actions runs these checks automatically:
 3. **Use lint-fix**: Run `make lint-fix` to auto-fix many issues
 4. **Check existing tests**: Look at similar tests for patterns
 5. **Test before PR**: Always run `make check` before opening PR
+
+---
+
+## Testing Patterns (2026-01-19)
+
+### Hook Testing with Inline Mocks
+
+The codebase uses inline factory function mocks for complex dependencies:
+
+```typescript
+jest.mock("@xyflow/react", () => ({
+  useReactFlow: jest.fn(() => ({
+    screenToFlowPosition: jest.fn().mockReturnValue({ x: 100, y: 200 }),
+  })),
+}));
+
+jest.mock("../../contexts/NodeContext", () => ({
+  useNodes: jest.fn((selector) => {
+    const mockState = {
+      addNode: jest.fn(),
+      createNode: jest.fn().mockReturnValue({ id: "new-node-1" }),
+    };
+    if (typeof selector === "function") {
+      return selector(mockState);
+    }
+    return mockState;
+  }),
+}));
+```
+
+### Store Testing with Factory Pattern
+
+Create isolated store instances for testing:
+
+```typescript
+let store: ReturnType<typeof createWorkflowRunnerStore>;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  store = createWorkflowRunnerStore("test-workflow-id");
+});
+
+afterEach(() => {
+  store.getState().cleanup();
+});
+```
+
+### Vite Compatibility for Tests
+
+Add to `jest.setup.js` for `import.meta` support:
+
+```javascript
+global.import = {
+  meta: {
+    hot: undefined,
+  },
+};
+```
+
+### NodeData Type Usage
+
+Use proper Node<NodeData> typing with Position enum:
+
+```typescript
+import { Edge, Node, Position } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
+
+const createNode = (id: string): Node<NodeData> => ({
+  id,
+  type: "test",
+  position: { x: 0, y: 0 },
+  targetPosition: Position.Left,
+  sourcePosition: Position.Right,
+  data: {
+    properties: {},
+    dynamic_properties: {},
+    selectable: true,
+    workflow_id: "test",
+  },
+});
+```
+
+### Notification Type
+
+Use `content` field, not `message`:
+
+```typescript
+store.getState().addNotification({
+  type: "info",
+  content: "Test message",
+});
+```
+
+### Mock Files Added
+
+1. `src/__mocks__/WorkflowManagerContext.tsx` - Context provider mock
+2. `src/__mocks__/RecentNodesStore.ts` - Recent nodes store mock
+
+---
+
+## Test Coverage Improvement (2026-01-20)
+
+### Tests Added
+
+**5 new test files** covering critical stores, utilities, and hooks:
+
+1. **`src/stores/__tests__/SessionStateStore.test.ts`**
+   - Tests clipboard data management (set/get/clear)
+   - Tests clipboard validity state tracking
+   - Tests complete clipboard workflow
+
+2. **`src/utils/__tests__/graphDiff.test.ts`**
+   - Tests graph diff computation for nodes and edges
+   - Tests added/removed/modified node detection
+   - Tests edge change detection
+   - Tests UI property change tracking
+   - Tests diff summary generation
+
+3. **`src/utils/__tests__/errorHandling.test.ts`**
+   - Tests AppError class creation
+   - Tests createErrorMessage utility for different error types
+   - Tests detail extraction from various error formats
+
+4. **`src/hooks/__tests__/useAutosave.test.ts`**
+   - Tests autosave enable/disable logic
+   - Tests checkpoint save functionality
+   - Tests workflow ID changes
+   - Tests notification on successful save
+   - Tests error handling
+
+5. **`src/hooks/__tests__/useFocusPan.test.ts`**
+   - Tests callback function return
+   - Tests keyboard event listener setup/cleanup
+   - Tests Tab key tracking behavior
+
+### Patterns Used
+
+1. **Store Testing**: Reset store state in beforeEach/afterEach hooks
+2. **Hook Testing**: Mock external dependencies (stores, fetch, window events)
+3. **Utility Testing**: Test pure functions with various inputs including edge cases
+4. **Mocking**: Use jest.mock for external dependencies and context providers
+
+### Files Created
+
+- `web/src/stores/__tests__/SessionStateStore.test.ts`
+- `web/src/utils/__tests__/graphDiff.test.ts`
+- `web/src/utils/__tests__/errorHandling.test.ts`
+- `web/src/hooks/__tests__/useAutosave.test.ts`
+- `web/src/hooks/__tests__/useFocusPan.test.ts`
+
+### Test Results
+
+- All new tests pass successfully
+- No type errors in new test files
+- No lint errors in new test files

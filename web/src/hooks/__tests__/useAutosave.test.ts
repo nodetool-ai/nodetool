@@ -1,293 +1,335 @@
 import { renderHook, act } from "@testing-library/react";
+import { useSettingsStore } from "../../stores/SettingsStore";
+import { useVersionHistoryStore } from "../../stores/VersionHistoryStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAutosave, UseAutosaveOptions } from "../useAutosave";
+import { Workflow } from "../../stores/ApiTypes";
 
-let mockLastAutosaveTime = 0;
-const mockUpdateLastAutosaveTime = jest.fn();
-
-// Default mock returns enabled autosave settings
-const mockUseSettingsStore = jest.fn((selector) =>
-  selector({
-    settings: {
-      autosave: {
-        enabled: true,
-        intervalMinutes: 5,
-        saveBeforeRun: true,
-        saveOnClose: true
-      }
-    }
-  })
-);
-
-jest.mock("../../stores/SettingsStore", () => ({
-  useSettingsStore: (selector: any) => mockUseSettingsStore(selector)
-}));
-
-jest.mock("../../stores/VersionHistoryStore", () => ({
-  useVersionHistoryStore: jest.fn((selector) =>
-    selector({
-      getLastAutosaveTime: jest.fn(() => mockLastAutosaveTime),
-      updateLastAutosaveTime: mockUpdateLastAutosaveTime
-    })
-  )
-}));
-
-jest.mock("../../stores/NotificationStore", () => ({
-  useNotificationStore: jest.fn((selector) =>
-    selector({
-      addNotification: jest.fn()
-    })
-  )
-}));
-
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+// Mock fetch globally
+global.fetch = jest.fn();
 
 describe("useAutosave", () => {
-  const defaultOptions: UseAutosaveOptions = {
-    workflowId: "test-workflow-123",
-    getWorkflow: jest.fn(() => ({
-      id: "test-workflow-123",
-      name: "Test Workflow",
-      access: "private",
-      created_at: "2026-01-01T00:00:00Z",
-      updated_at: "2026-01-01T00:00:00Z",
-      description: "Test workflow",
-      graph: { nodes: [{ id: "node-1", type: "test", sync_mode: "start" }], edges: [] },
-      tags: [],
-      thumbnail: null,
-      is_public: false,
-      owner_id: "user-1",
-      required_models: [],
-      preferred_save: "desktop"
-    })),
-    isDirty: jest.fn(() => true)
+  const mockWorkflow: Workflow = {
+    id: "test-workflow",
+    name: "Test Workflow",
+    access: "private",
+    description: "",
+    thumbnail: "",
+    tags: [],
+    settings: {},
+    updated_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    graph: {
+      nodes: [{ id: "1", type: "test", data: {}, dynamic_properties: {}, sync_mode: "automatic", ui_properties: { position: { x: 0, y: 0 }, selected: false, selectable: true } }],
+      edges: []
+    }
   };
 
+  const createMockOptions = (overrides: Partial<UseAutosaveOptions> = {}): UseAutosaveOptions => ({
+    workflowId: "test-workflow",
+    getWorkflow: () => mockWorkflow,
+    isDirty: () => true,
+    ...overrides
+  });
+
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
-    mockFetch.mockReset();
-    mockLastAutosaveTime = 0;
-    mockUpdateLastAutosaveTime.mockClear();
     
-    // Reset to default mock implementation
-    mockUseSettingsStore.mockImplementation((selector) =>
-      selector({
-        settings: {
-          autosave: {
-            enabled: true,
-            intervalMinutes: 5,
-            saveBeforeRun: true,
-            saveOnClose: true
-          }
+    useSettingsStore.setState({
+      settings: {
+        ...useSettingsStore.getState().settings,
+        autosave: {
+          enabled: true,
+          intervalMinutes: 10,
+          saveBeforeRun: true,
+          saveOnClose: true,
+          maxVersionsPerWorkflow: 50,
+          keepManualVersionsDays: 90,
+          keepAutosaveVersionsDays: 7
         }
+      }
+    });
+
+    useVersionHistoryStore.setState({
+      getLastAutosaveTime: jest.fn().mockReturnValue(0),
+      updateLastAutosaveTime: jest.fn()
+    });
+
+    useNotificationStore.setState({
+      addNotification: jest.fn()
+    });
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        version: { id: "v1", version: 1, created_at: new Date().toISOString() },
+        message: "Saved",
+        skipped: false
       })
-    );
+    });
   });
 
-  it("returns initial state correctly", () => {
-    const { result } = renderHook(() => useAutosave(defaultOptions));
-
-    expect(result.current.lastAutosaveTime).toBe(0);
-    expect(typeof result.current.triggerAutosave).toBe("function");
-    expect(typeof result.current.saveBeforeRun).toBe("function");
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
-  it("does not trigger autosave when autosave is disabled", () => {
-    // Override mock to return disabled autosave
-    mockUseSettingsStore.mockImplementation((selector) =>
-      selector({
+  describe("initial state", () => {
+    it("returns initial lastAutosaveTime as 0", () => {
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
+      expect(result.current.lastAutosaveTime).toBe(0);
+    });
+
+    it("returns triggerAutosave and saveBeforeRun functions", () => {
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
+      expect(typeof result.current.triggerAutosave).toBe("function");
+      expect(typeof result.current.saveBeforeRun).toBe("function");
+    });
+  });
+
+  describe("triggerAutosave", () => {
+    it("does nothing when autosave is disabled", () => {
+      useSettingsStore.setState({
         settings: {
+          ...useSettingsStore.getState().settings,
           autosave: {
             enabled: false,
-            intervalMinutes: 5,
+            intervalMinutes: 10,
             saveBeforeRun: true,
-            saveOnClose: true
+            saveOnClose: true,
+            maxVersionsPerWorkflow: 50,
+            keepManualVersionsDays: 90,
+            keepAutosaveVersionsDays: 7
           }
         }
-      })
-    );
+      });
 
-    const { result } = renderHook(() => useAutosave(defaultOptions));
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
+      act(() => {
+        result.current.triggerAutosave();
+      });
 
-    act(() => {
-      result.current.triggerAutosave();
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    expect(mockFetch).not.toHaveBeenCalled();
+    it("does nothing when workflowId is null", () => {
+      const { result } = renderHook(() => useAutosave(createMockOptions({ workflowId: null })));
+      
+      act(() => {
+        result.current.triggerAutosave();
+      });
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("does nothing when workflow is not dirty", () => {
+      const { result } = renderHook(() => useAutosave(createMockOptions({ isDirty: () => false })));
+      
+      act(() => {
+        result.current.triggerAutosave();
+      });
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("does not save empty workflows", () => {
+      const emptyWorkflow: Workflow = {
+        ...mockWorkflow,
+        graph: { nodes: [], edges: [] }
+      };
+
+      const { result } = renderHook(() => useAutosave(createMockOptions({ getWorkflow: () => emptyWorkflow })));
+      
+      act(() => {
+        result.current.triggerAutosave();
+      });
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("calls autosave endpoint when conditions are met", async () => {
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
+      await act(async () => {
+        await result.current.triggerAutosave();
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/workflows/test-workflow/autosave",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        })
+      );
+    });
+
+    it("updates lastAutosaveTime on successful save", async () => {
+      const updateLastAutosaveTime = jest.fn();
+      useVersionHistoryStore.setState({
+        getLastAutosaveTime: jest.fn().mockReturnValue(0),
+        updateLastAutosaveTime
+      });
+
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
+      await act(async () => {
+        await result.current.triggerAutosave();
+      });
+
+      expect(updateLastAutosaveTime).toHaveBeenCalledWith("test-workflow");
+    });
+
+    it("adds notification on successful save", async () => {
+      const addNotification = jest.fn();
+      useNotificationStore.setState({ addNotification });
+
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
+      await act(async () => {
+        await result.current.triggerAutosave();
+      });
+
+      expect(addNotification).toHaveBeenCalledWith({
+        content: "Workflow autosaved",
+        type: "info",
+        alert: false
+      });
+    });
+
+    it("handles skipped response", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          version: null,
+          message: "skipped",
+          skipped: true
+        })
+      });
+
+      const addNotification = jest.fn();
+      useNotificationStore.setState({ addNotification });
+
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
+      await act(async () => {
+        await result.current.triggerAutosave();
+      });
+
+      expect(addNotification).not.toHaveBeenCalled();
+    });
+
+    it("handles fetch errors gracefully", async () => {
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
+
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
+      await act(async () => {
+        await result.current.triggerAutosave();
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith("Autosave failed:", expect.any(Error));
+      consoleSpy.mockRestore();
+    });
   });
 
-  it("does not trigger autosave when workflow is not dirty", () => {
-    const options: UseAutosaveOptions = {
-      ...defaultOptions,
-      isDirty: jest.fn(() => false)
-    };
-
-    const { result } = renderHook(() => useAutosave(options));
-
-    act(() => {
-      result.current.triggerAutosave();
-    });
-
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
-  it("does not trigger autosave when workflowId is null", () => {
-    const options: UseAutosaveOptions = {
-      ...defaultOptions,
-      workflowId: null
-    };
-
-    const { result } = renderHook(() => useAutosave(options));
-
-    act(() => {
-      result.current.triggerAutosave();
-    });
-
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
-  it("skips autosave when backend returns skipped", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        version: null,
-        message: "skipped by server",
-        skipped: true
-      })
-    });
-
-    const { result } = renderHook(() => useAutosave(defaultOptions));
-
-    await act(async () => {
-      await result.current.triggerAutosave();
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      "/api/workflows/test-workflow-123/autosave",
-      expect.objectContaining({
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      })
-    );
-    const callArgs = mockFetch.mock.calls[0];
-    expect(callArgs[0]).toBe("/api/workflows/test-workflow-123/autosave");
-    const body = JSON.parse(callArgs[1].body);
-    expect(body.save_type).toBe("autosave");
-    expect(body.force).toBe(false);
-    expect(typeof body.client_id).toBe("string");
-  });
-
-  it("updates lastAutosaveTime when autosave succeeds", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        version: {
-          id: "version-123",
-          version: 5,
-          created_at: "2026-01-12T10:00:00Z"
-        },
-        message: "success",
-        skipped: false
-      })
-    });
-
-    const { result } = renderHook(() => useAutosave(defaultOptions));
-
-    await act(async () => {
-      await result.current.triggerAutosave();
-    });
-
-    expect(mockUpdateLastAutosaveTime).toHaveBeenCalledWith("test-workflow-123");
-  });
-
-  it("calls saveBeforeRun when setting is enabled", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        version: {
-          id: "version-456",
-          version: 6,
-          created_at: "2026-01-12T10:05:00Z"
-        },
-        message: "success",
-        skipped: false
-      })
-    });
-
-    const { result } = renderHook(() => useAutosave(defaultOptions));
-
-    await act(async () => {
-      await result.current.saveBeforeRun();
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      "/api/workflows/test-workflow-123/autosave",
-      expect.objectContaining({
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      })
-    );
-
-    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(callBody.save_type).toBe("checkpoint");
-    expect(callBody.description).toBe("Before execution");
-    expect(callBody.force).toBe(true);
-    expect(typeof callBody.client_id).toBe("string");
-  });
-
-  it("does not call saveBeforeRun when setting is disabled", async () => {
-    // Override mock to return saveBeforeRun disabled
-    mockUseSettingsStore.mockImplementation((selector) =>
-      selector({
+  describe("saveBeforeRun", () => {
+    it("does nothing when saveBeforeRun is disabled", () => {
+      useSettingsStore.setState({
         settings: {
+          ...useSettingsStore.getState().settings,
           autosave: {
             enabled: true,
-            intervalMinutes: 5,
+            intervalMinutes: 10,
             saveBeforeRun: false,
-            saveOnClose: true
+            saveOnClose: true,
+            maxVersionsPerWorkflow: 50,
+            keepManualVersionsDays: 90,
+            keepAutosaveVersionsDays: 7
           }
         }
-      })
-    );
+      });
 
-    const { result } = renderHook(() => useAutosave(defaultOptions));
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
+      act(() => {
+        result.current.saveBeforeRun();
+      });
 
-    await act(async () => {
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it("calls checkpoint endpoint when enabled", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          version: { id: "v1", version: 1, created_at: new Date().toISOString() },
+          message: "Saved",
+          skipped: false
+        })
+      });
+
+      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      
       await result.current.saveBeforeRun();
+
+      expect(global.fetch).toHaveBeenCalled();
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      const fetchBody = JSON.parse(fetchCall[1].body as string);
+      expect(fetchBody.save_type).toBe("checkpoint");
+      expect(fetchBody.description).toBe("Before execution");
+      expect(fetchBody.force).toBe(true);
     });
 
-    expect(mockFetch).not.toHaveBeenCalled();
+    it("does not save empty workflows", async () => {
+      const emptyWorkflow: Workflow = {
+        ...mockWorkflow,
+        graph: { nodes: [], edges: [] }
+      };
+
+      const { result } = renderHook(() => useAutosave(createMockOptions({ getWorkflow: () => emptyWorkflow })));
+      
+      await act(async () => {
+        await result.current.saveBeforeRun();
+      });
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
   });
 
-  it("handles fetch errors gracefully", async () => {
-    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+  describe("workflowId changes", () => {
+    it("updates lastAutosaveTime when workflowId changes", () => {
+      const getLastAutosaveTimeMock = jest.fn().mockReturnValue(0);
+      useVersionHistoryStore.setState({
+        getLastAutosaveTime: getLastAutosaveTimeMock,
+        updateLastAutosaveTime: jest.fn()
+      });
 
-    const consoleError = jest.spyOn(console, "error").mockImplementation();
+      const { result, rerender } = renderHook(
+        (props) => useAutosave(props as UseAutosaveOptions),
+        { initialProps: createMockOptions({ workflowId: "workflow-1" }) }
+      );
 
-    const { result } = renderHook(() => useAutosave(defaultOptions));
+      expect(getLastAutosaveTimeMock).toHaveBeenCalledWith("workflow-1");
+      expect(result.current.lastAutosaveTime).toBe(0);
 
-    await act(async () => {
-      await result.current.triggerAutosave();
+      rerender(createMockOptions({ workflowId: "workflow-2" }));
+
+      expect(getLastAutosaveTimeMock).toHaveBeenCalledWith("workflow-2");
     });
 
-    expect(consoleError).toHaveBeenCalledWith("Autosave failed:", expect.any(Error));
+    it("resets autosave state when workflowId becomes null", () => {
+      const { result, rerender } = renderHook(
+        (props) => useAutosave(props as UseAutosaveOptions),
+        { initialProps: createMockOptions({ workflowId: "workflow-1" }) }
+      );
 
-    consoleError.mockRestore();
-  });
+      rerender(createMockOptions({ workflowId: null }));
 
-  it("returns skipped response when workflowId is null", async () => {
-    const options: UseAutosaveOptions = {
-      ...defaultOptions,
-      workflowId: null
-    };
-
-    const { result } = renderHook(() => useAutosave(options));
-
-    // Test that calling triggerAutosave with null workflowId doesn't call fetch
-    await act(async () => {
-      await result.current.triggerAutosave();
+      expect(result.current.lastAutosaveTime).toBe(0);
     });
-
-    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

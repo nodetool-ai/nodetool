@@ -54,6 +54,26 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### TypeScript Syntax and Type Fixes (2026-01-20)
+
+**What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
+
+**Files**: web/src/components/dashboard/ProviderSetupPanel.tsx, web/src/components/node_menu/TypeFilter.tsx, web/src/components/workflows/WorkflowForm.tsx
+
+**Impact**: All TypeScript and lint checks now pass for web and electron packages.
+
+---
+
+### Component Memoization (2026-01-20)
+
+**What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.
+
+**Files**: web/src/components/workflows/TagFilter.tsx, SearchBar.tsx, node_menu/SearchResults.tsx, TypeFilter.tsx
+
+**Impact**: Workflow and node menu components now only re-render when props change.
+
+---
+
 ### Component Memoization (2026-01-19)
 
 **What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.
@@ -94,56 +114,8 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### FavoriteWorkflowsStore Test Fix (2026-01-19)
-
-**What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
-
-**Files**: web/src/stores/__tests__/FavoriteWorkflowsStore.test.ts
-
-**Impact**: All 9 tests now pass, type checking passes.
-
----
-
 > **Format**: `Feature (date): One line. Files: x, y`
-> **Limit**: 5 most recent entries. Delete oldest when adding new.
-
-**Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, WorkflowAssistantChat.tsx, GlobalChat.tsx, and 15+ others
-
-**Impact**: Reduced unnecessary re-renders in large editor workflows. Bundle size unchanged (5.74 MB).
-
----
-
-### Performance Optimization: Handler Memoization (2026-01-17)
-
-**What**: Memoized inline handlers in NodeHeader (4), AssetTable (1), FormatButton (1), and TableActions (7) components. Added React.memo to AssetTable.
-
-**Files**: NodeHeader.tsx, AssetTable.tsx, FormatButton.tsx, TableActions.tsx
-
-**Impact**: Prevented unnecessary re-renders in high-frequency node components and asset management UI by providing stable function references.
-
----
-
-### TypeScript Type Improvements (2026-01-17)
-
-**What**: Improved TypeScript types in StatusStore and ErrorStore. Removed debug console statements from NodeMenuStore. Fixed unused variables in test files.
-
-**Files**: StatusStore.ts, ErrorStore.ts, NodeMenuStore.ts, NodeToolsSelector.test.tsx, and related components
-
-**Impact**: Better type safety while maintaining flexibility for complex objects. Removed debug logging from production code.
-
----
-
-### Performance Optimization: Inline Arrow Functions (2026-01-17)
-
-**What**: Extended inline handler memoization to 10+ additional components including color pickers, dashboard, context menus, and mini apps.
-
-**Files**: Login.tsx, GradientBuilder.tsx, SwatchPanel.tsx, HarmonyPicker.tsx, ColorPickerModal.tsx, LayoutMenu.tsx, WelcomePanel.tsx, ExamplesList.tsx, SelectionContextMenu.tsx, MiniAppResults.tsx
-
-**Impact**: Reduced re-renders in color picker, dashboard panels, context menus, and mini apps by providing stable function references.
-
----
-
-### Node Header Icon Fix (2026-01-16)
+> **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
 
