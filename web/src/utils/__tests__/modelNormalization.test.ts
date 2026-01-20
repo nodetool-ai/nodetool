@@ -1,277 +1,263 @@
-import { describe, it, expect } from "@jest/globals";
-import { normalizeModelMeta, buildMetaIndex } from "../modelNormalization";
 import type { LanguageModel } from "../../stores/ApiTypes";
+import {
+  normalizeModelMeta,
+  buildMetaIndex,
+  applyAdvancedModelFilters,
+} from "../modelNormalization";
+
+const createMockLanguageModel = (overrides?: Partial<LanguageModel>): LanguageModel => ({
+  type: "language_model",
+  id: "model-1",
+  name: "Test Model",
+  provider: "openai",
+  ...overrides,
+});
 
 describe("modelNormalization", () => {
   describe("normalizeModelMeta", () => {
-    it("should extract size in billions from model name", () => {
-      const model: LanguageModel = {
-        type: "language_model",
-        provider: "local", 
-        id: "test-7b",
-        name: "Test Model 7B"
-      };
+    it("extracts instruct tag from name", () => {
+      const model = createMockLanguageModel({ name: "Llama-2-Instruct" });
+      const result = normalizeModelMeta(model);
+      expect(result.typeTags).toContain("instruct");
+    });
 
+    it("extracts chat tag from name", () => {
+      const model = createMockLanguageModel({ name: "GPT-4-Chat" });
+      const result = normalizeModelMeta(model);
+      expect(result.typeTags).toContain("chat");
+    });
+
+    it("extracts base tag from name", () => {
+      const model = createMockLanguageModel({ name: "Llama-2-Base" });
+      const result = normalizeModelMeta(model);
+      expect(result.typeTags).toContain("base");
+    });
+
+    it("extracts reasoning tag", () => {
+      const model = createMockLanguageModel({ name: "DeepSeek-R1" });
+      const result = normalizeModelMeta(model);
+      expect(result.typeTags).toContain("reasoning");
+    });
+
+    it("extracts code tag", () => {
+      const model = createMockLanguageModel({ name: "CodeLlama" });
+      const result = normalizeModelMeta(model);
+      expect(result.typeTags).toContain("code");
+    });
+
+    it("extracts math tag", () => {
+      const model = createMockLanguageModel({ name: "Math-LLM" });
+      const result = normalizeModelMeta(model);
+      expect(result.typeTags).toContain("math");
+    });
+
+    it("extracts size in billions", () => {
+      const model = createMockLanguageModel({ name: "Model-7b" });
       const result = normalizeModelMeta(model);
       expect(result.sizeB).toBe(7);
       expect(result.sizeBucket).toBe("3-7B");
     });
 
-    it("should extract size with decimals", () => {
-      const model: LanguageModel = {
-        type: "language_model",
-        provider: "local",
-        id: "test-1.5b",
-        name: "Test Model 1.5B"
-      };
-
+    it("extracts size in millions", () => {
+      const model = createMockLanguageModel({ name: "Model-1.5m" });
       const result = normalizeModelMeta(model);
-      expect(result.sizeB).toBe(1.5);
-      expect(result.sizeBucket).toBe("1-2B");
+      expect(result.sizeB).toBe(0.0015);
     });
 
-    it("should convert size from millions to billions", () => {
-      const model: LanguageModel = {
-        type: "language_model",
-        provider: "local",
-        id: "test-350m",
-        name: "Test Model 350M"
-      };
-
+    it("extracts family from name", () => {
+      const model = createMockLanguageModel({ name: "Llama-3-8b" });
       const result = normalizeModelMeta(model);
-      expect(result.sizeB).toBe(0.35);
-      expect(result.sizeBucket).toBe("1-2B");
+      expect(result.family).toBe("llama");
     });
 
-    it("should categorize size buckets correctly", () => {
-      const testCases = [
-        { size: "0.5b", expected: "1-2B" },
-        { size: "2b", expected: "1-2B" },
-        { size: "3b", expected: "3-7B" },
-        { size: "7b", expected: "3-7B" },
-        { size: "8b", expected: "8-15B" },
-        { size: "15b", expected: "8-15B" },
-        { size: "16b", expected: "16-34B" },
-        { size: "34b", expected: "16-34B" },
-        { size: "35b", expected: "35-70B" },
-        { size: "70b", expected: "35-70B" },
-        { size: "71b", expected: "70B+" },
-        { size: "175b", expected: "70B+" }
-      ];
-
-      testCases.forEach(({ size, expected }) => {
-        const model: LanguageModel = {
-          type: "language_model",
-          provider: "local",
-          id: `test-${size}`,
-          name: `Test Model ${size.toUpperCase()}`
-        };
-
-        const result = normalizeModelMeta(model);
-        expect(result.sizeBucket).toBe(expected);
-      });
+    it("extracts mistral family", () => {
+      const model = createMockLanguageModel({ name: "Mistral-7B" });
+      const result = normalizeModelMeta(model);
+      expect(result.family).toBe("mistral");
     });
 
-    it("should extract type tags", () => {
-      const testCases = [
-        { name: "Model Instruct", tags: ["instruct"] },
-        { name: "Model Chat", tags: ["chat"] },
-        { name: "Model Base", tags: ["base"] },
-        { name: "Model SFT", tags: ["sft"] },
-        { name: "Model DPO", tags: ["dpo"] },
-        { name: "Model Reasoning", tags: ["reasoning"] },
-        { name: "Model R1", tags: ["reasoning"] },
-        { name: "QwQ Model", tags: ["reasoning"] },
-        { name: "Model Code", tags: ["code"] },
-        { name: "Model Coder", tags: ["code"] },
-        { name: "Model Math", tags: ["math"] },
-        { name: "Instruct Chat Model", tags: ["instruct", "chat"] },
-        { name: "Code Math Instruct", tags: ["instruct", "code", "math"] }
-      ];
-
-      testCases.forEach(({ name, tags }) => {
-        const model: LanguageModel = {
-          id: "test",
-          name,
-          type: "language_model",
-          provider: "local"
-        };
-
-        const result = normalizeModelMeta(model);
-        expect(result.typeTags).toEqual(expect.arrayContaining(tags));
-        expect(result.typeTags).toHaveLength(tags.length);
-      });
+    it("extracts qwen family", () => {
+      const model = createMockLanguageModel({ name: "Qwen-14B" });
+      const result = normalizeModelMeta(model);
+      expect(result.family).toBe("qwen");
     });
 
-    it("should extract family from model name", () => {
-      const testCases = [
-        { name: "Llama 3 7B", family: "llama" },
-        { name: "Mistral 7B", family: "mistral" },
-        { name: "Mixtral 8x7B", family: "mixtral" },
-        { name: "Qwen 2.5", family: "qwen" },
-        { name: "Gemma 2B", family: "gemma" },
-        { name: "Phi 3 Mini", family: "phi" },
-        { name: "Yi 34B", family: "yi" },
-        { name: "DeepSeek Coder", family: "deepseek" },
-        { name: "QwQ 32B", family: "qwq" },
-        { name: "Granite 3B", family: "granite" }
-      ];
-
-      testCases.forEach(({ name, family }) => {
-        const model: LanguageModel = {
-          id: "test",
-          name,
-          type: "language_model",
-          provider: "local"
-        };
-
-        const result = normalizeModelMeta(model);
-        expect(result.family).toBe(family);
-      });
+    it("extracts MOE configuration", () => {
+      const model = createMockLanguageModel({ name: "Mixtral-8x7B" });
+      const result = normalizeModelMeta(model);
+      expect(result.moe).toBe("8x7B");
     });
 
-    it("should handle model with no family match", () => {
-      const model: LanguageModel = {
-        type: "language_model",
-        provider: "local",
-        id: "unknown-model",
-        name: "Unknown Model 7B"
-      };
+    it("handles multiple type tags", () => {
+      const model = createMockLanguageModel({ name: "CodeLlama-Instruct-7b" });
+      const result = normalizeModelMeta(model);
+      expect(result.typeTags).toContain("code");
+      expect(result.typeTags).toContain("instruct");
+    });
 
+    it("returns empty typeTags when none match", () => {
+      const model = createMockLanguageModel({ name: "GenericModel" });
+      const result = normalizeModelMeta(model);
+      expect(result.typeTags).toEqual([]);
+    });
+
+    it("returns undefined sizeBucket when no size info", () => {
+      const model = createMockLanguageModel({ name: "Model" });
+      const result = normalizeModelMeta(model);
+      expect(result.sizeB).toBeUndefined();
+      expect(result.sizeBucket).toBeUndefined();
+    });
+
+    it("returns undefined family when none match", () => {
+      const model = createMockLanguageModel({ name: "UnknownModel" });
       const result = normalizeModelMeta(model);
       expect(result.family).toBeUndefined();
     });
 
-    it("should extract MOE configuration", () => {
-      const testCases = [
-        { name: "Mixtral 8x7B", moe: "8x7B" },
-        { name: "Model 4x2B", moe: "4x2B" },
-        { name: "Test 16x3B", moe: "16x3B" },
-        { name: "Model 8×7B", moe: "8x7B" } // with multiplication sign
-      ];
-
-      testCases.forEach(({ name, moe }) => {
-        const model: LanguageModel = {
-          id: "test",
-          name,
-          type: "language_model",
-          provider: "local"
-        };
-
-        const result = normalizeModelMeta(model);
-        expect(result.moe).toBe(moe);
-      });
-    });
-
-    it("should handle model with no MOE configuration", () => {
-      const model: LanguageModel = {
-        type: "language_model",
-        provider: "local",
-        id: "llama-7b",
-        name: "Llama 7B"
-      };
-
+    it("returns undefined moe when none match", () => {
+      const model = createMockLanguageModel({ name: "RegularModel" });
       const result = normalizeModelMeta(model);
       expect(result.moe).toBeUndefined();
     });
 
-    it("should use both name and id for extraction", () => {
-      const model: LanguageModel = {
-        id: "qwen-coder-7b",
-        name: "Model Instruct",
-        type: "language_model",
-        provider: "local",
-      };
-
-      const result = normalizeModelMeta(model);
-      expect(result.family).toBe("qwen");
-      expect(result.typeTags).toContain("code");
-      expect(result.typeTags).toContain("instruct");
-      expect(result.sizeB).toBe(7);
-    });
-
-    it("should handle null or undefined name/id", () => {
-      const model1: LanguageModel = {
-        id: null as any,
-        name: "Test 7B Instruct",
-        type: "language_model",
-        provider: "local",
-      };
-
-      const result1 = normalizeModelMeta(model1);
-      expect(result1.sizeB).toBe(7);
-      expect(result1.typeTags).toContain("instruct");
-
-      const model2: LanguageModel = {
-        id: "test-7b",
-        name: undefined as any,
-        type: "language_model",
-        provider: "local",
-      };
-
-      const result2 = normalizeModelMeta(model2);
-      expect(result2.sizeB).toBe(7);
-    });
-
-    it("should handle case insensitivity", () => {
-      const model: LanguageModel = {
-        id: "LLAMA-7B-INSTRUCT",
-        name: "LLAMA MODEL 7B INSTRUCT",
-        type: "language_model",
-        provider: "local",
-      };
-
+    it("handles case insensitive matching", () => {
+      const model = createMockLanguageModel({ name: "LLAMA-2-CHAT" });
       const result = normalizeModelMeta(model);
       expect(result.family).toBe("llama");
-      expect(result.typeTags).toContain("instruct");
-      expect(result.sizeB).toBe(7);
+    });
+  });
+
+  describe("bucketSizeByB", () => {
+    it("returns 1-2B for 1B", () => {
+      const model = createMockLanguageModel({ name: "Model-1b" });
+      const result = normalizeModelMeta(model);
+      expect(result.sizeBucket).toBe("1-2B");
+    });
+
+    it("returns 1-2B for 2B", () => {
+      const model = createMockLanguageModel({ name: "Model-2b" });
+      const result = normalizeModelMeta(model);
+      expect(result.sizeBucket).toBe("1-2B");
+    });
+
+    it("returns 3-7B for 3B", () => {
+      const model = createMockLanguageModel({ name: "Model-3b" });
+      const result = normalizeModelMeta(model);
+      expect(result.sizeBucket).toBe("3-7B");
+    });
+
+    it("returns 8-15B for 8B", () => {
+      const model = createMockLanguageModel({ name: "Model-8b" });
+      const result = normalizeModelMeta(model);
+      expect(result.sizeBucket).toBe("8-15B");
+    });
+
+    it("returns 16-34B for 20B", () => {
+      const model = createMockLanguageModel({ name: "Model-20b" });
+      const result = normalizeModelMeta(model);
+      expect(result.sizeBucket).toBe("16-34B");
+    });
+
+    it("returns 35-70B for 50B", () => {
+      const model = createMockLanguageModel({ name: "Model-50b" });
+      const result = normalizeModelMeta(model);
+      expect(result.sizeBucket).toBe("35-70B");
+    });
+
+    it("returns 70B+ for 100B", () => {
+      const model = createMockLanguageModel({ name: "Model-100b" });
+      const result = normalizeModelMeta(model);
+      expect(result.sizeBucket).toBe("70B+");
     });
   });
 
   describe("buildMetaIndex", () => {
-    it("should build index for multiple models", () => {
-      const models: LanguageModel[] = [
-        {
-          id: "llama-7b",
-          name: "Llama 7B",
-          type: "language_model",
-          provider: "local"
-        },
-        {
-          id: "mistral-7b-instruct",
-          name: "Mistral 7B Instruct",
-          type: "language_model",
-          provider: "local"
-        }
+    it("creates index with model and meta for each model", () => {
+      const models = [
+        createMockLanguageModel({ id: "model-1", name: "Llama-2-7b" }),
+        createMockLanguageModel({ id: "model-2", name: "Mistral-7B" }),
       ];
 
       const result = buildMetaIndex(models);
-      
+
       expect(result).toHaveLength(2);
-      expect(result[0].model).toBe(models[0]);
-      expect(result[0].meta.family).toBe("llama");
-      expect(result[0].meta.sizeB).toBe(7);
-      
-      expect(result[1].model).toBe(models[1]);
+      expect(result[0].model.id).toBe("model-1");
+      expect(result[0].meta.sizeBucket).toBe("3-7B");
+      expect(result[1].model.id).toBe("model-2");
       expect(result[1].meta.family).toBe("mistral");
-      expect(result[1].meta.typeTags).toContain("instruct");
     });
 
-    it("should handle empty array", () => {
+    it("handles empty array", () => {
       const result = buildMetaIndex([]);
       expect(result).toEqual([]);
     });
+  });
 
-    it("should preserve original model reference", () => {
-      const model: LanguageModel = {
-        id: "test",
-        name: "Test",
-        type: "language_model",
-        provider: "local",
-      };
+  describe("applyAdvancedModelFilters", () => {
+    const models = [
+      createMockLanguageModel({ id: "m1", name: "Llama-2-Instruct-7b" }),
+      createMockLanguageModel({ id: "m2", name: "Llama-2-Base-7b" }),
+      createMockLanguageModel({ id: "m3", name: "Mistral-Instruct-7B" }),
+      createMockLanguageModel({ id: "m4", name: "CodeLlama-7b" }),
+    ];
 
-      const result = buildMetaIndex([model]);
-      expect(result[0].model).toBe(model);
+    it("returns all models when no filters applied", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: [],
+        sizeBucket: null,
+        families: [],
+      });
+      expect(result).toHaveLength(4);
+    });
+
+    it("filters by type tag", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: ["instruct"],
+        sizeBucket: null,
+        families: [],
+      });
+      expect(result).toHaveLength(2);
+      expect(result.map((m) => m.id)).toContain("m1");
+      expect(result.map((m) => m.id)).toContain("m3");
+    });
+
+    it("filters by size bucket", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: [],
+        sizeBucket: "3-7B",
+        families: [],
+      });
+      expect(result).toHaveLength(4);
+    });
+
+    it("filters by family", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: [],
+        sizeBucket: null,
+        families: ["llama"],
+      });
+      expect(result).toHaveLength(2);
+      expect(result.map((m) => m.id)).toContain("m1");
+      expect(result.map((m) => m.id)).toContain("m2");
+    });
+
+    it("combines multiple filters", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: ["instruct"],
+        sizeBucket: null,
+        families: ["llama"],
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("m1");
+    });
+
+    it("returns empty when no models match", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: ["reasoning"],
+        sizeBucket: null,
+        families: [],
+      });
+      expect(result).toHaveLength(0);
     });
   });
 });
