@@ -446,3 +446,71 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-20 - Additional)
+
+### Tests Added
+
+**6 new test files** covering critical stores and utilities:
+
+1. **`src/stores/__tests__/MiniMapStore.test.ts`**
+   - Tests minimap visibility toggle
+   - Tests setVisible and toggleVisible actions
+   - Tests initial state and state transitions
+
+2. **`src/stores/__tests__/VersionHistoryStore.test.ts`**
+   - Tests version selection and compare mode
+   - Tests edit counter functionality per workflow
+   - Tests autosave time tracking per workflow
+   - Tests panel open/close state
+   - Tests clearState action
+
+3. **`src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts`**
+   - Tests edge conversion with full edge data
+   - Tests edge conversion with minimal edge data
+   - Tests handling of null/undefined handles
+   - Tests UI properties preservation
+   - Tests UUID generation when ID is missing
+
+4. **`src/utils/__tests__/browser.test.ts`**
+   - Tests detection with Electron all signals
+   - Tests renderer process detection
+   - Tests User-Agent based detection
+   - Tests bridge detection
+   - Tests fallback behavior in non-Electron environment
+
+5. **`src/utils/__tests__/platform.test.ts`**
+   - Tests Mac platform detection
+   - Tests non-Mac platform detection
+   - Tests userAgent parsing
+
+6. **`src/utils/__tests__/nodeDisplay.test.ts`**
+   - Tests getNodeDisplayName with various inputs
+   - Tests getNodeNamespace with various inputs
+   - Tests edge cases (empty strings, single part, multiple parts)
+
+### Patterns Used
+
+1. **Store Testing**: Reset store state in beforeEach hooks
+2. **Utility Testing**: Test pure functions with various inputs including edge cases
+3. **Mocking**: Mock window and navigator objects for browser/platform detection
+4. **Edge Cases**: Test null, undefined, empty strings, and boundary conditions
+
+### Files Created
+
+- `web/src/stores/__tests__/MiniMapStore.test.ts`
+- `web/src/stores/__tests__/VersionHistoryStore.test.ts`
+- `web/src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts`
+- `web/src/utils/__tests__/browser.test.ts`
+- `web/src/utils/__tests__/platform.test.ts`
+- `web/src/utils/__tests__/nodeDisplay.test.ts`
+
+### Test Results
+
+- **Test Suites**: 8 passed (includes duplicate test paths)
+- **Tests**: 91 passed
+- All new tests pass successfully
+- No type errors in new test files
+- No lint errors in new test files
