@@ -1,5 +1,5 @@
 export const titleizeString = (str: string | undefined | null): string => {
-  if (!str) return "";
+  if (!str) { return ""; }
   return str
     .toLowerCase()
     .split(/[ _]+/)
