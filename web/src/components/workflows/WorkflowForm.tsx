@@ -461,15 +461,18 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
               return filtered;
             }}
             getOptionLabel={(option) => {
-              // Options are always strings with freeSolo
-              return typeof option === "string" ? option : "";
+              if (typeof option === "string") {
+                return option;
+              }
+              return (option as { inputValue?: string }).inputValue || "";
             }}
             renderOption={(props, option) => {
               const { key, ...rest } = props;
-              const isNew = !tagOptions.includes(option);
+              const optionStr = typeof option === "string" ? option : (option as { inputValue?: string }).inputValue || "";
+              const isNew = optionStr !== "" && !tagOptions.includes(optionStr);
               return (
                 <li key={key} {...rest}>
-                  {isNew ? `Add "${option}"` : option}
+                  {isNew ? `Add "${optionStr}"` : optionStr}
                 </li>
               );
             }}
