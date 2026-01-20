@@ -30,9 +30,16 @@ describe("useWorkflowGraphUpdater", () => {
       setWorkflowDirty: jest.fn(),
     }),
   };
+  let mockChatState = { lastWorkflowGraphUpdate: null as any };
+  const mockUnsubscribe = jest.fn();
+  const mockSubscribe = jest.fn((listener: (state: typeof mockChatState, prevState: typeof mockChatState) => void) => {
+    listener(mockChatState, { lastWorkflowGraphUpdate: null });
+    return mockUnsubscribe;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockChatState = { lastWorkflowGraphUpdate: null };
 
     (useWorkflowManager as jest.Mock).mockReturnValue({
       getCurrentWorkflow: mockGetCurrentWorkflow,
@@ -40,14 +47,12 @@ describe("useWorkflowGraphUpdater", () => {
     });
 
     (useGlobalChatStore as unknown as jest.Mock).mockImplementation((selector) => {
-      const state = {
-        lastWorkflowGraphUpdate: null,
-      };
       if (typeof selector === "function") {
-        return selector(state);
+        return selector(mockChatState);
       }
-      return state;
+      return mockChatState;
     });
+    (useGlobalChatStore as unknown as { subscribe?: typeof mockSubscribe }).subscribe = mockSubscribe;
 
     (graphNodeToReactFlowNode as jest.Mock).mockImplementation(jest.fn());
     (graphEdgeToReactFlowEdge as jest.Mock).mockImplementation(jest.fn());
@@ -62,18 +67,11 @@ describe("useWorkflowGraphUpdater", () => {
     const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
     mockGetCurrentWorkflow.mockReturnValue(null);
 
-    const state = {
+    mockChatState = {
       lastWorkflowGraphUpdate: {
         graph: { nodes: [], edges: [] },
       },
     };
-
-    (useGlobalChatStore as unknown as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
-        return selector(state);
-      }
-      return state;
-    });
 
     renderHook(() => useWorkflowGraphUpdater());
 
@@ -86,18 +84,11 @@ describe("useWorkflowGraphUpdater", () => {
     mockGetCurrentWorkflow.mockReturnValue({ id: "workflow-123" });
     mockGetNodeStore.mockReturnValue(null);
 
-    const state = {
+    mockChatState = {
       lastWorkflowGraphUpdate: {
         graph: { nodes: [], edges: [] },
       },
     };
-
-    (useGlobalChatStore as unknown as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
-        return selector(state);
-      }
-      return state;
-    });
 
     renderHook(() => useWorkflowGraphUpdater());
 
@@ -120,18 +111,11 @@ describe("useWorkflowGraphUpdater", () => {
     (graphNodeToReactFlowNode as jest.Mock).mockReturnValue(mockReactFlowNodes[0]);
     (graphEdgeToReactFlowEdge as jest.Mock).mockReturnValue(mockReactFlowEdges[0]);
 
-    const state = {
+    mockChatState = {
       lastWorkflowGraphUpdate: {
         graph: { nodes: mockGraphNodes, edges: mockGraphEdges },
       },
     };
-
-    (useGlobalChatStore as unknown as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
-        return selector(state);
-      }
-      return state;
-    });
 
     renderHook(() => useWorkflowGraphUpdater());
 
@@ -150,24 +134,21 @@ describe("useWorkflowGraphUpdater", () => {
   });
 
   it("calls autoLayout after updating graph", () => {
+    jest.useFakeTimers();
     const mockWorkflow = { id: "workflow-123", name: "Test Workflow" };
     mockGetCurrentWorkflow.mockReturnValue(mockWorkflow);
     mockGetNodeStore.mockReturnValue(mockNodeStore);
 
-    const state = {
+    mockChatState = {
       lastWorkflowGraphUpdate: {
         graph: { nodes: [], edges: [] },
       },
     };
 
-    (useGlobalChatStore as unknown as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
-        return selector(state);
-      }
-      return state;
-    });
-
     renderHook(() => useWorkflowGraphUpdater());
+
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
 
     expect(mockNodeStore.getState().autoLayout).toHaveBeenCalled();
   });
@@ -177,18 +158,11 @@ describe("useWorkflowGraphUpdater", () => {
     mockGetCurrentWorkflow.mockReturnValue(mockWorkflow);
     mockGetNodeStore.mockReturnValue(mockNodeStore);
 
-    const state = {
+    mockChatState = {
       lastWorkflowGraphUpdate: {
         graph: { nodes: [], edges: [] },
       },
     };
-
-    (useGlobalChatStore as unknown as jest.Mock).mockImplementation((selector) => {
-      if (typeof selector === "function") {
-        return selector(state);
-      }
-      return state;
-    });
 
     renderHook(() => useWorkflowGraphUpdater());
 
