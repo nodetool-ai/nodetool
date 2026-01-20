@@ -38,6 +38,7 @@ describe("useAutosave", () => {
     
     useSettingsStore.setState({
       settings: {
+        ...useSettingsStore.getState().settings,
         autosave: {
           enabled: true,
           intervalMinutes: 10,
@@ -92,6 +93,7 @@ describe("useAutosave", () => {
     it("does nothing when autosave is disabled", () => {
       useSettingsStore.setState({
         settings: {
+          ...useSettingsStore.getState().settings,
           autosave: {
             enabled: false,
             intervalMinutes: 10,
@@ -238,6 +240,7 @@ describe("useAutosave", () => {
     it("does nothing when saveBeforeRun is disabled", () => {
       useSettingsStore.setState({
         settings: {
+          ...useSettingsStore.getState().settings,
           autosave: {
             enabled: true,
             intervalMinutes: 10,

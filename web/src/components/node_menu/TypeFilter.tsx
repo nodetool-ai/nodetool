@@ -8,6 +8,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  SelectChangeEvent,
   Tooltip,
   ListSubheader,
   ListItemIcon,
@@ -97,11 +98,11 @@ const TypeFilter = memo(({
     });
   }, []);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<{ value: unknown }>) => {
+  const handleInputChange = useCallback((e: SelectChangeEvent<string>) => {
     setSelectedInputType(e.target.value as string);
   }, [setSelectedInputType]);
 
-  const handleOutputChange = useCallback((e: React.ChangeEvent<{ value: unknown }>) => {
+  const handleOutputChange = useCallback((e: SelectChangeEvent<string>) => {
     setSelectedOutputType(e.target.value as string);
   }, [setSelectedOutputType]);
 
