@@ -266,6 +266,32 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     setSortMenuAnchor(null);
   }, [setSortBy]);
 
+  const handleSortByDate = useCallback(() => {
+    handleSortChange("date");
+  }, [handleSortChange]);
+
+  const handleSortByName = useCallback(() => {
+    handleSortChange("name");
+  }, [handleSortChange]);
+
+  const handleToggleTag = useCallback((tag: string) => {
+    toggleTag(tag);
+  }, [toggleTag]);
+
+  const handleTagClick = useCallback(
+    (tag: string) => () => {
+      handleToggleTag(tag);
+    },
+    [handleToggleTag]
+  );
+
+  const handleClearTagClick = useCallback(
+    (tag: string) => () => {
+      toggleTag(tag);
+    },
+    [toggleTag]
+  );
+
   const handleCreateWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
     queryClient.invalidateQueries({ queryKey: ["workflows"] });
@@ -318,7 +344,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 {availableTags.map((tag) => (
                   <MenuItem
                     key={tag}
-                    onClick={() => toggleTag(tag)}
+                    onClick={handleTagClick(tag)}
                     className="tag-menu-item"
                   >
                     {selectedTags.includes(tag) ? (
@@ -415,13 +441,13 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             }}
           >
             <MenuItem
-              onClick={() => handleSortChange("date")}
+              onClick={handleSortByDate}
               selected={sortBy === "date"}
             >
               Sort by Date
             </MenuItem>
             <MenuItem
-              onClick={() => handleSortChange("name")}
+              onClick={handleSortByName}
               selected={sortBy === "name"}
             >
               Sort by Name
@@ -454,7 +480,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 label={tag}
                 size="small"
                 className="active-tag-chip"
-                onDelete={() => toggleTag(tag)}
+                onDelete={handleClearTagClick(tag)}
               />
             ))}
             {selectedTags.length > 1 && (
