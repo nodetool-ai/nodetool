@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Box, Tooltip } from "@mui/material";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -29,11 +29,10 @@ const moveRight = keyframes`
 
 const OverallDownloadProgress: React.FC = () => {
   const { downloads, openDialog } = useModelDownloadStore(
-    (state) => ({
+    useShallow((state) => ({
       downloads: state.downloads,
       openDialog: state.openDialog
-    }),
-    shallow
+    }))
   );
 
   const { progress } = useMemo(() => {
