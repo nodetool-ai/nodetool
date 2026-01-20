@@ -210,17 +210,35 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   const WORKFLOW_HEIGHT = showGraphPreview ? 150 : 36;
   const HEADER_HEIGHT = 32;
 
-  // Measure container height dynamically
+  // Measure container height dynamically using ResizeObserver
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
     const updateHeight = () => {
-      if (containerRef.current) {
-        setContainerHeight(containerRef.current.clientHeight);
+      if (container.clientHeight > 0) {
+        setContainerHeight(container.clientHeight);
       }
     };
+
+    // Initial measurement (with a small delay to ensure layout is complete)
     updateHeight();
-    window.addEventListener("resize", updateHeight);
-    return () => window.removeEventListener("resize", updateHeight);
-  }, []);
+    // Also measure after a short delay for cases where layout hasn't settled
+    const timeoutId = setTimeout(updateHeight, 50);
+
+    // Use ResizeObserver to detect container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeight();
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [workflows.length]);
 
   // Group workflows by date and create a flat list with headers
   const flatList = useMemo(() => {
