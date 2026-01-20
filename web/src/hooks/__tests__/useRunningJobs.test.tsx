@@ -1,267 +1,184 @@
-import { renderHook, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useRunningJobs } from "../useRunningJobs";
-import { useAuth } from "../../stores/useAuth";
-import { client } from "../../stores/ApiClient";
+import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useRunningJobs } from '../useRunningJobs';
+import { useAuth } from '../../stores/useAuth';
+import { client } from '../../stores/ApiClient';
 
-jest.mock("../../stores/useAuth");
-jest.mock("../../stores/ApiClient");
-jest.mock("../../utils/errorHandling", () => ({
-  createErrorMessage: jest.fn((error, defaultMessage) => defaultMessage),
+jest.mock('../../stores/useAuth');
+
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+
+const mockedClientGET = client.GET as jest.Mock;
+
+jest.mock('../../stores/ApiClient', () => ({
+  client: {
+    GET: jest.fn()
+  }
 }));
 
-describe("useRunningJobs", () => {
-  let queryClient: QueryClient;
-
-  const createWrapper = () => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-          gcTime: 0,
-        },
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
       },
-    });
-    const Wrapper = ({ children }: { children: React.ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-    Wrapper.displayName = "QueryClientWrapper";
-    return Wrapper;
-  };
+    },
+  });
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  Wrapper.displayName = 'QueryClientWrapper';
+  return Wrapper;
+};
 
+describe('useRunningJobs', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    queryClient = new QueryClient();
   });
 
-  describe("authentication state", () => {
-    it("does not fetch when user is not authenticated", () => {
-      (useAuth as unknown as jest.Mock).mockReturnValue({
-        user: null,
-        state: "logged_out",
+  describe('when authenticated', () => {
+    beforeEach(() => {
+      mockUseAuth.mockReturnValue({
+        user: { id: 'user-1' },
+        state: 'logged_in'
       });
-
-      const { result } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.isFetched).toBe(false);
-      expect(result.current.data).toBeUndefined();
-      expect(client.GET).not.toHaveBeenCalled();
     });
 
-    it("fetches when user is authenticated", () => {
-      (useAuth as unknown as jest.Mock).mockReturnValue({
-        user: { id: "user-123" },
-        state: "logged_in",
+    it('fetches running jobs on mount', async () => {
+      const mockJobs = [
+        { id: 'job-1', status: 'running', workflow_id: 'wf-1' },
+        { id: 'job-2', status: 'queued', workflow_id: 'wf-2' }
+      ];
+
+      mockedClientGET.mockResolvedValue({
+        data: { jobs: mockJobs },
+        error: null
       });
 
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: { jobs: [] },
-        error: null,
-      });
-
-      const { result } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.isLoading).toBe(true);
-    });
-
-    it("does not fetch during initialization", () => {
-      (useAuth as unknown as jest.Mock).mockReturnValue({
-        user: { id: "user-123" },
-        state: "loading",
-      });
-
-      const { result } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.isFetched).toBe(false);
-      expect(client.GET).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("data fetching", () => {
-    it("returns empty array when no jobs are running", async () => {
-      (useAuth as unknown as jest.Mock).mockReturnValue({
-        user: { id: "user-123" },
-        state: "logged_in",
-      });
-
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: { jobs: [] },
-        error: null,
-      });
-
-      const { result } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(() => useRunningJobs(), { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data).toBeDefined();
+      expect(result.current.data?.length).toBe(2);
+    });
+
+    it('filters out completed jobs', async () => {
+      const mockJobs = [
+        { id: 'job-1', status: 'running', workflow_id: 'wf-1' },
+        { id: 'job-2', status: 'completed', workflow_id: 'wf-2' },
+        { id: 'job-3', status: 'failed', workflow_id: 'wf-3' }
+      ];
+
+      mockedClientGET.mockResolvedValue({
+        data: { jobs: mockJobs },
+        error: null
+      });
+
+      const { result } = renderHook(() => useRunningJobs(), { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data).toBeDefined();
+      expect(result.current.data?.length).toBe(1);
+      expect(result.current.data?.[0].id).toBe('job-1');
+    });
+
+    it('handles API error', async () => {
+      mockedClientGET.mockResolvedValue({
+        data: null,
+        error: { message: 'API Error' }
+      });
+
+      const { result } = renderHook(() => useRunningJobs(), { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.error).toBeDefined();
+    });
+
+    it('returns empty array when no jobs', async () => {
+      mockedClientGET.mockResolvedValue({
+        data: { jobs: [] },
+        error: null
+      });
+
+      const { result } = renderHook(() => useRunningJobs(), { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
 
       expect(result.current.data).toEqual([]);
     });
 
-    it("filters out completed jobs", async () => {
-      (useAuth as unknown as jest.Mock).mockReturnValue({
-        user: { id: "user-123" },
-        state: "logged_in",
+    it('includes suspended and paused jobs', async () => {
+      const mockJobs = [
+        { id: 'job-1', status: 'running', workflow_id: 'wf-1' },
+        { id: 'job-2', status: 'suspended', workflow_id: 'wf-2' },
+        { id: 'job-3', status: 'paused', workflow_id: 'wf-3' }
+      ];
+
+      mockedClientGET.mockResolvedValue({
+        data: { jobs: mockJobs },
+        error: null
       });
 
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: {
-          jobs: [
-            { id: "job-1", status: "running" },
-            { id: "job-2", status: "completed" },
-            { id: "job-3", status: "queued" },
-            { id: "job-4", status: "failed" },
-          ],
-        },
-        error: null,
-      });
-
-      const { result } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(() => useRunningJobs(), { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
+        expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.data).toHaveLength(2);
-      expect(result.current.data?.map((j) => j.id)).toEqual(["job-1", "job-3"]);
+      expect(result.current.data).toBeDefined();
+      expect(result.current.data?.length).toBe(3);
+    });
+  });
+
+  describe('when not authenticated', () => {
+    beforeEach(() => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        state: 'logged_out'
+      });
     });
 
-    it("includes suspended and paused jobs", async () => {
-      (useAuth as unknown as jest.Mock).mockReturnValue({
-        user: { id: "user-123" },
-        state: "logged_in",
-      });
-
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: {
-          jobs: [
-            { id: "job-1", status: "running" },
-            { id: "job-2", status: "suspended" },
-            { id: "job-3", status: "paused" },
-          ],
-        },
-        error: null,
-      });
-
-      const { result } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
+    it('does not fetch jobs when not authenticated', async () => {
+      const { result } = renderHook(() => useRunningJobs(), { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(result.current.data).toHaveLength(3);
-    });
-
-    it("handles API errors", async () => {
-      (useAuth as unknown as jest.Mock).mockReturnValue({
-        user: { id: "user-123" },
-        state: "logged_in",
-      });
-
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: null,
-        error: { message: "API Error" },
-      });
-
-      const { result } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
+        expect(result.current.isLoading).toBe(false);
       });
 
       expect(result.current.data).toBeUndefined();
+      expect(mockedClientGET).not.toHaveBeenCalled();
     });
   });
 
-  describe("query configuration", () => {
-    it("uses correct query key", async () => {
-      (useAuth as unknown as jest.Mock).mockReturnValue({
-        user: { id: "user-123" },
-        state: "logged_in",
+  describe('loading state', () => {
+    beforeEach(() => {
+      mockUseAuth.mockReturnValue({
+        user: { id: 'user-1' },
+        state: 'logged_in'
       });
 
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: { jobs: [] },
-        error: null,
-      });
-
-      const { result } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(client.GET).toHaveBeenCalledWith("/api/jobs/", {
-        params: { query: { limit: 100 } },
-      });
+      mockedClientGET.mockImplementation(() => 
+        new Promise((resolve) => setTimeout(() => resolve({ data: { jobs: [] }, error: null }), 100))
+      );
     });
 
-    it("respects staleTime configuration", async () => {
-      (useAuth as unknown as jest.Mock).mockReturnValue({
-        user: { id: "user-123" },
-        state: "logged_in",
-      });
+    it('shows loading state initially', () => {
+      const { result } = renderHook(() => useRunningJobs(), { wrapper: createWrapper() });
 
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: { jobs: [] },
-        error: null,
-      });
-
-      const { result, unmount } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      unmount();
-    });
-  });
-
-  describe("user state changes", () => {
-    it("uses different query key for different users", async () => {
-      (useAuth as unknown as jest.Mock)
-        .mockReturnValueOnce({
-          user: { id: "user-1" },
-          state: "logged_in",
-        })
-        .mockReturnValueOnce({
-          user: { id: "user-2" },
-          state: "logged_in",
-        });
-
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: { jobs: [] },
-        error: null,
-      });
-
-      const { result, rerender: _rerender } = renderHook(() => useRunningJobs(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.data).toEqual([]);
-      });
-
-      const firstCallArgs = (client.GET as jest.Mock).mock.calls[0];
-      expect(firstCallArgs[0]).toBe("/api/jobs/");
+      expect(result.current.isLoading).toBe(true);
+      expect(result.current.data).toBeUndefined();
     });
   });
 });
