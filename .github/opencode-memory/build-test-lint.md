@@ -446,3 +446,50 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-20 - Additional Tests)
+
+### Tests Added
+
+**2 new test files** covering critical workflow update processing and edge handling:
+
+1. **`src/stores/__tests__/workflowUpdates.test.ts`**
+   - Tests handleUpdate function for various update types (log_update, job_update, node_update, output_update, node_progress, edge_update)
+   - Tests job state transitions (running, completed, cancelled, failed, suspended, paused)
+   - Tests node status handling including error cases
+   - Tests edge update handling with cancelled/error state checks
+   - Tests subscription management (subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates)
+   - Tests __UPDATES__ global tracking
+
+2. **`src/hooks/__tests__/useProcessedEdges.test.ts`**
+   - Tests empty edge processing
+   - Tests default type handling when no metadata
+   - Tests edge style computation (stroke, strokeWidth)
+   - Tests edge status handling (message-sent class, counter labels)
+   - Tests bypass node handling (from-bypassed class)
+   - Tests selection caching during drag operations
+   - Tests label styling for message counters
+   - Tests data preservation in processed edges
+
+### Patterns Used
+
+1. **Store Testing**: Create isolated runner stores, mock WebSocket and store dependencies
+2. **Hook Testing**: Use renderHook from React Testing Library
+3. **Type Safety**: Use proper TypeScript types and interfaces
+4. **Mocking**: Mock global stores (ResultsStore, StatusStore, LogStore, ErrorStore, etc.)
+5. **Cleanup**: Proper afterEach cleanup to prevent test pollution
+
+### Files Created
+
+- `web/src/stores/__tests__/workflowUpdates.test.ts`
+- `web/src/hooks/__tests__/useProcessedEdges.test.ts`
+
+### Test Results
+
+- **31 tests added** (19 in workflowUpdates, 12 in useProcessedEdges)
+- All tests pass successfully
+- TypeScript compilation passes
+- ESLint passes
+- Coverage increased for critical workflow execution paths
