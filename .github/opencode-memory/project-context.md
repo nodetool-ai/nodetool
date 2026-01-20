@@ -48,11 +48,21 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
+> /Fix Name (```
 > ### FeatureYYYY-MM-DD)
 > **What**: One sentence
 > **Files**: Main files changed
 > ```
+
+### Inline Arrow Function Memoization (2026-01-20)
+
+**What**: Memoized 25+ inline arrow functions in JSX using useCallback across 6 files, preventing unnecessary re-renders.
+
+**Files**: BackToDashboardButton.tsx, WorkflowToolbar.tsx, TagFilter.tsx, WorkflowTile.tsx, ConnectableNodes.tsx, NodeContextMenu.tsx
+
+**Impact**: Reduced function allocations and improved render performance for frequently-updated UI components.
+
+---
 
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
