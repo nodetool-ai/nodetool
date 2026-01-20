@@ -1,18 +1,10 @@
 Type checking web package...
 cd web && npm run typecheck
 
-> nodetool@0.6.2-rc.27 typecheck
+> nodetool@0.6.2-rc.28 typecheck
 > tsc --noEmit
 
-Type checking electron package...
-cd electron && npm run typecheck
-
-> nodetool-electron@0.6.2-rc.27 typecheck
-> tsc --noEmit
-
-Type checking mobile package...
-cd mobile && npm run typecheck
-
-> nodetool-mobile@0.6.2-rc.27 typecheck
-> tsc --noEmit
-
+src/components/dashboard/ProviderSetupPanel.tsx(392,27): error TS1003: Identifier expected.
+src/components/dashboard/ProviderSetupPanel.tsx(392,28): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/dashboard/ProviderSetupPanel.tsx(393,26): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+make: *** [Makefile:147: typecheck-web] Error 2

@@ -1,12 +1,17 @@
 Linting web package...
 cd web && npm run lint
 
-> nodetool@0.6.2-rc.27 lint
+> nodetool@0.6.2-rc.28 lint
 > eslint src
 
-Linting electron package...
-cd electron && npm run lint
 
-> nodetool-electron@0.6.2-rc.27 lint
-> eslint .
+/home/runner/work/nodetool/nodetool/web/src/components/dashboard/ProviderSetupPanel.tsx
+  392:26  error  Parsing error: Identifier expected
 
+/home/runner/work/nodetool/nodetool/web/src/utils/titleizeString.ts
+  2:13  warning  Expected { after 'if' condition  curly
+
+✖ 2 problems (1 error, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
+make: *** [Makefile:124: lint-web] Error 1
