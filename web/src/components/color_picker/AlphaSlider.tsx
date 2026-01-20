@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -175,4 +175,4 @@ const AlphaSlider: React.FC<AlphaSliderProps> = ({
   );
 };
 
-export default AlphaSlider;
+export default memo(AlphaSlider);

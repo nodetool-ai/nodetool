@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { DATA_TYPES } from "../config/data_types";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -151,4 +151,4 @@ const Logo = ({
   );
 };
 
-export default Logo;
+export default memo(Logo);

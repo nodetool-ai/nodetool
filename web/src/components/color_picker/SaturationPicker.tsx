@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { hsbToRgb, rgbToHex } from "../../utils/colorConversion";
@@ -222,4 +222,4 @@ const SaturationPicker: React.FC<SaturationPickerProps> = ({
   );
 };
 
-export default SaturationPicker;
+export default memo(SaturationPicker);

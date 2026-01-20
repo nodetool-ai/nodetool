@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization (2026-01-20)
+
+**What**: Memoized 8 additional components (Login, DashboardHeader, SetupPanel, GoogleAuthButton, Logo, SaturationPicker, HueSlider, AlphaSlider) with React.memo.
+
+**Files**: web/src/components/Login.tsx, DashboardHeader.tsx, SetupPanel.tsx, buttons/GoogleAuthButton.tsx, Logo.tsx, color_picker/{SaturationPicker,HueSlider,AlphaSlider}.tsx
+
+**Impact**: Prevented unnecessary re-renders on color picker interactions, login page, and dashboard components.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.

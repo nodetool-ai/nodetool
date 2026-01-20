@@ -3,6 +3,7 @@
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import useAuth from "../../stores/useAuth";
+import { memo } from "react";
 
 const styles = (_theme: Theme) => ({
   svg: {
@@ -58,4 +59,4 @@ const GoogleAuthButton = () => {
   );
 };
 
-export default GoogleAuthButton;
+export default memo(GoogleAuthButton);
