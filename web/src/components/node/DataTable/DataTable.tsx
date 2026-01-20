@@ -77,10 +77,16 @@ const DataTable: React.FC<DataTableProps> = ({
 }) => {
   const theme = useTheme();
   const tableRef = useRef<HTMLDivElement>(null);
+  const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
+  const [isTableReady, setIsTableReady] = useState(false);
+
+  // Store dataframe ref in a ref to avoid stale closures
+  const dataframeRef = useRef(dataframe);
+  dataframeRef.current = dataframe;
 
   const data = useMemo(() => {
     if (!dataframe.data) {return [];}
@@ -92,20 +98,22 @@ const DataTable: React.FC<DataTableProps> = ({
   const onChangeRows = useCallback(
     (newData: any[] | Record<string, any>) => {
       if (onChange && Array.isArray(newData)) {
+        const currentDf = dataframeRef.current;
         onChange({
-          ...dataframe,
+          ...currentDf,
           data: newData.map(
-            (row) => dataframe.columns?.map((col) => row[col.name]) || []
+            (row) => currentDf.columns?.map((col) => row[col.name]) || []
           )
         });
       }
     },
-    [dataframe, onChange]
+    [onChange]
   );
 
-  const columns: ColumnDefinition[] = useMemo(() => {
-    if (!dataframe.columns) {return [];}
-    const cols: ColumnDefinition[] = [
+  const buildColumns = useCallback((): ColumnDefinition[] => {
+    const cols = dataframeRef.current.columns;
+    if (!cols) {return [];}
+    return [
       ...(showSelect
         ? [
             {
@@ -143,7 +151,7 @@ const DataTable: React.FC<DataTableProps> = ({
             }
           ]
         : []),
-      ...dataframe.columns.map((col) => ({
+      ...cols.map((col) => ({
         title: col.name,
         field: col.name,
         headerTooltip: col.data_type,
@@ -169,36 +177,35 @@ const DataTable: React.FC<DataTableProps> = ({
             : undefined
       }))
     ];
-    return cols;
-  }, [dataframe.columns, editable, showRowNumbers, showSelect]);
+  }, [editable, showRowNumbers, showSelect]);
 
-  const onCellEdited = useCallback(
-    (cell: CellComponent) => {
+  // Initialize Tabulator once on mount
+  useEffect(() => {
+    if (!tableRef.current || tabulatorRef.current) {return;}
+
+    const handleCellEdited = (cell: CellComponent) => {
       const rownum = cell.getData().rownum;
+      const currentDf = dataframeRef.current;
+      const currentData = currentDf.data?.map((row, index) =>
+        coerceRow(index, row, currentDf.columns || [])
+      ) || [];
+      
       onChangeRows(
-        data.map((row, index) => {
-          if (!row) {
-            return {};
-          }
+        currentData.map((row, index) => {
+          if (!row) {return {};}
           const newRow = { ...row };
-
           if (index === rownum) {
             newRow[cell.getField()] = cell.getValue();
           }
           return newRow;
         })
       );
-    },
-    [data, onChangeRows]
-  );
-
-  useEffect(() => {
-    if (!tableRef.current) {return;}
+    };
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "100%",
       data: data,
-      columns: columns,
+      columns: buildColumns(),
       columnDefaults: {
         headerSort: true,
         hozAlign: "left",
@@ -212,16 +219,38 @@ const DataTable: React.FC<DataTableProps> = ({
       movableRows: true
     });
 
-    tabulatorInstance.on("cellEdited", onCellEdited);
-    tabulatorInstance.on("rowSelectionChanged", (data, rows) => {
+    tabulatorInstance.on("cellEdited", handleCellEdited);
+    tabulatorInstance.on("rowSelectionChanged", (_data, rows) => {
       setSelectedRows(rows);
     });
+    tabulatorInstance.on("tableBuilt", () => {
+      setIsTableReady(true);
+    });
+    
+    tabulatorRef.current = tabulatorInstance;
     setTabulator(tabulatorInstance);
 
     return () => {
       tabulatorInstance.destroy();
+      tabulatorRef.current = null;
+      setIsTableReady(false);
     };
-  }, [data, columns, onCellEdited, dataframe.columns]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update data when it changes (without recreating tabulator)
+  useEffect(() => {
+    if (isTableReady && tabulatorRef.current) {
+      tabulatorRef.current.replaceData(data);
+    }
+  }, [data, isTableReady]);
+
+  // Update columns when they change
+  useEffect(() => {
+    if (isTableReady && tabulatorRef.current) {
+      tabulatorRef.current.setColumns(buildColumns());
+    }
+  }, [buildColumns, dataframe.columns, showSelect, showRowNumbers, isTableReady]);
 
   return (
     <div className="datatable nowheel nodrag" css={tableStyles(theme)}>
