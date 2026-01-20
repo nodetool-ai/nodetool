@@ -777,7 +777,6 @@ export async function handleChatWebSocketMessage(
   get: ChatStateGetter
 ) {
   const currentState = get();
-  console.log("handleChatWebSocketMessage:", data);
 
   if (currentState.status === "stopping") {
     if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
@@ -801,7 +800,6 @@ export async function handleChatWebSocketMessage(
   };
 
   if (data.type === "job_update") {
-    console.log("Job update received:", data);
     applyReducer(applyJobUpdate, data as JobUpdate);
   } else if (data.type === "node_update") {
     applyReducer(applyNodeUpdate, data as NodeUpdate);
@@ -921,7 +919,6 @@ export async function handleChatWebSocketMessage(
     log.info("Generation stopped:", stoppedData.message);
   } else if (data.type === "error") {
     const errorData = data as ErrorMessage;
-    console.log("Error message received:", errorData);
     applyReducer(
       (_state) => applyError(errorData.message),
       errorData

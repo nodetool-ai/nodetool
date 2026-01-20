@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Console.log Debug Statements Removal (2026-01-20)
+
+**What**: Removed 4 debug console.log statements from chatProtocol.ts and WorkflowList.tsx.
+
+**Files**: web/src/core/chat/chatProtocol.ts, web/src/components/workflows/WorkflowList.tsx
+
+**Impact**: Cleaned up debug statements that could expose internal data in production browser devtools.
+
+---
+
 ### Component Memoization (2026-01-20)
 
 **What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.
