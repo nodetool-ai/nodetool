@@ -6,7 +6,7 @@
  * removed (red), and modified (orange) states.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { Box, Paper, Typography, Tooltip, useTheme } from "@mui/material";
 import { GraphDiff } from "../../utils/graphDiff";
 import { Graph, Node } from "../../stores/ApiTypes";
@@ -369,4 +369,4 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
   );
 };
 
-export default GraphVisualDiff;
+export default memo(GraphVisualDiff);
