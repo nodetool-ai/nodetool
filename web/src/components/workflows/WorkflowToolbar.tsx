@@ -9,6 +9,8 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import SortIcon from "@mui/icons-material/Sort";
 import ClearIcon from "@mui/icons-material/Clear";
+import LocalOfferIcon from "@mui/icons-material/LocalOffer";
+import CheckIcon from "@mui/icons-material/Check";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -43,7 +45,32 @@ const styles = (theme: Theme) =>
     ".tools .search-row": {
       display: "flex",
       width: "100%",
-      maxWidth: "200px"
+      maxWidth: "230px",
+      gap: "4px",
+      alignItems: "center"
+    },
+    ".tools .tags-button": {
+      fontSize: "0.7em",
+      borderColor: `${"var(--palette-primary-main)"}33`,
+      width: "2em",
+      height: "2em",
+      flexShrink: 0,
+      marginLeft: "0.5em",
+      "&:hover": {
+        borderColor: "var(--palette-primary-main)"
+      },
+      "& svg": {
+        color: theme.vars.palette.grey[400]
+      },
+      "&:hover svg": {
+        fill: "var(--palette-primary-main)"
+      }
+    },
+    ".tools .tags-button.has-selection": {
+      borderColor: "var(--palette-primary-main)",
+      "& svg": {
+        color: "var(--palette-primary-main)"
+      }
     },
     ".tools .buttons-row": {
       display: "flex",
@@ -145,36 +172,29 @@ const styles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.primary.dark
       }
     },
-    ".tools .tags-row": {
+    ".tools .active-tags-row": {
       display: "flex",
       flexDirection: "row",
       flexWrap: "wrap",
       gap: "4px",
       alignItems: "center"
     },
-    ".tools .tag-chip": {
-      height: "22px",
+    ".tools .active-tag-chip": {
+      height: "20px",
       fontSize: theme.fontSizeSmaller,
-      backgroundColor: theme.vars.palette.grey[700],
-      color: theme.vars.palette.grey[200],
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
-      cursor: "pointer",
-      transition: "all 0.15s ease",
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[600],
-        borderColor: theme.vars.palette.grey[500]
-      }
-    },
-    ".tools .tag-chip.selected": {
       backgroundColor: "var(--palette-primary-main)",
       color: theme.vars.palette.primary.contrastText,
-      borderColor: "var(--palette-primary-main)",
-      "&:hover": {
-        backgroundColor: "var(--palette-primary-dark)"
+      border: "none",
+      "& .MuiChip-deleteIcon": {
+        color: theme.vars.palette.primary.contrastText,
+        fontSize: "14px",
+        "&:hover": {
+          color: theme.vars.palette.grey[200]
+        }
       }
     },
     ".tools .clear-tags-button": {
-      height: "22px",
+      height: "20px",
       fontSize: theme.fontSizeSmaller,
       padding: "0 6px",
       minWidth: "auto",
@@ -182,6 +202,19 @@ const styles = (theme: Theme) =>
       "&:hover": {
         color: theme.vars.palette.grey[200]
       }
+    },
+    ".tag-menu-item": {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      minWidth: "120px"
+    },
+    ".tag-menu-item .check-icon": {
+      width: "16px",
+      color: "var(--palette-primary-main)"
+    },
+    ".tag-menu-item .empty-icon": {
+      width: "16px"
     }
   });
 
@@ -206,6 +239,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   const selectedTags = useSelectedTags();
   const { toggleTag, clearSelectedTags } = useWorkflowListViewStore((state) => state.actions);
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
+  const [tagsMenuAnchor, setTagsMenuAnchor] = useState<null | HTMLElement>(null);
 
   const handleToggleGraphPreview = useCallback(() => {
     setShowGraphPreview(!showGraphPreview);
@@ -217,6 +251,14 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
   const handleSortMenuClose = useCallback(() => {
     setSortMenuAnchor(null);
+  }, []);
+
+  const handleTagsMenuOpen = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setTagsMenuAnchor(event.currentTarget);
+  }, []);
+
+  const handleTagsMenuClose = useCallback(() => {
+    setTagsMenuAnchor(null);
   }, []);
 
   const handleSortChange = useCallback((newSortBy: SortBy) => {
@@ -250,6 +292,46 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               />
             </div>
           </Tooltip>
+          {availableTags.length > 0 && (
+            <>
+              <Tooltip title="Filter by tags" enterDelay={TOOLTIP_ENTER_DELAY}>
+                <IconButton
+                  className={`tags-button ${selectedTags.length > 0 ? "has-selection" : ""}`}
+                  onClick={handleTagsMenuOpen}
+                >
+                  <LocalOfferIcon />
+                </IconButton>
+              </Tooltip>
+              <Menu
+                anchorEl={tagsMenuAnchor}
+                open={Boolean(tagsMenuAnchor)}
+                onClose={handleTagsMenuClose}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "left",
+                }}
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "left",
+                }}
+              >
+                {availableTags.map((tag) => (
+                  <MenuItem
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    className="tag-menu-item"
+                  >
+                    {selectedTags.includes(tag) ? (
+                      <CheckIcon className="check-icon" fontSize="small" />
+                    ) : (
+                      <span className="empty-icon" />
+                    )}
+                    {tag}
+                  </MenuItem>
+                ))}
+              </Menu>
+            </>
+          )}
         </div>
 
         <div className="buttons-row">
@@ -364,19 +446,19 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           </Tooltip>
         </div>
 
-        {availableTags.length > 0 && (
-          <div className="tags-row">
-            {availableTags.map((tag) => (
+        {selectedTags.length > 0 && (
+          <div className="active-tags-row">
+            {selectedTags.map((tag) => (
               <Chip
                 key={tag}
                 label={tag}
                 size="small"
-                className={`tag-chip ${selectedTags.includes(tag) ? "selected" : ""}`}
-                onClick={() => toggleTag(tag)}
+                className="active-tag-chip"
+                onDelete={() => toggleTag(tag)}
               />
             ))}
-            {selectedTags.length > 0 && (
-              <Tooltip title="Clear tag filters" enterDelay={TOOLTIP_ENTER_DELAY}>
+            {selectedTags.length > 1 && (
+              <Tooltip title="Clear all tag filters" enterDelay={TOOLTIP_ENTER_DELAY}>
                 <IconButton
                   className="clear-tags-button"
                   onClick={clearSelectedTags}
