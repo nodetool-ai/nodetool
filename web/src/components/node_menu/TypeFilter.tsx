@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, Global } from "@emotion/react";
 
-import React, { useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { DATA_TYPES, IconForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
@@ -25,24 +25,22 @@ interface TypeFilterProps {
   setSelectedOutputType: (value: string) => void;
 }
 
-const TypeFilter: React.FC<TypeFilterProps> = ({
+const TypeFilter = memo(({
   selectedInputType,
   setSelectedInputType,
   selectedOutputType,
   setSelectedOutputType
-}) => {
+}: TypeFilterProps) => {
   const theme = useTheme();
   const nodeTypes = DATA_TYPES;
   const comfyTypes = nodeTypes.filter((t) => t.value.startsWith("comfy"));
   const otherTypes = nodeTypes.filter((t) => !t.value.startsWith("comfy"));
 
-  // Collapse/expand state for sections inside menu - separate for input and output
   const [showNodetoolInput, setShowNodetoolInput] = useState(true);
   const [showComfyInput, setShowComfyInput] = useState(false);
   const [showNodetoolOutput, setShowNodetoolOutput] = useState(true);
   const [showComfyOutput, setShowComfyOutput] = useState(false);
 
-  // Tooltip visibility state
   const [inputHover, setInputHover] = useState(false);
   const [outputHover, setOutputHover] = useState(false);
   const [inputSelectOpen, setInputSelectOpen] = useState(false);
@@ -51,7 +49,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   const inputTooltipOpen = inputHover && !inputSelectOpen;
   const outputTooltipOpen = outputHover && !outputSelectOpen;
 
-  const toggleNodetoolInput = (e: React.MouseEvent) => {
+  const toggleNodetoolInput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowNodetoolInput((prev) => {
@@ -61,9 +59,9 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       }
       return newState;
     });
-  };
+  }, []);
 
-  const toggleComfyInput = (e: React.MouseEvent) => {
+  const toggleComfyInput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowComfyInput((prev) => {
@@ -73,9 +71,9 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       }
       return newState;
     });
-  };
+  }, []);
 
-  const toggleNodetoolOutput = (e: React.MouseEvent) => {
+  const toggleNodetoolOutput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowNodetoolOutput((prev) => {
@@ -85,9 +83,9 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       }
       return newState;
     });
-  };
+  }, []);
 
-  const toggleComfyOutput = (e: React.MouseEvent) => {
+  const toggleComfyOutput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowComfyOutput((prev) => {
@@ -97,7 +95,32 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       }
       return newState;
     });
-  };
+  }, []);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<{ value: unknown }>) => {
+    setSelectedInputType(e.target.value as string);
+  }, [setSelectedInputType]);
+
+  const handleOutputChange = useCallback((e: React.ChangeEvent<{ value: unknown }>) => {
+    setSelectedOutputType(e.target.value as string);
+  }, [setSelectedOutputType]);
+
+  const handleInputMouseEnter = useCallback(() => setInputHover(true), []);
+  const handleInputMouseLeave = useCallback(() => setInputHover(false), []);
+  const handleOutputMouseEnter = useCallback(() => setOutputHover(true), []);
+  const handleOutputMouseLeave = useCallback(() => setOutputHover(false), []);
+
+  const handleInputOpen = useCallback(() => setInputSelectOpen(true), []);
+  const handleInputClose = useCallback(() => {
+    setInputSelectOpen(false);
+    setInputHover(false);
+  }, []);
+
+  const handleOutputOpen = useCallback(() => setOutputSelectOpen(true), []);
+  const handleOutputClose = useCallback(() => {
+    setOutputSelectOpen(false);
+    setOutputHover(false);
+  }, []);
 
   const typeFilterStyles = (theme: Theme) =>
     css({
@@ -195,8 +218,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         >
           <div
             className="type-filter"
-            onMouseEnter={() => setInputHover(true)}
-            onMouseLeave={() => setInputHover(false)}
+            onMouseEnter={handleInputMouseEnter}
+            onMouseLeave={handleInputMouseLeave}
           >
             {!selectedInputType && (
               <InputLabel id="input-type" className="label">
@@ -205,16 +228,13 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
             )}
             <Select
               className="type-filter-select"
-              onChange={(e) => setSelectedInputType(e.target.value)}
+              onChange={handleInputChange}
               size="medium"
               variant="outlined"
               label="Input Type"
               value={selectedInputType}
-              onOpen={() => setInputSelectOpen(true)}
-              onClose={() => {
-                setInputSelectOpen(false);
-                setInputHover(false);
-              }}
+              onOpen={handleInputOpen}
+              onClose={handleInputClose}
             >
               <MenuItem
                 style={{ color: theme.vars.palette.primary.main }}
@@ -319,8 +339,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         >
           <div
             className="type-filter"
-            onMouseEnter={() => setOutputHover(true)}
-            onMouseLeave={() => setOutputHover(false)}
+            onMouseEnter={handleOutputMouseEnter}
+            onMouseLeave={handleOutputMouseLeave}
           >
             {!selectedOutputType && (
               <InputLabel id="output-type" className="label">
@@ -329,16 +349,13 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
             )}
             <Select
               className="type-filter-select"
-              onChange={(e) => setSelectedOutputType(e.target.value)}
+              onChange={handleOutputChange}
               size="medium"
               variant="outlined"
               label="Output Type"
               value={selectedOutputType}
-              onOpen={() => setOutputSelectOpen(true)}
-              onClose={() => {
-                setOutputSelectOpen(false);
-                setOutputHover(false);
-              }}
+              onOpen={handleOutputOpen}
+              onClose={handleOutputClose}
             >
               <MenuItem
                 style={{ color: theme.vars.palette.primary.main }}
@@ -434,5 +451,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       </div>
     </Box>
   );
-};
+});
+
+TypeFilter.displayName = "TypeFilter";
+
 export default TypeFilter;
