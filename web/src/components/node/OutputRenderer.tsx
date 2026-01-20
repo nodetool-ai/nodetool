@@ -5,10 +5,11 @@ import React, {
   memo,
   useState,
   useRef,
-  useEffect
+  useEffect,
+  lazy,
+  Suspense
 } from "react";
-import Plot from "react-plotly.js";
-
+import { LinearProgress } from "@mui/material";
 import {
   Asset,
   DataframeRef,
@@ -54,8 +55,23 @@ import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 // import left for future reuse of audio stream component when needed
 
+// Lazy-loaded Plotly component for code splitting (reduces initial bundle by ~4.6MB)
+const Plot = lazy(
+  () =>
+    import("react-plotly.js").then((module) => ({
+      default: module.default
+    })) as Promise<{ default: React.ComponentType<any> }>
+);
+
+// Loading fallback for Plotly
+const PlotlyLoadingFallback = () => (
+  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <LinearProgress sx={{ width: "50%" }} />
+  </div>
+);
+
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
-// `RangeError: Invalid string length` when streams run away.
+ // `RangeError: Invalid string length` when streams run away.
 const MAX_RENDERED_TEXT_CHARS = 5_000_000;
 
 const hashStringBounded = (input: string, sampleSize = 2048): string => {
@@ -332,13 +348,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             className="render-content"
             style={{ width: "100%", height: "100%" }}
           >
-            <Plot
-              data={config.config.data as Plotly.Data[]}
-              layout={config.config.layout as Partial<Plotly.Layout>}
-              config={config.config.config as Partial<Plotly.Config>}
-              frames={config.config.frames as Plotly.Frame[] | undefined}
-              style={{ width: "100%", height: "100%" }}
-            />
+            <Suspense fallback={<PlotlyLoadingFallback />}>
+              <Plot
+                data={config.config.data as Plotly.Data[]}
+                layout={config.config.layout as Partial<Plotly.Layout>}
+                config={config.config.config as Partial<Plotly.Config>}
+                frames={config.config.frames as Plotly.Frame[] | undefined}
+                style={{ width: "100%", height: "100%" }}
+              />
+            </Suspense>
           </div>
         );
       case "image_comparison":

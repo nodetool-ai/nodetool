@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Plotly Lazy Loading (2026-01-20)
+
+**What**: Lazy loaded Plotly chart library (~4.6MB) using React.lazy/Suspense in OutputRenderer.tsx.
+
+**Files**: web/src/components/node/OutputRenderer.tsx
+
+**Impact**: Plotly code now in separate chunk, loaded on-demand when rendering plots.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
@@ -104,75 +114,7 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### useInputNodeAutoRun Tests Fix (2026-01-19)
-
-**What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
-
-**Files**: web/src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
-
-**Impact**: All 15 tests now pass, type checking and linting pass.
-
----
-
-> **Format**: `Feature (date): One line. Files: x, y`
-> **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
-
-**What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
-
-**Why**: Both actions used the same PlayArrowIcon, confusing users about their different purposes.
-
-**Files**: `web/src/components/context_menus/NodeContextMenu.tsx`, `web/src/components/node/NodeToolButtons.tsx`
-
----
-
-### Image Size Display in Nodes (2026-01-16)
-
-**What**: Added image dimensions display (width × height) at bottom right of image output nodes, shown in tiny monospace font with semi-transparent background.
-
-**Why**: Users can now see image size without clicking on the image, improving workflow visibility.
-
-**Files**: `web/src/components/node/ImageView.tsx`
-
----
-
-### Auto-save Interval Fix (2026-01-16)
-
-**What**: Fixed auto-save interval settings not being applied when changed by user.
-
-**Why**: The interval useEffect wasn't properly resetting when intervalMinutes changed due to dependency array issues with memoized callbacks.
-
-**Files**: `web/src/hooks/useAutosave.ts`
-
----
-
-### Mobile TypeScript Type Definitions Fix (2026-01-15)
-
-**What**: Fixed mobile package TypeScript type checking by adding `@types/react-native` package.
-
-**Why**: TypeScript couldn't find type definition files for 'jest', 'node', and 'react-native' even though tsconfig.json specified them in the types array. The `@types/react-native` package was missing from package.json.
-
-**Files**: `mobile/package.json`, `mobile/package-lock.json`
-
----
-
-### NodeExecutionTime Test Lint Fix (2026-01-15)
-
-**What**: Fixed lint warnings in NodeExecutionTime.test.tsx by removing unused duplicate function.
-
-**Why**: ESLint reported unused variable warning for `formatDuration` function that was duplicated unnecessarily.
-
-**Files**: `web/src/components/node/__tests__/NodeExecutionTime.test.tsx`
-
----
-
-### Quality Checks Verification (2026-01-15)
-
-**What**: Ran full quality checks and fixed issues found.
-
-**Result**:
-- ✅ Type checking: All packages pass
-- ✅ Linting: All packages pass (2 warnings fixed)
-- ✅ Tests: All 595 tests pass (206 web + 389 mobile)
+### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **Files**: Multiple files across web and mobile packages
 
