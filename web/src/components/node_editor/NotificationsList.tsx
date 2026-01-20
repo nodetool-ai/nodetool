@@ -1,5 +1,5 @@
 /* @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo, useCallback } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { List, ListItem, ListItemText, Box, IconButton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -109,16 +109,23 @@ const NotificationsList: React.FC = () => {
   const theme = useTheme();
   const notifications = useNotificationStore((state) => state.notifications);
   const { writeClipboard } = useClipboard();
-  const recentNotifications = [...notifications]
-    .sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )
-    .slice(0, NOTIFICATIONS_LIST_MAX_ITEMS);
+  const recentNotifications = useMemo(
+    () =>
+      [...notifications]
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
+        .slice(0, NOTIFICATIONS_LIST_MAX_ITEMS),
+    [notifications]
+  );
 
-  const handleCopy = async (content: string) => {
-    await writeClipboard(content, true);
-  };
+  const handleCopy = useCallback(
+    async (content: string) => {
+      await writeClipboard(content, true);
+    },
+    [writeClipboard]
+  );
 
   return (
     <Box css={styles(theme)} className="notifications-list-container">

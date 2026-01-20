@@ -60,9 +60,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     closeContextMenu();
   }, [closeContextMenu]);
 
-
-  const addComment = (event: React.MouseEvent) => {
-    // Fake metadata for comments
+  const addComment = useCallback((event: React.MouseEvent<HTMLElement, MouseEvent>) => {
     const metadata = COMMENT_NODE_METADATA;
     const newNode = createNode(
       metadata,
@@ -75,11 +73,10 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     newNode.height = 100;
     newNode.style = { width: 150, height: 100 };
     addNode(newNode);
-  };
+  }, [createNode, addNode, reactFlowInstance, menuPosition]);
 
   const addGroupNode = useCallback(
-    (event: React.MouseEvent) => {
-      // Use the imported constant
+    (event: React.MouseEvent<HTMLElement, MouseEvent>) => {
       const metadata = GROUP_NODE_METADATA;
       const position = reactFlowInstance.screenToFlowPosition({
         x: menuPosition?.x || event.clientX,
@@ -92,8 +89,46 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     [createNode, addNode, reactFlowInstance, menuPosition, closeAllMenus]
   );
 
+  const handlePasteWithClose = useCallback(() => {
+    handlePaste();
+    closeAllMenus();
+  }, [handlePaste, closeAllMenus]);
+
+  const handleFitViewWithClose = useCallback(
+    (e?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+      if (e) {
+        e.preventDefault();
+        fitView({ padding: 0.5 });
+      }
+      closeAllMenus();
+    },
+    [fitView, closeAllMenus]
+  );
+
+  const handleAddCommentWithClose = useCallback(
+    (e?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+      if (e) {
+        e.preventDefault();
+        addComment(e);
+      }
+      closeAllMenus();
+    },
+    [addComment, closeAllMenus]
+  );
+
+  const handleAddGroupWithClose = useCallback(
+    (e?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+      if (e) {
+        e.preventDefault();
+        addGroupNode(e);
+      }
+      closeAllMenus();
+    },
+    [addGroupNode, closeAllMenus]
+  );
+
   const addFavoriteNode = useCallback(
-    (nodeType: string, event: React.MouseEvent | undefined) => {
+    (nodeType: string, event: React.MouseEvent<HTMLElement, MouseEvent>) => {
       if (!event) {
         return;
       }
@@ -183,7 +218,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   );
 
   const handleCreateNode = useCallback(
-    (nodeType: string | null, event?: React.MouseEvent) => {
+    (nodeType: string | null, event?: React.MouseEvent<HTMLElement, MouseEvent>) => {
       if (!event || !nodeType) {
         return;
       }
@@ -209,8 +244,56 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     ]
   );
 
+  const handleFavoriteClick = useCallback(
+    (favoriteNodeType: string, e?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+      if (e) {
+        addFavoriteNode(favoriteNodeType, e);
+      }
+    },
+    [addFavoriteNode]
+  );
+
+  const handleFavoriteNodeClick = useCallback(
+    (favoriteNodeType: string) => (e?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+      handleFavoriteClick(favoriteNodeType, e);
+    },
+    [handleFavoriteClick]
+  );
+
+  const handleConstantNodeClick = useCallback(
+    (nodeType: string, e?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+      if (e) {
+        handleCreateNode(nodeType, e);
+      }
+    },
+    [handleCreateNode]
+  );
+
+  const handleConstantNodeItemClick = useCallback(
+    (nodeType: string) => (e?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+      handleConstantNodeClick(nodeType, e);
+    },
+    [handleConstantNodeClick]
+  );
+
+  const handleInputNodeClick = useCallback(
+    (nodeType: string, e?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+      if (e) {
+        handleCreateNode(nodeType, e);
+      }
+    },
+    [handleCreateNode]
+  );
+
+  const handleInputNodeItemClick = useCallback(
+    (nodeType: string) => (e?: React.MouseEvent<HTMLElement, MouseEvent>) => {
+      handleInputNodeClick(nodeType, e);
+    },
+    [handleInputNodeClick]
+  );
+
   const handleOpenConstantMenu = useCallback(
-    (event?: React.MouseEvent<HTMLElement>) => {
+    (event?: React.MouseEvent<HTMLElement, MouseEvent>) => {
       if (!event) {
         return;
       }
@@ -223,7 +306,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   );
 
   const handleOpenInputMenu = useCallback(
-    (event?: React.MouseEvent<HTMLElement>) => {
+    (event?: React.MouseEvent<HTMLElement, MouseEvent>) => {
       if (!event) {
         return;
       }
@@ -234,6 +317,14 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     },
     []
   );
+
+  const handleConstantMenuClose = useCallback(() => {
+    setConstantMenuAnchorEl(null);
+  }, []);
+
+  const handleInputMenuClose = useCallback(() => {
+    setInputMenuAnchorEl(null);
+  }, []);
 
   if (!menuPosition) {
     return null;
@@ -265,10 +356,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         }}
       >
         <ContextMenuItem
-          onClick={() => {
-            handlePaste();
-            closeAllMenus();
-          }}
+          onClick={handlePasteWithClose}
           label="Paste"
           addButtonClassName={`action ${!isClipboardValid ? "disabled" : ""}`}
           IconComponent={<SouthEastIcon />}
@@ -288,13 +376,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           }
         />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              fitView({ padding: 0.5 });
-            }
-            closeAllMenus();
-          }}
+          onClick={handleFitViewWithClose}
           label="Fit Screen"
           IconComponent={<FitScreenIcon />}
           tooltip={getShortcutTooltip("fit-view")}
@@ -325,7 +407,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
             return (
               <ContextMenuItem
                 key={favorite.nodeType}
-                onClick={(e) => addFavoriteNode(favorite.nodeType, e)}
+                onClick={handleFavoriteNodeClick(favorite.nodeType)}
                 label={displayName}
                 IconComponent={
                   <StarIcon
@@ -364,25 +446,13 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         />
         <Divider />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              addComment(e);
-            }
-            closeAllMenus();
-          }}
+          onClick={handleAddCommentWithClose}
           label="Add Comment"
           IconComponent={<AddCommentIcon />}
           tooltip={"Hold C key and drag"}
         />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              addGroupNode(e);
-            }
-            closeAllMenus();
-          }}
+          onClick={handleAddGroupWithClose}
           label="Add Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={"Add a group node"}
@@ -392,7 +462,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         className="context-menu pane-submenu"
         anchorEl={constantMenuAnchorEl}
         open={Boolean(constantMenuAnchorEl)}
-        onClose={() => setConstantMenuAnchorEl(null)}
+        onClose={handleConstantMenuClose}
         slotProps={{
           paper: {
             className: "context-menu pane-submenu"
@@ -415,7 +485,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           return (
             <ContextMenuItem
               key={nodeType}
-              onClick={(e) => handleCreateNode(nodeType, e)}
+              onClick={handleConstantNodeItemClick(nodeType)}
               label={option.label}
             />
           );
@@ -425,7 +495,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         className="context-menu pane-submenu"
         anchorEl={inputMenuAnchorEl}
         open={Boolean(inputMenuAnchorEl)}
-        onClose={() => setInputMenuAnchorEl(null)}
+        onClose={handleInputMenuClose}
         slotProps={{
           paper: {
             className: "context-menu pane-submenu"
@@ -448,7 +518,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           return (
             <ContextMenuItem
               key={nodeType}
-              onClick={(e) => handleCreateNode(nodeType, e)}
+              onClick={handleInputNodeItemClick(nodeType)}
               label={option.label}
             />
           );

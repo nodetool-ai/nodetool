@@ -295,19 +295,38 @@ const WorkflowList = () => {
     setShowFavoritesOnly((prev) => !prev);
   }, []);
 
+  const handleToggleCheckboxes = useCallback(() => {
+    setShowCheckboxes((prev) => !prev);
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    setWorkflowsToDelete(
+      workflows.filter((w) => selectedWorkflows.includes(w.id))
+    );
+    setIsDeleteDialogOpen(true);
+  }, [workflows, selectedWorkflows]);
+
+  const handleDeleteDialogClose = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+  }, []);
+
+  const handleEditDialogClose = useCallback(() => {
+    setWorkflowToEdit(null);
+  }, []);
+
 
 
   return (
     <>
       <WorkflowDeleteDialog
         open={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
+        onClose={handleDeleteDialogClose}
         workflowsToDelete={workflowsToDelete}
       />
       {workflowToEdit && (
         <WorkflowFormModal
           open={!!workflowToEdit}
-          onClose={() => setWorkflowToEdit(null)}
+          onClose={handleEditDialogClose}
           workflow={workflowToEdit}
           availableTags={availableTags}
         />
@@ -325,14 +344,9 @@ const WorkflowList = () => {
           <WorkflowToolbar
             setFilterValue={setFilterValue}
             showCheckboxes={showCheckboxes}
-            toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
+            toggleCheckboxes={handleToggleCheckboxes}
             selectedWorkflowsCount={selectedWorkflows.length}
-            onBulkDelete={() => {
-              setWorkflowsToDelete(
-                workflows.filter((w) => selectedWorkflows.includes(w.id))
-              );
-              setIsDeleteDialogOpen(true);
-            }}
+            onBulkDelete={handleBulkDelete}
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
             availableTags={availableTags}
