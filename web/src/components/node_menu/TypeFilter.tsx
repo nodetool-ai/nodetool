@@ -97,12 +97,14 @@ const TypeFilter = memo(({
     });
   }, []);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<{ value: unknown }>) => {
-    setSelectedInputType(e.target.value as string);
+  const handleInputChange = useCallback((event: React.ChangeEvent<{ value: string }> | (Event & { target: { value: string; name: string } }), _child: React.ReactNode) => {
+    const value = (event.target as { value: string }).value;
+    setSelectedInputType(value);
   }, [setSelectedInputType]);
 
-  const handleOutputChange = useCallback((e: React.ChangeEvent<{ value: unknown }>) => {
-    setSelectedOutputType(e.target.value as string);
+  const handleOutputChange = useCallback((event: React.ChangeEvent<{ value: string }> | (Event & { target: { value: string; name: string } }), _child: React.ReactNode) => {
+    const value = (event.target as { value: string }).value;
+    setSelectedOutputType(value);
   }, [setSelectedOutputType]);
 
   const handleInputMouseEnter = useCallback(() => setInputHover(true), []);

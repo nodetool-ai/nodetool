@@ -284,7 +284,7 @@ const ProviderSetupPanel: React.FC = () => {
     [apiKeys, updateMutation, addNotification]
   );
 
-  const handleKeyChange = useCallback((key: ProviderKey, value: string) => {
+  const _handleKeyChange = useCallback((key: ProviderKey, value: string) => {
     setApiKeys((prev) => ({ ...prev, [key]: value }));
   }, []);
 
@@ -389,8 +389,7 @@ const ProviderSetupPanel: React.FC = () => {
                             placeholder={
                               isConfigured ? "••••••••••••" : provider.placeholder
                             }
-                          }}
-                        />
+                          />
                         <Button
                           variant="contained"
                           size="small"

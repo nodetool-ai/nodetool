@@ -437,8 +437,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
         <FormControl fullWidth>
           <FormLabel htmlFor="tags">Tags</FormLabel>
-          <Autocomplete
-            className="tag-input"
+          <Autocomplete<string, true, false, true>
             multiple
             freeSolo
             selectOnFocus
@@ -464,7 +463,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
               if (typeof option === "string") {
                 return option;
               }
-              return option.inputValue || "";
+              return (option as { inputValue?: string }).inputValue || "";
             }}
             renderOption={(props, option) => {
               const { key, ...rest } = props;
