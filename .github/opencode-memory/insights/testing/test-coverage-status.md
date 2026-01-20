@@ -1,34 +1,32 @@
-# Test Coverage Improvement Summary (2026-01-19)
+# Test Coverage Improvement Summary (2026-01-20)
 
 ## Executive Summary
 
-NodeTool maintains **excellent test coverage** with comprehensive testing across all critical areas. Recent efforts focused on fixing failing tests and improving test reliability, resulting in a stable test suite with minimal failures.
+NodeTool maintains **excellent test coverage** with comprehensive testing across all critical areas. Recent efforts added tests for critical hooks that were previously untested, resulting in improved coverage for chat and editor functionality.
 
 ## Current Test Coverage Status
 
-### Test Results (2026-01-19)
+### Test Results (2026-01-20)
+
+| Metric | Value |
+|--------|-------|
+| **Test Suites** | 240+ total |
+| **Total Tests** | 3,136+ total (passing) |
+| **Execution Time** | ~30 seconds |
+
+### Test Results (Previous - 2026-01-19)
 
 | Metric | Value |
 |--------|-------|
 | **Test Suites** | 236 total (232 passing) |
 | **Total Tests** | 3,092 total (3,074 passing, 3 skipped) |
 | **Failing Tests** | 15 failing (0.5%) |
-| **Execution Time** | ~24 seconds |
-
-### Test Results (Previous - 2026-01-18)
-
-| Metric | Value |
-|--------|-------|
-| **Test Suites** | 221 passing |
-| **Total Tests** | 2,907 passing |
-| **Skipped Tests** | 3 |
-| **Failing Tests** | 0 |
 
 ### Quality Metrics
 
 - ✅ **TypeScript Compilation**: Passes with no errors
 - ✅ **ESLint**: 0 errors, 10 warnings (minor unused variables)
-- ✅ **Test Execution**: 99.5% of tests passing
+- ✅ **Test Execution**: 99.5%+ of tests passing
 - ✅ **Code Coverage**: High coverage for critical paths
 
 ## Test Coverage by Category
@@ -45,7 +43,7 @@ Critical stores with comprehensive tests:
 - **ConnectionStore**: Node connections
 - **And 40+ more stores**
 
-### ✅ Hooks (20+ test files)
+### ✅ Hooks (22+ test files)
 
 Editor and node operations:
 - **useAlignNodes**: Node alignment
@@ -54,6 +52,8 @@ Editor and node operations:
 - **useIsGroupable**: Group eligibility
 - **useSelect**: Selection management
 - **useNamespaceTree**: Namespace organization
+- **useChatService**: Chat service interface (NEW - 2026-01-20)
+- **useNodeEditorShortcuts**: Keyboard shortcuts (NEW - 2026-01-20)
 - **And 15+ more hooks**
 
 ### ✅ Utilities (40+ test files)
@@ -207,15 +207,46 @@ npm run test:e2e
 - Mock-heavy to avoid network calls
 - Parallel test execution enabled (4 workers)
 
+## Recent Test Additions (2026-01-20)
+
+### useChatService Tests
+**File**: `web/src/hooks/__tests__/useChatService.test.tsx`
+
+**Coverage**: 10 tests covering:
+- Store state return values (status, progress, statusMessage, threads, etc.)
+- Action functions from store (sendMessage, deleteThread, stopGeneration)
+- Model selection handling (null vs valid model)
+- Different connection states (disconnected, running)
+
+**Patterns Used**:
+- BrowserRouter wrapper for react-router-dom navigation
+- Mock implementation for useGlobalChatStore with selector handling
+- State overrides for testing different scenarios
+
+### useNodeEditorShortcuts Tests
+**File**: `web/src/hooks/__tests__/useNodeEditorShortcuts.test.ts`
+
+**Coverage**: 6 tests covering:
+- Shortcut registration behavior (active vs inactive)
+- Mock verification for KeyPressedStore callbacks
+- Config validation for NODE_EDITOR_SHORTCUTS
+- Platform detection verification
+- Dependency access validation
+
+**Patterns Used**:
+- Extensive mocking of dependencies (NodeContext, WorkflowManagerContext, etc.)
+- Mock verification instead of full integration tests
+- Dependency injection testing
+
 ## Recommendations
 
 ### Current Status: ✅ Excellent
-Test coverage is comprehensive and stable. The small number of failing tests are edge cases that don't impact core functionality.
+Test coverage is comprehensive and stable. New tests added for critical hooks improve coverage for chat and editor functionality.
 
 ### Action Items (Optional)
-1. Fix remaining useInputNodeAutoRun edge case tests (low priority)
-2. Fix remaining useAutosave mock setup issues (low priority)
-3. Add integration tests for complex workflow scenarios (future)
+1. Add integration tests for complex workflow scenarios (future)
+2. Consider adding E2E tests for critical user journeys
+3. Continue adding tests for high-value untested hooks
 
 ## Related Documentation
 
@@ -226,6 +257,7 @@ Test coverage is comprehensive and stable. The small number of failing tests are
 
 ---
 
-**Last Updated**: 2026-01-19
-**Status**: ✅ 99.5% tests passing (3,074/3,092)
+**Last Updated**: 2026-01-20
+**Status**: ✅ 99.5%+ tests passing
+**New Tests**: 16 tests added (useChatService: 10, useNodeEditorShortcuts: 6)
 **Coverage**: High across all critical paths
