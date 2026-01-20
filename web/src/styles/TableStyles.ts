@@ -5,32 +5,41 @@ export const tableStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    overflow: "auto",
     width: "100%",
-    // Main container
+    overflow: "hidden",
+    // Main container - Tabulator controls its own height
     ".dicttable, .datatable": {
       width: "100%",
-      minHeight: "150px",
-      maxHeight: "350px",
       position: "relative",
-      overflow: "auto",
       border: `1px solid ${theme.vars.palette.grey[900]}`
     },
 
-    // Tabulator base
+    // Tabulator base - has fixed pixel height set in component
     ".tabulator": {
       fontSize: theme.fontSizeSmall,
-      fontFamily: theme.fontFamily1,
-      height: "100%",
-      minHeight: "150px",
-      maxHeight: "350px"
+      fontFamily: theme.fontFamily1
     },
     ".tabulator-tableholder": {
       overflow: "auto",
       paddingBottom: "4em",
       backgroundColor: theme.vars.palette.grey[800],
       borderTop: `1px solid ${theme.vars.palette.grey[900]}`,
-      scrollbarWidth: "thin"
+      scrollbarWidth: "thin",
+      scrollbarColor: `${theme.vars.palette.grey[600]} ${theme.vars.palette.grey[900]}`,
+      "&::-webkit-scrollbar": {
+        width: "8px",
+        height: "8px"
+      },
+      "&::-webkit-scrollbar-track": {
+        background: theme.vars.palette.grey[900]
+      },
+      "&::-webkit-scrollbar-thumb": {
+        background: theme.vars.palette.grey[600],
+        borderRadius: "4px"
+      },
+      "&::-webkit-scrollbar-thumb:hover": {
+        background: theme.vars.palette.grey[500]
+      }
     },
 
     // Column resize handle

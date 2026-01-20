@@ -21,24 +21,7 @@ const styles = (theme: Theme) =>
     padding: "0",
     marginBottom: "0.5em",
     backgroundColor: "transparent",
-    maxHeight: "400px",
-    overflow: "auto",
-    scrollbarWidth: "thin",
-    scrollbarColor: `${theme.vars.palette.grey[600]} ${theme.vars.palette.grey[900]}`,
-    "&::-webkit-scrollbar": {
-      width: "8px",
-      height: "8px"
-    },
-    "&::-webkit-scrollbar-track": {
-      background: theme.vars.palette.grey[900]
-    },
-    "&::-webkit-scrollbar-thumb": {
-      background: theme.vars.palette.grey[600],
-      borderRadius: "4px"
-    },
-    "&::-webkit-scrollbar-thumb:hover": {
-      background: theme.vars.palette.grey[500]
-    },
+    overflow: "hidden",
     ".button-group": {
       display: "flex",
       marginBottom: "0.5em"
