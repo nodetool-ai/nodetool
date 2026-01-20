@@ -101,6 +101,8 @@ const listStyles = (theme: Theme) =>
     },
     ".date-container": {
       position: "absolute",
+      top: "50%",
+      transform: "translateY(-50%)",
       right: "0.75em",
       display: "flex",
       alignItems: "center",
@@ -154,11 +156,21 @@ const listStyles = (theme: Theme) =>
       top: "4px",
       right: "4px",
       transform: "none",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
       borderRadius: "4px",
       padding: "4px 6px",
       backdropFilter: "blur(4px)",
       gap: "4px"
+    },
+    // Preview mode - date at top right with higher z-index
+    ".workflow.with-preview .date-container": {
+      top: "5px",
+      right: "5px",
+      transform: "none",
+      zIndex: 5,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      borderRadius: "4px",
+      padding: "2px 6px"
     },
     ".date-header": {
       padding: "8px 12px 4px",
