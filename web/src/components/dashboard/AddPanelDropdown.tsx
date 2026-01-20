@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useCallback, memo } from "react";
 import {
   Button,
   Menu,
@@ -33,10 +33,10 @@ const AddPanelDropdown: React.FC<AddPanelDropdownProps> = ({
     setAnchorEl(null);
   };
 
-  const handleAddPanel = (panelId: string) => {
+  const handleAddPanel = useCallback((panelId: string) => {
     onAddPanel(panelId);
     handleClose();
-  };
+  }, [onAddPanel]);
 
   if (availablePanels.length === 0) {
     return null;
@@ -65,7 +65,7 @@ const AddPanelDropdown: React.FC<AddPanelDropdownProps> = ({
         }}
       >
         {availablePanels.map((panel) => (
-          <MenuItem key={panel.id} onClick={() => handleAddPanel(panel.id)}>
+          <MenuItem key={panel.id} onClick={handleAddPanel.bind(null, panel.id)}>
             <ListItemText>{panel.title}</ListItemText>
           </MenuItem>
         ))}
@@ -74,4 +74,4 @@ const AddPanelDropdown: React.FC<AddPanelDropdownProps> = ({
   );
 };
 
-export default AddPanelDropdown;
+export default memo(AddPanelDropdown);

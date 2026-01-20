@@ -292,9 +292,18 @@ const ProviderSetupPanel: React.FC = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
 
-  const handleToggleExpanded = useCallback(() => {
-    setIsExpanded(prev => !prev);
+  const handleToggleExpand = useCallback(() => {
+    setIsExpanded((prev) => !prev);
   }, []);
+
+  const handleProviderSave = useCallback((providerKey: ProviderKey) => {
+    handleSaveKey(providerKey);
+  }, [handleSaveKey]);
+
+  const handleProviderLink = useCallback((url: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    handleOpenLink(url);
+  }, [handleOpenLink]);
 
   return (
     <Box css={panelStyles(theme)} className="provider-setup-panel">
@@ -302,7 +311,7 @@ const ProviderSetupPanel: React.FC = () => {
         <Box className="provider-setup-container">
           <div
             className="collapse-header"
-            onClick={handleToggleExpanded}
+            onClick={handleToggleExpand}
           >
             <div className="section-title">
               <Typography
@@ -365,10 +374,7 @@ const ProviderSetupPanel: React.FC = () => {
                         <a
                           href={provider.link}
                           className="provider-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenLink(provider.link);
-                          }}
+                          onClick={handleProviderLink.bind(null, provider.link)}
                         >
                           {provider.linkText}
                           <OpenInNewIcon sx={{ fontSize: 14 }} />
@@ -383,39 +389,29 @@ const ProviderSetupPanel: React.FC = () => {
                             placeholder={
                               isConfigured ? "••••••••••••" : provider.placeholder
                             }
-                            value={apiKeys[provider.key]}
-                            onChange={(e) =>
-                              handleKeyChange(provider.key, e.target.value)
-                            }
-                            className="provider-input"
-                            disabled={isSaving}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && hasInput) {
-                                handleSaveKey(provider.key);
-                              }
-                            }}
-                          />
-                          <Button
-                            variant="contained"
-                            size="small"
-                            onClick={() => handleSaveKey(provider.key)}
-                            disabled={!hasInput || isSaving}
-                            startIcon={
-                              isSaving ? (
-                                <CircularProgress size={16} />
-                              ) : (
-                                <SaveIcon />
-                              )
-                            }
-                            sx={{ minWidth: "100px" }}
-                          >
-                            {isSaving
-                              ? "Saving..."
-                              : isConfigured
-                              ? "Update"
-                              : "Save"}
-                          </Button>
-                        </div>
+                          }}
+                        />
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={handleProviderSave.bind(null, provider.key)}
+                          disabled={!hasInput || isSaving}
+                          startIcon={
+                            isSaving ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <SaveIcon />
+                            )
+                          }
+                          sx={{ minWidth: "100px" }}
+                        >
+                          {isSaving
+                            ? "Saving..."
+                            : isConfigured
+                            ? "Update"
+                            : "Save"}
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
