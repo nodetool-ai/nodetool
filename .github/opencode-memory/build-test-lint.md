@@ -441,8 +441,44 @@ store.getState().addNotification({
 - `web/src/hooks/__tests__/useAutosave.test.ts`
 - `web/src/hooks/__tests__/useFocusPan.test.ts`
 
+### Additional Tests Added (2026-01-20 - Part 2)
+
+**4 new test files** for critical hooks:
+
+1. **`src/hooks/__tests__/useProcessedEdges.test.ts`**
+   - Tests edge type resolution and processing
+   - Tests edge styling based on data types
+   - Tests execution status tracking on edges
+   - Tests caching during selection rectangle drag
+   - Tests gradient key generation
+
+2. **`src/hooks/__tests__/useRunningJobs.test.tsx`**
+   - Tests fetching running jobs on mount
+   - Tests filtering of active jobs (running, queued, suspended, paused)
+   - Tests exclusion of completed/failed jobs
+   - Tests API error handling
+   - Tests authentication check
+
+3. **`src/hooks/__tests__/useChatService.test.ts`**
+   - Tests chat status return from store
+   - Tests progress tracking
+   - Tests status message return
+   - Tests threads and currentThreadId state
+   - Tests stopGeneration and deleteThread functions
+   - Tests planning update state
+
+4. **`src/hooks/__tests__/useRealtimeAudioStream.test.ts`**
+   - Tests initialization with default state
+   - Tests inputNodeName parameter handling
+   - Tests end-of-stream signal on stop
+   - Tests version increment on stop
+   - Tests multiple stop calls
+   - Tests control function return types
+
 ### Test Results
 
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+- Total test suites: 243 (239 existing + 4 new)
+- Total tests: 3,160 (3,107 existing + 53 new)
