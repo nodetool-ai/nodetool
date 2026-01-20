@@ -61,6 +61,25 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: web/src/components/dashboard/miniApps/MiniAppPanel.tsx
 
 **Impact**: Dashboard panel only re-renders when props change, following pattern of other large components.
+### Inline Handler Memoization (2026-01-19)
+
+**What**: Added React.memo to AddPanelDropdown and ConnectionMatchMenu, memoized 7 inline handlers with useCallback across 5 components.
+
+**Files**: AddPanelDropdown.tsx, ConnectionMatchMenu.tsx, WorkflowsList.tsx, TemplatesPanel.tsx, ProviderSetupPanel.tsx
+
+**Impact**: Prevents unnecessary re-renders in dashboard and context menu components.
+### Inline Arrow Function Memoization (2026-01-19)
+
+**What**: Fixed 29 inline arrow functions in 7 components using useCallback. Files: MarkdownRenderer, GettingStartedPanel, ProviderSetupPanel, WorkflowsList, ConnectableNodes, TagFilter, AssetViewer.
+
+**Impact**: Reduced unnecessary function allocations and improved render performance across dashboard, context menus, and asset viewer components.
+### Component Memoization (2026-01-20)
+
+**What**: Added React.memo to 6 unmemoized components: VersionHistoryPanel, VersionDiff, GraphVisualDiff, ModelListItemActions, EditorMenu, EditorMenuItem.
+
+**Files**: web/src/components/version/*.tsx, web/src/components/hugging_face/model_list/ModelListItemActions.tsx, web/src/components/editor_ui/EditorMenu.tsx
+
+**Impact**: Prevents unnecessary re-renders in version history, model management, and editor UI components.
 
 ---
 
@@ -95,6 +114,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 ---
 
 ### useInputNodeAutoRun Tests Fix (2026-01-19)
+
+**What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
+
+**Files**: web/src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
+
+**Impact**: All 15 tests now pass, type checking and linting pass.
+
+---
 
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.

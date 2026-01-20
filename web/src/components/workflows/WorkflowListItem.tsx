@@ -13,6 +13,7 @@ import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import EditIcon from "@mui/icons-material/Edit";
+import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -49,7 +50,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const showGraphPreview = useShowGraphPreview();
   const isFavorite = useIsWorkflowFavorite(workflow.id);
   const { toggleFavorite } = useFavoriteWorkflowActions();
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -142,28 +143,26 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     [openContextMenu, workflow]
   );
 
-  // Build tooltip content from description and tags
+  // Build tooltip content from description, tags, and graph preview (only in list mode)
   const tooltipContent = useMemo(() => {
     const hasDescription = workflow.description && workflow.description.trim().length > 0;
     const hasTags = workflow.tags && workflow.tags.length > 0;
-    
-    if (!hasDescription && !hasTags) {
-      return null;
-    }
-    
+    // Only show graph in tooltip when not in preview mode (avoid duplication)
+    const hasGraph = !showGraphPreview && workflow.graph && (workflow.graph.nodes?.length > 0 || workflow.graph.edges?.length > 0);
+
     return (
-      <Box sx={{ maxWidth: 300 }}>
+      <Box sx={{ width: hasGraph ? 320 : "auto", maxWidth: 320, padding: "1em" }}>
         <Typography sx={{ fontSize: "var(--fontSizeNormal)", fontWeight: 500, mb: 0.5 }}>
           {workflow.name}
         </Typography>
         {hasDescription && (
           <Typography
-          sx={{ fontSize: "var(--fontSizeSmall)",color: "grey.200", mb: hasTags ? 0.5 : 0 }}>
+            sx={{ fontSize: "var(--fontSizeSmall)", color: "grey.100", mb: 1, mt: 1 }}>
             {workflow.description}
           </Typography>
         )}
         {hasTags && (
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px", mt: 2 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px", mt: 1 }}>
             {workflow.tags!.map((tag) => (
               <Typography
                 key={tag}
@@ -173,6 +172,8 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
                   backgroundColor: "grey.200",
                   borderRadius: "1em",
                   padding: "0.15em 0.5em",
+                  margin: "0.75em 0",
+                  fontWeight: 600,
                   fontFamily: "var(--fontFamily2)"
                 }}
               >
@@ -181,9 +182,24 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             ))}
           </Box>
         )}
+        {hasGraph && (
+          <Box sx={{ 
+            mt: 1,
+            "& .MuiPaper-root": {
+              border: "none",
+              borderRadius: 0
+            }
+          }}>
+            <WorkflowMiniPreview
+              workflow={workflow}
+              width={320}
+              height={130}
+            />
+          </Box>
+        )}
       </Box>
     );
-  }, [workflow.name, workflow.description, workflow.tags]);
+  }, [workflow, showGraphPreview]);
 
   const workflowItem = (
     <Box
@@ -242,7 +258,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             }}
           />
         ) : (
-          <Typography 
+          <Typography
             className="name"
             onDoubleClick={handleNameDoubleClick}
             title="Double-click to rename"
@@ -257,7 +273,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             variant="contained"
             onClick={handleOpen}
             title="Open workflow"
-            sx={{ 
+            sx={{
               padding: "2px 10px",
               minWidth: "unset",
               fontSize: "0.7rem",
@@ -296,21 +312,37 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     </Box>
   );
 
-  if (tooltipContent) {
-    return (
-      <Tooltip 
-        title={tooltipContent} 
-        placement="right" 
-        arrow
-        enterDelay={500}
-        enterNextDelay={500}
-      >
-        {workflowItem}
-      </Tooltip>
-    );
-  }
-
-  return workflowItem;
+  return (
+    <Tooltip
+      title={tooltipContent}
+      placement="right"
+      arrow
+      enterDelay={TOOLTIP_ENTER_DELAY}
+      enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+      slotProps={{
+        tooltip: {
+          sx: {
+            maxWidth: "none",
+            minWidth: 360,
+            padding: "12px",
+            "& .MuiTooltip-tooltip": {
+              maxWidth: "none"
+            }
+          }
+        },
+        popper: {
+          sx: {
+            "& .MuiTooltip-tooltip": {
+              maxWidth: "none",
+              minWidth: 360
+            }
+          }
+        }
+      }}
+    >
+      {workflowItem}
+    </Tooltip>
+  );
 };
 
 export default memo(WorkflowListItem, isEqual);

@@ -8,7 +8,7 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
 import { VariableSizeList } from "react-window";
-import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
+import { useShowGraphPreview, useSortBy } from "../../stores/WorkflowListViewStore";
 import { groupByDate } from "../../utils/groupByDate";
 
 type ListItem = 
@@ -41,6 +41,7 @@ const listStyles = (theme: Theme) =>
       overflow: "hidden auto"
     },
     ".workflow": {
+      flex: 1,
       height: "100%",
       padding: "4px 8px 4px 12px",
       display: "flex",
@@ -100,6 +101,8 @@ const listStyles = (theme: Theme) =>
     },
     ".date-container": {
       position: "absolute",
+      top: "50%",
+      transform: "translateY(-50%)",
       right: "0.75em",
       display: "flex",
       alignItems: "center",
@@ -153,11 +156,21 @@ const listStyles = (theme: Theme) =>
       top: "4px",
       right: "4px",
       transform: "none",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
       borderRadius: "4px",
       padding: "4px 6px",
       backdropFilter: "blur(4px)",
       gap: "4px"
+    },
+    // Preview mode - date at top right with higher z-index
+    ".workflow.with-preview .date-container": {
+      top: "5px",
+      right: "5px",
+      transform: "none",
+      zIndex: 5,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      borderRadius: "4px",
+      padding: "2px 6px"
     },
     ".date-header": {
       padding: "8px 12px 4px",
@@ -190,54 +203,86 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     (state) => state.currentWorkflowId
   );
   const showGraphPreview = useShowGraphPreview();
+  const sortBy = useSortBy();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(500);
 
   const WORKFLOW_HEIGHT = showGraphPreview ? 150 : 36;
   const HEADER_HEIGHT = 32;
 
-  // Measure container height dynamically
+  // Measure container height dynamically using ResizeObserver
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
     const updateHeight = () => {
-      if (containerRef.current) {
-        setContainerHeight(containerRef.current.clientHeight);
+      if (container.clientHeight > 0) {
+        setContainerHeight(container.clientHeight);
       }
     };
+
+    // Initial measurement (with a small delay to ensure layout is complete)
     updateHeight();
-    window.addEventListener("resize", updateHeight);
-    return () => window.removeEventListener("resize", updateHeight);
-  }, []);
+    // Also measure after a short delay for cases where layout hasn't settled
+    const timeoutId = setTimeout(updateHeight, 50);
+
+    // Use ResizeObserver to detect container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeight();
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [workflows.length]);
 
   // Group workflows by date and create a flat list with headers
   const flatList = useMemo(() => {
     const items: ListItem[] = [];
-    let currentGroup = "";
     let workflowIndex = 0;
 
-    // Sort workflows by updated_at descending (most recent first)
-    const sortedWorkflows = [...workflows].sort((a, b) => 
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    );
-
-    for (const workflow of sortedWorkflows) {
-      const group = groupByDate(workflow.updated_at);
-      if (group !== currentGroup) {
-        currentGroup = group;
-        items.push({ type: "header", label: group });
+    // Sort workflows based on sortBy option
+    const sortedWorkflows = [...workflows].sort((a, b) => {
+      if (sortBy === "name") {
+        return a.name.localeCompare(b.name);
       }
-      items.push({ type: "workflow", workflow, index: workflowIndex });
-      workflowIndex++;
+      // Default: sort by date (most recent first)
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+
+    // Only show date headers when sorting by date
+    if (sortBy === "date") {
+      let currentGroup = "";
+      for (const workflow of sortedWorkflows) {
+        const group = groupByDate(workflow.updated_at);
+        if (group !== currentGroup) {
+          currentGroup = group;
+          items.push({ type: "header", label: group });
+        }
+        items.push({ type: "workflow", workflow, index: workflowIndex });
+        workflowIndex++;
+      }
+    } else {
+      // For name sort, no headers
+      for (const workflow of sortedWorkflows) {
+        items.push({ type: "workflow", workflow, index: workflowIndex });
+        workflowIndex++;
+      }
     }
 
     return items;
-  }, [workflows]);
+  }, [workflows, sortBy]);
 
   const listRef = useRef<VariableSizeList>(null);
 
-  // Reset list cache when flatList or showGraphPreview changes
+  // Reset list cache when flatList, showGraphPreview, or sortBy changes
   useEffect(() => {
     listRef.current?.resetAfterIndex(0);
-  }, [flatList, showGraphPreview]);
+  }, [flatList, showGraphPreview, sortBy]);
 
   const getItemSize = (index: number) => {
     const item = flatList[index];
@@ -255,15 +300,15 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
 
     if (item.type === "header") {
       return (
-        <div style={style}>
-          <Typography className="date-header">{item.label}</Typography>
+        <div style={{ ...style, display: "flex" }}>
+          <Typography className="date-header" sx={{ width: "100%" }}>{item.label}</Typography>
         </div>
       );
     }
 
     const { workflow, index: workflowIndex } = item;
     return (
-      <div style={style}>
+      <div style={{ ...style, display: "flex" }}>
         <WorkflowListItem
           key={workflow.id}
           workflow={workflow}
