@@ -151,12 +151,16 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     }
   };
 
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
+
   return (
     <Dialog
       css={styles(theme)}
       className="asset-delete-confirmation"
       open={dialogOpen}
-      onClose={() => setDialogOpen(false)}
+      onClose={handleClose}
     >
       <DialogTitle sx={{ color: theme.vars.palette.warning.main }}>
         {getDialogTitle()}
@@ -202,7 +206,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setDialogOpen(false)} disabled={isLoading}>
+        <Button onClick={handleClose} disabled={isLoading}>
           Cancel
         </Button>
         <Button

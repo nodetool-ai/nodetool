@@ -279,6 +279,10 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     [setFilterValue]
   );
 
+  const handleToggleTagFactory = useCallback((tag: string) => {
+    return () => toggleTag(tag);
+  }, [toggleTag]);
+
   return (
     <Box css={styles(theme)}>
       <div className="tools">
@@ -318,7 +322,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 {availableTags.map((tag) => (
                   <MenuItem
                     key={tag}
-                    onClick={() => toggleTag(tag)}
+                    onClick={handleToggleTagFactory(tag)}
                     className="tag-menu-item"
                   >
                     {selectedTags.includes(tag) ? (
@@ -415,13 +419,13 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             }}
           >
             <MenuItem
-              onClick={() => handleSortChange("date")}
+              onClick={useCallback(() => handleSortChange("date"), [handleSortChange])}
               selected={sortBy === "date"}
             >
               Sort by Date
             </MenuItem>
             <MenuItem
-              onClick={() => handleSortChange("name")}
+              onClick={useCallback(() => handleSortChange("name"), [handleSortChange])}
               selected={sortBy === "name"}
             >
               Sort by Name

@@ -158,8 +158,12 @@ export const DownloadProgress: React.FC<{
     removeDownload(name);
   }, [name, removeDownload]);
 
-  const totalBytes = download.totalBytes ?? 0;
-  const downloadedBytes = download.downloadedBytes ?? 0;
+  const handleCancel = useCallback(() => {
+    cancelDownload(name);
+  }, [name, cancelDownload]);
+
+  const totalBytes = download?.totalBytes ?? 0;
+  const downloadedBytes = download?.downloadedBytes ?? 0;
   const percent =
     totalBytes > 0
       ? Math.min(100, Math.max(0, (downloadedBytes / totalBytes) * 100))
@@ -167,6 +171,7 @@ export const DownloadProgress: React.FC<{
 
   // Detect if download is stalled (no updates for STALL_THRESHOLD_MS or disconnected)
   const isStalled = useMemo(() => {
+    if (!download) {return false;}
     const isActive =
       download.status === "running" ||
       download.status === "progress" ||
@@ -185,11 +190,11 @@ export const DownloadProgress: React.FC<{
       return false;
     }
     return now - download.lastUpdated > STALL_THRESHOLD_MS;
-  }, [download.lastUpdated, download.status, now, isDisconnected]);
+  }, [download, download?.lastUpdated, download?.status, now, isDisconnected]);
 
   // Calculate time since last update for display
   const timeSinceUpdate = useMemo(() => {
-    if (!download.lastUpdated || !isStalled) {
+    if (!download?.lastUpdated || !isStalled) {
       return null;
     }
     const seconds = Math.floor((now - download.lastUpdated) / 1000);
@@ -198,13 +203,13 @@ export const DownloadProgress: React.FC<{
     }
     const minutes = Math.floor(seconds / 60);
     return `${minutes}m ${seconds % 60}s`;
-  }, [download.lastUpdated, isStalled, now]);
+  }, [download?.lastUpdated, isStalled, now]);
 
   const eta = useMemo(() => {
     if (isStalled) {
       return null;
     }
-    if (download.speed && download.speed > 0) {
+    if (download?.speed && download.speed > 0) {
       const remainingBytes = totalBytes - downloadedBytes;
       const remainingSeconds = remainingBytes / download.speed;
       const minutes = Math.floor(remainingSeconds / 60);
@@ -212,7 +217,7 @@ export const DownloadProgress: React.FC<{
       return `${minutes}m ${seconds}s`;
     }
     return null;
-  }, [download.speed, totalBytes, downloadedBytes, isStalled]);
+  }, [download?.speed, totalBytes, downloadedBytes, isStalled]);
 
   // Display speed - show as stalled/disconnected if no recent updates
   const displaySpeed = useMemo(() => {
@@ -225,21 +230,21 @@ export const DownloadProgress: React.FC<{
     if (isStalled) {
       return "Stalled";
     }
-    if (download.speed) {
+    if (download?.speed) {
       return `${(download.speed / 1024 / 1024).toFixed(2)} MB/s`;
     }
     return "-";
-  }, [download.speed, isStalled, isDisconnected, isReconnecting]);
+  }, [download?.speed, isStalled, isDisconnected, isReconnecting]);
 
   const showDetails =
-    download.status === "start" ||
-    download.status === "idle" ||
-    download.status === "pending" ||
-    download.status === "running" ||
-    download.status === "progress";
+    download?.status === "start" ||
+    download?.status === "idle" ||
+    download?.status === "pending" ||
+    download?.status === "running" ||
+    download?.status === "progress";
 
   const getCloseButtonTooltip = () => {
-    switch (download.status) {
+    switch (download?.status) {
       case "completed":
         return "Remove download from history";
       case "cancelled":
@@ -516,7 +521,7 @@ export const DownloadProgress: React.FC<{
           </Box>
           <Tooltip title="Stop the current download. You can restart it later.">
             <Button
-              onClick={() => cancelDownload(name)}
+              onClick={handleCancel}
               variant="contained"
               style={{
                 color: theme.vars.palette.primary.contrastText,

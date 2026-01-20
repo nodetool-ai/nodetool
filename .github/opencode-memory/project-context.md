@@ -74,6 +74,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Inline Handler Memoization (2026-01-20)
+
+**What**: Fixed 15+ inline arrow functions in onClick handlers using useCallback and factory functions pattern for map callbacks.
+
+**Files**: BackToDashboardButton.tsx, NodeContextMenu.tsx, PaneContextMenu.tsx, ConnectableNodes.tsx, WorkflowToolbar.tsx, TagFilter.tsx, AssetDeleteConfirmation.tsx, AssetMoveToFolderConfirmation.tsx, AssetRenameConfirmation.tsx, AssetCreateFolderConfirmation.tsx, DownloadProgress.tsx
+
+**Impact**: Menu components and dialogs now use stable function references, reducing unnecessary re-renders.
+
+---
+
 ### Component Memoization (2026-01-19)
 
 **What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.

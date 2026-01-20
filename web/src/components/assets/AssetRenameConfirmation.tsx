@@ -136,6 +136,23 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
     [setDialogOpen]
   );
 
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
+
+  const handleDismissAlert = useCallback(() => {
+    setShowAlert(null);
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleRename();
+      }
+    },
+    [handleRename]
+  );
+
   return (
     <>
       {dialogOpen && (
@@ -156,7 +173,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             className="asset-rename-dialog"
             css={dialogStyles(theme)}
             open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
+            onClose={handleClose}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
             componentsProps={{
@@ -195,7 +212,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
                 <Alert
                   className="asset-rename-error-alert"
                   severity="success"
-                  onClose={() => setShowAlert(null)}
+                  onClose={handleDismissAlert}
                 >
                   {showAlert}
                 </Alert>
@@ -204,11 +221,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
                 className="asset-rename-input input-field"
                 inputRef={inputRef}
                 value={baseNewName}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleRename();
-                  }
-                }}
+                onKeyDown={handleKeyDown}
                 onChange={(e) => setBaseNewName(e.target.value)}
                 fullWidth
                 autoCorrect="off"
@@ -218,7 +231,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             <DialogActions className="asset-rename-dialog-actions dialog-actions">
               <Button
                 className="asset-rename-cancel-button button-cancel"
-                onClick={() => setDialogOpen(false)}
+                onClick={handleClose}
               >
                 Cancel
               </Button>
