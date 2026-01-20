@@ -148,7 +148,7 @@ describe("useProcessedEdges", () => {
     });
 
     const getMetadata = jest.fn((type: string) => {
-      if (type === "test.node") return metadataWithOutputs;
+      if (type === "test.node") {return metadataWithOutputs;}
       return undefined;
     });
 
