@@ -54,6 +54,11 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Inline Arrow Function Memoization (2026-01-19)
+
+**What**: Fixed 29 inline arrow functions in 7 components using useCallback. Files: MarkdownRenderer, GettingStartedPanel, ProviderSetupPanel, WorkflowsList, ConnectableNodes, TagFilter, AssetViewer.
+
+**Impact**: Reduced unnecessary function allocations and improved render performance across dashboard, context menus, and asset viewer components.
 ### Component Memoization (2026-01-20)
 
 **What**: Added React.memo to 6 unmemoized components: VersionHistoryPanel, VersionDiff, GraphVisualDiff, ModelListItemActions, EditorMenu, EditorMenuItem.

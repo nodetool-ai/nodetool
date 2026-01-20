@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import {
   Box,
@@ -142,6 +142,11 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   handleWorkflowClick
 }) => {
   const theme = useTheme();
+
+  const handleItemClick = useCallback((workflow: Workflow) => {
+    handleWorkflowClick(workflow);
+  }, [handleWorkflowClick]);
+
   return (
     <div className="workflows-list" css={styles(theme)}>
       <Box className="header-controls">
@@ -188,7 +193,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <Box
               key={workflow.id}
               className="workflow-item"
-              onClick={() => handleWorkflowClick(workflow)}
+              onClick={() => handleItemClick(workflow)}
             >
               <Box
                 className="workflow-thumbnail"
