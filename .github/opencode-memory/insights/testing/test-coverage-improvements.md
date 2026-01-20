@@ -1,3 +1,83 @@
+# Test Coverage Improvements (2026-01-20)
+
+**Coverage Added**: 4 new test files with 59 tests for hooks and utilities
+
+**Tests Added**:
+- `reduceUnionType.test.ts` - 31 tests for union type reduction logic
+- `useInferredOutputTypes.test.ts` - 17 tests for workflow output type inference hooks
+- `useInputStream.test.ts` - 8 tests for streaming input operations
+- `useEnsureChatConnected.test.ts` - 3 tests for WebSocket connection management
+
+**Areas Covered**:
+- Union type reduction with sorting and rule matching
+- Schema inference from workflow graphs
+- Typed output type extraction and validation
+- Streaming input with chunk support (text and audio)
+- WebSocket connection lifecycle
+
+**Test Patterns Used**:
+
+1. **Pure Function Testing** (reduceUnionType):
+```typescript
+describe("reduceUnionType", () => {
+  it("reduces int_float to float", () => {
+    const type: TypeMetadata = {
+      type: "union",
+      type_args: [{ type: "int" }, { type: "float" }]
+    };
+    expect(reduceUnionType(type)).toBe("float");
+  });
+});
+```
+
+2. **Hook Testing with Mocked Utilities** (useInferredOutputTypes):
+```typescript
+jest.mock("../../utils/workflowOutputTypeInference", () => ({
+  inferWorkflowOutputSchema: jest.fn()
+}));
+
+// Test hook behavior with mocked utility
+const { result } = renderHook(() => useInferredOutputSchema(mockGraph));
+expect(result.current).toEqual(mockSchema);
+```
+
+3. **Store Selector Hook Testing** (useInputStream):
+```typescript
+jest.mock("../../stores/WorkflowRunner", () => ({
+  useWebsocketRunner: jest.fn()
+}));
+
+// Mock the store selector to return test values
+(useWebsocketRunner as jest.Mock).mockImplementation((selector) => {
+  return selector({
+    streamInput: mockStreamInput,
+    endInputStream: mockEndInputStream,
+    state: "running"
+  });
+});
+```
+
+**Files Created**:
+- `web/src/hooks/__tests__/reduceUnionType.test.ts`
+- `web/src/hooks/__tests__/useInferredOutputTypes.test.ts`
+- `web/src/hooks/__tests__/useInputStream.test.ts`
+- `web/src/hooks/__tests__/useEnsureChatConnected.test.ts`
+
+**Key Learnings**:
+1. Pure utility functions (like reduceUnionType) are ideal for comprehensive unit testing
+2. Hooks that depend on utility functions can be tested by mocking those utilities
+3. Zustand store selectors need proper mocking in test setup
+4. Import paths in test files must use correct relative paths from test location
+
+**Coverage Impact**:
+- **Before**: 239 test suites, 3,136 tests
+- **After**: 243 test suites, 3,195 tests
+- **Net Gain**: +4 test suites, +59 tests
+
+**Status**: All tests passing (243 test suites, 3,195 tests, 2 skipped)
+
+---
+
 # Test Coverage Improvements (2026-01-19)
 
 **Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
