@@ -48,11 +48,19 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
-> ### FeatureYYYY-MM-DD)
+> ```
+> ### FeatureName (YYYY-MM-DD)
 > **What**: One sentence
 > **Files**: Main files changed
 > ```
+
+### React Three Fiber Component Naming (2026-01-20)
+
+**What**: Fixed React Three Fiber 3D component casing issues by wrapping THREE.js objects with `primitive` component.
+
+**Files**: web/src/components/asset_viewer/Model3DViewer.tsx, web/src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
+
+---
 
 ### Component Memoization (2026-01-19)
 
