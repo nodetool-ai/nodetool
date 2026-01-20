@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimizations (2026-01-20)
+
+**What**: Removed redundant sorting in AssetTree, memoized handlers in TagFilter and WorkflowToolbar, added React.memo to AssetActions (490 lines) with useCallback for all event handlers.
+
+**Files**: web/src/components/assets/AssetTree.tsx, workflows/TagFilter.tsx, workflows/WorkflowToolbar.tsx, assets/AssetActions.tsx
+
+**Impact**: Reduced unnecessary re-renders and function allocations in asset management and workflow components.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
