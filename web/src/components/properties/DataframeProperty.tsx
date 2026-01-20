@@ -11,64 +11,60 @@ import ColumnsManager from "../node/ColumnsManager";
 import { Button, ButtonGroup } from "@mui/material";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
-import { tableStyles } from "../../styles/TableStyles";
 import isEqual from "lodash/isEqual";
 
 const styles = (theme: Theme) =>
-  css([
-    {
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.5em",
-      padding: "0",
-      marginBottom: "0.5em",
-      backgroundColor: "transparent",
-      maxHeight: "400px",
-      overflow: "auto",
-      scrollbarWidth: "thin",
-      scrollbarColor: `${theme.vars.palette.grey[600]} ${theme.vars.palette.grey[900]}`,
-      "&::-webkit-scrollbar": {
-        width: "8px",
-        height: "8px"
-      },
-      "&::-webkit-scrollbar-track": {
-        background: theme.vars.palette.grey[900]
-      },
-      "&::-webkit-scrollbar-thumb": {
-        background: theme.vars.palette.grey[600],
-        borderRadius: "4px"
-      },
-      "&::-webkit-scrollbar-thumb:hover": {
-        background: theme.vars.palette.grey[500]
-      },
-      ".button-group": {
-        display: "flex",
-        marginBottom: "0.5em"
-      },
-      ".button-group button": {
-        fontSize: theme.fontSizeSmall,
-        fontFamily: theme.fontFamily2,
-        wordSpacing: "-0.1em",
-        backgroundColor: theme.vars.palette.grey[600],
-        border: 0,
-        color: theme.vars.palette.grey[100] + " !important",
-        display: "flex",
-        alignItems: "center",
-        margin: 0,
-        gap: "0.25em",
-        padding: ".1em 1em 0 .5em",
-        borderRadius: "0"
-      },
-      "button.add-column:hover": {
-        color: theme.vars.palette.grey[0] + " !important"
-      },
-      "button.add-column svg": {
-        fontSize: theme.fontSizeSmall,
-        marginRight: "0.5em"
-      }
+  css({
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.5em",
+    padding: "0",
+    marginBottom: "0.5em",
+    backgroundColor: "transparent",
+    maxHeight: "400px",
+    overflow: "auto",
+    scrollbarWidth: "thin",
+    scrollbarColor: `${theme.vars.palette.grey[600]} ${theme.vars.palette.grey[900]}`,
+    "&::-webkit-scrollbar": {
+      width: "8px",
+      height: "8px"
     },
-    tableStyles(theme)
-  ]);
+    "&::-webkit-scrollbar-track": {
+      background: theme.vars.palette.grey[900]
+    },
+    "&::-webkit-scrollbar-thumb": {
+      background: theme.vars.palette.grey[600],
+      borderRadius: "4px"
+    },
+    "&::-webkit-scrollbar-thumb:hover": {
+      background: theme.vars.palette.grey[500]
+    },
+    ".button-group": {
+      display: "flex",
+      marginBottom: "0.5em"
+    },
+    ".button-group button": {
+      fontSize: theme.fontSizeSmall,
+      fontFamily: theme.fontFamily2,
+      wordSpacing: "-0.1em",
+      backgroundColor: theme.vars.palette.grey[600],
+      border: 0,
+      color: theme.vars.palette.grey[100] + " !important",
+      display: "flex",
+      alignItems: "center",
+      margin: 0,
+      gap: "0.25em",
+      padding: ".1em 1em 0 .5em",
+      borderRadius: "0"
+    },
+    "button.add-column:hover": {
+      color: theme.vars.palette.grey[0] + " !important"
+    },
+    "button.add-column svg": {
+      fontSize: theme.fontSizeSmall,
+      marginRight: "0.5em"
+    }
+  });
 
 const DataframeProperty = ({
   value,

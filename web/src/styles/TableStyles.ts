@@ -5,15 +5,15 @@ export const tableStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden",
+    overflow: "auto",
     width: "100%",
     // Main container
     ".dicttable, .datatable": {
       width: "100%",
-      height: "calc(100% - 20px)",
-      maxHeight: "800px",
+      minHeight: "150px",
+      maxHeight: "350px",
       position: "relative",
-      overflow: "hidden",
+      overflow: "auto",
       border: `1px solid ${theme.vars.palette.grey[900]}`
     },
 
@@ -21,13 +21,16 @@ export const tableStyles = (theme: Theme) =>
     ".tabulator": {
       fontSize: theme.fontSizeSmall,
       fontFamily: theme.fontFamily1,
-      height: "200px"
+      height: "100%",
+      minHeight: "150px",
+      maxHeight: "350px"
     },
     ".tabulator-tableholder": {
       overflow: "auto",
       paddingBottom: "4em",
       backgroundColor: theme.vars.palette.grey[800],
-      borderTop: `1px solid ${theme.vars.palette.grey[900]}`
+      borderTop: `1px solid ${theme.vars.palette.grey[900]}`,
+      scrollbarWidth: "thin"
     },
 
     // Column resize handle
