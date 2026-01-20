@@ -280,5 +280,53 @@ describe("workflowOutputTypeInference", () => {
       expect(result).toBeDefined();
       expect(result?.type).toBe("text");
     });
+
+    it("should handle type resolved from node.data.type", () => {
+      const mockMetadata = createMockMetadata("nodetool.process.TextProcess", [
+        createMockOutputSlot("result", "text", false)
+      ]);
+      
+      mockGetMetadata.mockImplementation((nodeType: string) => {
+        if (nodeType === "nodetool.process.TextProcess") {
+          return mockMetadata;
+        }
+        if (nodeType.startsWith("nodetool.output.")) {
+          return createMockMetadata(nodeType, [
+            createMockOutputSlot("value", "any", true)
+          ]);
+        }
+        return undefined;
+      });
+
+      const graph: Graph = {
+        nodes: [
+          createMockNode("source1", "", { type: "nodetool.process.TextProcess" }),
+          createMockNode("output1", "nodetool.output.ValueOutput", { name: "text_result" })
+        ],
+        edges: [
+          createMockEdge("source1", "result", "output1", "value")
+        ]
+      };
+
+      const result = getInferredOutputType(graph, "text_result");
+      
+      expect(result).toBeDefined();
+      expect(result?.type).toBe("text");
+    });
+
+    it("should return undefined when node type resolves to empty string", () => {
+      const graph: Graph = {
+        nodes: [
+          createMockNode("source1", "", {}),
+          createMockNode("output1", "nodetool.output.ValueOutput", { name: "result" })
+        ],
+        edges: [
+          createMockEdge("source1", "result", "output1", "value")
+        ]
+      };
+
+      const result = getInferredOutputType(graph, "result");
+      expect(result).toBeUndefined();
+    });
   });
 });
