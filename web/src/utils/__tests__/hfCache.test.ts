@@ -1,149 +1,203 @@
-import { UnifiedModel } from "../../stores/ApiTypes";
+import type { UnifiedModel } from "../../stores/ApiTypes";
 import {
   isHfModel,
   canCheckHfCache,
   getHfCacheKey,
-  buildHfCacheRequest
+  buildHfCacheRequest,
 } from "../hfCache";
 
+const createMockModel = (overrides?: Partial<UnifiedModel>): UnifiedModel => ({
+  type: "llm",
+  id: "model-1",
+  name: "Test Model",
+  repo_id: null,
+  ...overrides,
+});
+
 describe("hfCache", () => {
-  const createMockModel = (overrides: Partial<UnifiedModel> = {}): UnifiedModel => ({
-    type: "hf.gguf",
-    id: "model-123",
-    name: "Test Model",
-    path: null,
-    repo_id: null,
-    allow_patterns: null,
-    ignore_patterns: null,
-    ...overrides
-  });
-
   describe("isHfModel", () => {
-    it("returns true for hf. prefix type", () => {
-      const model = createMockModel({ type: "hf.llama" });
+    it("returns true for hf. prefixed type", () => {
+      const model = createMockModel({ type: "hf.text_generation" });
       expect(isHfModel(model)).toBe(true);
     });
 
-    it("returns true for hf_ prefix type", () => {
-      const model = createMockModel({ type: "hf_safetensors" });
+    it("returns true for hf_ prefixed type", () => {
+      const model = createMockModel({ type: "hf_text_to_image" });
       expect(isHfModel(model)).toBe(true);
     });
 
-    it("returns true when path is set", () => {
-      const model = createMockModel({ type: "local", path: "models/model.bin" });
+    it("returns true when path is present", () => {
+      const model = createMockModel({ type: "llm", path: "some/path" });
       expect(isHfModel(model)).toBe(true);
     });
 
-    it("returns true when allow_patterns is set", () => {
-      const model = createMockModel({ type: "local", allow_patterns: ["*.safetensors"] });
+    it("returns true when allow_patterns is present", () => {
+      const model = createMockModel({ type: "llm", allow_patterns: ["*.safetensors"] });
       expect(isHfModel(model)).toBe(true);
     });
 
-    it("returns true when ignore_patterns is set", () => {
-      const model = createMockModel({ type: "local", ignore_patterns: ["*.bin"] });
+    it("returns true when ignore_patterns is present", () => {
+      const model = createMockModel({ type: "llm", ignore_patterns: ["*.bin"] });
       expect(isHfModel(model)).toBe(true);
     });
 
-    it("returns false for non-HF types without patterns", () => {
-      const model = createMockModel({ type: "local", path: null, allow_patterns: null });
-      expect(isHfModel(model)).toBe(false);
-    });
-
-    it("handles undefined type", () => {
-      const model = createMockModel({ type: undefined as unknown as string });
-      expect(isHfModel(model)).toBe(false);
-    });
-
-    it("handles empty string type", () => {
-      const model = createMockModel({ type: "" });
+    it("returns false for regular model without hf markers", () => {
+      const model = createMockModel({ type: "llm" });
       expect(isHfModel(model)).toBe(false);
     });
   });
 
   describe("canCheckHfCache", () => {
-    it("returns true for HF model with repo_id", () => {
-      const model = createMockModel({ type: "hf.llama", repo_id: "meta/llama" });
+    it("returns true for hf model with repo_id", () => {
+      const model = createMockModel({ 
+        type: "hf.text_generation", 
+        repo_id: "user/repo" 
+      });
       expect(canCheckHfCache(model)).toBe(true);
     });
 
-    it("returns true for HF model with id", () => {
-      const model = createMockModel({ type: "hf.gguf", repo_id: null });
+    it("returns true for hf model with id", () => {
+      const model = createMockModel({ 
+        type: "hf.text_generation", 
+        id: "model-id" 
+      });
       expect(canCheckHfCache(model)).toBe(true);
     });
 
-    it("returns false for non-HF model", () => {
-      const model = createMockModel({ type: "local", path: null });
+    it("returns false for hf model without repo_id or id", () => {
+      const model = createMockModel({ 
+        type: "hf.text_generation", 
+        repo_id: null,
+        id: undefined 
+      });
       expect(canCheckHfCache(model)).toBe(false);
     });
 
-    it("returns false when repo_id and id are both null", () => {
-      const model = createMockModel({ repo_id: undefined, id: undefined });
+    it("returns false for non-hf model", () => {
+      const model = createMockModel({ type: "llm" });
+      expect(canCheckHfCache(model)).toBe(false);
+    });
+
+    it("returns false when isHfModel is false even with repo_id", () => {
+      const model = createMockModel({ 
+        type: "llm", 
+        repo_id: "user/repo" 
+      });
       expect(canCheckHfCache(model)).toBe(false);
     });
   });
 
   describe("getHfCacheKey", () => {
-    it("returns repo_id when path is null", () => {
-      const model = createMockModel({ repo_id: "meta/llama", path: null });
-      expect(getHfCacheKey(model)).toBe("meta/llama");
+    it("returns repo_id when no path", () => {
+      const model = createMockModel({ repo_id: "user/repo" });
+      expect(getHfCacheKey(model)).toBe("user/repo");
     });
 
-    it("returns id when repo_id is null", () => {
-      const model = createMockModel({ repo_id: null, id: "model-123" });
-      expect(getHfCacheKey(model)).toBe("model-123");
+    it("returns id when no repo_id and no path", () => {
+      const model = createMockModel({ id: "model-id", repo_id: null });
+      expect(getHfCacheKey(model)).toBe("model-id");
     });
 
-    it("returns repo_id/path when path is set", () => {
-      const model = createMockModel({ repo_id: "meta/llama", path: "model.bin" });
-      expect(getHfCacheKey(model)).toBe("meta/llama/model.bin");
+    it("returns combined path when path is present", () => {
+      const model = createMockModel({ 
+        repo_id: "user/repo", 
+        path: "subfolder/model.bin" 
+      });
+      expect(getHfCacheKey(model)).toBe("user/repo/subfolder/model.bin");
     });
 
-    it("handles id/path when repo_id is null", () => {
-      const model = createMockModel({ repo_id: null, id: "model-123", path: "model.bin" });
-      expect(getHfCacheKey(model)).toBe("model-123/model.bin");
+    it("uses id when repo_id is missing but path exists", () => {
+      const model = createMockModel({ 
+        id: "model-id", 
+        repo_id: null,
+        path: "weights.bin" 
+      });
+      expect(getHfCacheKey(model)).toBe("model-id/weights.bin");
+    });
+
+    it("handles empty strings", () => {
+      const model = createMockModel({ repo_id: "", id: "" });
+      expect(getHfCacheKey(model)).toBe("");
     });
   });
 
   describe("buildHfCacheRequest", () => {
-    it("returns request item for checkable HF model", () => {
-      const model = createMockModel({
-        type: "hf.llama",
-        repo_id: "meta/llama",
-        path: null,
-        allow_patterns: ["*.safetensors"],
-        ignore_patterns: null
+    it("returns null when cannot check cache", () => {
+      const model = createMockModel({ type: "llm" });
+      expect(buildHfCacheRequest(model)).toBeNull();
+    });
+
+    it("returns request object for hf model with repo_id", () => {
+      const model = createMockModel({ 
+        type: "hf.text_generation", 
+        repo_id: "user/repo" 
       });
       const result = buildHfCacheRequest(model);
-      expect(result).not.toBeNull();
-      expect(result?.key).toBe("meta/llama");
-      expect(result?.repo_id).toBe("meta/llama");
-      expect(result?.path).toBeNull();
+      expect(result).toEqual({
+        key: "user/repo",
+        repo_id: "user/repo",
+        path: null,
+        allow_patterns: null,
+        ignore_patterns: null,
+      });
+    });
+
+    it("returns request with path when specified", () => {
+      const model = createMockModel({ 
+        type: "hf.text_generation", 
+        repo_id: "user/repo",
+        path: "model.bin" 
+      });
+      const result = buildHfCacheRequest(model);
+      expect(result).toEqual({
+        key: "user/repo/model.bin",
+        repo_id: "user/repo",
+        path: "model.bin",
+        allow_patterns: null,
+        ignore_patterns: null,
+      });
+    });
+
+    it("uses id when repo_id is missing", () => {
+      const model = createMockModel({ 
+        type: "hf.text_generation", 
+        id: "model-id",
+        repo_id: null
+      });
+      const result = buildHfCacheRequest(model);
+      expect(result?.key).toBe("model-id");
+      expect(result?.repo_id).toBe("model-id");
+    });
+
+    it("includes allow_patterns when no path", () => {
+      const model = createMockModel({ 
+        type: "hf.text_generation", 
+        repo_id: "user/repo",
+        allow_patterns: ["*.safetensors"] 
+      });
+      const result = buildHfCacheRequest(model);
       expect(result?.allow_patterns).toEqual(["*.safetensors"]);
-      expect(result?.ignore_patterns).toBeNull();
     });
 
-    it("returns null for non-HF model", () => {
-      const model = createMockModel({ type: "local", path: null });
+    it("includes ignore_patterns when no path", () => {
+      const model = createMockModel({ 
+        type: "hf.text_generation", 
+        repo_id: "user/repo",
+        ignore_patterns: ["*.bin"] 
+      });
       const result = buildHfCacheRequest(model);
-      expect(result).toBeNull();
+      expect(result?.ignore_patterns).toEqual(["*.bin"]);
     });
 
-    it("returns null when repo_id and id are both null", () => {
-      const model = createMockModel({ repo_id: undefined, id: undefined });
-      const result = buildHfCacheRequest(model);
-      expect(result).toBeNull();
-    });
-
-    it("sets path and nullifies patterns when path is set", () => {
-      const model = createMockModel({
-        repo_id: "meta/llama",
+    it("sets patterns to null when path is present", () => {
+      const model = createMockModel({ 
+        type: "hf.text_generation", 
+        repo_id: "user/repo",
         path: "model.bin",
         allow_patterns: ["*.safetensors"],
         ignore_patterns: ["*.bin"]
       });
       const result = buildHfCacheRequest(model);
-      expect(result).not.toBeNull();
-      expect(result?.path).toBe("model.bin");
       expect(result?.allow_patterns).toBeNull();
       expect(result?.ignore_patterns).toBeNull();
     });

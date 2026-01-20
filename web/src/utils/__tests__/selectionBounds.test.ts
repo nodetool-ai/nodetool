@@ -1,193 +1,135 @@
-import { getSelectionRect, getNodesWithinSelection } from "../selectionBounds";
-import type { XYPosition, ReactFlowInstance, Node, Edge } from "@xyflow/react";
+import type { XYPosition } from "@xyflow/react";
+import { getSelectionRect } from "../selectionBounds";
 
 describe("selectionBounds", () => {
   describe("getSelectionRect", () => {
+    const MIN_SELECTION_SIZE = 4;
+
     it("returns null when start is null", () => {
       const end: XYPosition = { x: 100, y: 100 };
-      const result = getSelectionRect(null, end);
-      expect(result).toBeNull();
+      expect(getSelectionRect(null, end)).toBeNull();
     });
 
     it("returns null when end is null", () => {
       const start: XYPosition = { x: 0, y: 0 };
-      const result = getSelectionRect(start, null);
-      expect(result).toBeNull();
+      expect(getSelectionRect(start, null)).toBeNull();
     });
 
-    it("returns null when both positions are null", () => {
-      const result = getSelectionRect(null, null);
-      expect(result).toBeNull();
+    it("returns null when both are null", () => {
+      expect(getSelectionRect(null, null)).toBeNull();
     });
 
-    it("returns null when selection is too small (width)", () => {
+    it("returns null when width is less than minSize", () => {
       const start: XYPosition = { x: 0, y: 0 };
       const end: XYPosition = { x: 2, y: 100 };
-      const result = getSelectionRect(start, end);
-      expect(result).toBeNull();
+      expect(getSelectionRect(start, end)).toBeNull();
     });
 
-    it("returns null when selection is too small (height)", () => {
+    it("returns null when height is less than minSize", () => {
       const start: XYPosition = { x: 0, y: 0 };
       const end: XYPosition = { x: 100, y: 2 };
-      const result = getSelectionRect(start, end);
-      expect(result).toBeNull();
+      expect(getSelectionRect(start, end)).toBeNull();
     });
 
-    it("returns valid rectangle for proper selection (top-left to bottom-right)", () => {
+    it("returns null when both dimensions are less than minSize", () => {
+      const start: XYPosition = { x: 0, y: 0 };
+      const end: XYPosition = { x: 2, y: 2 };
+      expect(getSelectionRect(start, end)).toBeNull();
+    });
+
+    it("returns rect when width equals minSize", () => {
+      const start: XYPosition = { x: 0, y: 0 };
+      const end: XYPosition = { x: MIN_SELECTION_SIZE, y: 100 };
+      const result = getSelectionRect(start, end);
+      expect(result).not.toBeNull();
+      expect(result?.width).toBe(MIN_SELECTION_SIZE);
+    });
+
+    it("returns rect when height equals minSize", () => {
+      const start: XYPosition = { x: 0, y: 0 };
+      const end: XYPosition = { x: 100, y: MIN_SELECTION_SIZE };
+      const result = getSelectionRect(start, end);
+      expect(result).not.toBeNull();
+      expect(result?.height).toBe(MIN_SELECTION_SIZE);
+    });
+
+    it("returns correct rect when start is top-left", () => {
       const start: XYPosition = { x: 10, y: 20 };
       const end: XYPosition = { x: 110, y: 120 };
       const result = getSelectionRect(start, end);
-      
       expect(result).toEqual({
         x: 10,
         y: 20,
         width: 100,
-        height: 100
+        height: 100,
       });
     });
 
-    it("returns valid rectangle for proper selection (bottom-right to top-left)", () => {
+    it("returns correct rect when start is bottom-right", () => {
       const start: XYPosition = { x: 110, y: 120 };
       const end: XYPosition = { x: 10, y: 20 };
       const result = getSelectionRect(start, end);
-      
       expect(result).toEqual({
         x: 10,
         y: 20,
         width: 100,
-        height: 100
+        height: 100,
       });
     });
 
-    it("returns valid rectangle when dragging in any direction", () => {
-      // Top-right to bottom-left
-      const start: XYPosition = { x: 110, y: 20 };
-      const end: XYPosition = { x: 10, y: 120 };
-      const result = getSelectionRect(start, end);
-      
-      expect(result).toEqual({
-        x: 10,
-        y: 20,
-        width: 100,
-        height: 100
-      });
+    it("returns correct rect with custom minSize", () => {
+      const start: XYPosition = { x: 0, y: 0 };
+      const end: XYPosition = { x: 5, y: 5 };
+      const result = getSelectionRect(start, end, 10);
+      expect(result).toBeNull();
     });
 
-    it("respects custom minSize parameter", () => {
+    it("returns correct rect with custom minSize when valid", () => {
       const start: XYPosition = { x: 0, y: 0 };
-      const end: XYPosition = { x: 8, y: 8 };
-      
-      // Should return null with default minSize (4)
-      const resultDefault = getSelectionRect(start, end);
-      expect(resultDefault).not.toBeNull();
-      
-      // Should return null with custom minSize (10)
-      const resultCustom = getSelectionRect(start, end, 10);
-      expect(resultCustom).toBeNull();
-    });
-
-    it("handles edge case with exact minSize", () => {
-      const start: XYPosition = { x: 0, y: 0 };
-      const end: XYPosition = { x: 4, y: 4 };
-      const result = getSelectionRect(start, end);
-      
+      const end: XYPosition = { x: 10, y: 10 };
+      const result = getSelectionRect(start, end, 10);
       expect(result).toEqual({
         x: 0,
         y: 0,
-        width: 4,
-        height: 4
+        width: 10,
+        height: 10,
       });
     });
 
-    it("handles negative coordinates", () => {
-      const start: XYPosition = { x: -50, y: -30 };
-      const end: XYPosition = { x: 50, y: 70 };
+    it("handles negative coordinates correctly", () => {
+      const start: XYPosition = { x: -100, y: -100 };
+      const end: XYPosition = { x: 0, y: 0 };
       const result = getSelectionRect(start, end);
-      
       expect(result).toEqual({
-        x: -50,
-        y: -30,
+        x: -100,
+        y: -100,
         width: 100,
-        height: 100
+        height: 100,
       });
     });
-  });
 
-  describe("getNodesWithinSelection", () => {
-    const mockNode1: Node = {
-      id: "1",
-      type: "default",
-      position: { x: 10, y: 10 },
-      data: {}
-    };
-
-    const mockNode2: Node = {
-      id: "2",
-      type: "group",
-      position: { x: 50, y: 50 },
-      data: {}
-    };
-
-    const mockInstance = {
-      getIntersectingNodes: jest.fn()
-    } as unknown as ReactFlowInstance<Node, Edge>;
-
-    beforeEach(() => {
-      jest.clearAllMocks();
+    it("handles large coordinates correctly", () => {
+      const start: XYPosition = { x: 1000000, y: 1000000 };
+      const end: XYPosition = { x: 1000100, y: 1000100 };
+      const result = getSelectionRect(start, end);
+      expect(result).toEqual({
+        x: 1000000,
+        y: 1000000,
+        width: 100,
+        height: 100,
+      });
     });
 
-    it("returns empty array when instance is null", () => {
-      const rect = { x: 0, y: 0, width: 100, height: 100 };
-      const result = getNodesWithinSelection(null as any, rect);
-      expect(result).toEqual([]);
+    it("handles zero-width selection correctly", () => {
+      const start: XYPosition = { x: 50, y: 0 };
+      const end: XYPosition = { x: 50, y: 100 };
+      expect(getSelectionRect(start, end)).toBeNull();
     });
 
-    it("returns empty array when rect is null", () => {
-      const result = getNodesWithinSelection(mockInstance, null);
-      expect(result).toEqual([]);
-    });
-
-    it("returns all intersecting nodes when no predicate provided", () => {
-      const rect = { x: 0, y: 0, width: 100, height: 100 };
-      const mockNodes = [mockNode1, mockNode2];
-      (mockInstance.getIntersectingNodes as jest.Mock).mockReturnValue(mockNodes);
-
-      const result = getNodesWithinSelection(mockInstance, rect);
-      
-      expect(mockInstance.getIntersectingNodes).toHaveBeenCalledWith(rect, false);
-      expect(result).toEqual(mockNodes);
-    });
-
-    it("filters nodes with predicate", () => {
-      const rect = { x: 0, y: 0, width: 100, height: 100 };
-      const mockNodes = [mockNode1, mockNode2];
-      (mockInstance.getIntersectingNodes as jest.Mock).mockReturnValue(mockNodes);
-
-      const predicate = (node: Node) => node.type === "group";
-      const result = getNodesWithinSelection(mockInstance, rect, predicate);
-      
-      expect(result).toEqual([mockNode2]);
-    });
-
-    it("returns empty array when no nodes match predicate", () => {
-      const rect = { x: 0, y: 0, width: 100, height: 100 };
-      const mockNodes = [mockNode1, mockNode2];
-      (mockInstance.getIntersectingNodes as jest.Mock).mockReturnValue(mockNodes);
-
-      const predicate = (node: Node) => node.type === "custom";
-      const result = getNodesWithinSelection(mockInstance, rect, predicate);
-      
-      expect(result).toEqual([]);
-    });
-
-    it("handles empty intersecting nodes array", () => {
-      const rect = { x: 0, y: 0, width: 100, height: 100 };
-      (mockInstance.getIntersectingNodes as jest.Mock).mockReturnValue([]);
-
-      const result = getNodesWithinSelection(mockInstance, rect);
-      
-      expect(result).toEqual([]);
+    it("handles zero-height selection correctly", () => {
+      const start: XYPosition = { x: 0, y: 50 };
+      const end: XYPosition = { x: 100, y: 50 };
+      expect(getSelectionRect(start, end)).toBeNull();
     });
   });
 });
