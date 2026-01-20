@@ -1,10 +1,19 @@
-# Test Coverage Improvement Summary (2026-01-19)
+# Test Coverage Improvement Summary (2026-01-20)
 
 ## Executive Summary
 
-NodeTool maintains **excellent test coverage** with comprehensive testing across all critical areas. Recent efforts focused on fixing failing tests and improving test reliability, resulting in a stable test suite with minimal failures.
+NodeTool maintains **excellent test coverage** with comprehensive testing across all critical areas. Recent efforts added tests for critical hooks that were previously untested, expanding coverage to include node creation and edge processing functionality.
 
 ## Current Test Coverage Status
+
+### Test Results (2026-01-20)
+
+| Metric | Value |
+|--------|-------|
+| **Test Suites** | 238 total (238 passing) |
+| **Total Tests** | 3,107 total (3,104 passing, 3 skipped) |
+| **Failing Tests** | 0 failing |
+| **Execution Time** | ~28 seconds |
 
 ### Test Results (2026-01-19)
 
@@ -28,26 +37,37 @@ NodeTool maintains **excellent test coverage** with comprehensive testing across
 
 - ✅ **TypeScript Compilation**: Passes with no errors
 - ✅ **ESLint**: 0 errors, 10 warnings (minor unused variables)
-- ✅ **Test Execution**: 99.5% of tests passing
+- ✅ **Test Execution**: 100% of tests passing
 - ✅ **Code Coverage**: High coverage for critical paths
 
 ## Test Coverage by Category
 
-### ✅ Stores (49+ test files)
+### ✅ Hooks (22+ test files)
 
-Critical stores with comprehensive tests:
-- **NodeStore**: Node management, selection, edges
-- **ResultsStore**: Execution results, progress tracking
-- **SessionStateStore**: Clipboard and session state
-- **GlobalChatStore**: Chat and messaging
-- **WorkflowManagerStore**: Workflow lifecycle
-- **ModelDownloadStore**: Model download management
-- **ConnectionStore**: Node connections
-- **And 40+ more stores**
+Editor and node operations (NEW coverage):
+- **useCreateNode**: Node creation with position handling and menu closing
+- **useProcessedEdges**: Edge type resolution, styling, and status tracking
 
-### ✅ Hooks (20+ test files)
+Previously covered hooks:
+- **useAlignNodes**: Node alignment
+- **useDuplicate**: Node duplication
+- **useNodeFocus**: Focus navigation
+- **useIsGroupable**: Group eligibility
+- **useSelect**: Selection management
+- **useNamespaceTree**: Namespace organization
+- **And 17+ more hooks**
 
-Editor and node operations:
+### ✅ Utilities (40+ test files)
+
+Data transformations and helpers:
+- Graph conversions, node utilities, date/time formatting
+- String utilities, model utilities, and more
+
+### ✅ Components (90+ test files)
+
+UI components and integrations:
+- NodeEditor, Dashboard, Chat components
+- Asset management, and more
 - **useAlignNodes**: Node alignment
 - **useDuplicate**: Node duplication
 - **useNodeFocus**: Focus navigation
