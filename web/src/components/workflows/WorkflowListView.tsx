@@ -41,6 +41,7 @@ const listStyles = (theme: Theme) =>
       overflow: "hidden auto"
     },
     ".workflow": {
+      flex: 1,
       height: "100%",
       padding: "4px 8px 4px 12px",
       display: "flex",
@@ -255,15 +256,15 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
 
     if (item.type === "header") {
       return (
-        <div style={style}>
-          <Typography className="date-header">{item.label}</Typography>
+        <div style={{ ...style, display: "flex" }}>
+          <Typography className="date-header" sx={{ width: "100%" }}>{item.label}</Typography>
         </div>
       );
     }
 
     const { workflow, index: workflowIndex } = item;
     return (
-      <div style={style}>
+      <div style={{ ...style, display: "flex" }}>
         <WorkflowListItem
           key={workflow.id}
           workflow={workflow}
