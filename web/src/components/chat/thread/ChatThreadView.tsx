@@ -603,6 +603,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       <ScrollToBottomButton
         isVisible={showScrollToBottomButton}
         onClick={scrollToBottom}
+        containerElement={scrollHost}
       />
     </div>
   );
