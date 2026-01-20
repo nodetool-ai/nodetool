@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { Box } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -31,4 +31,4 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ children }) => {
   );
 };
 
-export default DashboardHeader;
+export default memo(DashboardHeader);

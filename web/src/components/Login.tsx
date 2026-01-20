@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
@@ -119,4 +119,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default memo(Login);
