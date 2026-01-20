@@ -5,7 +5,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
-import { useMemo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 interface TagFilterProps {
   tags: Record<string, Workflow[]>;
@@ -13,7 +13,11 @@ interface TagFilterProps {
   onSelectTag: (tag: string | null) => void;
 }
 
-const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag }) => {
+const TagFilter = memo(({
+  tags,
+  selectedTag,
+  onSelectTag
+}: TagFilterProps) => {
   const sortedTags = useMemo(() =>
     Object.keys(tags)
       .filter((tag) => tag !== "start")
@@ -25,12 +29,12 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
     onSelectTag("getting-started");
   }, [onSelectTag]);
 
-  const handleSelectTag = useCallback((tag: string) => {
-    onSelectTag(tag);
-  }, [onSelectTag]);
-
   const handleSelectAll = useCallback(() => {
     onSelectTag(null);
+  }, [onSelectTag]);
+
+  const handleSelectTag = useCallback((tag: string) => {
+    onSelectTag(tag);
   }, [onSelectTag]);
 
   return (
@@ -80,6 +84,8 @@ const TagFilter: React.FC<TagFilterProps> = ({ tags, selectedTag, onSelectTag })
       </div>
     </Box>
   );
-};
+});
+
+TagFilter.displayName = "TagFilter";
 
 export default TagFilter;
