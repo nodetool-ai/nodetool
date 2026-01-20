@@ -310,7 +310,11 @@ export class WebSocketManager extends EventEmitter {
     if (shouldReconnect) {
       this.scheduleReconnect();
     } else if (!this.intentionalDisconnect) {
-      this.transitionTo("failed");
+      // Note: We can't transition to "failed" from "disconnected" state.
+      // The failed state is only reachable from "connecting" or "reconnecting".
+      // If we reach here from "disconnected", we just stay disconnected.
+      // This can happen when max reconnect attempts are exhausted.
+      log.warn(`Connection failed after ${this.reconnectAttempt} attempts, staying in disconnected state`);
     }
   }
 
