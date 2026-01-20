@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Performance Audit (2026-01-20)
+
+**What**: Memoized ModelPackCard component and added useCallback handlers. All major performance optimizations already in place.
+
+**Files**: web/src/components/hugging_face/ModelPackCard.tsx
+
+**Impact**: Component now only re-renders when props change. 50+ components already memoized, 150 inline handlers already useCallback.
+
+---
+
 ### Component Memoization (2026-01-20)
 
 **What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.

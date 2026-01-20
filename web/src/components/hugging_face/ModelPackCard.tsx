@@ -3,7 +3,7 @@
  * Shows title, description, total size, and allows one-click download of all models.
  */
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback, memo } from "react";
 import {
   Card,
   CardContent,
@@ -38,10 +38,11 @@ interface ModelPackCardProps {
   onDownloadAll: (models: UnifiedModel[]) => void;
 }
 
-const ModelPackCard: React.FC<ModelPackCardProps> = ({
+const ModelPackCard: React.FC<ModelPackCardProps> = memo(({
   pack,
   onDownloadAll
 }) => {
+  ModelPackCard.displayName = "ModelPackCard";
   const [expanded, setExpanded] = useState(false);
   const downloads = useModelDownloadStore((state) => state.downloads);
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
@@ -99,14 +100,18 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
     return (completed / total) * 100;
   }, [isDownloading, pack.models.length, downloadedModels.size]);
 
-  const handleDownloadAll = () => {
+  const handleToggleExpanded = useCallback(() => {
+    setExpanded((prev) => !prev);
+  }, []);
+
+  const handleDownloadAll = useCallback(() => {
     const modelsToDownload = pack.models.filter(
       (m) => !downloadedModels.has(m.id)
     );
     if (modelsToDownload.length > 0) {
       onDownloadAll(modelsToDownload);
     }
-  };
+  }, [pack.models, downloadedModels, onDownloadAll]);
 
   return (
     <Card
@@ -222,7 +227,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
         </Button>
 
         <IconButton
-          onClick={() => setExpanded(!expanded)}
+          onClick={handleToggleExpanded}
           sx={{
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.3s"
@@ -289,6 +294,8 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
       </Collapse>
     </Card>
   );
-};
+});
 
-export default ModelPackCard;
+ModelPackCard.displayName = "ModelPackCard";
+
+export default memo(ModelPackCard);
