@@ -291,3 +291,100 @@ GitHub Actions runs these checks automatically:
 3. **Use lint-fix**: Run `make lint-fix` to auto-fix many issues
 4. **Check existing tests**: Look at similar tests for patterns
 5. **Test before PR**: Always run `make check` before opening PR
+
+---
+
+## Testing Patterns (2026-01-19)
+
+### Hook Testing with Inline Mocks
+
+The codebase uses inline factory function mocks for complex dependencies:
+
+```typescript
+jest.mock("@xyflow/react", () => ({
+  useReactFlow: jest.fn(() => ({
+    screenToFlowPosition: jest.fn().mockReturnValue({ x: 100, y: 200 }),
+  })),
+}));
+
+jest.mock("../../contexts/NodeContext", () => ({
+  useNodes: jest.fn((selector) => {
+    const mockState = {
+      addNode: jest.fn(),
+      createNode: jest.fn().mockReturnValue({ id: "new-node-1" }),
+    };
+    if (typeof selector === "function") {
+      return selector(mockState);
+    }
+    return mockState;
+  }),
+}));
+```
+
+### Store Testing with Factory Pattern
+
+Create isolated store instances for testing:
+
+```typescript
+let store: ReturnType<typeof createWorkflowRunnerStore>;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  store = createWorkflowRunnerStore("test-workflow-id");
+});
+
+afterEach(() => {
+  store.getState().cleanup();
+});
+```
+
+### Vite Compatibility for Tests
+
+Add to `jest.setup.js` for `import.meta` support:
+
+```javascript
+global.import = {
+  meta: {
+    hot: undefined,
+  },
+};
+```
+
+### NodeData Type Usage
+
+Use proper Node<NodeData> typing with Position enum:
+
+```typescript
+import { Edge, Node, Position } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
+
+const createNode = (id: string): Node<NodeData> => ({
+  id,
+  type: "test",
+  position: { x: 0, y: 0 },
+  targetPosition: Position.Left,
+  sourcePosition: Position.Right,
+  data: {
+    properties: {},
+    dynamic_properties: {},
+    selectable: true,
+    workflow_id: "test",
+  },
+});
+```
+
+### Notification Type
+
+Use `content` field, not `message`:
+
+```typescript
+store.getState().addNotification({
+  type: "info",
+  content: "Test message",
+});
+```
+
+### Mock Files Added
+
+1. `src/__mocks__/WorkflowManagerContext.tsx` - Context provider mock
+2. `src/__mocks__/RecentNodesStore.ts` - Recent nodes store mock
