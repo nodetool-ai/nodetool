@@ -54,25 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-### Inline Handler Memoization (2026-01-19)
-
-**What**: Added React.memo to AddPanelDropdown and ConnectionMatchMenu, memoized 7 inline handlers with useCallback across 5 components.
-
-**Files**: AddPanelDropdown.tsx, ConnectionMatchMenu.tsx, WorkflowsList.tsx, TemplatesPanel.tsx, ProviderSetupPanel.tsx
-
-**Impact**: Prevents unnecessary re-renders in dashboard and context menu components.
-### Inline Arrow Function Memoization (2026-01-19)
-
-**What**: Fixed 29 inline arrow functions in 7 components using useCallback. Files: MarkdownRenderer, GettingStartedPanel, ProviderSetupPanel, WorkflowsList, ConnectableNodes, TagFilter, AssetViewer.
-
-**Impact**: Reduced unnecessary function allocations and improved render performance across dashboard, context menus, and asset viewer components.
 ### Component Memoization (2026-01-20)
 
-**What**: Added React.memo to 6 unmemoized components: VersionHistoryPanel, VersionDiff, GraphVisualDiff, ModelListItemActions, EditorMenu, EditorMenuItem.
+**What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.
 
-**Files**: web/src/components/version/*.tsx, web/src/components/hugging_face/model_list/ModelListItemActions.tsx, web/src/components/editor_ui/EditorMenu.tsx
+**Files**: web/src/components/workflows/TagFilter.tsx, SearchBar.tsx, node_menu/SearchResults.tsx, TypeFilter.tsx
 
-**Impact**: Prevents unnecessary re-renders in version history, model management, and editor UI components.
+**Impact**: Workflow and node menu components now only re-render when props change.
 
 ---
 
@@ -117,45 +105,7 @@ const store = useNodeStore();  // ❌ causes re-renders
 ---
 
 > **Format**: `Feature (date): One line. Files: x, y`
-> **Limit**: 5 most recent entries. Delete oldest when adding new.
-
-**Files**: Welcome.tsx, SettingsMenu.tsx, Model3DViewer.tsx, WorkflowAssistantChat.tsx, GlobalChat.tsx, and 15+ others
-
-**Impact**: Reduced unnecessary re-renders in large editor workflows. Bundle size unchanged (5.74 MB).
-
----
-
-### Performance Optimization: Handler Memoization (2026-01-17)
-
-**What**: Memoized inline handlers in NodeHeader (4), AssetTable (1), FormatButton (1), and TableActions (7) components. Added React.memo to AssetTable.
-
-**Files**: NodeHeader.tsx, AssetTable.tsx, FormatButton.tsx, TableActions.tsx
-
-**Impact**: Prevented unnecessary re-renders in high-frequency node components and asset management UI by providing stable function references.
-
----
-
-### TypeScript Type Improvements (2026-01-17)
-
-**What**: Improved TypeScript types in StatusStore and ErrorStore. Removed debug console statements from NodeMenuStore. Fixed unused variables in test files.
-
-**Files**: StatusStore.ts, ErrorStore.ts, NodeMenuStore.ts, NodeToolsSelector.test.tsx, and related components
-
-**Impact**: Better type safety while maintaining flexibility for complex objects. Removed debug logging from production code.
-
----
-
-### Performance Optimization: Inline Arrow Functions (2026-01-17)
-
-**What**: Extended inline handler memoization to 10+ additional components including color pickers, dashboard, context menus, and mini apps.
-
-**Files**: Login.tsx, GradientBuilder.tsx, SwatchPanel.tsx, HarmonyPicker.tsx, ColorPickerModal.tsx, LayoutMenu.tsx, WelcomePanel.tsx, ExamplesList.tsx, SelectionContextMenu.tsx, MiniAppResults.tsx
-
-**Impact**: Reduced re-renders in color picker, dashboard panels, context menus, and mini apps by providing stable function references.
-
----
-
-### Node Header Icon Fix (2026-01-16)
+> **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
 
