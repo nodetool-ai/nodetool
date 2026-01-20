@@ -5,8 +5,8 @@
  */
 
 import { create } from "zustand";
-import { UnifiedModel, NodeMetadata, ModelPack } from "./ApiTypes";
 import { NodeTypes } from "@xyflow/react";
+import { UnifiedModel, NodeMetadata, ModelPack } from "./ApiTypes";
 
 type MetadataStore = {
   metadata: Record<string, NodeMetadata>;
@@ -18,7 +18,7 @@ type MetadataStore = {
   setModelPacks: (packs: ModelPack[]) => void;
   nodeTypes: NodeTypes;
   setNodeTypes: (nodeTypes: NodeTypes) => void;
-  addNodeType: (nodeType: string, nodeTypeComponent: any) => void;
+  addNodeType: (nodeType: string, nodeTypeComponent: NodeTypes[string]) => void;
 };
 const useMetadataStore = create<MetadataStore>((set, get) => ({
   metadata: {},
@@ -26,7 +26,7 @@ const useMetadataStore = create<MetadataStore>((set, get) => ({
   modelPacks: [],
   nodeTypes: {},
   setNodeTypes: (nodeTypes) => set({ nodeTypes }),
-  addNodeType: (nodeType: string, nodeTypeComponent: any) =>
+  addNodeType: (nodeType: string, nodeTypeComponent: NodeTypes[string]) =>
     set((state) => ({
       nodeTypes: { ...state.nodeTypes, [nodeType]: nodeTypeComponent }
     })),

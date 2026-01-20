@@ -63,10 +63,6 @@ export const useInputMinMax = ({
     const node = nodes.find((n) => n.id === nodeId);
     nodeMin = (node?.data?.properties as Record<string, unknown>)?.min as number | undefined;
     nodeMax = (node?.data?.properties as Record<string, unknown>)?.max as number | undefined;
-
-    if (process.env.NODE_ENV === "development") {
-      console.log("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
-    }
   }
 
   const min =

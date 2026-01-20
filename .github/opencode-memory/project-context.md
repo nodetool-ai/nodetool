@@ -48,11 +48,21 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
+> /Fix Name ( ```
 > ### FeatureYYYY-MM-DD)
 > **What**: One sentence
 > **Files**: Main files changed
 > ```
+
+### Code Quality Improvements (2026-01-20)
+
+**What**: Removed debug console.log statements and improved TypeScript types in MetadataStore.
+
+**Files**: web/src/core/chat/chatProtocol.ts, web/src/components/workflows/WorkflowList.tsx, web/src/hooks/useInputMinMax.ts, web/src/stores/MetadataStore.ts
+
+**Impact**: All debug console.log statements replaced with proper loglevel logging. MetadataStore uses proper NodeTypes[string] type instead of any.
+
+---
 
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
@@ -84,38 +94,30 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### AssetTree Sort Memoization (2026-01-19)
+### Component Memoization (2026-01-20)
 
-**What**: Memoized sort operation in AssetTree component using useMemo/useCallback and added React.memo wrapper.
+**What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.
 
-**Files**: web/src/components/assets/AssetTree.tsx
+**Files**: web/src/components/workflows/TagFilter.tsx, SearchBar.tsx, node_menu/SearchResults.tsx, TypeFilter.tsx
 
-**Impact**: Asset tree sorting now only happens when data changes, not on every re-render.
-
----
-
-### Handler Memoization (2026-01-19)
-
-**What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.
-
-**Files**: web/src/components/dashboard/GettingStartedPanel.tsx, web/src/components/workspaces/WorkspacesManager.tsx
-
-**Impact**: Stable function references reduce re-renders in workspace management and model download UI.
+**Impact**: Workflow and node menu components now only re-render when props change.
 
 ---
 
-### useInputNodeAutoRun Tests Fix (2026-01-19)
+### Component Memoization (2026-01-19)
 
-**What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
+**What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.
 
-**Files**: web/src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
+**Files**: web/src/components/panels/FloatingToolBar.tsx, web/src/components/node_menu/QuickActionTiles.tsx
 
-**Impact**: All 15 tests now pass, type checking and linting pass.
+**Impact**: Two remaining large components now memoized, preventing unnecessary re-renders.
 
 ---
 
 > **Format**: `Feature (date): One line. Files: x, y`
-> **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
+> **Limit**: 5 most recent entries. Delete oldest when adding new.
+
+### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
 
