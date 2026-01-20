@@ -1,7 +1,7 @@
 import { Node } from "@xyflow/react";
 import { Workflow, Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
-import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./NodeStore";
+import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,

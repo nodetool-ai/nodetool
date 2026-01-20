@@ -1,23 +1,18 @@
 import { renderHook, act } from "@testing-library/react";
 import { useCreateNode } from "../useCreateNode";
 import { useReactFlow } from "@xyflow/react";
-import { useNodes } from "../../contexts/NodeContext";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
 
-jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn(() => ({
-    screenToFlowPosition: jest.fn().mockReturnValue({ x: 100, y: 200 }),
-  })),
-}));
+const mockAddNode = jest.fn();
+const mockCreateNode = jest.fn().mockReturnValue({
+  id: "new-node-1",
+  position: { x: 100, y: 200 },
+});
 
 jest.mock("../../contexts/NodeContext", () => ({
   useNodes: jest.fn((selector) => {
     const mockState = {
-      addNode: jest.fn(),
-      createNode: jest.fn().mockReturnValue({
-        id: "new-node-1",
-        position: { x: 100, y: 200 },
-      }),
+      addNode: mockAddNode,
+      createNode: mockCreateNode,
     };
     if (typeof selector === "function") {
       return selector(mockState);
@@ -26,24 +21,40 @@ jest.mock("../../contexts/NodeContext", () => ({
   }),
 }));
 
+const mockClickPosition = { x: 50, y: 50 };
+const mockCloseNodeMenu = jest.fn();
+
 jest.mock("../../stores/NodeMenuStore", () => ({
   __esModule: true,
-  default: jest.fn(() => ({
-    clickPosition: { x: 50, y: 50 },
-    closeNodeMenu: jest.fn(),
-  })),
+  default: jest.fn((selector) => {
+    const mockState = {
+      clickPosition: mockClickPosition,
+      closeNodeMenu: mockCloseNodeMenu,
+    };
+    if (typeof selector === "function") {
+      return selector(mockState);
+    }
+    return mockState;
+  }),
 }));
 
 const mockAddRecentNode = jest.fn();
 jest.mock("../../stores/RecentNodesStore", () => ({
-  useRecentNodesStore: () => ({
-    addRecentNode: mockAddRecentNode,
-  }),
+  useRecentNodesStore: (selector: (state: { addRecentNode: typeof mockAddRecentNode }) => unknown) => {
+    const mockState = { addRecentNode: mockAddRecentNode };
+    if (typeof selector === "function") {
+      return selector(mockState);
+    }
+    return mockState;
+  },
 }));
 
 describe("useCreateNode", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (useReactFlow as jest.Mock).mockReturnValue({
+      screenToFlowPosition: jest.fn().mockReturnValue({ x: 100, y: 200 }),
+    });
   });
 
   it("returns a callback function", () => {
@@ -52,7 +63,7 @@ describe("useCreateNode", () => {
   });
 
   it("does nothing when reactFlowInstance is null", () => {
-    (useReactFlow as jest.Mock).mockReturnValue(null);
+    (useReactFlow as jest.Mock).mockReturnValueOnce(null);
 
     const { result } = renderHook(() => useCreateNode());
     const mockMetadata = { 
@@ -76,7 +87,6 @@ describe("useCreateNode", () => {
       result.current(mockMetadata);
     });
 
-    const mockCreateNode = (useNodes as jest.Mock).mock.results[0]?.value?.createNode;
     expect(mockCreateNode).not.toHaveBeenCalled();
   });
 
@@ -159,7 +169,6 @@ describe("useCreateNode", () => {
       result.current(mockMetadata);
     });
 
-    const mockCreateNode = (useNodes as jest.Mock).mock.results[0]?.value?.createNode;
     expect(mockCreateNode).toHaveBeenCalledWith(
       mockMetadata,
       { x: 100, y: 200 }
@@ -215,14 +224,15 @@ describe("useCreateNode", () => {
       result.current(mockMetadata);
     });
 
-    const mockCloseNodeMenu = (useNodeMenuStore as unknown as jest.Mock)().closeNodeMenu;
     expect(mockCloseNodeMenu).toHaveBeenCalled();
   });
 
   it("maintains callback referential identity", () => {
-    const { result: result1 } = renderHook(() => useCreateNode());
-    const { result: result2 } = renderHook(() => useCreateNode());
+    const { result, rerender } = renderHook(() => useCreateNode());
+    const initialCallback = result.current;
 
-    expect(result1.current).toBe(result2.current);
+    rerender();
+
+    expect(result.current).toBe(initialCallback);
   });
 });

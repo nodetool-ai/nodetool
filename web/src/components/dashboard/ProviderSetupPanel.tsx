@@ -386,31 +386,35 @@ const ProviderSetupPanel: React.FC = () => {
                             type="password"
                             size="small"
                             fullWidth
+                            value={apiKeys[provider.key] || ""}
+                            onChange={(e) =>
+                              _handleKeyChange(provider.key, e.target.value)
+                            }
                             placeholder={
                               isConfigured ? "••••••••••••" : provider.placeholder
                             }
                           />
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={handleProviderSave.bind(null, provider.key)}
-                          disabled={!hasInput || isSaving}
-                          startIcon={
-                            isSaving ? (
-                              <CircularProgress size={16} />
-                            ) : (
-                              <SaveIcon />
-                            )
-                          }
-                          sx={{ minWidth: "100px" }}
-                        >
-                          {isSaving
-                            ? "Saving..."
-                            : isConfigured
-                            ? "Update"
-                            : "Save"}
-                        </Button>
-                      </div>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleProviderSave(provider.key)}
+                            disabled={!hasInput || isSaving}
+                            startIcon={
+                              isSaving ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <SaveIcon />
+                              )
+                            }
+                            sx={{ minWidth: "100px" }}
+                          >
+                            {isSaving
+                              ? "Saving..."
+                              : isConfigured
+                              ? "Update"
+                              : "Save"}
+                          </Button>
+                        </div>
                     </div>
                   );
                 })}

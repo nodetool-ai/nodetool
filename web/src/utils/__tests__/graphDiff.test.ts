@@ -19,8 +19,8 @@ describe("graphDiff", () => {
     id,
     source,
     target,
-    sourceHandle: sourceHandle || null,
-    targetHandle: targetHandle || null,
+    sourceHandle: sourceHandle || "",
+    targetHandle: targetHandle || "",
     ui_properties: {}
   });
 

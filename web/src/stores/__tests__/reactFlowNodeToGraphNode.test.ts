@@ -7,8 +7,7 @@ import { reactFlowNodeToGraphNode } from "../reactFlowNodeToGraphNode";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../NodeData";
 import { Node as GraphNode } from "../ApiTypes";
-import { NodeUIProperties } from "../NodeStore";
-import { DEFAULT_NODE_WIDTH } from "../NodeStore";
+import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "../nodeUiDefaults";
 
 describe("reactFlowNodeToGraphNode", () => {
   const createMockNodeData = (overrides: Partial<NodeData> = {}): NodeData => ({

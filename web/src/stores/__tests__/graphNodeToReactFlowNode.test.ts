@@ -5,7 +5,7 @@ jest.mock("../NodeStore", () => ({
 
 import { graphNodeToReactFlowNode } from "../graphNodeToReactFlowNode";
 import { Workflow, Node as GraphNode } from "../ApiTypes";
-import { DEFAULT_NODE_WIDTH } from "../NodeStore";
+import { DEFAULT_NODE_WIDTH } from "../nodeUiDefaults";
 
 describe("graphNodeToReactFlowNode", () => {
   const createMockWorkflow = (overrides: Partial<Workflow> = {}): Workflow => ({
