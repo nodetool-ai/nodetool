@@ -423,6 +423,10 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
     navigate("/settings");
   }, [navigate]);
 
+  const handleToggleModelsExpanded = useCallback(() => {
+    setModelsExpanded(prev => !prev);
+  }, []);
+
   const handleTryTemplate = useCallback(() => {
     // Mark template as tried when user clicks
     if (!hasTriedTemplate) {
@@ -584,7 +588,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
                 {step.id === "download-model" && (
                   <Box sx={{ mt: 1.5 }}>
                     <Box
-                      onClick={() => setModelsExpanded(!modelsExpanded)}
+                      onClick={handleToggleModelsExpanded}
                       sx={{
                         display: "flex",
                         alignItems: "center",

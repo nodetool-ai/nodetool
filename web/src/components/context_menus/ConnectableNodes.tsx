@@ -275,6 +275,27 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     ]
   );
 
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      hideMenu();
+    } else {
+      e.stopPropagation();
+    }
+  }, [hideMenu]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  const handleNodeClick = useCallback((nodeMetadata: NodeMetadata) => {
+    createConnectableNode(nodeMetadata);
+    hideMenu();
+  }, [createConnectableNode, hideMenu]);
+
   if (!menuPosition || !isVisible) {return null;}
 
   return (
@@ -319,15 +340,9 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             fullWidth
             placeholder="Search nodes..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                hideMenu();
-              } else {
-                e.stopPropagation();
-              }
-            }}
+            onKeyDown={handleSearchKeyDown}
             autoFocus={isVisible}
             aria-label="Search nodes"
             sx={{
@@ -353,7 +368,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                   <InputAdornment position="end">
                     <IconButton
                       aria-label="clear search"
-                      onClick={() => setSearchTerm("")}
+                      onClick={handleClearSearch}
                       edge="end"
                       size="small"
                     >
@@ -422,10 +437,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                       key={nodeMetadata.node_type}
                       node={nodeMetadata}
                       onDragStart={() => {}}
-                      onClick={() => {
-                        createConnectableNode(nodeMetadata);
-                        hideMenu();
-                      }}
+                      onClick={() => handleNodeClick(nodeMetadata)}
                     />
                   </div>
                 </Tooltip>
