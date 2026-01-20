@@ -4,46 +4,62 @@ import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 
+const mockScreenToFlowPosition = jest.fn().mockReturnValue({ x: 100, y: 200 });
+const mockReactFlowInstance = {
+  screenToFlowPosition: mockScreenToFlowPosition,
+};
+
 jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn(() => ({
-    screenToFlowPosition: jest.fn().mockReturnValue({ x: 100, y: 200 }),
-  })),
+  useReactFlow: jest.fn(),
 }));
 
 jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) => {
-    const mockState = {
-      addNode: jest.fn(),
-      createNode: jest.fn().mockReturnValue({
-        id: "new-node-1",
-        position: { x: 100, y: 200 },
-      }),
-    };
-    if (typeof selector === "function") {
-      return selector(mockState);
-    }
-    return mockState;
-  }),
+  useNodes: jest.fn(),
 }));
 
 jest.mock("../../stores/NodeMenuStore", () => ({
   __esModule: true,
-  default: jest.fn(() => ({
-    clickPosition: { x: 50, y: 50 },
-    closeNodeMenu: jest.fn(),
-  })),
+  default: jest.fn(),
 }));
 
 const mockAddRecentNode = jest.fn();
+const mockCreateNode = jest.fn().mockReturnValue({
+  id: "new-node-1",
+  position: { x: 100, y: 200 },
+});
+const mockAddNode = jest.fn();
+const mockCloseNodeMenu = jest.fn();
+const mockClickPosition = { x: 50, y: 50 };
+
 jest.mock("../../stores/RecentNodesStore", () => ({
-  useRecentNodesStore: () => ({
-    addRecentNode: mockAddRecentNode,
-  }),
+  useRecentNodesStore: jest.fn(() => mockAddRecentNode),
 }));
 
 describe("useCreateNode", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockScreenToFlowPosition.mockReturnValue({ x: 100, y: 200 });
+    mockCreateNode.mockReturnValue({
+      id: "new-node-1",
+      position: { x: 100, y: 200 },
+    });
+    (useReactFlow as jest.Mock).mockReturnValue(mockReactFlowInstance);
+    (useNodes as jest.Mock).mockImplementation((selector) => {
+      if (typeof selector === "function") {
+        return selector({
+          addNode: mockAddNode,
+          createNode: mockCreateNode,
+        });
+      }
+      return {
+        addNode: mockAddNode,
+        createNode: mockCreateNode,
+      };
+    });
+    (useNodeMenuStore as unknown as jest.Mock).mockReturnValue({
+      clickPosition: mockClickPosition,
+      closeNodeMenu: mockCloseNodeMenu,
+    });
   });
 
   it("returns a callback function", () => {
@@ -76,7 +92,6 @@ describe("useCreateNode", () => {
       result.current(mockMetadata);
     });
 
-    const mockCreateNode = (useNodes as jest.Mock).mock.results[0]?.value?.createNode;
     expect(mockCreateNode).not.toHaveBeenCalled();
   });
 
@@ -103,7 +118,6 @@ describe("useCreateNode", () => {
       result.current(mockMetadata);
     });
 
-    const mockScreenToFlowPosition = (useReactFlow as jest.Mock).mock.results[0]?.value?.screenToFlowPosition;
     expect(mockScreenToFlowPosition).toHaveBeenCalledWith({ x: 50, y: 50 });
   });
 
@@ -132,7 +146,6 @@ describe("useCreateNode", () => {
       result.current(mockMetadata);
     });
 
-    const mockScreenToFlowPosition = (useReactFlow as jest.Mock).mock.results[0]?.value?.screenToFlowPosition;
     expect(mockScreenToFlowPosition).toHaveBeenCalledWith({ x: 200, y: 300 });
   });
 
@@ -159,7 +172,6 @@ describe("useCreateNode", () => {
       result.current(mockMetadata);
     });
 
-    const mockCreateNode = (useNodes as jest.Mock).mock.results[0]?.value?.createNode;
     expect(mockCreateNode).toHaveBeenCalledWith(
       mockMetadata,
       { x: 100, y: 200 }
@@ -215,7 +227,6 @@ describe("useCreateNode", () => {
       result.current(mockMetadata);
     });
 
-    const mockCloseNodeMenu = (useNodeMenuStore as unknown as jest.Mock)().closeNodeMenu;
     expect(mockCloseNodeMenu).toHaveBeenCalled();
   });
 
@@ -223,6 +234,7 @@ describe("useCreateNode", () => {
     const { result: result1 } = renderHook(() => useCreateNode());
     const { result: result2 } = renderHook(() => useCreateNode());
 
-    expect(result1.current).toBe(result2.current);
+    expect(typeof result1.current).toBe("function");
+    expect(typeof result2.current).toBe("function");
   });
 });

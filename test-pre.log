@@ -1,7 +1,7 @@
 Running web tests...
 cd web && npm test
 
-> nodetool@0.6.2-rc.27 test
+> nodetool@0.6.2-rc.28 test
 > jest
 
 PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility.test.ts
@@ -208,86 +208,35 @@ PASS src/stores/__tests__/NodeStore.test.ts
       at createNodeStore (src/stores/NodeStore.ts:232:27)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:634:28)
 
+PASS src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
 PASS src/stores/__tests__/reactFlowNodeToGraphNode.test.ts
-FAIL src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
-  ● useInputNodeAutoRun › injects cached values for all external dependencies in subgraph when instantUpdate is enabled
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: "cached external value"
-    Received: undefined
-
-    [0m [90m 395 |[39m
-     [90m 396 |[39m     [90m// It should have the cached value from external-1 injected into its "context" property[39m
-    [31m[1m>[22m[39m[90m 397 |[39m     expect(downstream1[33m.[39mdata[33m.[39mproperties[33m.[39mcontext)[33m.[39mtoBe([32m"cached external value"[39m)[33m;[39m
-     [90m     |[39m                                                 [31m[1m^[22m[39m
-     [90m 398 |[39m   })[33m;[39m
-     [90m 399 |[39m
-     [90m 400 |[39m   it([32m"handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:397:49)
-
-  ● useInputNodeAutoRun › handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: "cached from ext1"
-    Received: undefined
-
-    [0m [90m 499 |[39m       (n[33m:[39m { id[33m:[39m string }) [33m=>[39m n[33m.[39mid [33m===[39m [32m"downstream-1"[39m
-     [90m 500 |[39m     )[33m;[39m
-    [31m[1m>[22m[39m[90m 501 |[39m     expect(downstream1[33m.[39mdata[33m.[39mproperties[33m.[39mcontext)[33m.[39mtoBe([32m"cached from ext1"[39m)[33m;[39m
-     [90m     |[39m                                                 [31m[1m^[22m[39m
-     [90m 502 |[39m
-     [90m 503 |[39m     [90m// downstream-2 should have count from external-2[39m
-     [90m 504 |[39m     [36mconst[39m downstream2 [33m=[39m nodesPassedToRun[33m.[39mfind([0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:501:49)
-
-  ● useInputNodeAutoRun › falls back to input/constant node values when cached results are missing and instantUpdate is enabled
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: "Reluctant Hero"
-    Received: undefined
-
-    [0m [90m 584 |[39m     )[33m;[39m
-     [90m 585 |[39m
-    [31m[1m>[22m[39m[90m 586 |[39m     expect(formatNode[33m.[39mdata[33m.[39mproperties[33m.[39m[33mCHARACTER[39m)[33m.[39mtoBe([32m"Reluctant Hero"[39m)[33m;[39m
-     [90m     |[39m                                                  [31m[1m^[22m[39m
-     [90m 587 |[39m     expect(formatNode[33m.[39mdata[33m.[39mproperties[33m.[39mtemplate)[33m.[39mtoBe([32m"template text"[39m)[33m;[39m
-     [90m 588 |[39m   })[33m;[39m
-     [90m 589 |[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:586:50)
-
 PASS src/hooks/nodes/__tests__/useNodeContextMenu.test.ts
 PASS src/stores/__tests__/customEquality.test.ts
 PASS src/utils/__tests__/nodeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] computeSearchResults with 500 nodes: 12.04ms
+      [PERF] computeSearchResults with 500 nodes: 21.66ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:573:15)
 
     console.log
-      [PERF] computeSearchResults with 2000 nodes: 90.04ms
+      [PERF] computeSearchResults with 2000 nodes: 55.34ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:586:15)
 
     console.log
-      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 28.85ms
+      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 25.46ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:608:15)
 
     console.log
-      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 14.99ms
+      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 11.73ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:631:15)
 
     console.log
-      [PERF] Average search time for 5 queries: 1.33ms
+      [PERF] Average search time for 5 queries: 2.30ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:665:15)
 
@@ -306,7 +255,7 @@ PASS src/__tests__/performance/componentPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:122:15)
 
     console.log
-      [PERF] Large tree (243 components) render: 32.76ms
+      [PERF] Large tree (243 components) render: 32.61ms
 
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:491:15)
 
@@ -367,7 +316,7 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
   ● Console
 
     console.log
-      [PERF] Set deduplication for 200 items: 0.038ms
+      [PERF] Set deduplication for 200 items: 0.026ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:77:15)
 
@@ -392,21 +341,6 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:319:15)
 
     console.log
-      [PERF] Without memo (100 calls): 0.73ms
-
-      at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:361:15)
-
-    console.log
-      [PERF] With memo (100 calls): 0.02ms
-
-      at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:362:15)
-
-    console.log
-      [PERF] Speed improvement: 41.4x
-
-      at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:363:15)
-
-    console.log
       [PERF] After 10 renders: { renders: 10, arrayBuilds: 1, dynamicResolutions: 1 }
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:533:15)
@@ -422,7 +356,7 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:543:15)
 
     console.log
-      [PERF] 100 nodes with 10 properties each: 0.11ms
+      [PERF] 100 nodes with 10 properties each: 0.17ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:578:13)
 
@@ -496,7 +430,42 @@ PASS src/hooks/__tests__/useFindInWorkflow.test.ts
 
 PASS src/stores/__tests__/AssetStore.test.ts
 PASS src/stores/__tests__/graphNodeToReactFlowNode.test.ts
-PASS src/stores/__tests__/GlobalChatStore.test.ts (5.386 s)
+PASS src/stores/__tests__/MiniAppsStore.test.ts
+PASS src/utils/__tests__/PrefixTreeSearch.test.ts
+  ● Console
+
+    console.log
+      [PERF] Search 100 nodes: 0.03ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:356:15)
+
+    console.log
+      [PERF] Search 1000 nodes: 0.08ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:372:15)
+
+    console.log
+      [PERF] Search 5000 nodes: 0.21ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:388:15)
+
+    console.log
+      [PERF] Search times for different result sizes: 0.003ms, 0.056ms, 0.185ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:418:15)
+
+    console.log
+      [PERF] Index 5000 nodes: 147.84ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:436:15)
+
+    console.log
+      [PERF] 8 searches avg: 0.04ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:466:15)
+
+PASS src/stores/__tests__/ConnectionStore.test.ts
+PASS src/stores/__tests__/GlobalChatStore.test.ts (5.43 s)
   ● Console
 
     console.log
@@ -734,49 +703,13 @@ PASS src/stores/__tests__/GlobalChatStore.test.ts (5.386 s)
 
       at handleChatWebSocketMessage (src/core/chat/chatProtocol.ts:780:11)
 
-PASS src/stores/__tests__/MiniAppsStore.test.ts
-PASS src/utils/__tests__/PrefixTreeSearch.test.ts
-  ● Console
-
-    console.log
-      [PERF] Search 100 nodes: 0.03ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:356:15)
-
-    console.log
-      [PERF] Search 1000 nodes: 0.06ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:372:15)
-
-    console.log
-      [PERF] Search 5000 nodes: 0.26ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:388:15)
-
-    console.log
-      [PERF] Search times for different result sizes: 0.003ms, 0.061ms, 0.040ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:418:15)
-
-    console.log
-      [PERF] Index 5000 nodes: 120.62ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:436:15)
-
-    console.log
-      [PERF] 8 searches avg: 0.05ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:466:15)
-
-PASS src/stores/__tests__/ConnectionStore.test.ts
-PASS src/stores/__tests__/ResultsStore.test.ts
 PASS src/hooks/__tests__/useSelectionActions.test.ts
+PASS src/stores/__tests__/ResultsStore.test.ts
 PASS src/utils/__tests__/handleUtils.test.ts
 PASS src/stores/__tests__/SettingsStore.test.ts
 PASS src/__tests__/components/chat/containers/ChatView.test.tsx
 PASS src/utils/__tests__/highlightText.test.ts
 PASS src/stores/__tests__/FileStore.test.ts
-PASS src/utils/__tests__/dockviewLayout.test.ts
 PASS src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx
   ● Console
 
@@ -818,11 +751,12 @@ PASS src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx
       at Object.throwingMatcher [as toThrow] (node_modules/expect/build/index.js:320:21)
       at Object.<anonymous> (src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:242:14)
 
-PASS src/stores/__tests__/NodeMenuStore.test.ts
-PASS src/__tests__/components/chat/containers/GlobalChat.test.tsx
+PASS src/utils/__tests__/dockviewLayout.test.ts
 PASS src/stores/__tests__/ModelPreferencesStore.test.ts
-PASS src/stores/__tests__/RemoteSettingStore.test.ts
+PASS src/__tests__/components/chat/containers/GlobalChat.test.tsx
+PASS src/stores/__tests__/NodeMenuStore.test.ts
 PASS src/utils/__tests__/findMatchingNodesInWorkflows.test.ts
+PASS src/stores/__tests__/RemoteSettingStore.test.ts
 PASS src/stores/__tests__/LogStore.test.ts
 PASS src/hooks/__tests__/useNumberInput.test.tsx
 PASS src/stores/__tests__/HfCacheStatusStore.test.ts
@@ -830,8 +764,6 @@ PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
 PASS src/stores/__tests__/ErrorStore.test.ts
 PASS src/stores/__tests__/NodeFocusStore.test.ts
 PASS src/stores/__tests__/AssetGridStore.test.ts
-PASS src/utils/__tests__/MousePosition.test.ts
-PASS src/hooks/__tests__/useSelectConnected.test.ts
 PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
   ● Console
 
@@ -873,6 +805,8 @@ PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
+PASS src/utils/__tests__/MousePosition.test.ts
+PASS src/hooks/__tests__/useSelectConnected.test.ts
 PASS src/utils/__tests__/workflowOutputTypeInference.test.ts
 PASS src/hooks/__tests__/useDuplicate.test.ts
 PASS src/core/chat/__tests__/chatProtocol.test.ts
@@ -982,9 +916,9 @@ PASS src/stores/__tests__/KeyPressedStore.test.ts
 PASS src/utils/__tests__/ColorUtils.test.ts
 PASS src/utils/__tests__/getAssetThumbUrl.test.ts
 PASS src/__tests__/stop_command_basic.test.ts
+PASS src/core/__tests__/graph.test.ts
 PASS src/utils/__tests__/providerDisplay.test.ts
 PASS src/stores/__tests__/AudioQueueStore.test.ts
-PASS src/hooks/__tests__/useNamespaceTree.test.ts
 PASS src/components/menus/__tests__/SecretsMenu.test.tsx
   ● Console
 
@@ -1064,6 +998,7 @@ PASS src/components/menus/__tests__/SecretsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
+PASS src/hooks/__tests__/useNamespaceTree.test.ts
 PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
 PASS src/stores/__tests__/SecretsStore.test.ts
 PASS src/utils/__tests__/modelNormalization.test.ts
@@ -1170,6 +1105,7 @@ PASS src/stores/__tests__/NotificationStore.test.ts
       at node_modules/@testing-library/react/dist/act-compat.js:47:25
       at Object.<anonymous> (src/stores/__tests__/NotificationStore.test.ts:189:10)
 
+PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/hooks/__tests__/useWorkflowActions.test.ts
   ● Console
 
@@ -1318,20 +1254,18 @@ PASS src/hooks/__tests__/useWorkflowActions.test.ts
       at Object.handleExampleClick (src/hooks/useWorkflowActions.ts:48:7)
       at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:240:28)
 
-PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/utils/__tests__/colorConversion.test.ts
 PASS src/utils/__tests__/groupByDate.test.ts
 PASS src/utils/__tests__/isUrlAccessible.test.ts
 PASS src/hooks/nodes/__tests__/useDynamicOutput.test.ts
 PASS src/hooks/__tests__/useDelayedHover.test.ts
 PASS src/utils/__tests__/edgeValue.test.ts
-PASS src/stores/__tests__/MetadataStore.test.ts
-PASS src/hooks/__tests__/useAutosave.test.ts
 PASS src/__tests__/components/chat/composer/MessageInput.test.tsx
+PASS src/hooks/__tests__/useAutosave.test.ts
+PASS src/stores/__tests__/MetadataStore.test.ts
 PASS src/stores/__tests__/FindInWorkflowStore.test.ts
 PASS src/utils/__tests__/nodeDisplay.test.ts
 PASS src/utils/__tests__/modelFilters.test.ts
-PASS src/hooks/__tests__/useNodeFocus.test.ts
 PASS src/hooks/__tests__/useCollectionDragAndDrop.test.ts
   ● Console
 
@@ -1364,6 +1298,7 @@ PASS src/hooks/__tests__/useCollectionDragAndDrop.test.ts
       at src/hooks/useCollectionDragAndDrop.ts:115:21
       at src/hooks/__tests__/useCollectionDragAndDrop.test.ts:176:9
 
+PASS src/hooks/__tests__/useNodeFocus.test.ts
 PASS src/utils/__tests__/fileExplorer.test.ts
   ● Console
 
@@ -1542,12 +1477,11 @@ PASS src/stores/__tests__/ApiClient.test.ts
 PASS src/utils/__tests__/workflowSearch.test.ts
 PASS src/stores/__tests__/BottomPanelStore.test.ts
 PASS src/stores/__tests__/LayoutStore.test.ts
-PASS src/hooks/nodes/__tests__/useAddToGroup.test.ts
 PASS src/utils/modelNormalization.test.ts
+PASS src/hooks/nodes/__tests__/useAddToGroup.test.ts
 PASS src/hooks/__tests__/useFitView.test.ts
 PASS src/stores/__tests__/graphConversion.test.ts
 PASS src/lib/dragdrop/__tests__/serialization.test.ts
-PASS src/hooks/__tests__/useRunningJobs.test.tsx
 PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
   ● Console
 
@@ -1664,39 +1598,142 @@ PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
+PASS src/hooks/__tests__/useRunningJobs.test.tsx
 PASS src/stores/__tests__/RecentNodesStore.test.ts
 PASS src/hooks/__tests__/useAlignNodes.test.ts
-PASS src/utils/__tests__/graphDiff.test.ts
 PASS src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts
+PASS src/utils/__tests__/graphDiff.test.ts
 PASS src/hooks/nodes/__tests__/useDynamicProperty.test.ts
 PASS src/stores/__tests__/NodePlacementStore.test.ts
-PASS src/core/__tests__/graph.test.ts
-PASS src/utils/__tests__/nodeUtils.test.ts
 PASS src/hooks/__tests__/useNumberInput.test.ts
+PASS src/utils/__tests__/nodeUtils.test.ts
+PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
 PASS src/utils/__tests__/sanitize.test.ts
 PASS src/stores/__tests__/FavoriteNodesStore.test.ts
 PASS src/utils/__tests__/NodeTypeMapping.test.ts
+FAIL src/hooks/__tests__/useCreateNode.test.ts
+  ● useCreateNode › uses clickPosition when centerPosition is not provided
+
+    expect(received).toHaveBeenCalledWith(...expected)
+
+    Matcher error: received value must be a mock or spy function
+
+    Received has value: undefined
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m     [36mconst[39m mockScreenToFlowPosition [33m=[39m (useReactFlow [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmock[33m.[39mresults[[35m0[39m][33m?[39m[33m.[39mvalue[33m?[39m[33m.[39mscreenToFlowPosition[33m;[39m
+    [31m[1m>[22m[39m[90m 107 |[39m     expect(mockScreenToFlowPosition)[33m.[39mtoHaveBeenCalledWith({ x[33m:[39m [35m50[39m[33m,[39m y[33m:[39m [35m50[39m })[33m;[39m
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 108 |[39m   })[33m;[39m
+     [90m 109 |[39m
+     [90m 110 |[39m   it([32m"uses provided centerPosition when specified"[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:107:38)
+
+  ● useCreateNode › uses provided centerPosition when specified
+
+    expect(received).toHaveBeenCalledWith(...expected)
+
+    Matcher error: received value must be a mock or spy function
+
+    Received has value: undefined
+
+    [0m [90m 134 |[39m
+     [90m 135 |[39m     [36mconst[39m mockScreenToFlowPosition [33m=[39m (useReactFlow [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmock[33m.[39mresults[[35m0[39m][33m?[39m[33m.[39mvalue[33m?[39m[33m.[39mscreenToFlowPosition[33m;[39m
+    [31m[1m>[22m[39m[90m 136 |[39m     expect(mockScreenToFlowPosition)[33m.[39mtoHaveBeenCalledWith({ x[33m:[39m [35m200[39m[33m,[39m y[33m:[39m [35m300[39m })[33m;[39m
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 137 |[39m   })[33m;[39m
+     [90m 138 |[39m
+     [90m 139 |[39m   it([32m"creates node with correct flow position"[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:136:38)
+
+  ● useCreateNode › creates node with correct flow position
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"basic_fields": [], "description": "Test description", "expose_as_tool": false, "is_dynamic": false, "is_streaming_output": false, "layout": "default", "namespace": "test", "node_type": "test", "outputs": [], "properties": [], "recommended_models": [], "supports_dynamic_outputs": false, "the_model_info": {}, "title": "Test Node"}, {"x": 100, "y": 200}
+
+    Number of calls: 0
+
+    [0m [90m 161 |[39m
+     [90m 162 |[39m     [36mconst[39m mockCreateNode [33m=[39m (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmock[33m.[39mresults[[35m0[39m][33m?[39m[33m.[39mvalue[33m?[39m[33m.[39mcreateNode[33m;[39m
+    [31m[1m>[22m[39m[90m 163 |[39m     expect(mockCreateNode)[33m.[39mtoHaveBeenCalledWith(
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 164 |[39m       mockMetadata[33m,[39m
+     [90m 165 |[39m       { x[33m:[39m [35m100[39m[33m,[39m y[33m:[39m [35m200[39m }
+     [90m 166 |[39m     )[33m;[39m[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:163:28)
+
+  ● useCreateNode › tracks node as recently used
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "nodetool.input.StringInput"
+
+    Number of calls: 0
+
+    [0m [90m 190 |[39m     })[33m;[39m
+     [90m 191 |[39m
+    [31m[1m>[22m[39m[90m 192 |[39m     expect(mockAddRecentNode)[33m.[39mtoHaveBeenCalledWith([32m"nodetool.input.StringInput"[39m)[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 193 |[39m   })[33m;[39m
+     [90m 194 |[39m
+     [90m 195 |[39m   it([32m"closes node menu after creating node"[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:192:31)
+
+  ● useCreateNode › closes node menu after creating node
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+    [0m [90m 217 |[39m
+     [90m 218 |[39m     [36mconst[39m mockCloseNodeMenu [33m=[39m (useNodeMenuStore [36mas[39m unknown [36mas[39m jest[33m.[39m[33mMock[39m)()[33m.[39mcloseNodeMenu[33m;[39m
+    [31m[1m>[22m[39m[90m 219 |[39m     expect(mockCloseNodeMenu)[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 220 |[39m   })[33m;[39m
+     [90m 221 |[39m
+     [90m 222 |[39m   it([32m"maintains callback referential identity"[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:219:31)
+
+  ● useCreateNode › maintains callback referential identity
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: [Function anonymous]
+    Received: serializes to the same string
+
+    [0m [90m 224 |[39m     [36mconst[39m { result[33m:[39m result2 } [33m=[39m renderHook(() [33m=>[39m useCreateNode())[33m;[39m
+     [90m 225 |[39m
+    [31m[1m>[22m[39m[90m 226 |[39m     expect(result1[33m.[39mcurrent)[33m.[39mtoBe(result2[33m.[39mcurrent)[33m;[39m
+     [90m     |[39m                             [31m[1m^[22m[39m
+     [90m 227 |[39m   })[33m;[39m
+     [90m 228 |[39m })[33m;[39m
+     [90m 229 |[39m[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:226:29)
+
 PASS src/utils/__tests__/formatUtils.test.ts
 PASS src/stores/__tests__/VersionHistoryStore.test.ts
 PASS src/stores/__tests__/StatusStore.test.ts
-PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
 PASS src/utils/__tests__/graphCycle.test.ts
 PASS src/utils/__tests__/selectionBounds.test.ts
 PASS src/hooks/nodes/__tests__/useSyncEdgeSelection.test.ts
 PASS src/utils/__tests__/formatDateAndTime.test.ts
 PASS src/hooks/nodes/__tests__/getGroupBounds.test.ts
+PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
 PASS src/lib/dragdrop/__tests__/hooks.test.tsx
 PASS src/hooks/__tests__/useProviderApiKeyValidation.test.ts
-PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
 PASS src/hooks/__tests__/useWorkflowRunnerState.test.ts
 PASS src/stores/__tests__/formatNodeDocumentation.test.ts
 PASS src/components/node/image_editor/__tests__/canvasUtils.test.ts
 PASS src/stores/__tests__/ModelDownloadStore.test.ts
-PASS src/components/context_menus/__tests__/PaneContextMenu.test.tsx
-PASS src/stores/__tests__/GettingStartedStore.test.ts
 PASS src/hooks/__tests__/useFitNodeEvent.test.ts
-PASS src/stores/__tests__/RightPanelStore.test.ts
-PASS src/utils/__tests__/hfCache.test.ts
 PASS src/__tests__/components/chat/composer/StopGenerationButton.test.tsx
   ● Console
 
@@ -1813,15 +1850,75 @@ PASS src/__tests__/components/chat/composer/StopGenerationButton.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
+PASS src/components/context_menus/__tests__/PaneContextMenu.test.tsx
+PASS src/stores/__tests__/GettingStartedStore.test.ts
+PASS src/stores/__tests__/RightPanelStore.test.ts
+PASS src/utils/__tests__/hfCache.test.ts
+PASS src/__tests__/ErrorBoundary.test.tsx
 PASS src/components/properties/__tests__/IntegerProperty.test.tsx
+FAIL src/stores/__tests__/WorkflowRunner.test.ts
+  ● Test suite failed to run
+
+    TypeError: Cannot read properties of undefined (reading 'createContext')
+
+    [0m [90m 3 |[39m [36mexport[39m type [33mInsertIntoEditorFn[39m [33m=[39m (text[33m:[39m string[33m,[39m language[33m?[39m[33m:[39m string) [33m=>[39m [36mvoid[39m[33m;[39m
+     [90m 4 |[39m
+    [31m[1m>[22m[39m[90m 5 |[39m [36mconst[39m [33mEditorInsertionContext[39m [33m=[39m [33mReact[39m[33m.[39mcreateContext[33m<[39m[33mInsertIntoEditorFn[39m [33m|[39m [36mnull[39m[33m>[39m(
+     [90m   |[39m                                      [31m[1m^[22m[39m
+     [90m 6 |[39m   [36mnull[39m
+     [90m 7 |[39m )[33m;[39m
+     [90m 8 |[39m[0m
+
+      at Object.<anonymous> (src/contexts/EditorInsertionContext.tsx:5:38)
+      at Object.<anonymous> (src/components/chat/message/MessageView.tsx:13:1)
+      at Object.<anonymous> (src/components/chat/thread/ChatThreadView.tsx:16:1)
+      at Object.<anonymous> (src/components/chat/containers/ChatView.tsx:16:1)
+      at Object.<anonymous> (src/components/properties/TextEditorModal.tsx:40:1)
+      at Object.<anonymous> (src/components/properties/StringProperty.tsx:6:1)
+      at Object.<anonymous> (src/components/node/PropertyInput.tsx:8:1)
+      at Object.<anonymous> (src/components/node/PropertyField.tsx:6:1)
+      at Object.<anonymous> (src/components/node/NodeInputs.tsx:4:1)
+      at Object.<anonymous> (src/components/node_types/PlaceholderNode.tsx:14:1)
+      at Object.<anonymous> (src/stores/NodeStore.ts:54:1)
+      at Object.<anonymous> (src/stores/reactFlowNodeToGraphNode.ts:4:1)
+      at Object.<anonymous> (src/stores/WorkflowRunner.ts:35:1)
+      at Object.<anonymous> (src/stores/__tests__/WorkflowRunner.test.ts:1:1)
+
 PASS src/components/properties/__tests__/FloatProperty.test.tsx
 PASS src/utils/__tests__/imageUtils.test.ts
-PASS src/__tests__/ErrorBoundary.test.tsx
 PASS src/utils/__tests__/errorHandling.test.ts
-PASS src/stores/__tests__/ModelFiltersStore.test.ts
+FAIL src/hooks/__tests__/useWorkflowGraphUpdater.test.ts
+  ● Test suite failed to run
+
+    TypeError: Cannot read properties of undefined (reading 'createContext')
+
+    [0m [90m 3 |[39m [36mexport[39m type [33mInsertIntoEditorFn[39m [33m=[39m (text[33m:[39m string[33m,[39m language[33m?[39m[33m:[39m string) [33m=>[39m [36mvoid[39m[33m;[39m
+     [90m 4 |[39m
+    [31m[1m>[22m[39m[90m 5 |[39m [36mconst[39m [33mEditorInsertionContext[39m [33m=[39m [33mReact[39m[33m.[39mcreateContext[33m<[39m[33mInsertIntoEditorFn[39m [33m|[39m [36mnull[39m[33m>[39m(
+     [90m   |[39m                                      [31m[1m^[22m[39m
+     [90m 6 |[39m   [36mnull[39m
+     [90m 7 |[39m )[33m;[39m
+     [90m 8 |[39m[0m
+
+      at Object.<anonymous> (src/contexts/EditorInsertionContext.tsx:5:38)
+      at Object.<anonymous> (src/components/chat/message/MessageView.tsx:13:1)
+      at Object.<anonymous> (src/components/chat/thread/ChatThreadView.tsx:16:1)
+      at Object.<anonymous> (src/components/chat/containers/ChatView.tsx:16:1)
+      at Object.<anonymous> (src/components/properties/TextEditorModal.tsx:40:1)
+      at Object.<anonymous> (src/components/properties/StringProperty.tsx:6:1)
+      at Object.<anonymous> (src/components/node/PropertyInput.tsx:8:1)
+      at Object.<anonymous> (src/components/node/PropertyField.tsx:6:1)
+      at Object.<anonymous> (src/components/node/NodeInputs.tsx:4:1)
+      at Object.<anonymous> (src/components/node_types/PlaceholderNode.tsx:14:1)
+      at Object.<anonymous> (src/stores/NodeStore.ts:54:1)
+      at Object.<anonymous> (src/stores/graphNodeToReactFlowNode.ts:4:1)
+      at Object.<anonymous> (src/hooks/useWorkflowGraphUpdater.ts:9:1)
+      at Object.<anonymous> (src/hooks/__tests__/useWorkflowGraphUpdater.test.ts:7:1)
+
 PASS src/hooks/__tests__/useFocusPan.test.ts
-PASS src/utils/__tests__/colorHarmonies.test.ts
+PASS src/stores/__tests__/ModelFiltersStore.test.ts
 PASS src/hooks/assets/__tests__/useAssetSelection.test.ts
+PASS src/utils/__tests__/colorHarmonies.test.ts
 PASS src/hooks/browser/__tests__/useVideoRecorder.test.ts
   ● Console
 
@@ -2133,15 +2230,11 @@ PASS src/hooks/browser/__tests__/useVideoRecorder.test.ts
       at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
       at src/hooks/browser/useVideoRecorder.ts:158:11
 
-PASS src/utils/__tests__/NumberInput.utils.test.ts
 PASS src/__tests__/components/node_menu/NodeMenuKeyboardNavigation.test.tsx
+PASS src/utils/__tests__/NumberInput.utils.test.ts
 PASS src/stores/__tests__/ModelManagerStore.test.ts
 PASS src/providers/__tests__/ContextMenuProvider.test.tsx
-PASS src/stores/__tests__/ExecutionTimeStore.test.ts
 PASS src/providers/__tests__/ConnectableNodesProvider.test.tsx
-PASS src/utils/__tests__/identifierValidation.test.ts
-PASS src/utils/__tests__/downloadPreviewAssets.test.ts
-PASS src/stores/__tests__/WorkflowActionsStore.test.ts
 PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
   ● Console
 
@@ -2915,9 +3008,13 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:162:11)
 
+PASS src/stores/__tests__/ExecutionTimeStore.test.ts
+PASS src/utils/__tests__/identifierValidation.test.ts
+PASS src/utils/__tests__/downloadPreviewAssets.test.ts
+PASS src/stores/__tests__/WorkflowActionsStore.test.ts
 PASS src/serverState/__tests__/checkHfCache.test.ts
-PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
 PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
+PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
 PASS src/stores/__tests__/FavoriteWorkflowsStore.test.ts
 PASS src/utils/__tests__/createAssetFile.test.ts
   ● Console
@@ -2937,6 +3034,7 @@ PASS src/utils/__tests__/createAssetFile.test.ts
       at createAssetFile (src/utils/createAssetFile.ts:506:22)
       at Object.<anonymous> (src/utils/__tests__/createAssetFile.test.ts:58:43)
 
+PASS src/hooks/handlers/__tests__/useNodeEvents.test.ts
 PASS src/utils/__tests__/useDynamicSvgImport.test.tsx
   ● Console
 
@@ -3136,12 +3234,11 @@ PASS src/utils/__tests__/useDynamicSvgImport.test.tsx
       at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
       at importSvgIcon (src/utils/useDynamicSvgImport.ts:50:9)
 
-PASS src/hooks/handlers/__tests__/useNodeEvents.test.ts
 PASS src/hooks/nodes/__tests__/useIsGroupable.test.ts
 PASS src/hooks/nodes/__tests__/useSelect.test.ts
 PASS src/utils/graphCycle.test.ts
-PASS src/components/node/image_editor/__tests__/ImageEditorToolbar.test.tsx
 PASS src/hooks/handlers/__tests__/useConnectionEvents.test.ts
+PASS src/components/node/image_editor/__tests__/ImageEditorToolbar.test.tsx
 PASS src/stores/__tests__/AppHeaderStore.test.ts
 PASS src/utils/modelFilters.test.ts
 PASS src/stores/__tests__/reactFlowEdgeToGraphEdge.test.ts
@@ -3733,27 +3830,27 @@ PASS src/utils/ColorUtils.test.ts
       at Object.<anonymous> (src/utils/ColorUtils.test.ts:29:23)
 
 PASS src/utils/__tests__/titleizeString.test.ts
-PASS src/utils/__tests__/modelFormatting.test.tsx
 PASS src/__tests__/GlobalChatStore.toolcall.test.ts
+PASS src/utils/__tests__/modelFormatting.test.tsx
 PASS src/stores/__tests__/WorkflowManagerStore.test.ts
 PASS src/stores/formatNodeDocumentation.test.ts
 PASS src/utils/formatUtils.test.ts
 PASS src/utils/__tests__/sentry.test.ts
 PASS src/components/properties/__tests__/Model3DProperty.test.tsx
+PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx
 PASS src/utils/__tests__/binary.test.ts
-PASS src/components/assets/__tests__/AssetItem.test.tsx
 PASS src/stores/__tests__/InspectedNodeStore.test.ts
 PASS src/hooks/nodes/__tests__/getChildNodes.test.ts
+PASS src/components/assets/__tests__/AssetItem.test.tsx
 PASS src/utils/__tests__/getFileExtension.test.ts
-PASS src/hooks/editor/__tests__/useEditorActions.test.ts
 PASS src/hooks/assets/__tests__/useAssetDisplay.test.tsx
+PASS src/hooks/editor/__tests__/useEditorActions.test.ts
 PASS src/utils/errorHandling.test.ts
 PASS src/utils/highlightText.test.ts
 PASS src/stores/__tests__/SessionStateStore.test.ts
 PASS src/config/__tests__/shortcuts.test.ts
 PASS src/__tests__/components/node/InputNodeNameWarning.test.tsx
 PASS src/components/node/__tests__/NodeExecutionTime.test.tsx
-PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx (5.812 s)
 PASS src/core/workflow/__tests__/graphMapping.test.ts
   ● Console
 
@@ -3773,18 +3870,17 @@ PASS src/core/workflow/__tests__/graphMapping.test.ts
       at sanitizeGraph (src/core/workflow/graphMapping.ts:76:32)
       at Object.<anonymous> (src/core/workflow/__tests__/graphMapping.test.ts:91:47)
 
-PASS src/stores/__tests__/MiniMapStore.test.ts
 PASS src/stores/__tests__/fuseOptions.test.ts
+PASS src/stores/__tests__/MiniMapStore.test.ts
 PASS src/utils/__tests__/modelDownloadCheck.test.ts
 PASS src/utils/__tests__/platform.test.ts
-PASS src/providers/__tests__/MenuProvider.test.tsx
 PASS src/hooks/handlers/__tests__/useEdgeHandlers.test.ts
-PASS src/utils/__tests__/browser.test.ts
 PASS src/hooks/handlers/__tests__/useReactFlowEvents.test.ts
+PASS src/providers/__tests__/MenuProvider.test.tsx
+PASS src/utils/__tests__/browser.test.ts
 PASS src/utils/__tests__/truncateString.test.ts
 PASS src/hooks/editor/__tests__/useMonacoEditor.test.ts
 PASS src/stores/__tests__/WorkflowListViewStore.test.ts
-PASS src/__tests__/components/assets/AssetSearchInput.test.tsx (5.32 s)
 PASS src/hooks/__tests__/useIsDarkMode.test.ts
   ● Console
 
@@ -3887,9 +3983,8 @@ PASS src/hooks/__tests__/useIsDarkMode.test.ts
       at notifyMutationObservers (node_modules/jsdom/lib/jsdom/living/helpers/mutation-observers.js:160:22)
       at node_modules/jsdom/lib/jsdom/living/helpers/mutation-observers.js:133:5
 
-PASS src/utils/nodeDisplay.test.ts
 PASS src/components/node_editor/__tests__/NotificationsList.test.tsx
-PASS src/__tests__/frontendTools.test.ts
+PASS src/utils/nodeDisplay.test.ts
 PASS src/components/node_editor/__tests__/Alert.test.tsx
   ● Console
 
@@ -3928,25 +4023,29 @@ PASS src/components/node_editor/__tests__/Alert.test.tsx
       at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
       at src/components/common/CopyToClipboardButton.tsx:74:9
 
+PASS src/__tests__/frontendTools.test.ts
 PASS src/components/buttons/__tests__/CloseButton.test.tsx
-PASS src/components/assets/__tests__/FolderItem.test.tsx
+PASS src/__tests__/components/assets/AssetSearchInput.test.tsx (5.131 s)
 PASS src/__tests__/components/node/DatetimeRenderer.test.tsx
+PASS src/components/assets/__tests__/FolderItem.test.tsx
 PASS src/components/__tests__/Logo.test.tsx
 PASS src/serverState/__tests__/tryCacheFiles.test.ts
+PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx
 PASS src/hooks/editor/__tests__/useModalResize.test.ts
-PASS src/components/properties/__tests__/BoolProperty.test.tsx
 PASS src/utils/sanitize.test.ts
-PASS src/components/node/__tests__/ResultOverlay.test.tsx
+PASS src/components/properties/__tests__/BoolProperty.test.tsx
 PASS src/stores/__tests__/uuidv4.test.ts
 PASS src/utils/binary.test.ts
-PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx
+PASS src/components/node/__tests__/ResultOverlay.test.tsx
 PASS src/components/common/__tests__/CopyToClipboardButton.test.tsx
 PASS src/__tests__/components/node/CalendarEventView.test.tsx
-PASS src/components/__tests__/ProtectedRoute.test.tsx
-PASS src/stores/__tests__/PanelStore.test.ts
 PASS src/__tests__/components/assets/AssetExplorer.test.tsx
+PASS src/stores/__tests__/PanelStore.test.ts
+PASS src/components/__tests__/ProtectedRoute.test.tsx
 PASS src/lib/websocket/__tests__/GlobalWebSocketManager.test.ts
 PASS src/hooks/__tests__/useLoraModels.test.ts
+PASS src/hooks/editor/__tests__/useEditorMode.test.ts
+PASS src/hooks/assets/__tests__/useAssetDownload.test.ts
 PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
   ● Console
 
@@ -4042,82 +4141,191 @@ PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/node_editor/__tests__/ConnectionLine.test.tsx:27:33)
 
-PASS src/hooks/assets/__tests__/useAssetDownload.test.ts
-PASS src/hooks/editor/__tests__/useEditorMode.test.ts
+PASS src/stores/__tests__/ConnectableNodesStore.test.ts
 PASS src/utils/__tests__/uuidv4.test.ts
 PASS src/hooks/editor/__tests__/useEditorKeyboardShortcuts.test.ts
-PASS src/stores/__tests__/ConnectableNodesStore.test.ts
+PASS src/hooks/assets/__tests__/useAssetNavigation.test.ts
 PASS src/serverState/__tests__/useAsset.test.tsx
 PASS src/utils/titleizeString.test.ts
-PASS src/hooks/assets/__tests__/useAssetNavigation.test.ts
-PASS src/components/workspaces/__tests__/WorkspaceManagerStore.test.ts
 PASS src/utils/__tests__/serializeValue.test.ts
+PASS src/components/workspaces/__tests__/WorkspaceManagerStore.test.ts
 PASS src/components/__tests__/InfiniteScroll.test.tsx
 PASS src/hooks/editor/__tests__/useAssistantVisibility.test.ts
 PASS src/hooks/editor/__tests__/useCodeLanguage.test.ts
-PASS src/components/__tests__/KeyboardProvider.test.tsx
 PASS src/hooks/editor/__tests__/useFullscreenMode.test.ts
+PASS src/components/__tests__/KeyboardProvider.test.tsx
 PASS src/core/workflow/__tests__/runnerProtocol.test.ts
 PASS src/components/node_editor/__tests__/LoadingAnimation.test.tsx
 PASS src/components/properties/__tests__/NonEditableProperty.test.tsx
 
 Summary of all failing tests
-FAIL src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
-  ● useInputNodeAutoRun › injects cached values for all external dependencies in subgraph when instantUpdate is enabled
+FAIL src/hooks/__tests__/useCreateNode.test.ts
+  ● useCreateNode › uses clickPosition when centerPosition is not provided
+
+    expect(received).toHaveBeenCalledWith(...expected)
+
+    Matcher error: received value must be a mock or spy function
+
+    Received has value: undefined
+
+    [0m [90m 105 |[39m
+     [90m 106 |[39m     [36mconst[39m mockScreenToFlowPosition [33m=[39m (useReactFlow [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmock[33m.[39mresults[[35m0[39m][33m?[39m[33m.[39mvalue[33m?[39m[33m.[39mscreenToFlowPosition[33m;[39m
+    [31m[1m>[22m[39m[90m 107 |[39m     expect(mockScreenToFlowPosition)[33m.[39mtoHaveBeenCalledWith({ x[33m:[39m [35m50[39m[33m,[39m y[33m:[39m [35m50[39m })[33m;[39m
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 108 |[39m   })[33m;[39m
+     [90m 109 |[39m
+     [90m 110 |[39m   it([32m"uses provided centerPosition when specified"[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:107:38)
+
+  ● useCreateNode › uses provided centerPosition when specified
+
+    expect(received).toHaveBeenCalledWith(...expected)
+
+    Matcher error: received value must be a mock or spy function
+
+    Received has value: undefined
+
+    [0m [90m 134 |[39m
+     [90m 135 |[39m     [36mconst[39m mockScreenToFlowPosition [33m=[39m (useReactFlow [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmock[33m.[39mresults[[35m0[39m][33m?[39m[33m.[39mvalue[33m?[39m[33m.[39mscreenToFlowPosition[33m;[39m
+    [31m[1m>[22m[39m[90m 136 |[39m     expect(mockScreenToFlowPosition)[33m.[39mtoHaveBeenCalledWith({ x[33m:[39m [35m200[39m[33m,[39m y[33m:[39m [35m300[39m })[33m;[39m
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 137 |[39m   })[33m;[39m
+     [90m 138 |[39m
+     [90m 139 |[39m   it([32m"creates node with correct flow position"[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:136:38)
+
+  ● useCreateNode › creates node with correct flow position
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"basic_fields": [], "description": "Test description", "expose_as_tool": false, "is_dynamic": false, "is_streaming_output": false, "layout": "default", "namespace": "test", "node_type": "test", "outputs": [], "properties": [], "recommended_models": [], "supports_dynamic_outputs": false, "the_model_info": {}, "title": "Test Node"}, {"x": 100, "y": 200}
+
+    Number of calls: 0
+
+    [0m [90m 161 |[39m
+     [90m 162 |[39m     [36mconst[39m mockCreateNode [33m=[39m (useNodes [36mas[39m jest[33m.[39m[33mMock[39m)[33m.[39mmock[33m.[39mresults[[35m0[39m][33m?[39m[33m.[39mvalue[33m?[39m[33m.[39mcreateNode[33m;[39m
+    [31m[1m>[22m[39m[90m 163 |[39m     expect(mockCreateNode)[33m.[39mtoHaveBeenCalledWith(
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 164 |[39m       mockMetadata[33m,[39m
+     [90m 165 |[39m       { x[33m:[39m [35m100[39m[33m,[39m y[33m:[39m [35m200[39m }
+     [90m 166 |[39m     )[33m;[39m[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:163:28)
+
+  ● useCreateNode › tracks node as recently used
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "nodetool.input.StringInput"
+
+    Number of calls: 0
+
+    [0m [90m 190 |[39m     })[33m;[39m
+     [90m 191 |[39m
+    [31m[1m>[22m[39m[90m 192 |[39m     expect(mockAddRecentNode)[33m.[39mtoHaveBeenCalledWith([32m"nodetool.input.StringInput"[39m)[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 193 |[39m   })[33m;[39m
+     [90m 194 |[39m
+     [90m 195 |[39m   it([32m"closes node menu after creating node"[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:192:31)
+
+  ● useCreateNode › closes node menu after creating node
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+    [0m [90m 217 |[39m
+     [90m 218 |[39m     [36mconst[39m mockCloseNodeMenu [33m=[39m (useNodeMenuStore [36mas[39m unknown [36mas[39m jest[33m.[39m[33mMock[39m)()[33m.[39mcloseNodeMenu[33m;[39m
+    [31m[1m>[22m[39m[90m 219 |[39m     expect(mockCloseNodeMenu)[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 220 |[39m   })[33m;[39m
+     [90m 221 |[39m
+     [90m 222 |[39m   it([32m"maintains callback referential identity"[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:219:31)
+
+  ● useCreateNode › maintains callback referential identity
 
     expect(received).toBe(expected) // Object.is equality
 
-    Expected: "cached external value"
-    Received: undefined
+    Expected: [Function anonymous]
+    Received: serializes to the same string
 
-    [0m [90m 395 |[39m
-     [90m 396 |[39m     [90m// It should have the cached value from external-1 injected into its "context" property[39m
-    [31m[1m>[22m[39m[90m 397 |[39m     expect(downstream1[33m.[39mdata[33m.[39mproperties[33m.[39mcontext)[33m.[39mtoBe([32m"cached external value"[39m)[33m;[39m
-     [90m     |[39m                                                 [31m[1m^[22m[39m
-     [90m 398 |[39m   })[33m;[39m
-     [90m 399 |[39m
-     [90m 400 |[39m   it([32m"handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled"[39m[33m,[39m () [33m=>[39m {[0m
+    [0m [90m 224 |[39m     [36mconst[39m { result[33m:[39m result2 } [33m=[39m renderHook(() [33m=>[39m useCreateNode())[33m;[39m
+     [90m 225 |[39m
+    [31m[1m>[22m[39m[90m 226 |[39m     expect(result1[33m.[39mcurrent)[33m.[39mtoBe(result2[33m.[39mcurrent)[33m;[39m
+     [90m     |[39m                             [31m[1m^[22m[39m
+     [90m 227 |[39m   })[33m;[39m
+     [90m 228 |[39m })[33m;[39m
+     [90m 229 |[39m[0m
 
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:397:49)
+      at Object.<anonymous> (src/hooks/__tests__/useCreateNode.test.ts:226:29)
 
-  ● useInputNodeAutoRun › handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled
+FAIL src/stores/__tests__/WorkflowRunner.test.ts
+  ● Test suite failed to run
 
-    expect(received).toBe(expected) // Object.is equality
+    TypeError: Cannot read properties of undefined (reading 'createContext')
 
-    Expected: "cached from ext1"
-    Received: undefined
+    [0m [90m 3 |[39m [36mexport[39m type [33mInsertIntoEditorFn[39m [33m=[39m (text[33m:[39m string[33m,[39m language[33m?[39m[33m:[39m string) [33m=>[39m [36mvoid[39m[33m;[39m
+     [90m 4 |[39m
+    [31m[1m>[22m[39m[90m 5 |[39m [36mconst[39m [33mEditorInsertionContext[39m [33m=[39m [33mReact[39m[33m.[39mcreateContext[33m<[39m[33mInsertIntoEditorFn[39m [33m|[39m [36mnull[39m[33m>[39m(
+     [90m   |[39m                                      [31m[1m^[22m[39m
+     [90m 6 |[39m   [36mnull[39m
+     [90m 7 |[39m )[33m;[39m
+     [90m 8 |[39m[0m
 
-    [0m [90m 499 |[39m       (n[33m:[39m { id[33m:[39m string }) [33m=>[39m n[33m.[39mid [33m===[39m [32m"downstream-1"[39m
-     [90m 500 |[39m     )[33m;[39m
-    [31m[1m>[22m[39m[90m 501 |[39m     expect(downstream1[33m.[39mdata[33m.[39mproperties[33m.[39mcontext)[33m.[39mtoBe([32m"cached from ext1"[39m)[33m;[39m
-     [90m     |[39m                                                 [31m[1m^[22m[39m
-     [90m 502 |[39m
-     [90m 503 |[39m     [90m// downstream-2 should have count from external-2[39m
-     [90m 504 |[39m     [36mconst[39m downstream2 [33m=[39m nodesPassedToRun[33m.[39mfind([0m
+      at Object.<anonymous> (src/contexts/EditorInsertionContext.tsx:5:38)
+      at Object.<anonymous> (src/components/chat/message/MessageView.tsx:13:1)
+      at Object.<anonymous> (src/components/chat/thread/ChatThreadView.tsx:16:1)
+      at Object.<anonymous> (src/components/chat/containers/ChatView.tsx:16:1)
+      at Object.<anonymous> (src/components/properties/TextEditorModal.tsx:40:1)
+      at Object.<anonymous> (src/components/properties/StringProperty.tsx:6:1)
+      at Object.<anonymous> (src/components/node/PropertyInput.tsx:8:1)
+      at Object.<anonymous> (src/components/node/PropertyField.tsx:6:1)
+      at Object.<anonymous> (src/components/node/NodeInputs.tsx:4:1)
+      at Object.<anonymous> (src/components/node_types/PlaceholderNode.tsx:14:1)
+      at Object.<anonymous> (src/stores/NodeStore.ts:54:1)
+      at Object.<anonymous> (src/stores/reactFlowNodeToGraphNode.ts:4:1)
+      at Object.<anonymous> (src/stores/WorkflowRunner.ts:35:1)
+      at Object.<anonymous> (src/stores/__tests__/WorkflowRunner.test.ts:1:1)
 
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:501:49)
+FAIL src/hooks/__tests__/useWorkflowGraphUpdater.test.ts
+  ● Test suite failed to run
 
-  ● useInputNodeAutoRun › falls back to input/constant node values when cached results are missing and instantUpdate is enabled
+    TypeError: Cannot read properties of undefined (reading 'createContext')
 
-    expect(received).toBe(expected) // Object.is equality
+    [0m [90m 3 |[39m [36mexport[39m type [33mInsertIntoEditorFn[39m [33m=[39m (text[33m:[39m string[33m,[39m language[33m?[39m[33m:[39m string) [33m=>[39m [36mvoid[39m[33m;[39m
+     [90m 4 |[39m
+    [31m[1m>[22m[39m[90m 5 |[39m [36mconst[39m [33mEditorInsertionContext[39m [33m=[39m [33mReact[39m[33m.[39mcreateContext[33m<[39m[33mInsertIntoEditorFn[39m [33m|[39m [36mnull[39m[33m>[39m(
+     [90m   |[39m                                      [31m[1m^[22m[39m
+     [90m 6 |[39m   [36mnull[39m
+     [90m 7 |[39m )[33m;[39m
+     [90m 8 |[39m[0m
 
-    Expected: "Reluctant Hero"
-    Received: undefined
+      at Object.<anonymous> (src/contexts/EditorInsertionContext.tsx:5:38)
+      at Object.<anonymous> (src/components/chat/message/MessageView.tsx:13:1)
+      at Object.<anonymous> (src/components/chat/thread/ChatThreadView.tsx:16:1)
+      at Object.<anonymous> (src/components/chat/containers/ChatView.tsx:16:1)
+      at Object.<anonymous> (src/components/properties/TextEditorModal.tsx:40:1)
+      at Object.<anonymous> (src/components/properties/StringProperty.tsx:6:1)
+      at Object.<anonymous> (src/components/node/PropertyInput.tsx:8:1)
+      at Object.<anonymous> (src/components/node/PropertyField.tsx:6:1)
+      at Object.<anonymous> (src/components/node/NodeInputs.tsx:4:1)
+      at Object.<anonymous> (src/components/node_types/PlaceholderNode.tsx:14:1)
+      at Object.<anonymous> (src/stores/NodeStore.ts:54:1)
+      at Object.<anonymous> (src/stores/graphNodeToReactFlowNode.ts:4:1)
+      at Object.<anonymous> (src/hooks/useWorkflowGraphUpdater.ts:9:1)
+      at Object.<anonymous> (src/hooks/__tests__/useWorkflowGraphUpdater.test.ts:7:1)
 
-    [0m [90m 584 |[39m     )[33m;[39m
-     [90m 585 |[39m
-    [31m[1m>[22m[39m[90m 586 |[39m     expect(formatNode[33m.[39mdata[33m.[39mproperties[33m.[39m[33mCHARACTER[39m)[33m.[39mtoBe([32m"Reluctant Hero"[39m)[33m;[39m
-     [90m     |[39m                                                  [31m[1m^[22m[39m
-     [90m 587 |[39m     expect(formatNode[33m.[39mdata[33m.[39mproperties[33m.[39mtemplate)[33m.[39mtoBe([32m"template text"[39m)[33m;[39m
-     [90m 588 |[39m   })[33m;[39m
-     [90m 589 |[39m[0m
 
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:586:50)
-
-
-Test Suites: 1 failed, 235 passed, 236 total
-Tests:       3 failed, 3 skipped, 3086 passed, 3092 total
+Test Suites: 3 failed, 236 passed, 239 total
+Tests:       6 failed, 3 skipped, 3097 passed, 3106 total
 Snapshots:   0 total
-Time:        30.502 s
+Time:        33.322 s
 Ran all test suites.
 make: *** [Makefile:92: test-web] Error 1
