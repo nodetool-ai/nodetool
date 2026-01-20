@@ -1,3 +1,88 @@
+# Test Coverage Improvements (2026-01-20)
+
+**Tests Added**: 4 new test files with 70 tests for stores and utility hooks
+
+**Files Created**:
+1. **`src/stores/__tests__/CollectionsManagerStore.test.ts`** (5 tests)
+   - Tests collections manager UI open/close state management
+   - Tests setIsOpen action with true/false values
+
+2. **`src/stores/__tests__/WorkspaceManagerStore.test.ts`** (5 tests)
+   - Tests workspace manager UI open/close state management
+   - Tests setIsOpen action with boolean values
+
+3. **`src/stores/__tests__/ModelMenuStore.test.ts`** (19 tests)
+   - Tests requiredSecretForProvider utility for API key mapping
+   - Tests computeProvidersList for provider extraction from models
+   - Tests filterModelsList for filtering by provider, search term, and enabled providers
+   - Tests createModelMenuStore state management
+   - Tests createModelMenuSelector for independent store creation
+
+4. **`src/hooks/__tests__/reduceUnionType.test.ts`** (21 tests)
+   - Tests non-union type handling (str, int, float, tensor, any, custom types)
+   - Tests union type reduction rules (str_text → str, int_float → float, etc.)
+   - Tests type argument sorting and rule matching
+   - Tests edge cases (undefined type_args, single type_arg, no matching rules)
+
+**Test Results**:
+- All 70 new tests passing
+- Total test suites: 246 (246 passing)
+- Total tests: 3,253 passing, 2 skipped
+- TypeScript compilation: Passes with no errors
+
+**Patterns Used**:
+1. **Simple Store Testing**: Direct Zustand store testing with getState() and setState()
+2. **Utility Function Testing**: Pure function testing with mock data structures
+3. **Type Assertion Pattern**: Use `as unknown as TypeMetadata` for complex API-generated types
+4. **Helper Functions**: Create helper functions for consistent test data creation
+
+**Key Learnings**:
+1. Simple UI state stores (isOpen only) are straightforward to test with direct state manipulation
+2. Complex utility functions like filterModelsList require thorough edge case coverage
+3. TypeMetadata from OpenAPI schemas has required fields (optional, type_args) that must be included in test data
+4. Union type reduction rules depend on alphabetical sorting of type arguments
+
+**Coverage Impact**:
+- **Before**: 242 test suites, 3,183 tests
+- **After**: 246 test suites, 3,253 tests
+- **Net Gain**: +4 test files, +70 tests
+
+---
+
+# Test Coverage Improvements (2026-01-20)
+
+**Tests Added**: 3 new test files with 49 tests for critical hooks and workflow update handling
+
+**Files Created**:
+1. **`src/stores/__tests__/workflowUpdates.test.ts`** (27 tests)
+   - Tests workflow update message handling (job_update, node_update, log_update, etc.)
+   - Tests subscription management (subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates)
+   - Tests state transitions for job lifecycle (running, completed, cancelled, error, suspended)
+
+2. **`src/hooks/__tests__/useInferredOutputTypes.test.ts`** (14 tests)
+   - Tests output schema inference for workflow graphs
+   - Tests output type retrieval and validation
+   - Tests typed workflow output utilities
+
+3. **`src/hooks/__tests__/useSecrets.test.tsx`** (8 tests)
+   - Tests API secrets fetching and caching
+   - Tests API key validation helpers
+   - Tests error handling for secret fetch failures
+
+**Test Results**:
+- All 49 new tests passing
+- No type errors in new test files
+- No lint errors in new test files
+- Follows existing test patterns in the codebase
+
+**Patterns Used**:
+1. **Store Testing**: Mock Zustand store state objects with required methods
+2. **Hook Testing**: Use renderHook from React Testing Library with proper wrappers
+3. **Async Testing**: Use waitFor for async assertions
+4. **Mocking**: Use jest.mock for external dependencies and context providers
+
+---
+
 # Test Coverage Improvements (2026-01-19)
 
 **Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
