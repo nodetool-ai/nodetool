@@ -9,9 +9,10 @@ import {
   Autocomplete,
   TextField,
   MenuItem,
-  FormHelperText
+  FormHelperText,
+  createFilterOptions
 } from "@mui/material";
-import { useCallback, useEffect, useState, memo } from "react";
+import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Workflow } from "../../stores/ApiTypes";
@@ -20,7 +21,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
 
-const AVAILABLE_TAGS = [
+const DEFAULT_TAG_SUGGESTIONS = [
   "image",
   "audio",
   "video",
@@ -28,8 +29,7 @@ const AVAILABLE_TAGS = [
   "chat",
   "docs",
   "mail",
-  "rag",
-  "example"
+  "rag"
 ];
 
 const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"];
@@ -247,9 +247,10 @@ const styles = (theme: Theme) =>
 interface WorkflowFormProps {
   workflow: Workflow;
   onClose: () => void;
+  availableTags?: string[];
 }
 
-const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
+const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
   const [isCapturing, setIsCapturing] = useState(false);
   const { saveWorkflow } = useWorkflowManager((state) => ({
@@ -262,6 +263,12 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   useEffect(() => {
     setLocalWorkflow(workflow || ({} as Workflow));
   }, [workflow]);
+
+  // Merge default suggestions with available tags from existing workflows
+  const tagOptions = useMemo(() => {
+    const allTags = new Set([...DEFAULT_TAG_SUGGESTIONS, ...availableTags]);
+    return Array.from(allTags).sort();
+  }, [availableTags]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -307,11 +314,23 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   //   type: "image"
   // });
 
-  const handleTagChange = (_event: React.SyntheticEvent, newTags: string[]) => {
+  const handleTagChange = (_event: React.SyntheticEvent, newValue: (string | { inputValue: string; title: string })[]) => {
+    // Handle both string values and objects from freeSolo createOption
+    const processedTags = newValue.map((item) => {
+      if (typeof item === "string") {
+        return item.trim().toLowerCase();
+      }
+      // Handle the createOption object format
+      return item.inputValue.trim().toLowerCase();
+    }).filter((tag) => tag.length > 0);
+    
+    // Remove duplicates
+    const uniqueTags = Array.from(new Set(processedTags));
+    
     const updatedWorkflow = {
       ...workflow,
       ...localWorkflow,
-      tags: newTags
+      tags: uniqueTags
     };
     setLocalWorkflow(updatedWorkflow);
   };
@@ -421,9 +440,41 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
           <Autocomplete
             className="tag-input"
             multiple
-            options={AVAILABLE_TAGS}
+            freeSolo
+            selectOnFocus
+            clearOnBlur
+            handleHomeEndKeys
+            options={tagOptions}
             value={localWorkflow.tags || []}
             onChange={handleTagChange}
+            filterOptions={(options, params) => {
+              const filter = createFilterOptions<string>();
+              const filtered = filter(options, params);
+              const { inputValue } = params;
+              // Suggest creating a new tag if it doesn't exist
+              const isExisting = options.some(
+                (option) => inputValue.toLowerCase() === option.toLowerCase()
+              );
+              if (inputValue !== "" && !isExisting) {
+                filtered.push(inputValue);
+              }
+              return filtered;
+            }}
+            getOptionLabel={(option) => {
+              if (typeof option === "string") {
+                return option;
+              }
+              return option.inputValue || "";
+            }}
+            renderOption={(props, option) => {
+              const { key, ...rest } = props;
+              const isNew = !tagOptions.includes(option);
+              return (
+                <li key={key} {...rest}>
+                  {isNew ? `Add "${option}"` : option}
+                </li>
+              );
+            }}
             slotProps={{
               popper: {
                 style: {
@@ -432,9 +483,12 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
               }
             }}
             renderInput={(params) => (
-              <TextField {...params} placeholder="Select tags..." />
+              <TextField {...params} placeholder="Type or select tags..." />
             )}
           />
+          <FormHelperText>
+            Select from suggestions or type custom tags (press Enter to add)
+          </FormHelperText>
         </FormControl>
       </div>
 

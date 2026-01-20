@@ -381,23 +381,13 @@ const ProviderSetupPanel: React.FC = () => {
                         </a>
                       </div>
 
-                      <div className="provider-input-container">
-                        <TextField
-                          type="password"
-                          size="small"
-                          fullWidth
-                          placeholder={
-                            isConfigured ? "••••••••••••" : provider.placeholder
-                          }
-                          value={apiKeys[provider.key]}
-                          onChange={(e) =>
-                            handleKeyChange(provider.key, e.target.value)
-                          }
-                          className="provider-input"
-                          disabled={isSaving}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && hasInput) {
-                              handleSaveKey(provider.key);
+                        <div className="provider-input-container">
+                          <TextField
+                            type="password"
+                            size="small"
+                            fullWidth
+                            placeholder={
+                              isConfigured ? "••••••••••••" : provider.placeholder
                             }
                           }}
                         />
