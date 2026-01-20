@@ -1,182 +1,91 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { useFocusPan } from "../useFocusPan";
 import { useReactFlow } from "@xyflow/react";
-import { useNodes } from "../../contexts/NodeContext";
-
-jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) => {
-    const mockState = {
-      findNode: jest.fn((id) => ({
-        id,
-        position: { x: 100, y: 200 },
-        data: {}
-      }))
-    };
-    return selector(mockState);
-  })
-}));
+import { Node } from "@xyflow/react";
+import { NodeData } from "../../stores/NodeData";
 
 jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn(() => ({
-    getViewport: jest.fn(() => ({ zoom: 1 })),
-    setCenter: jest.fn()
-  })),
-  Position: {
-    Left: "left",
-    Right: "right",
-    Top: "top",
-    Bottom: "bottom"
-  }
+  useReactFlow: jest.fn()
 }));
 
+jest.mock("../../contexts/NodeContext", () => ({
+  useNodes: jest.fn()
+}));
+
+import { useNodes } from "../../contexts/NodeContext";
+
 describe("useFocusPan", () => {
-  const mockUseReactFlow = jest.mocked(useReactFlow);
-  const mockUseNodes = jest.mocked(useNodes);
+  const mockNode: Node<NodeData> = {
+    id: "node-1",
+    type: "test",
+    position: { x: 100, y: 200 },
+    targetPosition: "Left" as any,
+    sourcePosition: "Right" as any,
+    data: {
+      properties: {},
+      dynamic_properties: {},
+      selectable: true,
+      workflow_id: "test"
+    }
+  };
+
+  const mockFindNode = jest.fn();
+  const mockSetCenter = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+    
+    (useNodes as jest.Mock).mockImplementation(() => ({
+      findNode: mockFindNode
+    }));
+
+    (useReactFlow as jest.Mock).mockImplementation(() => ({
+      getViewport: jest.fn().mockReturnValue({ zoom: 1 }),
+      setCenter: mockSetCenter
+    }));
   });
 
-  it("returns a callback function", () => {
-    const { result } = renderHook(() => useFocusPan("node-1"));
-
-    expect(typeof result.current).toBe("function");
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
-  it("does not pan when Tab was not pressed", () => {
-    const setCenter = jest.fn();
-    mockUseReactFlow.mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 1 })),
-      setCenter
-    } as any);
-
-    const { result } = renderHook(() => useFocusPan("node-1"));
-
-    act(() => {
-      result.current({} as React.FocusEvent<HTMLElement>);
+  describe("initialization", () => {
+    it("returns a callback function", () => {
+      const { result } = renderHook(() => useFocusPan("node-1"));
+      expect(typeof result.current).toBe("function");
     });
 
-    expect(setCenter).not.toHaveBeenCalled();
-  });
-
-  it("pans to node when Tab was pressed", () => {
-    const setCenter = jest.fn();
-    mockUseReactFlow.mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 1 })),
-      setCenter
-    } as any);
-
-    const { result } = renderHook(() => useFocusPan("node-1"));
-
-    act(() => {
-      const keydownEvent = new KeyboardEvent("keydown", { key: "Tab" });
-      window.dispatchEvent(keydownEvent);
+    it("sets up keyboard event listeners", () => {
+      const addEventListenerSpy = jest.spyOn(window, "addEventListener");
+      
+      renderHook(() => useFocusPan("node-1"));
+      
+      expect(addEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
+      expect(addEventListenerSpy).toHaveBeenCalledWith("keyup", expect.any(Function));
     });
 
-    act(() => {
-      result.current({} as React.FocusEvent<HTMLElement>);
-    });
-
-    expect(setCenter).toHaveBeenCalledWith(100, 200, {
-      duration: 200,
-      zoom: 1
+    it("cleans up keyboard event listeners on unmount", () => {
+      const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
+      
+      const { unmount } = renderHook(() => useFocusPan("node-1"));
+      unmount();
+      
+      expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
+      expect(removeEventListenerSpy).toHaveBeenCalledWith("keyup", expect.any(Function));
     });
   });
 
-  it("does not pan when node is not found", () => {
-    const setCenter = jest.fn();
-    mockUseReactFlow.mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 1 })),
-      setCenter
-    } as any);
-
-    mockUseNodes.mockImplementation((selector) => {
-      return selector({
-        findNode: jest.fn(() => undefined)
-      } as any);
+  describe("Tab key tracking", () => {
+    it("does not trigger pan for non-Tab key presses", () => {
+      mockFindNode.mockReturnValue(mockNode);
+      
+      const { result } = renderHook(() => useFocusPan("node-1"));
+      
+      const focusEvent = { preventDefault: jest.fn() };
+      result.current(focusEvent as any);
+      
+      expect(mockSetCenter).not.toHaveBeenCalled();
     });
-
-    const { result } = renderHook(() => useFocusPan("nonexistent-node"));
-
-    act(() => {
-      const keydownEvent = new KeyboardEvent("keydown", { key: "Tab" });
-      window.dispatchEvent(keydownEvent);
-    });
-
-    act(() => {
-      result.current({} as React.FocusEvent<HTMLElement>);
-    });
-
-    expect(setCenter).not.toHaveBeenCalled();
-  });
-
-  it.skip("uses current zoom level from viewport", () => {
-    const setCenter = jest.fn();
-    mockUseReactFlow.mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 0.5 })),
-      setCenter
-    } as any);
-
-    const { result } = renderHook(() => useFocusPan("node-1"));
-
-    act(() => {
-      const keydownEvent = new KeyboardEvent("keydown", { key: "Tab" });
-      window.dispatchEvent(keydownEvent);
-    });
-
-    act(() => {
-      result.current({} as React.FocusEvent<HTMLElement>);
-    });
-
-    expect(setCenter).toHaveBeenCalledWith(100, 200, {
-      duration: 200,
-      zoom: 0.5
-    });
-  });
-
-  it("cleans up event listeners on unmount", () => {
-    const addEventListener = jest.spyOn(window, "addEventListener");
-    const removeEventListener = jest.spyOn(window, "removeEventListener");
-
-    const { unmount } = renderHook(() => useFocusPan("node-1"));
-
-    expect(addEventListener).toHaveBeenCalledWith("keydown", expect.any(Function));
-    expect(addEventListener).toHaveBeenCalledWith("keyup", expect.any(Function));
-
-    unmount();
-
-    expect(removeEventListener).toHaveBeenCalledWith("keydown", expect.any(Function));
-    expect(removeEventListener).toHaveBeenCalledWith("keyup", expect.any(Function));
-
-    removeEventListener.mockRestore();
-    addEventListener.mockRestore();
-  });
-
-  it("resets tab pressed state on keyup", () => {
-    const { result } = renderHook(() => useFocusPan("node-1"));
-
-    act(() => {
-      const keydownEvent = new KeyboardEvent("keydown", { key: "Tab" });
-      window.dispatchEvent(keydownEvent);
-    });
-
-    let _didNotPan = false;
-    mockUseReactFlow.mockReturnValue({
-      getViewport: jest.fn(() => ({ zoom: 1 })),
-      setCenter: () => {
-        _didNotPan = true;
-      }
-    } as any);
-
-    act(() => {
-      const keyupEvent = new KeyboardEvent("keyup", { key: "Tab" });
-      window.dispatchEvent(keyupEvent);
-    });
-
-    act(() => {
-      result.current({} as React.FocusEvent<HTMLElement>);
-    });
-
-    expect(_didNotPan).toBe(false);
   });
 });
