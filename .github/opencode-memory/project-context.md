@@ -54,6 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Inline Handler Memoization (2026-01-19)
+
+**What**: Added React.memo to AddPanelDropdown and ConnectionMatchMenu, memoized 7 inline handlers with useCallback across 5 components.
+
+**Files**: AddPanelDropdown.tsx, ConnectionMatchMenu.tsx, WorkflowsList.tsx, TemplatesPanel.tsx, ProviderSetupPanel.tsx
+
+**Impact**: Prevents unnecessary re-renders in dashboard and context menu components.
 ### Inline Arrow Function Memoization (2026-01-19)
 
 **What**: Fixed 29 inline arrow functions in 7 components using useCallback. Files: MarkdownRenderer, GettingStartedPanel, ProviderSetupPanel, WorkflowsList, ConnectableNodes, TagFilter, AssetViewer.
@@ -106,16 +113,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: web/src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
 
 **Impact**: All 15 tests now pass, type checking and linting pass.
-
----
-
-### FavoriteWorkflowsStore Test Fix (2026-01-19)
-
-**What**: Fixed tests using incorrect `.actions` API on Zustand store. Methods are directly on state object, not nested under actions.
-
-**Files**: web/src/stores/__tests__/FavoriteWorkflowsStore.test.ts
-
-**Impact**: All 9 tests now pass, type checking passes.
 
 ---
 

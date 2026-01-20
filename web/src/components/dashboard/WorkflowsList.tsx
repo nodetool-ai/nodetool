@@ -143,7 +143,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
 }) => {
   const theme = useTheme();
 
-  const handleItemClick = useCallback((workflow: Workflow) => {
+  const onWorkflowClick = useCallback((workflow: Workflow) => {
     handleWorkflowClick(workflow);
   }, [handleWorkflowClick]);
 
@@ -193,7 +193,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <Box
               key={workflow.id}
               className="workflow-item"
-              onClick={() => handleItemClick(workflow)}
+              onClick={onWorkflowClick.bind(null, workflow)}
             >
               <Box
                 className="workflow-thumbnail"
