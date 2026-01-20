@@ -442,10 +442,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         set({ error: null });
 
-        if (
-          !globalWebSocketManager ||
-          !globalWebSocketManager.isConnectionOpen()
-        ) {
+        // Ensure WebSocket connection is established before sending
+        try {
+          await globalWebSocketManager.ensureConnection();
+        } catch (_connError) {
           set({ error: "Not connected to chat service" });
           return;
         }
