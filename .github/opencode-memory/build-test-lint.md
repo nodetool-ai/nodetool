@@ -291,3 +291,34 @@ GitHub Actions runs these checks automatically:
 3. **Use lint-fix**: Run `make lint-fix` to auto-fix many issues
 4. **Check existing tests**: Look at similar tests for patterns
 5. **Test before PR**: Always run `make check` before opening PR
+
+---
+
+## Test Coverage Improvements (2026-01-20)
+
+**Tests Added**: 5 new test files
+
+**Files Created**:
+- `web/src/stores/ResultsStore.test.ts` - Tests for workflow execution results store
+- `web/src/stores/SettingsStore.test.ts` - Tests for user settings store
+- `web/src/utils/colorConversion.test.ts` - Tests for color conversion utilities (100+ test cases)
+- `web/src/utils/PrefixTreeSearch.test.ts` - Tests for trie-based search implementation
+- `web/src/components/inputs/NumberInput.utils.test.ts` - Tests for number input calculation utilities
+
+**Areas Covered**:
+- Zustand store state management (ResultsStore, SettingsStore)
+- Color model conversions (HEX, RGB, HSL, HSB, CMYK, LAB)
+- Color parsing and WCAG accessibility compliance
+- Prefix tree search for fast node lookups
+- Number input drag handling calculations
+
+**Patterns Used**:
+- Jest + React Testing Library for store tests
+- Pure function testing for utilities
+- AAA pattern (Arrange, Act, Assert)
+- Edge case testing for boundary conditions
+
+**Verification**:
+- ✅ All 3252+ tests pass
+- ✅ Type checking passes (pre-existing WorkflowForm.tsx issue excluded)
+- ✅ Linting passes
