@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState } from "react";
-import { Button, Tooltip, Box, IconButton, Menu, MenuItem } from "@mui/material";
+import { Button, Tooltip, Box, IconButton, Menu, MenuItem, Chip } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
@@ -8,6 +8,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import SortIcon from "@mui/icons-material/Sort";
+import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +18,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useShowGraphPreview, useWorkflowListViewStore, useSortBy, SortBy } from "../../stores/WorkflowListViewStore";
+import { useShowGraphPreview, useWorkflowListViewStore, useSortBy, useSelectedTags, SortBy } from "../../stores/WorkflowListViewStore";
 
 interface WorkflowToolbarProps {
   setFilterValue: (value: string) => void;
@@ -27,6 +28,7 @@ interface WorkflowToolbarProps {
   onBulkDelete: () => void;
   showFavoritesOnly?: boolean;
   onToggleFavorites?: () => void;
+  availableTags?: string[];
 }
 
 const styles = (theme: Theme) =>
@@ -142,6 +144,44 @@ const styles = (theme: Theme) =>
         // borderColor: theme.vars.palette.primary.light,
         backgroundColor: theme.vars.palette.primary.dark
       }
+    },
+    ".tools .tags-row": {
+      display: "flex",
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: "4px",
+      alignItems: "center"
+    },
+    ".tools .tag-chip": {
+      height: "22px",
+      fontSize: theme.fontSizeSmaller,
+      backgroundColor: theme.vars.palette.grey[700],
+      color: theme.vars.palette.grey[200],
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      cursor: "pointer",
+      transition: "all 0.15s ease",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[600],
+        borderColor: theme.vars.palette.grey[500]
+      }
+    },
+    ".tools .tag-chip.selected": {
+      backgroundColor: "var(--palette-primary-main)",
+      color: theme.vars.palette.primary.contrastText,
+      borderColor: "var(--palette-primary-main)",
+      "&:hover": {
+        backgroundColor: "var(--palette-primary-dark)"
+      }
+    },
+    ".tools .clear-tags-button": {
+      height: "22px",
+      fontSize: theme.fontSizeSmaller,
+      padding: "0 6px",
+      minWidth: "auto",
+      color: theme.vars.palette.grey[400],
+      "&:hover": {
+        color: theme.vars.palette.grey[200]
+      }
     }
   });
 
@@ -152,7 +192,8 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   selectedWorkflowsCount,
   onBulkDelete,
   showFavoritesOnly = false,
-  onToggleFavorites
+  onToggleFavorites,
+  availableTags = []
 }) => {
   const theme = useTheme();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
@@ -162,6 +203,8 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   const setShowGraphPreview = useWorkflowListViewStore((state) => state.actions.setShowGraphPreview);
   const sortBy = useSortBy();
   const setSortBy = useWorkflowListViewStore((state) => state.actions.setSortBy);
+  const selectedTags = useSelectedTags();
+  const { toggleTag, clearSelectedTags } = useWorkflowListViewStore((state) => state.actions);
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
 
   const handleToggleGraphPreview = useCallback(() => {
@@ -320,6 +363,31 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             </IconButton>
           </Tooltip>
         </div>
+
+        {availableTags.length > 0 && (
+          <div className="tags-row">
+            {availableTags.map((tag) => (
+              <Chip
+                key={tag}
+                label={tag}
+                size="small"
+                className={`tag-chip ${selectedTags.includes(tag) ? "selected" : ""}`}
+                onClick={() => toggleTag(tag)}
+              />
+            ))}
+            {selectedTags.length > 0 && (
+              <Tooltip title="Clear tag filters" enterDelay={TOOLTIP_ENTER_DELAY}>
+                <IconButton
+                  className="clear-tags-button"
+                  onClick={clearSelectedTags}
+                  size="small"
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </div>
+        )}
       </div>
     </Box>
   );

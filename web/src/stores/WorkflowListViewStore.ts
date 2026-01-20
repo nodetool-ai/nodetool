@@ -6,10 +6,14 @@ export type SortBy = "name" | "date";
 interface WorkflowListViewState {
   showGraphPreview: boolean;
   sortBy: SortBy;
+  selectedTags: string[];
   actions: {
     toggleGraphPreview: () => void;
     setShowGraphPreview: (show: boolean) => void;
     setSortBy: (sortBy: SortBy) => void;
+    setSelectedTags: (tags: string[]) => void;
+    toggleTag: (tag: string) => void;
+    clearSelectedTags: () => void;
   };
 }
 
@@ -18,6 +22,7 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
     (set) => ({
       showGraphPreview: true,
       sortBy: "date" as SortBy,
+      selectedTags: [],
       actions: {
         toggleGraphPreview: () => {
           set((state) => ({ showGraphPreview: !state.showGraphPreview }));
@@ -28,13 +33,27 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
         setSortBy: (sortBy: SortBy) => {
           set({ sortBy });
         },
+        setSelectedTags: (tags: string[]) => {
+          set({ selectedTags: tags });
+        },
+        toggleTag: (tag: string) => {
+          set((state) => ({
+            selectedTags: state.selectedTags.includes(tag)
+              ? state.selectedTags.filter((t) => t !== tag)
+              : [...state.selectedTags, tag]
+          }));
+        },
+        clearSelectedTags: () => {
+          set({ selectedTags: [] });
+        },
       },
     }),
     {
       name: "workflow-list-view",
       partialize: (state) => ({ 
         showGraphPreview: state.showGraphPreview,
-        sortBy: state.sortBy 
+        sortBy: state.sortBy,
+        selectedTags: state.selectedTags
       }),
       merge: (persistedState, currentState) => ({
         ...currentState,
@@ -44,6 +63,9 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
         sortBy:
           (persistedState as Partial<WorkflowListViewState>)?.sortBy ??
           currentState.sortBy,
+        selectedTags:
+          (persistedState as Partial<WorkflowListViewState>)?.selectedTags ??
+          currentState.selectedTags,
       }),
     }
   )
@@ -57,3 +79,6 @@ export const useShowGraphPreview = () =>
 
 export const useSortBy = () =>
   useWorkflowListViewStore((state) => state.sortBy);
+
+export const useSelectedTags = () =>
+  useWorkflowListViewStore((state) => state.selectedTags);
