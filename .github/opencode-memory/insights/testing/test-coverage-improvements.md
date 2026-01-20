@@ -1,34 +1,96 @@
-# Test Coverage Improvements (2026-01-19)
+# Test Coverage Improvements (2026-01-20)
 
-**Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
+**Tests Added**: 18 new tests for frontendTools registry
 
-**Issues Fixed**:
-- **Monaco Editor Test**: Fixed `ReferenceError: define is not defined` by properly mocking Monaco editor's AMD module loading pattern
-- **useInputNodeAutoRun Tests**: Fixed missing `useNodeStoreRef` mock that was causing `TypeError: useNodeStoreRef is not a function`
-- **useAutosave Test**: Fixed "updates lastAutosaveTime when autosave succeeds" test that was previously skipped
-  - The test now properly mocks the fetch API and verifies notification dispatch
-  - Added proper async/act handling for the autosave flow
+**Tests Added**:
+- `src/lib/__tests__/frontendTools.test.ts` - 18 tests for FrontendToolRegistry
+  - Tool registration and unregistration
+  - Manifest generation with visible/hidden tools
+  - Tool existence checking
+  - Tool execution with proper context
+  - Abort controller creation and management
+  - Error handling in tool execution
+  - AbortAll functionality
 
-**Tests Skipped** (Flaky/Edge Cases):
-- **useFocusPan zoom test**: Skipped "uses current zoom level from viewport" due to closure mocking complexity
-  - The hook captures `reactFlowInstance` in a closure, making it difficult to mock dynamic zoom values
-  - Core functionality is tested by other passing tests
-- **Performance test**: Skipped "should demonstrate performance with complex property filtering"
-  - Performance timing is flaky on CI systems with varying load
-  - Already had similar performance test skipped at line 121
+**Areas Covered**:
+- Tool registry singleton pattern
+- Tool registration with cleanup callbacks
+- Manifest generation filtering hidden tools
+- Tool execution with AbortSignal context
+- Error handling and cleanup
+- Abort controller management
+
+**Test Patterns Used**:
+1. **Registry Testing with Cleanup**:
+```typescript
+const registeredTools: (() => void)[] = [];
+
+afterEach(() => {
+  FrontendToolRegistry.abortAll();
+  registeredTools.forEach((unregister) => unregister());
+  registeredTools.length = 0;
+});
+
+it("registers a tool with the registry", () => {
+  const unregister = FrontendToolRegistry.register(tool);
+  registeredTools.push(unregister);
+  expect(FrontendToolRegistry.has("ui_test")).toBe(true);
+});
+```
+
+2. **Async Tool Execution Testing**:
+```typescript
+it("calls tool execute function with args and context", async () => {
+  const executeMock = jest.fn().mockResolvedValue("result");
+  const tool = { name: "ui_test" as const, execute: executeMock, ... };
+
+  const result = await FrontendToolRegistry.call("ui_test", { value: "test" }, "call-1", {
+    getState: () => mockState
+  });
+
+  expect(executeMock).toHaveBeenCalledWith(
+    { value: "test" },
+    expect.objectContaining({
+      abortSignal: expect.any(AbortSignal),
+      getState: expect.any(Function)
+    })
+  );
+});
+```
+
+3. **Abort Signal Testing**:
+```typescript
+it("aborts all active tool calls", async () => {
+  const executeMock = jest.fn().mockImplementation((_args, ctx) => {
+    return new Promise<string>((_resolve, reject) => {
+      ctx.abortSignal.addEventListener("abort", () => {
+        reject(new Error("Aborted"));
+      });
+    });
+  });
+
+  const promise = FrontendToolRegistry.call("ui_abort_test", {}, "call-1", {
+    getState: () => ({})
+  });
+
+  FrontendToolRegistry.abortAll();
+  await expect(promise).rejects.toThrow("Aborted");
+});
+```
+
+**Files Created**:
+- `web/src/lib/__tests__/frontendTools.test.ts`
 
 **Test Results**:
-- **Before Fix**: 1 test suite failing, 1 test failing
-- **After Fix**: All test suites passing
-- **Total Test Suites**: 236 (236 passing)
-- **Total Tests**: 3,092 (3,089 passing, 3 skipped)
+- **Before**: 239 test suites, 3,136 tests passing
+- **After**: 240 test suites, 3,153 tests passing
+- **Net Gain**: +1 test file, +17 tests
 
 **Key Learnings**:
-1. Monaco editor requires comprehensive module-level mocking for AMD modules
-2. Hooks using Zustand stores via `useNodeStoreRef` need proper store state mocking
-3. Tests with complex async mocking should use `jest.useFakeTimers()` carefully
-4. Performance tests are inherently flaky and should be skipped or made non-timing-dependent
-5. Closures in React hooks can make mocking challenging - some edge cases are better skipped than over-engineered
+1. Registry singletons need proper cleanup between tests to prevent test pollution
+2. Track unregister functions in an array and clean up in afterEach
+3. AbortSignal testing requires async rejection patterns
+4. Test isolation is critical when testing global singleton patterns
 
 ---
 
