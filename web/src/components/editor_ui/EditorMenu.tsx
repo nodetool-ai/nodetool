@@ -6,7 +6,7 @@
  * via slotProps/sx and is safe for portal rendering (no reliance on global CSS).
  */
 
-import React from "react";
+import React, { memo } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { Menu, MenuItem, type MenuItemProps, type MenuProps } from "@mui/material";
 import { editorUiClasses } from "../../constants/editorUiClasses";
@@ -30,12 +30,12 @@ export interface EditorMenuProps extends Omit<MenuProps, "slotProps"> {
   slotProps?: MenuProps["slotProps"];
 }
 
-export const EditorMenu: React.FC<EditorMenuProps> = ({
+export const EditorMenu = memo(function EditorMenu({
   paperSx,
   listSx,
   slotProps,
   ...props
-}) => {
+}: EditorMenuProps) {
   const paperSlot = (slotProps?.paper ?? {}) as SlotPropsWithSx;
   const listSlot = (slotProps?.list ?? {}) as SlotPropsWithSx;
 
@@ -69,7 +69,7 @@ export const EditorMenu: React.FC<EditorMenuProps> = ({
       }}
     />
   );
-};
+});
 
 export interface EditorMenuItemProps extends Omit<MenuItemProps, "dense"> {
   /**
@@ -78,11 +78,11 @@ export interface EditorMenuItemProps extends Omit<MenuItemProps, "dense"> {
   dense?: boolean;
 }
 
-export const EditorMenuItem: React.FC<EditorMenuItemProps> = ({
+export const EditorMenuItem = memo(function EditorMenuItem({
   dense = true,
   sx,
   ...props
-}) => {
+}: EditorMenuItemProps) {
   return (
     <MenuItem
       dense={dense}
@@ -100,6 +100,6 @@ export const EditorMenuItem: React.FC<EditorMenuItemProps> = ({
       {...props}
     />
   );
-};
+});
 
 

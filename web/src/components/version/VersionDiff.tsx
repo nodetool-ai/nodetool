@@ -4,7 +4,7 @@
  * Visualizes the differences between two workflow versions.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import {
   Box,
   Typography,
@@ -298,3 +298,5 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
     </Box>
   );
 };
+
+export default memo(VersionDiff);
