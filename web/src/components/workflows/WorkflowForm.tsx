@@ -460,11 +460,11 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
               }
               return filtered;
             }}
-            getOptionLabel={(option) => {
+            getOptionLabel={(option: string) => {
               if (typeof option === "string") {
                 return option;
               }
-              return option.inputValue || "";
+              return "";
             }}
             renderOption={(props, option) => {
               const { key, ...rest } = props;
