@@ -59,6 +59,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 **What**: Fixed 29 inline arrow functions in 7 components using useCallback. Files: MarkdownRenderer, GettingStartedPanel, ProviderSetupPanel, WorkflowsList, ConnectableNodes, TagFilter, AssetViewer.
 
 **Impact**: Reduced unnecessary function allocations and improved render performance across dashboard, context menus, and asset viewer components.
+### Component Memoization (2026-01-20)
+
+**What**: Added React.memo to 6 unmemoized components: VersionHistoryPanel, VersionDiff, GraphVisualDiff, ModelListItemActions, EditorMenu, EditorMenuItem.
+
+**Files**: web/src/components/version/*.tsx, web/src/components/hugging_face/model_list/ModelListItemActions.tsx, web/src/components/editor_ui/EditorMenu.tsx
+
+**Impact**: Prevents unnecessary re-renders in version history, model management, and editor UI components.
 
 ---
 

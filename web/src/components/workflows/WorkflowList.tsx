@@ -23,6 +23,7 @@ import WorkflowListView from "./WorkflowListView";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
+import { useSelectedTags } from "../../stores/WorkflowListViewStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -133,6 +134,17 @@ const WorkflowList = () => {
   );
 
   const favoriteWorkflowIds = useFavoriteWorkflowIds();
+  const selectedTags = useSelectedTags();
+
+  // Derive available tags from all workflows
+  const availableTags = useMemo(() => {
+    if (!data?.workflows) { return []; }
+    const tagSet = new Set<string>();
+    data.workflows.forEach((workflow) => {
+      workflow.tags?.forEach((tag) => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [data?.workflows]);
 
   const workflows = useMemo(() => {
     if (!data?.workflows) { return []; }
@@ -151,8 +163,16 @@ const WorkflowList = () => {
       );
     }
 
+    // Filter by selected tags (workflow must have ALL selected tags)
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((workflow) => {
+        const workflowTags = workflow.tags || [];
+        return selectedTags.every((tag) => workflowTags.includes(tag));
+      });
+    }
+
     return filtered;
-  }, [data?.workflows, filterValue, showFavoritesOnly, favoriteWorkflowIds]);
+  }, [data?.workflows, filterValue, showFavoritesOnly, favoriteWorkflowIds, selectedTags]);
 
   const onSelect = useCallback((workflow: Workflow) => {
     setSelectedWorkflows((prev) =>
@@ -289,6 +309,7 @@ const WorkflowList = () => {
           open={!!workflowToEdit}
           onClose={() => setWorkflowToEdit(null)}
           workflow={workflowToEdit}
+          availableTags={availableTags}
         />
       )}
       <div css={styles(theme)}>
@@ -314,6 +335,7 @@ const WorkflowList = () => {
             }}
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
+            availableTags={availableTags}
           />
         </div>
         <div className="status">
@@ -339,10 +361,27 @@ const WorkflowList = () => {
         <div className="workflow-items">
           {!isLoading && !isError && workflows.length === 0 ? (
             <div className="empty-state">
-              <Typography variant="h6">No workflows yet</Typography>
-              <Typography variant="body2">
-                Create your first workflow with the + button above.
-              </Typography>
+              {data?.workflows && data.workflows.length > 0 ? (
+                <>
+                  <Typography variant="h6">No matching workflows</Typography>
+                  <Typography variant="body2">
+                    {filterValue && selectedTags.length > 0
+                      ? "Try adjusting your search term or tag filters."
+                      : filterValue
+                        ? "Try a different search term."
+                        : selectedTags.length > 0
+                          ? "Try removing some tag filters."
+                          : "No workflows match the current filters."}
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="h6">No workflows yet</Typography>
+                  <Typography variant="body2">
+                    Create your first workflow with the + button above.
+                  </Typography>
+                </>
+              )}
             </div>
           ) : (
             <WorkflowListView
