@@ -367,11 +367,15 @@ export const createWorkflowRunnerStore = (
      */
     addNotification: (notification: Omit<Notification, "id" | "timestamp">) => {
       useNotificationStore.getState().addNotification(notification);
+      const nextNotifications = [
+        ...get().notifications,
+        { ...notification, id: uuidv4(), timestamp: new Date() }
+      ];
       set({
-        notifications: [
-          ...get().notifications,
-          { ...notification, id: uuidv4(), timestamp: new Date() }
-        ]
+        notifications:
+          nextNotifications.length > 50
+            ? nextNotifications.slice(-50)
+            : nextNotifications
       });
     },
 

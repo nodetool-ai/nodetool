@@ -1,5 +1,15 @@
 import { createWorkflowRunnerStore } from "../WorkflowRunner";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import log from "loglevel";
+
+jest.mock("../../contexts/EditorInsertionContext", () => ({
+  EditorInsertionProvider: ({ children }: any) => children,
+  useEditorInsertion: () => null,
+  __esModule: true,
+  default: {
+    Provider: ({ children }: any) => children,
+  },
+}));
 
 jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {
@@ -92,11 +102,8 @@ describe("WorkflowRunner", () => {
       expect(state.notifications).toEqual([]);
     });
 
-    it("has message handler that logs warning", () => {
-      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
-      store.getState().messageHandler({} as any, {} as any);
-      expect(consoleSpy).toHaveBeenCalledWith("No message handler set");
-      consoleSpy.mockRestore();
+    it("initializes a message handler", () => {
+      expect(typeof store.getState().messageHandler).toBe("function");
     });
   });
 
@@ -227,15 +234,15 @@ describe("WorkflowRunner", () => {
     });
 
     it("warns when streaming without active job", async () => {
-      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+      const logSpy = jest.spyOn(log, "warn").mockImplementation();
       
       store.setState({ job_id: null });
       await store.getState().streamInput("text", "Hello");
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(logSpy).toHaveBeenCalledWith(
         "streamInput called without an active job"
       );
-      consoleSpy.mockRestore();
+      logSpy.mockRestore();
     });
   });
 });

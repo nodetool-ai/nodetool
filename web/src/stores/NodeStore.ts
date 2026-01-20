@@ -60,6 +60,7 @@ import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
+import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 
 /**
  * Generates a default name for input nodes based on their type.
@@ -109,24 +110,13 @@ const generateUUID = (): string => {
   });
 };
 
-export type NodeUIProperties = {
-  selected?: boolean;
-  selectable?: boolean;
-  position: XYPosition;
-  width?: number;
-  height?: number;
-  zIndex?: number;
-  title?: string;
-  color?: string;
-  bypassed?: boolean;
-};
+export { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
+export type { NodeUIProperties } from "./nodeUiDefaults";
 
 type NodeSelection = {
   nodes: Node<NodeData>[];
   edges: Edge[];
 };
-
-export const DEFAULT_NODE_WIDTH = 280;
 
 const undo_limit = 1000;
 
@@ -1144,4 +1134,3 @@ export const createNodeStore = (
       }
     )
   );
-
