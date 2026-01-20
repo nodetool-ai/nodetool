@@ -41,8 +41,8 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     [onChange, assets]
   );
 
-  const handleAssetRemoveClick = useCallback(
-    (asset: Asset) => {
+  const handleRemoveAssetClick = useCallback(
+    (asset: Asset) => () => {
       handleRemoveAsset(asset);
     },
     [handleRemoveAsset]
@@ -76,7 +76,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
               <TableCell>
                 <Button
                   variant="outlined"
-                  onClick={() => handleAssetRemoveClick(asset)}
+                  onClick={handleRemoveAssetClick(asset)}
                 >
                   Remove
                 </Button>

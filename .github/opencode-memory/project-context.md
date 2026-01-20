@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### React Memoization Fixes (2026-01-20)
+
+**What**: Memoized inline arrow functions and expensive operations in 5 components (NotificationsList, PaneContextMenu, WorkflowList, AssetTable, TagFilter).
+
+**Files**: web/src/components/node_editor/NotificationsList.tsx, context_menus/PaneContextMenu.tsx, workflows/WorkflowList.tsx, assets/AssetTable.tsx, workflows/TagFilter.tsx
+
+**Impact**: Reduced unnecessary re-renders by using useMemo for expensive operations and useCallback for stable event handler references.
+
+---
+
 ### Component Memoization (2026-01-20)
 
 **What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.
