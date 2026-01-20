@@ -4,7 +4,7 @@
  * Side panel for browsing and managing workflow version history.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Typography,
@@ -450,3 +450,5 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     </Paper>
   );
 };
+
+export default memo(VersionHistoryPanel);
