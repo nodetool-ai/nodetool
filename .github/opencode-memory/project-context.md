@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Bundle Code-Splitting (2026-01-20)
+
+**What**: Code-split Plotly.js (4.68 MB) using React.lazy() to load charts on-demand, improving initial load time.
+
+**Files**: web/src/components/node/OutputRenderer.tsx, web/src/components/node/output/PlotlyChart.tsx (NEW)
+
+**Impact**: Plotly library now loaded only when chart output is rendered, faster initial page load for most users.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.

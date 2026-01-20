@@ -5,10 +5,10 @@ import React, {
   memo,
   useState,
   useRef,
-  useEffect
+  useEffect,
+  lazy,
+  Suspense
 } from "react";
-import Plot from "react-plotly.js";
-
 import {
   Asset,
   DataframeRef,
@@ -53,6 +53,13 @@ import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 // import left for future reuse of audio stream component when needed
+
+// Lazy-loaded Plotly chart component (code-split to reduce initial bundle size)
+const PlotlyChart = lazy(() =>
+  import("./output/PlotlyChart").then((module) => ({
+    default: module.default
+  }))
+);
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -328,18 +335,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "plotly_config":
         config = value as PlotlyConfig;
         return (
-          <div
-            className="render-content"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <Plot
-              data={config.config.data as Plotly.Data[]}
-              layout={config.config.layout as Partial<Plotly.Layout>}
-              config={config.config.config as Partial<Plotly.Config>}
-              frames={config.config.frames as Plotly.Frame[] | undefined}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </div>
+          <Suspense fallback={<div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>Loading chart...</div>}>
+            <PlotlyChart config={config} />
+          </Suspense>
         );
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
