@@ -1,3 +1,116 @@
+# Test Coverage Improvements (2026-01-20)
+
+**Test Coverage Added**: 2 new test files with 15 tests for critical hooks
+
+**Tests Added**:
+- `useCreateNode.test.ts` - 6 tests for node creation hook
+  - Returns callback function
+  - Early return when reactFlowInstance is null
+  - Node creation at click position
+  - Node creation at provided centerPosition
+  - Complex metadata handling
+
+- `useProcessedEdges.test.ts` - 9 tests for edge processing hook
+  - Empty edges handling
+  - Matching type processing (same source/target types)
+  - Gradient creation for different types
+  - Bypassed node class addition
+  - Message-sent status handling
+  - Counter display on edges
+  - Default color for unknown types
+  - Empty nodes handling
+  - Missing node graceful handling
+
+**Areas Covered**:
+- Node creation with screen-to-flow position conversion
+- Node menu closing after creation
+- Recent node tracking via store
+- Edge type resolution through Reroute nodes
+- Visual styling based on data types
+- Execution status tracking (message_sent, counters)
+- Gradient key generation for SVG definitions
+- Bypassed node edge styling
+
+**Test Patterns Used**:
+
+1. **Hook Testing with Module Mocking**:
+```typescript
+jest.mock("@xyflow/react");
+jest.mock("../../contexts/NodeContext");
+jest.mock("../../stores/NodeMenuStore");
+jest.mock("../../stores/RecentNodesStore", () => ({
+  useRecentNodesStore: jest.fn((selector) => {
+    if (typeof selector === "function") {
+      return selector({ addRecentNode: mockAddRecentNode });
+    }
+    return { addRecentNode: mockAddRecentNode };
+  })
+}));
+```
+
+2. **Complex Hook Testing with Multiple Mocks**:
+```typescript
+describe("useCreateNode", () => {
+  beforeEach(() => {
+    mockAddNode.mockClear();
+    mockCreateNode.mockClear();
+    // Setup all mocks before each test
+    (useNodeMenuStore as unknown as jest.Mock).mockReturnValue({...});
+    (useReactFlow as jest.Mock).mockReturnValue({...});
+    (useNodes as jest.Mock).mockImplementation((selector) => {...});
+  });
+});
+```
+
+3. **Data Type Processing Testing**:
+```typescript
+it("processes edges with matching types", () => {
+  const { result } = renderHook(() =>
+    useProcessedEdges({
+      edges: mockEdges,
+      nodes: mockNodes,
+      dataTypes: mockDataTypes,
+      getMetadata: mockGetMetadata
+    })
+  );
+
+  expect(result.current.processedEdges[0].style?.stroke).toBe("#4285F4");
+  expect(result.current.activeGradientKeys.size).toBe(0);
+});
+```
+
+4. **Edge Case Testing for Missing Data**:
+```typescript
+it("handles edges with missing nodes gracefully", () => {
+  const getMetadata = jest.fn().mockReturnValue(undefined);
+  const { result } = renderHook(() =>
+    useProcessedEdges({
+      edges,
+      nodes: mockNodes,
+      dataTypes: mockDataTypes,
+      getMetadata
+    })
+  );
+
+  expect(result.current.processedEdges[0].style?.stroke).toBe("#888888");
+});
+```
+
+**Key Learnings**:
+1. Module-level mocking requires proper export handling for mocked modules
+2. Multiple mock dependencies need careful setup in beforeEach
+3. Edge processing requires correct metadata structure (properties not inputs for findInputHandle)
+4. DataType lookups need all three maps (byValue, byName, bySlug) for reliable type resolution
+5. Bypassed node styling depends on both source and target node data
+
+**Files Created**:
+- `web/src/hooks/__tests__/useCreateNode.test.ts`
+- `web/src/hooks/__tests__/useProcessedEdges.test.ts`
+
+**Status**: All 15 tests passing (238 test suites, 3,107 tests total)
+
+---
+
 # Test Coverage Improvements (2026-01-19)
 
 **Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
