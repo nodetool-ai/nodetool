@@ -5,6 +5,9 @@ import { NodeData } from "../stores/NodeData";
 
 const EXTRA_LEFT_PADDING = 100;
 const TOP_PADDING_ADJUSTMENT = 50;
+// Minimum viewport size around a single node (in pixels)
+const SINGLE_NODE_MIN_WIDTH = 1000;
+const SINGLE_NODE_MIN_HEIGHT = 800;
 
 /**
  * Calculates the bounding box that contains all specified nodes.
@@ -95,6 +98,33 @@ export const useFitView = () => {
 
       if (nodesToFit.length === 0) {
         reactFlowInstance.fitView({ duration: TRANSITION_DURATION, padding });
+        return;
+      }
+      if (nodesToFit.length === 1) {
+        const node = nodesToFit[0];
+        const nodeWidth = node.measured?.width || 200;
+        const nodeHeight = node.measured?.height || 100;
+        
+        // Use fixed minimum bounds so small nodes don't zoom in too close
+        // and large nodes don't zoom out too far
+        const boundsWidth = Math.max(nodeWidth, SINGLE_NODE_MIN_WIDTH);
+        const boundsHeight = Math.max(nodeHeight, SINGLE_NODE_MIN_HEIGHT);
+        
+        // Center the node in the bounds
+        const offsetX = (boundsWidth - nodeWidth) / 2;
+        const offsetY = (boundsHeight - nodeHeight) / 2;
+        
+        const singleNodeBounds = {
+          x: node.position.x - offsetX,
+          y: node.position.y - offsetY,
+          width: boundsWidth,
+          height: boundsHeight
+        };
+        
+        reactFlowInstance.fitBounds(singleNodeBounds, {
+          duration: TRANSITION_DURATION,
+          padding: 0.1
+        });
         return;
       }
 
