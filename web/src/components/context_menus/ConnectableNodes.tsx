@@ -296,6 +296,10 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     hideMenu();
   }, [createConnectableNode, hideMenu]);
 
+  const handleNodeClickWrapper = useCallback((nodeMetadata: NodeMetadata) => {
+    return () => handleNodeClick(nodeMetadata);
+  }, [handleNodeClick]);
+
   if (!menuPosition || !isVisible) {return null;}
 
   return (
@@ -437,7 +441,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                       key={nodeMetadata.node_type}
                       node={nodeMetadata}
                       onDragStart={() => {}}
-                      onClick={() => handleNodeClick(nodeMetadata)}
+                      onClick={handleNodeClickWrapper(nodeMetadata)}
                     />
                   </div>
                 </Tooltip>
