@@ -4,13 +4,17 @@ import {
   isPathValid,
   openHuggingfacePath,
   openOllamaPath,
-  isFileExplorerAvailable
+  openInstallationPath,
+  openLogsPath,
+  isFileExplorerAvailable,
+  isSystemDirectoryAvailable
 } from "../fileExplorer";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
 const createMockApi = () => ({
   openModelPath: jest.fn<any>(),
-  openModelDirectory: jest.fn<any>()
+  openModelDirectory: jest.fn<any>(),
+  openSystemDirectory: jest.fn<any>()
 });
 
 describe("fileExplorer", () => {
@@ -210,6 +214,85 @@ describe("fileExplorer", () => {
       mockApi.openModelDirectory.mockResolvedValue({ status: "success" });
       await openOllamaPath();
       expect(mockApi.openModelDirectory).toHaveBeenCalledWith("ollama");
+    });
+
+    it("notifies on error result from openModelDirectory", async () => {
+      mockApi.openModelDirectory.mockResolvedValue({ status: "error", message: "Permission denied" });
+      await openHuggingfacePath();
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "error",
+          content: "Permission denied"
+        })
+      );
+    });
+
+    it("notifies when openModelDirectory throws", async () => {
+      mockApi.openModelDirectory.mockRejectedValue(new Error("IPC error"));
+      await openOllamaPath();
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "error",
+          content: "Could not open Ollama folder."
+        })
+      );
+    });
+  });
+
+  describe("system directory functions", () => {
+    it("isSystemDirectoryAvailable returns true when openSystemDirectory is available", () => {
+      // Mock already has openSystemDirectory from createMockApi setup
+      expect(isSystemDirectoryAvailable()).toBe(true);
+    });
+
+    it("isSystemDirectoryAvailable returns false when openSystemDirectory is missing", () => {
+      delete mockApi.openSystemDirectory;
+      expect(isSystemDirectoryAvailable()).toBe(false);
+    });
+
+    it("opens installation folder through openSystemDirectory", async () => {
+      mockApi.openSystemDirectory = jest.fn<any>().mockResolvedValue({ status: "success" });
+      await openInstallationPath();
+      expect(mockApi.openSystemDirectory).toHaveBeenCalledWith("installation");
+    });
+
+    it("opens logs folder through openSystemDirectory", async () => {
+      mockApi.openSystemDirectory = jest.fn<any>().mockResolvedValue({ status: "success" });
+      await openLogsPath();
+      expect(mockApi.openSystemDirectory).toHaveBeenCalledWith("logs");
+    });
+
+    it("notifies on error result from openSystemDirectory", async () => {
+      mockApi.openSystemDirectory = jest.fn<any>().mockResolvedValue({ status: "error", message: "Access denied" });
+      await openInstallationPath();
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "error",
+          content: "Access denied"
+        })
+      );
+    });
+
+    it("notifies when openSystemDirectory throws", async () => {
+      mockApi.openSystemDirectory = jest.fn<any>().mockRejectedValue(new Error("System error"));
+      await openLogsPath();
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "error",
+          content: "Could not open Nodetool logs folder."
+        })
+      );
+    });
+
+    it("shows warning when openSystemDirectory is unavailable", async () => {
+      delete mockApi.openSystemDirectory;
+      await openInstallationPath();
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "warning",
+          content: expect.stringContaining("Unable to open folders")
+        })
+      );
     });
   });
 });

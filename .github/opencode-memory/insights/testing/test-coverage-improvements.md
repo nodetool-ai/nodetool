@@ -1,3 +1,48 @@
+# Test Coverage Improvements (2026-01-20)
+
+**Test Coverage Added**: Comprehensive tests for providerDisplay.ts and fileExplorer.ts
+
+**Coverage Improvements**:
+
+1. **providerDisplay.ts**:
+   - **Before**: 67.42% line coverage
+   - **After**: 97.02% line coverage
+   - **Improvement**: +29.60 percentage points
+   - **Tests Added**: 28 new tests covering:
+     - `isHuggingFaceLocalProvider()` - 7 tests
+     - `isLocalProvider()` - 10 tests
+     - `isCloudProvider()` - 6 tests
+     - `isHuggingFaceInferenceProvider()` - 5 tests
+     - `getModelUrl()` - 10 tests
+
+2. **fileExplorer.ts**:
+   - **Before**: 65.6% line coverage
+   - **After**: 86.99% line coverage
+   - **Improvement**: +21.39 percentage points
+   - **Tests Added**: 9 new tests covering:
+     - Error handling for `openHuggingfacePath()` and `openOllamaPath()`
+     - `openInstallationPath()` - 4 tests
+     - `openLogsPath()` - 3 tests
+     - `isSystemDirectoryAvailable()` - 2 tests
+
+**Test Results**:
+- **Before**: 3,092 tests (3,089 passing, 3 skipped)
+- **After**: 3,126 tests (3,123 passing, 3 skipped)
+- **Tests Added**: 34 new tests
+- **Test Suites**: 236 passing
+
+**Key Learnings**:
+1. Provider display functions have clear, testable logic that benefits from comprehensive edge case testing
+2. File explorer functions with Electron API integration require careful mock setup for window.api
+3. System directory functions (`openInstallationPath`, `openLogsPath`) are commonly used but often untested
+4. Coverage improvements focused on utility functions with complex conditional logic yield high ROI
+
+**Files Modified**:
+- `web/src/utils/__tests__/providerDisplay.test.ts` - Added 28 tests for missing provider functions
+- `web/src/utils/__tests__/fileExplorer.test.ts` - Added 9 tests for system directory functions
+
+---
+
 # Test Coverage Improvements (2026-01-19)
 
 **Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
