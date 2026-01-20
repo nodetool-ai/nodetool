@@ -1,6 +1,9 @@
 // Set timezone to UTC to ensure consistent test results
 process.env.TZ = 'UTC';
 
+// Ensure React is available globally for all tests
+global.React = require('react');
+
 // Mock import.meta for Vite compatibility
 global.import = {
   meta: {

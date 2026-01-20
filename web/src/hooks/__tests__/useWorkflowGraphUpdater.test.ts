@@ -1,3 +1,12 @@
+jest.mock("../../contexts/EditorInsertionContext", () => ({
+  EditorInsertionProvider: ({ children }: any) => children,
+  useEditorInsertion: () => null,
+  __esModule: true,
+  default: {
+    Provider: ({ children }: any) => children,
+  },
+}));
+
 jest.mock("../../contexts/WorkflowManagerContext");
 jest.mock("../../stores/GlobalChatStore");
 jest.mock("../../stores/graphNodeToReactFlowNode");

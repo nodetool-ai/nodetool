@@ -1,6 +1,15 @@
 import { createWorkflowRunnerStore } from "../WorkflowRunner";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 
+jest.mock("../../contexts/EditorInsertionContext", () => ({
+  EditorInsertionProvider: ({ children }: any) => children,
+  useEditorInsertion: () => null,
+  __esModule: true,
+  default: {
+    Provider: ({ children }: any) => children,
+  },
+}));
+
 jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {
     ensureConnection: jest.fn().mockResolvedValue(undefined),
