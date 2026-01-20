@@ -391,6 +391,48 @@ store.getState().addNotification({
 
 ---
 
+## Test Coverage Improvement (2026-01-20 - Additional)
+
+### Tests Added
+
+**1 new test file** covering FrontendToolRegistry:
+
+1. **`web/src/lib/__tests__/frontendTools.test.ts`**
+   - 18 tests for tool registry singleton pattern
+   - Tests registration, unregistration, and cleanup
+   - Tests manifest generation with visible/hidden tools
+   - Tests tool execution with AbortSignal context
+   - Tests error handling and abort functionality
+
+### Patterns Used
+
+1. **Registry Singleton Testing with Cleanup**:
+   - Track unregister functions in an array
+   - Clean up all registered tools in afterEach
+   - Prevents test pollution between test suites
+
+2. **Async Tool Execution Testing**:
+   - Mock tool execute functions with jest.fn()
+   - Verify execution is called with correct args and context
+   - Test AbortSignal propagation to tools
+
+3. **Abort Signal Testing**:
+   - Use Promise rejection patterns to test abort
+   - Verify abort listeners are properly set up
+   - Test cleanup after abort
+
+### Files Created
+
+- `web/src/lib/__tests__/frontendTools.test.ts`
+
+### Test Results
+
+- **Before**: 239 test suites, 3,136 tests passing
+- **After**: 240 test suites, 3,153 tests passing
+- **Net Gain**: +1 test file, +17 tests
+
+---
+
 ## Test Coverage Improvement (2026-01-20)
 
 ### Tests Added
