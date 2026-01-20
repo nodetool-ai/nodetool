@@ -361,10 +361,27 @@ const WorkflowList = () => {
         <div className="workflow-items">
           {!isLoading && !isError && workflows.length === 0 ? (
             <div className="empty-state">
-              <Typography variant="h6">No workflows yet</Typography>
-              <Typography variant="body2">
-                Create your first workflow with the + button above.
-              </Typography>
+              {data?.workflows && data.workflows.length > 0 ? (
+                <>
+                  <Typography variant="h6">No matching workflows</Typography>
+                  <Typography variant="body2">
+                    {filterValue && selectedTags.length > 0
+                      ? "Try adjusting your search term or tag filters."
+                      : filterValue
+                        ? "Try a different search term."
+                        : selectedTags.length > 0
+                          ? "Try removing some tag filters."
+                          : "No workflows match the current filters."}
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="h6">No workflows yet</Typography>
+                  <Typography variant="body2">
+                    Create your first workflow with the + button above.
+                  </Typography>
+                </>
+              )}
             </div>
           ) : (
             <WorkflowListView
