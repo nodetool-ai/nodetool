@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Audit (2026-01-20)
+
+**What**: Comprehensive performance audit found codebase is well-optimized. No memory leaks, all large components memoized, dependencies code-split.
+
+**Files**: .github/opencode-memory/insights/performance/audit-complete-20260120.md
+
+**Impact**: Confirmed 41+ memoized components, proper event listener cleanup, code-split bundles, all tests pass.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
