@@ -74,6 +74,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Handler Memoization (2026-01-20)
+
+**What**: Added useCallback to context menu handlers in NodeContextMenu.tsx for stable function references.
+
+**Files**: web/src/components/context_menus/NodeContextMenu.tsx
+
+**Impact**: Context menu handlers now have stable references, improving performance when menu opens/closes.
+
+---
+
 ### Component Memoization (2026-01-19)
 
 **What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.
