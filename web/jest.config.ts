@@ -34,7 +34,8 @@ export default {
     "^react-syntax-highlighter/dist/esm/styles/hljs$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^react-syntax-highlighter/dist/esm/prism$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^react-syntax-highlighter/dist/esm/hljs$": "<rootDir>/src/__mocks__/emptyModule.ts",
-    "^@xyflow/react$": "<rootDir>/src/__mocks__/xyflowReact.tsx"
+    "^@xyflow/react$": "<rootDir>/src/__mocks__/xyflowReact.tsx",
+    "^.*contexts/WorkflowManagerContext$": "<rootDir>/src/__mocks__/WorkflowManagerContext.tsx"
   },
   setupFiles: ["<rootDir>/jest.setup.js"],
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
