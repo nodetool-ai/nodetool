@@ -464,7 +464,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
               if (typeof option === "string") {
                 return option;
               }
-              return option.inputValue || "";
+              return (option as { inputValue?: string }).inputValue || "";
             }}
             renderOption={(props, option) => {
               const { key, ...rest } = props;
