@@ -446,3 +446,29 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Additional Test Coverage Improvement (2026-01-20)
+
+### Tests Added
+
+**2 new test files** for stores and hooks:
+
+1. **`web/src/stores/__tests__/nodeUiDefaults.test.ts`**
+   - Tests DEFAULT_NODE_WIDTH constant (280px)
+   - Tests NodeUIProperties type with various property combinations
+   - Tests position handling (zero, negative, large values)
+
+2. **`web/src/hooks/__tests__/useInputMinMax.test.ts`**
+   - Tests useInputMinMax hook for numeric input bounds
+   - Tests FloatInput and IntegerInput node types
+   - Tests fallback to propertyMin/propertyMax and defaults (0-100)
+   - Tests edge cases (null, undefined, string values)
+
+### Test Results
+
+- All new tests pass successfully
+- No type errors in new test files
+- No lint errors in new test files
+- Full test suite: 241 test suites, 3161 passing tests
