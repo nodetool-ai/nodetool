@@ -5,9 +5,14 @@ import React, {
   memo,
   useState,
   useRef,
-  useEffect
+  useEffect,
+  Suspense,
+  lazy
 } from "react";
-import Plot from "react-plotly.js";
+import { Box, CircularProgress } from "@mui/material";
+import type { PlotlyConfig } from "../../stores/ApiTypes";
+
+const Plot = lazy(() => import("react-plotly.js"));
 
 import {
   Asset,
@@ -16,7 +21,6 @@ import {
   Message,
   NPArray,
   TaskPlan,
-  PlotlyConfig,
   Task,
   CalendarEvent
 } from "../../stores/ApiTypes";
@@ -332,13 +336,21 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             className="render-content"
             style={{ width: "100%", height: "100%" }}
           >
-            <Plot
-              data={config.config.data as Plotly.Data[]}
-              layout={config.config.layout as Partial<Plotly.Layout>}
-              config={config.config.config as Partial<Plotly.Config>}
-              frames={config.config.frames as Plotly.Frame[] | undefined}
-              style={{ width: "100%", height: "100%" }}
-            />
+            <Suspense
+              fallback={
+                <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                  <CircularProgress />
+                </Box>
+              }
+            >
+              <Plot
+                data={config.config.data as Plotly.Data[]}
+                layout={config.config.layout as Partial<Plotly.Layout>}
+                config={config.config.config as Partial<Plotly.Config>}
+                frames={config.config.frames as Plotly.Frame[] | undefined}
+                style={{ width: "100%", height: "100%" }}
+              />
+            </Suspense>
           </div>
         );
       case "image_comparison":

@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Performance Optimization (2026-01-20)
+
+**What**: Lazy-loaded Plotly and Three.js using React.lazy + Suspense; memoized inline handlers in PanelLeft.
+
+**Files**: web/src/components/node/OutputRenderer.tsx, web/src/components/panels/PanelLeft.tsx
+
+**Impact**: Plotly (4.6MB) and Three.js (991KB) now load on-demand; reduced re-renders in panel components.
+
+---
+
 ### Component Memoization (2026-01-20)
 
 **What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.
