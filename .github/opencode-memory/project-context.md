@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Optimization Audit (2026-01-20)
+
+**What**: Comprehensive audit confirms all major React performance optimizations are already in place - component memoization (20+ large components), selective Zustand subscriptions, 1474 useCallback/useMemo instances, list virtualization, and memory leak prevention.
+
+**Files**: .github/opencode-memory/insights/performance/audit-2026-01-20.md
+
+**Impact**: NodeTool is well-optimized for 100+ nodes and 1000+ assets. No significant bottlenecks remain.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
@@ -94,16 +104,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### Handler Memoization (2026-01-19)
-
-**What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.
-
-**Files**: web/src/components/dashboard/GettingStartedPanel.tsx, web/src/components/workspaces/WorkspacesManager.tsx
-
-**Impact**: Stable function references reduce re-renders in workspace management and model download UI.
-
----
-
 ### useInputNodeAutoRun Tests Fix (2026-01-19)
 
 **What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
@@ -115,7 +115,9 @@ const store = useNodeStore();  // ❌ causes re-renders
 ---
 
 > **Format**: `Feature (date): One line. Files: x, y`
-> **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
+> **Limit**: 5 most recent entries. Delete oldest when adding new.
+
+### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
 
