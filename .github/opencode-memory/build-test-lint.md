@@ -395,33 +395,50 @@ store.getState().addNotification({
 
 ### Tests Added
 
-**5 new test files** covering critical stores, utilities, and hooks:
+**2 new test files** covering critical hooks:
 
-1. **`src/stores/__tests__/SessionStateStore.test.ts`**
+1. **`src/hooks/__tests__/useChatService.test.tsx`**
+   - Tests store state return values (status, progress, statusMessage, threads, etc.)
+   - Tests action functions from store (sendMessage, deleteThread, stopGeneration)
+   - Tests model selection handling (null vs valid model)
+   - Tests different connection states (disconnected, running)
+   - 10 tests total
+
+2. **`src/hooks/__tests__/useNodeEditorShortcuts.test.ts`**
+   - Tests shortcut registration behavior (active vs inactive)
+   - Tests mock verification for KeyPressedStore callbacks
+   - Tests config validation for NODE_EDITOR_SHORTCUTS
+   - Tests platform detection verification
+   - Tests dependency access validation
+   - 6 tests total
+
+**Previous tests from 2026-01-20 (5 files)**:
+
+3. **`src/stores/__tests__/SessionStateStore.test.ts`**
    - Tests clipboard data management (set/get/clear)
    - Tests clipboard validity state tracking
    - Tests complete clipboard workflow
 
-2. **`src/utils/__tests__/graphDiff.test.ts`**
+4. **`src/utils/__tests__/graphDiff.test.ts`**
    - Tests graph diff computation for nodes and edges
    - Tests added/removed/modified node detection
    - Tests edge change detection
    - Tests UI property change tracking
    - Tests diff summary generation
 
-3. **`src/utils/__tests__/errorHandling.test.ts`**
+5. **`src/utils/__tests__/errorHandling.test.ts`**
    - Tests AppError class creation
    - Tests createErrorMessage utility for different error types
    - Tests detail extraction from various error formats
 
-4. **`src/hooks/__tests__/useAutosave.test.ts`**
+6. **`src/hooks/__tests__/useAutosave.test.ts`**
    - Tests autosave enable/disable logic
    - Tests checkpoint save functionality
    - Tests workflow ID changes
    - Tests notification on successful save
    - Tests error handling
 
-5. **`src/hooks/__tests__/useFocusPan.test.ts`**
+7. **`src/hooks/__tests__/useFocusPan.test.ts`**
    - Tests callback function return
    - Tests keyboard event listener setup/cleanup
    - Tests Tab key tracking behavior
@@ -432,9 +449,12 @@ store.getState().addNotification({
 2. **Hook Testing**: Mock external dependencies (stores, fetch, window events)
 3. **Utility Testing**: Test pure functions with various inputs including edge cases
 4. **Mocking**: Use jest.mock for external dependencies and context providers
+5. **Router Wrapping**: Use BrowserRouter wrapper for hooks that use react-router-dom
 
 ### Files Created
 
+- `web/src/hooks/__tests__/useChatService.test.tsx`
+- `web/src/hooks/__tests__/useNodeEditorShortcuts.test.ts`
 - `web/src/stores/__tests__/SessionStateStore.test.ts`
 - `web/src/utils/__tests__/graphDiff.test.ts`
 - `web/src/utils/__tests__/errorHandling.test.ts`
@@ -446,3 +466,4 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+- **Total**: 16 new tests added
