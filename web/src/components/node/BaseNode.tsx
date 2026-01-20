@@ -457,7 +457,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }}
     >
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
-      {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />}
+      {/* {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />} */}
+      <NodeResizeHandle minWidth={150} minHeight={150} />
       <NodeHeader
         id={id}
         selected={selected}
