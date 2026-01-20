@@ -8,7 +8,7 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
 import { VariableSizeList } from "react-window";
-import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
+import { useShowGraphPreview, useSortBy } from "../../stores/WorkflowListViewStore";
 import { groupByDate } from "../../utils/groupByDate";
 
 type ListItem = 
@@ -203,6 +203,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     (state) => state.currentWorkflowId
   );
   const showGraphPreview = useShowGraphPreview();
+  const sortBy = useSortBy();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(500);
 
@@ -224,33 +225,46 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   // Group workflows by date and create a flat list with headers
   const flatList = useMemo(() => {
     const items: ListItem[] = [];
-    let currentGroup = "";
     let workflowIndex = 0;
 
-    // Sort workflows by updated_at descending (most recent first)
-    const sortedWorkflows = [...workflows].sort((a, b) => 
-      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    );
-
-    for (const workflow of sortedWorkflows) {
-      const group = groupByDate(workflow.updated_at);
-      if (group !== currentGroup) {
-        currentGroup = group;
-        items.push({ type: "header", label: group });
+    // Sort workflows based on sortBy option
+    const sortedWorkflows = [...workflows].sort((a, b) => {
+      if (sortBy === "name") {
+        return a.name.localeCompare(b.name);
       }
-      items.push({ type: "workflow", workflow, index: workflowIndex });
-      workflowIndex++;
+      // Default: sort by date (most recent first)
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+
+    // Only show date headers when sorting by date
+    if (sortBy === "date") {
+      let currentGroup = "";
+      for (const workflow of sortedWorkflows) {
+        const group = groupByDate(workflow.updated_at);
+        if (group !== currentGroup) {
+          currentGroup = group;
+          items.push({ type: "header", label: group });
+        }
+        items.push({ type: "workflow", workflow, index: workflowIndex });
+        workflowIndex++;
+      }
+    } else {
+      // For name sort, no headers
+      for (const workflow of sortedWorkflows) {
+        items.push({ type: "workflow", workflow, index: workflowIndex });
+        workflowIndex++;
+      }
     }
 
     return items;
-  }, [workflows]);
+  }, [workflows, sortBy]);
 
   const listRef = useRef<VariableSizeList>(null);
 
-  // Reset list cache when flatList or showGraphPreview changes
+  // Reset list cache when flatList, showGraphPreview, or sortBy changes
   useEffect(() => {
     listRef.current?.resetAfterIndex(0);
-  }, [flatList, showGraphPreview]);
+  }, [flatList, showGraphPreview, sortBy]);
 
   const getItemSize = (index: number) => {
     const item = flatList[index];

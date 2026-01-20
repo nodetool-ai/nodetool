@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
-import { FC, useCallback, memo } from "react";
-import { Button, Tooltip, Box, IconButton } from "@mui/material";
+import { FC, useCallback, memo, useState } from "react";
+import { Button, Tooltip, Box, IconButton, Menu, MenuItem } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import SortIcon from "@mui/icons-material/Sort";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +17,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useShowGraphPreview, useWorkflowListViewStore } from "../../stores/WorkflowListViewStore";
+import { useShowGraphPreview, useWorkflowListViewStore, useSortBy, SortBy } from "../../stores/WorkflowListViewStore";
 
 interface WorkflowToolbarProps {
   setFilterValue: (value: string) => void;
@@ -159,10 +160,26 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   const queryClient = useQueryClient();
   const showGraphPreview = useShowGraphPreview();
   const setShowGraphPreview = useWorkflowListViewStore((state) => state.actions.setShowGraphPreview);
+  const sortBy = useSortBy();
+  const setSortBy = useWorkflowListViewStore((state) => state.actions.setSortBy);
+  const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
 
   const handleToggleGraphPreview = useCallback(() => {
     setShowGraphPreview(!showGraphPreview);
   }, [setShowGraphPreview, showGraphPreview]);
+
+  const handleSortMenuOpen = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setSortMenuAnchor(event.currentTarget);
+  }, []);
+
+  const handleSortMenuClose = useCallback(() => {
+    setSortMenuAnchor(null);
+  }, []);
+
+  const handleSortChange = useCallback((newSortBy: SortBy) => {
+    setSortBy(newSortBy);
+    setSortMenuAnchor(null);
+  }, [setSortBy]);
 
   const handleCreateWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
@@ -246,6 +263,45 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               {showGraphPreview ? <ViewModuleIcon /> : <ViewListIcon />}
             </IconButton>
           </Tooltip>
+
+          <Tooltip
+            title={`Sort by ${sortBy === "date" ? "date" : "name"}`}
+            placement="top"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <IconButton
+              className="preview-toggle-button"
+              onClick={handleSortMenuOpen}
+            >
+              <SortIcon />
+            </IconButton>
+          </Tooltip>
+          <Menu
+            anchorEl={sortMenuAnchor}
+            open={Boolean(sortMenuAnchor)}
+            onClose={handleSortMenuClose}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "left",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "left",
+            }}
+          >
+            <MenuItem
+              onClick={() => handleSortChange("date")}
+              selected={sortBy === "date"}
+            >
+              Sort by Date
+            </MenuItem>
+            <MenuItem
+              onClick={() => handleSortChange("name")}
+              selected={sortBy === "name"}
+            >
+              Sort by Name
+            </MenuItem>
+          </Menu>
 
           <div style={{ flexGrow: 1 }} />
 
