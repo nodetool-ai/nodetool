@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Component Memoization (2026-01-20)
+
+**What**: Added React.memo to 6 unmemoized components: VersionHistoryPanel, VersionDiff, GraphVisualDiff, ModelListItemActions, EditorMenu, EditorMenuItem.
+
+**Files**: web/src/components/version/*.tsx, web/src/components/hugging_face/model_list/ModelListItemActions.tsx, web/src/components/editor_ui/EditorMenu.tsx
+
+**Impact**: Prevents unnecessary re-renders in version history, model management, and editor UI components.
+
+---
+
 ### Component Memoization (2026-01-19)
 
 **What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.
