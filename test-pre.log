@@ -1,7 +1,7 @@
 Running web tests...
 cd web && npm test
 
-> nodetool@0.6.2-rc.27 test
+> nodetool@0.6.2-rc.28 test
 > jest
 
 PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility.test.ts
@@ -43,15 +43,15 @@ PASS src/stores/__tests__/NodeStore.test.ts
     console.warn
       Node with id a already exists
 
-    [0m [90m 561 |[39m           addNode[33m:[39m (node[33m:[39m [33mNode[39m[33m<[39m[33mNodeData[39m[33m>[39m)[33m:[39m [36mvoid[39m [33m=>[39m {
-     [90m 562 |[39m             [36mif[39m ([36mget[39m()[33m.[39mfindNode(node[33m.[39mid)) {
-    [31m[1m>[22m[39m[90m 563 |[39m               log[33m.[39mwarn([32m`Node with id ${node.id} already exists`[39m)[33m;[39m
+    [0m [90m 551 |[39m           addNode[33m:[39m (node[33m:[39m [33mNode[39m[33m<[39m[33mNodeData[39m[33m>[39m)[33m:[39m [36mvoid[39m [33m=>[39m {
+     [90m 552 |[39m             [36mif[39m ([36mget[39m()[33m.[39mfindNode(node[33m.[39mid)) {
+    [31m[1m>[22m[39m[90m 553 |[39m               log[33m.[39mwarn([32m`Node with id ${node.id} already exists`[39m)[33m;[39m
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 564 |[39m               [36mreturn[39m[33m;[39m
-     [90m 565 |[39m             }
-     [90m 566 |[39m             node[33m.[39mexpandParent [33m=[39m [36mtrue[39m[33m;[39m[0m
+     [90m 554 |[39m               [36mreturn[39m[33m;[39m
+     [90m 555 |[39m             }
+     [90m 556 |[39m             node[33m.[39mexpandParent [33m=[39m [36mtrue[39m[33m;[39m[0m
 
-      at Object.addNode (src/stores/NodeStore.ts:563:19)
+      at Object.addNode (src/stores/NodeStore.ts:553:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:153:22)
 
     console.warn
@@ -63,43 +63,43 @@ PASS src/stores/__tests__/NodeStore.test.ts
         targetHandle: null
       }
 
-    [0m [90m 715 |[39m
-     [90m 716 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
-    [31m[1m>[22m[39m[90m 717 |[39m               log[33m.[39mwarn(
+    [0m [90m 705 |[39m
+     [90m 706 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
+    [31m[1m>[22m[39m[90m 707 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 718 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
-     [90m 719 |[39m                 edge
-     [90m 720 |[39m               )[33m;[39m[0m
+     [90m 708 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
+     [90m 709 |[39m                 edge
+     [90m 710 |[39m               )[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:717:19)
+      at Object.addEdge (src/stores/NodeStore.ts:707:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:173:22)
 
     console.warn
       Cannot add edge nonexistent-b: source or target node not found
 
-    [0m [90m 704 |[39m
-     [90m 705 |[39m             [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
-    [31m[1m>[22m[39m[90m 706 |[39m               log[33m.[39mwarn(
+    [0m [90m 694 |[39m
+     [90m 695 |[39m             [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
+    [31m[1m>[22m[39m[90m 696 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 707 |[39m                 [32m`Cannot add edge ${edge.id}: source or target node not found`[39m
-     [90m 708 |[39m               )[33m;[39m
-     [90m 709 |[39m               [36mreturn[39m[33m;[39m[0m
+     [90m 697 |[39m                 [32m`Cannot add edge ${edge.id}: source or target node not found`[39m
+     [90m 698 |[39m               )[33m;[39m
+     [90m 699 |[39m               [36mreturn[39m[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:706:19)
+      at Object.addEdge (src/stores/NodeStore.ts:696:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:274:22)
 
     console.warn
       Cannot add edge a-nonexistent: source or target node not found
 
-    [0m [90m 704 |[39m
-     [90m 705 |[39m             [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
-    [31m[1m>[22m[39m[90m 706 |[39m               log[33m.[39mwarn(
+    [0m [90m 694 |[39m
+     [90m 695 |[39m             [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
+    [31m[1m>[22m[39m[90m 696 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 707 |[39m                 [32m`Cannot add edge ${edge.id}: source or target node not found`[39m
-     [90m 708 |[39m               )[33m;[39m
-     [90m 709 |[39m               [36mreturn[39m[33m;[39m[0m
+     [90m 697 |[39m                 [32m`Cannot add edge ${edge.id}: source or target node not found`[39m
+     [90m 698 |[39m               )[33m;[39m
+     [90m 699 |[39m               [36mreturn[39m[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:706:19)
+      at Object.addEdge (src/stores/NodeStore.ts:696:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:284:22)
 
     console.warn
@@ -111,15 +111,15 @@ PASS src/stores/__tests__/NodeStore.test.ts
         targetHandle: 'input1'
       }
 
-    [0m [90m 715 |[39m
-     [90m 716 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
-    [31m[1m>[22m[39m[90m 717 |[39m               log[33m.[39mwarn(
+    [0m [90m 705 |[39m
+     [90m 706 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
+    [31m[1m>[22m[39m[90m 707 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 718 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
-     [90m 719 |[39m                 edge
-     [90m 720 |[39m               )[33m;[39m[0m
+     [90m 708 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
+     [90m 709 |[39m                 edge
+     [90m 710 |[39m               )[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:717:19)
+      at Object.addEdge (src/stores/NodeStore.ts:707:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:352:22)
 
     console.warn
@@ -131,15 +131,15 @@ PASS src/stores/__tests__/NodeStore.test.ts
         targetHandle: 'invalid_input'
       }
 
-    [0m [90m 715 |[39m
-     [90m 716 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
-    [31m[1m>[22m[39m[90m 717 |[39m               log[33m.[39mwarn(
+    [0m [90m 705 |[39m
+     [90m 706 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
+    [31m[1m>[22m[39m[90m 707 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 718 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
-     [90m 719 |[39m                 edge
-     [90m 720 |[39m               )[33m;[39m[0m
+     [90m 708 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
+     [90m 709 |[39m                 edge
+     [90m 710 |[39m               )[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:717:19)
+      at Object.addEdge (src/stores/NodeStore.ts:707:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:364:22)
 
     console.warn
@@ -156,12 +156,12 @@ PASS src/stores/__tests__/NodeStore.test.ts
       at src/core/workflow/graphMapping.ts:125:13
           at Array.filter (<anonymous>)
       at sanitizeGraph (src/core/workflow/graphMapping.ts:76:32)
-      at limit (src/stores/NodeStore.ts:250:79)
+      at limit (src/stores/NodeStore.ts:240:79)
       at configWithTemporal (node_modules/zundo/src/index.ts:94:12)
       at createStoreImpl (node_modules/zustand/vanilla.js:41:30)
       at Function.createStore (node_modules/zustand/vanilla.js:45:24)
       at createImpl (node_modules/zustand/index.js:29:57)
-      at createNodeStore (src/stores/NodeStore.ts:232:27)
+      at createNodeStore (src/stores/NodeStore.ts:222:27)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:584:28)
 
     console.warn
@@ -178,12 +178,12 @@ PASS src/stores/__tests__/NodeStore.test.ts
       at src/core/workflow/graphMapping.ts:125:13
           at Array.filter (<anonymous>)
       at sanitizeGraph (src/core/workflow/graphMapping.ts:76:32)
-      at limit (src/stores/NodeStore.ts:250:79)
+      at limit (src/stores/NodeStore.ts:240:79)
       at configWithTemporal (node_modules/zundo/src/index.ts:94:12)
       at createStoreImpl (node_modules/zustand/vanilla.js:41:30)
       at Function.createStore (node_modules/zustand/vanilla.js:45:24)
       at createImpl (node_modules/zustand/index.js:29:57)
-      at createNodeStore (src/stores/NodeStore.ts:232:27)
+      at createNodeStore (src/stores/NodeStore.ts:222:27)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:634:28)
 
     console.warn
@@ -200,98 +200,46 @@ PASS src/stores/__tests__/NodeStore.test.ts
       at src/core/workflow/graphMapping.ts:137:13
           at Array.filter (<anonymous>)
       at sanitizeGraph (src/core/workflow/graphMapping.ts:76:32)
-      at limit (src/stores/NodeStore.ts:250:79)
+      at limit (src/stores/NodeStore.ts:240:79)
       at configWithTemporal (node_modules/zundo/src/index.ts:94:12)
       at createStoreImpl (node_modules/zustand/vanilla.js:41:30)
       at Function.createStore (node_modules/zustand/vanilla.js:45:24)
       at createImpl (node_modules/zustand/index.js:29:57)
-      at createNodeStore (src/stores/NodeStore.ts:232:27)
+      at createNodeStore (src/stores/NodeStore.ts:222:27)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:634:28)
 
+PASS src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
 PASS src/stores/__tests__/reactFlowNodeToGraphNode.test.ts
-FAIL src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
-  ● useInputNodeAutoRun › injects cached values for all external dependencies in subgraph when instantUpdate is enabled
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: "cached external value"
-    Received: undefined
-
-    [0m [90m 395 |[39m
-     [90m 396 |[39m     [90m// It should have the cached value from external-1 injected into its "context" property[39m
-    [31m[1m>[22m[39m[90m 397 |[39m     expect(downstream1[33m.[39mdata[33m.[39mproperties[33m.[39mcontext)[33m.[39mtoBe([32m"cached external value"[39m)[33m;[39m
-     [90m     |[39m                                                 [31m[1m^[22m[39m
-     [90m 398 |[39m   })[33m;[39m
-     [90m 399 |[39m
-     [90m 400 |[39m   it([32m"handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:397:49)
-
-  ● useInputNodeAutoRun › handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: "cached from ext1"
-    Received: undefined
-
-    [0m [90m 499 |[39m       (n[33m:[39m { id[33m:[39m string }) [33m=>[39m n[33m.[39mid [33m===[39m [32m"downstream-1"[39m
-     [90m 500 |[39m     )[33m;[39m
-    [31m[1m>[22m[39m[90m 501 |[39m     expect(downstream1[33m.[39mdata[33m.[39mproperties[33m.[39mcontext)[33m.[39mtoBe([32m"cached from ext1"[39m)[33m;[39m
-     [90m     |[39m                                                 [31m[1m^[22m[39m
-     [90m 502 |[39m
-     [90m 503 |[39m     [90m// downstream-2 should have count from external-2[39m
-     [90m 504 |[39m     [36mconst[39m downstream2 [33m=[39m nodesPassedToRun[33m.[39mfind([0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:501:49)
-
-  ● useInputNodeAutoRun › falls back to input/constant node values when cached results are missing and instantUpdate is enabled
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: "Reluctant Hero"
-    Received: undefined
-
-    [0m [90m 584 |[39m     )[33m;[39m
-     [90m 585 |[39m
-    [31m[1m>[22m[39m[90m 586 |[39m     expect(formatNode[33m.[39mdata[33m.[39mproperties[33m.[39m[33mCHARACTER[39m)[33m.[39mtoBe([32m"Reluctant Hero"[39m)[33m;[39m
-     [90m     |[39m                                                  [31m[1m^[22m[39m
-     [90m 587 |[39m     expect(formatNode[33m.[39mdata[33m.[39mproperties[33m.[39mtemplate)[33m.[39mtoBe([32m"template text"[39m)[33m;[39m
-     [90m 588 |[39m   })[33m;[39m
-     [90m 589 |[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:586:50)
-
 PASS src/hooks/nodes/__tests__/useNodeContextMenu.test.ts
 PASS src/stores/__tests__/customEquality.test.ts
 PASS src/utils/__tests__/nodeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] computeSearchResults with 500 nodes: 12.04ms
+      [PERF] computeSearchResults with 500 nodes: 18.45ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:573:15)
 
     console.log
-      [PERF] computeSearchResults with 2000 nodes: 90.04ms
+      [PERF] computeSearchResults with 2000 nodes: 59.38ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:586:15)
 
     console.log
-      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 28.85ms
+      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 46.38ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:608:15)
 
     console.log
-      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 14.99ms
+      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 28.28ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:631:15)
 
     console.log
-      [PERF] Average search time for 5 queries: 1.33ms
+      [PERF] Average search time for 5 queries: 2.69ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:665:15)
 
-PASS src/utils/__tests__/connectionValidation.integration.test.ts
 PASS src/__tests__/performance/componentPerformance.test.tsx
   ● Console
 
@@ -306,7 +254,7 @@ PASS src/__tests__/performance/componentPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:122:15)
 
     console.log
-      [PERF] Large tree (243 components) render: 32.76ms
+      [PERF] Large tree (243 components) render: 34.39ms
 
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:491:15)
 
@@ -363,11 +311,13 @@ PASS src/__tests__/performance/componentPerformance.test.tsx
 
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:591:15)
 
+PASS src/utils/__tests__/connectionValidation.integration.test.ts
+PASS src/stores/__tests__/CollectionStore.test.ts
 PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
   ● Console
 
     console.log
-      [PERF] Set deduplication for 200 items: 0.038ms
+      [PERF] Set deduplication for 200 items: 0.039ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:77:15)
 
@@ -392,21 +342,6 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:319:15)
 
     console.log
-      [PERF] Without memo (100 calls): 0.73ms
-
-      at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:361:15)
-
-    console.log
-      [PERF] With memo (100 calls): 0.02ms
-
-      at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:362:15)
-
-    console.log
-      [PERF] Speed improvement: 41.4x
-
-      at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:363:15)
-
-    console.log
       [PERF] After 10 renders: { renders: 10, arrayBuilds: 1, dynamicResolutions: 1 }
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:533:15)
@@ -422,11 +357,10 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:543:15)
 
     console.log
-      [PERF] 100 nodes with 10 properties each: 0.11ms
+      [PERF] 100 nodes with 10 properties each: 0.12ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:578:13)
 
-PASS src/stores/__tests__/CollectionStore.test.ts
 PASS src/hooks/__tests__/useFindInWorkflow.test.ts
   ● Console
 
@@ -496,7 +430,42 @@ PASS src/hooks/__tests__/useFindInWorkflow.test.ts
 
 PASS src/stores/__tests__/AssetStore.test.ts
 PASS src/stores/__tests__/graphNodeToReactFlowNode.test.ts
-PASS src/stores/__tests__/GlobalChatStore.test.ts (5.386 s)
+PASS src/stores/__tests__/MiniAppsStore.test.ts
+PASS src/stores/__tests__/ConnectionStore.test.ts
+PASS src/utils/__tests__/PrefixTreeSearch.test.ts
+  ● Console
+
+    console.log
+      [PERF] Search 100 nodes: 0.04ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:356:15)
+
+    console.log
+      [PERF] Search 1000 nodes: 0.07ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:372:15)
+
+    console.log
+      [PERF] Search 5000 nodes: 0.32ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:388:15)
+
+    console.log
+      [PERF] Search times for different result sizes: 0.003ms, 0.082ms, 0.186ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:418:15)
+
+    console.log
+      [PERF] Index 5000 nodes: 153.83ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:436:15)
+
+    console.log
+      [PERF] 8 searches avg: 0.03ms
+
+      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:466:15)
+
+PASS src/stores/__tests__/GlobalChatStore.test.ts (5.34 s)
   ● Console
 
     console.log
@@ -734,46 +703,11 @@ PASS src/stores/__tests__/GlobalChatStore.test.ts (5.386 s)
 
       at handleChatWebSocketMessage (src/core/chat/chatProtocol.ts:780:11)
 
-PASS src/stores/__tests__/MiniAppsStore.test.ts
-PASS src/utils/__tests__/PrefixTreeSearch.test.ts
-  ● Console
-
-    console.log
-      [PERF] Search 100 nodes: 0.03ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:356:15)
-
-    console.log
-      [PERF] Search 1000 nodes: 0.06ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:372:15)
-
-    console.log
-      [PERF] Search 5000 nodes: 0.26ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:388:15)
-
-    console.log
-      [PERF] Search times for different result sizes: 0.003ms, 0.061ms, 0.040ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:418:15)
-
-    console.log
-      [PERF] Index 5000 nodes: 120.62ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:436:15)
-
-    console.log
-      [PERF] 8 searches avg: 0.05ms
-
-      at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:466:15)
-
-PASS src/stores/__tests__/ConnectionStore.test.ts
-PASS src/stores/__tests__/ResultsStore.test.ts
 PASS src/hooks/__tests__/useSelectionActions.test.ts
+PASS src/stores/__tests__/ResultsStore.test.ts
 PASS src/utils/__tests__/handleUtils.test.ts
-PASS src/stores/__tests__/SettingsStore.test.ts
 PASS src/__tests__/components/chat/containers/ChatView.test.tsx
+PASS src/stores/__tests__/SettingsStore.test.ts
 PASS src/utils/__tests__/highlightText.test.ts
 PASS src/stores/__tests__/FileStore.test.ts
 PASS src/utils/__tests__/dockviewLayout.test.ts
@@ -819,14 +753,16 @@ PASS src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx
       at Object.<anonymous> (src/__tests__/components/chat/composer/NodeToolsSelector.test.tsx:242:14)
 
 PASS src/stores/__tests__/NodeMenuStore.test.ts
-PASS src/__tests__/components/chat/containers/GlobalChat.test.tsx
 PASS src/stores/__tests__/ModelPreferencesStore.test.ts
-PASS src/stores/__tests__/RemoteSettingStore.test.ts
+PASS src/__tests__/components/chat/containers/GlobalChat.test.tsx
 PASS src/utils/__tests__/findMatchingNodesInWorkflows.test.ts
+PASS src/stores/__tests__/RemoteSettingStore.test.ts
 PASS src/stores/__tests__/LogStore.test.ts
 PASS src/hooks/__tests__/useNumberInput.test.tsx
 PASS src/stores/__tests__/HfCacheStatusStore.test.ts
 PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
+PASS src/utils/__tests__/graphDiff.test.ts
+PASS src/hooks/__tests__/useAutosave.test.ts
 PASS src/stores/__tests__/ErrorStore.test.ts
 PASS src/stores/__tests__/NodeFocusStore.test.ts
 PASS src/stores/__tests__/AssetGridStore.test.ts
@@ -873,8 +809,8 @@ PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
-PASS src/utils/__tests__/workflowOutputTypeInference.test.ts
 PASS src/hooks/__tests__/useDuplicate.test.ts
+PASS src/utils/__tests__/workflowOutputTypeInference.test.ts
 PASS src/core/chat/__tests__/chatProtocol.test.ts
   ● Console
 
@@ -982,9 +918,10 @@ PASS src/stores/__tests__/KeyPressedStore.test.ts
 PASS src/utils/__tests__/ColorUtils.test.ts
 PASS src/utils/__tests__/getAssetThumbUrl.test.ts
 PASS src/__tests__/stop_command_basic.test.ts
+PASS src/core/__tests__/graph.test.ts
 PASS src/utils/__tests__/providerDisplay.test.ts
 PASS src/stores/__tests__/AudioQueueStore.test.ts
-PASS src/hooks/__tests__/useNamespaceTree.test.ts
+PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
 PASS src/components/menus/__tests__/SecretsMenu.test.tsx
   ● Console
 
@@ -1064,7 +1001,7 @@ PASS src/components/menus/__tests__/SecretsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
-PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
+PASS src/hooks/__tests__/useNamespaceTree.test.ts
 PASS src/stores/__tests__/SecretsStore.test.ts
 PASS src/utils/__tests__/modelNormalization.test.ts
 PASS src/stores/__tests__/NotificationStore.test.ts
@@ -1170,6 +1107,7 @@ PASS src/stores/__tests__/NotificationStore.test.ts
       at node_modules/@testing-library/react/dist/act-compat.js:47:25
       at Object.<anonymous> (src/stores/__tests__/NotificationStore.test.ts:189:10)
 
+PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/hooks/__tests__/useWorkflowActions.test.ts
   ● Console
 
@@ -1318,20 +1256,17 @@ PASS src/hooks/__tests__/useWorkflowActions.test.ts
       at Object.handleExampleClick (src/hooks/useWorkflowActions.ts:48:7)
       at Object.<anonymous> (src/hooks/__tests__/useWorkflowActions.test.ts:240:28)
 
-PASS src/stores/__tests__/ColorPickerStore.test.ts
-PASS src/utils/__tests__/colorConversion.test.ts
 PASS src/utils/__tests__/groupByDate.test.ts
+PASS src/utils/__tests__/colorConversion.test.ts
 PASS src/utils/__tests__/isUrlAccessible.test.ts
 PASS src/hooks/nodes/__tests__/useDynamicOutput.test.ts
 PASS src/hooks/__tests__/useDelayedHover.test.ts
 PASS src/utils/__tests__/edgeValue.test.ts
-PASS src/stores/__tests__/MetadataStore.test.ts
-PASS src/hooks/__tests__/useAutosave.test.ts
 PASS src/__tests__/components/chat/composer/MessageInput.test.tsx
+PASS src/stores/__tests__/MetadataStore.test.ts
 PASS src/stores/__tests__/FindInWorkflowStore.test.ts
 PASS src/utils/__tests__/nodeDisplay.test.ts
 PASS src/utils/__tests__/modelFilters.test.ts
-PASS src/hooks/__tests__/useNodeFocus.test.ts
 PASS src/hooks/__tests__/useCollectionDragAndDrop.test.ts
   ● Console
 
@@ -1538,9 +1473,10 @@ PASS src/utils/__tests__/fileExplorer.test.ts
 
       at debugLog (src/utils/fileExplorer.ts:37:13)
 
+PASS src/hooks/__tests__/useNodeFocus.test.ts
 PASS src/stores/__tests__/ApiClient.test.ts
-PASS src/utils/__tests__/workflowSearch.test.ts
 PASS src/stores/__tests__/BottomPanelStore.test.ts
+PASS src/utils/__tests__/workflowSearch.test.ts
 PASS src/stores/__tests__/LayoutStore.test.ts
 PASS src/hooks/nodes/__tests__/useAddToGroup.test.ts
 PASS src/utils/modelNormalization.test.ts
@@ -1548,6 +1484,7 @@ PASS src/hooks/__tests__/useFitView.test.ts
 PASS src/stores/__tests__/graphConversion.test.ts
 PASS src/lib/dragdrop/__tests__/serialization.test.ts
 PASS src/hooks/__tests__/useRunningJobs.test.tsx
+PASS src/stores/__tests__/RecentNodesStore.test.ts
 PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
   ● Console
 
@@ -1664,22 +1601,54 @@ PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
-PASS src/stores/__tests__/RecentNodesStore.test.ts
 PASS src/hooks/__tests__/useAlignNodes.test.ts
-PASS src/utils/__tests__/graphDiff.test.ts
+PASS src/stores/__tests__/WorkflowRunner.test.ts
+  ● Console
+
+    console.error
+      WorkflowRunner[test-workflow-id]: Connection failed: Error: Connection failed
+          at Object.<anonymous> (/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/WorkflowRunner.test.ts:185:9)
+          at Promise.then.completed (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:316:40)
+          at processTicksAndRejections (node:internal/process/task_queues:95:5)
+          at _runTest (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:121:9)
+          at run (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/home/runner/work/nodetool/nodetool/web/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/home/runner/work/nodetool/nodetool/web/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/home/runner/work/nodetool/nodetool/web/node_modules/jest-runner/build/runTest.js:444:34)
+          at Object.worker (/home/runner/work/nodetool/nodetool/web/node_modules/jest-runner/build/testWorker.js:106:12)
+
+    [0m [90m 141 |[39m         [36mset[39m({ state[33m:[39m [32m"connected"[39m })[33m;[39m
+     [90m 142 |[39m       } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 143 |[39m         log[33m.[39merror([32m`WorkflowRunner[${workflowId}]: Connection failed:`[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 144 |[39m         [36mset[39m({ state[33m:[39m [32m"error"[39m })[33m;[39m
+     [90m 145 |[39m         [36mthrow[39m error[33m;[39m
+     [90m 146 |[39m       }[0m
+
+      at Object.ensureConnection (src/stores/WorkflowRunner.ts:143:13)
+      at Object.<anonymous> (src/stores/__tests__/WorkflowRunner.test.ts:188:7)
+
 PASS src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts
 PASS src/hooks/nodes/__tests__/useDynamicProperty.test.ts
 PASS src/stores/__tests__/NodePlacementStore.test.ts
-PASS src/core/__tests__/graph.test.ts
-PASS src/utils/__tests__/nodeUtils.test.ts
+PASS src/hooks/__tests__/useCreateNode.test.ts
 PASS src/hooks/__tests__/useNumberInput.test.ts
+PASS src/utils/__tests__/nodeUtils.test.ts
 PASS src/utils/__tests__/sanitize.test.ts
 PASS src/stores/__tests__/FavoriteNodesStore.test.ts
 PASS src/utils/__tests__/NodeTypeMapping.test.ts
 PASS src/utils/__tests__/formatUtils.test.ts
+PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
 PASS src/stores/__tests__/VersionHistoryStore.test.ts
 PASS src/stores/__tests__/StatusStore.test.ts
-PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
+PASS src/hooks/__tests__/useWorkflowGraphUpdater.test.ts
 PASS src/utils/__tests__/graphCycle.test.ts
 PASS src/utils/__tests__/selectionBounds.test.ts
 PASS src/hooks/nodes/__tests__/useSyncEdgeSelection.test.ts
@@ -1687,15 +1656,14 @@ PASS src/utils/__tests__/formatDateAndTime.test.ts
 PASS src/hooks/nodes/__tests__/getGroupBounds.test.ts
 PASS src/lib/dragdrop/__tests__/hooks.test.tsx
 PASS src/hooks/__tests__/useProviderApiKeyValidation.test.ts
-PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
 PASS src/hooks/__tests__/useWorkflowRunnerState.test.ts
+PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
 PASS src/stores/__tests__/formatNodeDocumentation.test.ts
 PASS src/components/node/image_editor/__tests__/canvasUtils.test.ts
 PASS src/stores/__tests__/ModelDownloadStore.test.ts
 PASS src/components/context_menus/__tests__/PaneContextMenu.test.tsx
-PASS src/stores/__tests__/GettingStartedStore.test.ts
 PASS src/hooks/__tests__/useFitNodeEvent.test.ts
-PASS src/stores/__tests__/RightPanelStore.test.ts
+PASS src/stores/__tests__/GettingStartedStore.test.ts
 PASS src/utils/__tests__/hfCache.test.ts
 PASS src/__tests__/components/chat/composer/StopGenerationButton.test.tsx
   ● Console
@@ -1813,15 +1781,14 @@ PASS src/__tests__/components/chat/composer/StopGenerationButton.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
+PASS src/stores/__tests__/RightPanelStore.test.ts
 PASS src/components/properties/__tests__/IntegerProperty.test.tsx
 PASS src/components/properties/__tests__/FloatProperty.test.tsx
-PASS src/utils/__tests__/imageUtils.test.ts
 PASS src/__tests__/ErrorBoundary.test.tsx
-PASS src/utils/__tests__/errorHandling.test.ts
+PASS src/utils/__tests__/imageUtils.test.ts
 PASS src/stores/__tests__/ModelFiltersStore.test.ts
-PASS src/hooks/__tests__/useFocusPan.test.ts
-PASS src/utils/__tests__/colorHarmonies.test.ts
 PASS src/hooks/assets/__tests__/useAssetSelection.test.ts
+PASS src/utils/__tests__/colorHarmonies.test.ts
 PASS src/hooks/browser/__tests__/useVideoRecorder.test.ts
   ● Console
 
@@ -2133,15 +2100,14 @@ PASS src/hooks/browser/__tests__/useVideoRecorder.test.ts
       at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
       at src/hooks/browser/useVideoRecorder.ts:158:11
 
-PASS src/utils/__tests__/NumberInput.utils.test.ts
 PASS src/__tests__/components/node_menu/NodeMenuKeyboardNavigation.test.tsx
+PASS src/utils/__tests__/NumberInput.utils.test.ts
 PASS src/stores/__tests__/ModelManagerStore.test.ts
 PASS src/providers/__tests__/ContextMenuProvider.test.tsx
-PASS src/stores/__tests__/ExecutionTimeStore.test.ts
 PASS src/providers/__tests__/ConnectableNodesProvider.test.tsx
-PASS src/utils/__tests__/identifierValidation.test.ts
+PASS src/stores/__tests__/ExecutionTimeStore.test.ts
+PASS src/utils/__tests__/errorHandling.test.ts
 PASS src/utils/__tests__/downloadPreviewAssets.test.ts
-PASS src/stores/__tests__/WorkflowActionsStore.test.ts
 PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
   ● Console
 
@@ -2915,8 +2881,11 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:162:11)
 
+PASS src/utils/__tests__/identifierValidation.test.ts
+PASS src/stores/__tests__/WorkflowActionsStore.test.ts
 PASS src/serverState/__tests__/checkHfCache.test.ts
 PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
+PASS src/stores/__tests__/SessionStateStore.test.ts
 PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
 PASS src/stores/__tests__/FavoriteWorkflowsStore.test.ts
 PASS src/utils/__tests__/createAssetFile.test.ts
@@ -3144,7 +3113,6 @@ PASS src/components/node/image_editor/__tests__/ImageEditorToolbar.test.tsx
 PASS src/hooks/handlers/__tests__/useConnectionEvents.test.ts
 PASS src/stores/__tests__/AppHeaderStore.test.ts
 PASS src/utils/modelFilters.test.ts
-PASS src/stores/__tests__/reactFlowEdgeToGraphEdge.test.ts
 PASS src/contexts/__tests__/NodeContext.test.tsx
   ● Console
 
@@ -3694,6 +3662,7 @@ PASS src/contexts/__tests__/NodeContext.test.tsx
       at Object.throwingMatcher [as toThrow] (node_modules/expect/build/index.js:320:21)
       at Object.<anonymous> (src/contexts/__tests__/NodeContext.test.tsx:113:41)
 
+PASS src/stores/__tests__/reactFlowEdgeToGraphEdge.test.ts
 PASS src/utils/ColorUtils.test.ts
   ● Console
 
@@ -3732,8 +3701,8 @@ PASS src/utils/ColorUtils.test.ts
       at hexToRgba (src/utils/ColorUtils.ts:28:13)
       at Object.<anonymous> (src/utils/ColorUtils.test.ts:29:23)
 
-PASS src/utils/__tests__/titleizeString.test.ts
 PASS src/utils/__tests__/modelFormatting.test.tsx
+PASS src/utils/__tests__/titleizeString.test.ts
 PASS src/__tests__/GlobalChatStore.toolcall.test.ts
 PASS src/stores/__tests__/WorkflowManagerStore.test.ts
 PASS src/stores/formatNodeDocumentation.test.ts
@@ -3749,11 +3718,11 @@ PASS src/hooks/editor/__tests__/useEditorActions.test.ts
 PASS src/hooks/assets/__tests__/useAssetDisplay.test.tsx
 PASS src/utils/errorHandling.test.ts
 PASS src/utils/highlightText.test.ts
-PASS src/stores/__tests__/SessionStateStore.test.ts
+PASS src/hooks/__tests__/useFocusPan.test.ts
 PASS src/config/__tests__/shortcuts.test.ts
 PASS src/__tests__/components/node/InputNodeNameWarning.test.tsx
+PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx (6.094 s)
 PASS src/components/node/__tests__/NodeExecutionTime.test.tsx
-PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx (5.812 s)
 PASS src/core/workflow/__tests__/graphMapping.test.ts
   ● Console
 
@@ -3776,15 +3745,15 @@ PASS src/core/workflow/__tests__/graphMapping.test.ts
 PASS src/stores/__tests__/MiniMapStore.test.ts
 PASS src/stores/__tests__/fuseOptions.test.ts
 PASS src/utils/__tests__/modelDownloadCheck.test.ts
+PASS src/hooks/handlers/__tests__/useEdgeHandlers.test.ts
 PASS src/utils/__tests__/platform.test.ts
 PASS src/providers/__tests__/MenuProvider.test.tsx
-PASS src/hooks/handlers/__tests__/useEdgeHandlers.test.ts
-PASS src/utils/__tests__/browser.test.ts
 PASS src/hooks/handlers/__tests__/useReactFlowEvents.test.ts
+PASS src/utils/__tests__/browser.test.ts
 PASS src/utils/__tests__/truncateString.test.ts
 PASS src/hooks/editor/__tests__/useMonacoEditor.test.ts
 PASS src/stores/__tests__/WorkflowListViewStore.test.ts
-PASS src/__tests__/components/assets/AssetSearchInput.test.tsx (5.32 s)
+PASS src/__tests__/components/assets/AssetSearchInput.test.tsx (5.611 s)
 PASS src/hooks/__tests__/useIsDarkMode.test.ts
   ● Console
 
@@ -3929,8 +3898,8 @@ PASS src/components/node_editor/__tests__/Alert.test.tsx
       at src/components/common/CopyToClipboardButton.tsx:74:9
 
 PASS src/components/buttons/__tests__/CloseButton.test.tsx
-PASS src/components/assets/__tests__/FolderItem.test.tsx
 PASS src/__tests__/components/node/DatetimeRenderer.test.tsx
+PASS src/components/assets/__tests__/FolderItem.test.tsx
 PASS src/components/__tests__/Logo.test.tsx
 PASS src/serverState/__tests__/tryCacheFiles.test.ts
 PASS src/hooks/editor/__tests__/useModalResize.test.ts
@@ -3938,15 +3907,15 @@ PASS src/components/properties/__tests__/BoolProperty.test.tsx
 PASS src/utils/sanitize.test.ts
 PASS src/components/node/__tests__/ResultOverlay.test.tsx
 PASS src/stores/__tests__/uuidv4.test.ts
-PASS src/utils/binary.test.ts
 PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx
+PASS src/utils/binary.test.ts
 PASS src/components/common/__tests__/CopyToClipboardButton.test.tsx
 PASS src/__tests__/components/node/CalendarEventView.test.tsx
-PASS src/components/__tests__/ProtectedRoute.test.tsx
-PASS src/stores/__tests__/PanelStore.test.ts
 PASS src/__tests__/components/assets/AssetExplorer.test.tsx
-PASS src/lib/websocket/__tests__/GlobalWebSocketManager.test.ts
+PASS src/stores/__tests__/PanelStore.test.ts
 PASS src/hooks/__tests__/useLoraModels.test.ts
+PASS src/lib/websocket/__tests__/GlobalWebSocketManager.test.ts
+PASS src/components/__tests__/ProtectedRoute.test.tsx
 PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
   ● Console
 
@@ -4045,79 +4014,93 @@ PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
 PASS src/hooks/assets/__tests__/useAssetDownload.test.ts
 PASS src/hooks/editor/__tests__/useEditorMode.test.ts
 PASS src/utils/__tests__/uuidv4.test.ts
-PASS src/hooks/editor/__tests__/useEditorKeyboardShortcuts.test.ts
 PASS src/stores/__tests__/ConnectableNodesStore.test.ts
-PASS src/serverState/__tests__/useAsset.test.tsx
+PASS src/hooks/editor/__tests__/useEditorKeyboardShortcuts.test.ts
 PASS src/utils/titleizeString.test.ts
 PASS src/hooks/assets/__tests__/useAssetNavigation.test.ts
-PASS src/components/workspaces/__tests__/WorkspaceManagerStore.test.ts
+PASS src/serverState/__tests__/useAsset.test.tsx
 PASS src/utils/__tests__/serializeValue.test.ts
+PASS src/components/workspaces/__tests__/WorkspaceManagerStore.test.ts
 PASS src/components/__tests__/InfiniteScroll.test.tsx
-PASS src/hooks/editor/__tests__/useAssistantVisibility.test.ts
 PASS src/hooks/editor/__tests__/useCodeLanguage.test.ts
-PASS src/components/__tests__/KeyboardProvider.test.tsx
+PASS src/hooks/editor/__tests__/useAssistantVisibility.test.ts
 PASS src/hooks/editor/__tests__/useFullscreenMode.test.ts
-PASS src/core/workflow/__tests__/runnerProtocol.test.ts
+PASS src/components/__tests__/KeyboardProvider.test.tsx
 PASS src/components/node_editor/__tests__/LoadingAnimation.test.tsx
+PASS src/core/workflow/__tests__/runnerProtocol.test.ts
 PASS src/components/properties/__tests__/NonEditableProperty.test.tsx
 
-Summary of all failing tests
-FAIL src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
-  ● useInputNodeAutoRun › injects cached values for all external dependencies in subgraph when instantUpdate is enabled
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: "cached external value"
-    Received: undefined
-
-    [0m [90m 395 |[39m
-     [90m 396 |[39m     [90m// It should have the cached value from external-1 injected into its "context" property[39m
-    [31m[1m>[22m[39m[90m 397 |[39m     expect(downstream1[33m.[39mdata[33m.[39mproperties[33m.[39mcontext)[33m.[39mtoBe([32m"cached external value"[39m)[33m;[39m
-     [90m     |[39m                                                 [31m[1m^[22m[39m
-     [90m 398 |[39m   })[33m;[39m
-     [90m 399 |[39m
-     [90m 400 |[39m   it([32m"handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled"[39m[33m,[39m () [33m=>[39m {[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:397:49)
-
-  ● useInputNodeAutoRun › handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: "cached from ext1"
-    Received: undefined
-
-    [0m [90m 499 |[39m       (n[33m:[39m { id[33m:[39m string }) [33m=>[39m n[33m.[39mid [33m===[39m [32m"downstream-1"[39m
-     [90m 500 |[39m     )[33m;[39m
-    [31m[1m>[22m[39m[90m 501 |[39m     expect(downstream1[33m.[39mdata[33m.[39mproperties[33m.[39mcontext)[33m.[39mtoBe([32m"cached from ext1"[39m)[33m;[39m
-     [90m     |[39m                                                 [31m[1m^[22m[39m
-     [90m 502 |[39m
-     [90m 503 |[39m     [90m// downstream-2 should have count from external-2[39m
-     [90m 504 |[39m     [36mconst[39m downstream2 [33m=[39m nodesPassedToRun[33m.[39mfind([0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:501:49)
-
-  ● useInputNodeAutoRun › falls back to input/constant node values when cached results are missing and instantUpdate is enabled
-
-    expect(received).toBe(expected) // Object.is equality
-
-    Expected: "Reluctant Hero"
-    Received: undefined
-
-    [0m [90m 584 |[39m     )[33m;[39m
-     [90m 585 |[39m
-    [31m[1m>[22m[39m[90m 586 |[39m     expect(formatNode[33m.[39mdata[33m.[39mproperties[33m.[39m[33mCHARACTER[39m)[33m.[39mtoBe([32m"Reluctant Hero"[39m)[33m;[39m
-     [90m     |[39m                                                  [31m[1m^[22m[39m
-     [90m 587 |[39m     expect(formatNode[33m.[39mdata[33m.[39mproperties[33m.[39mtemplate)[33m.[39mtoBe([32m"template text"[39m)[33m;[39m
-     [90m 588 |[39m   })[33m;[39m
-     [90m 589 |[39m[0m
-
-      at Object.<anonymous> (src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts:586:50)
-
-
-Test Suites: 1 failed, 235 passed, 236 total
-Tests:       3 failed, 3 skipped, 3086 passed, 3092 total
+Test Suites: 239 passed, 239 total
+Tests:       2 skipped, 3136 passed, 3138 total
 Snapshots:   0 total
-Time:        30.502 s
+Time:        31.654 s
 Ran all test suites.
-make: *** [Makefile:92: test-web] Error 1
+Running electron tests...
+cd electron && npm test
+
+> nodetool-electron@0.6.2-rc.28 test
+> jest
+
+PASS src/__tests__/config.test.ts (6.424 s)
+PASS src/__tests__/updater.test.ts
+PASS src/__tests__/window.test.ts (6.784 s)
+PASS src/__tests__/debug.test.ts
+PASS src/__tests__/shortcuts.test.ts
+PASS src/__tests__/torchruntime.test.ts
+PASS src/__tests__/api.test.ts
+PASS src/__tests__/condaPackageChecker.test.ts
+PASS src/__tests__/utils.test.ts
+PASS src/__tests__/torchPlatformCache.test.ts
+PASS src/__tests__/workflowExecution.test.ts
+PASS src/__tests__/workflowRunner.test.ts
+PASS src/__tests__/logger.behavior.test.ts
+PASS src/__tests__/ipc.test.ts (8.226 s)
+PASS src/__tests__/menu.test.ts
+PASS src/__tests__/installer.test.ts
+PASS src/__tests__/settings.test.ts
+PASS src/__tests__/events.test.ts
+PASS src/__tests__/state.test.ts
+PASS src/__tests__/packageManager.wheel.test.ts
+PASS src/__tests__/workflowWindow.test.ts
+PASS src/__tests__/simpleLogger.test.ts
+PASS src/__tests__/basicImports.test.ts
+PASS src/__tests__/simpleDownload.test.ts
+
+Test Suites: 24 passed, 24 total
+Tests:       206 passed, 206 total
+Snapshots:   0 total
+Time:        9.363 s
+Ran all test suites.
+Running mobile tests...
+cd mobile && npm test
+
+> nodetool-mobile@0.6.2-rc.28 test
+> jest
+
+PASS src/stores/ChatStore.test.ts
+PASS src/services/WebSocketManager.test.ts
+PASS src/hooks/useFileHandling.test.ts
+PASS src/components/chat/ChatView.test.tsx
+PASS src/screens/ChatScreen.test.tsx (7.018 s)
+PASS src/components/chat/MessageContentRenderer.test.tsx
+PASS src/components/chat/MessageView.test.tsx
+PASS src/components/chat/ChatMessageList.test.tsx
+PASS src/utils/theme.test.ts
+PASS src/components/properties/FloatProperty.test.tsx
+PASS src/stores/ThemeStore.test.ts
+PASS src/components/chat/FilePreview.test.tsx
+PASS src/components/chat/ChatMarkdown.test.tsx
+PASS src/components/properties/IntegerProperty.test.tsx
+PASS src/components/properties/StringProperty.test.tsx
+PASS src/components/properties/BoolProperty.test.tsx
+PASS src/hooks/useTheme.test.ts
+PASS src/utils/inputUtils.test.ts
+PASS src/components/chat/ChatComposer.test.tsx (8.32 s)
+PASS src/components/chat/LoadingIndicator.test.tsx
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Test Suites: 20 passed, 20 total
+Tests:       389 passed, 389 total
+Snapshots:   0 total
+Time:        12.918 s
+Ran all test suites.
