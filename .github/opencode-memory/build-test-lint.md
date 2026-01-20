@@ -446,3 +446,60 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Additional Test Coverage Improvement (2026-01-20)
+
+### Tests Added
+
+**3 new test files** covering critical hooks:
+
+1. **`src/hooks/__tests__/useSecrets.test.tsx`**
+   - Tests initial loading state with empty secrets
+   - Tests isApiKeySet function for finding/not finding keys
+   - Tests store integration and fetchSecrets call
+   - Tests caching behavior after successful fetch
+   - Tests error handling with empty secrets array
+   - Tests handling of multiple API keys
+
+2. **`src/hooks/__tests__/useInputMinMax.test.ts`**
+   - Tests default bounds (0-100) when no constraints provided
+   - Tests propertyMin/propertyMax handling
+   - Tests fallback to defaults for non-numeric values
+   - Tests negative min values
+   - Tests large max values
+   - Tests decimal values
+   - Tests property name filtering
+
+3. **`src/hooks/__tests__/useProcessedEdges.test.ts`**
+   - Tests initial empty state
+   - Tests edge processing with default styling
+   - Tests 'any' class when no metadata available
+   - Tests status tracking (message_sent, counter)
+   - Tests message-sent class addition
+   - Tests counter display as edge label
+   - Tests bypassed node handling (from-bypassed class)
+   - Tests selection optimization/caching
+   - Tests edge cases (non-existent nodes, no metadata, empty dataTypes)
+   - Tests Reroute node processing
+   - Tests multiple edge scenarios
+
+### Patterns Used
+
+1. **React Query Hook Testing**: Wrap with QueryClientProvider for hooks using useQuery
+2. **Hook Testing with Context**: Simplify tests by testing core logic without complex context mocking
+3. **Edge Processing Testing**: Test comprehensive edge cases including status tracking and styling
+4. **State Validation**: Test both positive and negative scenarios
+
+### Files Created
+
+- `web/src/hooks/__tests__/useSecrets.test.tsx`
+- `web/src/hooks/__tests__/useInputMinMax.test.ts`
+- `web/src/hooks/__tests__/useProcessedEdges.test.ts`
+
+### Test Results
+
+- All 44 new tests pass successfully
+- No type errors in new test files
+- No lint errors in new test files
