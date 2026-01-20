@@ -446,3 +446,34 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-20 - Additional)
+
+### Tests Added
+
+**1 new test file** covering critical hook functionality:
+
+1. **`web/src/hooks/__tests__/useInputMinMax.test.ts`**
+   - Tests default min/max values (0-100) when no options provided
+   - Tests custom property min/max handling
+   - Tests null and undefined min/max handling
+   - Tests fallback to default values when bounds are not numbers
+   - Tests boundary value behavior
+
+### Patterns Used
+
+1. **Hook Testing**: Mock external dependencies (zustand store, context)
+2. **Test Isolation**: Each test is independent with proper cleanup
+3. **Edge Case Coverage**: Tests null, undefined, and invalid values
+
+### Files Created
+
+- `web/src/hooks/__tests__/useInputMinMax.test.ts`
+
+### Test Results
+
+- All new tests pass (6 tests)
+- Total test count increased: 3136 → 3142
+- Total test suites: 240 (no change)
