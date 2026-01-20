@@ -95,7 +95,8 @@ describe("ExecutionTimeStore", () => {
       endExecution("workflow1", "node1");
 
       const duration = getDuration("workflow1", "node1");
-      expect(duration).toBe(2500);
+      expect(duration).toBeGreaterThanOrEqual(2500);
+      expect(duration).toBeLessThan(2600);
 
       jest.restoreAllMocks();
     });

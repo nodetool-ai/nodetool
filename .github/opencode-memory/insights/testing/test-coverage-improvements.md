@@ -1075,3 +1075,70 @@ it("falls back to URI when createAssetFile fails", async () => {
 **Maintained By**: Automated OpenCode testing agent
 
 **Last Updated**: 2026-01-18
+
+---
+
+### Test Coverage Improvement (2026-01-20)
+
+**Coverage Added**: 1 new test file with 6 tests for hook utility function
+
+**Tests Added**:
+- `useInputMinMax.test.ts` - 6 tests for numeric input min/max bounds determination
+
+**Areas Covered**:
+- Default min/max values (0-100) when no options provided
+- Custom property min/max handling
+- Null and undefined min/max handling
+- Fallback to default values when bounds are not numbers
+- Boundary value behavior with undefined/invalid values
+
+**Test Patterns Used**:
+
+1. **Hook Testing with Store Mock**:
+```typescript
+jest.mock("../../contexts/NodeContext", () => ({
+  NodeContext: {
+    Provider: ({ children }: { children: React.ReactNode }) => children,
+  },
+}));
+
+jest.mock("zustand/traditional", () => ({
+  useStoreWithEqualityFn: jest.fn(),
+}));
+
+describe("useInputMinMax", () => {
+  it("should return default min/max when no options provided", () => {
+    (useStoreWithEqualityFn as jest.Mock).mockReturnValue([]);
+    const { result } = renderHook(() =>
+      useInputMinMax({ nodeId: "test-node", propertyName: "value" })
+    );
+    expect(result.current).toEqual({ min: 0, max: 100 });
+  });
+});
+```
+
+2. **Edge Case Coverage**:
+```typescript
+it("should handle null propertyMin/max", () => {
+  (useStoreWithEqualityFn as jest.Mock).mockReturnValue([]);
+  const { result } = renderHook(() =>
+    useInputMinMax({
+      nodeId: "test-node",
+      propertyName: "value",
+      propertyMin: null,
+      propertyMax: null,
+    })
+  );
+  expect(result.current).toEqual({ min: 0, max: 100 });
+});
+```
+
+**Key Learnings**:
+1. Simple hook tests can avoid complex context mocking by testing only the direct dependencies
+2. Focus on testing the function's logic, not the full component tree
+3. Test edge cases: null, undefined, non-numeric values
+
+**Files Created**:
+- `web/src/hooks/__tests__/useInputMinMax.test.ts`
+
+**Status**: All 6 tests passing (240 test suites, 3142 tests total)
