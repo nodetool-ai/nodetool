@@ -46,17 +46,20 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
   const getAssetsRecursive = useAssetStore((state) => state.getAssetsRecursive);
-  const folderIcon = <IconForType iconName="folder" />;
-  const imageIcon = <IconForType iconName="image" />;
-  const audioIcon = <IconForType iconName="audio" />;
-  const videoIcon = <IconForType iconName="video" />;
-  const textIcon = <IconForType iconName="text" />;
-  const pdfIcon = <IconForType iconName="pdf" />;
-  const wordIcon = <IconForType iconName="word" />;
-  const excelIcon = <IconForType iconName="excel" />;
-  const powerpointIcon = <IconForType iconName="powerpoint" />;
-  const zipIcon = <IconForType iconName="zip" />;
-  const unknownIcon = <IconForType iconName="unknown" />;
+
+  const icons = useMemo(() => ({
+    folder: <IconForType iconName="folder" />,
+    image: <IconForType iconName="image" />,
+    audio: <IconForType iconName="audio" />,
+    video: <IconForType iconName="video" />,
+    text: <IconForType iconName="text" />,
+    pdf: <IconForType iconName="pdf" />,
+    word: <IconForType iconName="word" />,
+    excel: <IconForType iconName="excel" />,
+    powerpoint: <IconForType iconName="powerpoint" />,
+    zip: <IconForType iconName="zip" />,
+    unknown: <IconForType iconName="unknown" />
+  }), []);
 
   const calculateTotalAssets = useCallback((node: Asset): number => {
     if (node.content_type === "folder" && (node as AssetTreeNode).children) {
@@ -110,7 +113,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     onLoading
   ]);
 
-  const toggleFolder = (assetId: string) => {
+  const toggleFolder = useCallback((assetId: string) => {
     setClosedFolders((prev) => {
       if (prev.includes(assetId)) {
         return prev.filter((id) => id !== assetId);
@@ -118,48 +121,48 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         return [...prev, assetId];
       }
     });
-  };
+  }, []);
 
-  const getFileIcon = (contentType: string) => {
+  const getFileIcon = useCallback((contentType: string) => {
     switch (contentType) {
       case "folder":
-        return folderIcon;
+        return icons.folder;
       default:
         if (contentType.includes("image")) {
-          return imageIcon;
+          return icons.image;
         } else if (contentType.includes("audio")) {
-          return audioIcon;
+          return icons.audio;
         } else if (contentType.includes("video")) {
-          return videoIcon;
+          return icons.video;
         } else if (contentType.includes("text")) {
-          return textIcon;
+          return icons.text;
         } else if (contentType.includes("pdf")) {
-          return pdfIcon;
+          return icons.pdf;
         } else if (
           contentType.includes("word") ||
           contentType.includes("document")
         ) {
-          return wordIcon;
+          return icons.word;
         } else if (
           contentType.includes("sheet") ||
           contentType.includes("excel")
         ) {
-          return excelIcon;
+          return icons.excel;
         } else if (
           contentType.includes("presentation") ||
           contentType.includes("powerpoint")
         ) {
-          return powerpointIcon;
+          return icons.powerpoint;
         } else if (
           contentType.includes("zip") ||
           contentType.includes("compressed")
         ) {
-          return zipIcon;
+          return icons.zip;
         } else {
-          return unknownIcon;
+          return icons.unknown;
         }
     }
-  };
+  }, [icons]);
 
   const sortNodes = useCallback((nodes: AssetTreeNode[]): AssetTreeNode[] => {
     return [...nodes].sort((a, b) => {
@@ -175,9 +178,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
 
   const sortedAssetTree = useMemo(() => sortNodes(assetTree), [assetTree, sortNodes]);
 
-  const renderAssetTree = (nodes: AssetTreeNode[], depth = 0) => {
-    const sortedNodes = sortNodes(nodes);
-
+  const renderAssetTree = useCallback((nodes: AssetTreeNode[], depth = 0) => {
     return (
       <List
         className="asset-tree"
@@ -185,7 +186,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         disablePadding
         sx={{ backgroundColor: "transparent" }}
       >
-        {sortedNodes.map((node) => (
+        {nodes.map((node) => (
           <React.Fragment key={node.id}>
             <ListItemButton
               onClick={() =>
@@ -235,7 +236,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         ))}
       </List>
     );
-  };
+  }, [closedFolders, toggleFolder, getFileIcon, theme]);
 
   if (isLoading) {
     return <CircularProgress />;
