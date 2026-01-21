@@ -148,6 +148,9 @@ const FolderBatchDialogWrapper: React.FC = memo(function FolderBatchDialogWrappe
           currentRunIdRef.current === runId &&
           currentState.state === "running"
         ) {
+          // Reset processing flag BEFORE calling nextFile so the subscription
+          // handler can pick up the state change and process the next file
+          processingRef.current = false;
           currentState.nextFile();
         }
       } catch (error) {
@@ -158,9 +161,12 @@ const FolderBatchDialogWrapper: React.FC = memo(function FolderBatchDialogWrappe
           currentRunIdRef.current === runId &&
           currentState.state === "running"
         ) {
+          // Reset processing flag BEFORE calling nextFile
+          processingRef.current = false;
           currentState.nextFile();
         }
       } finally {
+        // Ensure flag is reset even if we didn't call nextFile
         processingRef.current = false;
       }
     };
