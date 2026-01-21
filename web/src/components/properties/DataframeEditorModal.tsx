@@ -8,7 +8,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import TableRowsIcon from "@mui/icons-material/TableRows";
-import { Button, ButtonGroup, Tooltip } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
+import { Button, ButtonGroup, Tooltip, TextField, InputAdornment, IconButton } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import Markdown from "react-markdown";
 
@@ -267,7 +269,10 @@ const styles = (theme: Theme) =>
       flex: 1,
       overflow: "hidden",
       minHeight: "200px",
+      display: "flex",
+      flexDirection: "column",
       "& .datatable": {
+        flex: 1,
         height: "100%"
       },
       "& .tabulator": {
@@ -296,6 +301,30 @@ const styles = (theme: Theme) =>
       },
       "& .tabulator-row:hover": {
         backgroundColor: theme.vars.palette.grey[700]
+      }
+    },
+    ".search-bar": {
+      display: "flex",
+      alignItems: "center",
+      marginBottom: "0.75em",
+      "& .MuiTextField-root": {
+        maxWidth: "300px"
+      },
+      "& .MuiInputBase-root": {
+        height: "2.25em",
+        fontSize: "0.85rem",
+        backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`,
+        borderRadius: "6px"
+      },
+      "& .MuiInputBase-input": {
+        padding: "0.35em 0.5em"
+      },
+      "& .MuiInputAdornment-root": {
+        marginRight: "0.25em"
+      },
+      "& svg": {
+        fontSize: "1rem",
+        color: theme.vars.palette.grey[500]
       }
     },
     ".add-column-group": {
@@ -411,6 +440,9 @@ const DataframeEditorModal = ({
 
   // Local state for the dataframe
   const [localValue, setLocalValue] = useState<DataframeRef>(value);
+  
+  // Search filter state
+  const [searchFilter, setSearchFilter] = useState("");
 
   // Sync local state with prop changes
   useEffect(() => {
@@ -542,10 +574,38 @@ const DataframeEditorModal = ({
                 </div>
               )}
               <div className="table-section">
+                <div className="search-bar">
+                  <TextField
+                    placeholder="Search in table..."
+                    size="small"
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ),
+                      endAdornment: searchFilter && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={() => setSearchFilter("")}
+                            edge="end"
+                          >
+                            <ClearIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                </div>
                 <DataTable
                   dataframe={localValue}
                   onChange={readOnly ? undefined : onCellChange}
                   editable={!readOnly}
+                  isModalMode={true}
+                  searchFilter={searchFilter}
                 />
               </div>
             </div>
