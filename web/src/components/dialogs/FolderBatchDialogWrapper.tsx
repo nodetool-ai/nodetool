@@ -9,55 +9,10 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { contentTypeToNodeType } from "../../utils/NodeTypeMapping";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { findFileInputNodes, matchFileToInputNode } from "../../hooks/useFolderBatch";
+import { findFileInputNodes, matchFileToInputNode, getContentTypeFromExtension } from "../../hooks/useFolderBatch";
 import { NodeData } from "../../stores/NodeData";
 import { Node, Edge } from "@xyflow/react";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
-
-/**
- * Get content type from file extension
- */
-function getContentTypeFromExtension(filename: string): string {
-  const ext = filename.split(".").pop()?.toLowerCase() || "";
-  const extensionMap: Record<string, string> = {
-    // Images
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp",
-    svg: "image/svg+xml",
-    tiff: "image/tiff",
-    tif: "image/tiff",
-    bmp: "image/bmp",
-    heic: "image/heic",
-    heif: "image/heif",
-    // Audio
-    mp3: "audio/mp3",
-    wav: "audio/wav",
-    ogg: "audio/ogg",
-    flac: "audio/flac",
-    aac: "audio/aac",
-    m4a: "audio/x-m4a",
-    webm: "audio/webm",
-    // Video
-    mp4: "video/mp4",
-    mpeg: "video/mpeg",
-    mov: "video/quicktime",
-    avi: "video/x-msvideo",
-    mkv: "video/x-matroska",
-    // Documents
-    pdf: "application/pdf",
-    doc: "application/msword",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    txt: "text/plain",
-    html: "text/html",
-    md: "text/markdown",
-    csv: "text/csv",
-    json: "application/json",
-  };
-  return extensionMap[ext] || "application/octet-stream";
-}
 
 /**
  * Wrapper component that handles the folder selection and batch processing flow.
@@ -262,7 +217,9 @@ const FolderBatchDialogWrapper: React.FC = memo(function FolderBatchDialogWrappe
       const files: BatchFile[] = [];
 
       for (const fileInfo of data as FileInfo[]) {
-        if (fileInfo.is_dir) {continue;} // Skip directories
+        if (fileInfo.is_dir) {
+          continue; // Skip directories
+        }
 
         const contentType = getContentTypeFromExtension(fileInfo.name);
         const matchedNode = matchFileToInputNode(contentType, inputNodes);

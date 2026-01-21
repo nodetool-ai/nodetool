@@ -122,7 +122,9 @@ const styles = (theme: Theme) =>
  * Format milliseconds to a human-readable duration string
  */
 function formatDuration(ms: number): string {
-  if (ms < 1000) {return "< 1s";}
+  if (ms < 1000) {
+    return "< 1s";
+  }
   
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -274,9 +276,15 @@ const FolderBatchDialog: React.FC<FolderBatchDialogProps> = memo(function Folder
     const isCurrent = index === currentIndex && isActive;
     
     let className = "file-item";
-    if (isCurrent) {className += " current";}
-    if (file.status === "completed") {className += " completed";}
-    if (file.status === "failed") {className += " failed";}
+    if (isCurrent) {
+      className += " current";
+    }
+    if (file.status === "completed") {
+      className += " completed";
+    }
+    if (file.status === "failed") {
+      className += " failed";
+    }
     
     return (
       <div style={style} className={className}>

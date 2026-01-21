@@ -133,7 +133,9 @@ export const useFolderBatchStore = create<FolderBatchStore>((set, get) => ({
 
   start: () => {
     const { files } = get();
-    if (files.length === 0) {return;}
+    if (files.length === 0) {
+      return;
+    }
     
     set({
       state: "running",
@@ -146,7 +148,9 @@ export const useFolderBatchStore = create<FolderBatchStore>((set, get) => ({
 
   pause: () => {
     const { state } = get();
-    if (state !== "running") {return;}
+    if (state !== "running") {
+      return;
+    }
     
     set({
       state: "paused",
@@ -156,7 +160,9 @@ export const useFolderBatchStore = create<FolderBatchStore>((set, get) => ({
 
   resume: () => {
     const { state, pausedTime, totalPausedDuration } = get();
-    if (state !== "paused") {return;}
+    if (state !== "paused") {
+      return;
+    }
     
     const additionalPausedTime = pausedTime ? Date.now() - pausedTime : 0;
     
@@ -216,7 +222,9 @@ export const useFolderBatchStore = create<FolderBatchStore>((set, get) => ({
 
   nextFile: () => {
     const { currentIndex, files, state } = get();
-    if (state !== "running") {return;}
+    if (state !== "running") {
+      return;
+    }
     
     const nextIndex = currentIndex + 1;
     if (nextIndex >= files.length) {

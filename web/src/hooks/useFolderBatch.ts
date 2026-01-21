@@ -95,7 +95,7 @@ export function matchFileToInputNode(
 /**
  * Get content type from file extension
  */
-function getContentTypeFromExtension(filename: string): string {
+export function getContentTypeFromExtension(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase() || "";
   const extensionMap: Record<string, string> = {
     // Images
@@ -202,7 +202,9 @@ export function useFolderBatch({
       const files: BatchFile[] = [];
 
       for (const fileInfo of data as FileInfo[]) {
-        if (fileInfo.is_dir) {continue;} // Skip directories
+        if (fileInfo.is_dir) {
+          continue; // Skip directories
+        }
 
         const contentType = getContentTypeFromExtension(fileInfo.name);
         const matchedNode = matchFileToInputNode(contentType, inputNodes);
