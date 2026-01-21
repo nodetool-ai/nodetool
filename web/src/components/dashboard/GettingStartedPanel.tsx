@@ -243,10 +243,8 @@ const InlineModelDownload: React.FC<{
   isDefault?: boolean;
   tooltip?: string;
 }> = ({ model, label: _label, isDefault, tooltip }) => {
-  const { startDownload, downloads } = useModelDownloadStore((state) => ({
-    startDownload: state.startDownload,
-    downloads: state.downloads
-  }));
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const downloads = useModelDownloadStore((state) => state.downloads);
   const downloadKey = model.repo_id || model.id;
 
   const inProgress = !!downloads[downloadKey];
