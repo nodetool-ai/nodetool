@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useMemo } from "react";
+import React, { memo, useMemo, useCallback } from "react";
 import { ButtonGroup, Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
@@ -284,6 +284,25 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     handleDelete
   } = useAssetActions(asset);
 
+  const handleAssetClick = useCallback(() => {
+    handleClick(onSelect, onClickParent, isParent);
+  }, [handleClick, onSelect, onClickParent, isParent]);
+
+  const handleAssetDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDoubleClick) {
+      onDoubleClick(asset);
+    }
+  }, [onDoubleClick, asset]);
+
+  const handleContextMenuWithStop = useCallback((e: React.MouseEvent) => {
+    handleContextMenu(e, enableContextMenu);
+  }, [handleContextMenu, enableContextMenu]);
+
+  const handleAudioAssetClick = useCallback(() => {
+    onSetCurrentAudioAsset?.(asset);
+  }, [onSetCurrentAudioAsset, asset]);
+
   const assetType = useMemo(() => {
     return asset?.content_type ? asset.content_type.split("/")[0] : "unknown";
   }, [asset?.content_type]);
@@ -332,18 +351,13 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
-      onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
+      onContextMenu={handleContextMenuWithStop}
       key={asset.id}
       draggable={draggable}
       onDragStart={handleDrag}
       onDragEnd={handleDragEnd}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        if (onDoubleClick) {
-          onDoubleClick(asset);
-        }
-      }}
-      onClick={() => handleClick(onSelect, onClickParent, isParent)}
+      onDoubleClick={handleAssetDoubleClick}
+      onClick={handleAssetClick}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
@@ -352,7 +366,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <DeleteButton<Asset>
             className="asset-delete"
             item={asset}
-            onClick={() => handleDelete()}
+            onClick={handleDelete}
           />
         </ButtonGroup>
       )}
@@ -391,7 +405,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <>
             <AudioFileIcon
               style={{ color: `var(--c_${assetType})` }}
-              onClick={() => onSetCurrentAudioAsset?.(asset)}
+              onClick={handleAudioAssetClick}
               className="placeholder"
               titleAccess={asset.content_type || "Audio file"}
             />

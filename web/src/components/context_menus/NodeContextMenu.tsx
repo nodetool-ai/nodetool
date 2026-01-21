@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { Menu, Divider, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
@@ -32,18 +32,22 @@ const NodeContextMenu: React.FC = () => {
 
   const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
 
-  const handleSelectMode = (mode: "on_any" | "zip_all") => {
+  const handleSelectMode = useCallback((mode: "on_any" | "zip_all") => {
     if (node?.id) {
       updateNodeData(node.id, { sync_mode: mode });
     }
     closeContextMenu();
-  };
+  }, [node, updateNodeData, closeContextMenu]);
+
+  const handleRemoveFromGroup = useCallback(() => {
+    removeFromGroup([node as Node<NodeData>]);
+  }, [removeFromGroup, node]);
 
   const menuItems = [
     conditions.isInGroup && (
       <ContextMenuItem
         key="remove-from-group"
-        onClick={() => removeFromGroup([node as Node<NodeData>])}
+        onClick={handleRemoveFromGroup}
         label="Remove from Group"
         IconComponent={<GroupRemoveIcon />}
         tooltip="Remove this node from the group"
