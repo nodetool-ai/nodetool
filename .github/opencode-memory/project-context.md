@@ -48,11 +48,15 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
-> ### FeatureYYYY-MM-DD)
-> **What**: One sentence
-> **Files**: Main files changed
-> ```
+> Fix Name (YYYY-MM-DD): One sentence. Files: x, y
+
+### Code Quality Improvements (2026-01-21)
+
+**What**: Fixed lint warning in MessageInput.tsx, replaced `catch(error: any)` with `unknown` type in 2 files, and installed mobile type definitions.
+
+**Files**: web/src/components/chat/composer/MessageInput.tsx, web/src/components/audio/AudioPlayer.tsx, web/src/components/hugging_face/model_list/DeleteModelDialog.tsx, mobile/package.json, mobile/tsconfig.json
+
+---
 
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 

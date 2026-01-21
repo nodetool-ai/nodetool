@@ -432,9 +432,10 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
                 setZoom(value);
                 waveSurferRef.current?.zoom(value);
               });
-            } catch (error: any) {
-              log.info("Zoom audio failed: ", error.message);
-            }
+              } catch (err: unknown) {
+                const error = err instanceof Error ? err : new Error(String(err));
+                log.info("Zoom audio failed: ", error.message);
+              }
           }}
         />
       )}
