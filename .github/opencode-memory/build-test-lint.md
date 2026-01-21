@@ -446,3 +446,43 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-21)
+
+### Tests Added
+
+**2 new test files** covering critical stores:
+
+1. **`web/src/stores/__tests__/ContextMenuStore.test.ts`**
+   - Tests ContextMenuContext exports and structure
+   - Tests useContextMenu hook export
+   - Tests ContextMenuState interface with various state combinations
+   - Tests state with menu positions and TypeMetadata
+
+2. **`web/src/stores/__tests__/workflowUpdates.test.ts`**
+   - Tests hashKey utility function for composite keys
+   - Tests hashKey with special characters
+   - Tests hashKey edge cases (empty strings)
+   - Tests unique key generation for different combinations
+   - Tests WorkflowAttributes type validation
+
+### Patterns Used
+
+1. **Store Testing**: Direct state manipulation and verification
+2. **Utility Testing**: Pure function testing with various inputs
+3. **Interface Testing**: Type validation through object construction
+4. **Edge Case Testing**: Empty strings, null values, special characters
+
+### Files Created
+
+- `web/src/stores/__tests__/ContextMenuStore.test.ts`
+- `web/src/stores/__tests__/workflowUpdates.test.ts`
+
+### Test Results
+
+- New tests: 15 passed
+- Total tests: 3153 (3149 passed, 2 pre-existing failures, 2 skipped)
+- No type errors in new test files
+- No lint errors in new test files
