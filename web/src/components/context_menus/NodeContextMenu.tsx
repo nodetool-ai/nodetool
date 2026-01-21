@@ -164,16 +164,15 @@ const NodeContextMenu: React.FC = () => {
       IconComponent={<DeleteIcon />}
       tooltip="Delete this node"
     />,
+    isDevelopment && <Divider key="dev-divider" />,
     isDevelopment && (
-      <React.Fragment key="dev">
-        <Divider />
-        <ContextMenuItem
-          onClick={handlers.handleCopyMetadataToClipboard}
-          label="Copy NodeData"
-          IconComponent={<DataArrayIcon />}
-          tooltip="Copy node data to the clipboard"
-        />
-      </React.Fragment>
+      <ContextMenuItem
+        key="copy-nodedata"
+        onClick={handlers.handleCopyMetadataToClipboard}
+        label="Copy NodeData"
+        IconComponent={<DataArrayIcon />}
+        tooltip="Copy node data to the clipboard"
+      />
     )
   ];
 
