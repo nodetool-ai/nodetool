@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Inline Arrow Function Optimization (2026-01-21)
+
+**What**: Removed 12+ inline arrow functions from JSX event handlers using curried handler pattern, reducing function allocations on every render.
+
+**Files**: RenderNodesSelectable.tsx, TagFilter.tsx, WorkflowToolbar.tsx, WorkflowTile.tsx, ColorPicker.tsx, Select.tsx
+
+**Impact**: ~10-15 fewer function allocations per render in node menu, workflow list, and input components.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
