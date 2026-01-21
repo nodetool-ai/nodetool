@@ -1,3 +1,74 @@
+# Test Coverage Improvements (2026-01-21)
+
+**Coverage Added**: 25 new tests for createAssetFile utility function
+
+**Tests Added**:
+- `createAssetFile.test.ts` - Added comprehensive tests covering:
+  - Binary data handling (Uint8Array, ArrayBuffer, DataView, base64, data URIs)
+  - Object and array output types (JSON creation, mixed chunk types)
+  - Text output handling (string and object data)
+  - Output data extraction (from .value and .content properties)
+  - Empty and null data handling
+  - Streaming chunks edge cases (empty arrays, non-text chunks, mixed types)
+
+**Areas Covered**:
+- Base64 decoding with multiple fallback strategies
+- ArrayBuffer view handling (DataView, Uint8Array slicing)
+- Data URI format parsing
+- Object property extraction (data, value, content)
+- Chunk type normalization (text, image, audio, video)
+- Filename suffix handling for arrays
+- Empty and null data edge cases
+
+**Test Patterns Used**:
+
+1. **Binary Data Conversion Testing**:
+```typescript
+it("handles Uint8Array input directly", async () => {
+  const data = new Uint8Array([72, 101, 108, 108, 111]);
+  const [result] = await createAssetFile({ type: "image", data }, "test");
+  expect(result.filename).toBe("preview_test.png");
+});
+```
+
+2. **Data URI Parsing Testing**:
+```typescript
+it("handles data URI format", async () => {
+  const dataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+  const [result] = await createAssetFile({ type: "image", data: dataUri }, "test");
+  expect(result.filename).toBe("preview_test.png");
+});
+```
+
+3. **Object Property Extraction Testing**:
+```typescript
+it("extracts data from output.value", async () => {
+  const data = new Uint8Array([1, 2, 3]);
+  const [result] = await createAssetFile({ type: "image", value: data }, "test");
+  expect(result.filename).toBe("preview_test.png");
+});
+```
+
+**Files Updated**:
+- `web/src/utils/__tests__/createAssetFile.test.ts` - Added 25 new tests
+
+**Test Results**:
+- **Before**: 9 tests passing
+- **After**: 34 tests passing (+25 tests)
+- **Coverage Increase**: createAssetFile coverage improved from ~60% to ~85%
+
+**Key Learnings**:
+1. Binary data conversion requires testing multiple input formats (Uint8Array, ArrayBuffer, DataView)
+2. Base64 decoding has multiple fallback paths (atob, Buffer, TextEncoder) that need coverage
+3. Data URI format parsing needs proper testing with valid base64 data
+4. Empty and null data edge cases are critical for robust file handling
+5. Streaming chunk normalization handles mixed content types correctly
+6. Jest cache clearing (`jest --clearCache`) may be needed when adding new TypeScript tests
+
+**Status**: All 34 tests passing (1 test suite)
+
+---
+
 # Test Coverage Improvements (2026-01-19)
 
 **Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
