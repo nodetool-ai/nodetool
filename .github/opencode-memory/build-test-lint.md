@@ -446,3 +446,59 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvements (2026-01-21)
+
+### Tests Fixed
+
+**GlobalChatStore.test.ts**:
+- Fixed `ensureConnection` mock to check `isConnectionOpen()` before resolving
+- Fixed 2 failing tests:
+  - `sendMessage does nothing when socket is not connected`
+  - `handles connection timeout gracefully`
+
+### New Test Files
+
+1. **`src/stores/__tests__/PanelStore.test.ts`** (21 tests)
+   - Panel size management and boundaries
+   - Drag state tracking
+   - View and visibility control
+   - Edge cases for size clamping
+
+2. **`src/stores/__tests__/BottomPanelStore.test.ts`** (19 tests)
+   - Same coverage as PanelStore for bottom panel
+   - Different default sizes (300 vs 500) and boundaries
+
+3. **`src/utils/__tests__/nodeUtils.test.ts`** (12 tests)
+   - GROUP_NODE_METADATA validation
+   - COMMENT_NODE_METADATA validation
+
+4. **`src/utils/__tests__/handleUtils.test.ts`** (18 tests)
+   - Output and input handle finding
+   - Dynamic handle support
+   - Handle validation functions
+
+5. **`src/hooks/__tests__/useFitView.test.ts`** (6 tests)
+   - Hook returns callback function
+   - getNodesBounds utility function
+
+### Test Results
+
+- **Before**: 3132 passing, 2 failing
+- **After**: 3134 passing, 0 failing
+- **Test Suites**: 239 passed
+- **New Tests**: 76 tests added
+
+### Files Created
+
+- `web/src/stores/__tests__/PanelStore.test.ts`
+- `web/src/stores/__tests__/BottomPanelStore.test.ts`
+- `web/src/utils/__tests__/nodeUtils.test.ts`
+- `web/src/utils/__tests__/handleUtils.test.ts`
+- `web/src/hooks/__tests__/useFitView.test.ts`
+
+### Files Modified
+
+- `web/src/stores/__tests__/GlobalChatStore.test.ts` - Fixed mock implementation

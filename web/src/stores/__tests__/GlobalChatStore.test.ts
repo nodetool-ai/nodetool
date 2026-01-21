@@ -33,7 +33,11 @@ const eventSubscriptions: Record<string, ((...args: any[]) => void)[]> = {};
 
 const mockGlobalWebSocketManager = {
   send: jest.fn().mockResolvedValue(undefined),
-  ensureConnection: jest.fn().mockResolvedValue(undefined),
+  ensureConnection: jest.fn().mockImplementation(async function(this: any) {
+    if (!this.isConnectionOpen()) {
+      throw new Error("WebSocket connection not open");
+    }
+  }),
   disconnect: jest.fn(),
   subscribe: jest.fn().mockImplementation((key: string, callback: (data: any) => void) => {
     threadSubscriptions[key] = callback;
