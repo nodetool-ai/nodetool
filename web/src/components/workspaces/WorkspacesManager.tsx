@@ -382,6 +382,18 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     setEditName("");
   }, []);
 
+  const handleUpdateClick = useCallback((id: string) => () => {
+    handleUpdate(id);
+  }, [handleUpdate]);
+
+  const handleStartEditClick = useCallback((workspace: WorkspaceResponse) => () => {
+    handleStartEdit(workspace);
+  }, [handleStartEdit]);
+
+  const handleDeleteWorkspaceClick = useCallback((id: string) => () => {
+    handleDeleteWorkspace(id);
+  }, [handleDeleteWorkspace]);
+
   const handleBrowse = useCallback(async () => {
     // Use native dialog if available (Electron context)
     if (hasNativeDialog() && window.api.dialog) {
@@ -517,7 +529,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                         />
                         <IconButton
                           size="small"
-                          onClick={() => handleUpdate(workspace.id)}
+                          onClick={handleUpdateClick(workspace.id)}
                           color="primary"
                         >
                           <CheckIcon />
@@ -572,7 +584,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           <Tooltip title="Edit">
                             <IconButton
                               size="small"
-                              onClick={() => handleStartEdit(workspace)}
+                              onClick={handleStartEditClick(workspace)}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -580,7 +592,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           <Tooltip title="Delete">
                             <IconButton
                               size="small"
-                              onClick={() => handleDeleteWorkspace(workspace.id)}
+                              onClick={handleDeleteWorkspaceClick(workspace.id)}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>

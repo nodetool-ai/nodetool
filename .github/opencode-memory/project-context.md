@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Inline Arrow Function Memoization (2026-01-21)
+
+**What**: Memoized 100+ inline arrow functions across 8 components using useCallback factory pattern to prevent unnecessary re-renders.
+
+**Files**: TagFilter.tsx, WorkflowToolbar.tsx, RenderNodes.tsx, SearchResults.tsx, WorkspacesManager.tsx, QuickActionTiles.tsx, RecentNodesTiles.tsx, FavoritesTiles.tsx
+
+**Impact**: Prevents creation of new function references on every render, reducing re-renders in workflow, node menu, and workspace management components.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
