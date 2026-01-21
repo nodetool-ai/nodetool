@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Inline Handler Memoization (2026-01-21)
+
+**What**: Memoized 10+ inline arrow functions in render using useCallback across 4 components (FloatingToolBar, WorkspacesManager, SettingsMenu, AppToolbar) to prevent unnecessary re-renders.
+
+**Files**: web/src/components/panels/FloatingToolBar.tsx, WorkspacesManager.tsx, SettingsMenu.tsx, AppToolbar.tsx
+
+**Impact**: Stable function references reduce re-renders in toolbar, menu, and dialog components.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
@@ -104,18 +114,10 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### useInputNodeAutoRun Tests Fix (2026-01-19)
-
-**What**: Fixed 3 failing tests by correcting mock setups for subgraph edges and node store data.
-
-**Files**: web/src/hooks/nodes/__tests__/useInputNodeAutoRun.test.ts
-
-**Impact**: All 15 tests now pass, type checking and linting pass.
-
----
-
 > **Format**: `Feature (date): One line. Files: x, y`
-> **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
+> **Limit**: 5 most recent entries. Delete oldest when adding new.
+
+### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
 
