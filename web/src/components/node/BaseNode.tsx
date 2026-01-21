@@ -262,6 +262,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { workflow_id, title } = data;
   // Subscribe directly to focusedNodeId with equality check to avoid re-renders
   const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -328,26 +329,34 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return r;
   });
 
-  // Manage overlay visibility based on node status and result
+  // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
     // Reset overlay when node starts running again
     if (status === "running" || status === "starting") {
       setShowResultOverlay(false);
     }
-    // Automatically show overlay when result becomes available and node completes
-    // Only for non-output nodes, and only when completed (not error or cancelled)
+    // When node completes with result, respect user's saved preference
+    // Only for non-output nodes (output nodes always show results)
     else if (result && !nodeType.isOutputNode && status === "completed") {
-      setShowResultOverlay(true);
+      // Only show result overlay if user has explicitly saved that preference
+      if (data.showResultPreference === true) {
+        setShowResultOverlay(true);
+      }
+      // Otherwise stay on inputs view (default behavior)
     }
-  }, [result, nodeType.isOutputNode, status]);
+  }, [result, nodeType.isOutputNode, status, data.showResultPreference]);
 
   const handleShowInputs = useCallback(() => {
     setShowResultOverlay(false);
-  }, []);
+    // Save preference: user wants to see inputs after workflow runs
+    updateNodeData(id, { showResultPreference: false });
+  }, [id, updateNodeData]);
 
   const handleShowResults = useCallback(() => {
     setShowResultOverlay(true);
-  }, []);
+    // Save preference: user wants to see results after workflow runs
+    updateNodeData(id, { showResultPreference: true });
+  }, [id, updateNodeData]);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
   const isEmptyResult = (obj: any) => obj && typeof obj === "object" && Object.keys(obj).length === 0;
