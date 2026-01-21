@@ -46,7 +46,7 @@ export const createStyles = (theme: Theme) =>
       outline: "none",
       border: "0",
       borderColor: "transparent",
-      padding: "6px 10px 6px 6px",
+      padding: "6px 10px 12px 6px",
       margin: "0",
       boxSizing: "border-box",
       "&::placeholder": {
