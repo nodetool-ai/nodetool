@@ -266,6 +266,14 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     setSortMenuAnchor(null);
   }, [setSortBy]);
 
+  const createTagClickHandler = useCallback((tag: string) => {
+    return () => toggleTag(tag);
+  }, [toggleTag]);
+
+  const createSortClickHandler = useCallback((sortBy: SortBy) => {
+    return () => handleSortChange(sortBy);
+  }, [handleSortChange]);
+
   const handleCreateWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
     queryClient.invalidateQueries({ queryKey: ["workflows"] });
@@ -318,7 +326,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 {availableTags.map((tag) => (
                   <MenuItem
                     key={tag}
-                    onClick={() => toggleTag(tag)}
+                    onClick={createTagClickHandler(tag)}
                     className="tag-menu-item"
                   >
                     {selectedTags.includes(tag) ? (
@@ -415,13 +423,13 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             }}
           >
             <MenuItem
-              onClick={() => handleSortChange("date")}
+              onClick={createSortClickHandler("date")}
               selected={sortBy === "date"}
             >
               Sort by Date
             </MenuItem>
             <MenuItem
-              onClick={() => handleSortChange("name")}
+              onClick={createSortClickHandler("name")}
               selected={sortBy === "name"}
             >
               Sort by Name
@@ -454,7 +462,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 label={tag}
                 size="small"
                 className="active-tag-chip"
-                onDelete={() => toggleTag(tag)}
+                onDelete={createTagClickHandler(tag)}
               />
             ))}
             {selectedTags.length > 1 && (

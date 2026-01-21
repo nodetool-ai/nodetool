@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Inline Handler Memoization (2026-01-21)
+
+**What**: Memoized inline event handlers in 5 components using useCallback factories to prevent unnecessary re-renders.
+
+**Files**: BackToDashboardButton.tsx, WorkflowTile.tsx, TagFilter.tsx, WorkflowToolbar.tsx, AssetViewer.tsx
+
+**Impact**: Components with React.memo wrappers now have stable callback references.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
@@ -115,23 +125,7 @@ const store = useNodeStore();  // ❌ causes re-renders
 ---
 
 > **Format**: `Feature (date): One line. Files: x, y`
-> **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
-
-**What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
-
-**Why**: Both actions used the same PlayArrowIcon, confusing users about their different purposes.
-
-**Files**: `web/src/components/context_menus/NodeContextMenu.tsx`, `web/src/components/node/NodeToolButtons.tsx`
-
----
-
-### Image Size Display in Nodes (2026-01-16)
-
-**What**: Added image dimensions display (width × height) at bottom right of image output nodes, shown in tiny monospace font with semi-transparent background.
-
-**Why**: Users can now see image size without clicking on the image, improving workflow visibility.
-
-**Files**: `web/src/components/node/ImageView.tsx`
+> **Limit**: 5 most recent entries. Delete oldest when adding new.
 
 ---
 
