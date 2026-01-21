@@ -1,12 +1,12 @@
 Linting web package...
 cd web && npm run lint
 
-> nodetool@0.6.2-rc.27 lint
+> nodetool@0.6.2 lint
 > eslint src
 
 Linting electron package...
 cd electron && npm run lint
 
-> nodetool-electron@0.6.2-rc.27 lint
+> nodetool-electron@0.6.2 lint
 > eslint .
 
