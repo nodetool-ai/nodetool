@@ -139,9 +139,13 @@ class GlobalWebSocketManager extends EventEmitter {
       routingKeys.add(message.workflow_id);
     }
 
+    if (message.job_id) {
+      routingKeys.add(message.job_id);
+    }
+
     if (routingKeys.size === 0) {
       log.debug(
-        "GlobalWebSocketManager: Message without job_id or thread_id",
+        "GlobalWebSocketManager: Message without routing key (job_id/workflow_id/thread_id)",
         message
       );
       return;

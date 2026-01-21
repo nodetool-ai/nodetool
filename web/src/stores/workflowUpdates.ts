@@ -44,17 +44,54 @@ export const subscribeToWorkflowUpdates = (
     existing.unsubscribe();
   }
 
-  const unsubscribe = globalWebSocketManager.subscribe(
+  const unsubscribeWorkflow = globalWebSocketManager.subscribe(
     workflowId,
     (message: MsgpackData) => {
       handleUpdate(workflow, message, runnerStore);
     }
   );
 
+  let unsubscribeJob: (() => void) | null = null;
+
+  const updateJobSubscription = (jobId: string | null) => {
+    if (unsubscribeJob) {
+      unsubscribeJob();
+      unsubscribeJob = null;
+    }
+
+    if (!jobId) {
+      return;
+    }
+
+    unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message: any) => {
+      // Avoid double-processing when the backend already provides workflow_id.
+      // The job_id routing exists as a fallback for updates where workflow_id is
+      // missing/null (e.g. terminal job completion updates).
+      if (message?.workflow_id) {
+        return;
+      }
+
+      handleUpdate(workflow, message as MsgpackData, runnerStore);
+    });
+  };
+
+  // Track runnerStore job_id changes so we can subscribe by job_id as a fallback.
+  updateJobSubscription(runnerStore.getState().job_id);
+  const unsubscribeRunnerStore = runnerStore.subscribe((state, prevState) => {
+    if (state.job_id !== prevState.job_id) {
+      updateJobSubscription(state.job_id);
+    }
+  });
+
   workflowSubscriptions.set(workflowId, {
     workflowId,
     unsubscribe: () => {
-      unsubscribe();
+      unsubscribeWorkflow();
+      unsubscribeRunnerStore();
+      if (unsubscribeJob) {
+        unsubscribeJob();
+        unsubscribeJob = null;
+      }
       workflowSubscriptions.delete(workflowId);
     }
   });

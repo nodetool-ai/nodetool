@@ -1,5 +1,6 @@
 import { TextEncoder, TextDecoder } from "util";
 import { FrontendToolRegistry } from "../../tools/frontendTools";
+import { globalWebSocketManager } from "../GlobalWebSocketManager";
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
@@ -43,6 +44,18 @@ describe("GlobalWebSocketManager", () => {
       const manifest = FrontendToolRegistry.getManifest();
       expect(manifest).toHaveLength(1);
       expect(manifest[0].name).toBe("ui_test_tool");
+    });
+  });
+
+  describe("routing", () => {
+    it("routes messages by job_id", () => {
+      const handler = jest.fn();
+      const unsubscribe = globalWebSocketManager.subscribe("job-123", handler);
+
+      (globalWebSocketManager as any).routeMessage({ job_id: "job-123" });
+
+      expect(handler).toHaveBeenCalledWith({ job_id: "job-123" });
+      unsubscribe();
     });
   });
 });
