@@ -7,7 +7,7 @@ import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface LanguageModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: LanguageModel) => void;
   value: string;
   allowedProviders?: string[];
 }

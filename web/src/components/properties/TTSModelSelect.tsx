@@ -9,8 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface TTSModelSelectProps {
-  onChange: (value: any) => void;
-  value: any; // Can be string (legacy) or TTSModel object
+  onChange: (value: TTSModel) => void;
+  value: string | TTSModel;
 }
 
 const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {

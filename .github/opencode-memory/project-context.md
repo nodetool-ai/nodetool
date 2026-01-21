@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Model Select Component Type Improvements (2026-01-21)
+
+**What**: Replaced `any` types with specific model types in 4 model select components for better type safety.
+
+**Files**: web/src/components/properties/LanguageModelSelect.tsx, ImageModelSelect.tsx, TTSModelSelect.tsx, InferenceProviderModelSelect.tsx
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
