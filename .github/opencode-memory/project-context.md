@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Plotly Lazy Loading (2026-01-21)
+
+**What**: Lazy-loaded Plotly (4.6 MB charting library) using React.lazy to reduce initial bundle size. Chart library now loads on-demand only when users view plotly charts.
+
+**Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx
+
+**Impact**: Initial bundle smaller; 4.6 MB chart library loads only when needed.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
