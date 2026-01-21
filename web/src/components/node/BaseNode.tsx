@@ -263,6 +263,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Subscribe directly to focusedNodeId with equality check to avoid re-renders
   const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
   const updateNodeData = useNodes((state) => state.updateNodeData);
+  const updateNode = useNodes((state) => state.updateNode);
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -407,7 +408,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
-  }, [showAdvancedFields]);
+    // Reset node height to auto-size when toggling advanced fields
+    updateNode(id, { height: undefined, measured: undefined });
+  }, [showAdvancedFields, updateNode, id]);
 
   return (
     <Container
