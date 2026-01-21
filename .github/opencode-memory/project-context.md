@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Inline Arrow Function Memoization (2026-01-21)
+
+**What**: Fixed inline arrow functions in 5 memoized components (BackToDashboardButton, WorkflowTile, TagFilter, WorkflowToolbar, ProviderSetupPanel).
+
+**Files**: web/src/components/dashboard/BackToDashboardButton.tsx, workflows/WorkflowTile.tsx, workflows/TagFilter.tsx, workflows/WorkflowToolbar.tsx, dashboard/ProviderSetupPanel.tsx
+
+**Impact**: Memoized components now only re-render when props change, preventing unnecessary re-renders.
+
+---
+
 ### Component Memoization (2026-01-20)
 
 **What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.

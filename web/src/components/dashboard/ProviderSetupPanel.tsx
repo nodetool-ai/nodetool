@@ -305,6 +305,14 @@ const ProviderSetupPanel: React.FC = () => {
     handleOpenLink(url);
   }, [handleOpenLink]);
 
+  const createProviderLinkHandler = useCallback((url: string) => {
+    return (e: React.MouseEvent) => handleProviderLink(url, e);
+  }, [handleProviderLink]);
+
+  const createProviderSaveHandler = useCallback((providerKey: ProviderKey) => {
+    return () => handleProviderSave(providerKey);
+  }, [handleProviderSave]);
+
   return (
     <Box css={panelStyles(theme)} className="provider-setup-panel">
       <div className="scrollable-content">
@@ -374,7 +382,7 @@ const ProviderSetupPanel: React.FC = () => {
                         <a
                           href={provider.link}
                           className="provider-link"
-                          onClick={handleProviderLink.bind(null, provider.link)}
+                          onClick={createProviderLinkHandler(provider.link)}
                         >
                           {provider.linkText}
                           <OpenInNewIcon sx={{ fontSize: 14 }} />
@@ -397,7 +405,7 @@ const ProviderSetupPanel: React.FC = () => {
                           <Button
                             variant="contained"
                             size="small"
-                            onClick={() => handleProviderSave(provider.key)}
+                            onClick={createProviderSaveHandler(provider.key)}
                             disabled={!hasInput || isSaving}
                             startIcon={
                               isSaving ? (
