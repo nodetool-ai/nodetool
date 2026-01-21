@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import PropertyField from "./node/PropertyField";
 import { Box, Button, IconButton, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
@@ -277,6 +277,49 @@ const Inspector: React.FC = () => {
     );
   }
 
+  const selectedNode = selectedNodes[0] || null;
+  const metadata = selectedNode
+    ? getMetadata(selectedNode.type as string)
+    : null;
+
+  if (!selectedNode) {
+    return (
+      <Box className="inspector" css={inspectorStyles}>
+        <Box className="top">
+          <Box className="top-content">
+            <Box className="inspector-header">
+              <PanelHeadline title="Inspector" />
+              <Typography variant="body2" color="text.secondary">
+                Select nodes to edit
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+        <Box className="bottom"></Box>
+      </Box>
+    );
+  }
+
+  if (!metadata) {
+    return <Typography>No metadata available for this node</Typography>;
+  }
+
+  const handleOpenNodeMenu = () => {
+    openNodeMenu({
+      x: 500,
+      y: 200,
+      dropType: metadata.namespace
+    });
+  };
+
+  const handleTagClick = (tag: string) => {
+    openNodeMenu({
+      x: 500,
+      y: 200,
+      searchTerm: tag
+    });
+  };
+
   if (isMultiSelect) {
     if (!metadataCoverageMatches) {
       return (
@@ -363,49 +406,6 @@ const Inspector: React.FC = () => {
       </EditorUiProvider>
     );
   }
-
-  const selectedNode = selectedNodes[0] || null;
-  const metadata = selectedNode
-    ? getMetadata(selectedNode.type as string)
-    : null;
-
-  if (!selectedNode) {
-    return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <Box className="top-content">
-            <Box className="inspector-header">
-              <PanelHeadline title="Inspector" />
-              <Typography variant="body2" color="text.secondary">
-                Select nodes to edit
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-        <Box className="bottom"></Box>
-      </Box>
-    );
-  }
-
-  if (!metadata) {
-    return <Typography>No metadata available for this node</Typography>;
-  }
-
-  const handleOpenNodeMenu = () => {
-    openNodeMenu({
-      x: 500,
-      y: 200,
-      dropType: metadata.namespace
-    });
-  };
-
-  const handleTagClick = (tag: string) => {
-    openNodeMenu({
-      x: 500,
-      y: 200,
-      searchTerm: tag
-    });
-  };
 
   return (
     <EditorUiProvider scope="inspector">
@@ -520,4 +520,4 @@ const Inspector: React.FC = () => {
   );
 };
 
-export default Inspector;
+export default memo(Inspector);

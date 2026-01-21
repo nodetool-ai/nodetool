@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -259,22 +259,51 @@ const AssetActions = ({
   ]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleOrderChange = (_: any, newOrder: any) => {
+  const handleOrderChange = useCallback((_: any, newOrder: any) => {
     if (newOrder !== null) {
       setAssetsOrder(newOrder);
     }
-  };
+  }, [setAssetsOrder]);
 
-  const handleSizeFilterChange = (_: any, newSizeFilter: SizeFilterKey) => {
+  const handleSizeFilterChange = useCallback((_: any, newSizeFilter: SizeFilterKey) => {
     if (newSizeFilter !== null) {
       setSizeFilter(newSizeFilter);
     }
-  };
+  }, [setSizeFilter]);
 
-  const handleViewModeToggle = () => {
+  const handleViewModeToggle = useCallback(() => {
     setViewMode(viewMode === "grid" ? "list" : "grid");
-  };
+  }, [viewMode, setViewMode]);
 
+  const handleChange = useCallback((event: Event, value: number | number[]) => {
+    if (Array.isArray(value)) {
+      setAssetItemSize(value[0] as number);
+    } else {
+      setAssetItemSize(value as number);
+    }
+  }, [setAssetItemSize]);
+
+  const handleCreateFolder = useCallback(() => {
+    setCreateFolderAnchor(null);
+    createFolder(currentFolder?.id || "", createFolderName).then(() => {
+      addNotification({
+        type: "success",
+        content: `CREATE FOLDER: ${createFolderName}`
+      });
+      setCreateFolderAnchor(null);
+      refetchAssetsAndFolders();
+    });
+  }, [createFolder, currentFolder, createFolderName, addNotification, refetchAssetsAndFolders]);
+
+  const handleClosePopover = useCallback(() => {
+    setCreateFolderAnchor(null);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleCreateFolder();
+    }
+  }, [handleCreateFolder]);
   useEffect(() => {
     if (createFolderAnchor) {
       const timer = setTimeout(() => {
@@ -286,24 +315,6 @@ const AssetActions = ({
     }
   }, [createFolderAnchor]);
 
-  const handleChange = (event: Event, value: number | number[]) => {
-    if (Array.isArray(value)) {
-      setAssetItemSize(value[0] as number);
-    } else {
-      setAssetItemSize(value as number);
-    }
-  };
-  const handleCreateFolder = () => {
-    setCreateFolderAnchor(null);
-    createFolder(currentFolder?.id || "", createFolderName).then(() => {
-      addNotification({
-        type: "success",
-        content: `CREATE FOLDER: ${createFolderName}`
-      });
-      setCreateFolderAnchor(null);
-      refetchAssetsAndFolders();
-    });
-  };
   return (
     <div className="asset-actions" css={styles(theme)}>
       <FileUploadButton
@@ -444,7 +455,7 @@ const AssetActions = ({
         className="dialog"
         open={Boolean(createFolderAnchor)}
         anchorEl={createFolderAnchor}
-        onClose={() => setCreateFolderAnchor(null)}
+        onClose={handleClosePopover}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
@@ -460,11 +471,7 @@ const AssetActions = ({
               autoFocus
               autoComplete="off"
               id="name"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleCreateFolder();
-                }
-              }}
+              onKeyDown={handleKeyDown}
               onChange={(e) => setCreateFolderName(e.target.value)}
               fullWidth
             />
@@ -473,7 +480,7 @@ const AssetActions = ({
         <DialogActions className="dialog-actions">
           <Button
             className="button-cancel"
-            onClick={() => setCreateFolderAnchor(null)}
+            onClick={handleClosePopover}
           >
             Cancel
           </Button>
@@ -486,4 +493,4 @@ const AssetActions = ({
   );
 };
 
-export default AssetActions;
+export default memo(AssetActions);
