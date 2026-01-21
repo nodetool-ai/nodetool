@@ -3,7 +3,7 @@
 import { Typography, Box, CircularProgress } from "@mui/material";
 import { useCallback, useMemo, useState, useEffect, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
@@ -176,10 +176,13 @@ const styles = (theme: Theme) =>
 
 const TemplateGrid = memo(function TemplateGrid() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const loadWorkflows = useWorkflowManager((state) => state.loadTemplates);
   const searchTemplates = useWorkflowManager((state) => state.searchTemplates);
   const createWorkflow = useWorkflowManager((state) => state.create);
+  const closePanel = usePanelStore((state) => state.closePanel);
+
   const [selectedTag, setSelectedTag] = useState<string | null>("start");
   const [inputValue, setInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -187,7 +190,6 @@ const TemplateGrid = memo(function TemplateGrid() {
     []
   );
   const [nodesOnlySearch, setNodesOnlySearch] = useState(false);
-  const closePanel = usePanelStore((state) => state.closePanel);
   const [loadingWorkflowId, setLoadingWorkflowId] = useState<string | null>(
     null
   );
@@ -196,6 +198,8 @@ const TemplateGrid = memo(function TemplateGrid() {
     closePanel();
   }, [closePanel]);
 
+  // Sync state from URL node param - runs on mount and URL changes
+  // Using location.search as dependency for reliable trigger on navigation
   useEffect(() => {
     const nodeParam = searchParams.get("node");
     if (nodeParam) {
@@ -204,7 +208,7 @@ const TemplateGrid = memo(function TemplateGrid() {
       setNodesOnlySearch(true);
       setSelectedTag(null);
     }
-  }, [searchParams]);
+  }, [location.search, searchParams]);
 
   const {
     data,
