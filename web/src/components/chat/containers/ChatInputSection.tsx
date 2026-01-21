@@ -32,11 +32,8 @@ const styles = (_theme: Theme) =>
       width: "100%",
       order: 1,
       minHeight: "44px",
-      maxHeight: "120px",
       display: "flex",
-      flexDirection: "column",
-      overflow: "visible",
-      contain: "none"
+      flexDirection: "column"
     }
   });
 
