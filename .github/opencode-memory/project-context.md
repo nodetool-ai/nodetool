@@ -64,6 +64,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Component Memoization (2026-01-21)
+
+**What**: Added React.memo to 4 large components (Inspector, AssetActions, ColorInputs, SecretsMenu) and memoized inline handlers with useCallback.
+
+**Files**: web/src/components/Inspector.tsx, assets/AssetActions.tsx, color_picker/ColorInputs.tsx, menus/SecretsMenu.tsx
+
+**Impact**: 2000+ lines of UI code now only re-renders when props change.
+
+---
+
 ### Component Memoization (2026-01-20)
 
 **What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.

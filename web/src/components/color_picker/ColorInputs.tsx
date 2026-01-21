@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { TextField, InputAdornment, Box } from "@mui/material";
@@ -499,4 +499,4 @@ const ColorInputs: React.FC<ColorInputsProps> = ({
   return <Box css={styles(theme)}>{renderInputs()}</Box>;
 };
 
-export default ColorInputs;
+export default memo(ColorInputs);

@@ -22,7 +22,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -496,4 +496,4 @@ const SecretsMenu = () => {
   );
 };
 
-export default SecretsMenu;
+export default memo(SecretsMenu);
