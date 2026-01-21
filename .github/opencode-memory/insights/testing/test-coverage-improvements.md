@@ -1,3 +1,36 @@
+# Test Coverage Improvements (2026-01-21)
+
+**Coverage Added**: 3 new test files with 30+ tests for critical stores and hooks
+
+**Tests Added**:
+- `CollectionsManagerStore.test.ts` - 4 tests for collections manager UI state
+- `useChatService.test.ts` - 18 tests for chat service hook
+- `browser.test.ts` - 14 tests for browser environment detection
+
+**Areas Covered**:
+- Collections manager store open/close state management
+- Chat service thread management, message sending, and thread preview generation
+- Electron detection via window.api, process.type, and userAgent
+- Browser environment handling for missing window/process/navigator
+
+**Files Created**:
+- `web/src/stores/__tests__/CollectionsManagerStore.test.ts`
+- `web/src/hooks/__tests__/useChatService.test.ts`
+- `web/src/utils/__tests__/browser.test.ts`
+
+**Test Results**:
+- All 2,418 tests passing
+- 241 test suites passing
+- 2 tests skipped (pre-existing)
+
+**Key Learnings**:
+1. Zustand store testing with simple state management is straightforward
+2. Chat service hooks require careful mocking of store selectors and navigation
+3. Browser detection utilities need comprehensive environment variable mocking
+4. Keep tests focused on core functionality rather than complex edge cases
+
+---
+
 # Test Coverage Improvements (2026-01-19)
 
 **Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
