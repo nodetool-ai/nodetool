@@ -250,10 +250,16 @@ const applyNodeUpdate = (
 
 const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   const threadId = state.currentThreadId;
-  if (!threadId) {return noopUpdate;}
+  if (!threadId) {
+    log.warn("applyChunk: No currentThreadId, dropping chunk");
+    return noopUpdate;
+  }
 
   const thread = state.threads[threadId];
-  if (!thread) {return noopUpdate;}
+  if (!thread) {
+    log.warn(`applyChunk: Thread ${threadId} not found, dropping chunk`);
+    return noopUpdate;
+  }
 
   const messages = state.messageCache[threadId] || [];
   const lastMessage = messages[messages.length - 1];
@@ -803,13 +809,32 @@ export async function handleChatWebSocketMessage(
 
   if (data.type === "job_update") {
     console.log("Job update received:", data);
-    applyReducer(applyJobUpdate, data as JobUpdate);
+    const jobUpdate = data as JobUpdate;
+    // Clear timeout on terminal job states
+    if (jobUpdate.status === "completed" || jobUpdate.status === "failed" || jobUpdate.status === "cancelled") {
+      const timeoutId = get().sendMessageTimeoutId;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        set({ sendMessageTimeoutId: null });
+      }
+    }
+    applyReducer(applyJobUpdate, jobUpdate);
   } else if (data.type === "node_update") {
     applyReducer(applyNodeUpdate, data as NodeUpdate);
   } else if (data.type === "edge_update") {
     applyReducer(applyEdgeUpdate, data as EdgeUpdate);
   } else if (data.type === "chunk") {
-    applyReducer(applyChunk, data as Chunk);
+    const chunk = data as Chunk;
+    if (chunk.done) {
+      log.info("Received final chunk (done=true), clearing timeout");
+      // Clear the safety timeout when generation completes
+      const timeoutId = get().sendMessageTimeoutId;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        set({ sendMessageTimeoutId: null });
+      }
+    }
+    applyReducer(applyChunk, chunk);
   } else if (data.type === "output_update") {
     applyReducer(applyOutputUpdate, data as OutputUpdate);
   } else if (data.type === "tool_call_update") {
@@ -914,6 +939,12 @@ export async function handleChatWebSocketMessage(
       }
     }
   } else if (data.type === "generation_stopped") {
+    // Clear the safety timeout when generation is stopped
+    const timeoutId = get().sendMessageTimeoutId;
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      set({ sendMessageTimeoutId: null });
+    }
     applyReducer(
       (_state) => applyGenerationStopped(),
       data as GenerationStoppedUpdate
@@ -923,6 +954,12 @@ export async function handleChatWebSocketMessage(
   } else if (data.type === "error") {
     const errorData = data as ErrorMessage;
     console.log("Error message received:", errorData);
+    // Clear the safety timeout on error
+    const timeoutId = get().sendMessageTimeoutId;
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      set({ sendMessageTimeoutId: null });
+    }
     applyReducer(
       (_state) => applyError(errorData.message),
       errorData
