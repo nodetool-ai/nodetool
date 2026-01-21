@@ -92,7 +92,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   const id = open ? "color-picker-popover" : undefined;
 
   const handleColorCellClick = useCallback(
-    (newColor: string | null) => {
+    (newColor: string | null) => () => {
       onColorChange(newColor);
       handleClose();
     },
@@ -174,7 +174,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 border: cellColor === null ? "2px dashed gray" : "none",
                 backgroundColor: cellColor || "transparent"
               }}
-              onClick={() => handleColorCellClick(cellColor)}
+              onClick={handleColorCellClick(cellColor)}
             />
           ))}
           {showCustom && (

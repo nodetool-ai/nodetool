@@ -83,8 +83,10 @@ const Select: React.FC<SelectProps> = ({
   }, [close, activeSelect, id, open]);
 
   const handleOptionClick = useCallback(
-    (optionValue: string) => {
-      onChange(optionValue);
+    (value: string) => () => {
+      if (onChange) {
+        onChange(value);
+      }
       close();
     },
     [onChange, close]
@@ -263,7 +265,7 @@ const Select: React.FC<SelectProps> = ({
                     className={`option ${
                       option.value === value ? "selected" : ""
                     } ${index === highlightedIndex ? "highlighted" : ""}`}
-                    onClick={() => handleOptionClick(option.value)}
+                    onClick={handleOptionClick(option.value)}
                   >
                     {option.label}
                   </li>

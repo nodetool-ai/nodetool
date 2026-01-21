@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
@@ -22,7 +22,7 @@ interface WorkflowTileProps {
 }
 
 const addBreaks = (text: string) => {
-  return escapeHtml(text).replace(/([-_.])/g, "$1<wbr>");
+  return escapeHtml(text).replace(/([-_.])/g, "$1<br>");
 };
 
 export const WorkflowTile = ({
@@ -37,10 +37,26 @@ export const WorkflowTile = ({
 }: WorkflowTileProps) => {
   const settings = useSettingsStore((state) => state.settings);
 
+  const handleDoubleClick = useCallback(() => {
+    onDoubleClickWorkflow(workflow);
+  }, [onDoubleClickWorkflow, workflow]);
+
+  const handleClick = useCallback(() => {
+    onSelect(workflow);
+  }, [onSelect, workflow]);
+
+  const handleOpenClick = useCallback(() => {
+    onClickOpen(workflow);
+  }, [onClickOpen, workflow]);
+
+  const handleDuplicateClick = useCallback((event: React.MouseEvent) => {
+    onDuplicateWorkflow(event, workflow);
+  }, [onDuplicateWorkflow, workflow]);
+
   return (
     <Box
-      onDoubleClick={() => onDoubleClickWorkflow(workflow)}
-      onClick={() => onSelect(workflow)}
+      onDoubleClick={handleDoubleClick}
+      onClick={handleClick}
       className={`workflow grid${isSelected ? " selected" : ""}`}
       sx={{ display: "flex", flexDirection: "column" }}
     >
@@ -73,35 +89,35 @@ export const WorkflowTile = ({
         {prettyDate(workflow.updated_at, "verbose", settings)}
       </Typography>
 
-      <div className="actions">
-        <Button
-          size="small"
-          className="open-button"
-          color="primary"
-          onClick={() => onClickOpen(workflow)}
-        >
-          Open
-        </Button>
-        {workflowCategory === "user" && (
-          <>
-            <Tooltip
-              title="Make a copy of this workflow"
-              placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button
-                size="small"
-                color="primary"
-                onClick={(event) => onDuplicateWorkflow(event, workflow)}
+        <div className="actions">
+          <Button
+            size="small"
+            className="open-button"
+            color="primary"
+            onClick={handleOpenClick}
+          >
+            Open
+          </Button>
+          {workflowCategory === "user" && (
+            <>
+              <Tooltip
+                title="Make a copy of this workflow"
+                placement="top"
+                enterDelay={TOOLTIP_ENTER_DELAY}
               >
-                Duplicate
-              </Button>
-            </Tooltip>
+                <Button
+                  size="small"
+                  color="primary"
+                  onClick={handleDuplicateClick}
+                >
+                  Duplicate
+                </Button>
+              </Tooltip>
 
-            <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
-          </>
-        )}
-      </div>
+              <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
+            </>
+          )}
+        </div>
     </Box>
   );
 };

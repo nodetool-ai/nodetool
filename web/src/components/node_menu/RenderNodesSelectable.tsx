@@ -184,7 +184,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
 
   // Handle node click - either selection or custom handler
   const handleNodeClick = useCallback(
-    (node: NodeMetadata) => {
+    (node: NodeMetadata) => () => {
       if (onNodeClick) {
         onNodeClick(node);
       } else if (showCheckboxes && onToggleSelection) {
@@ -289,7 +289,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                         node={node}
                         onDragStart={handleDragStart(node)}
                         onDragEnd={handleDragEnd}
-                        onClick={() => handleNodeClick(node)}
+                        onClick={handleNodeClick(node)}
                         showCheckbox={showCheckboxes}
                         isSelected={selectedNodeTypes.includes(node.node_type)}
                         onToggleSelection={onToggleSelection}
@@ -383,7 +383,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                   node={node}
                   onDragStart={handleDragStart(node)}
                   onDragEnd={handleDragEnd}
-                  onClick={() => handleNodeClick(node)}
+                  onClick={handleNodeClick(node)}
                   showCheckbox={showCheckboxes}
                   isSelected={true}
                   onToggleSelection={onToggleSelection}
@@ -456,7 +456,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                     node={node}
                     onDragStart={handleDragStart(node)}
                     onDragEnd={handleDragEnd}
-                    onClick={() => handleNodeClick(node)}
+                    onClick={handleNodeClick(node)}
                     showCheckbox={showCheckboxes}
                     isSelected={selectedNodeTypes.includes(node.node_type)}
                     onToggleSelection={onToggleSelection}
