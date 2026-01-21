@@ -240,7 +240,9 @@ export const useFolderBatchStore = create<FolderBatchStore>((set, get) => ({
 
   getElapsedTime: () => {
     const { startTime, pausedTime, totalPausedDuration, state } = get();
-    if (!startTime) {return 0;}
+    if (!startTime) {
+      return 0;
+    }
     
     const now = state === "paused" && pausedTime ? pausedTime : Date.now();
     return now - startTime - totalPausedDuration;
@@ -250,13 +252,17 @@ export const useFolderBatchStore = create<FolderBatchStore>((set, get) => ({
     const { files, currentIndex, state } = get();
     const elapsed = get().getElapsedTime();
     
-    if (state === "idle" || currentIndex < 0) {return null;}
+    if (state === "idle" || currentIndex < 0) {
+      return null;
+    }
     
     const completedCount = files.filter(
       (f) => f.status === "completed" || f.status === "failed" || f.status === "skipped"
     ).length;
     
-    if (completedCount === 0) {return null;}
+    if (completedCount === 0) {
+      return null;
+    }
     
     const averageTimePerFile = elapsed / completedCount;
     const remainingFiles = files.length - completedCount;
@@ -278,7 +284,9 @@ export const useFolderBatchStore = create<FolderBatchStore>((set, get) => ({
 
   getProgress: () => {
     const { files } = get();
-    if (files.length === 0) {return 0;}
+    if (files.length === 0) {
+      return 0;
+    }
     
     const processed = files.filter(
       (f) => f.status === "completed" || f.status === "failed" || f.status === "skipped"
