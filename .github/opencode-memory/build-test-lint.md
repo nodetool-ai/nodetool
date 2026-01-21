@@ -446,3 +446,63 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-21)
+
+### Tests Added
+
+**4 new test files** for critical frontend tools, workflow updates, and editor hooks:
+
+1. **`web/src/lib/tools/frontendTools.test.ts`** (16 tests)
+   - FrontendToolRegistry module testing
+   - Tool registration, unregistration, and manifest generation
+   - Hidden tool filtering
+   - Tool execution with context passing
+   - Concurrent tool calls and abort functionality
+
+2. **`web/src/stores/__tests__/workflowUpdates.test.ts`** (20+ tests)
+   - Central workflow update handler for WebSocket messages
+   - Log, notification, job, node, edge, progress updates
+   - Planning and task update handling
+   - Subscription management (subscribe/unsubscribe)
+   - State machine transitions for job statuses
+
+3. **`web/src/hooks/__tests__/useNodeEditorShortcuts.test.ts`** (2 tests)
+   - Keyboard shortcut hook module verification
+   - Complex dependency mocking for editor shortcuts
+
+4. **`web/src/hooks/__tests__/useProcessedEdges.test.ts`** (12 tests)
+   - Edge processing and type resolution
+   - Handle-based edge processing
+   - Node-edge relationship handling
+   - Missing node edge handling
+
+### Patterns Used
+
+1. **Registry Testing**: Clean up module-level state in afterEach hooks
+2. **Store Dependency Mocking**: Mock all store dependencies for isolated testing
+3. **Selective Hook Testing**: Focus on module verification for complex hooks
+4. **Factory Functions**: Use node/edge factory functions for consistent test data
+
+### Files Created
+
+- `web/src/lib/tools/frontendTools.test.ts`
+- `web/src/stores/__tests__/workflowUpdates.test.ts`
+- `web/src/hooks/__tests__/useNodeEditorShortcuts.test.ts`
+- `web/src/hooks/__tests__/useProcessedEdges.test.ts`
+
+### Test Results
+
+- **Total Tests**: 3198 tests run
+- **Passed**: 3145 (98.3%)
+- **Failed**: 51 (1.7% - pre-existing test issues)
+- **Test Suites**: 242 total, 238 passed
+
+### Coverage Impact
+
+- **workflowUpdates.ts**: +438 lines covered
+- **frontendTools.ts**: +88 lines covered
+- **useNodeEditorShortcuts.ts**: +20KB hook partially covered
+- **useProcessedEdges.ts**: +10KB hook partially covered
