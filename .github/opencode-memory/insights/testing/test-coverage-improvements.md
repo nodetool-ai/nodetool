@@ -1,3 +1,111 @@
+# Test Coverage Improvements (2026-01-21)
+
+**Coverage Added**: 3 new test files with 35 tests for critical hooks
+
+**Tests Added**:
+- `useApiKeyValidation.test.ts` - 15 tests for API key validation and namespace mapping
+- `useDashboardData.test.tsx` - 9 tests for dashboard data loading and workflow sorting
+- `useProcessedEdges.test.ts` - 11 tests for edge processing, type resolution, and styling
+
+**Areas Covered**:
+- API key validation for multiple providers (OpenAI, Anthropic, Google, HuggingFace, Replicate, etc.)
+- Namespace to secret key mapping and display name resolution
+- React Query integration for workflow and template loading
+- Workflow sorting by name and updated date
+- Edge type resolution through Reroute nodes
+- Gradient key generation for different source/target types
+- Bypassed node styling
+- Message counter display for message_sent status
+- Selection drag caching optimization
+
+**Test Patterns Used**:
+
+1. **Hook Testing with Mocked Dependencies** (useApiKeyValidation):
+```typescript
+describe("useApiKeyValidation", () => {
+  it("returns display name when required API key is missing", () => {
+    (useSecrets as jest.Mock).mockReturnValue({
+      isApiKeySet: jest.fn(() => false),
+      isLoading: false
+    });
+
+    const { result } = renderHook(() => useApiKeyValidation("openai.chat"));
+    expect(result.current).toBe("OpenAI API Key");
+  });
+});
+```
+
+2. **React Query Hook Testing** (useDashboardData):
+```typescript
+describe("useDashboardData", () => {
+  it("returns workflows after successful loading", async () => {
+    const mockWorkflows = {
+      workflows: [
+        { id: "1", name: "Workflow 1", updated_at: "2026-01-20" }
+      ]
+    };
+
+    (client.GET as jest.Mock).mockResolvedValue({ data: mockWorkflows, error: null });
+
+    const { result } = renderHook(() => useDashboardData(), {
+      wrapper: createWrapper()
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoadingWorkflows).toBe(false);
+    });
+
+    expect(result.current.sortedWorkflows).toHaveLength(1);
+  });
+});
+```
+
+3. **Complex Hook Testing with Multiple Mocks** (useProcessedEdges):
+```typescript
+describe("useProcessedEdges", () => {
+  it("adds gradient key for different source and target types", () => {
+    const nodes = [createMockNode("node1"), createMockNode("node2")];
+    const edges = [createMockEdge("edge1", "node1", "node2")];
+
+    (findOutputHandle as jest.Mock).mockReturnValue({ type: { type: "text" } });
+    (findInputHandle as jest.Mock).mockReturnValue({ type: { type: "image" } });
+
+    const { result } = renderHook(() =>
+      useProcessedEdges({
+        edges,
+        nodes,
+        dataTypes: mockDataTypes,
+        getMetadata: mockGetMetadata
+      })
+    );
+
+    expect(result.current.activeGradientKeys.has("gradient-text-image")).toBe(true);
+  });
+});
+```
+
+**Files Created**:
+- `web/src/hooks/__tests__/useApiKeyValidation.test.ts`
+- `web/src/hooks/__tests__/useDashboardData.test.tsx`
+- `web/src/hooks/__tests__/useProcessedEdges.test.ts`
+
+**Key Learnings**:
+1. Mock paths must use correct relative paths from test file location (`../../stores/` for hooks tests)
+2. React Query hooks require QueryClientProvider wrapper for testing
+3. Mock functions should be reset in beforeEach to avoid state leakage between tests
+4. Complex hooks with multiple dependencies need comprehensive mocking at multiple levels
+5. Async tests with React Query should use waitFor with appropriate timeout
+6. TypeScript test files with JSX must use `.tsx` extension
+
+**Coverage Impact**:
+- **Before**: 239 test suites, 3,138 tests
+- **After**: 242 test suites, 3,173 tests
+- **Net Gain**: +3 test suites, +35 tests
+
+**Status**: All 3,173 tests passing (242 test suites, 2 skipped)
+
+---
+
 # Test Coverage Improvements (2026-01-19)
 
 **Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
