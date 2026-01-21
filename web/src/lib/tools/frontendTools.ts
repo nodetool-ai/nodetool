@@ -83,5 +83,9 @@ export const FrontendToolRegistry = {
   abortAll() {
     for (const { controller } of active.values()) {controller.abort();}
     active.clear();
+  },
+  clearRegistry() {
+    registry.clear();
+    active.clear();
   }
 };

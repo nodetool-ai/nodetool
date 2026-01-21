@@ -446,3 +446,74 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-21)
+
+### Tests Added
+
+**4 new test files** covering critical core libraries and graph utilities:
+
+1. **`src/core/workflow/__tests__/graphMapping.test.ts`**
+   - Tests `isValidEdge` function for edge validation
+   - Tests edge validation with missing nodes
+   - Tests edge validation with invalid handles
+   - Tests `sanitizeGraph` function for graph cleanup
+   - Tests parent reference removal for non-existent parents
+   - Tests edge removal for invalid connections
+
+2. **`src/core/__tests__/graph.test.ts`**
+   - Tests `topologicalSort` function for node ordering
+   - Tests linear chain sorting
+   - Tests parallel node grouping in same layer
+   - Tests diamond pattern handling
+   - Tests cycle detection and warnings
+   - Tests `subgraph` function for graph extraction
+   - Tests subgraph extraction with stop node
+   - Tests edge filtering within subgraph
+
+3. **`src/lib/__tests__/frontendTools.test.ts`**
+   - Tests `FrontendToolRegistry` singleton patterns
+   - Tests tool registration and unregistration
+   - Tests manifest generation (visible vs hidden tools)
+   - Tests tool execution with context
+   - Tests error handling for unknown tools
+   - Tests abort signal propagation
+   - Tests registry cleanup with `clearRegistry` method
+
+4. **`src/lib/dragdrop/__tests__/serialization.test.ts`** (verified complete)
+   - Tests drag data serialization with new and legacy formats
+   - Tests backward compatibility with legacy dataTransfer keys
+   - Tests deserialization fallback logic
+   - Tests external file detection
+   - Tests file extraction from dataTransfer
+   - Tests drag count badge creation
+
+### Patterns Used
+
+1. **Core Utility Testing**: Test pure functions with various graph topologies
+2. **Singleton Testing**: Proper cleanup between tests with `clearRegistry` method
+3. **Protocol Testing**: Test message handling and context passing
+4. **Backward Compatibility**: Test both new unified format and legacy format handling
+5. **Mock DataTransfer**: Create mock objects for browser APIs
+
+### Files Created/Verified
+
+- `web/src/core/workflow/__tests__/graphMapping.test.ts`
+- `web/src/core/__tests__/graph.test.ts`
+- `web/src/lib/__tests__/frontendTools.test.ts`
+- `web/src/lib/dragdrop/__tests__/serialization.test.ts` (already existed)
+
+### Test Results
+
+- All 240 test suites pass (3150 tests)
+- Added `clearRegistry()` method to FrontendToolRegistry for test isolation
+- Fixed TypeScript errors in test files
+- Removed unused imports to resolve lint warnings
+
+### Code Changes
+
+1. Added `clearRegistry()` method to `src/lib/tools/frontendTools.ts` for test cleanup
+2. Fixed TypeScript type assertions in `frontendTools.test.ts`
+3. Removed unused `NodeStore` import from test file
