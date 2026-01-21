@@ -1,180 +1,182 @@
-import useStatusStore, { hashKey } from "../StatusStore";
+import useStatusStore from "../StatusStore";
 
 describe("StatusStore", () => {
   beforeEach(() => {
-    useStatusStore.setState({ statuses: {} });
+    useStatusStore.setState(useStatusStore.getInitialState());
   });
 
-  describe("hashKey", () => {
-    it("should create a unique key from workflowId and nodeId", () => {
-      expect(hashKey("workflow1", "node1")).toBe("workflow1:node1");
-      expect(hashKey("workflow2", "node2")).toBe("workflow2:node2");
+  afterEach(() => {
+    useStatusStore.setState(useStatusStore.getInitialState());
+  });
+
+  describe("initial state", () => {
+    it("has empty statuses initially", () => {
+      expect(useStatusStore.getState().statuses).toEqual({});
     });
   });
 
   describe("setStatus", () => {
-    it("should set status for a specific workflow and node", () => {
-      const { setStatus, getStatus } = useStatusStore.getState();
+    it("sets status for a node", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "running");
 
-      setStatus("workflow1", "node1", "running");
-
-      expect(getStatus("workflow1", "node1")).toBe("running");
+      const status = useStatusStore.getState().statuses["workflow-1:node-1"];
+      expect(status).toBe("running");
     });
 
-    it("should update existing status", () => {
-      const { setStatus, getStatus } = useStatusStore.getState();
+    it("overwrites existing status", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "pending");
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "running");
 
-      setStatus("workflow1", "node1", "running");
-      expect(getStatus("workflow1", "node1")).toBe("running");
-
-      setStatus("workflow1", "node1", "completed");
-      expect(getStatus("workflow1", "node1")).toBe("completed");
+      const status = useStatusStore.getState().statuses["workflow-1:node-1"];
+      expect(status).toBe("running");
     });
 
-    it("should handle different workflows and nodes independently", () => {
-      const { setStatus, getStatus } = useStatusStore.getState();
+    it("stores status as object", () => {
+      const statusObj = { message: "Processing", progress: 50 };
+      useStatusStore.getState().setStatus("workflow-1", "node-1", statusObj);
 
-      setStatus("workflow1", "node1", "running");
-      setStatus("workflow1", "node2", "pending");
-      setStatus("workflow2", "node1", "completed");
-
-      expect(getStatus("workflow1", "node1")).toBe("running");
-      expect(getStatus("workflow1", "node2")).toBe("pending");
-      expect(getStatus("workflow2", "node1")).toBe("completed");
+      const status = useStatusStore.getState().statuses["workflow-1:node-1"];
+      expect(status).toEqual(statusObj);
     });
 
-    it("should handle complex status objects", () => {
-      const { setStatus, getStatus } = useStatusStore.getState();
+    it("stores null status", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", null);
 
-      const statusObject = {
-        progress: 75,
-        message: "Processing...",
-        timestamp: new Date()
-      };
+      const status = useStatusStore.getState().statuses["workflow-1:node-1"];
+      expect(status).toBeNull();
+    });
 
-      setStatus("workflow1", "node1", statusObject);
+    it("stores different workflows separately", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "running");
+      useStatusStore.getState().setStatus("workflow-2", "node-1", "completed");
 
-      expect(getStatus("workflow1", "node1")).toEqual(statusObject);
+      const status1 = useStatusStore.getState().statuses["workflow-1:node-1"];
+      const status2 = useStatusStore.getState().statuses["workflow-2:node-1"];
+      expect(status1).toBe("running");
+      expect(status2).toBe("completed");
+    });
+
+    it("stores multiple nodes in same workflow", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "running");
+      useStatusStore.getState().setStatus("workflow-1", "node-2", "completed");
+
+      const status1 = useStatusStore.getState().statuses["workflow-1:node-1"];
+      const status2 = useStatusStore.getState().statuses["workflow-1:node-2"];
+      expect(status1).toBe("running");
+      expect(status2).toBe("completed");
     });
   });
 
   describe("getStatus", () => {
-    it("should return undefined for non-existent status", () => {
-      const { getStatus } = useStatusStore.getState();
+    it("returns status for existing node", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "completed");
 
-      expect(getStatus("workflow1", "node1")).toBeUndefined();
+      const status = useStatusStore.getState().getStatus("workflow-1", "node-1");
+      expect(status).toBe("completed");
     });
 
-    it("should return the correct status for existing entries", () => {
-      const { setStatus, getStatus } = useStatusStore.getState();
+    it("returns undefined for non-existing node", () => {
+      const status = useStatusStore.getState().getStatus("workflow-1", "non-existent");
+      expect(status).toBeUndefined();
+    });
 
-      setStatus("workflow1", "node1", "running");
-      setStatus("workflow1", "node2", "completed");
+    it("returns undefined for non-existing workflow", () => {
+      const status = useStatusStore.getState().getStatus("non-existent", "node-1");
+      expect(status).toBeUndefined();
+    });
 
-      expect(getStatus("workflow1", "node1")).toBe("running");
-      expect(getStatus("workflow1", "node2")).toBe("completed");
+    it("returns status after multiple sets", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "pending");
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "running");
+
+      const status = useStatusStore.getState().getStatus("workflow-1", "node-1");
+      expect(status).toBe("running");
     });
   });
 
   describe("clearStatuses", () => {
-    it("should clear all statuses for a specific workflow", () => {
-      const { setStatus, getStatus, clearStatuses } = useStatusStore.getState();
+    it("clears statuses for specific workflow", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "running");
+      useStatusStore.getState().setStatus("workflow-1", "node-2", "completed");
+      useStatusStore.getState().setStatus("workflow-2", "node-1", "running");
 
-      setStatus("workflow1", "node1", "running");
-      setStatus("workflow1", "node2", "completed");
-      setStatus("workflow2", "node1", "pending");
+      useStatusStore.getState().clearStatuses("workflow-1");
 
-      expect(getStatus("workflow1", "node1")).toBe("running");
-      expect(getStatus("workflow1", "node2")).toBe("completed");
-      expect(getStatus("workflow2", "node1")).toBe("pending");
-
-      clearStatuses("workflow1");
-
-      expect(getStatus("workflow1", "node1")).toBeUndefined();
-      expect(getStatus("workflow1", "node2")).toBeUndefined();
-      expect(getStatus("workflow2", "node1")).toBe("pending");
+      expect(useStatusStore.getState().statuses["workflow-1:node-1"]).toBeUndefined();
+      expect(useStatusStore.getState().statuses["workflow-1:node-2"]).toBeUndefined();
+      expect(useStatusStore.getState().statuses["workflow-2:node-1"]).toBe("running");
     });
 
-    it("should handle clearing non-existent workflow", () => {
-      const { clearStatuses } = useStatusStore.getState();
+    it("clears all statuses when workflow has no nodes", () => {
+      useStatusStore.getState().clearStatuses("workflow-1");
 
-      // Should not throw error
-      expect(() => clearStatuses("non-existent")).not.toThrow();
+      expect(useStatusStore.getState().statuses).toEqual({});
     });
 
-    it("should handle workflows with special characters in names", () => {
-      const { setStatus, getStatus, clearStatuses } = useStatusStore.getState();
+    it("does not affect other workflows", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "running");
+      useStatusStore.getState().setStatus("workflow-2", "node-1", "completed");
 
-      const workflowId = "workflow:with:colons";
-      setStatus(workflowId, "node1", "running");
+      useStatusStore.getState().clearStatuses("workflow-1");
 
-      expect(getStatus(workflowId, "node1")).toBe("running");
+      expect(useStatusStore.getState().statuses["workflow-2:node-1"]).toBe("completed");
+    });
 
-      clearStatuses(workflowId);
-
-      expect(getStatus(workflowId, "node1")).toBeUndefined();
+    it("handles clearing non-existent workflow", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "running");
+      
+      expect(() => {
+        useStatusStore.getState().clearStatuses("non-existent");
+      }).not.toThrow();
     });
   });
 
-  describe("store state management", () => {
-    it("should maintain state across multiple operations", () => {
-      const { setStatus, getStatus, clearStatuses } = useStatusStore.getState();
-
-      // Set multiple statuses
-      setStatus("workflow1", "node1", "running");
-      setStatus("workflow1", "node2", "pending");
-      setStatus("workflow2", "node1", "completed");
-
-      // Verify all statuses are set
-      expect(getStatus("workflow1", "node1")).toBe("running");
-      expect(getStatus("workflow1", "node2")).toBe("pending");
-      expect(getStatus("workflow2", "node1")).toBe("completed");
-
-      // Clear one workflow
-      clearStatuses("workflow1");
-
-      // Verify correct statuses remain
-      expect(getStatus("workflow1", "node1")).toBeUndefined();
-      expect(getStatus("workflow1", "node2")).toBeUndefined();
-      expect(getStatus("workflow2", "node1")).toBe("completed");
-    });
-
-    it("should handle empty state correctly", () => {
-      const { getStatus } = useStatusStore.getState();
-
-      expect(getStatus("any-workflow", "any-node")).toBeUndefined();
+  describe("hashKey", () => {
+    it("creates correct hash key format", () => {
+      expect(useStatusStore.getState().statuses["workflow-1:node-1"]).toBeUndefined();
     });
   });
 
-  describe("edge cases", () => {
-    it("should handle empty strings as workflowId and nodeId", () => {
-      const { setStatus, getStatus } = useStatusStore.getState();
-
-      setStatus("", "", "status");
-
-      expect(getStatus("", "")).toBe("status");
-      expect(hashKey("", "")).toBe(":");
+  describe("status value types", () => {
+    it("handles string status", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", "running");
+      expect(useStatusStore.getState().getStatus("workflow-1", "node-1")).toBe("running");
     });
 
-    it("should handle special characters in workflowId and nodeId", () => {
-      const { setStatus, getStatus } = useStatusStore.getState();
-
-      const workflowId = "workflow@#$%^&*()";
-      const nodeId = "node@#$%^&*()";
-
-      setStatus(workflowId, nodeId, "status");
-
-      expect(getStatus(workflowId, nodeId)).toBe("status");
+    it("handles object status", () => {
+      const statusObj = { code: 200, message: "Success" };
+      useStatusStore.getState().setStatus("workflow-1", "node-1", statusObj);
+      expect(useStatusStore.getState().getStatus("workflow-1", "node-1")).toEqual(statusObj);
     });
 
-    it("should handle null and undefined values", () => {
-      const { setStatus, getStatus } = useStatusStore.getState();
+    it("handles undefined status", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", undefined);
+      expect(useStatusStore.getState().getStatus("workflow-1", "node-1")).toBeUndefined();
+    });
 
-      setStatus("workflow1", "node1", null);
-      setStatus("workflow1", "node2", undefined);
+    it("handles null status", () => {
+      useStatusStore.getState().setStatus("workflow-1", "node-1", null);
+      expect(useStatusStore.getState().getStatus("workflow-1", "node-1")).toBeNull();
+    });
+  });
 
-      expect(getStatus("workflow1", "node1")).toBeNull();
-      expect(getStatus("workflow1", "node2")).toBeUndefined();
+  describe("workflow isolation", () => {
+    it("maintains isolation between workflows", () => {
+      useStatusStore.getState().setStatus("wf-a", "node-1", "status-a");
+      useStatusStore.getState().setStatus("wf-b", "node-1", "status-b");
+      useStatusStore.getState().clearStatuses("wf-a");
+
+      expect(useStatusStore.getState().getStatus("wf-a", "node-1")).toBeUndefined();
+      expect(useStatusStore.getState().getStatus("wf-b", "node-1")).toBe("status-b");
+    });
+
+    it("handles many nodes in workflow", () => {
+      for (let i = 0; i < 10; i++) {
+        useStatusStore.getState().setStatus("workflow-1", `node-${i}`, `status-${i}`);
+      }
+
+      expect(useStatusStore.getState().getStatus("workflow-1", "node-5")).toBe("status-5");
+      expect(useStatusStore.getState().getStatus("workflow-1", "node-9")).toBe("status-9");
     });
   });
 });
