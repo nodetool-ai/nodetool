@@ -27,7 +27,7 @@ const reduceUnionType = (type: TypeMetadata): string => {
   if (type.type !== "union") {
     return type.type;
   }
-  if (type.type_args === undefined) {
+  if (type.type_args === undefined || type.type_args.length === 0) {
     return "str";
   }
   // join typeArgs with underscore

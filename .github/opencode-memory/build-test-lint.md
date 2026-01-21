@@ -441,6 +441,47 @@ store.getState().addNotification({
 - `web/src/hooks/__tests__/useAutosave.test.ts`
 - `web/src/hooks/__tests__/useFocusPan.test.ts`
 
+### Test Coverage Improvement (2026-01-21)
+
+**Coverage Added**: 1 new test file with 17 tests for reduceUnionType hook
+
+**Tests Added**:
+- `reduceUnionType.test.ts` - 17 tests for union type reduction logic
+
+**Areas Covered**:
+- Non-union type passthrough (str, int, float, tensor, text)
+- Union type reduction rules (int_float → float, none_str → str, etc.)
+- Unknown union type handling (returns first sorted type)
+- Union types without type_args (defaults to str)
+
+**Test Patterns Used**:
+
+1. **Pure Function Testing**:
+```typescript
+describe("reduceUnionType", () => {
+  it("reduces int_float to float", () => {
+    const type: TypeMetadata = {
+      type: "union",
+      type_args: [{ type: "int" }, { type: "float" }]
+    };
+    expect(reduceUnionType(type)).toBe("float");
+  });
+});
+```
+
+**Files Created**:
+- `web/src/hooks/__tests__/reduceUnionType.test.ts`
+
+**Issues Fixed**:
+- Fixed 2 failing tests in GlobalChatStore.test.ts:
+  - "sendMessage does nothing when socket is not connected" - Added `ensureConnection.mockRejectedValueOnce()` to properly simulate connection failure
+  - "handles connection timeout gracefully" - Added `ensureConnection.mockRejectedValueOnce()` to properly simulate timeout
+
+**Test Results**:
+- Before: 239 test suites, 3138 tests (2 failing)
+- After: 240 test suites, 3155 tests (2 skipped, all passing)
+- Net Gain: +1 test suite, +17 tests
+
 ### Test Results
 
 - All new tests pass successfully
