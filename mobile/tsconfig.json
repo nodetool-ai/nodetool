@@ -11,8 +11,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "noEmit": true,
-    "isolatedModules": true,
-    "types": ["jest", "node"]
+    "isolatedModules": true
   },
   "include": [
     "**/*.ts",
