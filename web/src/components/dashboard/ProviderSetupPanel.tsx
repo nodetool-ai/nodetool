@@ -305,6 +305,10 @@ const ProviderSetupPanel: React.FC = () => {
     handleOpenLink(url);
   }, [handleOpenLink]);
 
+  const handleSaveClick = useCallback((providerKey: ProviderKey) => () => {
+    handleProviderSave(providerKey);
+  }, [handleProviderSave]);
+
   return (
     <Box css={panelStyles(theme)} className="provider-setup-panel">
       <div className="scrollable-content">
@@ -397,7 +401,7 @@ const ProviderSetupPanel: React.FC = () => {
                           <Button
                             variant="contained"
                             size="small"
-                            onClick={() => handleProviderSave(provider.key)}
+                            onClick={handleSaveClick(provider.key)}
                             disabled={!hasInput || isSaving}
                             startIcon={
                               isSaving ? (

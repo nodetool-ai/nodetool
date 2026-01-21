@@ -110,15 +110,19 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     onLoading
   ]);
 
-  const toggleFolder = (assetId: string) => {
-    setClosedFolders((prev) => {
-      if (prev.includes(assetId)) {
-        return prev.filter((id) => id !== assetId);
-      } else {
-        return [...prev, assetId];
-      }
-    });
-  };
+  const toggleFolder = useCallback((assetId: string) => () => {
+    setClosedFolders((prev) =>
+      prev.includes(assetId)
+        ? prev.filter((id) => id !== assetId)
+        : [...prev, assetId]
+    );
+  }, []);
+
+  const handleFolderClick = useCallback((node: AssetTreeNode) => () => {
+    if (node.content_type === "folder") {
+      toggleFolder(node.id)();
+    }
+  }, [toggleFolder]);
 
   const getFileIcon = (contentType: string) => {
     switch (contentType) {
@@ -188,9 +192,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         {sortedNodes.map((node) => (
           <React.Fragment key={node.id}>
             <ListItemButton
-              onClick={() =>
-                node.content_type === "folder" && toggleFolder(node.id)
-              }
+              onClick={handleFolderClick(node)}
               style={{ paddingLeft: `${depth * 16}px` }}
             >
               <ListItemIcon

@@ -21,15 +21,18 @@ const styles = (theme: Theme) =>
 const BackToDashboardButton = forwardRef<HTMLButtonElement>((props, ref) => {
   const navigate = useNavigate();
   const theme = useTheme();
+  
+  const handleClick = React.useCallback(() => {
+    startTransition(() => {
+      navigate("/dashboard");
+    });
+  }, [navigate]);
+  
   return (
     <Button
       ref={ref}
       className="nav-button back-to-dashboard"
-      onClick={() => {
-        startTransition(() => {
-          navigate("/dashboard");
-        });
-      }}
+      onClick={handleClick}
       css={styles(theme)}
       startIcon={<DashboardIcon />}
       {...props}
