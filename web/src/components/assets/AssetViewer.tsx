@@ -448,6 +448,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [compareMode, compareAssetB, selectAssetForCompare, handleChangeAsset]
   );
 
+  // Create stable click handler for each thumbnail
+  const createThumbnailClickHandler = useCallback(
+    (thumbnailAsset: Asset, assetIndex: number) => {
+      return () => handleThumbnailClick(thumbnailAsset, assetIndex);
+    },
+    [handleThumbnailClick]
+  );
+
   const handlePrevAsset = useCallback(() => {
     if (currentIndex === null) {return;}
     handleChangeAsset(Math.max(0, currentIndex - 1));
@@ -518,7 +526,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                     isCompareSelected ? "compare-selected" : ""
                   }`}
                   key={asset.id || idx}
-                  onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
+                  onMouseDown={createThumbnailClickHandler(asset, assetIndex)}
                 >
                   <AssetItem
                     asset={asset}
@@ -560,7 +568,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                     isCompareSelected ? "compare-selected" : ""
                   }`}
                   key={asset.id || idx}
-                  onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
+                  onMouseDown={createThumbnailClickHandler(asset, assetIndex)}
                 >
                   <AssetItem
                     asset={asset}
@@ -596,7 +604,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     assetsToUse,
     currentAsset,
     currentFolderName,
-    handleThumbnailClick,
+    createThumbnailClickHandler,
     handlePrevAsset,
     handleNextAsset,
     compareMode,

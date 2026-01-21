@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
@@ -37,10 +37,29 @@ export const WorkflowTile = ({
 }: WorkflowTileProps) => {
   const settings = useSettingsStore((state) => state.settings);
 
+  const handleSelect = useCallback(() => {
+    onSelect(workflow);
+  }, [workflow, onSelect]);
+
+  const handleDoubleClick = useCallback(() => {
+    onDoubleClickWorkflow(workflow);
+  }, [workflow, onDoubleClickWorkflow]);
+
+  const handleOpen = useCallback(() => {
+    onClickOpen(workflow);
+  }, [workflow, onClickOpen]);
+
+  const handleDuplicate = useCallback(
+    (event: React.MouseEvent) => {
+      onDuplicateWorkflow(event, workflow);
+    },
+    [workflow, onDuplicateWorkflow]
+  );
+
   return (
     <Box
-      onDoubleClick={() => onDoubleClickWorkflow(workflow)}
-      onClick={() => onSelect(workflow)}
+      onDoubleClick={handleDoubleClick}
+      onClick={handleSelect}
       className={`workflow grid${isSelected ? " selected" : ""}`}
       sx={{ display: "flex", flexDirection: "column" }}
     >
@@ -78,7 +97,7 @@ export const WorkflowTile = ({
           size="small"
           className="open-button"
           color="primary"
-          onClick={() => onClickOpen(workflow)}
+          onClick={handleOpen}
         >
           Open
         </Button>
@@ -89,11 +108,7 @@ export const WorkflowTile = ({
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
-              <Button
-                size="small"
-                color="primary"
-                onClick={(event) => onDuplicateWorkflow(event, workflow)}
-              >
+              <Button size="small" color="primary" onClick={handleDuplicate}>
                 Duplicate
               </Button>
             </Tooltip>
