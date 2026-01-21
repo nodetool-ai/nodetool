@@ -1,3 +1,65 @@
+# Test Coverage Improvements (2026-01-21)
+
+**Coverage Added**: 1 new test file with 24 tests for type reduction utility
+
+**Tests Added**:
+- `reduceUnionType.test.ts` - 24 tests for union type reduction logic
+
+**Areas Covered**:
+- Non-union type passthrough (str, int, float, tensor, image, audio)
+- Union type reduction rules (int_float → float, str_text → str, etc.)
+- Type sorting behavior for rule matching
+- Edge cases (empty unions, single element, undefined type_args)
+- Custom type handling when no reduction rule exists
+
+**Test Patterns Used**:
+
+1. **Type Metadata Factory Pattern**:
+```typescript
+const createTypeMetadata = (type: string, typeArgs?: TypeMetadata[]): TypeMetadata => ({
+  type,
+  type_args: typeArgs,
+});
+```
+
+2. **Rule-Based Reduction Testing**:
+```typescript
+it("reduces int_float to float", () => {
+  const input = createTypeMetadata("union", [
+    createTypeMetadata("int"),
+    createTypeMetadata("float"),
+  ]);
+  expect(reduceUnionType(input)).toBe("float");
+});
+```
+
+3. **Edge Case Testing**:
+```typescript
+it("returns 'str' when type_args is undefined", () => {
+  const input: TypeMetadata = {
+    type: "union",
+    type_args: undefined,
+  };
+  expect(reduceUnionType(input)).toBe("str");
+});
+```
+
+**Files Created**:
+- `web/src/hooks/__tests__/reduceUnionType.test.ts`
+
+**Key Learnings**:
+1. Pure utility functions with deterministic behavior are ideal for unit tests
+2. Type metadata factory functions simplify test setup
+3. Edge case testing is essential for rule-based logic
+4. Empty arrays need specific handling in union type reduction
+
+**Test Results**:
+- **New Tests**: 24 passing
+- **Total Test Suites**: 240 (239 passing, 1 with pre-existing failures)
+- **Total Tests**: 3,162 (3,158 passing, 2 failing, 2 skipped)
+
+---
+
 # Test Coverage Improvements (2026-01-19)
 
 **Test Coverage Added**: Fixed critical failing tests and skipped flaky performance tests
