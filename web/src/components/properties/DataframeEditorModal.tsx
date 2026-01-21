@@ -186,13 +186,82 @@ const styles = (theme: Theme) =>
     },
     ".editor-content": {
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "row",
       flex: 1,
       overflow: "hidden",
-      gap: "1em"
+      gap: "1.5em"
     },
     ".columns-section": {
-      flexShrink: 0
+      flexShrink: 0,
+      width: "320px",
+      minWidth: "280px",
+      maxWidth: "400px",
+      overflow: "auto",
+      paddingRight: "1em",
+      borderRight: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.06)`,
+      // Override ColumnsManager styles for modal context
+      "& .MuiGrid-root": {
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.25em"
+      },
+      "& .labels": {
+        display: "flex",
+        flexDirection: "row",
+        gap: "0.5em",
+        marginBottom: "0.25em",
+        paddingLeft: "0.25em"
+      },
+      "& .label-name": {
+        width: "auto",
+        minWidth: "120px",
+        flexGrow: 1,
+        fontSize: "0.8rem",
+        color: theme.vars.palette.grey[400]
+      },
+      "& .label-datatype": {
+        width: "auto",
+        minWidth: "80px",
+        flexGrow: 0,
+        fontSize: "0.8rem",
+        color: theme.vars.palette.grey[400]
+      },
+      "& .column": {
+        gap: "0.5em",
+        marginBottom: "0.15em"
+      },
+      "& .item-name": {
+        width: "auto",
+        minWidth: "120px",
+        flexGrow: 1
+      },
+      "& .item-name .textfield": {
+        height: "2.25em"
+      },
+      "& .item-name .textfield input": {
+        fontSize: "0.85rem",
+        padding: "0.35em 0.5em"
+      },
+      "& .item-datatype": {
+        width: "auto",
+        minWidth: "80px",
+        flexGrow: 0
+      },
+      "& .item-datatype .select": {
+        minWidth: "75px"
+      },
+      "& .item-datatype .select .MuiSelect-select": {
+        fontSize: "0.85rem",
+        padding: "0.35em 0.5em",
+        height: "auto",
+        minHeight: "1.5em"
+      },
+      "& .delete-button": {
+        padding: "0.25em",
+        "& svg": {
+          fontSize: "1rem"
+        }
+      }
     },
     ".table-section": {
       flex: 1,
@@ -207,11 +276,12 @@ const styles = (theme: Theme) =>
     },
     ".add-column-group": {
       display: "flex",
-      marginBottom: "0.5em"
+      marginBottom: "0.75em"
     },
     ".add-column-group button": {
-      fontSize: theme.fontSizeSmall,
+      fontSize: "0.9rem",
       fontFamily: theme.fontFamily2,
+      fontWeight: 500,
       wordSpacing: "-0.1em",
       backgroundColor: theme.vars.palette.grey[700],
       border: 0,
@@ -219,8 +289,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       margin: 0,
-      gap: "0.25em",
-      padding: ".25em 1em .25em .5em",
+      gap: "0.35em",
+      padding: "0.5em 1.25em 0.5em 0.75em",
       borderRadius: "6px",
       transition: "all 0.2s",
       "&:hover": {
@@ -229,8 +299,8 @@ const styles = (theme: Theme) =>
       }
     },
     ".add-column-group button svg": {
-      fontSize: theme.fontSizeSmall,
-      marginRight: "0.5em"
+      fontSize: "1rem",
+      marginRight: "0.35em"
     },
     ".resize-handle": {
       position: "absolute",
@@ -276,6 +346,19 @@ const styles = (theme: Theme) =>
       ".button": {
         minWidth: "36px",
         minHeight: "36px"
+      },
+      ".editor-content": {
+        flexDirection: "column",
+        gap: "1em"
+      },
+      ".columns-section": {
+        width: "100%",
+        maxWidth: "none",
+        borderRight: "none",
+        borderBottom: `1px solid rgba(255, 255, 255, 0.06)`,
+        paddingRight: 0,
+        paddingBottom: "1em",
+        overflow: "visible"
       }
     }
   });
