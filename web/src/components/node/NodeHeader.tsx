@@ -91,7 +91,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           display: "flex",
           alignItems: "center",
           gap: "8px",
-          padding: "4px 4px"
+          padding: "4px 4px",
+          flex: 1,
+          minWidth: 0
+        },
+        ".header-right": {
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          padding: "4px 4px",
+          flexShrink: 0
         },
         ".node-icon": {
           width: "28px",
@@ -247,31 +256,37 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             </IconButton>
           </Tooltip>
         )}
-        {/* Show Result button */}
-        {showResultButton && onShowResults && (
-          <Tooltip title="Show Result" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
-            <IconButton
-              size="small"
-              onClick={handleShowResultsClick}
-              sx={toggleIconButtonStyles}
-            >
-              <Visibility sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-        )}
-        {/* Show Inputs button */}
-        {showInputsButton && onShowInputs && (
-          <Tooltip title="Show Inputs" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
-            <IconButton
-              size="small"
-              onClick={handleShowInputsClick}
-              sx={toggleIconButtonStyles}
-            >
-              <InputOutlined sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-        )}
       </div>
+
+      {/* Right side toggle buttons */}
+      {(showResultButton || showInputsButton) && (
+        <div className="header-right">
+          {/* Show Result button */}
+          {showResultButton && onShowResults && (
+            <Tooltip title="Show Result" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
+              <IconButton
+                size="small"
+                onClick={handleShowResultsClick}
+                sx={toggleIconButtonStyles}
+              >
+                <Visibility sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+          {/* Show Inputs button */}
+          {showInputsButton && onShowInputs && (
+            <Tooltip title="Show Inputs" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
+              <IconButton
+                size="small"
+                onClick={handleShowInputsClick}
+                sx={toggleIconButtonStyles}
+              >
+                <InputOutlined sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </div>
+      )}
 
       <NodeLogsDialog
         id={id}
