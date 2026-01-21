@@ -9,7 +9,6 @@ export const createStyles = (theme: Theme) =>
     minHeight: "44px",
     ".compose-message": {
       width: "100%",
-      marginTop: "12px",
       backgroundColor: "rgba(255, 255, 255, 0.03)",
       backdropFilter: "blur(10px)",
       border: "1px solid rgba(255, 255, 255, 0.08)",
