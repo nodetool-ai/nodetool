@@ -771,6 +771,9 @@ describe("GlobalChatStore", () => {
       store.getState().disconnect();
       mockGlobalWebSocketManager.disconnect();
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(false);
+      mockGlobalWebSocketManager.ensureConnection.mockRejectedValueOnce(
+        new Error("Not connected")
+      );
       store.setState({
         socket: null,
         wsManager: null,
@@ -813,6 +816,40 @@ describe("GlobalChatStore", () => {
           collections: undefined
         }
       });
+    });
+
+    it("sendMessage subscribes to loaded thread before sending", async () => {
+      const threadId = "existing-thread";
+      const now = new Date().toISOString();
+      store.setState({
+        threads: {
+          [threadId]: {
+            id: threadId,
+            title: "Existing conversation",
+            created_at: now as any,
+            updated_at: now as any
+          } as any
+        },
+        currentThreadId: threadId,
+        wsThreadSubscriptions: {}
+      } as any);
+
+      const message: Message = {
+        role: "user",
+        type: "message",
+        content: "hello"
+      } as Message;
+
+      await store.getState().sendMessage(message);
+
+      expect(mockGlobalWebSocketManager.subscribe).toHaveBeenCalledWith(
+        threadId,
+        expect.any(Function)
+      );
+      expect(threadSubscriptions[threadId]).toEqual(expect.any(Function));
+      expect(store.getState().wsThreadSubscriptions[threadId]).toEqual(
+        expect.any(Function)
+      );
     });
   });
 
@@ -1056,6 +1093,9 @@ describe("GlobalChatStore", () => {
     it("handles connection timeout gracefully", async () => {
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(false);
       mockGlobalWebSocketManager.isConnected = false;
+      mockGlobalWebSocketManager.ensureConnection.mockRejectedValueOnce(
+        new Error("Connection timeout")
+      );
 
       const message: Message = {
         role: "user",

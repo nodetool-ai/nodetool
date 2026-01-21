@@ -456,6 +456,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadId = await get().createNewThread();
         }
 
+        // Ensure we have a WS subscription for this thread before sending,
+        // otherwise streamed chunks/messages will be routed with no handler.
+        if (!get().wsThreadSubscriptions[threadId]) {
+          set((state) => ({
+            wsThreadSubscriptions: {
+              ...state.wsThreadSubscriptions,
+              [threadId]: globalWebSocketManager.subscribe(
+                threadId as string,
+                (data: MsgpackData) => {
+                  handleChatWebSocketMessage(data, set, get);
+                }
+              )
+            }
+          }));
+        }
+
         set((state) => ({
           threadWorkflowId: {
             ...state.threadWorkflowId,
@@ -638,6 +654,21 @@ const useGlobalChatStore = create<GlobalChatState>()(
         if (!exists) {
           return;
         }
+
+        if (!get().wsThreadSubscriptions[threadId]) {
+          set((state) => ({
+            wsThreadSubscriptions: {
+              ...state.wsThreadSubscriptions,
+              [threadId]: globalWebSocketManager.subscribe(
+                threadId,
+                (data: MsgpackData) => {
+                  handleChatWebSocketMessage(data, set, get);
+                }
+              )
+            }
+          }));
+        }
+
         set((state) => ({
           currentThreadId: threadId,
           lastUsedThreadId: threadId,
