@@ -770,6 +770,7 @@ describe("GlobalChatStore", () => {
     it("sendMessage does nothing when socket is not connected", async () => {
       store.getState().disconnect();
       mockGlobalWebSocketManager.disconnect();
+      mockGlobalWebSocketManager.ensureConnection.mockRejectedValueOnce(new Error("Not connected"));
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(false);
       store.setState({
         socket: null,
@@ -1054,6 +1055,7 @@ describe("GlobalChatStore", () => {
     });
 
     it("handles connection timeout gracefully", async () => {
+      mockGlobalWebSocketManager.ensureConnection.mockRejectedValueOnce(new Error("Connection timeout"));
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(false);
       mockGlobalWebSocketManager.isConnected = false;
 
