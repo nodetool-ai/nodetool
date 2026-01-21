@@ -1,350 +1,283 @@
-import useResultsStore, { hashKey } from "../ResultsStore";
-import { PlanningUpdate, Task, ToolCallUpdate } from "../ApiTypes";
+import useResultsStore from "../ResultsStore";
 
 describe("ResultsStore", () => {
-  const workflowId1 = "workflow-1";
-  const workflowId2 = "workflow-2";
-  const nodeId1 = "node-1";
-  const nodeId2 = "node-2";
-  const edgeId1 = "edge-1";
-
   beforeEach(() => {
-    useResultsStore.setState({
-      results: {},
-      outputResults: {},
-      progress: {},
-      edges: {},
-      chunks: {},
-      tasks: {},
-      toolCalls: {},
-      planningUpdates: {},
-      previews: {}
+    useResultsStore.setState(useResultsStore.getInitialState());
+  });
+
+  afterEach(() => {
+    useResultsStore.setState(useResultsStore.getInitialState());
+  });
+
+  describe("initial state", () => {
+    it("has empty results initially", () => {
+      expect(useResultsStore.getState().results).toEqual({});
+    });
+
+    it("has empty outputResults initially", () => {
+      expect(useResultsStore.getState().outputResults).toEqual({});
+    });
+
+    it("has empty progress initially", () => {
+      expect(useResultsStore.getState().progress).toEqual({});
+    });
+
+    it("has empty edges initially", () => {
+      expect(useResultsStore.getState().edges).toEqual({});
+    });
+
+    it("has empty chunks initially", () => {
+      expect(useResultsStore.getState().chunks).toEqual({});
+    });
+
+    it("has empty tasks initially", () => {
+      expect(useResultsStore.getState().tasks).toEqual({});
+    });
+
+    it("has empty toolCalls initially", () => {
+      expect(useResultsStore.getState().toolCalls).toEqual({});
+    });
+
+    it("has empty planningUpdates initially", () => {
+      expect(useResultsStore.getState().planningUpdates).toEqual({});
+    });
+
+    it("has empty previews initially", () => {
+      expect(useResultsStore.getState().previews).toEqual({});
     });
   });
 
-  describe("hashKey", () => {
-    it("should create correct hash key", () => {
-      expect(hashKey("wf-1", "node-1")).toBe("wf-1:node-1");
-      expect(hashKey("workflow-123", "node-abc")).toBe("workflow-123:node-abc");
+  describe("setResult and getResult", () => {
+    it("sets result for a node", () => {
+      useResultsStore.getState().setResult("workflow-1", "node-1", { output: "test" });
+
+      const result = useResultsStore.getState().results["workflow-1:node-1"];
+      expect(result).toEqual({ output: "test" });
+    });
+
+    it("overwrites existing result", () => {
+      useResultsStore.getState().setResult("workflow-1", "node-1", { output: "first" });
+      useResultsStore.getState().setResult("workflow-1", "node-1", { output: "second" });
+
+      const result = useResultsStore.getState().results["workflow-1:node-1"];
+      expect(result.output).toBe("second");
+    });
+
+    it("gets result for existing node", () => {
+      useResultsStore.getState().setResult("workflow-1", "node-1", { output: "test" });
+
+      const result = useResultsStore.getState().getResult("workflow-1", "node-1");
+      expect(result).toEqual({ output: "test" });
+    });
+
+    it("returns undefined for non-existing node", () => {
+      const result = useResultsStore.getState().getResult("workflow-1", "non-existent");
+      expect(result).toBeUndefined();
+    });
+
+    it("stores results for different workflows separately", () => {
+      useResultsStore.getState().setResult("workflow-1", "node-1", { output: "wf1" });
+      useResultsStore.getState().setResult("workflow-2", "node-1", { output: "wf2" });
+
+      expect(useResultsStore.getState().getResult("workflow-1", "node-1").output).toBe("wf1");
+      expect(useResultsStore.getState().getResult("workflow-2", "node-1").output).toBe("wf2");
     });
   });
 
-  describe("results", () => {
-    it("should set result for a node", () => {
-      const result = { data: "test result" };
-      useResultsStore.getState().setResult(workflowId1, nodeId1, result);
+  describe("setOutputResult and getOutputResult", () => {
+    it("sets output result for a node", () => {
+      useResultsStore.getState().setOutputResult("workflow-1", "node-1", "output value");
 
-      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toEqual(result);
+      const result = useResultsStore.getState().outputResults["workflow-1:node-1"];
+      expect(result).toBe("output value");
     });
 
-    it("should set result without appending by default", () => {
-      const result1 = { data: "first" };
-      const result2 = { data: "second" };
+    it("gets output result for existing node", () => {
+      useResultsStore.getState().setOutputResult("workflow-1", "node-1", "output value");
 
-      useResultsStore.getState().setResult(workflowId1, nodeId1, result1);
-      useResultsStore.getState().setResult(workflowId1, nodeId1, result2);
-
-      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toEqual(result2);
+      const result = useResultsStore.getState().getOutputResult("workflow-1", "node-1");
+      expect(result).toBe("output value");
     });
 
-    it("should append result when append is true and existing result is array", () => {
-      const result1 = { data: "first" };
-      const result2 = { data: "second" };
-
-      useResultsStore.getState().setResult(workflowId1, nodeId1, result1);
-      useResultsStore.getState().setResult(workflowId1, nodeId1, result2, true);
-
-      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toEqual([result1, result2]);
-    });
-
-    it("should append result when append is true and existing result is object", () => {
-      const result1 = { data: "first" };
-      const result2 = { data: "second" };
-
-      useResultsStore.getState().setResult(workflowId1, nodeId1, result1);
-      useResultsStore.getState().setResult(workflowId1, nodeId1, result2, true);
-
-      const stored = useResultsStore.getState().getResult(workflowId1, nodeId1);
-      expect(Array.isArray(stored)).toBe(true);
-      expect(stored).toHaveLength(2);
-    });
-
-    it("should return undefined for non-existent result", () => {
-      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toBeUndefined();
-    });
-
-    it("should isolate results between workflows", () => {
-      const result1 = { data: "result1" };
-      const result2 = { data: "result2" };
-
-      useResultsStore.getState().setResult(workflowId1, nodeId1, result1);
-      useResultsStore.getState().setResult(workflowId2, nodeId1, result2);
-
-      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toEqual(result1);
-      expect(useResultsStore.getState().getResult(workflowId2, nodeId1)).toEqual(result2);
-    });
-
-    it("should delete result for a node", () => {
-      const result = { data: "test" };
-      useResultsStore.getState().setResult(workflowId1, nodeId1, result);
-      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toEqual(result);
-
-      useResultsStore.getState().deleteResult(workflowId1, nodeId1);
-      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toBeUndefined();
-    });
-
-    it("should clear all results for a workflow", () => {
-      useResultsStore.getState().setResult(workflowId1, nodeId1, { data: "1" });
-      useResultsStore.getState().setResult(workflowId1, nodeId2, { data: "2" });
-      useResultsStore.getState().setResult(workflowId2, nodeId1, { data: "3" });
-
-      useResultsStore.getState().clearResults(workflowId1);
-
-      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getResult(workflowId1, nodeId2)).toBeUndefined();
-      expect(useResultsStore.getState().getResult(workflowId2, nodeId1)).toEqual({ data: "3" });
+    it("returns undefined for non-existing node", () => {
+      const result = useResultsStore.getState().getOutputResult("workflow-1", "non-existent");
+      expect(result).toBeUndefined();
     });
   });
 
-  describe("outputResults", () => {
-    it("should set output result for a node", () => {
-      const output = { output: "test output" };
-      useResultsStore.getState().setOutputResult(workflowId1, nodeId1, output);
+  describe("setProgress and getProgress", () => {
+    it("sets progress for a node", () => {
+      useResultsStore.getState().setProgress("workflow-1", "node-1", 50, 100, "chunk data");
 
-      expect(useResultsStore.getState().getOutputResult(workflowId1, nodeId1)).toEqual(output);
+      const progress = useResultsStore.getState().progress["workflow-1:node-1"];
+      expect(progress.progress).toBe(50);
+      expect(progress.total).toBe(100);
+      expect(progress.chunk).toBe("chunk data");
     });
 
-    it("should isolate output results between workflows", () => {
-      useResultsStore.getState().setOutputResult(workflowId1, nodeId1, { data: "1" });
-      useResultsStore.getState().setOutputResult(workflowId2, nodeId1, { data: "2" });
+    it("gets progress for existing node", () => {
+      useResultsStore.getState().setProgress("workflow-1", "node-1", 75, 100);
 
-      expect(useResultsStore.getState().getOutputResult(workflowId1, nodeId1)).toEqual({ data: "1" });
-      expect(useResultsStore.getState().getOutputResult(workflowId2, nodeId1)).toEqual({ data: "2" });
+      const progress = useResultsStore.getState().getProgress("workflow-1", "node-1");
+      expect(progress.progress).toBe(75);
+      expect(progress.total).toBe(100);
     });
 
-    it("should clear output results for a workflow", () => {
-      useResultsStore.getState().setOutputResult(workflowId1, nodeId1, { data: "1" });
-      useResultsStore.getState().setOutputResult(workflowId1, nodeId2, { data: "2" });
-      useResultsStore.getState().setOutputResult(workflowId2, nodeId1, { data: "3" });
-
-      useResultsStore.getState().clearOutputResults(workflowId1);
-
-      expect(useResultsStore.getState().getOutputResult(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getOutputResult(workflowId1, nodeId2)).toBeUndefined();
-      expect(useResultsStore.getState().getOutputResult(workflowId2, nodeId1)).toEqual({ data: "3" });
+    it("returns undefined for non-existing node", () => {
+      const progress = useResultsStore.getState().getProgress("workflow-1", "non-existent");
+      expect(progress).toBeUndefined();
     });
   });
 
-  describe("progress", () => {
-    it("should set progress for a node", () => {
-      useResultsStore.getState().setProgress(workflowId1, nodeId1, 50, 100);
+  describe("setEdge and getEdge", () => {
+    it("sets edge status", () => {
+      useResultsStore.getState().setEdge("workflow-1", "edge-1", "streaming");
 
-      const progress = useResultsStore.getState().getProgress(workflowId1, nodeId1);
-      expect(progress).toEqual({ progress: 50, total: 100, chunk: "" });
+      const edge = useResultsStore.getState().edges["workflow-1:edge-1"];
+      expect(edge.status).toBe("streaming");
     });
 
-    it("should accumulate chunk data", () => {
-      useResultsStore.getState().setProgress(workflowId1, nodeId1, 25, 100, "chunk1");
-      useResultsStore.getState().setProgress(workflowId1, nodeId1, 50, 100, "chunk2");
+    it("sets edge with counter", () => {
+      useResultsStore.getState().setEdge("workflow-1", "edge-1", "streaming", 5);
 
-      const progress = useResultsStore.getState().getProgress(workflowId1, nodeId1);
-      expect(progress).toEqual({ progress: 50, total: 100, chunk: "chunk1chunk2" });
+      const edge = useResultsStore.getState().edges["workflow-1:edge-1"];
+      expect(edge.status).toBe("streaming");
+      expect(edge.counter).toBe(5);
     });
 
-    it("should clear progress for a workflow", () => {
-      useResultsStore.getState().setProgress(workflowId1, nodeId1, 50, 100);
-      useResultsStore.getState().setProgress(workflowId2, nodeId1, 25, 50);
+    it("gets edge status", () => {
+      useResultsStore.getState().setEdge("workflow-1", "edge-1", "completed");
 
-      useResultsStore.getState().clearProgress(workflowId1);
-
-      expect(useResultsStore.getState().getProgress(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getProgress(workflowId2, nodeId1)).toEqual({ progress: 25, total: 50, chunk: "" });
-    });
-  });
-
-  describe("edges", () => {
-    it("should set edge status", () => {
-      useResultsStore.getState().setEdge(workflowId1, edgeId1, "running");
-
-      const edge = useResultsStore.getState().getEdge(workflowId1, edgeId1);
-      expect(edge).toEqual({ status: "running" });
+      const edge = useResultsStore.getState().getEdge("workflow-1", "edge-1");
+      expect(edge.status).toBe("completed");
     });
 
-    it("should set edge with counter", () => {
-      useResultsStore.getState().setEdge(workflowId1, edgeId1, "running", 5);
-
-      const edge = useResultsStore.getState().getEdge(workflowId1, edgeId1);
-      expect(edge).toEqual({ status: "running", counter: 5 });
-    });
-
-    it("should preserve existing counter when not provided", () => {
-      useResultsStore.getState().setEdge(workflowId1, edgeId1, "running", 5);
-      useResultsStore.getState().setEdge(workflowId1, edgeId1, "completed");
-
-      const edge = useResultsStore.getState().getEdge(workflowId1, edgeId1);
-      expect(edge).toEqual({ status: "completed", counter: 5 });
-    });
-
-    it("should clear edges for a workflow", () => {
-      useResultsStore.getState().setEdge(workflowId1, edgeId1, "running");
-      useResultsStore.getState().setEdge(workflowId2, edgeId1, "running");
-
-      useResultsStore.getState().clearEdges(workflowId1);
-
-      expect(useResultsStore.getState().getEdge(workflowId1, edgeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getEdge(workflowId2, edgeId1)).toBeDefined();
+    it("returns undefined for non-existing edge", () => {
+      const edge = useResultsStore.getState().getEdge("workflow-1", "non-existent");
+      expect(edge).toBeUndefined();
     });
   });
 
-  describe("chunks", () => {
-    it("should add chunk to existing chunks", () => {
-      useResultsStore.getState().addChunk(workflowId1, nodeId1, "part1");
-      useResultsStore.getState().addChunk(workflowId1, nodeId1, "part2");
+  describe("setPreview and getPreview", () => {
+    it("sets preview for a node", () => {
+      useResultsStore.getState().setPreview("workflow-1", "node-1", { data: "preview" });
 
-      expect(useResultsStore.getState().getChunk(workflowId1, nodeId1)).toBe("part1part2");
+      const preview = useResultsStore.getState().previews["workflow-1:node-1"];
+      expect(preview).toEqual({ data: "preview" });
     });
 
-    it("should get chunk for a node", () => {
-      useResultsStore.getState().addChunk(workflowId1, nodeId1, "test chunk");
+    it("gets preview for existing node", () => {
+      useResultsStore.getState().setPreview("workflow-1", "node-1", { data: "preview" });
 
-      expect(useResultsStore.getState().getChunk(workflowId1, nodeId1)).toBe("test chunk");
-    });
-
-    it("should return undefined for non-existent chunk", () => {
-      expect(useResultsStore.getState().getChunk(workflowId1, nodeId1)).toBeUndefined();
-    });
-
-    it("should clear chunks for a workflow", () => {
-      useResultsStore.getState().addChunk(workflowId1, nodeId1, "chunk1");
-      useResultsStore.getState().addChunk(workflowId2, nodeId1, "chunk2");
-
-      useResultsStore.getState().clearChunks(workflowId1);
-
-      expect(useResultsStore.getState().getChunk(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getChunk(workflowId2, nodeId1)).toBe("chunk2");
+      const preview = useResultsStore.getState().getPreview("workflow-1", "node-1");
+      expect(preview).toEqual({ data: "preview" });
     });
   });
 
-  describe("tasks", () => {
-    const mockTask: Task = {
-      type: "task",
-      id: "task-1",
-      title: "Test task",
-      description: "Test task description",
-      steps: []
-    };
+  describe("chunk management", () => {
+    it("adds chunk for a node", () => {
+      useResultsStore.getState().addChunk("workflow-1", "node-1", "chunk1");
+      useResultsStore.getState().addChunk("workflow-1", "node-1", "chunk2");
 
-    it("should set task for a node", () => {
-      useResultsStore.getState().setTask(workflowId1, nodeId1, mockTask);
-
-      expect(useResultsStore.getState().getTask(workflowId1, nodeId1)).toEqual(mockTask);
+      const chunk = useResultsStore.getState().chunks["workflow-1:node-1"];
+      expect(chunk).toBe("chunk1chunk2");
     });
 
-    it("should return undefined for non-existent task", () => {
-      expect(useResultsStore.getState().getTask(workflowId1, nodeId1)).toBeUndefined();
-    });
+    it("gets chunk for existing node", () => {
+      useResultsStore.getState().addChunk("workflow-1", "node-1", "test chunk");
 
-    it("should clear tasks for a workflow", () => {
-      useResultsStore.getState().setTask(workflowId1, nodeId1, mockTask);
-      useResultsStore.getState().setTask(workflowId2, nodeId1, mockTask);
-
-      useResultsStore.getState().clearTasks(workflowId1);
-
-      expect(useResultsStore.getState().getTask(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getTask(workflowId2, nodeId1)).toEqual(mockTask);
+      const chunk = useResultsStore.getState().getChunk("workflow-1", "node-1");
+      expect(chunk).toBe("test chunk");
     });
   });
 
-  describe("toolCalls", () => {
-    const mockToolCall: ToolCallUpdate = {
-      type: "tool_call_update",
-      name: "test_tool",
-      args: { param: "value" },
-      message: "Calling tool"
-    };
+  describe("clear methods", () => {
+    it("clears results for workflow", () => {
+      useResultsStore.getState().setResult("workflow-1", "node-1", { output: "test" });
+      useResultsStore.getState().setResult("workflow-1", "node-2", { output: "test2" });
 
-    it("should set tool call for a node", () => {
-      useResultsStore.getState().setToolCall(workflowId1, nodeId1, mockToolCall);
+      useResultsStore.getState().clearResults("workflow-1");
 
-      expect(useResultsStore.getState().getToolCall(workflowId1, nodeId1)).toEqual(mockToolCall);
+      expect(useResultsStore.getState().results["workflow-1:node-1"]).toBeUndefined();
+      expect(useResultsStore.getState().results["workflow-1:node-2"]).toBeUndefined();
     });
 
-    it("should return undefined for non-existent tool call", () => {
-      expect(useResultsStore.getState().getToolCall(workflowId1, nodeId1)).toBeUndefined();
+    it("clears output results for workflow", () => {
+      useResultsStore.getState().setOutputResult("workflow-1", "node-1", "output");
+
+      useResultsStore.getState().clearOutputResults("workflow-1");
+
+      expect(useResultsStore.getState().outputResults["workflow-1:node-1"]).toBeUndefined();
     });
 
-    it("should clear tool calls for a workflow", () => {
-      useResultsStore.getState().setToolCall(workflowId1, nodeId1, mockToolCall);
-      useResultsStore.getState().setToolCall(workflowId2, nodeId1, mockToolCall);
+    it("clears progress for workflow", () => {
+      useResultsStore.getState().setProgress("workflow-1", "node-1", 50, 100);
 
-      useResultsStore.getState().clearToolCalls(workflowId1);
+      useResultsStore.getState().clearProgress("workflow-1");
 
-      expect(useResultsStore.getState().getToolCall(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getToolCall(workflowId2, nodeId1)).toEqual(mockToolCall);
+      expect(useResultsStore.getState().progress["workflow-1:node-1"]).toBeUndefined();
+    });
+
+    it("clears chunks for workflow", () => {
+      useResultsStore.getState().addChunk("workflow-1", "node-1", "chunk");
+
+      useResultsStore.getState().clearChunks("workflow-1");
+
+      expect(useResultsStore.getState().chunks["workflow-1:node-1"]).toBeUndefined();
+    });
+
+    it("clears tool calls for workflow", () => {
+      useResultsStore.getState().setToolCall("workflow-1", "node-1", { id: "tool-1" } as any);
+
+      useResultsStore.getState().clearToolCalls("workflow-1");
+
+      expect(useResultsStore.getState().toolCalls["workflow-1:node-1"]).toBeUndefined();
+    });
+
+    it("clears tasks for workflow", () => {
+      useResultsStore.getState().setTask("workflow-1", "node-1", { id: "task-1" } as any);
+
+      useResultsStore.getState().clearTasks("workflow-1");
+
+      expect(useResultsStore.getState().tasks["workflow-1:node-1"]).toBeUndefined();
+    });
+
+    it("clears planning updates for workflow", () => {
+      useResultsStore.getState().setPlanningUpdate("workflow-1", "node-1", { type: "planning" } as any);
+
+      useResultsStore.getState().clearPlanningUpdates("workflow-1");
+
+      expect(useResultsStore.getState().planningUpdates["workflow-1:node-1"]).toBeUndefined();
+    });
+
+    it("clears previews for workflow", () => {
+      useResultsStore.getState().setPreview("workflow-1", "node-1", { data: "preview" });
+
+      useResultsStore.getState().clearPreviews("workflow-1");
+
+      expect(useResultsStore.getState().previews["workflow-1:node-1"]).toBeUndefined();
+    });
+
+    it("clears edges for workflow", () => {
+      useResultsStore.getState().setEdge("workflow-1", "edge-1", "completed");
+
+      useResultsStore.getState().clearEdges("workflow-1");
+
+      expect(useResultsStore.getState().edges["workflow-1:edge-1"]).toBeUndefined();
     });
   });
 
-  describe("planningUpdates", () => {
-    const mockPlanningUpdate: PlanningUpdate = {
-      type: "planning_update",
-      phase: "planning",
-      status: "in_progress",
-      content: "New plan"
-    };
+  describe("deleteResult", () => {
+    it("deletes result for specific workflow and node", () => {
+      useResultsStore.getState().setResult("workflow-1", "node-1", { output: "test" });
+      useResultsStore.getState().setResult("workflow-1", "node-2", { output: "test2" });
+      useResultsStore.getState().setResult("workflow-2", "node-1", { output: "test3" });
 
-    it("should set planning update for a node", () => {
-      useResultsStore.getState().setPlanningUpdate(workflowId1, nodeId1, mockPlanningUpdate);
+      useResultsStore.getState().deleteResult("workflow-1", "node-1");
 
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId1, nodeId1)).toEqual(mockPlanningUpdate);
-    });
-
-    it("should return undefined for non-existent planning update", () => {
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId1, nodeId1)).toBeUndefined();
-    });
-
-    it("should clear planning updates for a workflow", () => {
-      useResultsStore.getState().setPlanningUpdate(workflowId1, nodeId1, mockPlanningUpdate);
-      useResultsStore.getState().setPlanningUpdate(workflowId2, nodeId1, mockPlanningUpdate);
-
-      useResultsStore.getState().clearPlanningUpdates(workflowId1);
-
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId2, nodeId1)).toEqual(mockPlanningUpdate);
-    });
-  });
-
-  describe("previews", () => {
-    it("should set preview for a node", () => {
-      const preview = { type: "image", data: "base64..." };
-      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview);
-
-      expect(useResultsStore.getState().getPreview(workflowId1, nodeId1)).toEqual(preview);
-    });
-
-    it("should append preview when append is true and existing is array", () => {
-      const preview1 = { type: "image", data: "img1" };
-      const preview2 = { type: "image", data: "img2" };
-
-      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview1);
-      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview2, true);
-
-      const stored = useResultsStore.getState().getPreview(workflowId1, nodeId1);
-      expect(Array.isArray(stored)).toBe(true);
-      expect(stored).toHaveLength(2);
-    });
-
-    it("should return undefined for non-existent preview", () => {
-      expect(useResultsStore.getState().getPreview(workflowId1, nodeId1)).toBeUndefined();
-    });
-
-    it("should clear previews for a workflow", () => {
-      useResultsStore.getState().setPreview(workflowId1, nodeId1, { data: "1" });
-      useResultsStore.getState().setPreview(workflowId2, nodeId1, { data: "2" });
-
-      useResultsStore.getState().clearPreviews(workflowId1);
-
-      expect(useResultsStore.getState().getPreview(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getPreview(workflowId2, nodeId1)).toEqual({ data: "2" });
+      expect(useResultsStore.getState().getResult("workflow-1", "node-1")).toBeUndefined();
+      expect(useResultsStore.getState().getResult("workflow-1", "node-2")).toBeDefined();
+      expect(useResultsStore.getState().getResult("workflow-2", "node-1")).toBeDefined();
     });
   });
 });
