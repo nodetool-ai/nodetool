@@ -223,6 +223,14 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     [getMetadata, setHoveredNode]
   );
 
+  const onTileClickFactory = useCallback((nodeType: string) => () => {
+    onTileClick(nodeType);
+  }, [onTileClick]);
+
+  const onTileMouseEnterFactory = useCallback((nodeType: string) => () => {
+    onTileMouseEnter(nodeType);
+  }, [onTileMouseEnter]);
+
   const handleClearRecent = useCallback(() => {
     clearRecentNodes();
   }, [clearRecentNodes]);
@@ -301,8 +309,8 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                 draggable
                 onDragStart={handleDragStart(nodeType)}
                 onDragEnd={handleDragEnd}
-                onClick={() => onTileClick(nodeType)}
-                onMouseEnter={() => onTileMouseEnter(nodeType)}
+                onClick={onTileClickFactory(nodeType)}
+                onMouseEnter={onTileMouseEnterFactory(nodeType)}
                 style={
                   {
                     background: theme.vars.palette.action.selected

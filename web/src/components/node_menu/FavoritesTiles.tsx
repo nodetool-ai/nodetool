@@ -256,6 +256,14 @@ const FavoritesTiles = memo(function FavoritesTiles() {
     clearFavorites();
   }, [clearFavorites]);
 
+  const onTileClickFactory = useCallback((nodeType: string) => () => {
+    onTileClick(nodeType);
+  }, [onTileClick]);
+
+  const onTileMouseEnterFactory = useCallback((nodeType: string) => () => {
+    onTileMouseEnter(nodeType);
+  }, [onTileMouseEnter]);
+
   const getNodeDisplayName = useCallback(
     (nodeType: string) => {
       const metadata = getMetadata(nodeType);
@@ -330,8 +338,8 @@ const FavoritesTiles = memo(function FavoritesTiles() {
                 draggable
                 onDragStart={handleDragStart(nodeType)}
                 onDragEnd={handleDragEnd}
-                onClick={() => onTileClick(nodeType)}
-                onMouseEnter={() => onTileMouseEnter(nodeType)}
+                onClick={onTileClickFactory(nodeType)}
+                onMouseEnter={onTileMouseEnterFactory(nodeType)}
                 style={
                   {
                     background:

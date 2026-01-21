@@ -76,6 +76,10 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     clearDrag();
   }, [clearDrag]);
 
+  const handleNodeClick = useCallback((node: NodeMetadata) => () => {
+    handleCreateNode(node);
+  }, [handleCreateNode]);
+
   const { selectedPath } = useNodeMenuStore((state) => ({
     selectedPath: state.selectedPath.join(".")
   }));
@@ -101,7 +105,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           node={node}
           onDragStart={handleDragStart(node)}
           onDragEnd={handleDragEnd}
-          onClick={() => handleCreateNode(node)}
+          onClick={handleNodeClick(node)}
         />
       ));
     }
@@ -175,6 +179,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     selectedPath,
     handleDragStart,
     handleDragEnd,
+    handleNodeClick,
     handleCreateNode,
     showCheckboxes,
     onToggleSelection,
