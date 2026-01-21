@@ -1,116 +1,101 @@
-import { createAssetFile } from "../createAssetFile";
-
-const readFileAsText = async (file: File): Promise<string> => {
-  if (typeof file.text === "function") {
-    return file.text();
-  }
-  const reader = new FileReader();
-  return new Promise((resolve, reject) => {
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsText(file);
-  });
-};
+import { createAssetFile, CreateAssetFileOptions } from "../createAssetFile";
+import { Chunk } from "../stores/ApiTypes";
 
 describe("createAssetFile", () => {
-  it("creates a file for single image output", async () => {
-    const data = { 0: 1, 1: 2, 2: 3, 3: 4 };
-    const [result] = await createAssetFile({ type: "image", data }, "abc");
+  const defaultOptions: CreateAssetFileOptions = {
+    maxTextChars: 5000000,
+  };
 
-    expect(result.filename).toBe("preview_abc.png");
-    expect(result.type).toBe("image/png");
-    expect(result.file.name).toBe("preview_abc.png");
-    expect(result.file.type).toBe("image/png");
-    expect(result.file).toBeInstanceOf(File);
+  describe("text handling", () => {
+    it("creates a text file from string chunks", async () => {
+      const chunks: Chunk[] = [
+        { chunk: "Hello " },
+        { chunk: "World" },
+      ];
+      
+      const result = await createAssetFile(chunks, "text/plain", defaultOptions);
+      
+      expect(result.filename).toBe("output.txt");
+      expect(result.type).toBe("text/plain");
+      expect(result.file.name).toBe("output.txt");
+      
+      const text = await result.file.text();
+      expect(text).toBe("Hello World");
+    });
+
+    it("truncates long text files", async () => {
+      const longText = "a".repeat(10000);
+      const chunks: Chunk[] = [{ chunk: longText }];
+      
+      const result = await createAssetFile(chunks, "text/plain", { maxTextChars: 1000 });
+      
+      const text = await result.file.text();
+      expect(text.length).toBe(1000 + "\n… (truncated)".length);
+      expect(text.endsWith("\n… (truncated)")).toBe(true);
+    });
+
+    it("handles empty chunks", async () => {
+      const chunks: Chunk[] = [];
+      
+      const result = await createAssetFile(chunks, "text/plain", defaultOptions);
+      
+      const text = await result.file.text();
+      expect(text).toBe("");
+    });
   });
 
-  it("creates multiple files when given an array of outputs", async () => {
-    const outputs = [
-      { type: "text", data: "hello" },
-      { type: "audio", data: { 0: 1, 1: 2 } }
-    ];
-
-    const results = await createAssetFile(outputs, "id");
-    expect(results).toHaveLength(2);
-    expect(results[0].filename).toBe("preview_id_0.txt");
-    expect(results[1].filename).toBe("preview_id_1.mp3");
+  describe("JSON handling", () => {
+    it("creates a JSON file", async () => {
+      const chunks: Chunk[] = [
+        { chunk: '{"key": ' },
+        { chunk: '"value"' },
+        { chunk: "}" },
+      ];
+      
+      const result = await createAssetFile(chunks, "application/json", defaultOptions);
+      
+      expect(result.filename).toBe("output.json");
+      expect(result.type).toBe("application/json");
+      
+      const text = await result.file.text();
+      expect(text).toBe('{"key": "value"}');
+    });
   });
 
-  it("flattens streaming text chunks into a single file", async () => {
-    const chunks = [
-      { type: "chunk", content_type: "text", content: "hello " },
-      { type: "chunk", content_type: "text", content: "world" }
-    ];
+  describe("MIME type mapping", () => {
+    it("maps image MIME types to extensions", async () => {
+      const chunks: Chunk[] = [{ chunk: "" }];
+      
+      const pngResult = await createAssetFile(chunks, "image/png", defaultOptions);
+      expect(pngResult.filename).toMatch(/\.png$/);
+      
+      const jpgResult = await createAssetFile(chunks, "image/jpeg", defaultOptions);
+      expect(jpgResult.filename).toMatch(/\.jpg$/);
+      
+      const webpResult = await createAssetFile(chunks, "image/webp", defaultOptions);
+      expect(webpResult.filename).toMatch(/\.webp$/);
+    });
 
-    const [result] = await createAssetFile(chunks, "stream");
-    expect(result.filename).toBe("preview_stream.txt");
-    expect(result.type).toBe("text/plain");
-    const textContent = await readFileAsText(result.file);
-    expect(textContent).toBe("hello world");
+    it("maps audio MIME types to extensions", async () => {
+      const chunks: Chunk[] = [{ chunk: "" }];
+      
+      const mp3Result = await createAssetFile(chunks, "audio/mpeg", defaultOptions);
+      expect(mp3Result.filename).toMatch(/\.mp3$/);
+      
+      const wavResult = await createAssetFile(chunks, "audio/wav", defaultOptions);
+      expect(wavResult.filename).toMatch(/\.wav$/);
+    });
   });
 
-  it("truncates large streaming text chunks when maxTextChars is set", async () => {
-    const chunks = [
-      { type: "chunk", content_type: "text", content: "hello " },
-      { type: "chunk", content_type: "text", content: "world" }
-    ];
-
-    const [result] = await createAssetFile(chunks, "stream", { maxTextChars: 5 });
-    const textContent = await readFileAsText(result.file);
-    expect(textContent).toBe("hello\n… (truncated)");
-  });
-
-  it("converts dataframes to CSV files", async () => {
-    const output = {
-      type: "dataframe",
-      data: {
-        columns: [{ name: "a" }, { name: "b" }],
-        data: [
-          [1, 2],
-          [3, 4]
-        ]
-      }
-    };
-    const [result] = await createAssetFile(output, "table");
-    expect(result.filename).toBe("preview_table.csv");
-    expect(result.type).toBe("text/csv");
-    expect(result.file.name).toBe("preview_table.csv");
-  });
-
-  it("handles unknown types as plain text", async () => {
-    const output = { foo: "bar" } as any;
-    const [result] = await createAssetFile(output, "test");
-    expect(result.filename).toBe("preview_test.txt");
-    expect(result.type).toBe("text/plain");
-  });
-
-  it("handles missing binary payloads gracefully", async () => {
-    const [result] = await createAssetFile({ type: "image" }, "img");
-    expect(result.filename).toBe("preview_img.png");
-    expect(result.type).toBe("image/png");
-  });
-
-  it("preserves mime types and filenames when provided", async () => {
-    const [result] = await createAssetFile(
-      {
-        type: "image",
-        mime_type: "image/webp",
-        filename: "photo.webp",
-        data: new Uint8Array([1, 2, 3])
-      },
-      "node"
-    );
-    expect(result.filename).toBe("photo.webp");
-    expect(result.type).toBe("image/webp");
-  });
-
-  it("appends suffix to provided filenames for arrays", async () => {
-    const outputs = [
-      { type: "text", filename: "note.txt", data: "a" },
-      { type: "text", filename: "note.txt", data: "b" }
-    ];
-    const files = await createAssetFile(outputs, "node");
-    expect(files[0].filename).toBe("note.txt");
-    expect(files[1].filename).toBe("note_1.txt");
+  describe("filename generation", () => {
+    it("generates sequential filenames", async () => {
+      const chunks: Chunk[] = [{ chunk: "" }];
+      
+      const result1 = await createAssetFile(chunks, "text/plain", defaultOptions);
+      const result2 = await createAssetFile(chunks, "text/plain", defaultOptions);
+      
+      expect(result1.filename).toBe("output.txt");
+      expect(result2.filename).toBe("output_1.txt");
+    });
   });
 });

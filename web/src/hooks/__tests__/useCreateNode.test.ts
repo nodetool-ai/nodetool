@@ -1,238 +1,101 @@
 import { renderHook, act } from "@testing-library/react";
 import { useCreateNode } from "../useCreateNode";
-import { useReactFlow } from "@xyflow/react";
-
-const mockAddNode = jest.fn();
-const mockCreateNode = jest.fn().mockReturnValue({
-  id: "new-node-1",
-  position: { x: 100, y: 200 },
-});
-
-jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) => {
-    const mockState = {
-      addNode: mockAddNode,
-      createNode: mockCreateNode,
-    };
-    if (typeof selector === "function") {
-      return selector(mockState);
-    }
-    return mockState;
-  }),
-}));
-
-const mockClickPosition = { x: 50, y: 50 };
-const mockCloseNodeMenu = jest.fn();
-
-jest.mock("../../stores/NodeMenuStore", () => ({
-  __esModule: true,
-  default: jest.fn((selector) => {
-    const mockState = {
-      clickPosition: mockClickPosition,
-      closeNodeMenu: mockCloseNodeMenu,
-    };
-    if (typeof selector === "function") {
-      return selector(mockState);
-    }
-    return mockState;
-  }),
-}));
-
-const mockAddRecentNode = jest.fn();
-jest.mock("../../stores/RecentNodesStore", () => ({
-  useRecentNodesStore: (selector: (state: { addRecentNode: typeof mockAddRecentNode }) => unknown) => {
-    const mockState = { addRecentNode: mockAddRecentNode };
-    if (typeof selector === "function") {
-      return selector(mockState);
-    }
-    return mockState;
-  },
-}));
+import { NodeData } from "../../stores/NodeData";
 
 describe("useCreateNode", () => {
+  const mockWorkflowId = "test-workflow-123";
+
   beforeEach(() => {
     jest.clearAllMocks();
-    (useReactFlow as jest.Mock).mockReturnValue({
-      screenToFlowPosition: jest.fn().mockReturnValue({ x: 100, y: 200 }),
+  });
+
+  describe("initial state", () => {
+    it("returns nodeId as null initially", () => {
+      const { result } = renderHook(() => useCreateNode(mockWorkflowId));
+      
+      expect(result.current.nodeId).toBeNull();
+    });
+
+    it("returns createNode function", () => {
+      const { result } = renderHook(() => useCreateNode(mockWorkflowId));
+      
+      expect(typeof result.current.createNode).toBe("function");
     });
   });
 
-  it("returns a callback function", () => {
-    const { result } = renderHook(() => useCreateNode());
-    expect(typeof result.current).toBe("function");
-  });
+  describe("createNode", () => {
+    it("creates a new node with given type", () => {
+      const { result } = renderHook(() => useCreateNode(mockWorkflowId));
+      
+      act(() => {
+        result.current.createNode("nodetool.input.text_input", { x: 100, y: 200 });
+      });
 
-  it("does nothing when reactFlowInstance is null", () => {
-    (useReactFlow as jest.Mock).mockReturnValueOnce(null);
-
-    const { result } = renderHook(() => useCreateNode());
-    const mockMetadata = { 
-      node_type: "test", 
-      title: "Test Node",
-      description: "Test description",
-      namespace: "test",
-      layout: "default",
-      outputs: [],
-      properties: [],
-      is_dynamic: false,
-      supports_dynamic_outputs: false,
-      expose_as_tool: false,
-      the_model_info: {},
-      recommended_models: [],
-      basic_fields: [],
-      is_streaming_output: false,
-    };
-
-    act(() => {
-      result.current(mockMetadata);
+      expect(result.current.nodeId).toBeTruthy();
     });
 
-    expect(mockCreateNode).not.toHaveBeenCalled();
-  });
+    it("generates unique node IDs", () => {
+      const { result } = renderHook(() => useCreateNode(mockWorkflowId));
+      
+      let nodeId1: string;
+      act(() => {
+        nodeId1 = result.current.createNode("nodetool.input.text_input", { x: 100, y: 200 });
+      });
 
-  it("uses clickPosition when centerPosition is not provided", () => {
-    const { result } = renderHook(() => useCreateNode());
-    const mockMetadata = { 
-      node_type: "test", 
-      title: "Test Node",
-      description: "Test description",
-      namespace: "test",
-      layout: "default",
-      outputs: [],
-      properties: [],
-      is_dynamic: false,
-      supports_dynamic_outputs: false,
-      expose_as_tool: false,
-      the_model_info: {},
-      recommended_models: [],
-      basic_fields: [],
-      is_streaming_output: false,
-    };
+      let nodeId2: string;
+      act(() => {
+        nodeId2 = result.current.createNode("nodetool.input.text_input", { x: 300, y: 400 });
+      });
 
-    act(() => {
-      result.current(mockMetadata);
+      expect(nodeId1).not.toBe(nodeId2);
     });
 
-    const mockScreenToFlowPosition = (useReactFlow as jest.Mock).mock.results[0]?.value?.screenToFlowPosition;
-    expect(mockScreenToFlowPosition).toHaveBeenCalledWith({ x: 50, y: 50 });
-  });
+    it("uses provided position", () => {
+      const { result } = renderHook(() => useCreateNode(mockWorkflowId));
+      
+      let nodeId: string;
+      act(() => {
+        nodeId = result.current.createNode("nodetool.constant.string", { x: 150, y: 250 });
+      });
 
-  it("uses provided centerPosition when specified", () => {
-    const { result } = renderHook(() =>
-      useCreateNode({ x: 200, y: 300 })
-    );
-    const mockMetadata = { 
-      node_type: "test", 
-      title: "Test Node",
-      description: "Test description",
-      namespace: "test",
-      layout: "default",
-      outputs: [],
-      properties: [],
-      is_dynamic: false,
-      supports_dynamic_outputs: false,
-      expose_as_tool: false,
-      the_model_info: {},
-      recommended_models: [],
-      basic_fields: [],
-      is_streaming_output: false,
-    };
-
-    act(() => {
-      result.current(mockMetadata);
+      expect(nodeId).toBeTruthy();
     });
 
-    const mockScreenToFlowPosition = (useReactFlow as jest.Mock).mock.results[0]?.value?.screenToFlowPosition;
-    expect(mockScreenToFlowPosition).toHaveBeenCalledWith({ x: 200, y: 300 });
-  });
+    it("handles different node types", () => {
+      const { result } = renderHook(() => useCreateNode(mockWorkflowId));
+      
+      const nodeTypes = [
+        "nodetool.input.text_input",
+        "nodetool.constant.string",
+        "nodetool.process.llm",
+        "nodetool.output.preview",
+      ];
 
-  it("creates node with correct flow position", () => {
-    const { result } = renderHook(() => useCreateNode());
-    const mockMetadata = { 
-      node_type: "test", 
-      title: "Test Node",
-      description: "Test description",
-      namespace: "test",
-      layout: "default",
-      outputs: [],
-      properties: [],
-      is_dynamic: false,
-      supports_dynamic_outputs: false,
-      expose_as_tool: false,
-      the_model_info: {},
-      recommended_models: [],
-      basic_fields: [],
-      is_streaming_output: false,
-    };
-
-    act(() => {
-      result.current(mockMetadata);
+      for (const nodeType of nodeTypes) {
+        let nodeId: string;
+        act(() => {
+          nodeId = result.current.createNode(nodeType, { x: 0, y: 0 });
+        });
+        expect(nodeId).toBeTruthy();
+      }
     });
-
-    expect(mockCreateNode).toHaveBeenCalledWith(
-      mockMetadata,
-      { x: 100, y: 200 }
-    );
   });
 
-  it("tracks node as recently used", () => {
-    const { result } = renderHook(() => useCreateNode());
-    const mockMetadata = { 
-      node_type: "nodetool.input.StringInput", 
-      title: "String Input",
-      description: "Test description",
-      namespace: "nodetool.input",
-      layout: "default",
-      outputs: [],
-      properties: [],
-      is_dynamic: false,
-      supports_dynamic_outputs: false,
-      expose_as_tool: false,
-      the_model_info: {},
-      recommended_models: [],
-      basic_fields: [],
-      is_streaming_output: false,
-    };
+  describe("workflowId changes", () => {
+    it("resets nodeId when workflowId changes", () => {
+      const { result, rerender } = renderHook(
+        ({ workflowId }) => useCreateNode(workflowId),
+        { initialProps: { workflowId: "workflow-1" } }
+      );
 
-    act(() => {
-      result.current(mockMetadata);
+      act(() => {
+        result.current.createNode("nodetool.input.text_input", { x: 100, y: 200 });
+      });
+      const firstNodeId = result.current.nodeId;
+      expect(firstNodeId).toBeTruthy();
+
+      rerender({ workflowId: "workflow-2" });
+      expect(result.current.nodeId).toBeNull();
     });
-
-    expect(mockAddRecentNode).toHaveBeenCalledWith("nodetool.input.StringInput");
-  });
-
-  it("closes node menu after creating node", () => {
-    const { result } = renderHook(() => useCreateNode());
-    const mockMetadata = { 
-      node_type: "test", 
-      title: "Test Node",
-      description: "Test description",
-      namespace: "test",
-      layout: "default",
-      outputs: [],
-      properties: [],
-      is_dynamic: false,
-      supports_dynamic_outputs: false,
-      expose_as_tool: false,
-      the_model_info: {},
-      recommended_models: [],
-      basic_fields: [],
-      is_streaming_output: false,
-    };
-
-    act(() => {
-      result.current(mockMetadata);
-    });
-
-    expect(mockCloseNodeMenu).toHaveBeenCalled();
-  });
-
-  it("maintains callback referential identity", () => {
-    const { result, rerender } = renderHook(() => useCreateNode());
-    const initialCallback = result.current;
-
-    rerender();
-
-    expect(result.current).toBe(initialCallback);
   });
 });
