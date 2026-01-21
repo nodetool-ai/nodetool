@@ -446,3 +446,33 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Maintenance (2026-01-21)
+
+### Issues Fixed
+
+**2 failing tests in GlobalChatStore.test.ts fixed**:
+
+1. **"sendMessage does nothing when socket is not connected"** (line 787)
+   - Issue: Test expected `currentThreadId` to remain null when socket is disconnected
+   - Root cause: Mock `ensureConnection` was not throwing when `isConnectionOpen` returned false
+   - Fix: Added `mockGlobalWebSocketManager.ensureConnection.mockRejectedValueOnce(new Error("Connection failed"))` to properly simulate connection failure
+
+2. **"handles connection timeout gracefully"** (line 1068)
+   - Issue: Test expected `error` to be "Not connected to chat service" after failed connection
+   - Root cause: Same as above - mock didn't properly simulate connection failure
+   - Fix: Same as above - mock now properly rejects when socket is not connected
+
+### Test Results
+
+- All 239 test suites pass
+- 3136 tests passing (2 skipped)
+- No regressions introduced
+
+### Quality Checks
+
+- Type checking: ✅ Web and Electron packages pass
+- Linting: ✅ Web package (1 warning), Electron package passes
+- Mobile package has pre-existing type definition issues (missing jest/node types)
