@@ -93,7 +93,8 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   else if (type === "audio") {mimeType = "audio/mp3";}
   else if (type === "video") {mimeType = "video/mp4";}
 
-  const dataUri = URL.createObjectURL(new Blob([data], { type: mimeType }));
+  const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  const dataUri = URL.createObjectURL(new Blob([arrayBuffer], { type: mimeType }));
 
   if (type === "image") {
     return {
@@ -777,7 +778,7 @@ export async function handleChatWebSocketMessage(
   get: ChatStateGetter
 ) {
   const currentState = get();
-  console.log("handleChatWebSocketMessage:", data);
+  // console.log("handleChatWebSocketMessage:", data);
 
   if (currentState.status === "stopping") {
     if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
