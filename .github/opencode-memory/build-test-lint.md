@@ -446,3 +446,77 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-21)
+
+### Tests Added
+
+**5 new test files** covering critical hooks for chat, job management, and model providers:
+
+1. **`src/hooks/__tests__/useChatService.test.ts`**
+   - Tests chat service hook initial state (status, threads, progress)
+   - Tests handleSendMessage with and without model selection
+   - Tests thread navigation after sending messages
+   - Tests error handling in message sending
+   - Tests thread selection and navigation
+   - Tests planning updates (currentPlanningUpdate, currentTaskUpdate)
+
+2. **`src/hooks/__tests__/useEnsureChatConnected.test.ts`**
+   - Tests WebSocket connection logging when autoConnect is true
+   - Tests no action when autoConnect is false
+   - Tests default options behavior
+   - Tests disconnectOnUnmount option handling
+   - Tests multiple render scenarios
+
+3. **`src/hooks/__tests__/useJobReconnection.test.ts`**
+   - Tests initial empty state when no jobs exist
+   - Tests reconnection does not trigger when isSuccess is false
+   - Tests reconnection to single running job
+   - Tests handling multiple running jobs
+   - Tests error handling for failed workflow fetch
+   - Tests error handling for reconnection failures
+   - Tests suspended state handling
+   - Tests paused state handling
+
+4. **`src/hooks/__tests__/useProviders.test.tsx`**
+   - Tests successful provider fetching
+   - Tests handling empty providers list
+   - Tests API error handling
+   - Tests loading state tracking
+   - Tests capability filtering (generate_message, text_to_image, etc.)
+   - Tests language model, image model, TTS, ASR, video, and embedding provider hooks
+
+5. **`src/hooks/__tests__/useHuggingFaceModels.test.tsx`**
+   - Tests successful model fetching
+   - Tests empty models list handling
+   - Tests API error handling
+   - Tests loading state tracking
+   - Tests fetching state tracking
+   - Tests all model properties are returned correctly
+
+### Patterns Used
+
+1. **Hook Testing with React Query**: Use QueryClientProvider wrapper for hooks that use TanStack Query
+2. **Store Mocking**: Mock Zustand stores with jest.Mock and provide mock state via mockImplementation
+3. **API Client Mocking**: Cast client.GET to jest.Mock for mockResolvedValue/mockReturnValue methods
+4. **Type Assertions**: Use `as any` for message objects in tests to bypass strict type checking
+5. **Router Mocking**: Mock react-router-dom's useNavigate for navigation testing
+6. **Async Testing**: Use waitFor for async assertions with React Query hooks
+
+### Files Created
+
+- `web/src/hooks/__tests__/useChatService.test.ts`
+- `web/src/hooks/__tests__/useEnsureChatConnected.test.ts`
+- `web/src/hooks/__tests__/useJobReconnection.test.ts`
+- `web/src/hooks/__tests__/useProviders.test.tsx`
+- `web/src/hooks/__tests__/useHuggingFaceModels.test.tsx`
+
+### Test Results
+
+- 46 new tests added
+- All tests pass successfully
+- No type errors after fixing mock data types
+- No lint errors after fixing require() imports
+- Full test suite passes (3180 tests, 2 pre-existing failures in GlobalChatStore.test.ts)
