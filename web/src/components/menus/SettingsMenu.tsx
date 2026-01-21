@@ -254,6 +254,15 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     exportMutation.mutate();
   }, [exportMutation]);
 
+  const handleOpenExportFolder = useCallback(() => {
+    const api = (window as any)?.api;
+    if (api?.shell?.showItemInFolder) {
+      api.shell.showItemInFolder(lastExportPath);
+    } else if (api?.showItemInFolder) {
+      api.showItemInFolder(lastExportPath);
+    }
+  }, [lastExportPath]);
+
   const generalSidebarSections = [
     {
       category: "General",
@@ -439,16 +448,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  onClick={() => {
-                                    const api = (window as any)?.api;
-                                    if (api?.shell?.showItemInFolder) {
-                                      api.shell.showItemInFolder(
-                                        lastExportPath
-                                      );
-                                    } else if (api?.showItemInFolder) {
-                                      api.showItemInFolder(lastExportPath);
-                                    }
-                                  }}
+                                  onClick={handleOpenExportFolder}
                                   style={{ alignSelf: "flex-start" }}
                                 >
                                   Open Folder

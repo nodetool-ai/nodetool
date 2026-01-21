@@ -493,6 +493,31 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     toggleMiniMap();
   }, [toggleMiniMap]);
 
+  const handleToggleTerminalAndClose = useCallback(() => {
+    handleToggleTerminal();
+    handleCloseActionsMenu();
+  }, [handleToggleTerminal, handleCloseActionsMenu]);
+
+  const handleEditWorkflowAndClose = useCallback(() => {
+    handleEditWorkflow();
+    handleCloseActionsMenu();
+  }, [handleEditWorkflow, handleCloseActionsMenu]);
+
+  const handleDownloadAndClose = useCallback(() => {
+    handleDownload();
+    handleCloseActionsMenu();
+  }, [handleDownload, handleCloseActionsMenu]);
+
+  const handleRunAsAppAndClose = useCallback(() => {
+    handleRunAsApp();
+    handleCloseActionsMenu();
+  }, [handleRunAsApp, handleCloseActionsMenu]);
+
+  const handleToggleMiniMapAndClose = useCallback(() => {
+    handleToggleMiniMap();
+    handleCloseAdvancedMenu();
+  }, [handleToggleMiniMap, handleCloseAdvancedMenu]);
+
   if (!path.startsWith("/editor")) {
     return null;
   }
@@ -630,10 +655,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         }}
       >
         <MenuItem
-          onClick={() => {
-            handleToggleTerminal();
-            handleCloseActionsMenu();
-          }}
+          onClick={handleToggleTerminalAndClose}
         >
           <ListItemIcon>
             <TerminalIcon fontSize="small" />
@@ -643,10 +665,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           />
         </MenuItem>
         <MenuItem
-          onClick={() => {
-            handleEditWorkflow();
-            handleCloseActionsMenu();
-          }}
+          onClick={handleEditWorkflowAndClose}
         >
           <ListItemIcon>
             <EditIcon fontSize="small" />
@@ -660,10 +679,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <ListItemText primary="Advanced" />
         </MenuItem>
         <MenuItem
-          onClick={() => {
-            handleDownload();
-            handleCloseActionsMenu();
-          }}
+          onClick={handleDownloadAndClose}
         >
           <ListItemIcon>
             <DownloadIcon fontSize="small" />
@@ -671,10 +687,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <ListItemText primary="Download JSON" />
         </MenuItem>
         <MenuItem
-          onClick={() => {
-            handleRunAsApp();
-            handleCloseActionsMenu();
-          }}
+          onClick={handleRunAsAppAndClose}
         >
           <ListItemIcon>
             <RocketLaunchIcon fontSize="small" />
@@ -697,10 +710,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       >
         <MenuItem
           className={cn(isMiniMapVisible && "minimap-active")}
-          onClick={() => {
-            handleToggleMiniMap();
-            handleCloseAdvancedMenu();
-          }}
+          onClick={handleToggleMiniMapAndClose}
         >
           <ListItemIcon>
             <MapIcon fontSize="small" />
