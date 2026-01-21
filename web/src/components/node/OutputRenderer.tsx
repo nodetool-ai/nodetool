@@ -51,7 +51,7 @@ import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
-import { RealtimeAudioOutput } from "./output";
+import { RealtimeAudioOutput, DataframeRenderer } from "./output";
 // import left for future reuse of audio stream component when needed
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
@@ -438,7 +438,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         );
       }
       case "dataframe":
-        return <DataTable dataframe={value as DataframeRef} editable={false} />;
+        return <DataframeRenderer dataframe={value as DataframeRef} />;
       case "np_array":
         return (
           <div className="tensor nodrag">
@@ -662,7 +662,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 description: ""
               }))
             };
-            return <DataTable dataframe={df} editable={false} />;
+            return <DataframeRenderer dataframe={df} />;
           }
         }
 
