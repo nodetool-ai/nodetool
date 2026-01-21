@@ -272,6 +272,30 @@ const styles = (theme: Theme) =>
       },
       "& .tabulator": {
         height: "100% !important"
+      },
+      // Bigger action buttons in modal
+      "& .table-actions": {
+        gap: "0.25em",
+        height: "2.5em",
+        marginBottom: "0.5em"
+      },
+      "& .table-actions button": {
+        padding: "0.35em",
+        width: "1.5em",
+        height: "1.5em"
+      },
+      "& .table-actions button svg": {
+        fontSize: "1rem"
+      },
+      // Softer row contrast - less difference between odd/even
+      "& .tabulator-row": {
+        backgroundColor: "#2a2a2a"
+      },
+      "& .tabulator-row-even": {
+        backgroundColor: "#303030"
+      },
+      "& .tabulator-row:hover": {
+        backgroundColor: theme.vars.palette.grey[700]
       }
     },
     ".add-column-group": {
