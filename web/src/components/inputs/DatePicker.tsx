@@ -39,6 +39,11 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
           value={selectedDate}
           onChange={handleDateChange}
           onClose={handleDateClose}
+          slotProps={{
+            popper: {
+              style: { zIndex: 99999 }
+            }
+          }}
         />
       </div>
     </LocalizationProvider>

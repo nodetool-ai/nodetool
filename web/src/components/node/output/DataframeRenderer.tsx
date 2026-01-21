@@ -22,25 +22,26 @@ const styles = (theme: Theme) =>
     height: "100%",
     ".dataframe-action-buttons": {
       position: "absolute",
-      right: "4px",
+      right: "1.5em",
       top: "4px",
       opacity: 0,
       zIndex: 10,
       transition: "opacity 0.2s ease"
     },
     "&:hover .dataframe-action-buttons": {
-      opacity: 0.8
+      opacity: 1
     },
     ".dataframe-action-buttons .MuiIconButton-root": {
-      padding: "4px",
-      backgroundColor: theme.vars.palette.grey[800],
+      padding: "0.25em",
+      color: theme.vars.palette.primary.main,
       borderRadius: "4px",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700]
+        color: theme.vars.palette.primary.light,
+        backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`
       }
     },
     ".dataframe-action-buttons .MuiIconButton-root svg": {
-      fontSize: "0.875rem"
+      fontSize: "1rem"
     }
   });
 

@@ -33,17 +33,21 @@ const styles = (theme: Theme) =>
     },
     ".dataframe-action-buttons": {
       position: "absolute",
-      right: 0,
-      top: "-3px",
-      opacity: 0.8,
+      right: "1.5em",
+      top: "-2px",
       zIndex: 10
     },
     ".dataframe-action-buttons .MuiIconButton-root": {
       margin: "0 0 0 5px",
-      padding: 0
+      padding: "0.2em",
+      color: theme.vars.palette.primary.main,
+      "&:hover": {
+        color: theme.vars.palette.primary.light,
+        backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`
+      }
     },
     ".dataframe-action-buttons .MuiIconButton-root svg": {
-      fontSize: "0.75rem"
+      fontSize: "1rem"
     },
     ".button-group": {
       display: "flex",
