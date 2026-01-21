@@ -1,5 +1,4 @@
-import React, { forwardRef } from "react";
-import { TextareaAutosize } from "@mui/material";
+import React, { forwardRef, useEffect, useRef, useCallback } from "react";
 
 interface MessageInputProps {
   value: string;
@@ -9,7 +8,9 @@ interface MessageInputProps {
   placeholder?: string;
 }
 
-const MAX_ROWS = 15;
+const MAX_HEIGHT = 180;
+const LINE_HEIGHT = 22;
+
 export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
   (
     {
@@ -21,23 +22,53 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
     },
     ref
   ) => {
+    const internalRef = useRef<HTMLTextAreaElement>(null);
+    const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
+
+    const adjustHeight = useCallback(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = "auto";
+      
+      // Calculate new height, capped at MAX_HEIGHT
+      const newHeight = Math.min(textarea.scrollHeight, MAX_HEIGHT);
+      textarea.style.height = `${newHeight}px`;
+      
+      // Enable scrolling only when content exceeds max height
+      textarea.style.overflowY = textarea.scrollHeight > MAX_HEIGHT ? "auto" : "hidden";
+    }, [textareaRef]);
+
+    useEffect(() => {
+      adjustHeight();
+    }, [value, adjustHeight]);
+
+    const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onChange(event);
+    };
+
     return (
-      <TextareaAutosize
+      <textarea
         className="chat-input"
         id="chat-prompt"
         aria-labelledby="chat-prompt"
-        ref={ref}
+        ref={textareaRef}
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         onKeyDown={onKeyDown}
         disabled={disabled}
-        minRows={1}
-        maxRows={MAX_ROWS}
         placeholder={placeholder}
         autoCorrect="off"
         autoCapitalize="none"
         spellCheck="false"
         autoComplete="off"
+        rows={1}
+        style={{
+          minHeight: `${LINE_HEIGHT}px`,
+          maxHeight: `${MAX_HEIGHT}px`,
+          lineHeight: `${LINE_HEIGHT}px`
+        }}
       />
     );
   }
