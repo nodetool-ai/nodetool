@@ -9,7 +9,7 @@ interface MessageInputProps {
 }
 
 const MAX_HEIGHT = 180;
-const LINE_HEIGHT = 4;
+const LINE_HEIGHT = 42;
 
 export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
   (
