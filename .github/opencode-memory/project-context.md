@@ -48,11 +48,21 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
+> `/Fix Name ( ```
 > ### FeatureYYYY-MM-DD)
 > **What**: One sentence
 > **Files**: Main files changed
 > ```
+
+### Performance: Inline Arrow Functions Memoization (2026-01-21)
+
+**What**: Added useCallback to inline arrow functions in WorkflowToolbar, NodeContextMenu, and AssetItem to prevent unnecessary re-renders.
+
+**Files**: web/src/components/workflows/WorkflowToolbar.tsx, context_menus/NodeContextMenu.tsx, assets/AssetItem.tsx
+
+**Impact**: Stable function references reduce re-renders in workflow list, context menu, and asset grid (100+ items).
+
+---
 
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
