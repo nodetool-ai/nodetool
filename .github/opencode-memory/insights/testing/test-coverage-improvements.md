@@ -167,6 +167,89 @@ describe("formatFileSize", () => {
 
 **Status**: All 3,516 tests passing (249 test suites, 3 skipped)
 
+---
+
+# Test Coverage Improvements (2026-01-21)
+
+**Coverage Added**: 2 new test files with 23 tests for critical hooks
+
+**Tests Added**:
+
+1. **`useInputMinMax.test.ts` (13 tests)**
+   - Tests for numeric input min/max bounds determination
+   - Tests FloatInput and IntegerInput node type handling
+   - Tests fallback logic between node bounds and property bounds
+   - Tests edge cases: null, undefined, non-numeric values, empty arrays
+
+2. **`useRecommendedTaskModels.test.tsx` (10 tests)**
+   - Tests React Query hook for recommended model fetching
+   - Tests all task types: image, language, asr, tts
+   - Tests provider inference: mlx, huggingface, llama_cpp, vllm
+   - Tests model mapping from unified to typed format
+   - Tests error handling for failed API calls
+
+**Areas Covered**:
+- Node property bounds resolution
+- Input type detection (FloatInput, IntegerInput)
+- React Query integration with TanStack Query
+- Model provider inference from unified model types
+- Error handling for async API calls
+
+**Test Patterns Used**:
+
+1. **Context-Based Hook Testing**:
+```typescript
+jest.mock("react", () => ({
+  ...jest.requireActual("react"),
+  useContext: jest.fn(() => ({ subscribe: jest.fn(), getState: jest.fn() })),
+}));
+```
+
+2. **React Query Hook Testing**:
+```typescript
+const createWrapper = () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const Wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
+};
+```
+
+3. **Zustand Store Mocking**:
+```typescript
+jest.mock("zustand/traditional", () => ({
+  useStoreWithEqualityFn: jest.fn(),
+}));
+// Then mock return value in tests
+(useStoreWithEqualityFn as jest.Mock).mockReturnValue(mockNodes);
+```
+
+4. **Mock Cleanup**:
+```typescript
+beforeEach(() => {
+  jest.clearAllMocks();
+  (useStoreWithEqualityFn as jest.Mock).mockReturnValue([]);
+});
+```
+
+**Files Created**:
+- `web/src/hooks/__tests__/useInputMinMax.test.ts`
+- `web/src/hooks/__tests__/useRecommendedTaskModels.test.tsx`
+
+**Key Learnings**:
+1. Hook files with JSX must use `.tsx` extension for TypeScript to parse correctly
+2. React Query hooks require QueryClientProvider wrapper in tests
+3. Context-based hooks need proper useContext mocking with jest.mock
+4. Wrapper components in tests need displayName for react/display-name lint rule
+5. Mock cleanup with jest.clearAllMocks() ensures test isolation
+
+**Test Results**:
+- **Before**: 239 test suites, 3138 tests passing
+- **After**: 241 test suites, 3161 tests passing
+- **Net Gain**: +2 test suites, +23 tests
+
+**Status**: All 3161 tests passing (241 test suites, 2 skipped)
+
 **Tests Added**:
 - `useDynamicProperty.test.ts` - 26 tests for dynamic property management hook
 - `useDynamicOutput.test.ts` - 26 tests for dynamic output management hook
