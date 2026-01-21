@@ -9,6 +9,7 @@ describe("useFolderBatch utilities", () => {
     position: { x: 0, y: 0 },
     data: {
       properties: {},
+      dynamic_properties: {},
       selectable: true,
       workflow_id: "test-workflow",
     },
