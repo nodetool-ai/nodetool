@@ -446,3 +446,62 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-21)
+
+### Tests Added
+
+**2 new test files** covering critical hooks:
+
+1. **`src/hooks/__tests__/useInputMinMax.test.ts`**
+   - Tests min/max bounds for FloatInput and IntegerInput nodes
+   - Tests fallback to property bounds when node bounds are undefined
+   - Tests node bounds override property bounds
+   - Tests default 0-100 bounds when no bounds specified
+   - Tests null/undefined property handling
+   - Tests empty nodes array handling
+   - Tests node not found handling
+   - Tests undefined/non-numeric properties handling
+   - 13 tests total
+
+2. **`src/hooks/__tests__/useRecommendedTaskModels.test.tsx`**
+   - Tests model fetching for image, language, ASR, and TTS tasks
+   - Tests error handling for failed fetches
+   - Tests provider inference (mlx, huggingface, llama_cpp, vllm)
+   - Tests model name handling (uses repo_id when name is missing)
+   - Tests unified model to typed model mapping
+   - 10 tests total
+
+### Patterns Used
+
+1. **Hook Testing with React Query**: Use QueryClientProvider wrapper for hooks with async data fetching
+2. **Context Mocking**: Mock React context for hooks using NodeContext
+3. **Store Mocking**: Mock Zustand store selectors with jest.Mock
+4. **Display Name**: Add displayName to wrapper components for lint compliance
+5. **Mock Cleanup**: Clear mocks in beforeEach for test isolation
+
+### Files Created
+
+- `web/src/hooks/__tests__/useInputMinMax.test.ts`
+- `web/src/hooks/__tests__/useRecommendedTaskModels.test.tsx`
+
+### Test Results
+
+- All new tests pass successfully (23 tests)
+- No type errors in new test files
+- No lint errors (after fixes)
+- Coverage improved: 241 test suites, 3161 tests passing
+
+### Related Files
+
+- `web/src/hooks/useInputMinMax.ts` - Hook for numeric input min/max bounds
+- `web/src/hooks/useRecommendedTaskModels.ts` - Hook for fetching recommended models by task type
+
+### Key Learnings
+
+1. Hook files with JSX must use `.tsx` extension
+2. React Query hooks require QueryClientProvider wrapper
+3. Context-based hooks need proper mocking of useContext
+4. Always add displayName to wrapper components in test files
