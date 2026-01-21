@@ -22,9 +22,10 @@ import isEqual from "lodash/isEqual";
 export interface NodeOutputsProps {
   id: string;
   outputs: OutputSlot[];
+  isStreamingOutput?: boolean;
 }
 
-export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
+export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreamingOutput }) => {
   const node = useNodes((state) => state.findNode(id));
   const nodeType = node?.type || "";
   const metadata = useMetadataStore((state) =>
@@ -150,6 +151,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
                 supportsDynamicOutputs={Boolean(
                   metadata?.supports_dynamic_outputs
                 )}
+                isStreamingOutput={isStreamingOutput}
                 onStartEdit={onStartEdit}
                 onDelete={handleDeleteOutput}
               />
@@ -164,6 +166,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
             output={output}
             showLabel={false}
             supportsDynamicOutputs={Boolean(metadata?.supports_dynamic_outputs)}
+            isStreamingOutput={isStreamingOutput}
             onStartEdit={onStartEdit}
             onDelete={handleDeleteOutput}
           />
