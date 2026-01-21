@@ -279,6 +279,22 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     [setFilterValue]
   );
 
+  const handleToggleTag = useCallback((tag: string) => {
+    toggleTag(tag);
+  }, [toggleTag]);
+
+  const handleSortByDate = useCallback(() => {
+    handleSortChange("date");
+  }, [handleSortChange]);
+
+  const handleSortByName = useCallback(() => {
+    handleSortChange("name");
+  }, [handleSortChange]);
+
+  const handleDeleteTag = useCallback((tag: string) => {
+    toggleTag(tag);
+  }, [toggleTag]);
+
   return (
     <Box css={styles(theme)}>
       <div className="tools">
@@ -318,7 +334,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 {availableTags.map((tag) => (
                   <MenuItem
                     key={tag}
-                    onClick={() => toggleTag(tag)}
+                    onClick={() => handleToggleTag(tag)}
                     className="tag-menu-item"
                   >
                     {selectedTags.includes(tag) ? (
@@ -415,13 +431,13 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             }}
           >
             <MenuItem
-              onClick={() => handleSortChange("date")}
+              onClick={handleSortByDate}
               selected={sortBy === "date"}
             >
               Sort by Date
             </MenuItem>
             <MenuItem
-              onClick={() => handleSortChange("name")}
+              onClick={handleSortByName}
               selected={sortBy === "name"}
             >
               Sort by Name
@@ -454,7 +470,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 label={tag}
                 size="small"
                 className="active-tag-chip"
-                onDelete={() => toggleTag(tag)}
+                onDelete={() => handleDeleteTag(tag)}
               />
             ))}
             {selectedTags.length > 1 && (
