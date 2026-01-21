@@ -33,7 +33,11 @@ const eventSubscriptions: Record<string, ((...args: any[]) => void)[]> = {};
 
 const mockGlobalWebSocketManager = {
   send: jest.fn().mockResolvedValue(undefined),
-  ensureConnection: jest.fn().mockResolvedValue(undefined),
+  ensureConnection: jest.fn().mockImplementation(async () => {
+    if (!mockGlobalWebSocketManager.isConnectionOpen()) {
+      throw new Error("Not connected to chat service");
+    }
+  }),
   disconnect: jest.fn(),
   subscribe: jest.fn().mockImplementation((key: string, callback: (data: any) => void) => {
     threadSubscriptions[key] = callback;
