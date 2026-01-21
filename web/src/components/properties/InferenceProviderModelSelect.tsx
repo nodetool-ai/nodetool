@@ -29,14 +29,20 @@ const fetchModelsForProvider = async (provider: InferenceProvider, pipelineTag: 
   return response.json();
 };
 
+interface InferenceProviderModelValue {
+  type: string;
+  provider: InferenceProvider;
+  model_id: string;
+}
+
 const InferenceProviderModelSelect = ({
   property,
   onChange,
   value
 }: {
   property: Property;
-  onChange: (inferenceProviderModel: any) => void;
-  value: any;
+  onChange: (inferenceProviderModel: InferenceProviderModelValue) => void;
+  value: InferenceProviderModelValue;
 }) => {
     const [provider, setProvider] = useState<InferenceProvider>(value.provider);
     const providerOptions = [

@@ -7,7 +7,7 @@ import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface ImageModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: ImageModel) => void;
   value: string;
   task?: "text_to_image" | "image_to_image";
 }
