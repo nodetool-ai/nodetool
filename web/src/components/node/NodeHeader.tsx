@@ -8,10 +8,11 @@ import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
-import { Badge, IconButton, Tooltip, Button } from "@mui/material";
+import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 export interface NodeHeaderProps {
   id: string;
@@ -56,16 +57,13 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const logCount = logs?.length || 0;
 
-  // Common button styles for toggle buttons
-  const toggleButtonStyles = {
-    textTransform: "none" as const,
-    fontSize: "0.7rem",
-    padding: "2px 8px",
-    minWidth: "auto",
+  // Common icon button styles for toggle buttons
+  const toggleIconButtonStyles = {
+    padding: "4px",
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     color: "var(--palette-text-primary)",
     border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "12px",
+    borderRadius: "50%",
     "&:hover": {
       backgroundColor: "rgba(255, 255, 255, 0.1)",
       borderColor: "var(--palette-primary-main)"
@@ -251,25 +249,27 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         )}
         {/* Show Result button */}
         {showResultButton && onShowResults && (
-          <Button
-            size="small"
-            startIcon={<Visibility sx={{ fontSize: 14 }} />}
-            onClick={handleShowResultsClick}
-            sx={toggleButtonStyles}
-          >
-            Show Result
-          </Button>
+          <Tooltip title="Show Result" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
+            <IconButton
+              size="small"
+              onClick={handleShowResultsClick}
+              sx={toggleIconButtonStyles}
+            >
+              <Visibility sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
         )}
         {/* Show Inputs button */}
         {showInputsButton && onShowInputs && (
-          <Button
-            size="small"
-            startIcon={<InputOutlined sx={{ fontSize: 14 }} />}
-            onClick={handleShowInputsClick}
-            sx={toggleButtonStyles}
-          >
-            Show Inputs
-          </Button>
+          <Tooltip title="Show Inputs" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
+            <IconButton
+              size="small"
+              onClick={handleShowInputsClick}
+              sx={toggleIconButtonStyles}
+            >
+              <InputOutlined sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
         )}
       </div>
 
