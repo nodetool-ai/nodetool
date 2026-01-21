@@ -53,17 +53,25 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
   return (
     <Box
       sx={{
+        position: "absolute",
+        top: -20,
+        right: 4,
         padding: "2px 8px",
         display: "flex",
         alignItems: "center",
-        gap: "4px"
+        gap: "4px",
+        backgroundColor: isError ? "error.dark" : "success.dark",
+        borderRadius: 1,
+        zIndex: 1000,
+        boxShadow: 1
       }}
     >
       <Typography
         sx={{
-          color: isError ? "error.main" : "success.main",
-          fontSize: "0.7rem",
-          fontWeight: 500
+          color: isError ? "error.contrastText" : "success.contrastText",
+          fontSize: "0.65rem",
+          fontWeight: 500,
+          whiteSpace: "nowrap"
         }}
       >
         <span>{isError ? "Failed in" : "Completed in"}</span>
