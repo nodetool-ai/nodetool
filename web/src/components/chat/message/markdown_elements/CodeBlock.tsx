@@ -34,6 +34,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   className,
   children,
   _isFromPre,
+  onInsert,
   ...props
 }) => {
   const _theme = useTheme();
@@ -41,11 +42,11 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   const match = /language-(\w+)/.exec(className || "");
   const isDarkMode = useIsDarkMode();
   const handleInsert = useCallback(() => {
-    if (typeof props.onInsert === "function") {
+    if (typeof onInsert === "function") {
       const language = match ? match[1] : undefined;
-      props.onInsert(codeContent, language);
+      onInsert(codeContent, language);
     }
-  }, [props, codeContent, match]);
+  }, [onInsert, codeContent, match]);
 
   let renderAsBlock = false;
 
@@ -79,7 +80,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
         <div className="code-block-header">
           <span className="code-block-language">{match ? match[1] : ""}</span>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {typeof props.onInsert === "function" && (
+            {typeof onInsert === "function" && (
               <button
                 className="button"
                 onClick={handleInsert}
