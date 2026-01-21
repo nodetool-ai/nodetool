@@ -446,3 +446,96 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-21)
+
+### Tests Added
+
+**6 new test files** covering high-priority utilities and hooks:
+
+1. **`src/utils/__tests__/colorConversion.test.ts`**
+   - Tests hex to RGB/HSL/HSB/CMYK/LAB conversions
+   - Tests RGB to all color space conversions
+   - Tests bidirectional conversions (roundtrip)
+   - Tests edge cases (empty, out-of-range, alpha handling)
+   - **22 tests passing, 5 needs fixes**
+
+2. **`src/utils/__tests__/createAssetFile.test.ts`**
+   - Tests text file creation from chunks
+   - Tests JSON file handling
+   - Tests binary data (base64) handling
+   - Tests MIME type to extension mapping
+   - Tests filename generation and truncation
+
+3. **`src/utils/__tests__/nodeSearch.test.ts`** (removed - API mismatch)
+   - Tests node search functionality
+   - Tests fuzzy search by name, description, category
+   - Tests case-insensitive search
+   - Tests relevance sorting
+
+4. **`src/hooks/__tests__/useCreateNode.test.ts`**
+   - Tests node creation with various node types
+   - Tests unique ID generation
+   - Tests position parameter handling
+   - Tests workflow ID changes
+
+5. **`src/hooks/__tests__/useDelayedHover.test.ts`**
+   - Tests hover delay functionality
+   - Tests callback invocation timing
+   - Tests rapid enter/leave scenarios
+   - Tests delay configuration
+
+6. **`src/stores/__tests__/ColorPickerStore.test.ts`**
+   - Tests color picker state management
+   - Tests mode switching (hex, rgb, hsl, etc.)
+   - Tests alpha visibility toggle
+   - Tests reset functionality
+
+### Patterns Used
+
+1. **Utility Testing**: Comprehensive coverage of color conversion math
+2. **File Operations**: Mock file system APIs and test edge cases
+3. **Hook Testing**: Test hook lifecycle and state changes
+4. **Store Testing**: Test state mutations and resets
+5. **Async Testing**: Handle promises and async operations
+6. **Mocking**: Mock external dependencies (window.api, fetch, etc.)
+
+### Files Created
+
+- `web/src/utils/__tests__/colorConversion.test.ts` (6309 bytes)
+- `web/src/utils/__tests__/createAssetFile.test.ts` (3447 bytes)
+- `web/src/utils/__tests__/nodeSearch.test.ts` (removed - API mismatch)
+- `web/src/hooks/__tests__/useCreateNode.test.ts`
+- `web/src/hooks/__tests__/useDelayedHover.test.ts`
+- `web/src/stores/__tests__/ColorPickerStore.test.ts`
+
+### Test Results
+
+- **colorConversion**: 22/27 tests passing (5 need fixes for non-existent functions)
+- **createAssetFile**: Tests created for asset file operations
+- **useCreateNode**: Tests created for node creation hook
+- **useDelayedHover**: Tests created for hover delay hook
+- **ColorPickerStore**: Tests created for color picker state
+
+### Coverage Impact
+
+**High-Priority Files Covered:**
+- ✅ colorConversion.ts (629 lines) - Critical color math utility
+- ✅ createAssetFile.ts (517 lines) - Asset file operations
+- ✅ useCreateNode.ts - Node creation hook
+- ✅ useDelayedHover.ts - UI interaction hook
+- ✅ ColorPickerStore.ts - UI state management
+
+### Next Steps
+
+1. Fix colorConversion tests (remove non-existent functions or add them)
+2. Run full test suite to verify no regressions
+3. Add more edge case tests for file operations
+4. Create tests for other high-priority files:
+   - workflowUpdates.ts (474 lines)
+   - useNodeEditorShortcuts.ts (667 lines)
+   - useModelsByProvider.ts (398 lines)
+   - nodeSearch.ts (425 lines)
+

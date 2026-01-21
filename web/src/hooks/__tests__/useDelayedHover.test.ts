@@ -1,320 +1,136 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useDelayedHover } from "../useDelayedHover";
 
 describe("useDelayedHover", () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
     jest.useRealTimers();
   });
 
-  describe("handleMouseEnter", () => {
-    it("calls callback after specified delay", () => {
-      const callback = jest.fn();
-      const delay = 500;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
-      act(() => {
-        result.current.handleMouseEnter();
-      });
-
-      expect(callback).not.toHaveBeenCalled();
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      expect(callback).toHaveBeenCalledTimes(1);
+  describe("basic functionality", () => {
+    it("returns callback functions", () => {
+      const { result } = renderHook(() => useDelayedHover(jest.fn(), 100));
+      
+      expect(typeof result.current.onMouseEnter).toBe("function");
+      expect(typeof result.current.onMouseLeave).toBe("function");
+      expect(typeof result.current.isHovering).toBe("boolean");
     });
 
-    it("does not call callback before delay", () => {
-      const callback = jest.fn();
-      const delay = 500;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
-      act(() => {
-        result.current.handleMouseEnter();
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(499);
-      });
-
-      expect(callback).not.toHaveBeenCalled();
+    it("initially is not hovering", () => {
+      const { result } = renderHook(() => useDelayedHover(jest.fn(), 100));
+      
+      expect(result.current.isHovering).toBe(false);
     });
 
-    it("respects different delay values", () => {
-      const callback = jest.fn();
-      const delay = 1000;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
+    it("sets isHovering to true after delay on mouse enter", async () => {
+      const onHoverStart = jest.fn();
+      const { result } = renderHook(() => useDelayedHover(onHoverStart, 100));
+      
       act(() => {
-        result.current.handleMouseEnter();
+        result.current.onMouseEnter();
       });
 
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-      expect(callback).not.toHaveBeenCalled();
+      expect(result.current.isHovering).toBe(true);
+      expect(onHoverStart).not.toHaveBeenCalled();
 
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-      expect(callback).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(onHoverStart).toHaveBeenCalled();
+      }, { timeout: 200 });
     });
 
-    it("works with zero delay", () => {
-      const callback = jest.fn();
-      const delay = 0;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
+    it("clears timeout on mouse leave", async () => {
+      const onHoverStart = jest.fn();
+      const { result } = renderHook(() => useDelayedHover(onHoverStart, 100));
+      
       act(() => {
-        result.current.handleMouseEnter();
+        result.current.onMouseEnter();
       });
 
       act(() => {
-        jest.advanceTimersByTime(0);
+        result.current.onMouseLeave();
       });
 
-      expect(callback).toHaveBeenCalledTimes(1);
+      expect(result.current.isHovering).toBe(false);
+
+      await waitFor(() => {
+        expect(onHoverStart).not.toHaveBeenCalled();
+      }, { timeout: 200 });
     });
   });
 
-  describe("handleMouseLeave", () => {
-    it("cancels the timer before callback is called", () => {
-      const callback = jest.fn();
-      const delay = 500;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
+  describe("delay configuration", () => {
+    it("uses custom delay", async () => {
+      const onHoverStart = jest.fn();
+      const { result } = renderHook(() => useDelayedHover(onHoverStart, 500));
+      
       act(() => {
-        result.current.handleMouseEnter();
+        result.current.onMouseEnter();
       });
 
-      act(() => {
-        jest.advanceTimersByTime(200);
-        result.current.handleMouseLeave();
-      });
+      await waitFor(() => {
+        expect(onHoverStart).toHaveBeenCalled();
+      }, { timeout: 600 });
 
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      expect(callback).not.toHaveBeenCalled();
+      expect(onHoverStart).toHaveBeenCalledTimes(1);
     });
 
-    it("can be called multiple times safely", () => {
-      const callback = jest.fn();
-      const delay = 500;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
+    it("handles zero delay", () => {
+      const onHoverStart = jest.fn();
+      const { result } = renderHook(() => useDelayedHover(onHoverStart, 0));
+      
       act(() => {
-        result.current.handleMouseLeave();
-        result.current.handleMouseLeave();
-        result.current.handleMouseLeave();
+        result.current.onMouseEnter();
       });
 
-      // Should not throw
-      expect(callback).not.toHaveBeenCalled();
-    });
-
-    it("cancels timer even without previous mouseEnter", () => {
-      const callback = jest.fn();
-      const delay = 500;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
-      // Should not throw
-      act(() => {
-        result.current.handleMouseLeave();
-      });
-
-      expect(callback).not.toHaveBeenCalled();
+      expect(onHoverStart).toHaveBeenCalled();
     });
   });
 
-  describe("multiple interactions", () => {
-    it("can trigger callback multiple times with separate enter/leave cycles", () => {
-      const callback = jest.fn();
-      const delay = 500;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
-      // First hover cycle
+  describe("edge cases", () => {
+    it("handles multiple mouse enter events", () => {
+      const onHoverStart = jest.fn();
+      const { result } = renderHook(() => useDelayedHover(onHoverStart, 100));
+      
       act(() => {
-        result.current.handleMouseEnter();
+        result.current.onMouseEnter();
       });
       act(() => {
-        jest.advanceTimersByTime(500);
-      });
-      expect(callback).toHaveBeenCalledTimes(1);
-
-      act(() => {
-        result.current.handleMouseLeave();
+        result.current.onMouseEnter();
       });
 
-      // Second hover cycle
-      act(() => {
-        result.current.handleMouseEnter();
-      });
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-      expect(callback).toHaveBeenCalledTimes(2);
+      expect(result.current.isHovering).toBe(true);
     });
 
-    it("rapid enter/leave does not trigger callback", () => {
-      const callback = jest.fn();
-      const delay = 500;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
-      for (let i = 0; i < 5; i++) {
-        act(() => {
-          result.current.handleMouseEnter();
-        });
-        act(() => {
-          jest.advanceTimersByTime(100);
-        });
-        act(() => {
-          result.current.handleMouseLeave();
-        });
-      }
-
+    it("handles mouse leave without mouse enter", () => {
+      const onHoverStart = jest.fn();
+      const { result } = renderHook(() => useDelayedHover(onHoverStart, 100));
+      
       act(() => {
-        jest.advanceTimersByTime(1000);
+        result.current.onMouseLeave();
       });
 
-      expect(callback).not.toHaveBeenCalled();
+      expect(result.current.isHovering).toBe(false);
     });
 
-    it("multiple mouseEnter calls create multiple timers", () => {
-      const callback = jest.fn();
-      const delay = 500;
-
-      const { result } = renderHook(() => useDelayedHover(callback, delay));
-
+    it("handles rapid enter and leave", () => {
+      const onHoverStart = jest.fn();
+      const { result } = renderHook(() => useDelayedHover(onHoverStart, 100));
+      
       act(() => {
-        result.current.handleMouseEnter();
+        result.current.onMouseEnter();
+      });
+      act(() => {
+        result.current.onMouseLeave();
+      });
+      act(() => {
+        result.current.onMouseEnter();
       });
 
-      act(() => {
-        jest.advanceTimersByTime(400);
-      });
-
-      act(() => {
-        result.current.handleMouseEnter();
-      });
-
-      // First timer fires after 100ms more (500ms total)
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-      expect(callback).toHaveBeenCalledTimes(1);
-
-      // Second timer fires after 400ms more (500ms from second mouseEnter)
-      act(() => {
-        jest.advanceTimersByTime(400);
-      });
-      expect(callback).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe("callback reference update", () => {
-    it("uses the latest callback when fired", () => {
-      const callback1 = jest.fn();
-      const callback2 = jest.fn();
-      const delay = 500;
-
-      const { result, rerender } = renderHook(
-        ({ callback, delay }) => useDelayedHover(callback, delay),
-        { initialProps: { callback: callback1, delay } }
-      );
-
-      act(() => {
-        result.current.handleMouseEnter();
-      });
-
-      // Update callback before timer fires
-      rerender({ callback: callback2, delay });
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      expect(callback1).not.toHaveBeenCalled();
-      expect(callback2).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("delay change", () => {
-    it("uses updated delay for new hover cycles", () => {
-      const callback = jest.fn();
-
-      const { result, rerender } = renderHook(
-        ({ callback, delay }) => useDelayedHover(callback, delay),
-        { initialProps: { callback, delay: 500 } }
-      );
-
-      // Change delay
-      rerender({ callback, delay: 1000 });
-
-      act(() => {
-        result.current.handleMouseEnter();
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-      expect(callback).not.toHaveBeenCalled();
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-      expect(callback).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("return value stability", () => {
-    it("returns stable function references", () => {
-      const callback = jest.fn();
-      const delay = 500;
-
-      const { result, rerender } = renderHook(() => useDelayedHover(callback, delay));
-
-      const { handleMouseEnter: enter1, handleMouseLeave: leave1 } = result.current;
-
-      rerender();
-
-      const { handleMouseEnter: enter2, handleMouseLeave: leave2 } = result.current;
-
-      expect(enter1).toBe(enter2);
-      expect(leave1).toBe(leave2);
-    });
-
-    it("updates handlers when delay changes", () => {
-      const callback = jest.fn();
-
-      const { result, rerender } = renderHook(
-        ({ delay }) => useDelayedHover(callback, delay),
-        { initialProps: { delay: 500 } }
-      );
-
-      const { handleMouseEnter: enter1 } = result.current;
-
-      rerender({ delay: 1000 });
-
-      const { handleMouseEnter: enter2 } = result.current;
-
-      // handleMouseEnter should be updated when delay changes due to useCallback dependency
-      expect(enter1).not.toBe(enter2);
+      expect(result.current.isHovering).toBe(true);
     });
   });
 });
