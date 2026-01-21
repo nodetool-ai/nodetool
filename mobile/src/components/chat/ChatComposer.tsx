@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     borderRadius: 20,
     paddingLeft: 8,
     paddingRight: 4,
@@ -417,12 +417,12 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2,
   },
   input: {
     flex: 1,
     fontSize: 16,
     maxHeight: 120,
+    minHeight: 42,
     paddingVertical: 8,
     paddingRight: 8,
   },
@@ -432,7 +432,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2,
   },
   stopButton: {
     backgroundColor: '#FF453A',
