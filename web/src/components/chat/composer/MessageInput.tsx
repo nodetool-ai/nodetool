@@ -9,7 +9,7 @@ interface MessageInputProps {
 }
 
 const MAX_HEIGHT = 180;
-const LINE_HEIGHT = 22;
+const LINE_HEIGHT = 4;
 
 export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
   (
@@ -28,14 +28,14 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
     const adjustHeight = useCallback(() => {
       const textarea = textareaRef.current;
       if (!textarea) return;
-      
+
       // Reset height to auto to get the correct scrollHeight
       textarea.style.height = "auto";
-      
+
       // Calculate new height, capped at MAX_HEIGHT
       const newHeight = Math.min(textarea.scrollHeight, MAX_HEIGHT);
       textarea.style.height = `${newHeight}px`;
-      
+
       // Enable scrolling only when content exceeds max height
       textarea.style.overflowY = textarea.scrollHeight > MAX_HEIGHT ? "auto" : "hidden";
     }, [textareaRef]);
@@ -65,7 +65,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
         autoComplete="off"
         rows={1}
         style={{
-          minHeight: `${LINE_HEIGHT}px`,
           maxHeight: `${MAX_HEIGHT}px`,
           lineHeight: `${LINE_HEIGHT}px`
         }}
