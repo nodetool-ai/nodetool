@@ -446,3 +446,44 @@ store.getState().addNotification({
 - All new tests pass successfully
 - No type errors in new test files
 - No lint errors in new test files
+
+---
+
+## Test Coverage Improvement (2026-01-21)
+
+### Tests Added
+
+**2 new test files** covering critical hooks and utilities:
+
+1. **`src/hooks/__tests__/reduceUnionType.test.ts`**
+   - Tests non-union type handling (str, int, float, tensor, text)
+   - Tests union type reduction rules (int_float → float, none_str → str, etc.)
+   - Tests edge cases (empty type_args, undefined type_args, unknown types)
+   - Tests type_args sorting and rule matching
+
+2. **`src/hooks/__tests__/useInputMinMax.test.tsx`**
+   - Tests default min=0 and max=100 behavior
+   - Tests nodeType filtering (FloatInput, IntegerInput only)
+   - Tests propertyMin/propertyMax override
+   - Tests node min/max lookup from context
+   - Tests fallback logic when node values are invalid
+   - Tests null/undefined handling
+
+### Patterns Used
+
+1. **Hook Testing with Context**: Mock NodeContext provider for hooks that depend on store state
+2. **Type Assertion Pattern**: Use `as unknown as TypeMetadata` for generated OpenAPI types with required fields
+3. **JSX in Tests**: Use .test.tsx extension for tests containing JSX elements
+4. **Mock Store Factory**: Create mock store functions for context-dependent hooks
+
+### Files Created
+
+- `web/src/hooks/__tests__/reduceUnionType.test.ts`
+- `web/src/hooks/__tests__/useInputMinMax.test.tsx`
+
+### Test Results
+
+- All new tests pass (31 tests total)
+- TypeScript compilation passes
+- ESLint passes (no errors in new files)
+- All 241 test suites pass (3169 tests total)
