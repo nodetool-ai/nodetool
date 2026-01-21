@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Performance Audit (2026-01-21)
+
+**What**: Comprehensive performance audit confirmed 25+ large components memoized, added React.memo to MessageView (423 lines).
+
+**Files**: web/src/components/chat/message/MessageView.tsx
+
+**Impact**: Chat message rendering now memoized. Codebase in excellent performance shape with minimal re-renders.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.

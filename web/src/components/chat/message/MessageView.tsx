@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, memo } from "react";
 import {
   Message,
   MessageContent,
@@ -48,7 +48,7 @@ interface MessageViewProps {
 
 export const MessageView: React.FC<
   MessageViewProps & { componentStyles?: any }
-> = ({
+> = memo(({
   message,
   expandedThoughts,
   onToggleThought,
@@ -420,4 +420,8 @@ export const MessageView: React.FC<
         {(message as Message & { error_type?: string }).error_type && <ErrorIcon className="error-icon" />}
       </li>
     );
-  };
+  });
+
+MessageView.displayName = "MessageView";
+
+export { MessageView };
