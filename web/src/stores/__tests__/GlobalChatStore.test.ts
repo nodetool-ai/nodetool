@@ -738,6 +738,7 @@ describe("GlobalChatStore", () => {
       mockServer = new Server("ws://test/ws");
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(true);
       mockGlobalWebSocketManager.isConnected = true;
+      mockGlobalWebSocketManager.ensureConnection.mockResolvedValue(undefined);
       mockGlobalWebSocketManager.send.mockImplementation(async (data) => {
         sentData = data;
         return Promise.resolve();
@@ -771,6 +772,7 @@ describe("GlobalChatStore", () => {
       store.getState().disconnect();
       mockGlobalWebSocketManager.disconnect();
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(false);
+      mockGlobalWebSocketManager.ensureConnection.mockRejectedValue(new Error("Not connected"));
       store.setState({
         socket: null,
         wsManager: null,
@@ -1056,6 +1058,7 @@ describe("GlobalChatStore", () => {
     it("handles connection timeout gracefully", async () => {
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(false);
       mockGlobalWebSocketManager.isConnected = false;
+      mockGlobalWebSocketManager.ensureConnection.mockRejectedValue(new Error("Not connected to chat service"));
 
       const message: Message = {
         role: "user",
