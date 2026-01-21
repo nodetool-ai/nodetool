@@ -442,6 +442,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         set({ error: null });
 
+        // Check if WebSocket connection is already established
+        if (!globalWebSocketManager.isConnectionOpen()) {
+          set({ error: "Not connected to chat service" });
+          return;
+        }
+
         // Ensure WebSocket connection is established before sending
         try {
           await globalWebSocketManager.ensureConnection();
