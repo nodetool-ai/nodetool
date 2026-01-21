@@ -52,6 +52,7 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
 
   return (
     <Box
+      className="node-execution-indicator"
       sx={{
         position: "absolute",
         top: -20,

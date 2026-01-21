@@ -491,7 +491,16 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
       <InputNodeNameWarning nodeType={type} name={data.properties?.name} />
-      <Box sx={{ flex: "1 1 auto", minHeight: 0, width: "100%" }}>
+      <Box
+        className="node-content-container"
+        sx={{
+          flex: "1 1 auto",
+          minHeight: 0,
+          width: "100%",
+          overflow: "visible", // Allow handles to render outside bounds
+          clipPath: "inset(0 -20px)" // Clip top/bottom, extend left/right for handles
+        }}
+      >
         <NodeContent
           id={id}
           nodeType={type}
