@@ -115,7 +115,19 @@ const store = useNodeStore();  // ❌ causes re-renders
 ---
 
 > **Format**: `Feature (date): One line. Files: x, y`
-> **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
+> **Limit**: 5 most recent entries. Delete oldest when adding new.
+
+### Performance Optimization Audit (2026-01-21)
+
+**What**: Comprehensive audit confirms codebase is well-optimized. Fixed 1 lint warning. Verified 50+ components memoized, selective Zustand subscriptions, proper useCallback/useMemo usage, list virtualization.
+
+**Files**: .github/opencode-memory/insights/performance/audit-2026-01-21.md, web/src/components/chat/composer/MessageInput.tsx
+
+**Impact**: Web passes TypeScript and ESLint. Bundle: 9.6MB (2.7MB gzipped) with code splitting. Tests: 3134/3138 pass.
+
+---
+
+### Node Header Icon Fix (2026-01-16)
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
 
@@ -237,7 +249,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: `mobile/tsconfig.json`
 
 ---
-
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
 
@@ -408,6 +419,7 @@ const store = useNodeStore();  // ❌ causes re-renders
 ---
 
 _No entries yet - this memory system is new as of 2026-01-10_
+
 ### Mobile TypeScript Type Errors (2026-01-12)
 
 **What**: Fixed mobile package TypeScript errors by updating tsconfig.json to include proper type definitions for React Native, Jest, and Node.js.
