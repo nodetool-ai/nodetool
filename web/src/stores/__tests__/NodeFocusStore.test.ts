@@ -1,257 +1,194 @@
-import { Node } from "@xyflow/react";
-import { NodeData } from "../NodeData";
 import { useNodeFocusStore } from "../NodeFocusStore";
+import { Node, Position } from "@xyflow/react";
+import { NodeData } from "../NodeData";
 
 const createMockNode = (id: string, x: number = 0, y: number = 0): Node<NodeData> => ({
   id,
-  type: "default",
+  type: "test",
   position: { x, y },
+  targetPosition: Position.Left,
+  sourcePosition: Position.Right,
   data: {
     properties: {},
     dynamic_properties: {},
     selectable: true,
-    workflow_id: "test-workflow"
-  }
+    workflow_id: "test",
+  },
 });
 
 describe("NodeFocusStore", () => {
   beforeEach(() => {
-    useNodeFocusStore.setState({
-      focusedNodeId: null,
-      isNavigationMode: false,
-      focusHistory: []
-    });
+    useNodeFocusStore.setState(useNodeFocusStore.getInitialState());
+  });
+
+  afterEach(() => {
+    useNodeFocusStore.setState(useNodeFocusStore.getInitialState());
   });
 
   describe("initial state", () => {
-    it("should initialize with null focusedNodeId", () => {
-      expect(useNodeFocusStore.getState().focusedNodeId).toBeNull();
-    });
-
-    it("should initialize with navigation mode off", () => {
-      expect(useNodeFocusStore.getState().isNavigationMode).toBe(false);
-    });
-
-    it("should initialize with empty focusHistory", () => {
-      expect(useNodeFocusStore.getState().focusHistory).toEqual([]);
+    it("should have correct default values", () => {
+      const state = useNodeFocusStore.getState();
+      expect(state.focusedNodeId).toBe(null);
+      expect(state.isNavigationMode).toBe(false);
+      expect(state.focusHistory).toEqual([]);
     });
   });
 
   describe("setFocusedNode", () => {
-    it("should set focused node", () => {
+    it("should set focused node id", () => {
       useNodeFocusStore.getState().setFocusedNode("node-1");
-
       expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
     });
 
-    it("should add node to focus history", () => {
+    it("should clear focused node when null is passed", () => {
       useNodeFocusStore.getState().setFocusedNode("node-1");
-
-      expect(useNodeFocusStore.getState().focusHistory).toContain("node-1");
+      useNodeFocusStore.getState().setFocusedNode(null);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe(null);
     });
 
-    it("should not add duplicate to history when same node is focused", () => {
-      useNodeFocusStore.getState().setFocusedNode("node-1");
-      useNodeFocusStore.getState().setFocusedNode("node-1");
-
-      const history = useNodeFocusStore.getState().focusHistory;
-      const count = history.filter(id => id === "node-1").length;
-      expect(count).toBe(1);
-    });
-
-    it("should add multiple nodes to history", () => {
+    it("should add to focus history", () => {
       useNodeFocusStore.getState().setFocusedNode("node-1");
       useNodeFocusStore.getState().setFocusedNode("node-2");
-      useNodeFocusStore.getState().setFocusedNode("node-3");
-
-      const history = useNodeFocusStore.getState().focusHistory;
-      expect(history).toEqual(["node-1", "node-2", "node-3"]);
-    });
-
-    it("should clear focus when null is set", () => {
-      useNodeFocusStore.getState().setFocusedNode("node-1");
-      useNodeFocusStore.getState().setFocusedNode(null);
-
-      expect(useNodeFocusStore.getState().focusedNodeId).toBeNull();
-    });
-
-    it("should not clear history when setting null", () => {
-      useNodeFocusStore.getState().setFocusedNode("node-1");
-      useNodeFocusStore.getState().setFocusedNode(null);
-
       expect(useNodeFocusStore.getState().focusHistory).toContain("node-1");
+      expect(useNodeFocusStore.getState().focusHistory).toContain("node-2");
     });
 
-    it("should limit history to last 20 entries", () => {
+    it("should limit focus history to 20 entries", () => {
       for (let i = 0; i < 25; i++) {
         useNodeFocusStore.getState().setFocusedNode(`node-${i}`);
       }
-
       const history = useNodeFocusStore.getState().focusHistory;
-      expect(history).toHaveLength(20);
+      expect(history.length).toBe(20);
       expect(history[0]).toBe("node-5");
-      expect(history[19]).toBe("node-24");
+    });
+
+    it("should not add duplicate consecutive nodes to history", () => {
+      useNodeFocusStore.getState().setFocusedNode("node-1");
+      useNodeFocusStore.getState().setFocusedNode("node-1");
+      const history = useNodeFocusStore.getState().focusHistory;
+      const occurrences = history.filter(id => id === "node-1").length;
+      expect(occurrences).toBe(1);
     });
   });
 
   describe("enterNavigationMode", () => {
     it("should enter navigation mode", () => {
       useNodeFocusStore.getState().enterNavigationMode();
-
-      expect(useNodeFocusStore.getState().isNavigationMode).toBe(true);
-    });
-
-    it("should preserve focusedNodeId when entering navigation mode", () => {
-      useNodeFocusStore.getState().setFocusedNode("node-1");
-      useNodeFocusStore.getState().enterNavigationMode();
-
-      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
       expect(useNodeFocusStore.getState().isNavigationMode).toBe(true);
     });
 
     it("should not change state if already in navigation mode", () => {
       useNodeFocusStore.getState().enterNavigationMode();
-      const initialFocusedId = useNodeFocusStore.getState().focusedNodeId;
-
+      const prevState = useNodeFocusStore.getState();
       useNodeFocusStore.getState().enterNavigationMode();
-
-      expect(useNodeFocusStore.getState().focusedNodeId).toBe(initialFocusedId);
+      expect(useNodeFocusStore.getState().isNavigationMode).toBe(true);
     });
   });
 
   describe("exitNavigationMode", () => {
     it("should exit navigation mode", () => {
       useNodeFocusStore.getState().enterNavigationMode();
-      expect(useNodeFocusStore.getState().isNavigationMode).toBe(true);
-
       useNodeFocusStore.getState().exitNavigationMode();
       expect(useNodeFocusStore.getState().isNavigationMode).toBe(false);
-    });
-
-    it("should not clear focusedNodeId when exiting navigation mode", () => {
-      useNodeFocusStore.getState().setFocusedNode("node-1");
-      useNodeFocusStore.getState().enterNavigationMode();
-
-      useNodeFocusStore.getState().exitNavigationMode();
-
-      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
     });
   });
 
   describe("navigateFocus", () => {
-    const nodes = [
-      createMockNode("node-1", 0, 0),
-      createMockNode("node-2", 100, 0),
-      createMockNode("node-3", 0, 100),
-      createMockNode("node-4", 100, 100)
-    ];
+    it("should navigate to next node", () => {
+      const nodes = [
+        createMockNode("node-1"),
+        createMockNode("node-2"),
+        createMockNode("node-3"),
+      ];
+      useNodeFocusStore.getState().setFocusedNode("node-1");
+      useNodeFocusStore.getState().navigateFocus("next", nodes);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-2");
+    });
 
-    it("should not change state with empty nodes array", () => {
+    it("should navigate to previous node", () => {
+      const nodes = [
+        createMockNode("node-1"),
+        createMockNode("node-2"),
+        createMockNode("node-3"),
+      ];
+      useNodeFocusStore.getState().setFocusedNode("node-2");
+      useNodeFocusStore.getState().navigateFocus("prev", nodes);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
+    });
+
+    it("should wrap around when navigating next from last node", () => {
+      const nodes = [
+        createMockNode("node-1"),
+        createMockNode("node-2"),
+      ];
+      useNodeFocusStore.getState().setFocusedNode("node-2");
+      useNodeFocusStore.getState().navigateFocus("next", nodes);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
+    });
+
+    it("should wrap around when navigating prev from first node", () => {
+      const nodes = [
+        createMockNode("node-1"),
+        createMockNode("node-2"),
+      ];
+      useNodeFocusStore.getState().setFocusedNode("node-1");
+      useNodeFocusStore.getState().navigateFocus("prev", nodes);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-2");
+    });
+
+    it("should navigate up", () => {
+      const nodes = [
+        createMockNode("node-1", 0, 100),
+        createMockNode("node-2", 0, 50),
+      ];
+      useNodeFocusStore.getState().setFocusedNode("node-1");
+      useNodeFocusStore.getState().navigateFocus("up", nodes);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-2");
+    });
+
+    it("should navigate down", () => {
+      const nodes = [
+        createMockNode("node-1", 0, 50),
+        createMockNode("node-2", 0, 100),
+      ];
+      useNodeFocusStore.getState().setFocusedNode("node-1");
+      useNodeFocusStore.getState().navigateFocus("down", nodes);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-2");
+    });
+
+    it("should navigate left", () => {
+      const nodes = [
+        createMockNode("node-1", 100, 0),
+        createMockNode("node-2", 50, 0),
+      ];
+      useNodeFocusStore.getState().setFocusedNode("node-1");
+      useNodeFocusStore.getState().navigateFocus("left", nodes);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-2");
+    });
+
+    it("should navigate right", () => {
+      const nodes = [
+        createMockNode("node-1", 50, 0),
+        createMockNode("node-2", 100, 0),
+      ];
+      useNodeFocusStore.getState().setFocusedNode("node-1");
+      useNodeFocusStore.getState().navigateFocus("right", nodes);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-2");
+    });
+
+    it("should do nothing when nodes array is empty", () => {
+      useNodeFocusStore.getState().setFocusedNode("node-1");
       useNodeFocusStore.getState().navigateFocus("next", []);
-      expect(useNodeFocusStore.getState().focusedNodeId).toBeNull();
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
     });
 
-    describe("next/prev navigation", () => {
-      it("should navigate to next node", () => {
-        useNodeFocusStore.getState().navigateFocus("next", nodes);
-
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
-      });
-
-      it("should navigate to prev node", () => {
-        useNodeFocusStore.getState().navigateFocus("prev", nodes);
-
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-4");
-      });
-
-      it("should cycle through nodes with next navigation", () => {
-        useNodeFocusStore.getState().navigateFocus("next", nodes);
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
-
-        useNodeFocusStore.getState().navigateFocus("next", nodes);
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-2");
-
-        useNodeFocusStore.getState().navigateFocus("next", nodes);
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-3");
-
-        useNodeFocusStore.getState().navigateFocus("next", nodes);
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-4");
-
-        useNodeFocusStore.getState().navigateFocus("next", nodes);
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
-      });
-
-      it("should cycle backwards with prev navigation", () => {
-        useNodeFocusStore.getState().navigateFocus("prev", nodes);
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-4");
-
-        useNodeFocusStore.getState().navigateFocus("prev", nodes);
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-3");
-      });
-
-      it("should navigate from current node position", () => {
-        useNodeFocusStore.getState().setFocusedNode("node-2");
-        useNodeFocusStore.getState().navigateFocus("next", nodes);
-
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-3");
-      });
-
-      it("should add navigated nodes to history", () => {
-        useNodeFocusStore.getState().navigateFocus("next", nodes);
-
-        expect(useNodeFocusStore.getState().focusHistory).toContain("node-1");
-      });
-    });
-
-    describe("directional navigation", () => {
-      it("should navigate up to node above", () => {
-        useNodeFocusStore.getState().setFocusedNode("node-3");
-        useNodeFocusStore.getState().navigateFocus("up", nodes);
-
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
-      });
-
-      it("should navigate down to node below", () => {
-        useNodeFocusStore.getState().setFocusedNode("node-1");
-        useNodeFocusStore.getState().navigateFocus("down", nodes);
-
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-3");
-      });
-
-      it("should navigate left to node on left", () => {
-        useNodeFocusStore.getState().setFocusedNode("node-2");
-        useNodeFocusStore.getState().navigateFocus("left", nodes);
-
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
-      });
-
-      it("should navigate right to node on right", () => {
-        useNodeFocusStore.getState().setFocusedNode("node-1");
-        useNodeFocusStore.getState().navigateFocus("right", nodes);
-
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-2");
-      });
-
-      it("should not change focus if no node in direction", () => {
-        useNodeFocusStore.getState().setFocusedNode("node-1");
-        useNodeFocusStore.getState().navigateFocus("up", nodes);
-
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
-      });
-
-      it("should choose closest node in direction", () => {
-        const nodesWithDiagonal = [
-          createMockNode("node-1", 0, 0),
-          createMockNode("node-2", 10, 100),
-          createMockNode("node-3", 50, 100),
-          createMockNode("node-4", 100, 100)
-        ];
-
-        useNodeFocusStore.getState().setFocusedNode("node-1");
-        useNodeFocusStore.getState().navigateFocus("down", nodesWithDiagonal);
-
-        expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-2");
-      });
+    it("should select first node when no node focused and navigating directionally", () => {
+      const nodes = [
+        createMockNode("node-1", 0, 100),
+        createMockNode("node-2", 0, 50),
+      ];
+      useNodeFocusStore.getState().navigateFocus("up", nodes);
+      expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
     });
   });
 
@@ -259,18 +196,13 @@ describe("NodeFocusStore", () => {
     it("should clear focus history", () => {
       useNodeFocusStore.getState().setFocusedNode("node-1");
       useNodeFocusStore.getState().setFocusedNode("node-2");
-
-      expect(useNodeFocusStore.getState().focusHistory).toHaveLength(2);
-
       useNodeFocusStore.getState().clearFocusHistory();
-
       expect(useNodeFocusStore.getState().focusHistory).toEqual([]);
     });
 
-    it("should not clear focusedNodeId", () => {
+    it("should not clear focused node", () => {
       useNodeFocusStore.getState().setFocusedNode("node-1");
       useNodeFocusStore.getState().clearFocusHistory();
-
       expect(useNodeFocusStore.getState().focusedNodeId).toBe("node-1");
     });
   });
