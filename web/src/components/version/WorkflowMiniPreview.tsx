@@ -230,7 +230,12 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           variant="caption"
           sx={{
             color: "rgba(255,255,255,0.4)",
-            fontStyle: "italic"
+            fontFamily: "var(--fontFamily2)",
+            textAlign: "center",
+            fontSize: "var(--fontSizeTiny)",
+            lineHeight: "1.2",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em"
           }}
         >
           Empty workflow
