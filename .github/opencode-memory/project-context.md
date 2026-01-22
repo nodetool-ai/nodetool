@@ -54,9 +54,9 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-> ### TypeScript and Lint Fixes (2026-01-22)
-> **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
-> **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
+> ### Quality Check Fixes (2026-01-22)
+> **What**: Fixed TypeScript error in highlightText.test.ts, removed unused code in TableActions.tsx, fixed unused imports in test files, and added React Query mock for useAutosave test.
+> **Files**: web/src/utils/__tests__/highlightText.test.ts, web/src/components/node/DataTable/TableActions.tsx, web/src/stores/__tests__/NodePlacementStore.test.ts, web/src/stores/__tests__/RecentNodesStore.test.ts, web/src/hooks/__tests__/useAutosave.test.ts
 >
 > ---
 >

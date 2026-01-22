@@ -8,6 +8,14 @@ import { Workflow } from "../../stores/ApiTypes";
 // Mock fetch globally
 global.fetch = jest.fn();
 
+const mockQueryClient = {
+  invalidateQueries: jest.fn()
+};
+
+jest.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => mockQueryClient
+}));
+
 describe("useAutosave", () => {
   const mockWorkflow: Workflow = {
     id: "test-workflow",

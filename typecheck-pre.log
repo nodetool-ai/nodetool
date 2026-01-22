@@ -1,18 +1,9 @@
 Type checking web package...
 cd web && npm run typecheck
 
-> nodetool@0.6.2-rc.27 typecheck
+> nodetool@0.6.3-rc.1 typecheck
 > tsc --noEmit
 
-Type checking electron package...
-cd electron && npm run typecheck
-
-> nodetool-electron@0.6.2-rc.27 typecheck
-> tsc --noEmit
-
-Type checking mobile package...
-cd mobile && npm run typecheck
-
-> nodetool-mobile@0.6.2-rc.27 typecheck
-> tsc --noEmit
-
+src/utils/__tests__/highlightText.test.ts(50,67): error TS2339: Property 'matches' does not exist on type '{ score?: number | undefined; matches?: { key: string; value: string; indices: number[][]; }[] | undefined; } | undefined'.
+src/utils/__tests__/highlightText.test.ts(54,9): error TS2353: Object literal may only specify known properties, and 'matchedFields' does not exist in type '{ score?: number | undefined; matches?: { key: string; value: string; indices: number[][]; }[] | undefined; }'.
+make: *** [Makefile:147: typecheck-web] Error 2

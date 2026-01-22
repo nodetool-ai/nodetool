@@ -1,12 +1,24 @@
 Linting web package...
 cd web && npm run lint
 
-> nodetool@0.6.2-rc.27 lint
+> nodetool@0.6.3-rc.1 lint
 > eslint src
+
+
+/home/runner/work/nodetool/nodetool/web/src/components/node/DataTable/TableActions.tsx
+  393:9  warning  'handleExportJSON' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/NodePlacementStore.test.ts
+  2:33  warning  'NodePlacementSource' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/RecentNodesStore.test.ts
+  2:31  warning  'RecentNode' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 3 problems (0 errors, 3 warnings)
 
 Linting electron package...
 cd electron && npm run lint
 
-> nodetool-electron@0.6.2-rc.27 lint
+> nodetool-electron@0.6.3-rc.1 lint
 > eslint .
 
