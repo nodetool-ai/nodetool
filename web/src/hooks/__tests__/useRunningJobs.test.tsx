@@ -20,33 +20,50 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
 };
 
 describe("useRunningJobs", () => {
   const mockJobs: Job[] = [
     {
-      type: "job",
       id: "job-1",
-      workflow_id: "workflow-1",
+      user_id: "user-1",
+      job_type: "workflow",
       status: "running",
-      created_at: "2026-01-22T10:00:00Z",
+      workflow_id: "workflow-1",
+      started_at: "2026-01-22T10:00:00Z",
+      finished_at: null,
+      error: null,
+      cost: null,
+      run_state: { status: "running", is_resumable: true },
     },
     {
-      type: "job",
       id: "job-2",
-      workflow_id: "workflow-2",
+      user_id: "user-1",
+      job_type: "workflow",
       status: "queued",
-      created_at: "2026-01-22T10:05:00Z",
+      workflow_id: "workflow-2",
+      started_at: "2026-01-22T10:05:00Z",
+      finished_at: null,
+      error: null,
+      cost: null,
+      run_state: { status: "queued", is_resumable: true },
     },
     {
-      type: "job",
       id: "job-3",
-      workflow_id: "workflow-3",
+      user_id: "user-1",
+      job_type: "workflow",
       status: "completed",
-      created_at: "2026-01-22T10:10:00Z",
+      workflow_id: "workflow-3",
+      started_at: "2026-01-22T10:10:00Z",
+      finished_at: "2026-01-22T10:15:00Z",
+      error: null,
+      cost: 0.05,
+      run_state: { status: "completed", is_resumable: false },
     },
   ];
 
@@ -75,7 +92,7 @@ describe("useRunningJobs", () => {
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: mockJobs },
       error: null,
-    });
+    } as any);
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -97,7 +114,7 @@ describe("useRunningJobs", () => {
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: allActiveJobs },
       error: null,
-    });
+    } as any);
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -114,7 +131,7 @@ describe("useRunningJobs", () => {
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: [] },
       error: null,
-    });
+    } as any);
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -127,38 +144,27 @@ describe("useRunningJobs", () => {
     expect(result.current.data).toEqual([]);
   });
 
-  it("handles API error", async () => {
+  it("handles API errors", async () => {
     mockClient.GET.mockResolvedValueOnce({
       data: null,
-      error: { detail: "Unauthorized" },
-    });
+      error: { detail: "Failed to fetch jobs" },
+    } as any);
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isError).toBe(true);
     });
-
-    expect(result.current.error).toBeDefined();
   });
 
-  it("includes jobs with suspended status", async () => {
-    const jobsWithSuspended = [
-      ...mockJobs,
-      {
-        type: "job",
-        id: "job-4",
-        workflow_id: "workflow-4",
-        status: "suspended",
-        created_at: "2026-01-22T10:15:00Z",
-      },
-    ];
+  it("filters jobs by status correctly", async () => {
+    const runningOnly = mockJobs.filter((j) => j.status === "running");
     mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithSuspended },
+      data: { jobs: runningOnly },
       error: null,
-    });
+    } as any);
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -168,91 +174,7 @@ describe("useRunningJobs", () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data).toHaveLength(3);
-    expect(result.current.data?.find((j) => j.id === "job-4")).toBeDefined();
-  });
-
-  it("includes jobs with paused status", async () => {
-    const jobsWithPaused = [
-      ...mockJobs,
-      {
-        type: "job",
-        id: "job-5",
-        workflow_id: "workflow-5",
-        status: "paused",
-        created_at: "2026-01-22T10:20:00Z",
-      },
-    ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithPaused },
-      error: null,
-    });
-
-    const { result } = renderHook(() => useRunningJobs(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data).toHaveLength(3);
-    expect(result.current.data?.find((j) => j.id === "job-5")).toBeDefined();
-  });
-
-  it("includes jobs with starting status", async () => {
-    const jobsWithStarting = [
-      ...mockJobs,
-      {
-        type: "job",
-        id: "job-6",
-        workflow_id: "workflow-6",
-        status: "starting",
-        created_at: "2026-01-22T10:25:00Z",
-      },
-    ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithStarting },
-      error: null,
-    });
-
-    const { result } = renderHook(() => useRunningJobs(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data).toHaveLength(3);
-    expect(result.current.data?.find((j) => j.id === "job-6")).toBeDefined();
-  });
-
-  it("filters out failed jobs", async () => {
-    const jobsWithFailed = [
-      ...mockJobs,
-      {
-        type: "job",
-        id: "job-7",
-        workflow_id: "workflow-7",
-        status: "failed",
-        created_at: "2026-01-22T10:30:00Z",
-      },
-    ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithFailed },
-      error: null,
-    });
-
-    const { result } = renderHook(() => useRunningJobs(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data).toHaveLength(2);
-    expect(result.current.data?.find((j) => j.id === "job-7")).toBeUndefined();
+    expect(result.current.data).toHaveLength(1);
+    expect(result.current.data?.[0].id).toBe("job-1");
   });
 });

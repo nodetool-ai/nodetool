@@ -61,21 +61,24 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   }, [closeContextMenu]);
 
 
-  const addComment = (event: React.MouseEvent) => {
-    // Fake metadata for comments
-    const metadata = COMMENT_NODE_METADATA;
-    const newNode = createNode(
-      metadata,
-      reactFlowInstance.screenToFlowPosition({
-        x: menuPosition?.x || event.clientX,
-        y: menuPosition?.y || event.clientY
-      })
-    );
-    newNode.width = 150;
-    newNode.height = 100;
-    newNode.style = { width: 150, height: 100 };
-    addNode(newNode);
-  };
+  const addComment = useCallback(
+    (event: React.MouseEvent) => {
+      // Fake metadata for comments
+      const metadata = COMMENT_NODE_METADATA;
+      const newNode = createNode(
+        metadata,
+        reactFlowInstance.screenToFlowPosition({
+          x: menuPosition?.x || event.clientX,
+          y: menuPosition?.y || event.clientY
+        })
+      );
+      newNode.width = 150;
+      newNode.height = 100;
+      newNode.style = { width: 150, height: 100 };
+      addNode(newNode);
+    },
+    [createNode, addNode, reactFlowInstance, menuPosition]
+  );
 
   const addGroupNode = useCallback(
     (event: React.MouseEvent) => {
