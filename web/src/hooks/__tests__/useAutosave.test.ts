@@ -1,9 +1,19 @@
 import { renderHook, act } from "@testing-library/react";
+import { QueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useVersionHistoryStore } from "../../stores/VersionHistoryStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAutosave, UseAutosaveOptions } from "../useAutosave";
 import { Workflow } from "../../stores/ApiTypes";
+
+const mockQueryClient = {
+  invalidateQueries: jest.fn(),
+  setQueryData: jest.fn(),
+};
+
+jest.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => mockQueryClient
+}));
 
 // Mock fetch globally
 global.fetch = jest.fn();
