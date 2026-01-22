@@ -128,6 +128,14 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     handleAlignNodes(true);
   }, [handleAlignNodes]);
 
+  const handleContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+  }, []);
+
+  const handleStopPropagation = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
+  }, []);
+
   if (!menuPosition) {
     return null;
   }
@@ -136,8 +144,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       className="context-menu selection-context-menu"
       open={menuPosition !== null}
       onClose={closeContextMenu}
-      onContextMenu={(event) => event.preventDefault()}
-      onClick={(e) => e.stopPropagation()}
+      onContextMenu={handleContextMenu}
+      onClick={handleStopPropagation}
       anchorReference="anchorPosition"
       anchorPosition={
         menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined

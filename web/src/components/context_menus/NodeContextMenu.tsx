@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { Menu, Divider, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
@@ -39,11 +39,29 @@ const NodeContextMenu: React.FC = () => {
     closeContextMenu();
   };
 
+  const handleSelectModeOnAny = useCallback(() => {
+    handleSelectMode("on_any");
+  }, [handleSelectMode]);
+
+  const handleSelectModeZipAll = useCallback(() => {
+    handleSelectMode("zip_all");
+  }, [handleSelectMode]);
+
+  const handleRemoveFromGroupClick = useCallback(() => {
+    if (node) {
+      removeFromGroup([node as Node<NodeData>]);
+    }
+  }, [node, removeFromGroup]);
+
+  const handleContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+  }, []);
+
   const menuItems = [
     conditions.isInGroup && (
       <ContextMenuItem
         key="remove-from-group"
-        onClick={() => removeFromGroup([node as Node<NodeData>])}
+        onClick={handleRemoveFromGroupClick}
         label="Remove from Group"
         IconComponent={<GroupRemoveIcon />}
         tooltip="Remove this node from the group"
@@ -127,7 +145,7 @@ const NodeContextMenu: React.FC = () => {
     <MenuItem
       key="sync-on-any"
       selected={syncMode === "on_any"}
-      onClick={() => handleSelectMode("on_any")}
+      onClick={handleSelectModeOnAny}
       sx={{ py: 0.5, minHeight: "unset" }}
     >
       <ListItemIcon>
@@ -143,7 +161,7 @@ const NodeContextMenu: React.FC = () => {
     <MenuItem
       key="sync-zip-all"
       selected={syncMode === "zip_all"}
-      onClick={() => handleSelectMode("zip_all")}
+      onClick={handleSelectModeZipAll}
       sx={{ py: 0.5, minHeight: "unset" }}
     >
       <ListItemIcon>
@@ -181,7 +199,7 @@ const NodeContextMenu: React.FC = () => {
       className="context-menu node-context-menu"
       open={menuPosition !== null}
       onClose={closeContextMenu}
-      onContextMenu={(event) => event.preventDefault()}
+      onContextMenu={handleContextMenu}
       anchorReference="anchorPosition"
       anchorPosition={
         menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined

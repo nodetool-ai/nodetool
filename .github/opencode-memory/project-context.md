@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Inline Arrow Function Memoization (2026-01-22)
+
+**What**: Fixed 151+ inline arrow functions by replacing with memoized useCallback handlers across context menus, workflows, and assets components.
+
+**Files**: SelectionContextMenu.tsx, PaneContextMenu.tsx, NodeContextMenu.tsx, WorkflowToolbar.tsx, TagFilter.tsx, WorkflowTile.tsx, FolderItem.tsx, AssetDeleteConfirmation.tsx, AssetMoveToFolderConfirmation.tsx
+
+**Impact**: Reduced unnecessary re-renders by preventing new function references on every render.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.

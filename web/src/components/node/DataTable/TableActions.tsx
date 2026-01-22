@@ -266,7 +266,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         const hasHeaderRow = matchingHeaders.length >= Math.min(2, dataframeColumns.length);
         
         // Build column index mapping
-        let columnMapping: Map<number, number> = new Map(); // pasted index -> dataframe column index
+        const columnMapping: Map<number, number> = new Map(); // pasted index -> dataframe column index
         
         if (hasHeaderRow) {
           // Map by header name
