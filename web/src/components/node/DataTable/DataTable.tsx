@@ -68,12 +68,16 @@ interface DataTableProps {
   dataframe: DataframeRef;
   editable?: boolean;
   onChange?: (data: DataframeRef) => void;
+  isModalMode?: boolean;
+  searchFilter?: string;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
   dataframe,
   onChange,
-  editable
+  editable,
+  isModalMode = false,
+  searchFilter = ""
 }) => {
   const theme = useTheme();
   const tableRef = useRef<HTMLDivElement>(null);
@@ -83,6 +87,23 @@ const DataTable: React.FC<DataTableProps> = ({
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
   const [isTableReady, setIsTableReady] = useState(false);
+  
+  // Track undo/redo availability
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  
+  // Track if we're in the middle of a Tabulator edit to avoid clearing history
+  const isInternalEditRef = useRef(false);
+  
+  // Update undo/redo availability
+  const updateHistoryState = useCallback(() => {
+    if (tabulatorRef.current && isModalMode) {
+      const undoSize = tabulatorRef.current.getHistoryUndoSize();
+      const redoSize = tabulatorRef.current.getHistoryRedoSize();
+      setCanUndo(typeof undoSize === "number" && undoSize > 0);
+      setCanRedo(typeof redoSize === "number" && redoSize > 0);
+    }
+  }, [isModalMode]);
 
   // Store dataframe ref in a ref to avoid stale closures
   const dataframeRef = useRef(dataframe);
@@ -156,6 +177,7 @@ const DataTable: React.FC<DataTableProps> = ({
         field: col.name,
         headerTooltip: col.data_type,
         editable: editable,
+        resizable: true,
         formatter: col.data_type === "datetime" ? datetimeFormatter : undefined,
         editor:
           col.data_type === "int"
@@ -184,6 +206,9 @@ const DataTable: React.FC<DataTableProps> = ({
     if (!tableRef.current || tabulatorRef.current) {return;}
 
     const handleCellEdited = (cell: CellComponent) => {
+      // Mark that we're doing an internal edit - don't clear history
+      isInternalEditRef.current = true;
+      
       const rownum = cell.getData().rownum;
       const currentDf = dataframeRef.current;
       const currentData = currentDf.data?.map((row, index) =>
@@ -200,6 +225,12 @@ const DataTable: React.FC<DataTableProps> = ({
           return newRow;
         })
       );
+      
+      // Reset the flag after a short delay to allow React state to update
+      setTimeout(() => {
+        isInternalEditRef.current = false;
+        updateHistoryState();
+      }, 100);
     };
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
@@ -216,7 +247,8 @@ const DataTable: React.FC<DataTableProps> = ({
           elementAttributes: { spellcheck: "false" }
         }
       },
-      movableRows: true
+      movableRows: true,
+      history: isModalMode // Enable undo/redo in modal mode
     });
 
     tabulatorInstance.on("cellEdited", handleCellEdited);
@@ -239,8 +271,9 @@ const DataTable: React.FC<DataTableProps> = ({
   }, []);
 
   // Update data when it changes (without recreating tabulator)
+  // Skip replaceData if the change came from Tabulator's own editing (to preserve history)
   useEffect(() => {
-    if (isTableReady && tabulatorRef.current) {
+    if (isTableReady && tabulatorRef.current && !isInternalEditRef.current) {
       tabulatorRef.current.replaceData(data);
     }
   }, [data, isTableReady]);
@@ -251,6 +284,24 @@ const DataTable: React.FC<DataTableProps> = ({
       tabulatorRef.current.setColumns(buildColumns());
     }
   }, [buildColumns, dataframe.columns, showSelect, showRowNumbers, isTableReady]);
+
+  // Apply search filter
+  useEffect(() => {
+    if (isTableReady && tabulatorRef.current) {
+      if (searchFilter && searchFilter.trim()) {
+        // Filter across all columns
+        const cols = dataframeRef.current.columns || [];
+        const filters = cols.map((col) => ({
+          field: col.name,
+          type: "like" as const,
+          value: searchFilter
+        }));
+        tabulatorRef.current.setFilter([filters] as any);
+      } else {
+        (tabulatorRef.current.clearFilter as () => void)();
+      }
+    }
+  }, [searchFilter, isTableReady]);
 
   return (
     <div className="datatable nowheel nodrag" css={tableStyles(theme)}>
@@ -265,6 +316,10 @@ const DataTable: React.FC<DataTableProps> = ({
         editable={editable}
         dataframeColumns={dataframe.columns || []}
         onChangeRows={onChangeRows}
+        isModalMode={isModalMode}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onHistoryChange={updateHistoryState}
       />
 
       <div ref={tableRef} className="datatable" />

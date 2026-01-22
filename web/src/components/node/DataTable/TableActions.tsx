@@ -1,5 +1,5 @@
 import React, { useCallback, memo } from "react";
-import { Tooltip, IconButton } from "@mui/material";
+import { Tooltip, IconButton, Divider } from "@mui/material";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -10,6 +10,11 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import NumbersIcon from "@mui/icons-material/Numbers";
+import ContentPasteIcon from "@mui/icons-material/ContentPaste";
+import UndoIcon from "@mui/icons-material/Undo";
+import RedoIcon from "@mui/icons-material/Redo";
+import FileCopyIcon from "@mui/icons-material/FileCopy";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
 interface TableActionsProps {
   tabulator: Tabulator | undefined;
@@ -25,6 +30,10 @@ interface TableActionsProps {
   isListTable?: boolean;
   showResetSortingButton?: boolean;
   showRowNumbersButton?: boolean;
+  isModalMode?: boolean;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onHistoryChange?: () => void;
 }
 
 const TableActions: React.FC<TableActionsProps> = memo(({
@@ -40,7 +49,11 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   onChangeRows,
   isListTable = false,
   showResetSortingButton: showSortingButton = true,
-  showRowNumbersButton = true
+  showRowNumbersButton = true,
+  isModalMode = false,
+  canUndo = false,
+  canRedo = false,
+  onHistoryChange
 }) => {
   TableActions.displayName = 'TableActions';
   const { writeClipboard } = useClipboard();
@@ -156,6 +169,255 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     setShowRowNumbers?.(!showRowNumbers);
   }, [setShowRowNumbers, showRowNumbers]);
 
+  // Duplicate selected rows
+  const handleDuplicateRows = useCallback(() => {
+    if (!Array.isArray(data) || selectedRows.length === 0) {return;}
+    
+    const duplicatedRows = selectedRows.map((row) => {
+      const rowData = { ...row.getData() };
+      delete rowData.rownum; // Remove rownum, will be reassigned
+      return rowData;
+    });
+    
+    // Insert after the last selected row
+    const lastSelectedIndex = Math.max(...selectedRows.map((r) => r.getData().rownum));
+    const newData = [...data];
+    newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
+    
+    // Reassign rownums
+    const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
+    onChangeRows(reindexedData);
+    
+    addNotification({
+      content: `Duplicated ${duplicatedRows.length} row(s)`,
+      type: "success",
+      alert: true
+    });
+  }, [data, selectedRows, onChangeRows, addNotification]);
+
+  // Undo action
+  const handleUndo = useCallback(() => {
+    if (tabulator) {
+      tabulator.undo();
+      onHistoryChange?.();
+    }
+  }, [tabulator, onHistoryChange]);
+
+  // Redo action
+  const handleRedo = useCallback(() => {
+    if (tabulator) {
+      tabulator.redo();
+      onHistoryChange?.();
+    }
+  }, [tabulator, onHistoryChange]);
+
+  // Parse CSV line handling quoted values
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++; // Skip escaped quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if ((char === ',' || char === '\t') && !inQuotes) {
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  // Paste from clipboard
+  const handlePaste = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        addNotification({
+          content: "Clipboard is empty",
+          type: "warning",
+          alert: true
+        });
+        return;
+      }
+      
+      // Parse lines
+      const lines = text.trim().split(/\r?\n/);
+      const rows = lines.map((line) => parseCSVLine(line));
+      
+      if (rows.length === 0) {return;}
+      
+      // Map to column structure
+      if (Array.isArray(data) && dataframeColumns && dataframeColumns.length > 0) {
+        const colNames = dataframeColumns.map((c) => c.name.toLowerCase());
+        
+        // Check if first row is a header row (matches column names)
+        const firstRow = rows[0].map((c) => c.toLowerCase().replace(/^"|"$/g, ""));
+        const matchingHeaders = firstRow.filter((h) => colNames.includes(h));
+        const hasHeaderRow = matchingHeaders.length >= Math.min(2, dataframeColumns.length);
+        
+        // Build column index mapping
+        const columnMapping: Map<number, number> = new Map(); // pasted index -> dataframe column index
+        
+        if (hasHeaderRow) {
+          // Map by header name
+          firstRow.forEach((header, pasteIdx) => {
+            const dfIdx = colNames.indexOf(header);
+            if (dfIdx !== -1) {
+              columnMapping.set(pasteIdx, dfIdx);
+            }
+          });
+        } else {
+          // Map by position (skip empty leading columns that might be select/rownum)
+          let firstNonEmptyIdx = 0;
+          if (rows.length > 0) {
+            // Find where actual data starts (skip empty columns)
+            for (let i = 0; i < rows[0].length; i++) {
+              if (rows[0][i] !== "") {
+                firstNonEmptyIdx = i;
+                break;
+              }
+            }
+          }
+          dataframeColumns.forEach((_, dfIdx) => {
+            columnMapping.set(firstNonEmptyIdx + dfIdx, dfIdx);
+          });
+        }
+        
+        // Parse data rows (skip header if present)
+        const dataRows = hasHeaderRow ? rows.slice(1) : rows;
+        
+        const newRows = dataRows.map((row) => {
+          const newRow: Record<string, any> = {};
+          dataframeColumns.forEach((col, dfIdx) => {
+            // Find which paste column maps to this dataframe column
+            let value: any = "";
+            for (const [pasteIdx, mappedDfIdx] of columnMapping.entries()) {
+              if (mappedDfIdx === dfIdx) {
+                value = row[pasteIdx] ?? "";
+                // Remove surrounding quotes
+                if (typeof value === "string") {
+                  value = value.replace(/^"|"$/g, "");
+                }
+                break;
+              }
+            }
+            // Coerce to correct type
+            if (col.data_type === "int") {
+              value = parseInt(value) || 0;
+            } else if (col.data_type === "float") {
+              value = parseFloat(value) || 0.0;
+            }
+            newRow[col.name] = value;
+          });
+          return newRow;
+        });
+        
+        if (newRows.length === 0) {
+          addNotification({
+            content: "No data rows to paste",
+            type: "warning",
+            alert: true
+          });
+          return;
+        }
+        
+        // Insert at selection point or append to end
+        const insertIndex = selectedRows.length > 0 
+          ? Math.max(...selectedRows.map((r) => r.getData().rownum)) + 1
+          : data.length;
+        
+        const newData = [...data];
+        newData.splice(insertIndex, 0, ...newRows);
+        
+        // Reassign rownums
+        const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
+        onChangeRows(reindexedData);
+        
+        addNotification({
+          content: `Pasted ${newRows.length} row(s)`,
+          type: "success",
+          alert: true
+        });
+      }
+    } catch (_error) {
+      addNotification({
+        content: "Failed to paste from clipboard",
+        type: "error",
+        alert: true
+      });
+    }
+  }, [data, dataframeColumns, selectedRows, onChangeRows, addNotification]);
+
+  // Export CSV - exclude select and rownum columns
+  const handleExportCSV = useCallback(() => {
+    if (!dataframeColumns || !Array.isArray(data)) {return;}
+    
+    // Build CSV content manually to exclude utility columns
+    const headers = dataframeColumns.map((c) => `"${c.name}"`).join(",");
+    const rows = data.map((row) => {
+      return dataframeColumns.map((col) => {
+        const value = row[col.name];
+        // Escape quotes and wrap in quotes
+        const strValue = String(value ?? "").replace(/"/g, '""');
+        return `"${strValue}"`;
+      }).join(",");
+    });
+    
+    const csvContent = [headers, ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "dataframe.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    addNotification({
+      content: "Exported as CSV",
+      type: "success",
+      alert: true
+    });
+  }, [data, dataframeColumns, addNotification]);
+
+  // Export JSON - exclude select and rownum columns
+  const handleExportJSON = useCallback(() => {
+    if (!dataframeColumns || !Array.isArray(data)) {return;}
+    
+    // Build clean data without utility columns
+    const cleanData = data.map((row) => {
+      const cleanRow: Record<string, any> = {};
+      dataframeColumns.forEach((col) => {
+        cleanRow[col.name] = row[col.name];
+      });
+      return cleanRow;
+    });
+    
+    const jsonContent = JSON.stringify(cleanData, null, 2);
+    const blob = new Blob([jsonContent], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "dataframe.json";
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    addNotification({
+      content: "Exported as JSON",
+      type: "success",
+      alert: true
+    });
+  }, [data, dataframeColumns, addNotification]);
+
   return (
     <div className="table-actions">
       {editable && (
@@ -176,6 +438,19 @@ const TableActions: React.FC<TableActionsProps> = memo(({
               <DeleteIcon sx={{ fontSize: 12 }} />
             </IconButton>
           </Tooltip>
+
+          {isModalMode && (
+            <Tooltip title="Duplicate selected rows">
+              <IconButton
+                className={
+                  tabulator?.getSelectedRows().length === 0 ? "disabled" : ""
+                }
+                onClick={handleDuplicateRows}
+              >
+                <FileCopyIcon sx={{ fontSize: 12 }} />
+              </IconButton>
+            </Tooltip>
+          )}
         </>
       )}
 
@@ -185,6 +460,51 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             <RestartAltIcon sx={{ fontSize: 12 }} />
           </IconButton>
         </Tooltip>
+      )}
+
+      {isModalMode && editable && (
+        <>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <Tooltip title="Undo (Ctrl+Z)">
+            <span>
+              <IconButton 
+                onClick={handleUndo} 
+                disabled={!canUndo}
+                className={!canUndo ? "disabled" : ""}
+              >
+                <UndoIcon sx={{ fontSize: 12 }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Redo (Ctrl+Y)">
+            <span>
+              <IconButton 
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className={!canRedo ? "disabled" : ""}
+              >
+                <RedoIcon sx={{ fontSize: 12 }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <Tooltip title="Paste from clipboard">
+            <IconButton onClick={handlePaste}>
+              <ContentPasteIcon sx={{ fontSize: 12 }} />
+            </IconButton>
+          </Tooltip>
+        </>
+      )}
+
+      {isModalMode && (
+        <>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <Tooltip title="Export as CSV">
+            <IconButton onClick={handleExportCSV}>
+              <FileDownloadIcon sx={{ fontSize: 12 }} />
+            </IconButton>
+          </Tooltip>
+        </>
       )}
 
       <Tooltip title="Show Select column">

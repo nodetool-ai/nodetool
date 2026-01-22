@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useReactFlow, Node } from "@xyflow/react";
 import {
   Toolbar,
@@ -42,6 +43,7 @@ interface NodeToolbarProps {
 
 const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { getNode } = useReactFlow();
+  const navigate = useNavigate();
   const deleteNode = useNodes((state) => state.deleteNode);
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const selectNodesByType = useNodes((state) => state.selectNodesByType);
@@ -116,6 +118,14 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       selectNodesByType(node.type);
     }
   }, [node?.type, selectNodesByType]);
+
+  // Use local node from props, not from context menu store
+  const handleFindTemplates = useCallback(() => {
+    const nodeType = node?.type || "";
+    if (nodeType) {
+      navigate(`/templates?node=${encodeURIComponent(nodeType)}`);
+    }
+  }, [navigate, node?.type]);
 
   const handleSelectSyncMode = useCallback((mode: "on_any" | "zip_all") => {
     if (nodeId !== null) {
@@ -331,7 +341,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           </MenuItem>
         )}
 
-        <MenuItem onClick={handlers.handleFindTemplates}>
+        <MenuItem onClick={handleFindTemplates}>
           <ListItemIcon>
             <SearchIcon fontSize="small" />
           </ListItemIcon>

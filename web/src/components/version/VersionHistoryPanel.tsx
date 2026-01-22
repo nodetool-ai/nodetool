@@ -74,7 +74,8 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     isLoading,
     error,
     restoreVersion,
-    isRestoringVersion
+    isRestoringVersion,
+    deleteVersion
   } = useWorkflowVersions(workflowId);
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
@@ -148,13 +149,18 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setDeleteDialogOpen(true);
   }, []);
 
-  const handleConfirmDelete = useCallback(() => {
+  const handleConfirmDelete = useCallback(async () => {
     if (versionToDelete) {
-      if (selectedVersionId === versionToDelete) {
-        setSelectedVersion(null);
-      }
-      if (compareVersionId === versionToDelete) {
-        setCompareVersion(null);
+      try {
+        await deleteVersion(versionToDelete);
+        if (selectedVersionId === versionToDelete) {
+          setSelectedVersion(null);
+        }
+        if (compareVersionId === versionToDelete) {
+          setCompareVersion(null);
+        }
+      } catch (error) {
+        console.error("Failed to delete version:", error);
       }
     }
     setDeleteDialogOpen(false);
@@ -164,7 +170,8 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     selectedVersionId,
     compareVersionId,
     setSelectedVersion,
-    setCompareVersion
+    setCompareVersion,
+    deleteVersion
   ]);
 
   const handleRestore = useCallback(
@@ -204,6 +211,10 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareVersion(null);
     setCompareMode(false);
   }, [setSelectedVersion, setCompareVersion, setCompareMode]);
+
+  const handleCloseDeleteDialog = useCallback(() => {
+    setDeleteDialogOpen(false);
+  }, []);
 
   if (isLoading) {
     return (
@@ -431,7 +442,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
       <Dialog
         open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
+        onClose={handleCloseDeleteDialog}
       >
         <DialogTitle>Delete Version</DialogTitle>
         <DialogContent>
@@ -441,7 +452,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
           <Button onClick={handleConfirmDelete} color="error" autoFocus>
             Delete
           </Button>

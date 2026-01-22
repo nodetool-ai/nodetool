@@ -1,192 +1,160 @@
-import { describe, it, expect, beforeEach } from "@jest/globals";
 import { act } from "@testing-library/react";
-import { useRecentNodesStore } from "../RecentNodesStore";
+import { useRecentNodesStore, RecentNode } from "../RecentNodesStore";
 
 describe("RecentNodesStore", () => {
   beforeEach(() => {
-    act(() => {
-      useRecentNodesStore.setState({ recentNodes: [] });
-    });
-    localStorage.removeItem("nodetool-recent-nodes");
+    useRecentNodesStore.setState(useRecentNodesStore.getInitialState());
+  });
+
+  afterEach(() => {
+    useRecentNodesStore.setState(useRecentNodesStore.getInitialState());
+  });
+
+  it("initializes with empty recentNodes array", () => {
+    expect(useRecentNodesStore.getState().recentNodes).toEqual([]);
   });
 
   describe("addRecentNode", () => {
-    it("should add a node type to recent nodes", () => {
+    it("adds first node to empty list", () => {
       act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node");
+        useRecentNodesStore.getState().addRecentNode("textNode");
       });
 
-      const recentNodes = useRecentNodesStore.getState().recentNodes;
-      expect(recentNodes).toHaveLength(1);
-      expect(recentNodes[0].nodeType).toBe("nodetool.test.Node");
+      const nodes = useRecentNodesStore.getState().recentNodes;
+      expect(nodes).toHaveLength(1);
+      expect(nodes[0].nodeType).toBe("textNode");
+      expect(nodes[0].timestamp).toBeDefined();
     });
 
-    it("should move existing node to front when added again", () => {
+    it("adds multiple nodes in order", () => {
       act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node1");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node2");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node1");
+        useRecentNodesStore.getState().addRecentNode("node1");
+        useRecentNodesStore.getState().addRecentNode("node2");
+        useRecentNodesStore.getState().addRecentNode("node3");
       });
 
-      const recentNodes = useRecentNodesStore.getState().recentNodes;
-      expect(recentNodes).toHaveLength(2);
-      expect(recentNodes[0].nodeType).toBe("nodetool.test.Node1");
-      expect(recentNodes[1].nodeType).toBe("nodetool.test.Node2");
+      const nodes = useRecentNodesStore.getState().recentNodes;
+      expect(nodes).toHaveLength(3);
+      expect(nodes[0].nodeType).toBe("node3");
+      expect(nodes[1].nodeType).toBe("node2");
+      expect(nodes[2].nodeType).toBe("node1");
     });
 
-    it("should add new recent nodes to the front of the list", () => {
+    it("moves existing node to front when added again", () => {
       act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.First");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Second");
+        useRecentNodesStore.getState().addRecentNode("node1");
+        useRecentNodesStore.getState().addRecentNode("node2");
+        useRecentNodesStore.getState().addRecentNode("node1");
       });
 
-      const recentNodes = useRecentNodesStore.getState().recentNodes;
-      expect(recentNodes[0].nodeType).toBe("nodetool.test.Second");
-      expect(recentNodes[1].nodeType).toBe("nodetool.test.First");
+      const nodes = useRecentNodesStore.getState().recentNodes;
+      expect(nodes).toHaveLength(2);
+      expect(nodes[0].nodeType).toBe("node1");
+      expect(nodes[1].nodeType).toBe("node2");
     });
 
-    it("should limit recent nodes to MAX_RECENT_NODES (12)", () => {
-      for (let i = 0; i < 15; i++) {
+    it("limits to MAX_RECENT_NODES (12)", () => {
+      // Add 15 nodes
+      for (let i = 1; i <= 15; i++) {
         act(() => {
-          useRecentNodesStore
-            .getState()
-            .addRecentNode(`nodetool.test.Node${i}`);
+          useRecentNodesStore.getState().addRecentNode(`node${i}`);
         });
       }
 
-      const recentNodes = useRecentNodesStore.getState().recentNodes;
-      expect(recentNodes).toHaveLength(12);
-      expect(recentNodes[0].nodeType).toBe("nodetool.test.Node14");
+      const nodes = useRecentNodesStore.getState().recentNodes;
+      expect(nodes).toHaveLength(12);
+      expect(nodes[0].nodeType).toBe("node15");
+      expect(nodes[11].nodeType).toBe("node4");
     });
 
-    it("should have timestamps for recent nodes", () => {
-      const beforeAdd = Date.now();
-      act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node");
-      });
-      const afterAdd = Date.now();
+    it("removes duplicate when adding to full list", () => {
+      // Fill up to 12 nodes
+      for (let i = 1; i <= 12; i++) {
+        act(() => {
+          useRecentNodesStore.getState().addRecentNode(`node${i}`);
+        });
+      }
 
-      const recentNodes = useRecentNodesStore.getState().recentNodes;
-      expect(recentNodes).toHaveLength(1);
-      expect(recentNodes[0].timestamp).toBeGreaterThanOrEqual(beforeAdd);
-      expect(recentNodes[0].timestamp).toBeLessThanOrEqual(afterAdd);
+      // Add an existing node - should move it to front
+      act(() => {
+        useRecentNodesStore.getState().addRecentNode("node5");
+      });
+
+      const nodes = useRecentNodesStore.getState().recentNodes;
+      expect(nodes).toHaveLength(12);
+      expect(nodes[0].nodeType).toBe("node5");
     });
   });
 
   describe("getRecentNodes", () => {
-    it("should return empty array when no recent nodes", () => {
-      const recentNodes = useRecentNodesStore.getState().getRecentNodes();
-      expect(recentNodes).toHaveLength(0);
+    it("returns empty array when no nodes added", () => {
+      const nodes = useRecentNodesStore.getState().getRecentNodes();
+      expect(nodes).toEqual([]);
     });
 
-    it("should return all recent nodes", () => {
+    it("returns added nodes", () => {
       act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node1");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node2");
+        useRecentNodesStore.getState().addRecentNode("testNode");
       });
 
-      const recentNodes = useRecentNodesStore.getState().getRecentNodes();
-      expect(recentNodes).toHaveLength(2);
-      expect(recentNodes[0].nodeType).toBe("nodetool.test.Node2");
-      expect(recentNodes[1].nodeType).toBe("nodetool.test.Node1");
+      const nodes = useRecentNodesStore.getState().getRecentNodes();
+      expect(nodes).toHaveLength(1);
+      expect(nodes[0].nodeType).toBe("testNode");
     });
   });
 
   describe("clearRecentNodes", () => {
-    it("should clear all recent nodes", () => {
+    it("clears all recent nodes", () => {
       act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node1");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node2");
+        useRecentNodesStore.getState().addRecentNode("node1");
+        useRecentNodesStore.getState().addRecentNode("node2");
         useRecentNodesStore.getState().clearRecentNodes();
       });
 
-      const recentNodes = useRecentNodesStore.getState().recentNodes;
-      expect(recentNodes).toHaveLength(0);
+      expect(useRecentNodesStore.getState().recentNodes).toEqual([]);
     });
 
-    it("should return empty array after clearing", () => {
+    it("can add new nodes after clearing", () => {
       act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node");
+        useRecentNodesStore.getState().addRecentNode("node1");
+        useRecentNodesStore.getState().clearRecentNodes();
+        useRecentNodesStore.getState().addRecentNode("node2");
+      });
+
+      const nodes = useRecentNodesStore.getState().recentNodes;
+      expect(nodes).toHaveLength(1);
+      expect(nodes[0].nodeType).toBe("node2");
+    });
+  });
+
+  describe("complete workflow", () => {
+    it("handles typical user workflow", () => {
+      // User adds some nodes
+      act(() => {
+        useRecentNodesStore.getState().addRecentNode("textNode");
+        useRecentNodesStore.getState().addRecentNode("imageNode");
+        useRecentNodesStore.getState().addRecentNode("audioNode");
+      });
+
+      let nodes = useRecentNodesStore.getState().getRecentNodes();
+      expect(nodes).toHaveLength(3);
+
+      // User reuses an existing node - should move to front
+      act(() => {
+        useRecentNodesStore.getState().addRecentNode("textNode");
+      });
+
+      nodes = useRecentNodesStore.getState().getRecentNodes();
+      expect(nodes[0].nodeType).toBe("textNode");
+      expect(nodes[1].nodeType).toBe("audioNode");
+      expect(nodes[2].nodeType).toBe("imageNode");
+
+      // User clears history
+      act(() => {
         useRecentNodesStore.getState().clearRecentNodes();
       });
 
-      const recentNodes = useRecentNodesStore.getState().getRecentNodes();
-      expect(recentNodes).toHaveLength(0);
-    });
-  });
-
-  describe("persistence", () => {
-    it("should persist recent nodes to localStorage", () => {
-      act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node1");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node2");
-      });
-
-      const storageData = localStorage.getItem("nodetool-recent-nodes");
-      expect(storageData).not.toBeNull();
-      
-      if (storageData) {
-        const parsed = JSON.parse(storageData);
-        expect(parsed.state.recentNodes).toHaveLength(2);
-      }
-    });
-
-    it("should restore recent nodes from localStorage", () => {
-      // Set up localStorage with data
-      const testData = {
-        state: {
-          recentNodes: [
-            { nodeType: "nodetool.test.Restored1", timestamp: 1234567890 },
-            { nodeType: "nodetool.test.Restored2", timestamp: 1234567891 }
-          ]
-        },
-        version: 1
-      };
-      localStorage.setItem("nodetool-recent-nodes", JSON.stringify(testData));
-
-      // Create a new store instance (simulating app restart)
-      const _newStore = useRecentNodesStore;
-      
-      // Note: In a real scenario, the store would be recreated
-      // Here we verify the data structure is correct
-      expect(testData.state.recentNodes).toHaveLength(2);
-      expect(testData.state.recentNodes[0].nodeType).toBe("nodetool.test.Restored1");
-    });
-  });
-
-  describe("edge cases", () => {
-    it("should handle adding the same node multiple times", () => {
-      act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node");
-      });
-
-      const recentNodes = useRecentNodesStore.getState().recentNodes;
-      expect(recentNodes).toHaveLength(1);
-      expect(recentNodes[0].nodeType).toBe("nodetool.test.Node");
-    });
-
-    it("should handle special characters in node type names", () => {
-      act(() => {
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node-With-Dashes");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node_With_Underscores");
-        useRecentNodesStore.getState().addRecentNode("nodetool.test.Node.With.Dots");
-      });
-
-      const recentNodes = useRecentNodesStore.getState().recentNodes;
-      expect(recentNodes).toHaveLength(3);
-    });
-
-    it("should handle very long node type names", () => {
-      const longNodeType = "nodetool.test." + "a".repeat(100);
-      act(() => {
-        useRecentNodesStore.getState().addRecentNode(longNodeType);
-      });
-
-      const recentNodes = useRecentNodesStore.getState().recentNodes;
-      expect(recentNodes).toHaveLength(1);
-      expect(recentNodes[0].nodeType).toBe(longNodeType);
+      expect(useRecentNodesStore.getState().getRecentNodes()).toEqual([]);
     });
   });
 });

@@ -19,7 +19,6 @@ import {
   CalendarEvent
 } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
-import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 import { Container, List, ListItem, ListItemText } from "@mui/material";
@@ -421,7 +420,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         );
       }
       case "dataframe":
-        return <DataTable dataframe={value as DataframeRef} editable={false} />;
+        return <DataframeRenderer dataframe={value as DataframeRef} />;
       case "np_array":
         return (
           <div className="tensor nodrag">
@@ -645,7 +644,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 description: ""
               }))
             };
-            return <DataTable dataframe={df} editable={false} />;
+            return <DataframeRenderer dataframe={df} />;
           }
         }
 

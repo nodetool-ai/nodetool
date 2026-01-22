@@ -14,69 +14,76 @@ const styles = (theme: Theme) =>
     "&": {
       display: "flex",
       flexDirection: "row",
-      gap: ".25em",
+      gap: "0.15em",
       padding: "0",
       backgroundColor: "transparent"
     },
     ".labels": {
       display: "flex",
       flexDirection: "row",
-      gap: 0,
+      gap: "0.5em",
       width: "100%",
-      justifyContent: "space-between",
-      padding: "0",
-      margin: "0"
+      padding: "0 0 0.15em 0",
+      margin: "0",
+      alignItems: "center"
     },
     ".label-name": {
       flexGrow: 1,
-      width: "35%"
+      flexBasis: 0,
+      fontSize: "0.75rem",
+      color: theme.vars.palette.grey[400]
     },
     ".label-description": {
       flexGrow: 1,
-      width: "35%"
+      flexBasis: 0
     },
     ".label-datatype": {
-      width: "30%",
-      flexGrow: 0
+      width: "auto",
+      minWidth: "70px",
+      flexGrow: 0,
+      fontSize: "0.75rem",
+      color: theme.vars.palette.grey[400],
+      marginRight: "1.5em" // Account for delete button width
     },
     ".column": {
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
       gap: "0.5em",
       padding: "0",
-      margin: "0",
+      margin: "0 0 0.15em 0",
       width: "100%"
     },
     ".item-name": {
       flexGrow: 1,
-      width: "35%"
+      flexBasis: 0
     },
     ".item-description": {
       flexGrow: 1,
-      width: "35%"
+      flexBasis: 0
     },
     ".item-datatype": {
       flexGrow: 0,
-      width: "30%",
+      width: "auto",
+      minWidth: "70px",
       display: "flex",
       flexDirection: "row",
-      gap: "0.5em",
+      gap: "0.25em",
       alignItems: "center"
     },
     ".textfield": {
       margin: "0",
-      padding: ".5em 0",
-      height: "2em"
+      padding: "0",
+      height: "1.75em"
     },
     ".textfield .MuiInputBase-root": {
-      borderRadius: "4px"
+      borderRadius: "4px",
+      height: "1.75em"
     },
     ".textfield input": {
       margin: "0",
-      padding: "0 .5em .25em .5em",
-      height: "1em",
+      padding: "0.25em 0.5em",
+      height: "1.25em",
       fontSize: "var(--fontSizeSmaller)"
     },
     ".select": {
@@ -87,8 +94,10 @@ const styles = (theme: Theme) =>
     },
     ".select .MuiSelect-select": {
       borderRadius: "8px",
-      height: "2em",
-      margin: "0"
+      height: "1.75em",
+      margin: "0",
+      padding: "0.25em 0.5em",
+      fontSize: "var(--fontSizeSmaller)"
     },
     ".select svg": {
       right: "0"
@@ -115,10 +124,11 @@ const styles = (theme: Theme) =>
       }
     },
     ".delete-button": {
-      padding: ".1em",
+      padding: "0.1em",
       fontSize: "var(--fontSizeNormal)",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
+      flexShrink: 0,
       "& svg": {
         fontSize: "var(--fontSizeBig)"
       },

@@ -14,6 +14,7 @@ export interface DynamicOutputItemProps {
   output: OutputItem;
   showLabel: boolean;
   supportsDynamicOutputs: boolean;
+  isStreamingOutput?: boolean;
   onStartEdit: (name: string) => void;
   onDelete: (name: string) => void;
 }
@@ -23,6 +24,7 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
   output,
   showLabel,
   supportsDynamicOutputs,
+  isStreamingOutput,
   onStartEdit,
   onDelete
 }) => {
@@ -96,6 +98,7 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
           stream: false
         }}
         isDynamic={true}
+        isStreamingOutput={isStreamingOutput}
       />
     </>
   );

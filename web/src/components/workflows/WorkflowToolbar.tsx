@@ -266,6 +266,14 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     setSortMenuAnchor(null);
   }, [setSortBy]);
 
+  const handleSortByDate = useCallback(() => {
+    handleSortChange("date");
+  }, [handleSortChange]);
+
+  const handleSortByName = useCallback(() => {
+    handleSortChange("name");
+  }, [handleSortChange]);
+
   const handleCreateWorkflow = useCallback(async () => {
     const workflow = await createNewWorkflow();
     queryClient.invalidateQueries({ queryKey: ["workflows"] });
@@ -318,7 +326,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 {availableTags.map((tag) => (
                   <MenuItem
                     key={tag}
-                    onClick={() => toggleTag(tag)}
+                    onClick={toggleTag.bind(null, tag)}
                     className="tag-menu-item"
                   >
                     {selectedTags.includes(tag) ? (
@@ -415,13 +423,13 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             }}
           >
             <MenuItem
-              onClick={() => handleSortChange("date")}
+              onClick={handleSortByDate}
               selected={sortBy === "date"}
             >
               Sort by Date
             </MenuItem>
             <MenuItem
-              onClick={() => handleSortChange("name")}
+              onClick={handleSortByName}
               selected={sortBy === "name"}
             >
               Sort by Name

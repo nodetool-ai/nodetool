@@ -9,10 +9,12 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useVersionHistoryStore } from "../stores/VersionHistoryStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { Workflow } from "../stores/ApiTypes";
+import { workflowVersionsQueryKey } from "../serverState/useWorkflowVersions";
 import { v4 as uuidv4 } from "uuid";
 
 export interface UseAutosaveOptions {
@@ -41,6 +43,7 @@ export const useAutosave = (
   options: UseAutosaveOptions
 ): UseAutosaveReturn => {
   const { workflowId, getWorkflow, isDirty } = options;
+  const queryClient = useQueryClient();
 
   const autosaveSettings = useSettingsStore(
     (state) => state.settings.autosave
@@ -59,6 +62,9 @@ export const useAutosave = (
   const isSavingRef = useRef(false);
   const [lastAutosaveTime, setLastAutosaveTime] = useState(0);
   const clientIdRef = useRef<string>(uuidv4());
+  
+  // Ref to store latest triggerAutosave function to avoid resetting interval on callback changes
+  const triggerAutosaveRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   useEffect(() => {
     if (workflowId) {
@@ -69,7 +75,7 @@ export const useAutosave = (
   const callAutosaveEndpoint = useCallback(
     async (
       saveType: "autosave" | "checkpoint",
-      options?: { force?: boolean; description?: string }
+      options?: { force?: boolean; description?: string; graph?: { nodes: unknown[]; edges: unknown[] } }
     ): Promise<AutosaveResponse> => {
       if (!workflowId) {
         return { version: null, message: "no workflow", skipped: true };
@@ -82,7 +88,9 @@ export const useAutosave = (
           save_type: saveType,
           description: options?.description,
           force: options?.force ?? false,
-          client_id: clientIdRef.current
+          client_id: clientIdRef.current,
+          graph: options?.graph,
+          max_versions: autosaveSettings?.maxVersionsPerWorkflow ?? 50
         })
       });
 
@@ -92,7 +100,7 @@ export const useAutosave = (
 
       return response.json();
     },
-    [workflowId]
+    [workflowId, autosaveSettings?.maxVersionsPerWorkflow]
   );
 
   /**
@@ -123,7 +131,9 @@ export const useAutosave = (
     isSavingRef.current = true;
 
     try {
-      const result = await callAutosaveEndpoint("autosave");
+      const result = await callAutosaveEndpoint("autosave", {
+        graph: workflow.graph
+      });
 
       if (result.skipped) {
         return;
@@ -132,6 +142,11 @@ export const useAutosave = (
       if (result.version) {
         updateLastAutosaveTime(workflowId!);
         setLastAutosaveTime(Date.now());
+
+        // Invalidate versions query so the version list refreshes
+        queryClient.invalidateQueries({
+          queryKey: workflowVersionsQueryKey(workflowId!)
+        });
 
         addNotification({
           content: "Workflow autosaved",
@@ -152,8 +167,14 @@ export const useAutosave = (
     isWorkflowEmpty,
     callAutosaveEndpoint,
     updateLastAutosaveTime,
-    addNotification
+    addNotification,
+    queryClient
   ]);
+
+  // Keep ref updated with latest triggerAutosave function
+  useEffect(() => {
+    triggerAutosaveRef.current = triggerAutosave;
+  }, [triggerAutosave]);
 
   /**
    * Save before running workflow (checkpoint)
@@ -176,7 +197,8 @@ export const useAutosave = (
     try {
       await callAutosaveEndpoint("checkpoint", {
         description: "Before execution",
-        force: true
+        force: true,
+        graph: workflow.graph
       });
     } catch (error) {
       console.error("Save before run failed:", error);
@@ -193,6 +215,9 @@ export const useAutosave = (
   /**
    * Set up interval-based autosave triggering
    * Backend handles rate limiting, we just trigger at configured interval
+   * 
+   * Note: We use triggerAutosaveRef instead of triggerAutosave directly
+   * to prevent the timer from resetting on every callback change.
    */
   const intervalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -208,14 +233,13 @@ export const useAutosave = (
     const intervalMs = (autosaveSettings?.intervalMinutes ?? 10) * 60 * 1000;
 
     const scheduleNextAutosave = () => {
-      if (!autosaveSettings?.enabled || !workflowId) {
-        return;
-      }
-
-      intervalTimeoutRef.current = setTimeout(() => {
-        triggerAutosave().then(() => {
+      intervalTimeoutRef.current = setTimeout(async () => {
+        // Use ref to always call the latest version of triggerAutosave
+        await triggerAutosaveRef.current();
+        // Schedule next autosave if still enabled
+        if (autosaveSettings?.enabled && workflowId) {
           scheduleNextAutosave();
-        });
+        }
       }, intervalMs);
     };
 
@@ -230,8 +254,8 @@ export const useAutosave = (
   }, [
     autosaveSettings?.enabled,
     autosaveSettings?.intervalMinutes,
-    workflowId,
-    triggerAutosave
+    workflowId
+    // Note: triggerAutosave is NOT in dependencies - we use the ref instead
   ]);
 
   /**
@@ -248,7 +272,8 @@ export const useAutosave = (
         // Never save empty workflows
         if (workflow && !isWorkflowEmpty(workflow)) {
           await callAutosaveEndpoint("autosave", {
-            description: "Before close"
+            description: "Before close",
+            graph: workflow.graph
           });
         }
       }
