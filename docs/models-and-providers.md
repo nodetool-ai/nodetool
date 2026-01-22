@@ -60,9 +60,9 @@ Combine local and cloud:
 
 ---
 
-## State-of-the-Art Cloud Models for Creative Workflows
+## Cloud Models for Creative Workflows
 
-NodeTool provides access to the latest high-quality generative AI models through cloud providers. These models represent the cutting edge in video, image, and audio generation:
+NodeTool provides access to high-quality generative AI models through cloud providers:
 
 ### Top Video Generation Models
 

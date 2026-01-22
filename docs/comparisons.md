@@ -21,7 +21,7 @@ This guide compares NodeTool with n8n and ComfyUI to help you choose the right t
 | **Deployment portability** | ✅ One workflow → many targets | ❌ Locked to platform | ❌ Self-host only |
 | **AI model flexibility** | ✅ LLMs + vision + audio + video | ⚠️ Via integrations | ✅ Vision models |
 | **Privacy/compliance** | ✅ Full control | ❌ Cloud-dependent | ✅ Local execution |
-| **Ease of use** | 🟢 Intuitive + powerful | 🟢 Simple automation | 🟡 Technical users |
+| **Ease of use** | 🟢 Intuitive | 🟢 Simple automation | 🟡 Technical users |
 | **Learning curve** | 🟢 Low to medium | 🟢 Low | 🟡 Medium to high |
 | **Type safety** | ✅ Compile-time | ❌ No | ⚠️ Limited |
 | **Preview/debugging** | ✅ Interactive real-time | ⚠️ Logs | ⚠️ After completion |
@@ -76,7 +76,7 @@ This end-to-end flow requires AI reasoning, multimodal generation, and strategic
 
 ## NodeTool vs ComfyUI
 
-ComfyUI users will find NodeTool familiar yet more powerful. Here's how the concepts map:
+ComfyUI users will find NodeTool familiar. Here's how the concepts map:
 
 ### When to Choose NodeTool
 - You need **agentic workflows** with AI planning and reasoning (beyond pure image generation)
@@ -97,7 +97,7 @@ ComfyUI users will find NodeTool familiar yet more powerful. Here's how the conc
 - You don't need **AI reasoning or strategic orchestration**
 
 ### Key Difference
-ComfyUI is a powerful visual tool for image generation with deep control over diffusion models. NodeTool is a comprehensive AI workflow platform that includes image generation but adds agentic capabilities, strategic orchestration, real-time streaming, resumable execution, and production deployment.
+ComfyUI is a visual tool for image generation with deep control over diffusion models. NodeTool is an AI workflow platform that includes image generation but adds agentic capabilities, strategic orchestration, real-time streaming, resumable execution, and production deployment.
 
 **Agentic capabilities:** NodeTool can plan multi-step creative campaigns where an Agent decides the strategy, generates assets, and adapts based on results—not just execute a fixed graph.
 
@@ -169,7 +169,7 @@ This requires AI reasoning, decision-making, and multi-modal orchestration—bey
 | **Workflows** | JSON files | JSON files (compatible structure) |
 | **Execution** | Queue-based, blocking | Async, streaming, resumable |
 | **Deployment** | Self-host only | RunPod, Cloud Run, self-hosted, or local |
-| **Ease of Use** | 🟡 Technical users | 🟢 Intuitive with powerful features |
+| **Ease of Use** | 🟡 Technical users | 🟢 Intuitive interface |
 
 ### Migration Steps
 
@@ -238,7 +238,7 @@ Coming from ComfyUI, you gain:
 - **Multi-Modal**: Audio, video, and data processing alongside images
 - **Mini-Apps**: Turn workflows into simple UIs for non-technical users
 - **Chat Interface**: Run workflows through natural language in Global Chat
-- **Flexibility with Ease**: High-level abstractions that are still powerful and customizable
+- **Flexibility with Ease**: High-level abstractions that remain customizable
 
 ### What's Different
 

@@ -4,7 +4,7 @@ title: "Providers"
 ---
 
 The NodeTool provider system offers a unified interface for interacting with various AI service providers. This
-abstraction allows you to seamlessly switch between different AI backends (OpenAI, Anthropic, Gemini, HuggingFace, etc.)
+abstraction allows you to switch between different AI backends (OpenAI, Anthropic, Gemini, HuggingFace, etc.)
 without changing your workflow logic.
 
 ## Overview
@@ -129,7 +129,7 @@ The capability system uses introspection to automatically detect which features 
 
 **Features:**
 
-- 27+ node categories for comprehensive AI workflows
+- 27+ node categories for AI workflows
 - Supports multiple sub-providers (FAL.ai, Together, Replicate, etc.)
 - Text generation with streaming support
 - Text-to-image and image-to-image generation
@@ -149,7 +149,7 @@ For detailed information on all HuggingFace nodes, model recommendations, and us
 
 ### Video Generation Providers
 
-Multiple providers now support advanced video generation capabilities through the unified interface. NodeTool provides access to state-of-the-art models for text-to-video and image-to-video generation:
+Multiple providers now support advanced video generation capabilities through the unified interface. NodeTool supports text-to-video and image-to-video generation:
 
 #### OpenAI Sora 2 Pro
 
@@ -216,7 +216,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 #### Kling 2.6
 
-**Capabilities:** Video generation with comprehensive audio
+**Capabilities:** Video generation with audio
 
 **Features:**
 - ✅ Text/image to synchronized video
@@ -282,11 +282,11 @@ Multiple providers now support advanced video generation capabilities through th
 - Black Forest Labs FLUX.2
 - Google Nano Banana Pro
 
-kie.ai provides a cost-effective alternative for accessing multiple state-of-the-art models through a unified interface. This is particularly useful for workflows that utilize models from different providers, as it reduces API key management complexity and can offer better pricing. **For models without direct NodeTool API key support, kie.ai is the recommended access method.**
+kie.ai provides access to multiple models through a unified interface. This is useful for workflows that use models from different providers, as it reduces API key management complexity and can offer better pricing. **For models without direct NodeTool API key support, kie.ai is the recommended access method.**
 
 ## Generic Nodes: Provider-Agnostic Workflows
 
-One of the most powerful features of the NodeTool provider system is **generic nodes**. These are special nodes that let
+A useful feature of the NodeTool provider system is **generic nodes**. These are nodes that let
 you switch AI providers without modifying your workflow.
 
 Generic nodes support provider switching without altering the graph. This is the recommended way to design

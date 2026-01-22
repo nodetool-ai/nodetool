@@ -191,7 +191,7 @@ This guide helps you make informed decisions about when to use local models vers
 **Use cloud APIs for:**
 - ✅ Low-volume tasks (<100/day)
 - ✅ Peak capacity bursts
-- ✅ Cutting-edge model access (GPT-5.2, Claude Opus 4.5)
+- ✅ Latest model access (GPT-5.2, Claude Opus 4.5)
 - ✅ Specialized tasks (vision, audio cloning)
 - ✅ When highest quality is required
 
