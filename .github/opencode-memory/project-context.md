@@ -78,6 +78,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Additional Inline Arrow Function Fixes (2026-01-22)
+
+**What**: Fixed 20+ inline arrow functions across 9 additional components using .bind() and useCallback.
+
+**Files**: BackToDashboardButton.tsx, ProviderSetupPanel.tsx, PaneContextMenu.tsx, AssetDeleteConfirmation.tsx, AssetTree.tsx, ModelTypeSidebar.tsx, DownloadProgress.tsx, OverallDownloadProgress.tsx, ModelListItem.tsx
+
+**Impact**: Improved render performance in dashboard, context menus, asset management, and model download components.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
