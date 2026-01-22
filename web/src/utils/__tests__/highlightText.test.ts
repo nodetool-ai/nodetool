@@ -1,5 +1,4 @@
 import { highlightText, formatBulletList, escapeHtml } from "../highlightText";
-import { NodeMetadata } from "../../stores/ApiTypes";
 
 describe("highlightText utilities", () => {
   describe("escapeHtml", () => {
@@ -47,11 +46,20 @@ describe("highlightText utilities", () => {
   });
 
   describe("highlightText", () => {
-    const createSearchInfo = (matches: NodeMetadata["searchInfo"]["matches"]): NodeMetadata["searchInfo"] => {
+    type SearchMatch = {
+      key: string;
+      value: string;
+      indices: number[][];
+    };
+    type SearchInfo = {
+      score?: number;
+      matches?: SearchMatch[];
+    };
+
+    const createSearchInfo = (matches: SearchMatch[]): SearchInfo => {
       return {
         matches,
         score: 1,
-        matchedFields: ["name"]
       };
     };
 
@@ -82,6 +90,7 @@ describe("highlightText utilities", () => {
       const searchInfo = createSearchInfo([
         {
           key: "differentKey",
+          value: "Hello",
           indices: [[0, 4]]
         }
       ]);
@@ -91,8 +100,8 @@ describe("highlightText utilities", () => {
 
     it("filters matches by key", () => {
       const searchInfo = createSearchInfo([
-        { key: "name", indices: [[0, 4]] },
-        { key: "description", indices: [[0, 4]] }
+        { key: "name", value: "Hello", indices: [[0, 4]] },
+        { key: "description", value: "Hello", indices: [[0, 4]] }
       ]);
       const result = highlightText("Hello", "name", "Hello", searchInfo);
       expect(result.html).toContain("highlight");
@@ -100,7 +109,7 @@ describe("highlightText utilities", () => {
 
     it("handles multiple matches with different relevance", () => {
       const searchInfo = createSearchInfo([
-        { key: "name", indices: [[0, 4], [6, 10]] }
+        { key: "name", value: "Hello World Test", indices: [[0, 4], [6, 10]] }
       ]);
       const result = highlightText("Hello World Test", "name", "World", searchInfo);
       expect(result.highlightedWords).toContain("World");
@@ -108,7 +117,7 @@ describe("highlightText utilities", () => {
 
     it("handles overlapping matches", () => {
       const searchInfo = createSearchInfo([
-        { key: "name", indices: [[0, 5], [2, 7]] }
+        { key: "name", value: "Hello World", indices: [[0, 5], [2, 7]] }
       ]);
       const result = highlightText("Hello World", "name", "Hello World", searchInfo);
       expect(result.highlightedWords.length).toBeGreaterThanOrEqual(1);
@@ -116,7 +125,7 @@ describe("highlightText utilities", () => {
 
     it("validates match start bounds", () => {
       const searchInfo = createSearchInfo([
-        { key: "name", indices: [[0, 4]] }
+        { key: "name", value: "Hello", indices: [[0, 4]] }
       ]);
       const result = highlightText("Hello", "name", "test", searchInfo);
       // Match [0, 4] is valid for text "Hello" (length 5)

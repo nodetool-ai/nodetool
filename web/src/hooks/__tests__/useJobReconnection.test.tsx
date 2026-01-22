@@ -24,10 +24,18 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = "QueryClientProviderWrapper";
+  return Wrapper;
 };
+
+const createMockResponse = <T,>(data: T, error?: undefined) => ({
+  data,
+  error,
+  response: {} as Response,
+});
 
 describe("useJobReconnection", () => {
   const mockWorkflow = {
@@ -39,11 +47,12 @@ describe("useJobReconnection", () => {
 
   const mockJobs = [
     {
-      type: "job" as const,
       id: "job-1",
+      user_id: "user-1",
+      job_type: "workflow",
       workflow_id: "workflow-1",
       status: "running" as const,
-      created_at: "2026-01-22T10:00:00Z",
+      started_at: "2026-01-22T10:00:00Z",
       run_state: { status: "running" },
     },
   ];
@@ -69,10 +78,7 @@ describe("useJobReconnection", () => {
   });
 
   it("returns running jobs and reconnecting status", async () => {
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: mockJobs },
-      error: null,
-    });
+    mockClient.GET.mockResolvedValueOnce(createMockResponse({ jobs: mockJobs }));
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -88,14 +94,8 @@ describe("useJobReconnection", () => {
 
   it("reconnects to running jobs on mount", async () => {
     mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: mockJobs },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      });
+      .mockResolvedValueOnce(createMockResponse({ jobs: mockJobs }))
+      .mockResolvedValueOnce(createMockResponse(mockWorkflow));
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -113,13 +113,11 @@ describe("useJobReconnection", () => {
 
   it("handles workflow fetch error", async () => {
     mockClient.GET
+      .mockResolvedValueOnce(createMockResponse({ jobs: mockJobs }))
       .mockResolvedValueOnce({
-        data: { jobs: mockJobs },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: null,
-        error: { detail: "Workflow not found" },
+        data: undefined,
+        error: undefined,
+        response: {} as Response,
       });
 
     const { result } = renderHook(() => useJobReconnection(), {
@@ -134,10 +132,7 @@ describe("useJobReconnection", () => {
   });
 
   it("does not reconnect when no running jobs", async () => {
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: [] },
-      error: null,
-    });
+    mockClient.GET.mockResolvedValueOnce(createMockResponse({ jobs: [] }));
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -154,11 +149,12 @@ describe("useJobReconnection", () => {
   it("handles suspended jobs with correct initial state", async () => {
     const suspendedJob = [
       {
-        type: "job" as const,
         id: "job-1",
+        user_id: "user-1",
+        job_type: "workflow",
         workflow_id: "workflow-1",
         status: "suspended" as const,
-        created_at: "2026-01-22T10:00:00Z",
+        started_at: "2026-01-22T10:00:00Z",
         run_state: {
           status: "suspended",
           suspension_reason: "User paused",
@@ -167,14 +163,8 @@ describe("useJobReconnection", () => {
     ];
 
     mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: suspendedJob },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      });
+      .mockResolvedValueOnce(createMockResponse({ jobs: suspendedJob }))
+      .mockResolvedValueOnce(createMockResponse(mockWorkflow));
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -190,24 +180,19 @@ describe("useJobReconnection", () => {
   it("handles paused jobs with correct initial state", async () => {
     const pausedJob = [
       {
-        type: "job" as const,
         id: "job-1",
+        user_id: "user-1",
+        job_type: "workflow",
         workflow_id: "workflow-1",
         status: "paused" as const,
-        created_at: "2026-01-22T10:00:00Z",
+        started_at: "2026-01-22T10:00:00Z",
         run_state: { status: "paused" },
       },
     ];
 
     mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: pausedJob },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      });
+      .mockResolvedValueOnce(createMockResponse({ jobs: pausedJob }))
+      .mockResolvedValueOnce(createMockResponse(mockWorkflow));
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -222,14 +207,8 @@ describe("useJobReconnection", () => {
 
   it("only reconnects once on multiple renders", async () => {
     mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: mockJobs },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      });
+      .mockResolvedValueOnce(createMockResponse({ jobs: mockJobs }))
+      .mockResolvedValueOnce(createMockResponse(mockWorkflow));
 
     const { result, rerender } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -265,19 +244,21 @@ describe("useJobReconnection", () => {
   it("handles multiple running jobs", async () => {
     const multipleJobs = [
       {
-        type: "job" as const,
         id: "job-1",
+        user_id: "user-1",
+        job_type: "workflow",
         workflow_id: "workflow-1",
         status: "running" as const,
-        created_at: "2026-01-22T10:00:00Z",
+        started_at: "2026-01-22T10:00:00Z",
         run_state: { status: "running" },
       },
       {
-        type: "job" as const,
         id: "job-2",
+        user_id: "user-1",
+        job_type: "workflow",
         workflow_id: "workflow-2",
         status: "running" as const,
-        created_at: "2026-01-22T10:05:00Z",
+        started_at: "2026-01-22T10:05:00Z",
         run_state: { status: "running" },
       },
     ];
@@ -290,18 +271,9 @@ describe("useJobReconnection", () => {
     };
 
     mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: multipleJobs },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: workflow2,
-        error: null,
-      });
+      .mockResolvedValueOnce(createMockResponse({ jobs: multipleJobs }))
+      .mockResolvedValueOnce(createMockResponse(mockWorkflow))
+      .mockResolvedValueOnce(createMockResponse(workflow2));
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),

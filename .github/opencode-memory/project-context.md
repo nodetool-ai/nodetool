@@ -61,13 +61,15 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx
 
 **Impact**: Initial bundle smaller; 4.6 MB chart library loads only when needed.
-> ### TypeScript and Lint Fixes (2026-01-22)
-> **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
-> **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
->
-> ---
->
-> ### TypeScript Syntax and Type Fixes (2026-01-20)
+### TypeScript and Test Fixes (2026-01-22)
+
+**What**: Fixed 25+ TypeScript errors and 12 lint issues across 8 test files and components. Fixed missing DataframeRenderer import, test mock type mismatches (secrets, isSuccess properties), FetchResponse missing response property, Job type property changes (created_at → started_at), null → undefined for optional fields, and useCallback dependency warnings.
+
+**Files**: OutputRenderer.tsx, useApiKeyValidation.test.ts, useJobReconnection.test.tsx, useProviders.test.tsx, useRunningJobs.test.tsx, highlightText.test.ts, PaneContextMenu.tsx, TableActions.tsx
+
+---
+
+### TypeScript Syntax and Type Fixes (2026-01-20)
 ### Inline Arrow Function Performance Fix - Node Menu (2026-01-22)
 
 ### Inline Arrow Function Performance Fix (2026-01-22)

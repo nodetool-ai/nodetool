@@ -20,33 +20,44 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = "QueryClientProviderWrapper";
+  return Wrapper;
 };
+
+const createMockResponse = <T,>(data: T, error?: undefined) => ({
+  data,
+  error,
+  response: {} as Response,
+});
 
 describe("useRunningJobs", () => {
   const mockJobs: Job[] = [
     {
-      type: "job",
       id: "job-1",
+      user_id: "user-1",
+      job_type: "workflow",
       workflow_id: "workflow-1",
       status: "running",
-      created_at: "2026-01-22T10:00:00Z",
+      started_at: "2026-01-22T10:00:00Z",
     },
     {
-      type: "job",
       id: "job-2",
+      user_id: "user-1",
+      job_type: "workflow",
       workflow_id: "workflow-2",
       status: "queued",
-      created_at: "2026-01-22T10:05:00Z",
+      started_at: "2026-01-22T10:05:00Z",
     },
     {
-      type: "job",
       id: "job-3",
+      user_id: "user-1",
+      job_type: "workflow",
       workflow_id: "workflow-3",
       status: "completed",
-      created_at: "2026-01-22T10:10:00Z",
+      started_at: "2026-01-22T10:10:00Z",
     },
   ];
 
@@ -72,10 +83,7 @@ describe("useRunningJobs", () => {
   });
 
   it("filters to only active jobs", async () => {
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: mockJobs },
-      error: null,
-    });
+    mockClient.GET.mockResolvedValueOnce(createMockResponse({ jobs: mockJobs }));
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -94,10 +102,7 @@ describe("useRunningJobs", () => {
     const allActiveJobs = mockJobs.filter((j) =>
       ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
     );
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: allActiveJobs },
-      error: null,
-    });
+    mockClient.GET.mockResolvedValueOnce(createMockResponse({ jobs: allActiveJobs }));
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -111,10 +116,7 @@ describe("useRunningJobs", () => {
   });
 
   it("handles empty job list", async () => {
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: [] },
-      error: null,
-    });
+    mockClient.GET.mockResolvedValueOnce(createMockResponse({ jobs: [] }));
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -129,8 +131,9 @@ describe("useRunningJobs", () => {
 
   it("handles API error", async () => {
     mockClient.GET.mockResolvedValueOnce({
-      data: null,
-      error: { detail: "Unauthorized" },
+      data: undefined,
+      error: undefined,
+      response: new Response(),
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -148,17 +151,15 @@ describe("useRunningJobs", () => {
     const jobsWithSuspended = [
       ...mockJobs,
       {
-        type: "job",
         id: "job-4",
+        user_id: "user-1",
+        job_type: "workflow",
         workflow_id: "workflow-4",
         status: "suspended",
-        created_at: "2026-01-22T10:15:00Z",
+        started_at: "2026-01-22T10:15:00Z",
       },
     ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithSuspended },
-      error: null,
-    });
+    mockClient.GET.mockResolvedValueOnce(createMockResponse({ jobs: jobsWithSuspended }));
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -176,17 +177,15 @@ describe("useRunningJobs", () => {
     const jobsWithPaused = [
       ...mockJobs,
       {
-        type: "job",
         id: "job-5",
+        user_id: "user-1",
+        job_type: "workflow",
         workflow_id: "workflow-5",
         status: "paused",
-        created_at: "2026-01-22T10:20:00Z",
+        started_at: "2026-01-22T10:20:00Z",
       },
     ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithPaused },
-      error: null,
-    });
+    mockClient.GET.mockResolvedValueOnce(createMockResponse({ jobs: jobsWithPaused }));
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -204,17 +203,15 @@ describe("useRunningJobs", () => {
     const jobsWithStarting = [
       ...mockJobs,
       {
-        type: "job",
         id: "job-6",
+        user_id: "user-1",
+        job_type: "workflow",
         workflow_id: "workflow-6",
         status: "starting",
-        created_at: "2026-01-22T10:25:00Z",
+        started_at: "2026-01-22T10:25:00Z",
       },
     ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithStarting },
-      error: null,
-    });
+    mockClient.GET.mockResolvedValueOnce(createMockResponse({ jobs: jobsWithStarting }));
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -232,17 +229,15 @@ describe("useRunningJobs", () => {
     const jobsWithFailed = [
       ...mockJobs,
       {
-        type: "job",
         id: "job-7",
+        user_id: "user-1",
+        job_type: "workflow",
         workflow_id: "workflow-7",
         status: "failed",
-        created_at: "2026-01-22T10:30:00Z",
+        started_at: "2026-01-22T10:30:00Z",
       },
     ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithFailed },
-      error: null,
-    });
+    mockClient.GET.mockResolvedValueOnce(createMockResponse({ jobs: jobsWithFailed }));
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
