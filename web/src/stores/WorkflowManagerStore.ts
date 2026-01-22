@@ -691,9 +691,15 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       // Fetches the workflow data by its ID, using QueryClient cache and adds the workflow store.
       fetchWorkflow: async (workflowId: string) => {
         // Helper to check for newer autosaves and show notification
+        // Uses queryClient.fetchQuery for automatic deduplication of concurrent calls
         const checkForNewerAutosave = async (workflow: Workflow) => {
           try {
-            const versions = await fetchWorkflowVersions(workflowId, null, 1);
+            const versions = await get().queryClient?.fetchQuery({
+              queryKey: ["workflow", workflowId, "autosave-check"],
+              queryFn: () => fetchWorkflowVersions(workflowId, null, 1),
+              staleTime: 5000 // Short stale time - only dedupe concurrent requests
+            });
+            if (!versions) return;
             if (versions.versions.length > 0) {
               const latestVersion = versions.versions[0];
               const versionTime = new Date(latestVersion.created_at).getTime();
