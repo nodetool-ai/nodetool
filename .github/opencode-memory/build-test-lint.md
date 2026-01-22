@@ -534,3 +534,76 @@ Added comprehensive unit tests for critical stores and utilities to improve test
 - **60 new tests** improving coverage
 - **Critical stores tested**: Collections manager, node placement, recent nodes
 - **Utility functions tested**: Platform detection, text highlighting
+
+---
+
+## Test Coverage Improvement (2026-01-22 - Additional Tests)
+
+### Summary
+
+Added comprehensive unit tests for ModelMenuStore to improve test coverage for model selection and filtering functionality.
+
+### Files Added
+
+**ModelMenuStore Tests**
+**File**: `web/src/stores/__tests__/ModelMenuStore.test.ts`
+
+**Coverage**: Added 35 tests covering:
+
+1. **requiredSecretForProvider** (8 tests)
+   - API key mapping for all major providers (OpenAI, Anthropic, Google, HuggingFace, Replicate, Fal, Aime)
+   - Case-insensitive provider matching
+   - Unknown provider handling
+
+2. **computeProvidersList** (6 tests)
+   - Empty/undefined input handling
+   - Unique provider extraction
+   - Alphabetical sorting
+   - Null/undefined provider handling
+   - Model counting per provider
+
+3. **filterModelsList** (12 tests)
+   - No-filter case (returns all models)
+   - Provider filtering
+   - Gemini/Google provider case-insensitivity
+   - Search term filtering
+   - Combined provider and search filtering
+   - Disabled provider filtering
+   - Default enabled state
+   - Alphabetical sorting
+   - Name/id fallback for sorting
+   - Empty search term handling
+   - No-match scenarios
+
+4. **createModelMenuStore** (9 tests)
+   - Initial state verification
+   - Search state updates
+   - Provider selection updates
+   - Sidebar tab switching
+   - Model list replacement
+   - Multiple state updates
+
+### Test Results
+
+- **Test Suites**: 1 new test file, all passing
+- **Total Tests**: 35 new tests, all passing
+- **No Regressions**: Full test suite passes (3134/3152 tests, 16 pre-existing failures in useAutosave)
+
+### Testing Patterns Used
+
+1. **Utility Function Testing**: Pure functions tested with various inputs and edge cases
+2. **Store Testing**: State management logic tested with beforeEach/afterEach reset
+3. **Edge Case Testing**: Null/undefined inputs, empty strings, case variations
+4. **Integration Testing**: Complete workflows tested (filter + search + provider combinations)
+
+### Files Created
+
+- `web/src/stores/__tests__/ModelMenuStore.test.ts`
+
+### Impact
+
+- **1 new test file** added to coverage
+- **35 new tests** improving coverage
+- **Critical store tested**: ModelMenuStore (model selection, filtering, provider management)
+- **Utility functions tested**: Provider API key mapping, model filtering, provider list computation
+- **High-value coverage**: Model selection is critical for AI workflow functionality
