@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useVersionHistoryStore } from "../../stores/VersionHistoryStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -7,6 +8,22 @@ import { Workflow } from "../../stores/ApiTypes";
 
 // Mock fetch globally
 global.fetch = jest.fn();
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+      },
+    },
+  });
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
+};
 
 describe("useAutosave", () => {
   const mockWorkflow: Workflow = {
@@ -76,13 +93,13 @@ describe("useAutosave", () => {
 
   describe("initial state", () => {
     it("returns initial lastAutosaveTime as 0", () => {
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       expect(result.current.lastAutosaveTime).toBe(0);
     });
 
     it("returns triggerAutosave and saveBeforeRun functions", () => {
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       expect(typeof result.current.triggerAutosave).toBe("function");
       expect(typeof result.current.saveBeforeRun).toBe("function");
@@ -106,7 +123,7 @@ describe("useAutosave", () => {
         }
       });
 
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       act(() => {
         result.current.triggerAutosave();
@@ -116,7 +133,7 @@ describe("useAutosave", () => {
     });
 
     it("does nothing when workflowId is null", () => {
-      const { result } = renderHook(() => useAutosave(createMockOptions({ workflowId: null })));
+      const { result } = renderHook(() => useAutosave(createMockOptions({ workflowId: null })), { wrapper: createWrapper() });
       
       act(() => {
         result.current.triggerAutosave();
@@ -126,7 +143,7 @@ describe("useAutosave", () => {
     });
 
     it("does nothing when workflow is not dirty", () => {
-      const { result } = renderHook(() => useAutosave(createMockOptions({ isDirty: () => false })));
+      const { result } = renderHook(() => useAutosave(createMockOptions({ isDirty: () => false })), { wrapper: createWrapper() });
       
       act(() => {
         result.current.triggerAutosave();
@@ -141,7 +158,7 @@ describe("useAutosave", () => {
         graph: { nodes: [], edges: [] }
       };
 
-      const { result } = renderHook(() => useAutosave(createMockOptions({ getWorkflow: () => emptyWorkflow })));
+      const { result } = renderHook(() => useAutosave(createMockOptions({ getWorkflow: () => emptyWorkflow })), { wrapper: createWrapper() });
       
       act(() => {
         result.current.triggerAutosave();
@@ -151,7 +168,7 @@ describe("useAutosave", () => {
     });
 
     it("calls autosave endpoint when conditions are met", async () => {
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       await act(async () => {
         await result.current.triggerAutosave();
@@ -173,7 +190,7 @@ describe("useAutosave", () => {
         updateLastAutosaveTime
       });
 
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       await act(async () => {
         await result.current.triggerAutosave();
@@ -186,7 +203,7 @@ describe("useAutosave", () => {
       const addNotification = jest.fn();
       useNotificationStore.setState({ addNotification });
 
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       await act(async () => {
         await result.current.triggerAutosave();
@@ -212,7 +229,7 @@ describe("useAutosave", () => {
       const addNotification = jest.fn();
       useNotificationStore.setState({ addNotification });
 
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       await act(async () => {
         await result.current.triggerAutosave();
@@ -225,7 +242,7 @@ describe("useAutosave", () => {
       const consoleSpy = jest.spyOn(console, "error").mockImplementation();
       (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       await act(async () => {
         await result.current.triggerAutosave();
@@ -253,7 +270,7 @@ describe("useAutosave", () => {
         }
       });
 
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       act(() => {
         result.current.saveBeforeRun();
@@ -272,7 +289,7 @@ describe("useAutosave", () => {
         })
       });
 
-      const { result } = renderHook(() => useAutosave(createMockOptions()));
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
       
       await result.current.saveBeforeRun();
 
@@ -290,7 +307,7 @@ describe("useAutosave", () => {
         graph: { nodes: [], edges: [] }
       };
 
-      const { result } = renderHook(() => useAutosave(createMockOptions({ getWorkflow: () => emptyWorkflow })));
+      const { result } = renderHook(() => useAutosave(createMockOptions({ getWorkflow: () => emptyWorkflow })), { wrapper: createWrapper() });
       
       await act(async () => {
         await result.current.saveBeforeRun();
@@ -310,7 +327,7 @@ describe("useAutosave", () => {
 
       const { result, rerender } = renderHook(
         (props) => useAutosave(props as UseAutosaveOptions),
-        { initialProps: createMockOptions({ workflowId: "workflow-1" }) }
+        { initialProps: createMockOptions({ workflowId: "workflow-1" }), wrapper: createWrapper() }
       );
 
       expect(getLastAutosaveTimeMock).toHaveBeenCalledWith("workflow-1");
@@ -324,7 +341,7 @@ describe("useAutosave", () => {
     it("resets autosave state when workflowId becomes null", () => {
       const { result, rerender } = renderHook(
         (props) => useAutosave(props as UseAutosaveOptions),
-        { initialProps: createMockOptions({ workflowId: "workflow-1" }) }
+        { initialProps: createMockOptions({ workflowId: "workflow-1" }), wrapper: createWrapper() }
       );
 
       rerender(createMockOptions({ workflowId: null }));

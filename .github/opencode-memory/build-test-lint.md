@@ -624,3 +624,59 @@ Added comprehensive unit tests for critical hooks to improve test coverage for w
 - **49 new tests** improving coverage
 - **Critical hooks tested**: Job management, reconnection, provider management, API key validation
 - **Key workflows covered**: Workflow execution, provider selection, secret management
+
+---
+
+## Test Coverage Fix (2026-01-22)
+
+### Summary
+
+Fixed 16 failing tests in useAutosave.test.ts by properly wrapping React Query hooks with QueryClientProvider.
+
+### Changes Made
+
+**File**: `web/src/hooks/__tests__/useAutosave.test.ts` → `web/src/hooks/__tests__/useAutosave.test.tsx`
+
+**Changes**:
+1. Renamed file from `.test.ts` to `.test.tsx` for JSX support
+2. Added QueryClientProvider wrapper for React Query compatibility
+3. Updated all renderHook calls to use the wrapper
+4. Added displayName to wrapper component for lint compliance
+
+### Before
+```typescript
+// Tests failed with "No QueryClient set" error
+const { result } = renderHook(() => useAutosave(createMockOptions()));
+```
+
+### After
+```typescript
+const createWrapper = () => {
+  const queryClient = new QueryClient({...});
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
+};
+
+const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createWrapper() });
+```
+
+### Test Results
+
+- **Before**: 16 tests failing, 244 test suites
+- **After**: All 244 test suites passing (3,154 tests passing, 2 skipped)
+- **Test Execution Time**: ~26 seconds
+
+### Pattern Used
+
+When testing hooks that use React Query (useQuery, useMutation, useQueryClient):
+1. Create a QueryClient with appropriate defaults
+2. Wrap the hook in QueryClientProvider
+3. Pass wrapper to renderHook options
+4. Add displayName for lint compliance
+
+### Files Modified
+
+- `web/src/hooks/__tests__/useAutosave.test.tsx`
