@@ -262,20 +262,22 @@ export function useFolderBatch({
       store.markFileStarted(index);
 
       // Find the target input node and update its value
+      // Create the appropriate Ref object (ImageRef, AudioRef, VideoRef, etc.)
       const updatedNodes = nodes.map((node) => {
         if (node.id === file.targetNodeId) {
+          const refValue = {
+            type: file.matchedType as string,
+            uri: `file://${file.path}`,
+            asset_id: null,
+          };
+
           return {
             ...node,
             data: {
               ...node.data,
               properties: {
                 ...node.data.properties,
-                value: {
-                  type: file.matchedType,
-                  uri: `file://${file.path}`,
-                  asset_id: null,
-                  temp_id: null,
-                },
+                value: refValue,
               },
             },
           };

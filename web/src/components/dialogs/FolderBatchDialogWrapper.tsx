@@ -65,18 +65,21 @@ const FolderBatchDialogWrapper: React.FC = memo(function FolderBatchDialogWrappe
       // Find the target input node and update its value
       const updatedNodes = workflowNodes.map((node) => {
         if (node.id === file.targetNodeId) {
+          // Create the appropriate Ref object (ImageRef, AudioRef, VideoRef, etc.)
+          // These follow the schema: { type: string, uri: string, asset_id?: string | null }
+          const refValue = {
+            type: file.matchedType as string,
+            uri: `file://${file.path}`,
+            asset_id: null,
+          };
+
           return {
             ...node,
             data: {
               ...node.data,
               properties: {
                 ...node.data.properties,
-                value: {
-                  type: file.matchedType,
-                  uri: `file://${file.path}`,
-                  asset_id: null,
-                  temp_id: null,
-                },
+                value: refValue,
               },
             },
           };
