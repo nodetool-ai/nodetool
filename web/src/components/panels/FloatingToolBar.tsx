@@ -36,7 +36,9 @@ import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { useFolderBatchStore } from "../../stores/FolderBatchStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -418,6 +420,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     }
   }, [navigate, path]);
 
+  const openFolderBatchDialog = useFolderBatchStore((state) => state.openDialog);
+
+  const handleRunFolderAsBatch = useCallback(() => {
+    openFolderBatchDialog();
+  }, [openFolderBatchDialog]);
+
   const handleEditWorkflow = useCallback(() => {
     toggleWorkflowPanel();
   }, [toggleWorkflowPanel]);
@@ -680,6 +688,17 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             <RocketLaunchIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Run as App" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleRunFolderAsBatch();
+            handleCloseActionsMenu();
+          }}
+        >
+          <ListItemIcon>
+            <FolderOpenIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Run Folder as Batch" />
         </MenuItem>
       </Menu>
 

@@ -45,6 +45,7 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import FolderBatchDialogWrapper from "../dialogs/FolderBatchDialogWrapper";
 
 declare global {
   interface Window {
@@ -170,6 +171,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <FolderBatchDialogWrapper />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {
