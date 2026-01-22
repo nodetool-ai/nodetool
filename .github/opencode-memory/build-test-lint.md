@@ -441,6 +441,72 @@ store.getState().addNotification({
 - `web/src/hooks/__tests__/useAutosave.test.ts`
 - `web/src/hooks/__tests__/useFocusPan.test.ts`
 
+### Test Coverage Improvement (2026-01-22)
+
+**Tests Added**
+
+**6 new test files** covering critical stores, utilities, and hooks:
+
+1. **`web/src/stores/__tests__/ContextMenuStore.test.tsx`**
+   - Tests ContextMenuContext provider behavior
+   - Tests useContextMenu hook with and without selector
+   - Tests error throwing when used outside provider
+   - Tests context state updates
+
+2. **`web/src/stores/__tests__/WorkspaceManagerStore.test.ts`**
+   - Tests store initialization state
+   - Tests setIsOpen action for opening/closing workspace
+   - Tests store structure and interface
+
+3. **`web/src/stores/__tests__/workflowUpdates.test.ts`**
+   - Tests handleUpdate for various update types (notification, job_update, node_update)
+   - Tests job status transitions (running, completed, cancelled, failed, suspended, paused)
+   - Tests subscription management (subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates)
+   - Tests window.__UPDATES__ tracking
+
+4. **`web/src/hooks/__tests__/useChatService.test.ts`**
+   - Tests initial state return values
+   - Tests sendMessage with and without model selected
+   - Tests thread creation and navigation
+   - Tests getThreadPreview with various scenarios
+
+5. **`web/src/hooks/__tests__/useNodeEditorShortcuts.test.ts`**
+   - Tests shortcut registration when active
+   - Tests shortcut registration is skipped when inactive
+   - Tests shortcut unregistration on unmount
+
+6. **`web/src/hooks/__tests__/useProviders.test.tsx`**
+   - Tests useProviders hook with loading state
+   - Tests successful provider fetching
+   - Tests error handling
+   - Tests capability filtering (generate_message, text_to_image, etc.)
+   - Tests derived hooks (useLanguageModelProviders, useImageModelProviders, etc.)
+
+**Patterns Used**
+
+1. **Store Testing**: Reset store state in beforeEach/afterEach hooks
+2. **Hook Testing**: Mock external dependencies (stores, fetch, React Query, window events)
+3. **Context Testing**: Provider wrapper pattern for context consumers
+4. **React Query Testing**: QueryClientProvider wrapper for hooks using useQuery
+5. **Mocking**: jest.mock for external dependencies and context providers
+6. **TypeScript**: Proper type annotations for test variables and mock functions
+
+**Files Created**
+
+- `web/src/stores/__tests__/ContextMenuStore.test.tsx`
+- `web/src/stores/__tests__/WorkspaceManagerStore.test.ts`
+- `web/src/stores/__tests__/workflowUpdates.test.ts`
+- `web/src/hooks/__tests__/useChatService.test.ts`
+- `web/src/hooks/__tests__/useNodeEditorShortcuts.test.ts`
+- `web/src/hooks/__tests__/useProviders.test.tsx`
+
+**Test Results**
+
+- All new tests pass successfully
+- No type errors in new test files
+- No lint errors in new test files
+- 3183 tests passing overall
+
 ### Test Results
 
 - All new tests pass successfully
