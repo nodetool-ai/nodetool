@@ -274,6 +274,14 @@ export function useProcessedEdges({
         classes.push("from-bypassed");
       }
 
+      // Add class if source node is a streaming output
+      if (sourceNode?.type) {
+        const sourceMetadata = getMetadata(sourceNode.type);
+        if (sourceMetadata?.is_streaming_output) {
+          classes.push("streaming-edge");
+        }
+      }
+
       const statusKey =
         workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
       const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
