@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { IconForType } from "../../config/data_types";
 import { Box, Chip, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -110,13 +110,25 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(({
 }) => {
   const theme = useTheme();
 
-  const handleOutputClick = (type: string) => {
+  const handleOutputClick = useCallback((type: string) => {
     if (selectedOutputType === type) {
       setSelectedOutputType("");
     } else {
       setSelectedOutputType(type);
     }
-  };
+  }, [selectedOutputType, setSelectedOutputType]);
+
+  const handleClearInput = useCallback(() => {
+    setSelectedInputType("");
+  }, [setSelectedInputType]);
+
+  const handleClearOutput = useCallback(() => {
+    setSelectedOutputType("");
+  }, [setSelectedOutputType]);
+
+  const handleTypeChipClick = useCallback((type: string) => () => {
+    handleOutputClick(type);
+  }, [handleOutputClick]);
 
   const hasActiveFilters = selectedInputType || selectedOutputType;
 
@@ -131,7 +143,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(({
               size="small"
               label={`Input: ${selectedInputType}`}
               deleteIcon={<CloseIcon />}
-              onDelete={() => setSelectedInputType("")}
+              onDelete={handleClearInput}
             />
           )}
           {selectedOutputType && (
@@ -140,7 +152,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(({
               size="small"
               label={`Output: ${selectedOutputType}`}
               deleteIcon={<CloseIcon />}
-              onDelete={() => setSelectedOutputType("")}
+              onDelete={handleClearOutput}
             />
           )}
         </Box>
@@ -166,10 +178,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(({
                   />
                 }
                 label={type.label}
-                onClick={() => {
-                  // Toggle as output type by default
-                  handleOutputClick(type.value);
-                }}
+                onClick={handleTypeChipClick(type.value)}
               />
             </Tooltip>
           ))}
