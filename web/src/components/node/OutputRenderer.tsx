@@ -50,6 +50,7 @@ import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
+import DataframeRenderer from "./output/DataframeRenderer";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
