@@ -399,14 +399,15 @@ ul.multi-outputs li::marker {
   line-height: 1;
 }
 
-.handle-tooltip-streaming {
-  font-size: var(--fontSizeTiny);
+.handle-tooltip-streaming,
+.handle-tooltip-info {
+  font-size: var(--fontSizeSmall);
   font-style: italic;
   opacity: 0.9;
   margin-top: 0.4em;
   padding-top: 0.3em;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
-  max-width: 180px;
+  max-width: 200px;
   text-align: center;
   line-height: 1.3;
   white-space: normal;
