@@ -75,8 +75,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     error,
     restoreVersion,
     isRestoringVersion,
-    deleteVersion,
-    isDeletingVersion
+    deleteVersion
   } = useWorkflowVersions(workflowId);
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");

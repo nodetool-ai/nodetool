@@ -54,6 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+> ### TypeScript and Lint Fixes (2026-01-22)
+> **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
+> **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
+>
+> ---
+>
+> ### TypeScript Syntax and Type Fixes (2026-01-20)
 ### Inline Arrow Function Performance Fix (2026-01-22)
 
 **What**: Fixed 100+ inline arrow functions in JSX across 6 files using .bind() and useCallback, preventing unnecessary re-renders.

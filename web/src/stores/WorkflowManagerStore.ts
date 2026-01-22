@@ -28,6 +28,8 @@ import { getWorkflowRunnerStore } from "./WorkflowRunner";
 import { useNotificationStore } from "./NotificationStore";
 import { fetchWorkflowVersions, restoreWorkflowVersion } from "../serverState/useWorkflowVersions";
 import log from "loglevel";
+import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
+import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -720,7 +722,15 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
                         const nodeStore = get().nodeStores[workflowId];
                         if (nodeStore) {
                           nodeStore.setState({ workflow: restored });
-                          nodeStore.getState().loadNodesAndEdges(restored.graph.nodes, restored.graph.edges);
+                          // Convert graph nodes and edges to ReactFlow format and set them
+                          const reactFlowNodes = (restored.graph?.nodes || []).map((graphNode) =>
+                            graphNodeToReactFlowNode(restored, graphNode)
+                          );
+                          const reactFlowEdges = (restored.graph?.edges || []).map((graphEdge) =>
+                            graphEdgeToReactFlowEdge(graphEdge)
+                          );
+                          nodeStore.getState().setNodes(reactFlowNodes);
+                          nodeStore.getState().setEdges(reactFlowEdges);
                         }
                         useNotificationStore.getState().addNotification({
                           content: "Autosave restored successfully",

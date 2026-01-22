@@ -349,7 +349,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           alert: true
         });
       }
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         content: "Failed to paste from clipboard",
         type: "error",
