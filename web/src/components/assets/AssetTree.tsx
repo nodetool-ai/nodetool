@@ -46,17 +46,6 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
   const getAssetsRecursive = useAssetStore((state) => state.getAssetsRecursive);
-  const folderIcon = <IconForType iconName="folder" />;
-  const imageIcon = <IconForType iconName="image" />;
-  const audioIcon = <IconForType iconName="audio" />;
-  const videoIcon = <IconForType iconName="video" />;
-  const textIcon = <IconForType iconName="text" />;
-  const pdfIcon = <IconForType iconName="pdf" />;
-  const wordIcon = <IconForType iconName="word" />;
-  const excelIcon = <IconForType iconName="excel" />;
-  const powerpointIcon = <IconForType iconName="powerpoint" />;
-  const zipIcon = <IconForType iconName="zip" />;
-  const unknownIcon = <IconForType iconName="unknown" />;
 
   const calculateTotalAssets = useCallback((node: Asset): number => {
     if (node.content_type === "folder" && (node as AssetTreeNode).children) {
@@ -110,7 +99,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     onLoading
   ]);
 
-  const toggleFolder = (assetId: string) => {
+  const toggleFolder = useCallback((assetId: string) => {
     setClosedFolders((prev) => {
       if (prev.includes(assetId)) {
         return prev.filter((id) => id !== assetId);
@@ -118,48 +107,54 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         return [...prev, assetId];
       }
     });
-  };
+  }, []);
 
-  const getFileIcon = (contentType: string) => {
+  const handleNodeClick = useCallback((node: AssetTreeNode) => {
+    if (node.content_type === "folder") {
+      toggleFolder(node.id);
+    }
+  }, [toggleFolder]);
+
+  const getFileIcon = useCallback((contentType: string) => {
     switch (contentType) {
       case "folder":
-        return folderIcon;
+        return <IconForType iconName="folder" />;
       default:
         if (contentType.includes("image")) {
-          return imageIcon;
+          return <IconForType iconName="image" />;
         } else if (contentType.includes("audio")) {
-          return audioIcon;
+          return <IconForType iconName="audio" />;
         } else if (contentType.includes("video")) {
-          return videoIcon;
+          return <IconForType iconName="video" />;
         } else if (contentType.includes("text")) {
-          return textIcon;
+          return <IconForType iconName="text" />;
         } else if (contentType.includes("pdf")) {
-          return pdfIcon;
+          return <IconForType iconName="pdf" />;
         } else if (
           contentType.includes("word") ||
           contentType.includes("document")
         ) {
-          return wordIcon;
+          return <IconForType iconName="word" />;
         } else if (
           contentType.includes("sheet") ||
           contentType.includes("excel")
         ) {
-          return excelIcon;
+          return <IconForType iconName="excel" />;
         } else if (
           contentType.includes("presentation") ||
           contentType.includes("powerpoint")
         ) {
-          return powerpointIcon;
+          return <IconForType iconName="powerpoint" />;
         } else if (
           contentType.includes("zip") ||
           contentType.includes("compressed")
         ) {
-          return zipIcon;
+          return <IconForType iconName="zip" />;
         } else {
-          return unknownIcon;
+          return <IconForType iconName="unknown" />;
         }
     }
-  };
+  }, []);
 
   const sortNodes = useCallback((nodes: AssetTreeNode[]): AssetTreeNode[] => {
     return [...nodes].sort((a, b) => {
@@ -188,9 +183,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         {sortedNodes.map((node) => (
           <React.Fragment key={node.id}>
             <ListItemButton
-              onClick={() =>
-                node.content_type === "folder" && toggleFolder(node.id)
-              }
+              onClick={() => handleNodeClick(node)}
               style={{ paddingLeft: `${depth * 16}px` }}
             >
               <ListItemIcon
