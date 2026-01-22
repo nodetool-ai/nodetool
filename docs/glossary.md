@@ -11,7 +11,7 @@ NodeTool terminology in plain language. Simple explanations followed by technica
 ## Core Concepts
 
 ### NodeTool
-The platform you're using! NodeTool is a visual environment for building AI workflows. You connect nodes (building blocks) to create powerful automations without writing code.
+The platform you're using! NodeTool is a visual environment for building AI workflows. You connect nodes (building blocks) to create automations without writing code.
 
 ### Workflow
 A **workflow** is your project – a collection of connected nodes that accomplish a task together. Think of it like a recipe: each step (node) does something specific, and together they create the final result.
@@ -70,7 +70,7 @@ The main work area where you build workflows by placing and connecting nodes. Pa
 A special node that shows you intermediate results while your workflow runs. Add previews anywhere to debug or monitor progress.
 
 ### Mini-App
-A simplified interface for running a workflow. Mini-Apps hide the complexity and show only the inputs and outputs – perfect for sharing with non-technical users.
+A simplified interface for running a workflow. Mini-Apps hide the complexity and show only the inputs and outputs, making them easy to share with non-technical users.
 
 ### Global Chat
 NodeTool's AI assistant interface. Chat with AI models, run workflows conversationally, or enable Agent Mode for autonomous task completion.
