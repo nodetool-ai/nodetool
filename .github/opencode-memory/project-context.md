@@ -78,6 +78,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### Additional Inline Arrow Fixes (2026-01-22)
+
+**What**: Fixed 3 more inline arrow functions in panel components using useCallback for stable references.
+
+**Files**: web/src/components/panels/BackToDashboardButton.tsx, BackToEditorButton.tsx, LogPanel.tsx
+
+**Impact**: Consistent memoization pattern in navigation and panel toggle buttons.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.

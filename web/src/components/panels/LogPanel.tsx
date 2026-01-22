@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   Box,
   Chip,
@@ -157,6 +157,10 @@ const LogPanel: React.FC = () => {
     );
   };
 
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((v) => !v);
+  }, []);
+
   const filtered = useMemo(() => {
     return rows
       .filter((r) => currentWorkflowId && r.workflowId === currentWorkflowId)
@@ -181,7 +185,7 @@ const LogPanel: React.FC = () => {
           <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
             <IconButton
               size="small"
-              onClick={() => setIsFullscreen((v) => !v)}
+              onClick={toggleFullscreen}
               aria-label="Toggle fullscreen"
             >
               {isFullscreen ? (
