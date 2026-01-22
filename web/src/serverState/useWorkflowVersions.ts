@@ -68,6 +68,17 @@ export const restoreWorkflowVersion = async (
   await handleApiError(response);
 };
 
+export const deleteWorkflowVersion = async (
+  workflowId: string,
+  versionId: string
+): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE}/${workflowId}/versions/${versionId}`,
+    { method: "DELETE" }
+  );
+  await handleApiError(response);
+};
+
 export const useWorkflowVersions = (
   workflowId: string | null | undefined,
   limit: number = 100
@@ -104,12 +115,25 @@ export const useWorkflowVersions = (
     }
   });
 
+  const deleteVersionMutation = useMutation({
+    mutationFn: (versionId: string) => deleteWorkflowVersion(workflowId as string, versionId),
+    onSuccess: () => {
+      if (workflowId) {
+        queryClient.invalidateQueries({
+          queryKey: workflowVersionsQueryKey(workflowId)
+        });
+      }
+    }
+  });
+
   return {
     ...query,
     createVersion: createVersionMutation.mutateAsync,
     restoreVersion: restoreVersionMutation.mutateAsync,
+    deleteVersion: deleteVersionMutation.mutateAsync,
     isCreatingVersion: createVersionMutation.isPending,
-    isRestoringVersion: restoreVersionMutation.isPending
+    isRestoringVersion: restoreVersionMutation.isPending,
+    isDeletingVersion: deleteVersionMutation.isPending
   };
 };
 

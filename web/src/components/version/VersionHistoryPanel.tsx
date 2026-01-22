@@ -74,7 +74,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     isLoading,
     error,
     restoreVersion,
-    isRestoringVersion
+    isRestoringVersion,
+    deleteVersion,
+    isDeletingVersion
   } = useWorkflowVersions(workflowId);
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
@@ -148,13 +150,18 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setDeleteDialogOpen(true);
   }, []);
 
-  const handleConfirmDelete = useCallback(() => {
+  const handleConfirmDelete = useCallback(async () => {
     if (versionToDelete) {
-      if (selectedVersionId === versionToDelete) {
-        setSelectedVersion(null);
-      }
-      if (compareVersionId === versionToDelete) {
-        setCompareVersion(null);
+      try {
+        await deleteVersion(versionToDelete);
+        if (selectedVersionId === versionToDelete) {
+          setSelectedVersion(null);
+        }
+        if (compareVersionId === versionToDelete) {
+          setCompareVersion(null);
+        }
+      } catch (error) {
+        console.error("Failed to delete version:", error);
       }
     }
     setDeleteDialogOpen(false);
@@ -164,7 +171,8 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     selectedVersionId,
     compareVersionId,
     setSelectedVersion,
-    setCompareVersion
+    setCompareVersion,
+    deleteVersion
   ]);
 
   const handleRestore = useCallback(
