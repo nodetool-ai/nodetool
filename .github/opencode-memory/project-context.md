@@ -68,68 +68,18 @@ const store = useNodeStore();  // ❌ causes re-renders
 > ---
 >
 > ### TypeScript Syntax and Type Fixes (2026-01-20)
-### Inline Arrow Function Performance Fix (2026-01-22)
+### Inline Arrow Function Performance Fix - Node Menu (2026-01-22)
 
-**What**: Fixed 100+ inline arrow functions in JSX across 6 files using .bind() and useCallback, preventing unnecessary re-renders.
+**What**: Fixed 25+ inline arrow functions in 9 node menu components using .bind() and useCallback for stable references.
 
-**Files**: WorkspacesManager.tsx, FloatingToolBar.tsx, AppToolbar.tsx, WorkflowToolbar.tsx, VersionHistoryPanel.tsx, WorkflowTile.tsx
+**Files**: SearchResults.tsx, FavoritesTiles.tsx, RecentNodesTiles.tsx, QuickActionTiles.tsx, RenderNodes.tsx, RenderNodesSelectable.tsx, NodeInfo.tsx, TypeFilterChips.tsx, SearchResultsPanel.tsx
 
-**Impact**: Stable function references improve scroll performance and reduce re-renders in workflow lists and grids.
-
----
-
-### TypeScript Syntax and Type Fixes (2026-01-20)
-
-**What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
-
-**Files**: web/src/components/dashboard/ProviderSetupPanel.tsx, web/src/components/node_menu/TypeFilter.tsx, web/src/components/workflows/WorkflowForm.tsx
-
-**Impact**: All TypeScript and lint checks now pass for web and electron packages.
-
----
-
-### Component Memoization (2026-01-20)
-
-**What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.
-
-**Files**: web/src/components/workflows/TagFilter.tsx, SearchBar.tsx, node_menu/SearchResults.tsx, TypeFilter.tsx
-
-**Impact**: Workflow and node menu components now only re-render when props change.
-
----
-
-### Component Memoization (2026-01-19)
-
-**What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.
-
-**Files**: web/src/components/panels/FloatingToolBar.tsx, web/src/components/node_menu/QuickActionTiles.tsx
-
-**Impact**: Two remaining large components now memoized, preventing unnecessary re-renders.
-
----
-
-### AssetTree Sort Memoization (2026-01-19)
-
-**What**: Memoized sort operation in AssetTree component using useMemo/useCallback and added React.memo wrapper.
-
-**Files**: web/src/components/assets/AssetTree.tsx
-
-**Impact**: Asset tree sorting now only happens when data changes, not on every re-render.
-
----
-
-### Handler Memoization (2026-01-19)
-
-**What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.
-
-**Files**: web/src/components/dashboard/GettingStartedPanel.tsx, web/src/components/workspaces/WorkspacesManager.tsx
-
-**Impact**: Stable function references reduce re-renders in workspace management and model download UI.
+**Impact**: Reduced re-renders in node menus, search results, and workflow lists.
 
 ---
 
 > **Format**: `Feature (date): One line. Files: x, y`
-> **Limit**: 5 most recent entries. Delete oldest when adding new.### Node Header Icon Fix (2026-01-16)
+> **Limit**: 5 most recent entries. Delete oldest when adding new.
 
 **What**: Changed "Enable Node" icon from PlayArrowIcon to PowerSettingsNewIcon to distinguish it from "Run From Here" action.
 

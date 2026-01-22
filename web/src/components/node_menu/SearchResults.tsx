@@ -20,7 +20,7 @@ const SearchResults = memo(({
   const renderNode = useCallback((node: NodeMetadata) => {
     const words = node.node_type?.split(".");
     return (
-      <ListItemButton key={node.title} onClick={() => handleCreateNode(node)}>
+      <ListItemButton key={node.title} onClick={handleCreateNode.bind(null, node)}>
         {words.map((word, idx) => (
           <Box key={idx} sx={{ display: "flex" }}>
             <ListItemText sx={{ ml: 2 }}>
