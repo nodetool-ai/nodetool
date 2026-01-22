@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import {
   AssetOrDivider,
   DIVIDER_HEIGHT,
@@ -81,6 +81,18 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     }
   }, [openContextMenu, rowItems]);
 
+  const handleToggleExpanded = useCallback((type: string) => {
+    return () => {
+      toggleExpanded(type);
+    };
+  }, [toggleExpanded]);
+
+  const handleRowSelectAsset = useCallback((id: string) => {
+    return () => {
+      handleSelectAsset(id);
+    };
+  }, [handleSelectAsset]);
+
   if (rowItems.length === 0) {
     return null;
   }
@@ -115,7 +127,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             cursor: "pointer"
           }}
           className="content-type-header"
-          onClick={() => toggleExpanded(divider.type)}
+          onClick={handleToggleExpanded(divider.type)}
         >
           <Typography
             variant="body2"
@@ -198,7 +210,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
               asset={item}
               draggable={true}
               isSelected={isSelected}
-              onSelect={() => handleSelectAsset(item.id)}
+              onSelect={handleRowSelectAsset(item.id)}
               onDoubleClick={onDoubleClick}
             />
           </div>

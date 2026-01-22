@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -271,28 +271,26 @@ const AssetActions = ({
     }
   };
 
-  const handleViewModeToggle = () => {
+  const handleViewModeToggle = useCallback(() => {
     setViewMode(viewMode === "grid" ? "list" : "grid");
-  };
+  }, [viewMode, setViewMode]);
 
-  useEffect(() => {
-    if (createFolderAnchor) {
-      const timer = setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 10);
-      return () => clearTimeout(timer);
-    }
-  }, [createFolderAnchor]);
+  const handleOpenCreateFolder = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    setCreateFolderAnchor(e.currentTarget);
+  }, []);
 
-  const handleChange = (event: Event, value: number | number[]) => {
-    if (Array.isArray(value)) {
-      setAssetItemSize(value[0] as number);
-    } else {
-      setAssetItemSize(value as number);
-    }
-  };
+  const handleCloseCreateFolder = useCallback(() => {
+    setCreateFolderAnchor(null);
+  }, []);
+
+  const handleFolderNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setCreateFolderName(e.target.value);
+  }, []);
+
+  const handleUploadFiles = useCallback((files: File[]) => {
+    onUploadFiles?.(files);
+  }, [onUploadFiles]);
+
   const handleCreateFolder = () => {
     setCreateFolderAnchor(null);
     createFolder(currentFolder?.id || "", createFolderName).then(() => {
@@ -304,10 +302,25 @@ const AssetActions = ({
       refetchAssetsAndFolders();
     });
   };
+
+  const handleCreateFolderKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleCreateFolder();
+    }
+  }, [handleCreateFolder]);
+
+  const handleChange = (event: Event, value: number | number[]) => {
+    if (Array.isArray(value)) {
+      setAssetItemSize(value[0] as number);
+    } else {
+      setAssetItemSize(value as number);
+    }
+  };
+
   return (
     <div className="asset-actions" css={styles(theme)}>
       <FileUploadButton
-        onFileChange={(files) => onUploadFiles?.(files)}
+        onFileChange={handleUploadFiles}
         compact
       />
       <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
@@ -317,7 +330,7 @@ const AssetActions = ({
           disableInteractive
         >
           <Button
-            onClick={(e) => setCreateFolderAnchor(e.currentTarget)}
+            onClick={handleOpenCreateFolder}
             tabIndex={-1}
           >
             <CreateNewFolderIcon />
@@ -444,7 +457,7 @@ const AssetActions = ({
         className="dialog"
         open={Boolean(createFolderAnchor)}
         anchorEl={createFolderAnchor}
-        onClose={() => setCreateFolderAnchor(null)}
+        onClose={handleCloseCreateFolder}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
@@ -460,12 +473,8 @@ const AssetActions = ({
               autoFocus
               autoComplete="off"
               id="name"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleCreateFolder();
-                }
-              }}
-              onChange={(e) => setCreateFolderName(e.target.value)}
+              onKeyDown={handleCreateFolderKeyDown}
+              onChange={handleFolderNameChange}
               fullWidth
             />
           </div>
@@ -473,7 +482,7 @@ const AssetActions = ({
         <DialogActions className="dialog-actions">
           <Button
             className="button-cancel"
-            onClick={() => setCreateFolderAnchor(null)}
+            onClick={handleCloseCreateFolder}
           >
             Cancel
           </Button>
