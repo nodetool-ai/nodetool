@@ -188,7 +188,7 @@ const helpStyles = (theme: Theme) =>
     }
   });
 
-function TabPanel(props: TabPanelProps) {
+const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   const { children, value, index } = props;
   return (
     <div
@@ -201,7 +201,7 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box className="tabpanel-content">{children}</Box>}
     </div>
   );
-}
+});
 
 const Help = ({
   open,
