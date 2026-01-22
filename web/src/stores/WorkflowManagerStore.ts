@@ -25,7 +25,35 @@ import {
 } from "../serverState/useWorkflow";
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates } from "./workflowUpdates";
 import { getWorkflowRunnerStore } from "./WorkflowRunner";
+import { useNotificationStore } from "./NotificationStore";
+import { fetchWorkflowVersions, restoreWorkflowVersion } from "../serverState/useWorkflowVersions";
 import log from "loglevel";
+
+// -----------------------------------------------------------------
+// HELPER FUNCTIONS
+// -----------------------------------------------------------------
+
+/**
+ * Formats a date as a human-readable "time ago" string.
+ * @param date The date to format
+ * @returns A string like "2 minutes ago", "1 hour ago", etc.
+ */
+const formatTimeAgo = (date: Date): string => {
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  }
+  if (seconds < 86400) {
+    const hours = Math.floor(seconds / 3600);
+    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  }
+  const days = Math.floor(seconds / 86400);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+};
 
 // -----------------------------------------------------------------
 // LOCAL STORAGE UTILITIES
@@ -662,6 +690,62 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       // Fetches the workflow data by its ID, using QueryClient cache and adds the workflow store.
       fetchWorkflow: async (workflowId: string) => {
+        // Helper to check for newer autosaves and show notification
+        const checkForNewerAutosave = async (workflow: Workflow) => {
+          try {
+            const versions = await fetchWorkflowVersions(workflowId, null, 1);
+            if (versions.versions.length > 0) {
+              const latestVersion = versions.versions[0];
+              const versionTime = new Date(latestVersion.created_at).getTime();
+              const workflowTime = new Date(workflow.updated_at).getTime();
+
+              // Check if version is newer and is an autosave
+              if (versionTime > workflowTime && latestVersion.save_type === "autosave") {
+                const timeAgo = formatTimeAgo(new Date(latestVersion.created_at));
+                useNotificationStore.getState().addNotification({
+                  content: `Newer autosave available from ${timeAgo}`,
+                  type: "info",
+                  alert: true,
+                  dismissable: true,
+                  timeout: 10000,
+                  action: {
+                    label: "Restore",
+                    onClick: async () => {
+                      try {
+                        await restoreWorkflowVersion(workflowId, latestVersion.version);
+                        // Invalidate and refetch the workflow
+                        get().queryClient?.invalidateQueries({ queryKey: workflowQueryKey(workflowId) });
+                        // Refetch workflow to update NodeStore
+                        const restored = await fetchWorkflowById(workflowId);
+                        const nodeStore = get().nodeStores[workflowId];
+                        if (nodeStore) {
+                          nodeStore.setState({ workflow: restored });
+                          nodeStore.getState().loadNodesAndEdges(restored.graph.nodes, restored.graph.edges);
+                        }
+                        useNotificationStore.getState().addNotification({
+                          content: "Autosave restored successfully",
+                          type: "success",
+                          alert: true
+                        });
+                      } catch (error) {
+                        log.error("[fetchWorkflow] Failed to restore autosave:", error);
+                        useNotificationStore.getState().addNotification({
+                          content: "Failed to restore autosave",
+                          type: "error",
+                          alert: true,
+                          dismissable: true
+                        });
+                      }
+                    }
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            log.warn("[fetchWorkflow] Failed to check for newer autosaves:", error);
+          }
+        };
+
         // If already have a NodeStore, just set current and ensure query cache is populated.
         const existing = get().getWorkflow(workflowId);
         if (existing) {
@@ -680,6 +764,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (cached) {
           get().addWorkflow(cached);
           get().setCurrentWorkflowId(workflowId);
+          // Check for newer autosaves when loading from cache
+          checkForNewerAutosave(cached);
           return cached;
         }
 
@@ -689,6 +775,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           get().queryClient?.setQueryData(workflowQueryKey(workflowId), data);
           get().addWorkflow(data);
           get().setCurrentWorkflowId(data.id);
+          // Check for newer autosaves when freshly loaded
+          checkForNewerAutosave(data);
           return data;
         } catch (e) {
           console.error(

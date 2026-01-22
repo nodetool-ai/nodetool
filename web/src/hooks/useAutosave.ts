@@ -9,10 +9,12 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useVersionHistoryStore } from "../stores/VersionHistoryStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { Workflow } from "../stores/ApiTypes";
+import { workflowVersionsQueryKey } from "../serverState/useWorkflowVersions";
 import { v4 as uuidv4 } from "uuid";
 
 export interface UseAutosaveOptions {
@@ -41,6 +43,7 @@ export const useAutosave = (
   options: UseAutosaveOptions
 ): UseAutosaveReturn => {
   const { workflowId, getWorkflow, isDirty } = options;
+  const queryClient = useQueryClient();
 
   const autosaveSettings = useSettingsStore(
     (state) => state.settings.autosave
@@ -140,6 +143,11 @@ export const useAutosave = (
         updateLastAutosaveTime(workflowId!);
         setLastAutosaveTime(Date.now());
 
+        // Invalidate versions query so the version list refreshes
+        queryClient.invalidateQueries({
+          queryKey: workflowVersionsQueryKey(workflowId!)
+        });
+
         addNotification({
           content: "Workflow autosaved",
           type: "info",
@@ -159,7 +167,8 @@ export const useAutosave = (
     isWorkflowEmpty,
     callAutosaveEndpoint,
     updateLastAutosaveTime,
-    addNotification
+    addNotification,
+    queryClient
   ]);
 
   // Keep ref updated with latest triggerAutosave function

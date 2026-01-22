@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import React, { useEffect, useState, useRef, createRef } from "react";
-import { Alert as MUIAlert, AlertColor } from "@mui/material";
+import { Alert as MUIAlert, AlertColor, Button } from "@mui/material";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
 import {
@@ -207,6 +207,20 @@ const Alert: React.FC = () => {
                   notification.type === "error" || notification.dismissable
                     ? () => handleClose(notification.id)
                     : undefined
+                }
+                action={
+                  notification.action ? (
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={async () => {
+                        await notification.action?.onClick();
+                        handleClose(notification.id);
+                      }}
+                    >
+                      {notification.action.label}
+                    </Button>
+                  ) : undefined
                 }
               >
                 {notification.content}
