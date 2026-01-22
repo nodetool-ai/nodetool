@@ -70,11 +70,11 @@ const store = useNodeStore();  // ❌ causes re-renders
 > ### TypeScript Syntax and Type Fixes (2026-01-20)
 ### Inline Arrow Function Performance Fix (2026-01-22)
 
-**What**: Fixed 100+ inline arrow functions in JSX across 6 files using .bind() and useCallback, preventing unnecessary re-renders.
+**What**: Fixed 150+ inline arrow functions in JSX across 11 files using .bind() and useCallback, preventing unnecessary re-renders.
 
-**Files**: WorkspacesManager.tsx, FloatingToolBar.tsx, AppToolbar.tsx, WorkflowToolbar.tsx, VersionHistoryPanel.tsx, WorkflowTile.tsx
+**Files**: WorkspacesManager.tsx, FloatingToolBar.tsx, AppToolbar.tsx, WorkflowToolbar.tsx, VersionHistoryPanel.tsx, WorkflowTile.tsx, BackToDashboardButton.tsx, PaneContextMenu.tsx, NodeContextMenu.tsx, TagFilter.tsx, AssetItem.tsx
 
-**Impact**: Stable function references improve scroll performance and reduce re-renders in workflow lists and grids.
+**Impact**: Stable function references improve scroll performance and reduce re-renders in workflow lists, grids, asset browser, and context menus.
 
 ---
 

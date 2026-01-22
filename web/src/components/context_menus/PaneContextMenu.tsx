@@ -61,7 +61,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   }, [closeContextMenu]);
 
 
-  const addComment = (event: React.MouseEvent) => {
+  const addComment = useCallback((event: React.MouseEvent) => {
     // Fake metadata for comments
     const metadata = COMMENT_NODE_METADATA;
     const newNode = createNode(
@@ -75,7 +75,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     newNode.height = 100;
     newNode.style = { width: 150, height: 100 };
     addNode(newNode);
-  };
+  }, [createNode, addNode, reactFlowInstance, menuPosition]);
 
   const addGroupNode = useCallback(
     (event: React.MouseEvent) => {
@@ -235,6 +235,52 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     []
   );
 
+  const handlePasteAndClose = useCallback(() => {
+    handlePaste();
+    closeAllMenus();
+  }, [handlePaste, closeAllMenus]);
+
+  const handleFitViewAndClose = useCallback(
+    (e?: React.MouseEvent<HTMLElement>) => {
+      if (e) {
+        e.preventDefault();
+        fitView({ padding: 0.5 });
+      }
+      closeAllMenus();
+    },
+    [fitView, closeAllMenus]
+  );
+
+  const handleAddCommentAndClose = useCallback(
+    (e?: React.MouseEvent<HTMLElement>) => {
+      if (e) {
+        e.preventDefault();
+        addComment(e);
+      }
+      closeAllMenus();
+    },
+    [addComment, closeAllMenus]
+  );
+
+  const handleAddGroupAndClose = useCallback(
+    (e?: React.MouseEvent<HTMLElement>) => {
+      if (e) {
+        e.preventDefault();
+        addGroupNode(e);
+      }
+      closeAllMenus();
+    },
+    [addGroupNode, closeAllMenus]
+  );
+
+  const handleCloseConstantMenu = useCallback(() => {
+    setConstantMenuAnchorEl(null);
+  }, []);
+
+  const handleCloseInputMenu = useCallback(() => {
+    setInputMenuAnchorEl(null);
+  }, []);
+
   if (!menuPosition) {
     return null;
   }
@@ -265,10 +311,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         }}
       >
         <ContextMenuItem
-          onClick={() => {
-            handlePaste();
-            closeAllMenus();
-          }}
+          onClick={handlePasteAndClose}
           label="Paste"
           addButtonClassName={`action ${!isClipboardValid ? "disabled" : ""}`}
           IconComponent={<SouthEastIcon />}
@@ -288,13 +331,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           }
         />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              fitView({ padding: 0.5 });
-            }
-            closeAllMenus();
-          }}
+          onClick={handleFitViewAndClose}
           label="Fit Screen"
           IconComponent={<FitScreenIcon />}
           tooltip={getShortcutTooltip("fit-view")}
@@ -364,25 +401,13 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         />
         <Divider />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              addComment(e);
-            }
-            closeAllMenus();
-          }}
+          onClick={handleAddCommentAndClose}
           label="Add Comment"
           IconComponent={<AddCommentIcon />}
           tooltip={"Hold C key and drag"}
         />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              addGroupNode(e);
-            }
-            closeAllMenus();
-          }}
+          onClick={handleAddGroupAndClose}
           label="Add Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={"Add a group node"}
@@ -392,7 +417,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         className="context-menu pane-submenu"
         anchorEl={constantMenuAnchorEl}
         open={Boolean(constantMenuAnchorEl)}
-        onClose={() => setConstantMenuAnchorEl(null)}
+        onClose={handleCloseConstantMenu}
         slotProps={{
           paper: {
             className: "context-menu pane-submenu"
@@ -425,7 +450,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         className="context-menu pane-submenu"
         anchorEl={inputMenuAnchorEl}
         open={Boolean(inputMenuAnchorEl)}
-        onClose={() => setInputMenuAnchorEl(null)}
+        onClose={handleCloseInputMenu}
         slotProps={{
           paper: {
             className: "context-menu pane-submenu"
