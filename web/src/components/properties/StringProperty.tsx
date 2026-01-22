@@ -76,6 +76,9 @@ const StringProperty = ({
     });
   }, []);
 
+  const handleMouseEnter = useCallback(() => setIsHovered(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovered(false), []);
+
   if (showTextEditor) {
     return (
       <div
@@ -111,8 +114,8 @@ const StringProperty = ({
       >
         <div
           className="property-row"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           <PropertyLabel
             name={property.name}
@@ -203,8 +206,8 @@ const StringProperty = ({
     >
       <div
         className="property-row"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <PropertyLabel
           name={property.name}
