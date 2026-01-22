@@ -147,6 +147,19 @@ export function useProcessedEdges({
     const anyType = dataTypeBySlug.get("any");
     const defaultColor = anyType?.color || "#888";
 
+    const labelStyle = {
+      fill: "white",
+      fontWeight: 600,
+      fontSize: "10px"
+    };
+    const labelBgStyle = {
+      fill: "rgba(0, 0, 0, 0.4)",
+      fillOpacity: 1,
+      rx: 10,
+      ry: 10
+    };
+    const labelBgPadding: [number, number] = [6, 2];
+
     function typeInfoFromTypeString(typeString: string | undefined): {
       slug: string;
       color: string;
@@ -287,18 +300,9 @@ export function useProcessedEdges({
       return {
         ...edge,
         label: edgeLabel,
-        labelStyle: {
-          fill: "white",
-          fontWeight: 600,
-          fontSize: "10px"
-        },
-        labelBgStyle: {
-          fill: "rgba(0, 0, 0, 0.4)",
-          fillOpacity: 1,
-          rx: 10,
-          ry: 10
-        },
-        labelBgPadding: [6, 2] as [number, number],
+        labelStyle,
+        labelBgStyle,
+        labelBgPadding,
         className: [edge.className, ...classes].filter(Boolean).join(" "),
         style: {
           ...edge.style,

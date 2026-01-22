@@ -7,7 +7,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
-import { memo, useState, useEffect } from "react";
+import { memo, useState, useEffect, useCallback } from "react";
 import isEqual from "lodash/isEqual";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -142,7 +142,7 @@ const formatElapsedTime = (startedAt: string | null | undefined): string => {
 /**
  * Component to display a single job item
  */
-const JobItem = ({ job }: { job: Job }) => {
+const JobItem = memo(function JobItem({ job }: { job: Job }) {
   const navigate = useNavigate();
   const runnerState = useWorkflowRunnerState(job.workflow_id);
   const { data: workflow } = useWorkflow(job.workflow_id);
@@ -162,15 +162,15 @@ const JobItem = ({ job }: { job: Job }) => {
     }
   }, [runnerState]);
 
-  const handleClick = () => navigate(`/editor/${job.workflow_id}`);
+  const handleClick = useCallback(() => navigate(`/editor/${job.workflow_id}`), [navigate, job.workflow_id]);
 
-  const handleStop = (e: React.MouseEvent) => {
+  const handleStop = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     const runnerStore = getWorkflowRunnerStore(job.workflow_id);
     runnerStore.getState().cancel();
-  };
+  }, [job.workflow_id]);
 
-  const getStatusIcon = () => {
+  const getStatusIcon = useCallback(() => {
     if (job.error) {return <ErrorOutlineIcon color="error" />;}
     switch (job.status) {
       case "running": return <CircularProgress size={24} />;
@@ -178,7 +178,7 @@ const JobItem = ({ job }: { job: Job }) => {
       case "starting": return <HourglassEmptyIcon color="action" />;
       default: return <PlayArrowIcon color="action" />;
     }
-  };
+  }, [job.error, job.status]);
 
   const workflowName = workflow?.name || "Loading...";
   const statusText = job.status === "running" ? `Running • ${elapsedTime}`
@@ -208,9 +208,9 @@ const JobItem = ({ job }: { job: Job }) => {
       )}
     </ListItem>
   );
-};
+});
 
-const RunningJobsList = () => {
+const RunningJobsList = memo(function RunningJobsList() {
   const { data: jobs, isLoading, error } = useRunningJobs();
 
   if (isLoading) {
@@ -228,7 +228,7 @@ const RunningJobsList = () => {
       {jobs.map((job) => <JobItem key={job.id} job={job} />)}
     </List>
   );
-};
+});
 
 const VerticalToolbar = memo(function VerticalToolbar({
   handleInspectorToggle,

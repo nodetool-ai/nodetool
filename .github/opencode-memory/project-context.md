@@ -54,6 +54,14 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### JobItem Memoization & Edge Style Optimization (2026-01-22)
+
+**What**: Added React.memo and useCallback to JobItem component, and memoized style objects in useProcessedEdges hook.
+
+**Files**: web/src/components/panels/PanelRight.tsx, web/src/hooks/useProcessedEdges.ts
+
+**Impact**: Reduced unnecessary re-renders in jobs panel and edge rendering. Individual job items now only re-render when their data changes.
+
 ### Plotly Lazy Loading (2026-01-21)
 
 **What**: Lazy-loaded Plotly (4.6 MB charting library) using React.lazy to reduce initial bundle size. Chart library now loads on-demand only when users view plotly charts.
