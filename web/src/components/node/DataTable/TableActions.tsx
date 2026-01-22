@@ -171,7 +171,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
   // Duplicate selected rows
   const handleDuplicateRows = useCallback(() => {
-    if (!Array.isArray(data) || selectedRows.length === 0) return;
+    if (!Array.isArray(data) || selectedRows.length === 0) {return;}
     
     const duplicatedRows = selectedRows.map((row) => {
       const rowData = { ...row.getData() };
@@ -254,7 +254,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       const lines = text.trim().split(/\r?\n/);
       const rows = lines.map((line) => parseCSVLine(line));
       
-      if (rows.length === 0) return;
+      if (rows.length === 0) {return;}
       
       // Map to column structure
       if (Array.isArray(data) && dataframeColumns && dataframeColumns.length > 0) {
@@ -360,7 +360,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
   // Export CSV - exclude select and rownum columns
   const handleExportCSV = useCallback(() => {
-    if (!dataframeColumns || !Array.isArray(data)) return;
+    if (!dataframeColumns || !Array.isArray(data)) {return;}
     
     // Build CSV content manually to exclude utility columns
     const headers = dataframeColumns.map((c) => `"${c.name}"`).join(",");
@@ -391,7 +391,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
   // Export JSON - exclude select and rownum columns
   const handleExportJSON = useCallback(() => {
-    if (!dataframeColumns || !Array.isArray(data)) return;
+    if (!dataframeColumns || !Array.isArray(data)) {return;}
     
     // Build clean data without utility columns
     const cleanData = data.map((row) => {
