@@ -128,13 +128,17 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
 
   // Handle backdrop click
   const handleBackdropClick = useCallback(
-    (event: React.MouseEvent) => {
+    (event: React.MouseEvent<HTMLDivElement>) => {
       if (event.target === event.currentTarget) {
         setDialogOpen(false);
       }
     },
     [setDialogOpen]
   );
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
 
   return (
     <>
@@ -218,7 +222,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             <DialogActions className="asset-rename-dialog-actions dialog-actions">
               <Button
                 className="asset-rename-cancel-button button-cancel"
-                onClick={() => setDialogOpen(false)}
+                onClick={handleCloseDialog}
               >
                 Cancel
               </Button>

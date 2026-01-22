@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -304,6 +304,10 @@ const AssetActions = ({
       refetchAssetsAndFolders();
     });
   };
+
+  const handleCloseCreateFolderDialog = useCallback(() => {
+    setCreateFolderAnchor(null);
+  }, []);
   return (
     <div className="asset-actions" css={styles(theme)}>
       <FileUploadButton
@@ -444,7 +448,7 @@ const AssetActions = ({
         className="dialog"
         open={Boolean(createFolderAnchor)}
         anchorEl={createFolderAnchor}
-        onClose={() => setCreateFolderAnchor(null)}
+        onClose={handleCloseCreateFolderDialog}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
@@ -473,7 +477,7 @@ const AssetActions = ({
         <DialogActions className="dialog-actions">
           <Button
             className="button-cancel"
-            onClick={() => setCreateFolderAnchor(null)}
+            onClick={handleCloseCreateFolderDialog}
           >
             Cancel
           </Button>

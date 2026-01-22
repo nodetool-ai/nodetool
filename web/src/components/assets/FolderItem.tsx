@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { useCallback } from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { ButtonGroup, Typography } from "@mui/material";
@@ -103,7 +103,7 @@ export interface FolderItemProps {
   children?: React.ReactNode;
 }
 
-const FolderItem: React.FC<FolderItemProps> = ({
+const FolderItem: React.FC<FolderItemProps> = React.memo(({
   folder,
   isParent,
   isSelected,
@@ -125,21 +125,25 @@ const FolderItem: React.FC<FolderItemProps> = ({
     handleDelete
   } = useAssetActions(folder);
 
+  const handleClick = useCallback(() => {
+    onSelect();
+  }, [onSelect]);
+
+  const handleContextMenuWrapper = useCallback((e: React.MouseEvent) => {
+    handleContextMenu(e, enableContextMenu);
+  }, [handleContextMenu, enableContextMenu]);
+
+  const handleDeleteClick = useCallback(() => {
+    handleDelete();
+  }, [handleDelete]);
+
   return (
     <div
       css={styles(theme)}
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
-      onClick={(e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest(".expand-gutter")) {
-          // Let the click bubble to AccordionSummary to toggle expansion
-          return;
-        }
-        e.stopPropagation();
-        onSelect();
-      }}
+      onClick={handleClick}
       // onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
       onDragEnd={handleDragEnd}
@@ -147,7 +151,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
+      onContextMenu={handleContextMenuWrapper}
       draggable
     >
       <FolderIcon className="folder-icon" />
@@ -160,12 +164,12 @@ const FolderItem: React.FC<FolderItemProps> = ({
             className="asset-delete"
             item={folder}
             component="span"
-            onClick={() => handleDelete()}
+            onClick={handleDeleteClick}
           />
         </ButtonGroup>
       )}
     </div>
   );
-};
+});
 
 export default FolderItem;
