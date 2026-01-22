@@ -279,20 +279,29 @@
 }
 
 /* STREAMING OUTPUT HANDLE - outputs that stream data continuously */
-/* Uses striped pattern to signify streaming behavior */
+/* Uses striped overlay pattern to signify streaming behavior while preserving type color */
 .react-flow__node .react-flow__handle-right.streaming-handle {
   /* Wider handle to signify streaming */
   height: calc(var(--handle_height) * 1.4);
   border-radius: 0 4px 4px 0;
-  /* Triple bar effect via repeating gradient */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Stripe overlay that shows on top of the type color */
+.react-flow__node .react-flow__handle-right.streaming-handle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: repeating-linear-gradient(
     0deg,
-    var(--palette-grey-600) 0px,
-    var(--palette-grey-600) 3px,
-    var(--palette-grey-800) 3px,
-    var(--palette-grey-800) 5px
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.35) 3px,
+    rgba(0, 0, 0, 0.35) 5px
   );
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
 }
 
 .react-flow__node .react-flow__handle-right.streaming-handle:hover {
