@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { workflowQueryKey, fetchWorkflowById } from "../../serverState/useWorkflow";
 import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
@@ -350,30 +351,22 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   }, [openWorkflows]);
 
   // Fire queries for ids not yet in openWorkflows
+  // Uses shared query key and staleTime for proper deduplication
   const queryResults = useQueries({
     queries: idsForTabs.map((id) => ({
-      queryKey: ["workflow", id],
+      queryKey: workflowQueryKey(id),
       queryFn: async () => {
-        const { client } = await import("../../stores/ApiClient");
-        const { createErrorMessage } = await import(
-          "../../utils/errorHandling"
-        );
-        const { data, error } = await client.GET("/api/workflows/{id}", {
-          params: { path: { id } }
-        });
-        if (error) {
-          if (
-            typeof error === "object" &&
-            error !== null &&
-            "status" in error &&
-            (error as { status?: number }).status === 404
-          ) {
+        try {
+          return await fetchWorkflowById(id);
+        } catch (error) {
+          // Check if 404 - workflow was deleted
+          if (String(error).includes("404")) {
             return { __missing: true, id };
           }
-          throw createErrorMessage(error, "Failed to load workflow");
+          throw error;
         }
-        return data;
       },
+      staleTime: 60 * 1000, // Match useWorkflow staleTime
       enabled: !openMap.has(id)
     }))
   });
