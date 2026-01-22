@@ -516,10 +516,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           }}
                         />
                         <IconButton
-                          size="small"
-                          onClick={() => handleUpdate(workspace.id)}
-                          color="primary"
-                        >
+                           size="small"
+                           onClick={handleUpdate.bind(null, workspace.id)}
+                           color="primary"
+                         >
                           <CheckIcon />
                         </IconButton>
                         <IconButton size="small" onClick={handleCancelEdit}>
@@ -571,17 +571,17 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                         <ListItemSecondaryAction>
                           <Tooltip title="Edit">
                             <IconButton
-                              size="small"
-                              onClick={() => handleStartEdit(workspace)}
-                            >
+                               size="small"
+                               onClick={handleStartEdit.bind(null, workspace)}
+                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Delete">
                             <IconButton
-                              size="small"
-                              onClick={() => handleDeleteWorkspace(workspace.id)}
-                            >
+                               size="small"
+                               onClick={handleDeleteWorkspace.bind(null, workspace.id)}
+                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
