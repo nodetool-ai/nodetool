@@ -624,3 +624,75 @@ Added comprehensive unit tests for critical hooks to improve test coverage for w
 - **49 new tests** improving coverage
 - **Critical hooks tested**: Job management, reconnection, provider management, API key validation
 - **Key workflows covered**: Workflow execution, provider selection, secret management
+
+---
+
+## Test Coverage Improvement (2026-01-22 - Final Batch)
+
+### Summary
+
+Added comprehensive unit tests for ModelMenuStore utility functions to improve test coverage for model selection and filtering functionality.
+
+### Tests Added
+
+**ModelMenuStore Tests**
+**File**: `web/src/stores/__tests__/ModelMenuStore.test.ts`
+
+**Coverage**: Added 32 tests covering:
+
+1. **requiredSecretForProvider** (8 tests)
+   - Provider-to-secret mapping for OpenAI, Anthropic, Google/Gemini, HuggingFace, Replicate, FAL, AIME
+   - Returns null for unknown providers
+   - Case-insensitive matching
+
+2. **computeProvidersList** (6 tests)
+   - Empty/undefined input handling
+   - Provider counting from model list
+   - Alphabetical sorting
+   - Handling models without providers
+   - Filtering zero-count providers
+
+3. **filterModelsList** (10 tests)
+   - No-filter case (returns all models)
+   - Provider filtering
+   - Google/Gemini provider matching
+   - Search term filtering
+   - Combined provider + search filtering
+   - No-match returns empty array
+   - Enabled providers filtering
+   - Disabling providers explicitly
+   - Consistent sorting
+   - Edge cases (empty search, whitespace)
+
+4. **createModelMenuStore** (8 tests)
+   - Initial state verification
+   - Search value setter
+   - Selected provider setter (including null)
+   - Sidebar tab setter
+   - Models list setter
+   - Model replacement behavior
+
+### Test Results
+
+- **Test Suites**: 1 new test file
+- **Total Tests**: 32 new tests, all passing
+- **Coverage**: Improved line coverage for ModelMenuStore utilities
+- **No Regressions**: Full test suite passes (3170/3188 tests passing)
+
+### Testing Patterns Used
+
+1. **Utility Function Testing**: Pure function testing with various inputs
+2. **Store Testing**: State initialization and action verification
+3. **Edge Case Testing**: Empty inputs, null values, whitespace
+4. **Provider Mapping**: Testing provider-to-secret resolution logic
+
+### Files Created
+
+- `web/src/stores/__tests__/ModelMenuStore.test.ts`
+
+### Impact
+
+- **1 new test file** added to coverage
+- **32 new tests** improving coverage
+- **Critical utility tested**: ModelMenuStore provider/secret resolution
+- **Key functionality covered**: Model filtering, provider matching, store state management
