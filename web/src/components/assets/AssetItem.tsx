@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { ButtonGroup, Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
@@ -260,9 +260,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     showFiletype = true,
     showDuration = true,
     showFileSize = true,
-    onSelect,
+    onSelect: _onSelect,
     onDoubleClick,
-    onClickParent,
+    onClickParent: _onClickParent,
     onSetCurrentAudioAsset
   } = props;
 
@@ -283,6 +283,10 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     handleContextMenu,
     handleDelete
   } = useAssetActions(asset);
+
+  const handleAudioClick = useCallback(() => {
+    onSetCurrentAudioAsset?.(asset);
+  }, [onSetCurrentAudioAsset, asset]);
 
   const assetType = useMemo(() => {
     return asset?.content_type ? asset.content_type.split("/")[0] : "unknown";
@@ -343,7 +347,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           onDoubleClick(asset);
         }
       }}
-      onClick={() => handleClick(onSelect, onClickParent, isParent)}
+      onClick={handleClick}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
@@ -352,7 +356,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <DeleteButton<Asset>
             className="asset-delete"
             item={asset}
-            onClick={() => handleDelete()}
+            onClick={handleDelete}
           />
         </ButtonGroup>
       )}
@@ -389,12 +393,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         )}
         {isAudio && (
           <>
-            <AudioFileIcon
-              style={{ color: `var(--c_${assetType})` }}
-              onClick={() => onSetCurrentAudioAsset?.(asset)}
-              className="placeholder"
-              titleAccess={asset.content_type || "Audio file"}
-            />
+          <AudioFileIcon
+            onClick={handleAudioClick}
+            className="placeholder"
+            titleAccess={asset.content_type || "Audio file"}
+          />
             {showDuration && asset.duration && assetItemSize > 1 && (
               <Typography className="duration info">
                 {secondsToHMS(asset.duration)}

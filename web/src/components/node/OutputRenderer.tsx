@@ -30,7 +30,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "lodash/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
-import Model3DViewer from "../asset_viewer/Model3DViewer";
+import Model3DViewer from "./output/LazyModel3DViewer";
 import {
   typeFor,
   renderSVGDocument,
