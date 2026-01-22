@@ -7,7 +7,6 @@ import React, {
   useRef,
   useEffect
 } from "react";
-import Plot from "react-plotly.js";
 
 import {
   Asset,
@@ -16,7 +15,6 @@ import {
   Message,
   NPArray,
   TaskPlan,
-  PlotlyConfig,
   Task,
   CalendarEvent
 } from "../../stores/ApiTypes";
@@ -50,8 +48,8 @@ import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
-import { RealtimeAudioOutput, DataframeRenderer } from "./output";
-// import left for future reuse of audio stream component when needed
+import { RealtimeAudioOutput } from "./output";
+import PlotlyRenderer from "./output/PlotlyRenderer";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -322,24 +320,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
   const renderContent = useMemo(() => {
-    let config: PlotlyConfig | undefined;
     switch (type) {
       case "plotly_config":
-        config = value as PlotlyConfig;
-        return (
-          <div
-            className="render-content"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <Plot
-              data={config.config.data as Plotly.Data[]}
-              layout={config.config.layout as Partial<Plotly.Layout>}
-              config={config.config.config as Partial<Plotly.Config>}
-              frames={config.config.frames as Plotly.Frame[] | undefined}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </div>
-        );
+        return <PlotlyRenderer config={value} />;
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
       case "image":

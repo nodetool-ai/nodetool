@@ -54,6 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Plotly Lazy Loading (2026-01-21)
+
+**What**: Lazy-loaded Plotly (4.6 MB charting library) using React.lazy to reduce initial bundle size. Chart library now loads on-demand only when users view plotly charts.
+
+**Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx
+
+**Impact**: Initial bundle smaller; 4.6 MB chart library loads only when needed.
 > ### TypeScript and Lint Fixes (2026-01-22)
 > **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
 > **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
