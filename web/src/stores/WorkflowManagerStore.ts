@@ -769,10 +769,16 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           return cached;
         }
 
-        // Fetch and populate both cache and NodeStore
+        // Fetch using queryClient.fetchQuery for automatic deduplication of in-flight requests
         try {
-          const data = await fetchWorkflowById(workflowId);
-          get().queryClient?.setQueryData(workflowQueryKey(workflowId), data);
+          const data = await get().queryClient?.fetchQuery({
+            queryKey: workflowQueryKey(workflowId),
+            queryFn: () => fetchWorkflowById(workflowId),
+            staleTime: 60 * 1000 // Match useWorkflow staleTime
+          });
+          if (!data) {
+            return undefined;
+          }
           get().addWorkflow(data);
           get().setCurrentWorkflowId(data.id);
           // Check for newer autosaves when freshly loaded
