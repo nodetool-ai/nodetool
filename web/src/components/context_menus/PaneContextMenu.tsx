@@ -176,6 +176,28 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     []
   );
 
+  const handlePasteAndClose = useCallback(() => {
+    handlePaste();
+    closeAllMenus();
+  }, [handlePaste, closeAllMenus]);
+
+  const handleFitViewAndClose = useCallback((event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      fitView({ padding: 0.5 });
+    }
+    closeAllMenus();
+  }, [fitView, closeAllMenus]);
+
+  const handleContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+  }, []);
+
+  const handleStopPropagation = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
+  }, []);
+
   const resolveNodeType = useCallback(
     (nodeTypes: string[]) =>
       nodeTypes.find((nodeType) => Boolean(getMetadata(nodeType))) || null,
@@ -245,10 +267,10 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         className="context-menu pane-context-menu"
         open={menuPosition !== null}
         onClose={closeAllMenus}
-        onContextMenu={(event) => event.preventDefault()}
-        onClick={(e) => e.stopPropagation()}
+        onContextMenu={handleContextMenu}
+        onClick={handleStopPropagation}
         MenuListProps={{
-          onClick: (event) => event.stopPropagation()
+          onClick: handleStopPropagation
         }}
         anchorReference="anchorPosition"
         anchorPosition={
@@ -265,10 +287,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         }}
       >
         <ContextMenuItem
-          onClick={() => {
-            handlePaste();
-            closeAllMenus();
-          }}
+          onClick={handlePasteAndClose}
           label="Paste"
           addButtonClassName={`action ${!isClipboardValid ? "disabled" : ""}`}
           IconComponent={<SouthEastIcon />}
@@ -288,13 +307,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           }
         />
         <ContextMenuItem
-          onClick={(e) => {
-            if (e) {
-              e.preventDefault();
-              fitView({ padding: 0.5 });
-            }
-            closeAllMenus();
-          }}
+          onClick={handleFitViewAndClose}
           label="Fit Screen"
           IconComponent={<FitScreenIcon />}
           tooltip={getShortcutTooltip("fit-view")}

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { useCallback } from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { ButtonGroup, Typography } from "@mui/material";
@@ -125,29 +125,37 @@ const FolderItem: React.FC<FolderItemProps> = ({
     handleDelete
   } = useAssetActions(folder);
 
+  const handleItemClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest(".expand-gutter")) {
+      return;
+    }
+    e.stopPropagation();
+    onSelect();
+  }, [onSelect]);
+
+  const handleItemContextMenu = useCallback((e: React.MouseEvent) => {
+    handleContextMenu(e, enableContextMenu);
+  }, [handleContextMenu, enableContextMenu]);
+
+  const handleDeleteClick = useCallback(() => {
+    handleDelete();
+  }, [handleDelete]);
+
   return (
     <div
       css={styles(theme)}
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
-      onClick={(e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest(".expand-gutter")) {
-          // Let the click bubble to AccordionSummary to toggle expansion
-          return;
-        }
-        e.stopPropagation();
-        onSelect();
-      }}
-      // onDoubleClick={() => handleDoubleClick(folder)}
+      onClick={handleItemClick}
       onDragStart={handleDrag}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
+      onContextMenu={handleItemContextMenu}
       draggable
     >
       <FolderIcon className="folder-icon" />
@@ -160,7 +168,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
             className="asset-delete"
             item={folder}
             component="span"
-            onClick={() => handleDelete()}
+            onClick={handleDeleteClick}
           />
         </ButtonGroup>
       )}

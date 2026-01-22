@@ -131,7 +131,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     }
   }, [mutation, assets, setDialogOpen, refetchAssetsAndFolders, setIsLoading]);
 
-  const getDialogTitle = () => {
+  const getDialogTitle = useCallback(() => {
     if (isAssetTreeLoading && folderCount > 0) {
       return "Preparing to delete...";
     } else if (showRootFolderWarning) {
@@ -149,14 +149,18 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     } else {
       return `Delete ${fileCount} file${fileCount !== 1 ? "s" : ""}?`;
     }
-  };
+  }, [isAssetTreeLoading, folderCount, fileCount, totalAssets, showRootFolderWarning]);
+
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
 
   return (
     <Dialog
       css={styles(theme)}
       className="asset-delete-confirmation"
       open={dialogOpen}
-      onClose={() => setDialogOpen(false)}
+      onClose={handleClose}
     >
       <DialogTitle sx={{ color: theme.vars.palette.warning.main }}>
         {getDialogTitle()}
@@ -202,7 +206,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setDialogOpen(false)} disabled={isLoading}>
+        <Button onClick={handleClose} disabled={isLoading}>
           Cancel
         </Button>
         <Button
