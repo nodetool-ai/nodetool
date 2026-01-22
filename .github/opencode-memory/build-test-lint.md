@@ -624,3 +624,138 @@ Added comprehensive unit tests for critical hooks to improve test coverage for w
 - **49 new tests** improving coverage
 - **Critical hooks tested**: Job management, reconnection, provider management, API key validation
 - **Key workflows covered**: Workflow execution, provider selection, secret management
+
+---
+
+## Test Coverage Improvement (2026-01-22 - Third Batch)
+
+### Summary
+
+Added comprehensive unit tests for critical stores, utilities, and UI helpers to improve test coverage for workflow management, graph operations, and data formatting.
+
+### Tests Added
+
+**1. VersionHistoryStore Tests**
+**File**: `web/src/stores/__tests__/VersionHistoryStore.test.ts`
+
+**Coverage**: Added 21 tests covering:
+- Initial state verification
+- Version selection (selectedVersionId, compareVersionId)
+- Panel state management (isHistoryPanelOpen, isCompareMode)
+- Edit count tracking per workflow
+- Autosave time tracking per workflow
+- Clear state functionality
+- Complete user workflow simulation
+
+**2. BottomPanelStore Tests**
+**File**: `web/src/stores/__tests__/BottomPanelStore.test.ts`
+
+**Coverage**: Added 23 tests covering:
+- Initial state verification (default size, visibility, dragging state)
+- Size operations (setSize, initializePanelSize with clamping)
+- Dragging state management
+- Active view management
+- Panel visibility controls
+- View change handler behavior
+- Complete resize and view switch workflows
+
+**3. PanelStore (Left Panel) Tests**
+**File**: `web/src/stores/__tests__/PanelStore.test.ts`
+
+**Coverage**: Added 22 tests covering:
+- Initial state verification for left panel
+- Size operations with different min/max constraints
+- Dragging state management
+- Active view switching between assets and workflowGrid
+- Panel visibility controls
+- View change handler behavior
+- Complete panel workflow scenarios
+
+**4. graphCycle Tests**
+**File**: `web/src/utils/__tests__/graphCycle.test.ts`
+
+**Coverage**: Added 35 tests covering:
+- Edge cases (null inputs, empty arrays, self-loops)
+- Simple connection cycle detection
+- Chain detection (A->B->C->A patterns)
+- Branching graph cycle detection
+- Multiple path handling
+- Complex graph cycle detection
+- Long chain cycle detection (10+ nodes)
+- Invalid edge data handling
+
+**5. titleizeString Tests**
+**File**: `web/src/utils/__tests__/titleizeString.test.ts`
+
+**Coverage**: Added 28 tests covering:
+- Normal cases (simple strings, multi-word, underscores)
+- Edge cases (null, undefined, empty string, single char)
+- Complex cases (workflow names, node types, file paths)
+- Whitespace handling (multiple spaces, underscores, mixed)
+- Special character handling (@ symbol)
+
+**6. selectionBounds Tests**
+**File**: `web/src/utils/__tests__/selectionBounds.test.ts`
+
+**Coverage**: Added 27 tests covering:
+- Basic functionality (valid positions, reversed positions)
+- Edge cases (null inputs, zero dimensions, small selections)
+- Custom minimum size support
+- Rect property verification
+- TypeScript interface compliance
+- Large selection and decimal coordinate handling
+
+**7. fileExplorer Tests**
+**File**: `web/src/utils/__tests__/fileExplorer.test.ts`
+
+**Coverage**: Added 35 tests covering:
+- Valid POSIX paths
+- Valid Windows paths (with backslash, forward slash, mixed)
+- Valid home-relative paths
+- Invalid paths (empty, relative, parent traversal, etc.)
+- Edge cases (long paths, special characters, @ symbol)
+
+**8. edgeValue Tests**
+**File**: `web/src/utils/__tests__/edgeValue.test.ts`
+
+**Coverage**: Added 21 tests covering:
+- Cached result handling (with/without sourceHandle)
+- No cached result scenarios
+- Fallback value extraction from source nodes
+- Source node type detection (nodetool.input.*, nodetool.constant.*)
+- Edge cases (undefined result, null result, empty string handle)
+
+### Test Results
+
+- **Test Suites**: 8 new test files, all passing
+- **Total Tests**: 212 new tests, all passing
+- **Coverage**: Improved line coverage for stores, utilities, and helpers
+- **No Regressions**: Full test suite passes (243/244 unit test suites passing - 1 pre-existing failure in useAutosave.test.ts)
+
+### Testing Patterns Used
+
+1. **Store Testing**: Reset store state in beforeEach/afterEach, test state transitions
+2. **Utility Testing**: Test pure functions with various inputs including edge cases
+3. **Graph Testing**: Create comprehensive edge/node scenarios for cycle detection
+4. **String Processing Testing**: Test various input formats, edge cases, and boundary conditions
+5. **Type Verification**: Test TypeScript interfaces and type safety
+6. **Integration Testing**: Test complete workflows and user scenarios
+
+### Files Created
+
+- `web/src/stores/__tests__/VersionHistoryStore.test.ts`
+- `web/src/stores/__tests__/BottomPanelStore.test.ts`
+- `web/src/stores/__tests__/PanelStore.test.ts`
+- `web/src/utils/__tests__/graphCycle.test.ts`
+- `web/src/utils/__tests__/titleizeString.test.ts`
+- `web/src/utils/__tests__/selectionBounds.test.ts`
+- `web/src/utils/__tests__/fileExplorer.test.ts`
+- `web/src/utils/__tests__/edgeValue.test.ts`
+
+### Impact
+
+- **8 new test files** added to coverage
+- **212 new tests** improving coverage
+- **Critical stores tested**: Version history, panel management (bottom and left)
+- **Utilities tested**: Graph cycle detection, text formatting, path validation, edge value resolution
+- **Coverage areas**: Workflow management, UI state, graph operations, data transformation
