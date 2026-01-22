@@ -148,10 +148,10 @@
 }
 
 /* STREAMING EDGE - edges from streaming output nodes */
-/* Thicker stroke to signify continuous data flow */
 .react-flow .react-flow__edge.streaming-edge .react-flow__edge-path {
-  stroke-width: 6 !important;
+  stroke-width: 3 !important;
   stroke-opacity: 0.8;
+  stroke-dasharray: 30 3;
 }
 
 .react-flow .react-flow__edge.streaming-edge:hover .react-flow__edge-path {
