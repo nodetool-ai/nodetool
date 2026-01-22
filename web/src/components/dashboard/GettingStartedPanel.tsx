@@ -7,8 +7,7 @@ import {
   LinearProgress,
   Tooltip,
   Chip,
-  Collapse,
-  IconButton
+  Collapse
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
@@ -88,11 +87,11 @@ const panelStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".progress-bar": {
-      height: "8px",
-      borderRadius: "4px",
+      height: "4px",
+      borderRadius: "2px",
       backgroundColor: theme.vars.palette.grey[800],
       "& .MuiLinearProgress-bar": {
-        borderRadius: "4px",
+        borderRadius: "2px",
         backgroundColor: theme.vars.palette.success.main
       }
     },
@@ -117,8 +116,8 @@ const panelStyles = (theme: Theme) =>
       transition: "all 0.2s ease"
     },
     ".step-card.completed": {
-      borderColor: theme.vars.palette.success.main,
-      borderLeftWidth: "3px"
+      borderColor: theme.vars.palette.grey[600],
+      opacity: 0.7
     },
     ".step-card:hover:not(.completed)": {
       borderColor: theme.vars.palette.grey[600],
@@ -134,15 +133,9 @@ const panelStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[800],
       flexShrink: 0
     },
-    ".step-icon-container.completed": {
-      backgroundColor: `${theme.vars.palette.success.main}20`
-    },
     ".step-icon": {
       fontSize: "1.25rem",
       color: theme.vars.palette.grey[400]
-    },
-    ".step-icon.completed": {
-      color: theme.vars.palette.success.main
     },
     ".step-content": {
       flex: 1,
@@ -198,10 +191,9 @@ const panelStyles = (theme: Theme) =>
     },
     ".local-model-header": {
       display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: "0.5em",
-      flexWrap: "wrap"
+      flexDirection: "column",
+      alignItems: "flex-start",
+      gap: "3px"
     },
     ".local-model-title": {
       display: "flex",
@@ -210,16 +202,49 @@ const panelStyles = (theme: Theme) =>
     },
     ".local-model-actions": {
       display: "flex",
-      alignItems: "center"
+      alignItems: "center",
+      width: "100%"
     },
     ".model-variant-buttons": {
       display: "flex",
-      gap: 0.5,
-      flexWrap: "wrap"
+      gap: "4px",
+      flexWrap: "wrap",
+      alignItems: "center"
+    },
+    ".model-download-button": {
+      fontSize: "0.75rem",
+      fontWeight: 500,
+      padding: "3px 8px",
+      minWidth: "unset",
+      lineHeight: 1.3,
+      textTransform: "uppercase",
+      letterSpacing: "0.02em",
+      opacity: 0.7,
+      backgroundColor: "rgba(255,255,255,0.05)",
+      borderRadius: "4px",
+      "&:hover": {
+        opacity: 1,
+        backgroundColor: "rgba(255,255,255,0.12)"
+      },
+      "& .MuiButton-startIcon": {
+        marginRight: "3px",
+        "& svg": {
+          fontSize: "0.85rem"
+        }
+      }
+    },
+    ".model-download-button.default-model": {
+      fontWeight: 600,
+      opacity: 1,
+      color: theme.vars.palette.primary.main,
+      backgroundColor: `color-mix(in srgb, ${theme.vars.palette.primary.main} 15%, transparent)`,
+      "&:hover": {
+        backgroundColor: `color-mix(in srgb, ${theme.vars.palette.primary.main} 25%, transparent)`
+      }
     },
     ".local-model-desc": {
-      marginTop: 6,
-      opacity: 0.95
+      marginTop: "4px",
+      opacity: 0.85
     },
     ".model-note": {
       color: theme.vars.palette.warning.main,
@@ -243,7 +268,7 @@ const InlineModelDownload: React.FC<{
   label?: React.ReactNode;
   isDefault?: boolean;
   tooltip?: string;
-}> = ({ model, label: _label, isDefault, tooltip }) => {
+}> = ({ model, label, isDefault, tooltip }) => {
   const { startDownload, downloads } = useModelDownloadStore((state) => ({
     startDownload: state.startDownload,
     downloads: state.downloads
@@ -276,14 +301,15 @@ const InlineModelDownload: React.FC<{
   const button = (
     <Button
       size="small"
-      variant={isDefault ? "contained" : "outlined"}
-      color={isDefault ? "primary" : "inherit"}
-      startIcon={<DownloadIcon fontSize="small" />}
+      variant="text"
+      color="inherit"
+      startIcon={<DownloadIcon />}
       aria-label={`Download ${model.repo_id || model.id}`}
-      sx={{ ml: 1, verticalAlign: "middle" }}
       className={`model-download-button ${isDefault ? "default-model" : ""}`}
       onClick={handleDownload}
-    />
+    >
+      {label}
+    </Button>
   );
   return tooltip ? (
     <Tooltip title={tooltip} arrow>
@@ -536,11 +562,13 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
             {Math.round(progressPercentage)}%
           </Typography>
         </Box>
-        <LinearProgress
-          variant="determinate"
-          value={progressPercentage}
-          className="progress-bar"
-        />
+        {progressPercentage < 100 && (
+          <LinearProgress
+            variant="determinate"
+            value={progressPercentage}
+            className="progress-bar"
+          />
+        )}
       </Box>
 
       <Box className="scrollable-content">
@@ -550,19 +578,10 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
               key={step.id}
               className={`step-card ${step.isCompleted ? "completed" : ""}`}
             >
-              <Box
-                className={`step-icon-container ${step.isCompleted ? "completed" : ""}`}
-              >
-                {step.isCompleted ? (
-                  <CheckCircleIcon
-                    className="step-icon completed"
-                    sx={{ color: "success.main" }}
-                  />
-                ) : (
-                  React.cloneElement(step.icon as React.ReactElement, {
-                    className: "step-icon"
-                  })
-                )}
+              <Box className="step-icon-container">
+                {React.cloneElement(step.icon as React.ReactElement, {
+                  className: "step-icon"
+                })}
               </Box>
               <Box className="step-content">
                 <Typography
@@ -576,49 +595,29 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
                 <Typography className="step-description">
                   {step.description}
                 </Typography>
-                {!step.isCompleted && step.action && (
+                {step.action && (!step.isCompleted || step.id === "setup-provider") && (
                   <Box className="step-action">
                     <Button
                       size="small"
                       variant="outlined"
                       onClick={step.action}
-                      startIcon={<PlayArrowIcon />}
+                      startIcon={step.isCompleted ? <SettingsIcon /> : <PlayArrowIcon />}
                     >
-                      {step.actionLabel}
+                      {step.isCompleted && step.id === "setup-provider" ? "Edit Settings" : step.actionLabel}
                     </Button>
                   </Box>
                 )}
                 {/* Collapsible Popular Models section for download-model step */}
                 {step.id === "download-model" && (
-                  <Box sx={{ mt: 1.5 }}>
-                    <Box
+                  <Box sx={{ mt: 1 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
                       onClick={handleToggleModelsExpanded}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        cursor: "pointer",
-                        gap: 0.5,
-                        "&:hover": { opacity: 0.8 }
-                      }}
+                      endIcon={modelsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                     >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 500,
-                          fontSize: "0.85rem",
-                          color: "primary.main"
-                        }}
-                      >
-                        Popular Models
-                      </Typography>
-                      <IconButton size="small" sx={{ p: 0 }}>
-                        {modelsExpanded ? (
-                          <ExpandLessIcon fontSize="small" />
-                        ) : (
-                          <ExpandMoreIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Box>
+                      Popular Models
+                    </Button>
                     <Collapse in={modelsExpanded}>
                       <ul className="local-models-list" style={{ marginTop: "0.5em" }}>
                         {recommendedModels.map((model) => (
