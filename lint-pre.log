@@ -1,12 +1,19 @@
 Linting web package...
 cd web && npm run lint
 
-> nodetool@0.6.2-rc.27 lint
+> nodetool@0.6.2 lint
 > eslint src
+
+
+/home/runner/work/nodetool/nodetool/web/src/components/chat/composer/MessageInput.tsx
+  30:22  warning  Expected { after 'if' condition  curly
+
+✖ 1 problem (0 errors, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
 
 Linting electron package...
 cd electron && npm run lint
 
-> nodetool-electron@0.6.2-rc.27 lint
+> nodetool-electron@0.6.2 lint
 > eslint .
 
