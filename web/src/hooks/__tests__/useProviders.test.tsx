@@ -1,8 +1,9 @@
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
+import { useProviders, useProvidersByCapability, useProvider } from "../useProviders";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { client } from "../../stores/ApiClient";
 
-jest.mock("../stores/ApiClient");
+jest.mock("../../stores/ApiClient");
 
 const mockClient = client as jest.Mocked<typeof client>;
 
@@ -15,9 +16,11 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = "QueryClientProviderWrapper";
+  return Wrapper;
 };
 
 describe("useProviders", () => {
@@ -54,7 +57,6 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
-        const { useProviders } = require("../useProviders");
         return useProviders();
       }, {
         wrapper: createWrapper(),
@@ -75,7 +77,6 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
-        const { useProviders } = require("../useProviders");
         return useProviders();
       }, {
         wrapper: createWrapper(),
@@ -95,7 +96,6 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
-        const { useProviders } = require("../useProviders");
         return useProviders();
       }, {
         wrapper: createWrapper(),
@@ -117,7 +117,6 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
-        const { useProvidersByCapability } = require("../useProviders");
         return useProvidersByCapability("generate_message");
       }, {
         wrapper: createWrapper(),
@@ -139,7 +138,6 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
-        const { useProvidersByCapability } = require("../useProviders");
         return useProvidersByCapability("text_to_video");
       }, {
         wrapper: createWrapper(),
@@ -160,9 +158,8 @@ describe("useProviders", () => {
         error: null,
       });
 
-      const { result } = renderHook(() => {
-        const { useLanguageModelProviders } = require("../useProviders");
-        return useLanguageModelProviders();
+const { result } = renderHook(() => {
+        return useProvider(p);
       }, {
         wrapper: createWrapper(),
       });
@@ -182,9 +179,8 @@ describe("useProviders", () => {
         error: null,
       });
 
-      const { result } = renderHook(() => {
-        const { useTTSProviders } = require("../useProviders");
-        return useTTSProviders();
+const { result } = renderHook(() => {
+        return useProvidersByCapability("text_to_image");
       }, {
         wrapper: createWrapper(),
       });

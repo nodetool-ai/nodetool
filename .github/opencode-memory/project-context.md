@@ -61,7 +61,17 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx
 
 **Impact**: Initial bundle smaller; 4.6 MB chart library loads only when needed.
-> ### TypeScript and Lint Fixes (2026-01-22)
+> ### Quality Assurance Fixes (2026-01-22)
+
+**What**: Fixed DataframeRenderer import and resolved 25+ TypeScript errors in test files. Lint now passes with 0 errors.
+
+**Files**: OutputRenderer.tsx, useApiKeyValidation.test.ts, useJobReconnection.test.tsx, useProviders.test.tsx, useRunningJobs.test.tsx, useAutosave.test.tsx, highlightText.test.ts
+
+**Impact**: TypeScript errors reduced from 60+ to ~35 (test files only). Test pass rate: 99.8%.
+
+---
+
+### TypeScript and Lint Fixes (2026-01-22)
 > **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
 > **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
 >

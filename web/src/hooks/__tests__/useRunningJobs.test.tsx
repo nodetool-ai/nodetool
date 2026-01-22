@@ -20,33 +20,39 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = "QueryClientProviderWrapper";
+  return Wrapper;
 };
 
 describe("useRunningJobs", () => {
   const mockJobs: Job[] = [
     {
-      type: "job",
       id: "job-1",
       workflow_id: "workflow-1",
       status: "running",
-      created_at: "2026-01-22T10:00:00Z",
+      user_id: "user-1",
+      job_type: "workflow",
+      started_at: "2026-01-22T10:00:00Z",
     },
     {
-      type: "job",
       id: "job-2",
       workflow_id: "workflow-2",
       status: "queued",
-      created_at: "2026-01-22T10:05:00Z",
+      user_id: "user-1",
+      job_type: "workflow",
+      started_at: "2026-01-22T10:05:00Z",
     },
     {
-      type: "job",
       id: "job-3",
       workflow_id: "workflow-3",
       status: "completed",
-      created_at: "2026-01-22T10:10:00Z",
+      user_id: "user-1",
+      job_type: "workflow",
+      started_at: "2026-01-22T10:10:00Z",
+      finished_at: "2026-01-22T10:15:00Z",
     },
   ];
 
@@ -74,7 +80,7 @@ describe("useRunningJobs", () => {
   it("filters to only active jobs", async () => {
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: mockJobs },
-      error: null,
+      error: undefined as any,
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -96,7 +102,7 @@ describe("useRunningJobs", () => {
     );
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: allActiveJobs },
-      error: null,
+      error: undefined as any,
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -113,7 +119,7 @@ describe("useRunningJobs", () => {
   it("handles empty job list", async () => {
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: [] },
-      error: null,
+      error: undefined as any,
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -129,7 +135,7 @@ describe("useRunningJobs", () => {
 
   it("handles API error", async () => {
     mockClient.GET.mockResolvedValueOnce({
-      data: null,
+      data: undefined as any,
       error: { detail: "Unauthorized" },
     });
 
@@ -157,7 +163,7 @@ describe("useRunningJobs", () => {
     ];
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: jobsWithSuspended },
-      error: null,
+      error: undefined as any,
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -185,7 +191,7 @@ describe("useRunningJobs", () => {
     ];
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: jobsWithPaused },
-      error: null,
+      error: undefined as any,
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -213,7 +219,7 @@ describe("useRunningJobs", () => {
     ];
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: jobsWithStarting },
-      error: null,
+      error: undefined as any,
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -241,7 +247,7 @@ describe("useRunningJobs", () => {
     ];
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: jobsWithFailed },
-      error: null,
+      error: undefined as any,
     });
 
     const { result } = renderHook(() => useRunningJobs(), {

@@ -24,9 +24,11 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = "QueryClientProviderWrapper";
+  return Wrapper;
 };
 
 describe("useJobReconnection", () => {
@@ -39,12 +41,13 @@ describe("useJobReconnection", () => {
 
   const mockJobs = [
     {
-      type: "job" as const,
       id: "job-1",
       workflow_id: "workflow-1",
       status: "running" as const,
       created_at: "2026-01-22T10:00:00Z",
       run_state: { status: "running" },
+      user_id: "user-1",
+      job_type: "workflow",
     },
   ];
 
@@ -118,8 +121,8 @@ describe("useJobReconnection", () => {
         error: null,
       })
       .mockResolvedValueOnce({
-        data: null,
-        error: { detail: "Workflow not found" },
+        data: undefined,
+        error: { detail: "Workflow not found" } as any,
       });
 
     const { result } = renderHook(() => useJobReconnection(), {
@@ -154,7 +157,6 @@ describe("useJobReconnection", () => {
   it("handles suspended jobs with correct initial state", async () => {
     const suspendedJob = [
       {
-        type: "job" as const,
         id: "job-1",
         workflow_id: "workflow-1",
         status: "suspended" as const,
@@ -163,6 +165,8 @@ describe("useJobReconnection", () => {
           status: "suspended",
           suspension_reason: "User paused",
         },
+        user_id: "user-1",
+        job_type: "workflow",
       },
     ];
 
@@ -190,12 +194,13 @@ describe("useJobReconnection", () => {
   it("handles paused jobs with correct initial state", async () => {
     const pausedJob = [
       {
-        type: "job" as const,
         id: "job-1",
         workflow_id: "workflow-1",
         status: "paused" as const,
         created_at: "2026-01-22T10:00:00Z",
         run_state: { status: "paused" },
+        user_id: "user-1",
+        job_type: "workflow",
       },
     ];
 
@@ -265,20 +270,22 @@ describe("useJobReconnection", () => {
   it("handles multiple running jobs", async () => {
     const multipleJobs = [
       {
-        type: "job" as const,
         id: "job-1",
         workflow_id: "workflow-1",
         status: "running" as const,
         created_at: "2026-01-22T10:00:00Z",
         run_state: { status: "running" },
+        user_id: "user-1",
+        job_type: "workflow",
       },
       {
-        type: "job" as const,
         id: "job-2",
         workflow_id: "workflow-2",
         status: "running" as const,
         created_at: "2026-01-22T10:05:00Z",
         run_state: { status: "running" },
+        user_id: "user-1",
+        job_type: "workflow",
       },
     ];
 
