@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Alert, AlertTitle, Box, Button, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useSettingsStore } from "../../../stores/SettingsStore";
@@ -17,6 +17,10 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
   const theme = useTheme();
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
   const missingKeys = useProviderApiKeyValidation(providers);
+
+  const handleOpenSettings = useCallback(() => {
+    setMenuOpen(true, 1);
+  }, [setMenuOpen]);
 
   if (missingKeys.length === 0) {
     return null;
@@ -67,7 +71,7 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
           size="small"
           variant="contained"
           color="warning"
-          onClick={() => setMenuOpen(true, 1)}
+          onClick={handleOpenSettings}
           sx={{
             fontSize: theme.vars.fontSizeSmaller,
             fontWeight: 500

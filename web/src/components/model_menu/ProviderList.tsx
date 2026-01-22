@@ -102,8 +102,12 @@ const ProviderList: React.FC<ProviderListProps> = ({
     setSelected(null);
   }, [setSelected]);
 
-  const _handleSelectProvider = useCallback((p: string) => {
-    setSelected(p);
+  const handleSelectProvider = useCallback((e: React.MouseEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    const provider = target.dataset.provider;
+    if (provider) {
+      setSelected(provider);
+    }
   }, [setSelected]);
 
   const _handleMenuOpen = useCallback((e: React.MouseEvent<HTMLElement>, p: string) => {
@@ -265,7 +269,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 className={`model-menu__provider-item ${selected === p ? "is-selected" : ""
                   }`}
                 selected={selected === p}
-                onClick={() => setSelected(p)}
+                data-provider={p}
+                onClick={handleSelectProvider}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setMenuAnchor(e.currentTarget);

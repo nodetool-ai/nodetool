@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   List,
   ListItemButton,
@@ -55,6 +55,18 @@ function RecentList<TModel extends ModelSelectorModel>({
     return map;
   }, [models]);
 
+  const handleItemClick = useCallback((e: React.MouseEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    const modelJson = target.dataset.model;
+    if (modelJson) {
+      const model = JSON.parse(modelJson) as TModel;
+      const available = availabilityMap[`${model.provider}:${model.id}`] ?? true;
+      if (available) {
+        onSelect(model);
+      }
+    }
+  }, [onSelect, availabilityMap]);
+
   if (models.length === 0) {return null;}
 
   return (
@@ -95,7 +107,8 @@ function RecentList<TModel extends ModelSelectorModel>({
             className={`model-menu__recent-item ${
               available ? "" : "is-unavailable"
             } ${fav ? "is-favorite" : ""}`}
-            onClick={() => available && onSelect(m)}
+            data-model={JSON.stringify(m)}
+            onClick={handleItemClick}
             disabled={!available}
           >
             <ListItemIcon sx={{ minWidth: 30 }}>
