@@ -77,7 +77,22 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: SearchResults.tsx, FavoritesTiles.tsx, RecentNodesTiles.tsx, QuickActionTiles.tsx, RenderNodes.tsx, RenderNodesSelectable.tsx, NodeInfo.tsx, TypeFilterChips.tsx, SearchResultsPanel.tsx
 
 **Impact**: Reduced re-renders in node menus, search results, and workflow lists.
-**Impact**: Stable function references improve scroll performance and reduce re-renders in workflow lists and grids.
+
+### Additional Inline Arrow Function Fixes (2026-01-22)
+
+**What**: Fixed 20+ inline arrow functions across 9 additional components using .bind() and useCallback.
+
+**Files**: BackToDashboardButton.tsx, ProviderSetupPanel.tsx, PaneContextMenu.tsx, AssetDeleteConfirmation.tsx, AssetTree.tsx, ModelTypeSidebar.tsx, DownloadProgress.tsx, OverallDownloadProgress.tsx, ModelListItem.tsx
+
+**Impact**: Improved render performance in dashboard, context menus, asset management, and model download UI.
+
+### Performance Fix - Node Editor Components (2026-01-22)
+
+**What**: Fixed inline arrow functions in ImageEditorToolbar (4 handlers), NodeExplorer (3 handlers), ConnectableNodes (1 handler), NodeContextMenu (3 handlers), and TagFilter (1 handler) using useCallback for stable references.
+
+**Files**: ImageEditorToolbar.tsx, NodeExplorer.tsx, ConnectableNodes.tsx, NodeContextMenu.tsx, TagFilter.tsx
+
+**Impact**: Reduced unnecessary re-renders in image editor, node explorer, context menus, and workflow templates. Stable function references improve scroll performance.**Impact**: Stable function references improve scroll performance and reduce re-renders in workflow lists and grids.
 
 ---
 

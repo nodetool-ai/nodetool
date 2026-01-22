@@ -275,12 +275,10 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     onZoomChange(1);
   }, [onZoomChange]);
 
-  const handleToolClick = useCallback(
-    (newTool: EditTool) => {
-      handleToolSelect(newTool);
-    },
-    [handleToolSelect]
-  );
+  const handleToolClickSelect = useCallback(() => handleToolClick("select"), [handleToolClick]);
+  const handleToolClickCrop = useCallback(() => handleToolClick("crop"), [handleToolClick]);
+  const handleToolClickDraw = useCallback(() => handleToolClick("draw"), [handleToolClick]);
+  const handleToolClickErase = useCallback(() => handleToolClick("erase"), [handleToolClick]);
 
   return (
     <div css={styles(theme)}>
@@ -292,7 +290,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Select / Pan" placement="top">
               <IconButton
                 className={`tool-button ${tool === "select" ? "active" : ""}`}
-                onClick={() => handleToolClick("select")}
+                onClick={handleToolClickSelect}
                 size="small"
               >
                 <PanToolIcon fontSize="small" />
@@ -301,7 +299,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Crop" placement="top">
               <IconButton
                 className={`tool-button ${tool === "crop" ? "active" : ""}`}
-                onClick={() => handleToolClick("crop")}
+                onClick={handleToolClickCrop}
                 size="small"
               >
                 <CropIcon fontSize="small" />
@@ -310,7 +308,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Draw / Paint" placement="top">
               <IconButton
                 className={`tool-button ${tool === "draw" ? "active" : ""}`}
-                onClick={() => handleToolClick("draw")}
+                onClick={handleToolClickDraw}
                 size="small"
               >
                 <BrushIcon fontSize="small" />
@@ -319,7 +317,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Erase" placement="top">
               <IconButton
                 className={`tool-button ${tool === "erase" ? "active" : ""}`}
-                onClick={() => handleToolClick("erase")}
+                onClick={handleToolClickErase}
                 size="small"
               >
                 <AutoFixHighIcon fontSize="small" />
