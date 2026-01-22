@@ -116,6 +116,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
         paramName={output.name}
         className={classConnectable}
         handlePosition="right"
+        isStreamingOutput={isStreamingOutput}
       >
         <Handle
           type="source"

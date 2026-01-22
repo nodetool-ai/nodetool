@@ -39,6 +39,7 @@ type HandleTooltipProps = {
   className?: string;
   children: React.ReactNode;
   handlePosition: "left" | "right";
+  isStreamingOutput?: boolean;
 };
 
 const HandleTooltip = memo(function HandleTooltip({
@@ -46,7 +47,8 @@ const HandleTooltip = memo(function HandleTooltip({
   paramName,
   className = "",
   children,
-  handlePosition
+  handlePosition,
+  isStreamingOutput
 }: HandleTooltipProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -116,6 +118,11 @@ const HandleTooltip = memo(function HandleTooltip({
         <div className="handle-tooltip-type">
           {displayType}
         </div>
+        {isStreamingOutput && (
+          <div className="handle-tooltip-streaming">
+            Streaming output - emits values continuously during execution
+          </div>
+        )}
       </div>
     </div>
   );
