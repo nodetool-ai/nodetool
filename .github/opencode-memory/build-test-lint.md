@@ -534,3 +534,90 @@ Added comprehensive unit tests for critical stores and utilities to improve test
 - **60 new tests** improving coverage
 - **Critical stores tested**: Collections manager, node placement, recent nodes
 - **Utility functions tested**: Platform detection, text highlighting
+
+---
+
+## Test Coverage Improvement (2026-01-22 - Session 2)
+
+### Summary
+
+Fixed failing useAutosave tests and added comprehensive tests for critical React hooks to improve test coverage for workflow management, graph updates, node selection actions, and namespace tree functionality.
+
+### Tests Fixed
+
+**1. useAutosave.test.ts → useAutosave.test.tsx**
+- **Issue**: Missing QueryClientProvider wrapper for React Query integration
+- **Fix**: Added QueryClientProvider wrapper and renamed to .tsx for JSX support
+- **Result**: All 16 tests now pass
+
+### Tests Added
+
+**2. useWorkflowActions.test.tsx**
+- **File**: `web/src/hooks/__tests__/useWorkflowActions.test.tsx`
+- **Tests**: 17 tests covering:
+  - Initial state verification
+  - handleCreateNewWorkflow (success and error cases)
+  - handleWorkflowClick navigation
+  - handleExampleClick (copying workflows, tag handling, loading state, error handling)
+  - handleViewAllTemplates navigation
+- **Patterns**: Mocked React Router and WorkflowManager context
+
+**3. useWorkflowGraphUpdater.test.tsx**
+- **File**: `web/src/hooks/__tests__/useWorkflowGraphUpdater.test.tsx`
+- **Tests**: 14 tests covering:
+  - Subscription initialization and cleanup
+  - Graph update handling (null, duplicate, valid updates)
+  - Error handling for missing workflow/node store
+  - Node and edge conversion
+  - AutoLayout triggering and workflow dirty state
+- **Patterns**: Mocked GlobalChatStore subscription and graph conversion utilities
+
+**4. useSelectionActions.test.tsx**
+- **File**: `web/src/hooks/__tests__/useSelectionActions.test.tsx`
+- **Tests**: 24 tests covering:
+  - Alignment actions (left, center, right, top, middle, bottom)
+  - Distribution actions (horizontal, vertical)
+  - Delete, duplicate, group, bypass operations
+  - Edge cases (fewer than 2 nodes, no selection)
+- **Patterns**: Mocked ReactFlow and NodeContext
+
+**5. useNamespaceTree.test.tsx**
+- **File**: `web/src/hooks/__tests__/useNamespaceTree.test.tsx`
+- **Tests**: 12 tests covering:
+  - Namespace tree structure creation
+  - API key validation and disabling
+  - Sorting (enabled before disabled, alphabetical)
+  - First disabled tracking
+  - Production mode behavior
+  - API key mappings
+- **Patterns**: Mocked MetadataStore and Secrets hook
+
+### Test Results
+
+- **Test Suites**: 5 new test files
+- **Total Tests**: 83 new tests added
+- **All Tests**: Pass successfully (3114/3116 total, 2 skipped)
+- **No Regressions**: Full test suite passes
+
+### Testing Patterns Used
+
+1. **Hook Testing with React Testing Library**: Used `renderHook` for pure hook testing
+2. **Context Mocking**: Mocked Zustand stores and React contexts
+3. **Router Mocking**: Mocked `react-router-dom` for navigation testing
+4. **act() Wrapping**: Properly wrapped async operations in act() for React 18 compatibility
+5. **Mock Cleanup**: Used `jest.clearAllMocks()` in beforeEach hooks
+
+### Files Created
+
+- `web/src/hooks/__tests__/useWorkflowActions.test.tsx`
+- `web/src/hooks/__tests__/useWorkflowGraphUpdater.test.tsx`
+- `web/src/hooks/__tests__/useSelectionActions.test.tsx`
+- `web/src/hooks/__tests__/useNamespaceTree.test.tsx`
+
+### Impact
+
+- **4 new test files** for critical hooks
+- **83 new tests** improving coverage
+- **Critical hooks tested**: Workflow actions, graph updates, selection operations, namespace organization
+- **Fixed**: useAutosave tests (QueryClientProvider issue)
+- **Coverage**: Improved line coverage for hooks directory
