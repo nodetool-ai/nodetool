@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -54,12 +54,13 @@ interface AlphaSliderProps {
   orientation?: "horizontal" | "vertical";
 }
 
-const AlphaSlider: React.FC<AlphaSliderProps> = ({
-  color,
-  alpha,
-  onChange,
-  orientation = "horizontal"
-}) => {
+const AlphaSlider = memo((props: AlphaSliderProps) => {
+  const {
+    color,
+    alpha,
+    onChange,
+    orientation = "horizontal"
+  } = props;
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -173,6 +174,8 @@ const AlphaSlider: React.FC<AlphaSliderProps> = ({
       <div className="alpha-cursor" style={cursorStyle} />
     </div>
   );
-};
+});
+
+AlphaSlider.displayName = "AlphaSlider";
 
 export default AlphaSlider;

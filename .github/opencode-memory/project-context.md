@@ -54,30 +54,23 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-### Plotly Lazy Loading (2026-01-21)
+### Component Memoization (2026-01-22)
 
-**What**: Lazy-loaded Plotly (4.6 MB charting library) using React.lazy to reduce initial bundle size. Chart library now loads on-demand only when users view plotly charts.
+**What**: Added React.memo to color picker components (SaturationPicker, HueSlider, AlphaSlider) and WelcomePanel.
 
-**Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx
+**Files**: web/src/components/color_picker/{SaturationPicker,HueSlider,AlphaSlider}.tsx, web/src/components/dashboard/WelcomePanel.tsx
 
-**Impact**: Initial bundle smaller; 4.6 MB chart library loads only when needed.
-> ### TypeScript and Lint Fixes (2026-01-22)
-> **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
-> **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
->
-> ---
->
-> ### TypeScript Syntax and Type Fixes (2026-01-20)
-### Inline Arrow Function Performance Fix - Node Menu (2026-01-22)
+**Impact**: Color picker and welcome panel components now only re-render when props change.
 
-### Inline Arrow Function Performance Fix (2026-01-22)
+---
 
-**What**: Fixed 25+ inline arrow functions in 9 node menu components using .bind() and useCallback for stable references.
+### Handler Memoization (2026-01-22)
 
-**Files**: SearchResults.tsx, FavoritesTiles.tsx, RecentNodesTiles.tsx, QuickActionTiles.tsx, RenderNodes.tsx, RenderNodesSelectable.tsx, NodeInfo.tsx, TypeFilterChips.tsx, SearchResultsPanel.tsx
+**What**: Memoized inline handlers in HuggingFaceModelSearch and ModelPackCard using useCallback.
 
-**Impact**: Reduced re-renders in node menus, search results, and workflow lists.
-**Impact**: Stable function references improve scroll performance and reduce re-renders in workflow lists and grids.
+**Files**: web/src/components/hugging_face/HuggingFaceModelSearch.tsx, web/src/components/hugging_face/ModelPackCard.tsx
+
+**Impact**: Stable function references reduce re-renders in model search and download components.
 
 ---
 
@@ -264,7 +257,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: `mobile/tsconfig.json`
 
 ---
-
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
 

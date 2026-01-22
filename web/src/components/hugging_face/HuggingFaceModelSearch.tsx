@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   TextField,
   Typography,
@@ -81,13 +81,21 @@ const HuggingFaceModelSearch: React.FC = () => {
     queryFn: () => searchModels(searchQuery)
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  const handleModelSelect = useCallback((modelId: string) => {
+    setSelectedModel(modelId);
+  }, []);
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (selectedModel) {
       startDownload(selectedModel, "hf.model");
       openDialog();
     }
-  };
+  }, [selectedModel, startDownload, openDialog]);
 
   return (
     <div css={styles(theme)}>
@@ -95,7 +103,7 @@ const HuggingFaceModelSearch: React.FC = () => {
         {error && <Typography color="error">{error.message}</Typography>}
         <TextField
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={handleSearchChange}
           label="Search HuggingFace Models"
           variant="filled"
           fullWidth
@@ -123,7 +131,7 @@ const HuggingFaceModelSearch: React.FC = () => {
             >
               <Card
                 className="model-card"
-                onClick={() => setSelectedModel(model.id)}
+                onClick={() => handleModelSelect(model.id)}
                 variant={selectedModel === model.id ? "outlined" : "elevation"}
               >
                 <CardContent className="card-content">
