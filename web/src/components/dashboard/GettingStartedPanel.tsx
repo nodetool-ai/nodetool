@@ -31,6 +31,7 @@ import { DEFAULT_MODEL } from "../../config/constants";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import { useGettingStartedStore } from "../../stores/GettingStartedStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface GettingStartedPanelProps {
   sortedWorkflows: Workflow[];
@@ -419,9 +420,12 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
     }
   }, [isLoadingWorkflows, sortedWorkflows.length, hasCreatedWorkflow, setHasCreatedWorkflow]);
 
+  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+  
   const handleOpenSettings = useCallback(() => {
-    navigate("/settings");
-  }, [navigate]);
+    // Open settings dialog on "API Settings" tab (index 1)
+    setMenuOpen(true, 1);
+  }, [setMenuOpen]);
 
   const handleToggleModelsExpanded = useCallback(() => {
     setModelsExpanded(prev => !prev);
