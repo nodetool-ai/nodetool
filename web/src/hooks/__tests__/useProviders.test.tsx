@@ -1,8 +1,9 @@
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { client } from "../../stores/ApiClient";
+import { useProviders, useProvidersByCapability, useLanguageModelProviders, useTTSProviders } from "../useProviders";
 
-jest.mock("../stores/ApiClient");
+jest.mock("../../stores/ApiClient");
 
 const mockClient = client as jest.Mocked<typeof client>;
 
@@ -15,30 +16,26 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
 };
 
 describe("useProviders", () => {
   const mockProviders = [
     {
-      name: "openai",
-      display_name: "OpenAI",
+      provider: "openai" as const,
       capabilities: ["generate_message", "text_to_embedding", "text_to_image"],
-      default_model: "gpt-4",
     },
     {
-      name: "anthropic",
-      display_name: "Anthropic",
+      provider: "anthropic" as const,
       capabilities: ["generate_message"],
-      default_model: "claude-3-opus",
     },
     {
-      name: "elevenlabs",
-      display_name: "ElevenLabs",
+      provider: "elevenlabs" as const,
       capabilities: ["text_to_speech"],
-      default_model: "eleven_multilingual_v2",
     },
   ];
 
@@ -51,12 +48,9 @@ describe("useProviders", () => {
       mockClient.GET.mockResolvedValueOnce({
         data: mockProviders,
         error: null,
-      });
+      } as any);
 
-      const { result } = renderHook(() => {
-        const { useProviders } = require("../useProviders");
-        return useProviders();
-      }, {
+      const { result } = renderHook(() => useProviders(), {
         wrapper: createWrapper(),
       });
 
@@ -72,12 +66,9 @@ describe("useProviders", () => {
       mockClient.GET.mockResolvedValueOnce({
         data: [],
         error: null,
-      });
+      } as any);
 
-      const { result } = renderHook(() => {
-        const { useProviders } = require("../useProviders");
-        return useProviders();
-      }, {
+      const { result } = renderHook(() => useProviders(), {
         wrapper: createWrapper(),
       });
 
@@ -92,12 +83,9 @@ describe("useProviders", () => {
       mockClient.GET.mockResolvedValueOnce({
         data: null,
         error: { detail: "Failed to fetch providers" },
-      });
+      } as any);
 
-      const { result } = renderHook(() => {
-        const { useProviders } = require("../useProviders");
-        return useProviders();
-      }, {
+      const { result } = renderHook(() => useProviders(), {
         wrapper: createWrapper(),
       });
 
@@ -114,12 +102,9 @@ describe("useProviders", () => {
       mockClient.GET.mockResolvedValueOnce({
         data: mockProviders,
         error: null,
-      });
+      } as any);
 
-      const { result } = renderHook(() => {
-        const { useProvidersByCapability } = require("../useProviders");
-        return useProvidersByCapability("generate_message");
-      }, {
+      const { result } = renderHook(() => useProvidersByCapability("generate_message"), {
         wrapper: createWrapper(),
       });
 
@@ -128,20 +113,17 @@ describe("useProviders", () => {
       });
 
       expect(result.current.providers).toHaveLength(2);
-      expect(result.current.providers.map(p => p.name)).toContain("openai");
-      expect(result.current.providers.map(p => p.name)).toContain("anthropic");
+      expect(result.current.providers.map((p) => p.provider)).toContain("openai");
+      expect(result.current.providers.map((p) => p.provider)).toContain("anthropic");
     });
 
     it("returns empty array when no providers match capability", async () => {
       mockClient.GET.mockResolvedValueOnce({
         data: mockProviders,
         error: null,
-      });
+      } as any);
 
-      const { result } = renderHook(() => {
-        const { useProvidersByCapability } = require("../useProviders");
-        return useProvidersByCapability("text_to_video");
-      }, {
+      const { result } = renderHook(() => useProvidersByCapability("text_to_video"), {
         wrapper: createWrapper(),
       });
 
@@ -158,12 +140,9 @@ describe("useProviders", () => {
       mockClient.GET.mockResolvedValueOnce({
         data: mockProviders,
         error: null,
-      });
+      } as any);
 
-      const { result } = renderHook(() => {
-        const { useLanguageModelProviders } = require("../useProviders");
-        return useLanguageModelProviders();
-      }, {
+      const { result } = renderHook(() => useLanguageModelProviders(), {
         wrapper: createWrapper(),
       });
 
@@ -172,20 +151,17 @@ describe("useProviders", () => {
       });
 
       expect(result.current.providers).toHaveLength(2);
-      expect(result.current.providers.map(p => p.name)).toContain("openai");
-      expect(result.current.providers.map(p => p.name)).toContain("anthropic");
+      expect(result.current.providers.map((p) => p.provider)).toContain("openai");
+      expect(result.current.providers.map((p) => p.provider)).toContain("anthropic");
     });
 
     it("useTTSProviders returns correct providers", async () => {
       mockClient.GET.mockResolvedValueOnce({
         data: mockProviders,
         error: null,
-      });
+      } as any);
 
-      const { result } = renderHook(() => {
-        const { useTTSProviders } = require("../useProviders");
-        return useTTSProviders();
-      }, {
+      const { result } = renderHook(() => useTTSProviders(), {
         wrapper: createWrapper(),
       });
 
@@ -194,7 +170,7 @@ describe("useProviders", () => {
       });
 
       expect(result.current.providers).toHaveLength(1);
-      expect(result.current.providers[0].name).toBe("elevenlabs");
+      expect(result.current.providers[0].provider).toBe("elevenlabs");
     });
   });
 });

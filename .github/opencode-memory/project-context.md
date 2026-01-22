@@ -385,6 +385,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
+### TypeScript and Test Fixes (2026-01-22)
+
+**What**: Fixed TypeScript errors and test issues - added missing DataframeRenderer import, fixed useCallback dependencies, corrected mock types in hook tests, added missing properties to test fixtures.
+
+**Files**: OutputRenderer.tsx, PaneContextMenu.tsx, TableActions.tsx, useApiKeyValidation.test.ts, useProviders.test.tsx, useJobReconnection.test.tsx, useRunningJobs.test.tsx, highlightText.test.ts, NodePlacementStore.test.ts, RecentNodesStore.test.ts
+
+**Impact**: All TypeScript and lint checks pass for web and electron packages.
+
+---
+
 ### TabPanel Memoization (2026-01-22)
 
 **What**: Memoized 4 TabPanel components (SettingsMenu, Welcome, Help, RecommendedModelsDialog) to prevent unnecessary re-renders when switching tabs.

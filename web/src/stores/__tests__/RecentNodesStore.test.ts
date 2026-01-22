@@ -1,5 +1,5 @@
 import { act } from "@testing-library/react";
-import { useRecentNodesStore, RecentNode } from "../RecentNodesStore";
+import { useRecentNodesStore, RecentNode as _RecentNode } from "../RecentNodesStore";
 
 describe("RecentNodesStore", () => {
   beforeEach(() => {
