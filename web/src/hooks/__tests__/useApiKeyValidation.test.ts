@@ -14,6 +14,8 @@ describe("useApiKeyValidation", () => {
   describe("OpenAI namespace", () => {
     it("returns null when OpenAI API key is set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn((key: string) => key === "OPENAI_API_KEY"),
         isLoading: false,
       });
@@ -25,6 +27,8 @@ describe("useApiKeyValidation", () => {
 
     it("returns display name when OpenAI API key is not set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -36,6 +40,8 @@ describe("useApiKeyValidation", () => {
 
     it("handles nested OpenAI namespaces", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn((key: string) => key === "OPENAI_API_KEY"),
         isLoading: false,
       });
@@ -49,6 +55,8 @@ describe("useApiKeyValidation", () => {
   describe("Anthropic namespace", () => {
     it("returns null when Anthropic API key is set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn((key: string) => key === "ANTHROPIC_API_KEY"),
         isLoading: false,
       });
@@ -60,6 +68,8 @@ describe("useApiKeyValidation", () => {
 
     it("returns display name when Anthropic API key is not set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -73,6 +83,8 @@ describe("useApiKeyValidation", () => {
   describe("Google/Gemini namespace", () => {
     it("returns null when Google API key is set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn((key: string) => key === "GEMINI_API_KEY"),
         isLoading: false,
       });
@@ -84,6 +96,8 @@ describe("useApiKeyValidation", () => {
 
     it("returns display name when Google API key is not set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -97,6 +111,8 @@ describe("useApiKeyValidation", () => {
   describe("HuggingFace namespace", () => {
     it("returns null when HuggingFace token is set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn((key: string) => key === "HF_TOKEN"),
         isLoading: false,
       });
@@ -108,6 +124,8 @@ describe("useApiKeyValidation", () => {
 
     it("returns display name when HuggingFace token is not set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -121,6 +139,8 @@ describe("useApiKeyValidation", () => {
   describe("Replicate namespace", () => {
     it("returns null when Replicate token is set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn((key: string) => key === "REPLICATE_API_TOKEN"),
         isLoading: false,
       });
@@ -132,6 +152,8 @@ describe("useApiKeyValidation", () => {
 
     it("returns display name when Replicate token is not set", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -145,6 +167,8 @@ describe("useApiKeyValidation", () => {
   describe("Unknown namespace", () => {
     it("returns null when no API key is required", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -156,6 +180,8 @@ describe("useApiKeyValidation", () => {
 
     it("handles case-sensitive namespaces", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -169,6 +195,8 @@ describe("useApiKeyValidation", () => {
   describe("Loading state", () => {
     it("returns null while loading", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: true,
       });
@@ -182,6 +210,8 @@ describe("useApiKeyValidation", () => {
   describe("AIME namespace", () => {
     it("returns correct display name for AIME", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -195,6 +225,8 @@ describe("useApiKeyValidation", () => {
   describe("Calendly namespace", () => {
     it("returns correct display name for Calendly", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -208,6 +240,8 @@ describe("useApiKeyValidation", () => {
   describe("FAL namespace", () => {
     it("returns correct display name for FAL", () => {
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: jest.fn(() => false),
         isLoading: false,
       });
@@ -227,6 +261,8 @@ describe("useApiKeyValidation", () => {
       });
 
       mockUseSecrets.mockReturnValue({
+        secrets: [],
+        isSuccess: true,
         isApiKeySet: isApiKeySetMock,
         isLoading: false,
       });
@@ -236,7 +272,9 @@ describe("useApiKeyValidation", () => {
         { initialProps: { namespace: "openai.chat" } }
       );
 
-      expect(result.current).toBeNull();
+      if (result.current !== null) {
+        expect(result.current).toBeNull();
+      }
 
       rerender({ namespace: "anthropic.complete" });
       expect(result.current).toBe("Anthropic API Key");

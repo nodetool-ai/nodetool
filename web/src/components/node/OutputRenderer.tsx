@@ -43,6 +43,7 @@ import { BooleanRenderer } from "./output/BooleanRenderer";
 import { DatetimeRenderer } from "./output/DatetimeRenderer";
 import { EmailRenderer } from "./output/EmailRenderer";
 import { ArrayRenderer } from "./output/ArrayRenderer";
+import DataframeRenderer from "./output/DataframeRenderer";
 import { AssetGrid } from "./output/AssetGrid";
 import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
