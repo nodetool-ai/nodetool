@@ -46,7 +46,7 @@ Save this in a Python file. NodeTool automatically discovers the node.
 ### Custom Node Development
 
 - **[Node Implementation Quick Reference](node-reference.md)** – **Start here!** Templates and common patterns for custom nodes
-- [Node Implementation Patterns](node-patterns.md) – Comprehensive summary of node implementation patterns and architecture
+- [Node Implementation Patterns](node-patterns.md) – Summary of node implementation patterns and architecture
 - [Node Implementation Examples](node-examples.md) – Real-world examples from the codebase
 - [Suspendable Nodes](suspendable-nodes.md) – Build nodes that can pause and resume workflows
 

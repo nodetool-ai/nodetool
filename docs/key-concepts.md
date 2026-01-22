@@ -116,7 +116,7 @@ If you're building custom nodes or using the Python API, here are the technical 
 
 ### Node Type Resolution
 
-When a workflow references a node by its type string (e.g., `package.Namespace.Class`), NodeTool resolves the class using a robust strategy:
+When a workflow references a node by its type string (e.g., `package.Namespace.Class`), NodeTool resolves the class using this strategy:
 
 - In-memory registry lookup (with and without a trailing `Node` suffix)
 - Dynamic import of modules based on the type path, then re-check the registry

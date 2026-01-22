@@ -1,12 +1,12 @@
 ---
 layout: page
 title: "HuggingFace Integration"
-description: "Comprehensive guide to HuggingFace nodes in NodeTool - bringing state-of-the-art AI models to your workflows."
+description: "Guide to HuggingFace nodes in NodeTool."
 ---
 
 # HuggingFace Integration
 
-The HuggingFace integration brings state-of-the-art AI models to NodeTool, providing a comprehensive set of nodes for text, image, audio, and multimodal processing. With support for over 25 different model types and access to 500,000+ pre-trained models on HuggingFace Hub, you can create sophisticated AI workflows using cutting-edge models.
+The HuggingFace integration connects NodeTool to the HuggingFace Hub, providing nodes for text, image, audio, and multimodal processing. With support for over 25 different model types and access to 500,000+ pre-trained models, you can build AI workflows using the latest open-source models.
 
 ## Overview
 
@@ -39,7 +39,7 @@ All HuggingFace nodes are available under the `huggingface.*` namespace with 27 
 - Support for IP adapters and LoRA models
 - Use cases: Marketing materials, game assets, interior design concepts
 
-**Flux** - Next-generation image generation with memory-efficient quantization
+**Flux** - Image generation with memory-efficient quantization
 - Supports *schnell* (fast) and *dev* (high-quality) variants
 - Nunchaku quantization (FP16, FP4, INT4) for reduced VRAM usage
 - CPU offload support for large models
@@ -384,7 +384,7 @@ This workflow transcribes audio, generates a summary, and creates a matching ima
 
 ### Model Support
 
-- **27+ Node Types**: Comprehensive coverage of HuggingFace model capabilities
+- **27+ Node Types**: Coverage of HuggingFace model capabilities
 - **500,000+ Models**: Access to entire HuggingFace Hub
 - **Automatic Pipeline**: Auto-selects best pipeline for each model
 - **Custom Models**: Use any compatible HuggingFace model
@@ -411,7 +411,7 @@ This workflow transcribes audio, generates a summary, and creates a matching ima
 ### Developer-Friendly
 
 - **Type Safety**: Full Pydantic type validation
-- **Error Handling**: Comprehensive error messages
+- **Error Handling**: Clear error messages
 - **Progress Tracking**: Real-time progress for long operations
 - **Memory Management**: Automatic cleanup and optimization
 - **Documentation**: Detailed docstrings for all nodes

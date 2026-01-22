@@ -412,7 +412,7 @@ nodetool serve --log-level debug
 
 - **Discord Community** – [Join here](https://discord.gg/WmQTWZRcYE) for real-time help
 - **GitHub Issues** – [Report bugs](https://github.com/nodetool-ai/nodetool/issues) or request features
-- **Documentation** – Browse [all docs](index.md) for comprehensive guides
+- **Documentation** – Browse [all docs](index.md) for guides
 
 ### How to Ask Effectively
 

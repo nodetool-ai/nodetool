@@ -120,7 +120,7 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
     <p>Mix local AI with cloud services for flexibility. Use the best tool for each task.</p>
     <ul>
       <li>Add API keys for OpenAI, Anthropic, Replicate</li>
-      <li>Access cutting-edge models on demand</li>
+      <li>Access the latest cloud models on demand</li>
       <li>Deploy workflows to cloud infrastructure</li>
     </ul>
     <a href="{{ '/models-and-providers' | relative_url }}">Models & Providers →</a>
