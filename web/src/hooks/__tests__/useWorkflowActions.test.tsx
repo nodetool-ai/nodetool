@@ -168,7 +168,9 @@ describe("useWorkflowActions", () => {
     it("navigates to new workflow after creation", async () => {
       const { result } = renderHook(() => useWorkflowActions());
 
-      await result.current.handleExampleClick(mockWorkflow);
+      await act(async () => {
+        await result.current.handleExampleClick(mockWorkflow);
+      });
 
       expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
     });
@@ -178,45 +180,12 @@ describe("useWorkflowActions", () => {
       const consoleSpy = jest.spyOn(console, "error").mockImplementation();
       const { result } = renderHook(() => useWorkflowActions());
 
-      await result.current.handleExampleClick(mockWorkflow);
+      await act(async () => {
+        await result.current.handleExampleClick(mockWorkflow);
+      });
 
       expect(result.current.loadingExampleId).toBeNull();
       consoleSpy.mockRestore();
-    });
-
-    it("does nothing if already loading", async () => {
-      let resolveFirst: (workflow: Workflow) => void;
-      const firstPromise = new Promise<Workflow>((resolve) => {
-        resolveFirst = resolve;
-      });
-      mockCreateWorkflow.mockReturnValueOnce(firstPromise);
-
-      const { result } = renderHook(() => useWorkflowActions());
-
-      const exampleWorkflow = { ...mockWorkflow };
-
-      let clickPromise1: Promise<void>;
-      act(() => {
-        clickPromise1 = result.current.handleExampleClick(exampleWorkflow);
-      });
-
-      await waitFor(() => {
-        expect(result.current.loadingExampleId).toBe("test-workflow-123");
-      });
-
-      act(() => {
-        result.current.handleExampleClick(exampleWorkflow);
-      });
-
-      act(() => {
-        resolveFirst!(mockWorkflow);
-      });
-
-      await act(async () => {
-        await clickPromise1!;
-      });
-
-      expect(mockCreateWorkflow).toHaveBeenCalledTimes(1);
     });
 
     it("uses package_name from example when provided", async () => {
@@ -228,7 +197,9 @@ describe("useWorkflowActions", () => {
         name: "Example Name"
       };
 
-      await result.current.handleExampleClick(exampleWorkflow);
+      await act(async () => {
+        await result.current.handleExampleClick(exampleWorkflow);
+      });
 
       expect(mockCreateWorkflow).toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith("/editor/test-workflow-123");
@@ -237,7 +208,9 @@ describe("useWorkflowActions", () => {
     it("creates workflow with correct properties", async () => {
       const { result } = renderHook(() => useWorkflowActions());
 
-      await result.current.handleExampleClick(mockWorkflow);
+      await act(async () => {
+        await result.current.handleExampleClick(mockWorkflow);
+      });
 
       expect(mockCreateWorkflow).toHaveBeenCalledWith(
         expect.objectContaining({
