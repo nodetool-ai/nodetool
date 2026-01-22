@@ -265,6 +265,14 @@ const NodeExplorer: React.FC = () => {
     [handleNodeEdit]
   );
 
+  const handleNodeItemClick = useCallback((e: React.MouseEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    const nodeId = target.dataset.nodeId as string;
+    if (nodeId) {
+      handleNodeClick(nodeId);
+    }
+  }, [handleNodeClick]);
+
   return (
     <Box className="node-explorer" css={explorerStyles}>
       <PanelHeadline
@@ -311,7 +319,8 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={() => handleNodeClick(entry.node.id)}
+                data-node-id={entry.node.id}
+                onClick={handleNodeItemClick}
                 onContextMenu={(event) => {
                   handleNodeContextMenu(event, entry.node.id);
                 }}
@@ -331,9 +340,10 @@ const NodeExplorer: React.FC = () => {
                 className="node-edit-button"
                 size="small"
                 aria-label="Edit node"
+                data-node-id={entry.node.id}
                 onClick={(event) => {
                   event.stopPropagation();
-                  handleNodeEdit(entry.node.id);
+                  handleNodeEdit(event.currentTarget.dataset.nodeId as string);
                 }}
               >
                 <NorthEastIcon fontSize="small" />

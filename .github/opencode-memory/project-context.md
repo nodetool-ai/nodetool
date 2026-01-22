@@ -54,6 +54,16 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
+### Inline Arrow Function Memoization (2026-01-22)
+
+**What**: Fixed 10+ inline arrow functions in node and model menu components, replacing them with useCallback memoized handlers to prevent unnecessary re-renders.
+
+**Files**: ImageEditorToolbar.tsx, NodeExplorer.tsx, ProviderList.tsx, FavoritesList.tsx, RecentList.tsx, ProviderApiKeyWarningBanner.tsx, ModelMenuDialogBase.tsx
+
+**Impact**: Components with React.memo now receive stable function references, reducing unnecessary re-renders in the node editor and model selection menus.
+
+---
+
 ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
