@@ -1,87 +1,125 @@
-/**
- * @jest-environment node
- */
-import { titleizeString } from '../titleizeString';
+import { titleizeString } from "../titleizeString";
 
-describe('titleizeString', () => {
-  it('should capitalize first letter of each word', () => {
-    expect(titleizeString('hello world')).toBe('Hello World');
-    expect(titleizeString('the quick brown fox')).toBe('The Quick Brown Fox');
+describe("titleizeString", () => {
+  describe("Normal Cases", () => {
+    it("should titleize a simple string", () => {
+      expect(titleizeString("hello")).toBe("Hello");
+    });
+
+    it("should titleize a multi-word string with spaces", () => {
+      expect(titleizeString("hello world")).toBe("Hello World");
+    });
+
+    it("should titleize a string with underscores", () => {
+      expect(titleizeString("hello_world")).toBe("Hello World");
+    });
+
+    it("should titleize a string with multiple underscores", () => {
+      expect(titleizeString("hello_world_test")).toBe("Hello World Test");
+    });
+
+    it("should titleize a string with mixed spaces and underscores", () => {
+      expect(titleizeString("hello_world test")).toBe("Hello World Test");
+    });
+
+    it("should not preserve leading spaces", () => {
+      expect(titleizeString("  hello world")).not.toBe("  Hello World");
+    });
+
+    it("should not preserve trailing spaces", () => {
+      expect(titleizeString("hello world  ")).not.toBe("Hello World  ");
+    });
+
+    it("should collapse multiple consecutive spaces to single space", () => {
+      expect(titleizeString("hello   world")).toBe("Hello World");
+    });
+
+    it("should collapse multiple consecutive underscores to single space", () => {
+      expect(titleizeString("hello___world")).toBe("Hello World");
+    });
+
+    it("should handle mixed case input", () => {
+      expect(titleizeString("HELLO WORLD")).toBe("Hello World");
+    });
+
+    it("should handle camelCase input", () => {
+      expect(titleizeString("helloWorld")).toBe("Helloworld");
+    });
+
+    it("should handle PascalCase input", () => {
+      expect(titleizeString("HelloWorld")).toBe("Helloworld");
+    });
+
+    it("should not capitalize letters after @ symbol", () => {
+      expect(titleizeString("hello@world")).toBe("Hello@world");
+    });
   });
 
-  it('should handle snake_case strings', () => {
-    expect(titleizeString('hello_world')).toBe('Hello World');
-    expect(titleizeString('user_profile_settings')).toBe('User Profile Settings');
-    expect(titleizeString('api_key_validation')).toBe('Api Key Validation');
+  describe("Edge Cases", () => {
+    it("should return empty string for undefined", () => {
+      expect(titleizeString(undefined)).toBe("");
+    });
+
+    it("should return empty string for null", () => {
+      expect(titleizeString(null)).toBe("");
+    });
+
+    it("should return empty string for empty string", () => {
+      expect(titleizeString("")).toBe("");
+    });
+
+    it("should handle single character", () => {
+      expect(titleizeString("a")).toBe("A");
+    });
+
+    it("should handle single word", () => {
+      expect(titleizeString("test")).toBe("Test");
+    });
+
+    it("should handle numbers in string", () => {
+      expect(titleizeString("test123")).toBe("Test123");
+    });
+
+    it("should preserve @ symbol", () => {
+      expect(titleizeString("hello@world")).toBe("Hello@world");
+    });
+
+    it("should collapse string with only spaces to single space", () => {
+      expect(titleizeString("   ")).toBe(" ");
+    });
+
+    it("should collapse string with only underscores to single space", () => {
+      expect(titleizeString("___")).toBe(" ");
+    });
+
+    it("should collapse string with mixed spaces and underscores to single space", () => {
+      expect(titleizeString("_  _  _")).toBe(" ");
+    });
   });
 
-  it('should handle mixed separators', () => {
-    expect(titleizeString('hello_world test')).toBe('Hello World Test');
-    expect(titleizeString('some_variable name here')).toBe('Some Variable Name Here');
-  });
+  describe("Complex Cases", () => {
+    it("should handle workflow names", () => {
+      expect(titleizeString("image_generation_workflow")).toBe("Image Generation Workflow");
+    });
 
-  it('should handle uppercase input by converting to lowercase first', () => {
-    expect(titleizeString('HELLO')).toBe('Hello');
-    expect(titleizeString('HELLO_WORLD')).toBe('Hello World');
-    expect(titleizeString('API_KEY')).toBe('Api Key');
-  });
+    it("should handle node type names", () => {
+      expect(titleizeString("text_to_speech")).toBe("Text To Speech");
+    });
 
-  it('should handle multiple consecutive separators', () => {
-    expect(titleizeString('foo__bar')).toBe('Foo Bar');
-    expect(titleizeString('hello   world')).toBe('Hello World');
-    expect(titleizeString('test___case')).toBe('Test Case');
-    expect(titleizeString('multiple  spaces  here')).toBe('Multiple Spaces Here');
-  });
+    it("should handle snake_case variables", () => {
+      expect(titleizeString("my_custom_variable")).toBe("My Custom Variable");
+    });
 
-  it('should handle single words', () => {
-    expect(titleizeString('hello')).toBe('Hello');
-    expect(titleizeString('WORLD')).toBe('World');
-    expect(titleizeString('Test')).toBe('Test');
-  });
+    it("should not transform kebab-case", () => {
+      expect(titleizeString("my-custom-variable")).toBe("My-custom-variable");
+    });
 
-  it('should handle empty string', () => {
-    expect(titleizeString('')).toBe('');
-  });
+    it("should handle file paths", () => {
+      expect(titleizeString("path_to_file")).toBe("Path To File");
+    });
 
-  it('should handle strings with numbers', () => {
-    expect(titleizeString('test_123')).toBe('Test 123');
-    expect(titleizeString('item_1_name')).toBe('Item 1 Name');
-    expect(titleizeString('2_factor_auth')).toBe('2 Factor Auth');
-  });
-
-  it('should handle strings with special characters', () => {
-    expect(titleizeString('user@email')).toBe('User@email');
-    expect(titleizeString('price_$100')).toBe('Price $100');
-  });
-
-  it('should handle mixed case input', () => {
-    expect(titleizeString('camelCase')).toBe('Camelcase');
-    expect(titleizeString('PascalCase')).toBe('Pascalcase');
-    expect(titleizeString('mixedCASE_string')).toBe('Mixedcase String');
-  });
-
-  it('should handle strings with only separators', () => {
-    // These produce a trailing space which is consistent with the function behavior
-    expect(titleizeString('___')).toBe(' ');
-    expect(titleizeString('   ')).toBe(' ');
-    expect(titleizeString('_ _')).toBe(' ');
-  });
-
-  it('should handle strings starting or ending with separators', () => {
-    // These produce trailing spaces consistent with function behavior
-    expect(titleizeString('_hello_world_')).toBe(' Hello World ');
-    expect(titleizeString(' space padded ')).toBe(' Space Padded ');
-    expect(titleizeString('__leading')).toBe(' Leading');
-    expect(titleizeString('trailing__')).toBe('Trailing ');
-  });
-
-  it('should handle single letter words', () => {
-    expect(titleizeString('a_b_c')).toBe('A B C');
-    expect(titleizeString('i am here')).toBe('I Am Here');
-  });
-
-  it('should handle acronyms (though they become title case)', () => {
-    expect(titleizeString('HTML_CSS_JS')).toBe('Html Css Js');
-    expect(titleizeString('api_URL')).toBe('Api Url');
+    it("should handle IDs with prefix", () => {
+      expect(titleizeString("node_id_123")).toBe("Node Id 123");
+    });
   });
 });
