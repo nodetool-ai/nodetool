@@ -49,7 +49,7 @@ interface TabPanelProps {
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
+const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
 
   return (
@@ -64,7 +64,7 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box className="tab-panel-content">{children}</Box>}
     </div>
   );
-}
+});
 
 interface SettingsMenuProps {
   buttonText?: string;
