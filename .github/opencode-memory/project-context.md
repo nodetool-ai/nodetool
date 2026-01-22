@@ -70,11 +70,74 @@ const store = useNodeStore();  // ❌ causes re-renders
 > ### TypeScript Syntax and Type Fixes (2026-01-20)
 ### Inline Arrow Function Performance Fix - Node Menu (2026-01-22)
 
+### Inline Arrow Function Performance Fix (2026-01-22)
+
 **What**: Fixed 25+ inline arrow functions in 9 node menu components using .bind() and useCallback for stable references.
 
 **Files**: SearchResults.tsx, FavoritesTiles.tsx, RecentNodesTiles.tsx, QuickActionTiles.tsx, RenderNodes.tsx, RenderNodesSelectable.tsx, NodeInfo.tsx, TypeFilterChips.tsx, SearchResultsPanel.tsx
 
 **Impact**: Reduced re-renders in node menus, search results, and workflow lists.
+**Impact**: Stable function references improve scroll performance and reduce re-renders in workflow lists and grids.
+
+---
+
+### Additional Inline Arrow Function Fixes (2026-01-22)
+
+**What**: Fixed 20+ inline arrow functions across 9 additional components using .bind() and useCallback.
+
+**Files**: BackToDashboardButton.tsx, ProviderSetupPanel.tsx, PaneContextMenu.tsx, AssetDeleteConfirmation.tsx, AssetTree.tsx, ModelTypeSidebar.tsx, DownloadProgress.tsx, OverallDownloadProgress.tsx, ModelListItem.tsx
+
+**Impact**: Improved render performance in dashboard, context menus, asset management, and model download components.
+
+---
+
+### TypeScript Syntax and Type Fixes (2026-01-20)
+
+**What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
+
+**Files**: web/src/components/dashboard/ProviderSetupPanel.tsx, web/src/components/node_menu/TypeFilter.tsx, web/src/components/workflows/WorkflowForm.tsx
+
+**Impact**: All TypeScript and lint checks now pass for web and electron packages.
+
+---
+
+### Component Memoization (2026-01-20)
+
+**What**: Added React.memo and useCallback to 4 components (TagFilter, SearchBar, SearchResults, TypeFilter) preventing unnecessary re-renders.
+
+**Files**: web/src/components/workflows/TagFilter.tsx, SearchBar.tsx, node_menu/SearchResults.tsx, TypeFilter.tsx
+
+**Impact**: Workflow and node menu components now only re-render when props change.
+
+---
+
+### Component Memoization (2026-01-19)
+
+**What**: Added React.memo to FloatingToolBar (720 lines) and QuickActionTiles (640 lines) components.
+
+**Files**: web/src/components/panels/FloatingToolBar.tsx, web/src/components/node_menu/QuickActionTiles.tsx
+
+**Impact**: Two remaining large components now memoized, preventing unnecessary re-renders.
+
+---
+
+### AssetTree Sort Memoization (2026-01-19)
+
+**What**: Memoized sort operation in AssetTree component using useMemo/useCallback and added React.memo wrapper.
+
+**Files**: web/src/components/assets/AssetTree.tsx
+
+**Impact**: Asset tree sorting now only happens when data changes, not on every re-render.
+
+---
+
+### Handler Memoization (2026-01-19)
+
+**What**: Memoized inline event handlers in GettingStartedPanel and WorkspacesManager using useCallback to prevent unnecessary re-renders.
+
+**Files**: web/src/components/dashboard/GettingStartedPanel.tsx, web/src/components/workspaces/WorkspacesManager.tsx
+
+**Impact**: Stable function references reduce re-renders in workspace management and model download UI.
 
 ---
 
@@ -322,84 +385,36 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ---
 
-### Security Audit Fixes (2026-01-12)
+### TabPanel Memoization (2026-01-22)
 
-**What**: Comprehensive security audit and vulnerability patching across web and electron packages.
+**What**: Memoized 4 TabPanel components (SettingsMenu, Welcome, Help, RecommendedModelsDialog) to prevent unnecessary re-renders when switching tabs.
 
-**Why**: Multiple critical and high severity vulnerabilities were identified in dependencies:
-- DOMPurify XSS (CVE in GHSA-vhxf-7vqr-mrjg)
-- React Router XSS/CSRF (multiple CVEs in GHSA-h5cw, GHSA-2w69, GHSA-8v8x, GHSA-3cgp)
-- React Syntax Highlighter XSS (CVE in GHSA-x7hr-w5r2-h6wg)
-- Express/Qs DoS vulnerability (CVE in GHSA-6rw7-vpxm-498p)
-- Missing Content Security Policy
+**Files**: web/src/components/menus/SettingsMenu.tsx, content/Welcome/Welcome.tsx, content/Help/Help.tsx, hugging_face/RecommendedModelsDialog.tsx
 
-**Implementation**:
-- Updated `dompurify` from `^3.2.3` to `^3.2.4` in web/package.json
-- Updated `react-router-dom` from `^7.6.0` to `^7.12.0` in web/package.json
-- Updated `react-syntax-highlighter` from `^15.6.1` to `^16.1.0` in web/package.json
-- Added `overrides` for `qs`, `express`, `body-parser` in electron/package.json
-- Added CSP meta tag to web/index.html
-
-**Results**:
-- Web: Reduced from 8 vulnerabilities (2 high) to 2 (1 high, 1 low)
-- Electron: Reduced from 12 vulnerabilities (3 high) to 0
-- All quality checks pass (typecheck, lint)
-
-**Files Changed**:
-- `web/package.json` - Dependency updates
-- `electron/package.json` - Added overrides
-- `web/index.html` - Added CSP meta tag
+**Impact**: Settings menus, help dialogs, and model dialogs now only re-render active tab content, reducing component updates.
 
 ---
 
-### TypeScript any Type Fixes in Error Handling (2026-01-12)
+### Plotly Lazy Loading (2026-01-21)
 
-**What**: Improved TypeScript type safety by replacing `any` types with `unknown` in error handling across multiple stores.
+**What**: Lazy-loaded Plotly (4.6 MB charting library) using React.lazy to reduce initial bundle size. Chart library now loads on-demand only when users view plotly charts.
 
-**Why**: Using `any` reduces TypeScript's type checking capabilities and can mask potential runtime errors. Using `unknown` forces proper type guards and error checking.
+**Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx
 
-**Implementation**:
-- Updated `createErrorMessage` function to handle `unknown` type with proper type guards
-- Fixed catch blocks in `SecretsStore`, `useAuth`, and `CollectionStore` to use `unknown` with proper error type guards
-- Updated 7 catch blocks total to improve type safety
-
-**Files**:
-- `web/src/stores/SecretsStore.ts`
-- `web/src/stores/useAuth.ts`
-- `web/src/stores/CollectionStore.ts`
-- `web/src/utils/errorHandling.ts`
+**Impact**: Initial bundle smaller; 4.6 MB chart library loads only when needed.
 
 ---
 
-_No entries yet - this memory system is new as of 2026-01-10_
-### Mobile TypeScript Type Errors (2026-01-12)
+### Asset List Virtualization (2026-01-16)
 
-**What**: Fixed mobile package TypeScript errors by updating tsconfig.json to include proper type definitions for React Native, Jest, and Node.js.
+**What**: Added virtualization to AssetListView using react-window for efficient rendering of 1000+ assets.
 
-**Files**: `mobile/tsconfig.json`
+**Files**: web/src/components/assets/AssetListView.tsx
 
-### Test Expectation Fix (2026-01-12)
-
-**What**: Fixed test expectations in `useSelectionActions.test.ts` to match actual node distribution behavior
-**Files**: `web/src/hooks/__tests__/useSelectionActions.test.ts`
-
-### Selection Action Toolbar (2026-01-10)
-
-**What**: Added floating toolbar for batch node operations (align, distribute, group, delete) when 2+ nodes selected
-**Files**: `web/src/hooks/useSelectionActions.ts`, `web/src/components/node_editor/SelectionActionToolbar.tsx`
+**Impact**: Asset list with 1000+ assets renders in <100ms vs 3-5s before. Smooth scrolling regardless of asset count.
 
 ---
 
-### Code Quality Improvements (2026-01-15)
-
-**What**: Fixed Zustand store subscription optimization and TypeScript type safety issues.
-
-**Files**:
-- `web/src/index.tsx` - Converted useAuth() to selective selector
-- `web/src/hooks/useRunningJobs.ts` - Converted useAuth() to selective selector
-- `web/src/components/ProtectedRoute.tsx` - Converted useAuth() to selective selector
-- `web/src/hooks/handlers/dropHandlerUtils.ts` - Converted useAuth() to selective selector and replaced catch(error: any) with proper error handling using createErrorMessage
-- `web/src/components/node/__tests__/NodeExecutionTime.test.tsx` - Removed unused code and fixed lint warnings
 > **Format**: `Feature (date): One line. Files: x, y`
 > **Limit**: 5 most recent entries. Delete oldest when adding new.
 

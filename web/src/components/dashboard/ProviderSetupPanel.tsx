@@ -397,7 +397,7 @@ const ProviderSetupPanel: React.FC = () => {
                           <Button
                             variant="contained"
                             size="small"
-                            onClick={() => handleProviderSave(provider.key)}
+                            onClick={handleProviderSave.bind(null, provider.key)}
                             disabled={!hasInput || isSaving}
                             startIcon={
                               isSaving ? (

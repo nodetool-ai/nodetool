@@ -516,7 +516,7 @@ export const DownloadProgress: React.FC<{
           </Box>
           <Tooltip title="Stop the current download. You can restart it later.">
             <Button
-              onClick={() => cancelDownload(name)}
+              onClick={cancelDownload.bind(null, name)}
               variant="contained"
               style={{
                 color: theme.vars.palette.primary.contrastText,
