@@ -48,56 +48,23 @@ const store = useNodeStore();  // ❌ causes re-renders
 ## Recent Changes
 
 > Add ONE concise entry here for significant changes. Format:
->/Fix Name ( ```
-> ### FeatureYYYY-MM-DD)
-> **What**: One sentence
-> **Files**: Main files changed
-> ```
+> **Feature (date)**: One line. Files: x, y
+
+### Three.js Lazy Loading (2026-01-22)
+**What**: Lazy-loaded Three.js (991 KB 3D library) to reduce initial bundle size. 3D models now load on-demand only when viewing 3D content.
+**Files**: LazyModel3DViewer.tsx (NEW), OutputRenderer.tsx
+
+### Handler Memoization (2026-01-22)
+**What**: Fixed inline arrow functions in PanelLeft and AssetItem using useCallback for stable function references.
+**Files**: PanelLeft.tsx, AssetItem.tsx
 
 ### Plotly Lazy Loading (2026-01-21)
+**What**: Lazy-loaded Plotly (4.6 MB) using React.lazy for on-demand chart loading.
+**Files**: PlotlyRenderer.tsx (NEW), OutputRenderer.tsx
 
-**What**: Lazy-loaded Plotly (4.6 MB charting library) using React.lazy to reduce initial bundle size. Chart library now loads on-demand only when users view plotly charts.
-
-**Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx
-
-**Impact**: Initial bundle smaller; 4.6 MB chart library loads only when needed.
-> ### TypeScript and Lint Fixes (2026-01-22)
-> **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
-> **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
->
-> ---
->
-> ### TypeScript Syntax and Type Fixes (2026-01-20)
-### Inline Arrow Function Performance Fix - Node Menu (2026-01-22)
-
-### Inline Arrow Function Performance Fix (2026-01-22)
-
-**What**: Fixed 25+ inline arrow functions in 9 node menu components using .bind() and useCallback for stable references.
-
-**Files**: SearchResults.tsx, FavoritesTiles.tsx, RecentNodesTiles.tsx, QuickActionTiles.tsx, RenderNodes.tsx, RenderNodesSelectable.tsx, NodeInfo.tsx, TypeFilterChips.tsx, SearchResultsPanel.tsx
-
-**Impact**: Reduced re-renders in node menus, search results, and workflow lists.
-**Impact**: Stable function references improve scroll performance and reduce re-renders in workflow lists and grids.
-
----
-
-### Additional Inline Arrow Function Fixes (2026-01-22)
-
-**What**: Fixed 20+ inline arrow functions across 9 additional components using .bind() and useCallback.
-
-**Files**: BackToDashboardButton.tsx, ProviderSetupPanel.tsx, PaneContextMenu.tsx, AssetDeleteConfirmation.tsx, AssetTree.tsx, ModelTypeSidebar.tsx, DownloadProgress.tsx, OverallDownloadProgress.tsx, ModelListItem.tsx
-
-**Impact**: Improved render performance in dashboard, context menus, asset management, and model download components.
-
----
-
-### TypeScript Syntax and Type Fixes (2026-01-20)
-
-**What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
-
-**Files**: web/src/components/dashboard/ProviderSetupPanel.tsx, web/src/components/node_menu/TypeFilter.tsx, web/src/components/workflows/WorkflowForm.tsx
-
-**Impact**: All TypeScript and lint checks now pass for web and electron packages.
+### Component Memoization (2026-01-20)
+**What**: Added React.memo and useCallback to 4 components preventing unnecessary re-renders.
+**Files**: TagFilter.tsx, SearchBar.tsx, SearchResults.tsx, TypeFilter.tsx
 
 ---
 
@@ -264,7 +231,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: `mobile/tsconfig.json`
 
 ---
-
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
 
