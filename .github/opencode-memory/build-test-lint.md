@@ -534,3 +534,107 @@ Added comprehensive unit tests for critical stores and utilities to improve test
 - **60 new tests** improving coverage
 - **Critical stores tested**: Collections manager, node placement, recent nodes
 - **Utility functions tested**: Platform detection, text highlighting
+
+---
+
+## Test Coverage Improvement (2026-01-22)
+
+### Summary
+
+Fixed failing tests and added new tests for critical functionality. Achieved 100% test pass rate.
+
+### Files Modified
+
+**1. useAutosave.test.ts → useAutosave.test.tsx**
+**File**: `web/src/hooks/__tests__/useAutosave.test.tsx`
+
+**Changes**: 
+- Renamed from `.ts` to `.tsx` to support JSX in tests
+- Added QueryClientProvider wrapper for TanStack Query compatibility
+- Fixed 16 failing tests
+
+**Tests Fixed**:
+- Initial state tests (2 tests)
+- triggerAutosave tests (9 tests)
+- saveBeforeRun tests (3 tests)
+- workflowId changes tests (2 tests)
+
+**2. WorkspaceManagerStore.test.ts (NEW)**
+**File**: `web/src/stores/__tests__/WorkspaceManagerStore.test.ts`
+
+**Coverage**: Added 8 tests covering:
+- Initial state (isOpen = false)
+- setIsOpen(true) and setIsOpen(false)
+- Toggle behavior
+- Multiple setIsOpen calls
+
+### Test Results (2026-01-22)
+
+| Metric | Value |
+|--------|-------|
+| **Test Suites** | 241 (all passing) |
+| **Total Tests** | 3,122 (3,120 passing, 2 skipped) |
+| **Failing Tests** | 0 |
+| **Execution Time** | ~28 seconds |
+
+### Key Improvements
+
+1. **useAutosave Hook Testing**
+   - Fixed QueryClientProvider missing error
+   - Properly wrapped hook tests with React Query provider
+   - All 16 tests now pass
+
+2. **New Store Tests**
+   - Added WorkspaceManagerStore tests
+   - Follows established store testing patterns
+   - Uses beforeEach/afterEach for state isolation
+
+3. **Verified Existing Tests**
+   - Confirmed graphCycle.test.ts comprehensive coverage
+   - Confirmed edgeValue.test.ts comprehensive coverage
+   - Confirmed ResultsStore.test.ts comprehensive coverage
+
+### Patterns Used
+
+1. **Hook Testing with React Query**
+   ```typescript
+   import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+   
+   let queryClient: QueryClient;
+   
+   const createWrapper = () => {
+     return ({ children }: { children: React.ReactNode }) => (
+       <QueryClientProvider client={queryClient}>
+         {children}
+       </QueryClientProvider>
+     );
+   };
+   ```
+
+2. **Store Testing Pattern**
+   ```typescript
+   beforeEach(() => {
+     useStore.setState(useStore.getInitialState());
+   });
+   
+   afterEach(() => {
+     act(() => {
+       useStore.setState(useStore.getInitialState());
+     });
+   });
+   ```
+
+### Files Created
+
+- `web/src/stores/__tests__/WorkspaceManagerStore.test.ts`
+
+### Files Modified
+
+- `web/src/hooks/__tests__/useAutosave.test.ts` → `useAutosave.test.tsx`
+
+### Impact
+
+- **1 new test file** (8 tests)
+- **1 test file renamed and fixed** (16 tests)
+- **0 failing tests** (was 16 failing)
+- **100% test pass rate** (was 99.5%)
