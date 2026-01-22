@@ -15,9 +15,11 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = "QueryClientWrapper";
+  return Wrapper;
 };
 
 describe("useProviders", () => {
@@ -54,6 +56,7 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { useProviders } = require("../useProviders");
         return useProviders();
       }, {
@@ -75,6 +78,7 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { useProviders } = require("../useProviders");
         return useProviders();
       }, {
@@ -95,6 +99,7 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { useProviders } = require("../useProviders");
         return useProviders();
       }, {
@@ -117,6 +122,7 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { useProvidersByCapability } = require("../useProviders");
         return useProvidersByCapability("generate_message");
       }, {
@@ -139,6 +145,7 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { useProvidersByCapability } = require("../useProviders");
         return useProvidersByCapability("text_to_video");
       }, {
@@ -161,6 +168,7 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { useLanguageModelProviders } = require("../useProviders");
         return useLanguageModelProviders();
       }, {
@@ -183,6 +191,7 @@ describe("useProviders", () => {
       });
 
       const { result } = renderHook(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { useTTSProviders } = require("../useProviders");
         return useTTSProviders();
       }, {

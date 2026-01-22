@@ -61,7 +61,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   }, [closeContextMenu]);
 
 
-  const addComment = (event: React.MouseEvent) => {
+  const addComment = useCallback((event: React.MouseEvent) => {
     // Fake metadata for comments
     const metadata = COMMENT_NODE_METADATA;
     const newNode = createNode(
@@ -75,7 +75,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
     newNode.height = 100;
     newNode.style = { width: 150, height: 100 };
     addNode(newNode);
-  };
+  }, [createNode, addNode, reactFlowInstance, menuPosition]);
 
   const addGroupNode = useCallback(
     (event: React.MouseEvent) => {
