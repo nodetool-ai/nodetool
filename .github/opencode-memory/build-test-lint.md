@@ -534,3 +534,49 @@ Added comprehensive unit tests for critical stores and utilities to improve test
 - **60 new tests** improving coverage
 - **Critical stores tested**: Collections manager, node placement, recent nodes
 - **Utility functions tested**: Platform detection, text highlighting
+
+---
+
+## Test Coverage Improvement (2026-01-22)
+
+### Summary
+
+Fixed failing useAutosave tests and verified existing tests for critical stores and utilities.
+
+### Files Fixed
+
+**1. useAutosave Tests**
+**File**: `web/src/hooks/__tests__/useAutosave.test.tsx`
+
+**Changes**: 
+- Renamed from `.ts` to `.tsx` to support JSX
+- Added QueryClientProvider wrapper for React Query compatibility
+- Updated all 16 renderHook calls to use the wrapper
+
+**Coverage**: 16 tests covering:
+- Initial state verification
+- triggerAutosave functionality
+- saveBeforeRun functionality
+- workflowId change handling
+
+### Test Results
+
+- **Test Suites**: 240 passed, 240 total
+- **Total Tests**: 3115 passed, 3117 total (2 skipped)
+- **No Regressions**: All tests pass successfully
+
+### Testing Patterns Used
+
+1. **React Query Testing**: Wrap hooks with QueryClientProvider
+2. **Store Testing**: Reset state in beforeEach/afterEach
+3. **Utility Testing**: Test pure functions with various inputs
+
+### Files Modified
+
+- `web/src/hooks/__tests__/useAutosave.test.ts` → `useAutosave.test.tsx`
+
+### Impact
+
+- **16 tests fixed** and now passing
+- **useAutosave hook** now properly tested with React Query
+- All existing tests continue to pass
