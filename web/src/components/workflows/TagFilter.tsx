@@ -33,8 +33,10 @@ const TagFilter = memo(({
     onSelectTag(null);
   }, [onSelectTag]);
 
-  const handleSelectTag = useCallback((tag: string) => {
-    onSelectTag(tag);
+  const handleTagClick = useCallback((tag: string) => {
+    return () => {
+      onSelectTag(tag);
+    };
   }, [onSelectTag]);
 
   return (
@@ -61,7 +63,7 @@ const TagFilter = memo(({
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
               <Button
-                onClick={() => handleSelectTag(tag)}
+                onClick={handleTagClick(tag)}
                 variant="outlined"
                 className={selectedTag === tag ? "selected" : ""}
               >

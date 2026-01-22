@@ -72,12 +72,11 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ### Inline Arrow Function Performance Fix (2026-01-22)
 
-**What**: Fixed 25+ inline arrow functions in 9 node menu components using .bind() and useCallback for stable references.
+**What**: Fixed 20+ inline arrow functions across 6 asset and context menu components using useCallback for stable references.
 
-**Files**: SearchResults.tsx, FavoritesTiles.tsx, RecentNodesTiles.tsx, QuickActionTiles.tsx, RenderNodes.tsx, RenderNodesSelectable.tsx, NodeInfo.tsx, TypeFilterChips.tsx, SearchResultsPanel.tsx
+**Files**: NodeContextMenu.tsx, TagFilter.tsx, AssetTable.tsx, AssetItem.tsx, AssetGridRow.tsx, AssetActions.tsx
 
-**Impact**: Reduced re-renders in node menus, search results, and workflow lists.
-**Impact**: Stable function references improve scroll performance and reduce re-renders in workflow lists and grids.
+**Impact**: Reduced re-renders in context menus, asset management, and workflow filtering components.
 
 ---
 

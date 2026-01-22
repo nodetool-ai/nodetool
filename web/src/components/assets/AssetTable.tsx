@@ -32,20 +32,16 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     });
   }, [getAsset, assetIds]);
 
-  const handleRemoveAsset = useCallback(
-    (asset: Asset) => {
-      const newAssets = assets.filter((a) => a.id !== asset.id);
-      setAssets(newAssets);
-      onChange(newAssets.map((a) => a.id));
+  const handleAssetRemoveClick = useCallback(
+    (assetId: string) => {
+      const asset = assets.find((a) => a.id === assetId);
+      if (asset) {
+        const newAssets = assets.filter((a) => a.id !== asset.id);
+        setAssets(newAssets);
+        onChange(newAssets.map((a) => a.id));
+      }
     },
     [onChange, assets]
-  );
-
-  const handleAssetRemoveClick = useCallback(
-    (asset: Asset) => {
-      handleRemoveAsset(asset);
-    },
-    [handleRemoveAsset]
   );
 
   const { onDrop, onDragOver, uploading } = useFileDrop({
@@ -76,7 +72,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
               <TableCell>
                 <Button
                   variant="outlined"
-                  onClick={() => handleAssetRemoveClick(asset)}
+                  onClick={() => handleAssetRemoveClick(asset.id)}
                 >
                   Remove
                 </Button>
