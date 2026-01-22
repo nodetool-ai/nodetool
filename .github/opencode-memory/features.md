@@ -4,7 +4,20 @@ This document lists all existing features in NodeTool to help OpenCode agents av
 
 **When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
 
-Last updated: 2026-01-19
+Last updated: 2026-01-22
+
+- **Test Coverage Improvement (2026-01-22)**: Added comprehensive unit tests for color harmony utilities (colorHarmonies.ts). Created 2 test files with 27 tests covering:
+  - Complementary color generation
+  - Analogous color generation
+  - Triadic color generation
+  - Split-complementary color generation
+  - Tetradic color generation
+  - Square color generation
+  - Monochromatic palette generation
+  - Shade generation
+  - Tint generation
+  - Harmony info retrieval
+  - All harmony types validation
 
 - **Store JSDoc Documentation (2026-01-19)**: Added module-level JSDoc to ResultsStore, AssetStore, and StatusStore for consistent documentation across all critical stores
 
