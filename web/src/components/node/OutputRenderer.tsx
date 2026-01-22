@@ -21,7 +21,6 @@ import {
   CalendarEvent
 } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
-import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 import { Container, List, ListItem, ListItemText } from "@mui/material";

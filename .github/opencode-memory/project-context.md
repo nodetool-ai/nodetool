@@ -54,7 +54,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > **Files**: Main files changed
 > ```
 
-### TypeScript Syntax and Type Fixes (2026-01-20)
+> ### TypeScript and Lint Fixes (2026-01-22)
+> **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
+> **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
+>
+> ---
+>
+> ### TypeScript Syntax and Type Fixes (2026-01-20)
 
 **What**: Fixed 4 TypeScript issues - syntax error in ProviderSetupPanel, unused variable, MUI event type mismatch in TypeFilter, and inputValue type error in WorkflowForm.
 
