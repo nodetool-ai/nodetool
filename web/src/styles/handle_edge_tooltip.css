@@ -147,6 +147,28 @@
   }
 }
 
+/* STREAMING EDGE - edges from streaming output nodes */
+/* Thicker stroke to signify continuous data flow */
+.react-flow .react-flow__edge.streaming-edge .react-flow__edge-path {
+  stroke-width: 6 !important;
+  stroke-opacity: 0.8;
+}
+
+.react-flow .react-flow__edge.streaming-edge:hover .react-flow__edge-path {
+  stroke-width: 5 !important;
+  stroke-opacity: 1;
+}
+
+/* Selected streaming edge */
+.react-flow
+  .react-flow__edges
+  .react-flow__edge.streaming-edge.selected
+  .react-flow__edge-path {
+  stroke-dasharray: 8;
+  stroke-width: 6;
+  stroke-opacity: 1;
+}
+
 .react-flow__edge .react-flow__edge-text {
   visibility: visible !important;
   fill: var(--palette-grey-1000);
