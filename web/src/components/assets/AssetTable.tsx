@@ -76,7 +76,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
               <TableCell>
                 <Button
                   variant="outlined"
-                  onClick={() => handleAssetRemoveClick(asset)}
+                  onClick={handleAssetRemoveClick.bind(null, asset)}
                 >
                   Remove
                 </Button>

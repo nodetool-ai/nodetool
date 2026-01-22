@@ -115,7 +115,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             cursor: "pointer"
           }}
           className="content-type-header"
-          onClick={() => toggleExpanded(divider.type)}
+          onClick={toggleExpanded.bind(null, divider.type)}
         >
           <Typography
             variant="body2"

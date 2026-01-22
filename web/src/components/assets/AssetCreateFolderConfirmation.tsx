@@ -47,7 +47,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     (state) => state.addNotification
   );
 
-  // Derive selectedAssets from selectedAssetIds and current assets to ensure they're in sync
   const selectedAssets = useMemo(() => {
     if (selectedAssetIds.length === 0) {return [];}
     return selectedAssetIds
@@ -55,11 +54,14 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       .filter(Boolean) as Asset[];
   }, [selectedAssetIds, folderFilesFiltered]);
 
-  // Check if we have non-folder assets selected for moving
   const isFolder = selectedAssets.some(
     (asset) => asset.content_type === "folder"
   );
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
+
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
 
   useEffect(() => {
     if (dialogOpen) {
@@ -80,13 +82,11 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     const invalidCharsRegex = /[/*?"<>|#%{}^[\]`'=&$§!°äüö;+~|$!]+/g;
 
     function startsWithEmoji(fileName: string): boolean {
-      // Unicode range for emojis
       const emojiRegex =
         /^[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
       return emojiRegex.test(fileName);
     }
 
-    // Check if the name starts with a special character
     if (
       startsWithEmoji(folderName) ||
       folderName.startsWith(".") ||
@@ -98,10 +98,8 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       return;
     }
 
-    // Find invalid characters in the name
     const invalidCharsFound = folderName.match(invalidCharsRegex);
 
-    // Check for empty or overly long names
     if (!folderName) {
       setShowAlert("Name cannot be empty.");
       return;
@@ -110,7 +108,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       return;
     }
 
-    // complain about invalid characters
     if (invalidCharsFound) {
       const uniqueInvalidChars = invalidCharsFound.filter(
         (char, index, array) => array.indexOf(char) === index
@@ -122,13 +119,11 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     const cleanedName = folderName.trim();
 
     try {
-      // Create the folder
       const newFolder = await createFolder(
         currentFolder?.id || "",
         cleanedName
       );
 
-      // If we have selected assets and they're not folders, move them to the new folder
       if (hasSelectedAssets && newFolder) {
         const updatePromises = selectedAssetIds.map((assetId) =>
           updateAsset({ id: assetId, parent_id: newFolder.id })
@@ -140,7 +135,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
           content: `CREATE FOLDER: ${cleanedName} and moved ${selectedAssetIds.length} items`
         });
 
-        // Clear selection since assets were moved
         setSelectedAssetIds([]);
         setSelectedAssets([]);
       } else {
@@ -179,7 +173,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     screenWidth - objectWidth - 50
   );
 
-  // Handle backdrop click
   const handleBackdropClick = useCallback(
     (event: React.MouseEvent) => {
       if (event.target === event.currentTarget) {
@@ -188,6 +181,12 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     },
     [setDialogOpen]
   );
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleCreateFolder();
+    }
+  }, [handleCreateFolder]);
 
   return (
     <>
@@ -209,7 +208,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             className="asset-create-folder-dialog"
             css={dialogStyles(theme)}
             open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
+            onClose={handleClose}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
             componentsProps={{
@@ -254,11 +253,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
                 className="asset-create-folder-input input-field"
                 inputRef={inputRef}
                 value={folderName}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleCreateFolder();
-                  }
-                }}
+                onKeyDown={handleKeyDown}
                 onChange={(e) => setFolderName(e.target.value)}
                 fullWidth
                 autoCorrect="off"
@@ -268,7 +263,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             <DialogActions className="asset-create-folder-dialog-actions dialog-actions">
               <Button
                 className="asset-create-folder-cancel-button button-cancel"
-                onClick={() => setDialogOpen(false)}
+                onClick={handleClose}
               >
                 Cancel
               </Button>
