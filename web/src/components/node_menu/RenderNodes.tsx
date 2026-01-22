@@ -87,6 +87,13 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return null;
   }, [searchTerm, groupedSearchResults]);
 
+  const handleNodeClick = useCallback(
+    (node: NodeMetadata) => () => {
+      handleCreateNode(node);
+    },
+    [handleCreateNode]
+  );
+
   const elements = useMemo(() => {
     // If we're searching, render flat ranked results with SearchResultItem
     if (searchTerm && groupedSearchResults.length > 0) {
@@ -101,7 +108,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           node={node}
           onDragStart={handleDragStart(node)}
           onDragEnd={handleDragEnd}
-          onClick={() => handleCreateNode(node)}
+          onClick={handleNodeClick(node)}
         />
       ));
     }
@@ -156,7 +163,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
                 key={node.node_type}
                 node={node}
                 onDragStart={handleDragStart(node)}
-                onClick={() => handleCreateNode(node)}
+                onClick={handleNodeClick(node)}
                 showCheckbox={showCheckboxes}
                 isSelected={selectedNodeTypes.includes(node.node_type)}
                 onToggleSelection={onToggleSelection}
@@ -175,7 +182,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     selectedPath,
     handleDragStart,
     handleDragEnd,
-    handleCreateNode,
+    handleNodeClick,
     showCheckboxes,
     onToggleSelection,
     selectedNodeTypes,

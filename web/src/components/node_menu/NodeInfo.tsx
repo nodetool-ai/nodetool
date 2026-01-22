@@ -227,9 +227,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag, index) => (
       <span
-        onClick={() => {
-          handleTagClick(tag.trim());
-        }}
+        onClick={handleTagClick.bind(null, tag.trim())}
         key={index}
         className="tag"
       >
