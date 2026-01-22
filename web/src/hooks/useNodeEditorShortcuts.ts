@@ -244,12 +244,21 @@ export const useNodeEditorShortcuts = (
   const handleSave = useCallback(async () => {
     const workflow = getCurrentWorkflow();
     if (workflow) {
-      await saveWorkflow(workflow);
-      addNotification({
-        content: `Workflow ${workflow.name} saved`,
-        type: "success",
-        alert: true
-      });
+      try {
+        await saveWorkflow(workflow);
+        addNotification({
+          content: `Workflow ${workflow.name} saved`,
+          type: "success",
+          alert: true
+        });
+      } catch (error) {
+        console.error("Failed to save workflow:", error);
+        addNotification({
+          content: `Failed to save workflow: ${error instanceof Error ? error.message : "Server unreachable"}`,
+          type: "error",
+          alert: true
+        });
+      }
     }
   }, [saveWorkflow, getCurrentWorkflow, addNotification]);
 

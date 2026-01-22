@@ -220,7 +220,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             params: { path: { id: workflow.id } },
             body: workflow
           });
-          if (error) {
+          if (error || !data) {
             throw createErrorMessage(error, "Failed to save workflow");
           }
 

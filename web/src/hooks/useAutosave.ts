@@ -86,7 +86,8 @@ export const useAutosave = (
           description: options?.description,
           force: options?.force ?? false,
           client_id: clientIdRef.current,
-          graph: options?.graph
+          graph: options?.graph,
+          max_versions: autosaveSettings?.maxVersionsPerWorkflow ?? 50
         })
       });
 
@@ -96,7 +97,7 @@ export const useAutosave = (
 
       return response.json();
     },
-    [workflowId]
+    [workflowId, autosaveSettings?.maxVersionsPerWorkflow]
   );
 
   /**
