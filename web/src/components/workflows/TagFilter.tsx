@@ -61,7 +61,7 @@ const TagFilter = memo(({
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
               <Button
-                onClick={() => handleSelectTag(tag)}
+                onClick={handleSelectTag.bind(null, tag)}
                 variant="outlined"
                 className={selectedTag === tag ? "selected" : ""}
               >

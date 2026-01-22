@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Button,
   Dialog,
@@ -98,7 +98,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     mutationFn: deleteHFModel
   });
 
-  const handleShowInExplorer = async (modelId: string) => {
+  const handleShowInExplorer = useCallback(async (modelId: string) => {
     if (!modelId) {return;}
 
     const model = allModels?.find((m) => m.id === modelId);
@@ -117,7 +117,13 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         dismissable: true
       });
     }
-  };
+  }, [allModels, addNotification]);
+
+  const handleShowInExplorerClick = useCallback(() => {
+    if (modelId) {
+      handleShowInExplorer(modelId);
+    }
+  }, [modelId, handleShowInExplorer]);
 
   const modelForExplorer = modelId
     ? allModels?.find((m) => m.id === modelId)
@@ -142,15 +148,12 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       } catch (error: any) {
         console.error("Deletion error:", error);
 
-        // Extract error message
         const errorMessage = error.message || "Unknown error";
 
-        // Check if error is "Not Found" (404)
         const isNotFound =
           errorMessage.includes("Not Found") || errorMessage.includes("404");
 
         if (isNotFound) {
-          // If model is not found, treat as success (already deleted)
           addNotification({
             type: "warning",
             content: `Model ${modelId} not found (may have been already deleted)`,
@@ -161,7 +164,6 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
           queryClient.invalidateQueries({ queryKey: ["allModels"] });
           onClose();
         } else {
-          // Show error for other failures
           addNotification({
             type: "error",
             content: errorMessage,
@@ -211,7 +213,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       </DialogContent>
       <DialogActions>
         <Button
-          onClick={() => modelId && handleShowInExplorer(modelId)}
+          onClick={handleShowInExplorerClick}
           disabled={isExplorerDisabled || isDeleting}
         >
           Show in Explorer

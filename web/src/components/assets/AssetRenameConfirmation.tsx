@@ -37,6 +37,11 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   const { refetchAssetsAndFolders } = useAssets();
   const { mutation } = useAssetUpdate();
   const theme = useTheme();
+
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
+
   useEffect(() => {
     if (dialogOpen) {
       setBaseNewName("");
@@ -44,7 +49,6 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       const mousePosition = getMousePosition();
       setDialogPosition({ x: mousePosition.x, y: mousePosition.y });
 
-      // Use the first selected asset from store instead of fetching
       if (selectedAssets.length > 0) {
         setBaseNewName(selectedAssets[0].name);
       }
@@ -62,12 +66,10 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   const handleRename = useCallback(async () => {
     const invalidCharsRegex = /[/*?"<>|#%{}^[\]`'=&$§!°äüö;+~|$!]+/g;
     function startsWithEmoji(fileName: string): boolean {
-      // Unicode range for emojis
       const emojiRegex =
         /^[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
       return emojiRegex.test(fileName);
     }
-    // Check if the name starts with a funny character
     if (
       startsWithEmoji(baseNewName) ||
       baseNewName.startsWith(".") ||
@@ -79,10 +81,8 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       return;
     }
 
-    // Find invalid characters in the name
     const invalidCharsFound = baseNewName.match(invalidCharsRegex);
 
-    // Check for empty or overly long names
     if (!baseNewName) {
       setShowAlert("Name cannot be empty.");
       return;
@@ -91,7 +91,6 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       return;
     }
 
-    // complain about invalid characters
     if (invalidCharsFound) {
       const uniqueInvalidChars = invalidCharsFound.filter(
         (char, index, array) => array.indexOf(char) === index
@@ -102,7 +101,6 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
 
     const cleanedName = baseNewName.trim();
 
-    // assetsToRename with incremented new names
     const maxIndexLength = Math.max(2, assets.length.toString().length);
     const updatedAssetsToRename = assets?.map((asset, index) => ({
       id: asset,
@@ -126,7 +124,6 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
     screenWidth - objectWidth - 50
   );
 
-  // Handle backdrop click
   const handleBackdropClick = useCallback(
     (event: React.MouseEvent) => {
       if (event.target === event.currentTarget) {
@@ -135,6 +132,12 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
     },
     [setDialogOpen]
   );
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleRename();
+    }
+  }, [handleRename]);
 
   return (
     <>
@@ -156,7 +159,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             className="asset-rename-dialog"
             css={dialogStyles(theme)}
             open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
+            onClose={handleClose}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
             componentsProps={{
@@ -204,11 +207,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
                 className="asset-rename-input input-field"
                 inputRef={inputRef}
                 value={baseNewName}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleRename();
-                  }
-                }}
+                onKeyDown={handleKeyDown}
                 onChange={(e) => setBaseNewName(e.target.value)}
                 fullWidth
                 autoCorrect="off"
@@ -218,7 +217,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             <DialogActions className="asset-rename-dialog-actions dialog-actions">
               <Button
                 className="asset-rename-cancel-button button-cancel"
-                onClick={() => setDialogOpen(false)}
+                onClick={handleClose}
               >
                 Cancel
               </Button>

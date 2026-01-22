@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -242,6 +242,10 @@ const AssetActions = ({
     useState<HTMLButtonElement | null>(null);
   const [createFolderName, setCreateFolderName] =
     useState<string>("New Folder");
+
+  const handleCloseCreateFolder = useCallback(() => {
+    setCreateFolderAnchor(null);
+  }, []);
   const createFolder = useAssetStore((state) => state.createFolder);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -317,7 +321,7 @@ const AssetActions = ({
           disableInteractive
         >
           <Button
-            onClick={(e) => setCreateFolderAnchor(e.currentTarget)}
+            onClick={handleCloseCreateFolder}
             tabIndex={-1}
           >
             <CreateNewFolderIcon />
@@ -444,7 +448,7 @@ const AssetActions = ({
         className="dialog"
         open={Boolean(createFolderAnchor)}
         anchorEl={createFolderAnchor}
-        onClose={() => setCreateFolderAnchor(null)}
+            onClose={handleCloseCreateFolder}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
@@ -473,7 +477,7 @@ const AssetActions = ({
         <DialogActions className="dialog-actions">
           <Button
             className="button-cancel"
-            onClick={() => setCreateFolderAnchor(null)}
+            onClick={handleCloseCreateFolder}
           >
             Cancel
           </Button>

@@ -437,7 +437,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                       key={nodeMetadata.node_type}
                       node={nodeMetadata}
                       onDragStart={() => {}}
-                      onClick={() => handleNodeClick(nodeMetadata)}
+                      onClick={handleNodeClick.bind(null, nodeMetadata)}
                     />
                   </div>
                 </Tooltip>

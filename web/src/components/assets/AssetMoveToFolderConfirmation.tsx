@@ -45,6 +45,10 @@ const AssetMoveToFolderConfirmation: React.FC<
     [selectedAssets, mutation, setDialogOpen]
   );
 
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
+
   useEffect(() => {
     if (dialogOpen) {
       const mousePosition = getMousePosition();
@@ -65,7 +69,7 @@ const AssetMoveToFolderConfirmation: React.FC<
     <Dialog
       css={dialogStyles(theme)}
       open={dialogOpen}
-      onClose={() => setDialogOpen(false)}
+      onClose={handleClose}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
       PaperProps={{
@@ -104,7 +108,7 @@ const AssetMoveToFolderConfirmation: React.FC<
         <FolderTree onSelect={handleSelectFolder} />
       </DialogContent>
       <DialogActions className="dialog-actions">
-        <Button className="button-cancel" onClick={() => setDialogOpen(false)}>
+        <Button className="button-cancel" onClick={handleClose}>
           Cancel
         </Button>
       </DialogActions>
