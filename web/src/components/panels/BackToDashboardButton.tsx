@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, forwardRef } from "react";
+import { memo, forwardRef, useCallback } from "react";
 import { Button } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -31,11 +31,15 @@ const BackToDashboardButton = forwardRef<
   const theme = useTheme();
   const navigate = useNavigate();
 
+  const handleClick = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
+
   return (
     <Button
       ref={ref}
       className="nav-button back-to-dashboard"
-      onClick={() => navigate("/dashboard")}
+      onClick={handleClick}
       css={styles(theme)}
       {...props}
     >
