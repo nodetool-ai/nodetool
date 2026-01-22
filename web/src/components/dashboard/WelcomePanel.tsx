@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, ReactNode, useMemo } from "react";
+import React, { useState, useCallback, ReactNode, useMemo, memo } from "react";
 import {
   Typography,
   Accordion,
@@ -122,7 +122,7 @@ const panelStyles = (theme: any) =>
     }
   });
 
-const WelcomePanel: React.FC = () => {
+const WelcomePanel: React.FC = memo(() => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const sections: Section[] = useMemo(() =>
@@ -145,6 +145,10 @@ const WelcomePanel: React.FC = () => {
 
   const handleClearSearch = useCallback(() => {
     setSearchTerm("");
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
   }, []);
 
   const highlightText = useCallback((text: string, term: string) => {
@@ -258,7 +262,7 @@ const WelcomePanel: React.FC = () => {
           variant="outlined"
           placeholder="Search help and tips"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleSearchChange}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -313,6 +317,8 @@ const WelcomePanel: React.FC = () => {
       </div>
     </Box>
   );
-};
+});
 
-export default React.memo(WelcomePanel);
+WelcomePanel.displayName = "WelcomePanel";
+
+export default WelcomePanel;
