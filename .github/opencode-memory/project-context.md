@@ -61,13 +61,18 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx
 
 **Impact**: Initial bundle smaller; 4.6 MB chart library loads only when needed.
-> ### TypeScript and Lint Fixes (2026-01-22)
-> **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
-> **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
->
-> ---
->
-> ### TypeScript Syntax and Type Fixes (2026-01-20)
+
+### TypeScript and Test Fixes (2026-01-22)
+
+**What**: Fixed missing DataframeRenderer import, test type definitions, QueryClientProvider wrapper issues, and unused variables. All web and electron tests now pass (3115 + 206 tests).
+
+**Files**: OutputRenderer.tsx, highlightText.test.ts, useAutosave.test.tsx, TableActions.tsx, NodePlacementStore.test.ts, RecentNodesStore.test.ts
+
+**Impact**: All TypeScript type checks and lint checks pass for web and electron packages.
+
+---
+
+### TypeScript and Lint Fixes (2026-01-22)
 ### Inline Arrow Function Performance Fix (2026-01-22)
 
 **What**: Fixed 100+ inline arrow functions in JSX across 6 files using .bind() and useCallback, preventing unnecessary re-renders.
