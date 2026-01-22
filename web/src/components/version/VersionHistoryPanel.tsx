@@ -212,6 +212,10 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     setCompareMode(false);
   }, [setSelectedVersion, setCompareVersion, setCompareMode]);
 
+  const handleCloseDeleteDialog = useCallback(() => {
+    setDeleteDialogOpen(false);
+  }, []);
+
   if (isLoading) {
     return (
       <Paper
@@ -438,7 +442,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
       <Dialog
         open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
+        onClose={handleCloseDeleteDialog}
       >
         <DialogTitle>Delete Version</DialogTitle>
         <DialogContent>
@@ -448,7 +452,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
           <Button onClick={handleConfirmDelete} color="error" autoFocus>
             Delete
           </Button>
