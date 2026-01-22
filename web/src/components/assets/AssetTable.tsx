@@ -48,6 +48,13 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     [handleRemoveAsset]
   );
 
+  const handleRemoveAssetClick = useCallback(
+    (asset: Asset) => () => {
+      handleAssetRemoveClick(asset);
+    },
+    [handleAssetRemoveClick]
+  );
+
   const { onDrop, onDragOver, uploading } = useFileDrop({
     uploadAsset: true,
     onChangeAsset: (asset: Asset) => {
@@ -76,7 +83,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
               <TableCell>
                 <Button
                   variant="outlined"
-                  onClick={() => handleAssetRemoveClick(asset)}
+                  onClick={handleRemoveAssetClick(asset)}
                 >
                   Remove
                 </Button>

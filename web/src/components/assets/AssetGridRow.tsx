@@ -81,6 +81,10 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     }
   }, [openContextMenu, rowItems]);
 
+  const handleToggleExpandedType = useCallback((type: string) => () => {
+    toggleExpanded(type);
+  }, [toggleExpanded]);
+
   if (rowItems.length === 0) {
     return null;
   }
@@ -115,7 +119,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             cursor: "pointer"
           }}
           className="content-type-header"
-          onClick={() => toggleExpanded(divider.type)}
+          onClick={handleToggleExpandedType(divider.type)}
         >
           <Typography
             variant="body2"

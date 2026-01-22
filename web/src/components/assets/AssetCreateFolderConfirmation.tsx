@@ -181,13 +181,17 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
   // Handle backdrop click
   const handleBackdropClick = useCallback(
-    (event: React.MouseEvent) => {
+    (event: React.MouseEvent<HTMLDivElement>) => {
       if (event.target === event.currentTarget) {
         setDialogOpen(false);
       }
     },
     [setDialogOpen]
   );
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
 
   return (
     <>
@@ -268,7 +272,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             <DialogActions className="asset-create-folder-dialog-actions dialog-actions">
               <Button
                 className="asset-create-folder-cancel-button button-cancel"
-                onClick={() => setDialogOpen(false)}
+                onClick={handleCloseDialog}
               >
                 Cancel
               </Button>

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useMemo } from "react";
+import React, { memo, useMemo, useCallback } from "react";
 import { ButtonGroup, Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
@@ -284,6 +284,18 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     handleDelete
   } = useAssetActions(asset);
 
+  const handleItemClick = useCallback(() => {
+    handleClick(onSelect, onClickParent, isParent);
+  }, [handleClick, onSelect, onClickParent, isParent]);
+
+  const handleItemDelete = useCallback(() => {
+    handleDelete();
+  }, [handleDelete]);
+
+  const handleAudioAssetClick = useCallback(() => {
+    onSetCurrentAudioAsset?.(asset);
+  }, [onSetCurrentAudioAsset, asset]);
+
   const assetType = useMemo(() => {
     return asset?.content_type ? asset.content_type.split("/")[0] : "unknown";
   }, [asset?.content_type]);
@@ -343,7 +355,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           onDoubleClick(asset);
         }
       }}
-      onClick={() => handleClick(onSelect, onClickParent, isParent)}
+        onClick={handleItemClick}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
@@ -352,7 +364,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <DeleteButton<Asset>
             className="asset-delete"
             item={asset}
-            onClick={() => handleDelete()}
+            onClick={handleItemDelete}
           />
         </ButtonGroup>
       )}
@@ -391,7 +403,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <>
             <AudioFileIcon
               style={{ color: `var(--c_${assetType})` }}
-              onClick={() => onSetCurrentAudioAsset?.(asset)}
+              onClick={handleAudioAssetClick}
               className="placeholder"
               titleAccess={asset.content_type || "Audio file"}
             />
