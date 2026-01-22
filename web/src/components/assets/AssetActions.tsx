@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -275,6 +275,10 @@ const AssetActions = ({
     setViewMode(viewMode === "grid" ? "list" : "grid");
   };
 
+  const handleCloseCreateFolder = useCallback(() => {
+    setCreateFolderAnchor(null);
+  }, []);
+
   useEffect(() => {
     if (createFolderAnchor) {
       const timer = setTimeout(() => {
@@ -444,7 +448,7 @@ const AssetActions = ({
         className="dialog"
         open={Boolean(createFolderAnchor)}
         anchorEl={createFolderAnchor}
-        onClose={() => setCreateFolderAnchor(null)}
+        onClose={handleCloseCreateFolder}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
@@ -473,7 +477,7 @@ const AssetActions = ({
         <DialogActions className="dialog-actions">
           <Button
             className="button-cancel"
-            onClick={() => setCreateFolderAnchor(null)}
+            onClick={handleCloseCreateFolder}
           >
             Cancel
           </Button>

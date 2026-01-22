@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   TextField,
   Typography,
@@ -89,6 +89,10 @@ const HuggingFaceModelSearch: React.FC = () => {
     }
   };
 
+  const handleModelSelect = useCallback((modelId: string) => {
+    setSelectedModel(modelId);
+  }, []);
+
   return (
     <div css={styles(theme)}>
       <form onSubmit={handleSubmit}>
@@ -123,7 +127,7 @@ const HuggingFaceModelSearch: React.FC = () => {
             >
               <Card
                 className="model-card"
-                onClick={() => setSelectedModel(model.id)}
+                onClick={() => handleModelSelect(model.id)}
                 variant={selectedModel === model.id ? "outlined" : "elevation"}
               >
                 <CardContent className="card-content">

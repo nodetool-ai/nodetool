@@ -70,7 +70,13 @@ const store = useNodeStore();  // ❌ causes re-renders
 > ### TypeScript Syntax and Type Fixes (2026-01-20)
 ### Inline Arrow Function Performance Fix - Node Menu (2026-01-22)
 
-### Inline Arrow Function Performance Fix (2026-01-22)
+### Additional Inline Arrow Function Performance Fix (2026-01-22)
+
+**What**: Fixed 15+ inline arrow functions across 12 components using useCallback for stable references.
+
+**Files**: AssetGridRow.tsx, ModelPackCard.tsx, AssetMoveToFolderConfirmation.tsx, AssetRenameConfirmation.tsx, AssetCreateFolderConfirmation.tsx, AssetActions.tsx, AssetItem.tsx, ModelCardContent.tsx, HuggingFaceModelSearch.tsx, PropertyDropzone.tsx, Model3DProperty.tsx, DataframeEditorModal.tsx
+
+**Impact**: Improved render performance in asset management, model browser, property editors, and dataframe editor.
 
 **What**: Fixed 25+ inline arrow functions in 9 node menu components using .bind() and useCallback for stable references.
 

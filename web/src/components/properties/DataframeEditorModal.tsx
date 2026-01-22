@@ -444,6 +444,10 @@ const DataframeEditorModal = ({
   // Search filter state
   const [searchFilter, setSearchFilter] = useState("");
 
+  const handleClearSearch = useCallback(() => {
+    setSearchFilter("");
+  }, []);
+
   // Sync local state with prop changes
   useEffect(() => {
     setLocalValue(value);
@@ -590,7 +594,7 @@ const DataframeEditorModal = ({
                         <InputAdornment position="end">
                           <IconButton
                             size="small"
-                            onClick={() => setSearchFilter("")}
+                            onClick={handleClearSearch}
                             edge="end"
                           >
                             <ClearIcon />
