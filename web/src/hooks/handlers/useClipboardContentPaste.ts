@@ -3,6 +3,7 @@
  * 
  * This hook interprets clipboard content and creates appropriate nodes:
  * - For images: Uploads as an image asset and creates a constant Image node
+ * - For files: Uploads image files as assets, creates String nodes for other files
  * - For HTML, RTF, and text: Creates a constant String node with the content
  * 
  * This complements useCopyPaste which handles pasting of copied nodes.
@@ -19,6 +20,11 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { Asset } from "../../stores/ApiTypes";
 import log from "loglevel";
 import { isTextInputActive } from "../../utils/browser";
+
+/**
+ * Supported image file extensions for clipboard file handling
+ */
+const IMAGE_FILE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif'];
 
 /**
  * Supported clipboard content types
@@ -367,18 +373,16 @@ export const useClipboardContentPaste = () => {
       case "file":
         if (Array.isArray(content.data)) {
           // Handle file paths from clipboard
+          // Currently processes only the first file - future enhancement could support multiple files
           const filePaths = content.data as string[];
-          log.info(`Handling ${filePaths.length} file(s) from clipboard`);
+          log.info(`Handling ${filePaths.length} file(s) from clipboard (processing first file)`);
           
-          // For now, we'll handle the first file if it's an image
-          // Future: could create multiple nodes or handle different file types
-          for (const filePath of filePaths) {
-            // Check if it's an image file based on extension
+          if (filePaths.length > 0) {
+            const filePath = filePaths[0];
             const ext = filePath.split('.').pop()?.toLowerCase() || '';
-            const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif'];
             
-            if (imageExtensions.includes(ext)) {
-              // Read file as data URL using Electron API
+            if (IMAGE_FILE_EXTENSIONS.includes(ext)) {
+              // Read image file as data URL using Electron API
               if (window.api?.clipboard?.readFileAsDataURL) {
                 try {
                   const dataUrl = await window.api.clipboard.readFileAsDataURL(filePath);
