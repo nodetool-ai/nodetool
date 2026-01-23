@@ -10,6 +10,10 @@ jest.mock('../types.d', () => ({
     WINDOW_MAXIMIZE: 'window-maximize',
     CLIPBOARD_WRITE_TEXT: 'clipboard-write-text',
     CLIPBOARD_READ_TEXT: 'clipboard-read-text',
+    CLIPBOARD_READ_FILE_PATHS: 'clipboard-read-file-paths',
+    CLIPBOARD_READ_BUFFER: 'clipboard-read-buffer',
+    CLIPBOARD_GET_CONTENT_INFO: 'clipboard-get-content-info',
+    CLIPBOARD_AVAILABLE_FORMATS: 'clipboard-available-formats',
     ON_CREATE_WORKFLOW: 'on-create-workflow',
     ON_UPDATE_WORKFLOW: 'on-update-workflow',
     ON_DELETE_WORKFLOW: 'on-delete-workflow',
@@ -92,6 +96,9 @@ jest.mock('electron', () => {
     clipboard: {
       writeText: jest.fn(),
       readText: jest.fn(),
+      read: jest.fn(),
+      readBuffer: jest.fn(),
+      availableFormats: jest.fn().mockReturnValue([]),
     },
     globalShortcut: {
       unregister: jest.fn(),
@@ -130,6 +137,10 @@ import {
 const Channels = {
   CLIPBOARD_WRITE_TEXT: 'clipboard-write-text',
   CLIPBOARD_READ_TEXT: 'clipboard-read-text',
+  CLIPBOARD_READ_FILE_PATHS: 'clipboard-read-file-paths',
+  CLIPBOARD_READ_BUFFER: 'clipboard-read-buffer',
+  CLIPBOARD_GET_CONTENT_INFO: 'clipboard-get-content-info',
+  CLIPBOARD_AVAILABLE_FORMATS: 'clipboard-available-formats',
   GET_SERVER_STATE: 'get-server-state',
   OPEN_LOG_FILE: 'open-log-file',
   RUN_APP: 'run-app',
@@ -711,6 +722,62 @@ describe('initializeIpcHandlers', () => {
       
       expect(result.canceled).toBe(true);
       expect(result.filePaths).toEqual([]);
+    });
+  });
+
+  describe('clipboard file path handlers', () => {
+    beforeEach(() => {
+      initializeIpcHandlers();
+    });
+
+    it('should handle CLIPBOARD_READ_FILE_PATHS with no files', async () => {
+      clipboardMock.availableFormats.mockReturnValue([]);
+      clipboardMock.readText.mockReturnValue('');
+
+      const handler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.CLIPBOARD_READ_FILE_PATHS
+      )?.[1] as any;
+
+      const result = await handler({});
+      expect(result).toEqual([]);
+    });
+
+    it('should handle CLIPBOARD_GET_CONTENT_INFO', async () => {
+      clipboardMock.availableFormats.mockReturnValue(['text/plain', 'text/html']);
+
+      const handler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.CLIPBOARD_GET_CONTENT_INFO
+      )?.[1] as any;
+
+      const result = await handler({});
+      expect(result.formats).toEqual(['text/plain', 'text/html']);
+      expect(result.hasText).toBe(true);
+      expect(result.hasHtml).toBe(true);
+      expect(result.hasImage).toBe(false);
+      expect(result.hasFiles).toBe(false);
+    });
+
+    it('should handle CLIPBOARD_READ_BUFFER', async () => {
+      const mockBuffer = Buffer.from('test data');
+      clipboardMock.readBuffer.mockReturnValue(mockBuffer);
+
+      const handler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.CLIPBOARD_READ_BUFFER
+      )?.[1] as any;
+
+      const result = await handler({}, 'text/plain');
+      expect(result).toBe(mockBuffer.toString('base64'));
+    });
+
+    it('should handle CLIPBOARD_READ_BUFFER with empty buffer', async () => {
+      clipboardMock.readBuffer.mockReturnValue(Buffer.alloc(0));
+
+      const handler = ipcMainMock.handle.mock.calls.find(
+        ([channel]) => channel === Channels.CLIPBOARD_READ_BUFFER
+      )?.[1] as any;
+
+      const result = await handler({}, 'text/plain');
+      expect(result).toBeNull();
     });
   });
 });
