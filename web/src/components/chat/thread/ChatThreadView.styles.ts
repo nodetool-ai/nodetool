@@ -55,8 +55,15 @@ export const createStyles = (theme: Theme) => ({
       borderRadius: "4px",
       position: "relative",
       display: "flex",
+      flexDirection: "column",
       alignItems: "flex-start",
-      gap: "8px"
+      gap: "4px",
+      border: "1px solid transparent",
+      transition: "border-color 0.15s ease"
+    },
+
+    "li.chat-message:hover": {
+      borderColor: theme.vars.palette.divider
     },
 
     "li.user": {
@@ -69,6 +76,7 @@ export const createStyles = (theme: Theme) => ({
       background: theme.vars.palette.background.paper,
       borderRadius: ".75em",
       textAlign: "right",
+      alignItems: "flex-end"
     },
 
     ".chat-message.user .markdown": {
@@ -76,14 +84,43 @@ export const createStyles = (theme: Theme) => ({
     },
 
     "li.assistant": {
-      // color: theme.vars.palette.grey[0]
+      alignItems: "flex-start"
     },
 
+    // Message actions container (copy button, timestamp)
+    ".message-actions": {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      opacity: 0,
+      pointerEvents: "none",
+      transition: "opacity 0.15s ease",
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.disabled
+    },
+
+    "li.chat-message:hover .message-actions": {
+      opacity: 1,
+      pointerEvents: "auto"
+    },
+
+    // User message: actions on the right
+    "li.user .message-actions": {
+      justifyContent: "flex-end"
+    },
+
+    // Assistant message: actions on the left
+    "li.assistant .message-actions": {
+      justifyContent: "flex-start"
+    },
+
+    ".message-timestamp": {
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.disabled
+    },
+
+    // Legacy copy-button styles (fallback)
     "li.chat-message .copy-button": {
-      position: "absolute",
-      top: "8px",
-      right: "8px",
-      zIndex: 1,
       cursor: "pointer",
       opacity: 0,
       pointerEvents: "none",

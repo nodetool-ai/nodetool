@@ -373,17 +373,24 @@ export const MessageView: React.FC<
       );
     };
 
+    // Format timestamp for display
+    const formatTime = (dateStr?: string | null) => {
+      if (!dateStr) {
+        return null;
+      }
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      } catch {
+        return null;
+      }
+    };
+
+    const formattedTime = formatTime(message.created_at);
+
     return (
       <li className={messageClass}>
         <div className="message-content">
-          {!Array.isArray(message.tool_calls) && (
-            <CopyToClipboardButton
-              className="copy-button"
-              copyValue={handleCopy()}
-              size="small"
-              title="Copy to clipboard"
-            />
-          )}
           {message.role === "assistant" &&
             Array.isArray(message.tool_calls) &&
             !message.agent_execution_id && // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
@@ -418,6 +425,19 @@ export const MessageView: React.FC<
           )}
         </div>
         {(message as Message & { error_type?: string }).error_type && <ErrorIcon className="error-icon" />}
+        {/* Message actions: timestamp + copy button */}
+        {!Array.isArray(message.tool_calls) && (
+          <div className="message-actions">
+            {message.role === "user" && formattedTime && (
+              <span className="message-timestamp">{formattedTime}</span>
+            )}
+            <CopyToClipboardButton
+              copyValue={handleCopy()}
+              size="small"
+              title="Copy to clipboard"
+            />
+          </div>
+        )}
       </li>
     );
   };
