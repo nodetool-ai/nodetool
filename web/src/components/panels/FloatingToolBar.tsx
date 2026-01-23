@@ -36,7 +36,12 @@ import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import CodeIcon from "@mui/icons-material/Code";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { client } from "../../stores/ApiClient";
+import { useClipboard } from "../../hooks/browser/useClipboard";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -342,6 +347,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     })
   );
 
+  const { writeClipboard } = useClipboard();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
   const handleRun = useCallback(() => {
     if (!isWorkflowRunning) {
       run({}, workflow, nodes, edges, undefined);
@@ -512,6 +522,138 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleRunAsApp();
     handleCloseActionsMenu();
   }, [handleRunAsApp, handleCloseActionsMenu]);
+
+  // DSL Export Handlers
+  const handleExportDSL = useCallback(async (): Promise<string | null> => {
+    if (!workflow?.id) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "No workflow selected"
+      });
+      return null;
+    }
+    try {
+      const response = await client.GET("/api/workflows/{id}/dsl-export", {
+        params: { path: { id: workflow.id } }
+      });
+      if (response.error) {
+        throw new Error("Failed to export DSL");
+      }
+      return response.data ?? null;
+    } catch {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "Failed to export DSL"
+      });
+      return null;
+    }
+  }, [workflow?.id, addNotification]);
+
+  const handleDownloadDSL = useCallback(async () => {
+    const dsl = await handleExportDSL();
+    if (dsl) {
+      const blob = new Blob([dsl], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${workflow?.name || "workflow"}_dsl.py`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  }, [handleExportDSL, workflow?.name]);
+
+  const handleCopyDSL = useCallback(async () => {
+    const dsl = await handleExportDSL();
+    if (dsl) {
+      writeClipboard(dsl, true, false);
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "DSL code copied to clipboard!"
+      });
+    }
+  }, [handleExportDSL, writeClipboard, addNotification]);
+
+  // Gradio Export Handlers
+  const handleExportGradio = useCallback(async (): Promise<string | null> => {
+    if (!workflow?.id) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "No workflow selected"
+      });
+      return null;
+    }
+    try {
+      const response = await client.POST("/api/workflows/{id}/gradio-export", {
+        params: { path: { id: workflow.id } },
+        body: {
+          app_title: workflow.name || "NodeTool Workflow",
+          allow_flagging: false,
+          queue: true
+        }
+      });
+      if (response.error) {
+        throw new Error("Failed to export Gradio");
+      }
+      return response.data ?? null;
+    } catch {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "Failed to export Gradio"
+      });
+      return null;
+    }
+  }, [workflow?.id, workflow?.name, addNotification]);
+
+  const handleDownloadGradio = useCallback(async () => {
+    const gradio = await handleExportGradio();
+    if (gradio) {
+      const blob = new Blob([gradio], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${workflow?.name || "workflow"}_gradio.py`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  }, [handleExportGradio, workflow?.name]);
+
+  const handleCopyGradio = useCallback(async () => {
+    const gradio = await handleExportGradio();
+    if (gradio) {
+      writeClipboard(gradio, true, false);
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "Gradio code copied to clipboard!"
+      });
+    }
+  }, [handleExportGradio, writeClipboard, addNotification]);
+
+  // Menu close handlers for exports
+  const handleDownloadDSLAndCloseMenu = useCallback(() => {
+    handleDownloadDSL();
+    handleCloseAdvancedMenu();
+  }, [handleDownloadDSL, handleCloseAdvancedMenu]);
+
+  const handleCopyDSLAndCloseMenu = useCallback(() => {
+    handleCopyDSL();
+    handleCloseAdvancedMenu();
+  }, [handleCopyDSL, handleCloseAdvancedMenu]);
+
+  const handleDownloadGradioAndCloseMenu = useCallback(() => {
+    handleDownloadGradio();
+    handleCloseAdvancedMenu();
+  }, [handleDownloadGradio, handleCloseAdvancedMenu]);
+
+  const handleCopyGradioAndCloseMenu = useCallback(() => {
+    handleCopyGradio();
+    handleCloseAdvancedMenu();
+  }, [handleCopyGradio, handleCloseAdvancedMenu]);
 
   const handleToggleMiniMapAndCloseMenu = useCallback(() => {
     handleToggleMiniMap();
@@ -719,6 +861,30 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             primary="Mini Map"
             secondary={isMiniMapVisible ? "Visible" : "Hidden"}
           />
+        </MenuItem>
+        <MenuItem onClick={handleDownloadDSLAndCloseMenu}>
+          <ListItemIcon>
+            <CodeIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Download DSL" />
+        </MenuItem>
+        <MenuItem onClick={handleCopyDSLAndCloseMenu}>
+          <ListItemIcon>
+            <ContentCopyIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Copy DSL" />
+        </MenuItem>
+        <MenuItem onClick={handleDownloadGradioAndCloseMenu}>
+          <ListItemIcon>
+            <CodeIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Download Gradio" />
+        </MenuItem>
+        <MenuItem onClick={handleCopyGradioAndCloseMenu}>
+          <ListItemIcon>
+            <ContentCopyIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Copy Gradio" />
         </MenuItem>
       </Menu>
 

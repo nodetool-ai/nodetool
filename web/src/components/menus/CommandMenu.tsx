@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
-import { isDevelopment } from "../../stores/ApiClient";
+import { isDevelopment, client } from "../../stores/ApiClient";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 
 type CommandMenuProps = {
@@ -85,6 +85,117 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     });
   }, [writeClipboard, workflowJSON, addNotification]);
 
+  // DSL Export Functions
+  const exportDSL = useCallback(async (): Promise<string | null> => {
+    if (!currentWorkflow?.id) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "No workflow selected"
+      });
+      return null;
+    }
+    try {
+      const response = await client.GET("/api/workflows/{id}/dsl-export", {
+        params: { path: { id: currentWorkflow.id } }
+      });
+      if (response.error) {
+        throw new Error("Failed to export DSL");
+      }
+      return response.data ?? null;
+    } catch {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "Failed to export DSL"
+      });
+      return null;
+    }
+  }, [currentWorkflow?.id, addNotification]);
+
+  const downloadDSL = useCallback(async () => {
+    const dsl = await exportDSL();
+    if (dsl) {
+      const blob = new Blob([dsl], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${currentWorkflow?.name || "workflow"}_dsl.py`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  }, [exportDSL, currentWorkflow?.name]);
+
+  const copyDSL = useCallback(async () => {
+    const dsl = await exportDSL();
+    if (dsl) {
+      writeClipboard(dsl, true, false);
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "DSL code copied to clipboard!"
+      });
+    }
+  }, [exportDSL, writeClipboard, addNotification]);
+
+  // Gradio Export Functions
+  const exportGradio = useCallback(async (): Promise<string | null> => {
+    if (!currentWorkflow?.id) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "No workflow selected"
+      });
+      return null;
+    }
+    try {
+      const response = await client.POST("/api/workflows/{id}/gradio-export", {
+        params: { path: { id: currentWorkflow.id } },
+        body: {
+          app_title: currentWorkflow.name || "NodeTool Workflow",
+          allow_flagging: false,
+          queue: true
+        }
+      });
+      if (response.error) {
+        throw new Error("Failed to export Gradio");
+      }
+      return response.data ?? null;
+    } catch {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: "Failed to export Gradio"
+      });
+      return null;
+    }
+  }, [currentWorkflow?.id, currentWorkflow?.name, addNotification]);
+
+  const downloadGradio = useCallback(async () => {
+    const gradio = await exportGradio();
+    if (gradio) {
+      const blob = new Blob([gradio], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${currentWorkflow?.name || "workflow"}_gradio.py`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  }, [exportGradio, currentWorkflow?.name]);
+
+  const copyGradio = useCallback(async () => {
+    const gradio = await exportGradio();
+    if (gradio) {
+      writeClipboard(gradio, true, false);
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "Gradio code copied to clipboard!"
+      });
+    }
+  }, [exportGradio, writeClipboard, addNotification]);
+
   return (
     <Command.Group heading="Workflow">
       <Command.Item onSelect={() => executeAndClose(runWorkflow)}>
@@ -95,6 +206,18 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(copyWorkflow)}>
         Copy Workflow as JSON
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(downloadDSL)}>
+        Download DSL
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(copyDSL)}>
+        Copy DSL
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(downloadGradio)}>
+        Download Gradio
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(copyGradio)}>
+        Copy Gradio
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(cancel)}>
         Cancel Workflow
