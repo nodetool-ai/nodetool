@@ -59,6 +59,9 @@ const styles = () =>
       top: "13px",
       right: "30px"
     },
+    ".copy-button.has-action": {
+      right: "120px" // Move further left when action button is present
+    },
     li: {
       listStyleType: "none",
       maxWidth: MAX_WIDTH,
@@ -228,7 +231,7 @@ const Alert: React.FC = () => {
               {(notification.dismissable || notification.type === "error") && (
                 <CopyToClipboardButton
                   copyValue={notification.content}
-                  className="copy-button"
+                  className={`copy-button ${notification.action ? "has-action" : ""}`}
                   title="Copy to clipboard"
                 />
               )}
