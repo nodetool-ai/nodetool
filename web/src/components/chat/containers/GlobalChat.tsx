@@ -434,7 +434,7 @@ const GlobalChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed &&
-          (error || !connectionState.isConnected) && (
+          (error || (!connectionState.isConnected && status !== "streaming" && status !== "loading")) && (
             <Alert
               className="global-chat-status-alert"
               severity={
