@@ -31,6 +31,7 @@ interface RenderNodesSelectableProps {
   onToggleSelection?: (nodeType: string) => void;
   onNodeClick?: (node: NodeMetadata) => void;
   onSetSelection?: (newSelection: string[]) => void;
+  hideSelectedSection?: boolean;
 }
 
 const listStyles = (theme: Theme) =>
@@ -175,7 +176,8 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   selectedNodeTypes = [],
   onToggleSelection,
   onNodeClick,
-  onSetSelection
+  onSetSelection,
+  hideSelectedSection = false
 }) => {
   const theme = useTheme();
   const { groupedSearchResults, searchTerm } = useNodeMenuStore((state) => ({
@@ -363,7 +365,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     );
 
     const selectedSection: JSX.Element[] = [];
-    if (showCheckboxes && selectedNodes.length > 0) {
+    if (showCheckboxes && selectedNodes.length > 0 && !hideSelectedSection) {
       selectedSection.push(
         <Box key="section-header-selected" className="section-header">
           <Typography component="span" className="section-title">
@@ -539,7 +541,8 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     selectedNodeTypes,
     onToggleSelection,
     computeNamespaceSelectionState,
-    toggleNamespace
+    toggleNamespace,
+    hideSelectedSection
   ]);
 
   return (
