@@ -331,7 +331,7 @@ Edit the workflow prompt to:
 Update model in workflow:
 ```yaml
 with:
-  model: minimax/MiniMax-M2.1  # or other supported models
+  model: zai-coding-plan/glm-4.7  # or other supported models
 ```
 
 ## Troubleshooting
