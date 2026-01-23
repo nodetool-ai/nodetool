@@ -121,11 +121,14 @@ const NodeItem = memo(
                 onChange={() => onToggleSelection?.(node.node_type)}
                 size="small"
                 sx={{
-                  color: "var(--palette-grey-200)",
+                  color: "var(--palette-grey-500)",
                   "&.Mui-checked": {
-                    color: "var(--palette-primary-main)"
+                    color: "var(--palette-c-hl1)"
                   },
-                  padding: "2px"
+                  padding: "2px",
+                  "& .MuiSvgIcon-root": {
+                    fontSize: "1.1rem"
+                  }
                 }}
               />
             )}

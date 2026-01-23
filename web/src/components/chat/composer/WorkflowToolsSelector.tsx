@@ -302,10 +302,12 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
             ) : (!workflowTools || workflowTools.length === 0) &&
               selectedTools.length === 0 ? (
               <div className="no-tools-message">
-                <Typography variant="body2">
-                  No workflow tools available.
-                  <br />
-                  Set a workflow&apos;s run mode to &quot;tool&quot; to use it here.
+                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                  No workflow tools available
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.8, display: "block" }}>
+                  Workflow tools let the AI run your workflows as part of its response.
+                  To create one: open a workflow, go to Settings, and set Run Mode to &quot;Tool&quot;.
                 </Typography>
               </div>
             ) : (
