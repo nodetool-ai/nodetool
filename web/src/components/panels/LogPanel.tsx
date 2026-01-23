@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   Box,
   Chip,
@@ -151,11 +151,15 @@ const LogPanel: React.FC = () => {
 
   const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>([]);
 
-  const handleSeverityChange = (e: SelectChangeEvent<string[]>) => {
+  const handleSeverityChange = useCallback((e: SelectChangeEvent<string[]>) => {
     setSelectedSeverities(
       (e.target.value as string[]).map((v) => v as Severity)
     );
-  };
+  }, []);
+
+  const handleFullscreenToggle = useCallback(() => {
+    setIsFullscreen((v) => !v);
+  }, []);
 
   const filtered = useMemo(() => {
     return rows
@@ -181,7 +185,7 @@ const LogPanel: React.FC = () => {
           <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
             <IconButton
               size="small"
-              onClick={() => setIsFullscreen((v) => !v)}
+              onClick={handleFullscreenToggle}
               aria-label="Toggle fullscreen"
             >
               {isFullscreen ? (

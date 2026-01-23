@@ -1,5 +1,5 @@
 /* @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { List, ListItem, ListItemText, Box, IconButton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -116,9 +116,16 @@ const NotificationsList: React.FC = () => {
     )
     .slice(0, NOTIFICATIONS_LIST_MAX_ITEMS);
 
-  const handleCopy = async (content: string) => {
+  const handleCopy = useCallback(async (content: string) => {
     await writeClipboard(content, true);
-  };
+  }, [writeClipboard]);
+
+  const handleCopyClick = useCallback(
+    (content: string) => () => {
+      handleCopy(content);
+    },
+    [handleCopy]
+  );
 
   return (
     <Box css={styles(theme)} className="notifications-list-container">
@@ -155,7 +162,7 @@ const NotificationsList: React.FC = () => {
             <IconButton
               className="copy-button"
               size="small"
-              onClick={() => handleCopy(notification.content)}
+              onClick={handleCopyClick(notification.content)}
               title="Copy to clipboard"
             >
               <ContentCopyIcon fontSize="small" />

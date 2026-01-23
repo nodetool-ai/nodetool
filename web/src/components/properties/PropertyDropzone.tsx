@@ -188,18 +188,21 @@ const PropertyDropzone = ({
     }
   }, []);
 
-  useEffect(() => {
-    setImageDimensions(null);
-    // Check if image is already loaded (cached) after DOM update
-    requestAnimationFrame(() => {
-      if (imageRef.current?.complete && imageRef.current.naturalWidth > 0) {
-        setImageDimensions({
-          width: imageRef.current.naturalWidth,
-          height: imageRef.current.naturalHeight
-        });
-      }
-    });
-  }, [uri, asset?.get_url]);
+  const handleDoubleClick = useCallback(() => {
+    setOpenViewer(true);
+  }, []);
+
+  const handleCloseViewer = useCallback(() => {
+    setOpenViewer(false);
+  }, []);
+
+  const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ uri: e.target.value, type: contentType });
+  }, [onChange, contentType]);
+
+  const handleVolumeChange = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
+    e.currentTarget.volume = 1;
+  }, []);
 
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
@@ -210,7 +213,7 @@ const PropertyDropzone = ({
               contentType={contentType + "/*"}
               url={uri}
               open={openViewer}
-              onClose={() => setOpenViewer(false)}
+              onClose={handleCloseViewer}
             />
             <div style={{ position: "relative" }}>
               <img
@@ -219,7 +222,7 @@ const PropertyDropzone = ({
                 alt=""
                 style={{ width: "100%", height: "auto" }}
                 onLoad={handleImageLoad}
-                onDoubleClick={() => setOpenViewer(true)}
+                onDoubleClick={handleDoubleClick}
                 draggable={false}
               />
               {imageDimensions && (
@@ -241,11 +244,11 @@ const PropertyDropzone = ({
                   asset={asset ? asset : undefined}
                   url={uri ? uri : undefined}
                   open={openViewer}
-                  onClose={() => setOpenViewer(false)}
+                  onClose={handleCloseViewer}
                 />
                 <audio
                   style={{ width: "100%", height: "20px" }}
-                  onVolumeChange={(e) => (e.currentTarget.volume = 1)}
+                  onVolumeChange={handleVolumeChange}
                   src={uri as string}
                 >
                   Your browser does not support the audio element.
@@ -268,7 +271,7 @@ const PropertyDropzone = ({
                   asset={asset ? asset : undefined}
                   url={uri ? uri : undefined}
                   open={openViewer}
-                  onClose={() => setOpenViewer(false)}
+                  onClose={handleCloseViewer}
                 />
                 <video
                   style={{ width: "100%", height: "auto" }}
@@ -285,7 +288,6 @@ const PropertyDropzone = ({
           </>
         );
       case "document": {
-        // Check file extension
         const fileExtension = uri?.toLowerCase().split(".").pop();
 
         if (fileExtension === "pdf") {
@@ -315,7 +317,11 @@ const PropertyDropzone = ({
       default:
         return null;
     }
-  }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, imageDimensions]);
+  }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, handleDoubleClick, handleCloseViewer, imageDimensions, handleVolumeChange]);
+
+  const handleToggleUrlInput = useCallback(() => {
+    setShowUrlInput(!showUrlInput);
+  }, [showUrlInput]);
 
   return (
     <div css={styles(theme)}>
@@ -354,7 +360,7 @@ const PropertyDropzone = ({
             style={{
               opacity: showUrlInput ? 0.8 : 1
             }}
-            onClick={() => setShowUrlInput(!showUrlInput)}
+            onClick={handleToggleUrlInput}
           >
             {showUrlInput ? "X" : "URL"}
           </Button>

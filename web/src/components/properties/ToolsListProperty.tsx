@@ -114,6 +114,13 @@ const ToolsListProperty = (props: PropertyProps) => {
     [toolNames, onChange]
   );
 
+  const handleToolClick = useCallback(
+    (toolName: string) => () => {
+      handleToggleTool(toolName);
+    },
+    [handleToggleTool]
+  );
+
   return (
     <>
       <PropertyLabel
@@ -138,7 +145,7 @@ const ToolsListProperty = (props: PropertyProps) => {
           >
             <IconButton
               size="small"
-              onClick={() => handleToggleTool(tool)}
+              onClick={handleToolClick(tool)}
               sx={{
                 padding: "1px",
                 marginLeft: "0 !important",
@@ -188,7 +195,7 @@ const ToolsListProperty = (props: PropertyProps) => {
         {AVAILABLE_TOOLS.map((tool) => {
           const selected = toolNames.includes(tool);
           return (
-            <MenuItem key={tool} onClick={() => handleToggleTool(tool)} dense>
+            <MenuItem key={tool} onClick={handleToolClick(tool)} dense>
               <ListItemIcon sx={{ minWidth: 24 }}>
                 {TOOL_ICONS[tool] || <Search fontSize="small" />}
               </ListItemIcon>
