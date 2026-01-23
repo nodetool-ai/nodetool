@@ -41,6 +41,13 @@ const StandaloneChat: React.FC = () => {
     return unsubscribe;
   }, []);
 
+  // Proactively establish WebSocket connection on mount
+  useEffect(() => {
+    globalWebSocketManager.ensureConnection().catch((err) => {
+      console.error("Failed to establish WebSocket connection:", err);
+    });
+  }, []);
+
   const status = useGlobalChatStore((s) => s.status);
   const sendMessage = useGlobalChatStore((s) => s.sendMessage);
   const progress = useGlobalChatStore((s) => s.progress);

@@ -63,6 +63,14 @@ const GlobalChat: React.FC = () => {
     );
     return unsubscribe;
   }, []);
+
+  // Proactively establish WebSocket connection on mount
+  useEffect(() => {
+    globalWebSocketManager.ensureConnection().catch((err) => {
+      console.error("Failed to establish WebSocket connection:", err);
+    });
+  }, []);
+
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
   );
