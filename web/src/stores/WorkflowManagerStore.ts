@@ -26,10 +26,8 @@ import {
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates } from "./workflowUpdates";
 import { getWorkflowRunnerStore } from "./WorkflowRunner";
 import { useNotificationStore } from "./NotificationStore";
-import { fetchWorkflowVersions, restoreWorkflowVersion } from "../serverState/useWorkflowVersions";
+import { fetchWorkflowVersions } from "../serverState/useWorkflowVersions";
 import log from "loglevel";
-import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
-import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 import { useRightPanelStore } from "./RightPanelStore";
 import { useVersionHistoryStore } from "./VersionHistoryStore";
 
@@ -706,7 +704,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               queryFn: () => fetchWorkflowVersions(workflowId, null, 1),
               staleTime: 5000 // Short stale time - only dedupe concurrent requests
             });
-            if (!versions) return;
+            if (!versions) { return; }
             if (versions.versions.length > 0) {
               const latestVersion = versions.versions[0];
               const versionTime = new Date(latestVersion.created_at).getTime();
