@@ -140,7 +140,7 @@ export const selectStyles = (theme: Theme) =>
 
 /**
  * Portal styles for the dropdown options list.
- * Rendered outside the node container to avoid clipPath clipping.
+ * Rendered outside the node container to escape clipPath clipping.
  */
 export const portalOptionsStyles = (theme: Theme) =>
   css({
