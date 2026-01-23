@@ -323,10 +323,6 @@ const PropertyDropzone = ({
     }
   }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, handleDoubleClick, handleCloseViewer, imageDimensions, handleVolumeChange]);
 
-  const handleToggleUrlInput = useCallback(() => {
-    setShowUrlInput(!showUrlInput);
-  }, [showUrlInput]);
-
   return (
     <div css={styles(theme)}>
       <div className="drop-container">
