@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -17,9 +17,7 @@ import {
   Box
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
-import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CheckIcon from "@mui/icons-material/Check";
 import { SearchResultGroup } from "../../utils/nodeSearch";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
@@ -32,6 +30,8 @@ interface RenderNodesSelectableProps {
   onNodeClick?: (node: NodeMetadata) => void;
   onSetSelection?: (newSelection: string[]) => void;
   hideSelectedSection?: boolean;
+  scrollToNamespace?: string | null;
+  onScrollToNamespaceComplete?: () => void;
 }
 
 const listStyles = () =>
@@ -67,10 +67,13 @@ const listStyles = () =>
     ".node .node-button": {
       border: `1px solid transparent`,
       transition:
-        "outline-color 120ms ease, background-color 120ms ease, border-color 120ms ease"
+        "outline-color 120ms ease, background-color 120ms ease, border-color 120ms ease",
+      "& svg": {
+        opacity: 0.75
+      }
     },
     ".node.selected .node-button": {
-      backgroundColor: "grey.850",
+      backgroundColor: "var(--palette-grey-850)",
       opacity: 0.7,
       "&:hover": {
         opacity: 0.9
@@ -87,22 +90,22 @@ const listStyles = () =>
       gap: "8px",
       padding: "8px 4px 6px",
       marginBottom: "4px",
-      borderBottom: `1px solid grey.700`,
+      borderBottom: "1px solid var(--palette-grey-700)",
       "& .section-title": {
         fontSize: "0.7em",
         fontWeight: 600,  
-        color: "grey.400",
+        color: "var(--palette-grey-400)",
         textTransform: "uppercase",
         letterSpacing: "0.05em"
       },
       "& .section-count": {
         fontSize: "0.7em",
-        color: "grey.500"
+        color: "var(--palette-grey-500)"
       }
     },
     // Namespace styling - cleaner, more subtle
     ".namespace-text": {
-      color: "grey.300",
+      color: "var(--palette-grey-100)",
       fontSize: "0.8em",
       fontWeight: 500,
       padding: 0,
@@ -117,8 +120,12 @@ const listStyles = () =>
       gap: "0.5em",
       padding: "2px 0 2px 4px",
       margin: "6px 0 2px",
-      borderBottom: `1px solid grey.800`,
+      borderBottom: "1px solid var(--palette-grey-800)",
       minHeight: "32px",
+      transition: "background-color 150ms ease",
+      "&:hover": {
+        backgroundColor: "var(--palette-grey-900)"
+      },
       "& .MuiTooltip-root": {
         display: "flex",
         alignItems: "center"
@@ -131,7 +138,9 @@ const listStyles = () =>
       margin: 0,
       borderRadius: 0,
       backgroundColor: "transparent",
-      border: "none"
+      border: "none",
+      flex: 1,
+      minWidth: 0
     },
     ".checkbox-cell": {
       display: "flex",
@@ -169,7 +178,6 @@ const groupNodes = (nodes: NodeMetadata[]) => {
 const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   title
 }) {
-  const theme = useTheme();
   const tooltips: Record<string, string> = {
     Name: "Exact matches in node names",
     Namespace: "Matches in node namespaces and tags",
@@ -177,12 +185,20 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   };
 
   return (
-    <Tooltip title={tooltips[title] || ""} placement="bottom" enterDelay={200}>
+    <Tooltip
+      title={tooltips[title] || ""}
+      placement="bottom"
+      enterDelay={200}
+      slotProps={{
+        popper: { sx: { zIndex: 2000 } },
+        tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
+      }}
+    >
       <Typography
         variant="h6"
         component="div"
         sx={{
-          color: theme.vars.palette.primary.main,
+          color: "var(--palette-primary-main)",
           fontSize: "0.9em",
           padding: "0.5em 0 0"
         }}
@@ -200,7 +216,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   onToggleSelection,
   onNodeClick,
   onSetSelection,
-  hideSelectedSection: _hideSelectedSection = false
+  hideSelectedSection: _hideSelectedSection = false,
+  scrollToNamespace,
+  onScrollToNamespaceComplete
 }) => {
   const { groupedSearchResults, searchTerm } = useNodeMenuStore((state) => ({
     groupedSearchResults: state.groupedSearchResults,
@@ -213,6 +231,31 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   const [expandedNamespaces, setExpandedNamespaces] = useState<Set<string>>(
     new Set()
   );
+  
+  // Refs for namespace elements to enable scrolling
+  const namespaceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  
+  // Handle scroll to namespace when prop changes
+  useEffect(() => {
+    if (scrollToNamespace) {
+      // Expand the namespace first
+      setExpandedNamespaces((prev) => {
+        const next = new Set(prev);
+        next.add(scrollToNamespace);
+        return next;
+      });
+      
+      // Scroll to the namespace element after a short delay to allow expansion
+      setTimeout(() => {
+        const element = namespaceRefs.current.get(scrollToNamespace);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        // Signal completion
+        onScrollToNamespaceComplete?.();
+      }, 50);
+    }
+  }, [scrollToNamespace, onScrollToNamespaceComplete]);
   
   const toggleNamespaceExpansion = useCallback((namespace: string) => {
     setExpandedNamespaces((prev) => {
@@ -330,7 +373,15 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                 return (
                   <div key={namespace}>
                     <Box className="namespace-row">
-                      <Tooltip title="Toggle all in namespace" placement="left" enterDelay={500}>
+                      <Tooltip
+                        title="Toggle all in namespace"
+                        placement="left"
+                        enterDelay={500}
+                        slotProps={{
+                          popper: { sx: { zIndex: 2000 } },
+                          tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
+                        }}
+                      >
                         <span className="checkbox-cell">
                           {showCheckboxes && (
                             <Checkbox
@@ -344,9 +395,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                               }}
                               onClick={(e) => e.stopPropagation()}
                               sx={{
-                                color: "grey.500",
+                                color: "var(--palette-grey-500)",
                                 "&.Mui-checked, &.MuiCheckbox-indeterminate": {
-                                  color: "grey.400"
+                                  color: "var(--palette-grey-400)"
                                 }
                               }}
                             />
@@ -357,6 +408,10 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                         variant="h5"
                         component="div"
                         className="namespace-text"
+                        sx={{
+                          flex: 1,
+                          minWidth: 0
+                        }}
                       >
                         {selectedPath.length > 0
                           ? namespace.replaceAll(selectedPath + ".", "")
@@ -428,11 +483,28 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
           const isExpanded = expandedNamespaces.has(namespace);
           
           return (
-            <div key={`namespace-wrapper-${namespace}-${namespaceIndex}`}>
+            <div
+              key={`namespace-wrapper-${namespace}-${namespaceIndex}`}
+              ref={(el) => {
+                if (el) {
+                  namespaceRefs.current.set(namespace, el);
+                } else {
+                  namespaceRefs.current.delete(namespace);
+                }
+              }}
+            >
               <Box
                 className="namespace-row"
               >
-                <Tooltip title="Toggle all in namespace" placement="left" enterDelay={500}>
+                <Tooltip
+                  title="Toggle all in namespace"
+                  placement="left"
+                  enterDelay={500}
+                  slotProps={{
+                    popper: { sx: { zIndex: 2000 } },
+                    tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
+                  }}
+                >
                   <span className="checkbox-cell">
                     {showCheckboxes && (
                       <Checkbox
@@ -446,9 +518,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                         }}
                         onClick={(e) => e.stopPropagation()}
                         sx={{
-                          color: "grey.500",
+                          color: "var(--palette-grey-500)",
                           "&.Mui-checked, &.MuiCheckbox-indeterminate": {
-                            color: "grey.400"
+                            color: "var(--palette-grey-400)"
                           }
                         }}
                       />

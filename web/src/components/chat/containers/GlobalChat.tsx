@@ -434,7 +434,7 @@ const GlobalChat: React.FC = () => {
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box",
-        background: theme.vars.palette.c_editor_bg_color
+        background: theme.vars.palette.background.default
         // Mobile styles handled via separate CSS file
       }}
     >

@@ -32,8 +32,8 @@ import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
 
 // Popover dimensions
-const POPOVER_WIDTH = 560;
-const POPOVER_HEIGHT = 480;
+const POPOVER_WIDTH = 680;
+const POPOVER_HEIGHT = 600;
 
 const toolsSelectorStyles = (theme: Theme) =>
   css({
@@ -83,14 +83,14 @@ const toolsSelectorStyles = (theme: Theme) =>
       flexShrink: 0
     },
     ".selected-title": {
-      fontSize: "0.75em",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
       letterSpacing: "0.05em"
     },
     ".selected-count": {
-      fontSize: "0.7em",
+      fontSize: "var(--fontSizeTiny)",
       color: theme.vars.palette.grey[500],
       marginLeft: "6px"
     },
@@ -114,12 +114,17 @@ const toolsSelectorStyles = (theme: Theme) =>
       }
     },
     ".selected-item-name": {
-      fontSize: "0.8em",
-      color: theme.vars.palette.grey[200],
+      fontSize: "var(--fontSizeSmall)",
+      color: theme.vars.palette.grey[100],
       flex: 1,
       overflow: "hidden",
       textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      cursor: "pointer",
+      transition: "color 150ms ease",
+      "&:hover": {
+        color: theme.vars.palette.primary.main
+      }
     },
     ".remove-btn": {
       opacity: 0.5,
@@ -135,7 +140,7 @@ const toolsSelectorStyles = (theme: Theme) =>
       padding: "12px",
       textAlign: "left",
       color: theme.vars.palette.grey[400],
-      fontSize: "0.75em",
+      fontSize: "var(--fontSizeSmaller)",
       lineHeight: 1.5,
       "& .empty-title": {
         fontWeight: 600,
@@ -147,7 +152,7 @@ const toolsSelectorStyles = (theme: Theme) =>
         color: theme.vars.palette.grey[400]
       },
       "& .empty-hint": {
-        fontSize: "0.9em",
+        fontSize: "var(--fontSizeSmall)",
         color: theme.vars.palette.grey[500],
         fontStyle: "italic"
       }
@@ -246,6 +251,17 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   // Count of selected node tools
   const selectedCount = selectedNodeTypes.length;
   const memoizedStyles = useMemo(() => toolsSelectorStyles(theme), [theme]);
+  
+  // State for scrolling to namespace when clicking on right side
+  const [scrollToNamespace, setScrollToNamespace] = useState<string | null>(null);
+  
+  const handleScrollToNamespace = useCallback((namespace: string) => {
+    setScrollToNamespace(namespace);
+  }, []);
+  
+  const handleScrollToNamespaceComplete = useCallback(() => {
+    setScrollToNamespace(null);
+  }, []);
 
   // Positioning logic for Popover (same pattern as ModelMenuDialogBase)
   const [positionConfig, setPositionConfig] = useState<{
@@ -313,7 +329,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   height: "18px",
                   "& .MuiChip-label": {
                     padding: "0 5px",
-                    fontSize: "0.75rem"
+                    fontSize: "var(--fontSizeSmaller)"
                   }
                 }}
               />
@@ -420,6 +436,8 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                     onToggleSelection={handleToggleNode}
                     onSetSelection={handleSetSelection}
                     hideSelectedSection={true}
+                    scrollToNamespace={scrollToNamespace}
+                    onScrollToNamespaceComplete={handleScrollToNamespaceComplete}
                   />
                 )}
               </div>
@@ -429,7 +447,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
           {/* Right Panel - Selected Nodes */}
           <Box
             sx={{
-              width: 180,
+              width: 280,
               flexShrink: 0,
               borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
               bgcolor: theme.vars.palette.grey[900],
@@ -479,25 +497,37 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                             margin: "0",
                             padding: "1px",
                             borderRadius: "2px",
-                            width: "16px",
-                            height: "16px"
+                            width: "20px",
+                            height: "20px"
                           }}
                           svgProps={{
-                            width: "12px",
-                            height: "12px"
+                            width: "15px",
+                            height: "15px"
                           }}
                         />
                         <Tooltip
-                          title={node.title}
+                          title="Click to scroll to namespace"
                           enterDelay={500}
                           placement="left"
                           slotProps={{
                             popper: {
-                              sx: { zIndex: 1500 }
+                              sx: { zIndex: 2000 }
+                            },
+                            tooltip: {
+                              sx: {
+                                bgcolor: "grey.800",
+                                color: "grey.100"
+                              }
                             }
                           }}
                         >
-                          <span className="selected-item-name">{node.title}</span>
+                          <span
+                            className="selected-item-name"
+                            onClick={() => handleScrollToNamespace(node.namespace)}
+                            style={{ cursor: "pointer" }}
+                          >
+                            {node.title}
+                          </span>
                         </Tooltip>
                         <Tooltip
                           title="Remove"
@@ -505,7 +535,13 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                           placement="left"
                           slotProps={{
                             popper: {
-                              sx: { zIndex: 1500 }
+                              sx: { zIndex: 2000 }
+                            },
+                            tooltip: {
+                              sx: {
+                                bgcolor: "grey.800",
+                                color: "grey.100"
+                              }
                             }
                           }}
                         >
@@ -515,7 +551,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                             onClick={() => handleToggleNode(node.node_type)}
                             sx={{ color: theme.vars.palette.grey[500] }}
                           >
-                            <Close sx={{ fontSize: "14px" }} />
+                            <Close sx={{ fontSize: "var(--fontSizeSmall)" }} />
                           </IconButton>
                         </Tooltip>
                       </div>
