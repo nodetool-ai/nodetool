@@ -67,6 +67,17 @@ interface MenuEventData {
   type: MenuEventType;
 }
 
+// Clipboard content info for smart paste decisions
+interface ClipboardContentInfo {
+  formats: string[];
+  hasImage: boolean;
+  hasFiles: boolean;
+  hasHtml: boolean;
+  hasRtf: boolean;
+  hasText: boolean;
+  platform: "darwin" | "win32" | "linux";
+}
+
 declare global {
   interface Window {
     api: {
@@ -106,7 +117,12 @@ declare global {
         availableFormats: (
           type?: "clipboard" | "selection"
         ) => Promise<string[]>;
+        /** Read file paths from clipboard (cross-platform: macOS, Windows, Linux) */
         readFilePaths: () => Promise<string[]>;
+        /** Read raw buffer data from clipboard for a specific format (returns base64) */
+        readBuffer: (format: string) => Promise<string | null>;
+        /** Get comprehensive clipboard content info for smart paste decisions */
+        getContentInfo: () => Promise<ClipboardContentInfo>;
         readFileAsDataURL: (filePath: string) => Promise<string | null>;
       };
       openLogFile: () => Promise<void>;

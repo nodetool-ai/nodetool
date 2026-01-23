@@ -147,7 +147,7 @@ async function copyHtmlToClipboard(
     if (window.api.clipboard?.writeHTML) {
       await window.api.clipboard.writeHTML(htmlContent);
       log.info("HTML copied to clipboard successfully");
-    } else {
+    } else if (window.api.clipboard?.writeText) {
       // Fallback to text if HTML clipboard not available
       await window.api.clipboard.writeText(htmlContent);
       log.info("HTML copied as text to clipboard (fallback)");
@@ -186,9 +186,6 @@ async function copyTextToClipboard(
     }
 
     if (window.api.clipboard?.writeText) {
-      await window.api.clipboard.writeText(textContent);
-    } else {
-      // Fallback to legacy API
       await window.api.clipboard.writeText(textContent);
     }
 

@@ -49,7 +49,7 @@ export const useCopyPaste = () => {
     })
   );
 
-  const { handleContentPaste } = useClipboardContentPaste();
+  const { handleContentPaste, readClipboardText } = useClipboardContentPaste();
 
   const selectedNodes = useMemo(() => {
     return nodes.filter((node) => node.selected);
@@ -127,14 +127,8 @@ export const useCopyPaste = () => {
 
     let clipboardData: string | null = null;
 
-    // Try to get data from Author's clipboard first, then fallback to localStorage
-    if (window.api?.clipboard?.readText) {
-      try {
-        clipboardData = await window.api.clipboard.readText();
-      } catch (error) {
-        console.warn("Failed to read from Electron clipboard:", error);
-      }
-    }
+    // Try to get data from Author's clipboard first using robust reader
+    clipboardData = await readClipboardText();
 
     if (!clipboardData) {
       clipboardData = localStorage.getItem("copiedNodesData");
@@ -285,7 +279,8 @@ export const useCopyPaste = () => {
     setEdges,
     setIsClipboardValid,
     workflowId,
-    handleContentPaste
+    handleContentPaste,
+    readClipboardText
   ]);
 
   return { handleCopy, handleCut, handlePaste };

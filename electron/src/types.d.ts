@@ -115,6 +115,8 @@ declare global {
         clear: (type?: ClipboardType) => Promise<void>;
         availableFormats: (type?: ClipboardType) => Promise<string[]>;
         readFilePaths: () => Promise<string[]>;
+        readBuffer: (format: string) => Promise<string | null>;
+        getContentInfo: () => Promise<ClipboardContentInfo>;
         readFileAsDataURL: (filePath: string) => Promise<string | null>;
       };
 
@@ -456,6 +458,8 @@ export enum IpcChannels {
   DIALOG_OPEN_FILE = "dialog-open-file",
   DIALOG_OPEN_FOLDER = "dialog-open-folder",
   CLIPBOARD_READ_FILE_PATHS = "clipboard-read-file-paths",
+  CLIPBOARD_READ_BUFFER = "clipboard-read-buffer",
+  CLIPBOARD_GET_CONTENT_INFO = "clipboard-get-content-info",
   FILE_READ_AS_DATA_URL = "file-read-as-data-url",
 }
 
@@ -509,6 +513,17 @@ export interface DialogOpenFolderRequest {
 export interface DialogOpenResult {
   canceled: boolean;
   filePaths: string[];
+}
+
+// Clipboard content info for smart paste decisions
+export interface ClipboardContentInfo {
+  formats: string[];
+  hasImage: boolean;
+  hasFiles: boolean;
+  hasHtml: boolean;
+  hasRtf: boolean;
+  hasText: boolean;
+  platform: "darwin" | "win32" | "linux";
 }
 
 // Request/Response types for each IPC channel
@@ -597,6 +612,8 @@ export interface IpcRequest {
   [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenFileRequest;
   [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenFolderRequest;
   [IpcChannels.CLIPBOARD_READ_FILE_PATHS]: void;
+  [IpcChannels.CLIPBOARD_READ_BUFFER]: string; // format name
+  [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: void;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string; // filePath
 }
 
@@ -669,6 +686,8 @@ export interface IpcResponse {
   [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenResult;
   [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenResult;
   [IpcChannels.CLIPBOARD_READ_FILE_PATHS]: string[];
+  [IpcChannels.CLIPBOARD_READ_BUFFER]: string | null; // base64 encoded buffer
+  [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: ClipboardContentInfo;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string | null;
 }
 
