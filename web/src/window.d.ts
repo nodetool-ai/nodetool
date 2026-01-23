@@ -74,6 +74,28 @@ declare global {
       clipboardWriteText: (text: string) => Promise<void>;
       clipboardReadText: () => Promise<string>;
       clipboardWriteImage: (dataUrl: string) => Promise<void>;
+
+      // Clipboard operations (new API)
+      clipboard?: {
+        readText: (type?: "clipboard" | "selection") => Promise<string>;
+        writeText: (text: string, type?: "clipboard" | "selection") => Promise<void>;
+        readHTML: (type?: "clipboard" | "selection") => Promise<string>;
+        writeHTML: (markup: string, type?: "clipboard" | "selection") => Promise<void>;
+        readImage: (type?: "clipboard" | "selection") => Promise<string>;
+        writeImage: (dataUrl: string, type?: "clipboard" | "selection") => Promise<void>;
+        readRTF: (type?: "clipboard" | "selection") => Promise<string>;
+        writeRTF: (text: string, type?: "clipboard" | "selection") => Promise<void>;
+        readBookmark: () => Promise<{ title: string; url: string }>;
+        writeBookmark: (
+          title: string,
+          url: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readFindText: () => Promise<string>;
+        writeFindText: (text: string) => Promise<void>;
+        clear: (type?: "clipboard" | "selection") => Promise<void>;
+        availableFormats: (type?: "clipboard" | "selection") => Promise<string[]>;
+      };
       openLogFile: () => Promise<void>;
       showItemInFolder: (fullPath: string) => Promise<void>;
       openModelDirectory?: (
