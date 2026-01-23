@@ -16,23 +16,24 @@ import {
   Chip,
   Box,
   Popover,
-  PopoverOrigin
+  PopoverOrigin,
+  IconButton
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
-import { Extension } from "@mui/icons-material";
+import { Extension, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useNodeToolsMenuStore } from "../../../stores/NodeMenuStore";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import SearchInput from "../../search/SearchInput";
 import RenderNodesSelectable from "../../node_menu/RenderNodesSelectable";
-import NodeInfo from "../../node_menu/NodeInfo";
+import { IconForType } from "../../../config/data_types";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
 
 // Popover dimensions
-const POPOVER_WIDTH = 420;
-const POPOVER_HEIGHT = 420;
+const POPOVER_WIDTH = 560;
+const POPOVER_HEIGHT = 480;
 
 const toolsSelectorStyles = (theme: Theme) =>
   css({
@@ -233,8 +234,8 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 size="small"
                 label={selectedCount}
                 sx={{
-                  backgroundColor: theme.vars.palette.primary.light,
-                  color: theme.vars.palette.grey[100],
+                  backgroundColor: theme.vars.palette.grey[700],
+                  color: theme.vars.palette.grey[200],
                   borderRadius: "6px",
                   height: "18px",
                   "& .MuiChip-label": {
@@ -246,16 +247,15 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
             )
           }
           sx={(theme) => ({
-            color: theme.vars.palette.grey[0],
+            color: theme.vars.palette.grey[300],
             padding: "0.25em 0.25em",
             "&:hover": {
-              backgroundColor: theme.vars.palette.grey[500]
+              backgroundColor: theme.vars.palette.grey[700]
             },
             "&.active": {
-              borderColor: "var(--palette-primary-main)",
-              color: "var(--palette-primary-main)",
+              color: theme.vars.palette.grey[100],
               "& .MuiSvgIcon-root": {
-                color: "var(--palette-primary-main)"
+                color: theme.vars.palette.grey[100]
               }
             }
           })}

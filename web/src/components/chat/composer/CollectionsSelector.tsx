@@ -279,12 +279,15 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
               Loading collections...
             </Typography>
           ) : !collections?.collections.length ? (
-            <Typography
-              variant="body2"
-              sx={{ p: 2, color: theme.vars.palette.text.secondary }}
-            >
-              No collections available
-            </Typography>
+            <Box sx={{ p: 2, color: theme.vars.palette.text.secondary }}>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                No collections available
+              </Typography>
+              <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
+                Collections are document databases that the AI can search for context.
+                Create a collection from the Assets panel to add documents, PDFs, or text files.
+              </Typography>
+            </Box>
           ) : (
             collections.collections.map((collection) => {
               const isSelected = value.includes(collection.name);
