@@ -30,7 +30,6 @@ const styles = (_theme: Theme) =>
       flex: 1,
       minWidth: 0,
       width: "100%",
-      order: 1,
       minHeight: "44px",
       display: "flex",
       flexDirection: "column"
@@ -89,6 +88,16 @@ const ChatInputSection = ({
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   return (
     <div className="chat-input-section" css={styles(theme)}>
+      <div className="chat-composer-wrapper">
+        <ChatComposer
+          isLoading={isLoading}
+          isStreaming={isStreaming}
+          onSendMessage={onSendMessage}
+          onStop={onStop}
+          onNewChat={onNewChat}
+          agentMode={agentMode}
+        />
+      </div>
       {showToolbar && (
         <div className="chat-controls">
           {isMobile ? (
@@ -118,16 +127,6 @@ const ChatInputSection = ({
           )}
         </div>
       )}
-      <div className="chat-composer-wrapper">
-        <ChatComposer
-          isLoading={isLoading}
-          isStreaming={isStreaming}
-          onSendMessage={onSendMessage}
-          onStop={onStop}
-          onNewChat={onNewChat}
-          agentMode={agentMode}
-        />
-      </div>
     </div>
   );
 };
