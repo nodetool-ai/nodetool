@@ -31,6 +31,20 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
   return (
     <Tooltip
       enterDelay={TOOLTIP_ENTER_DELAY}
+      placement="top"
+      slotProps={{
+        popper: {
+          modifiers: [
+            {
+              name: "preventOverflow",
+              options: {
+                altAxis: true,
+                padding: 8
+              }
+            }
+          ]
+        }
+      }}
       title={
         <div style={{ textAlign: "center" }}>
           <Typography variant="inherit">

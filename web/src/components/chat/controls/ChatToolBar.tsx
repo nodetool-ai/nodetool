@@ -29,9 +29,9 @@ const styles = (theme: Theme) =>
     border: `1px solid ${theme.vars.palette.grey[700]}80`,
     boxShadow: `0 4px 24px -4px ${theme.vars.palette.grey[900]}4d, 
                 inset 0 1px 0 ${theme.vars.palette.grey[600]}40`,
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    transition: "border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     position: "relative",
-    overflow: "hidden",
+    overflow: "visible",
 
     "&::before": {
       content: '""',
@@ -60,10 +60,10 @@ const styles = (theme: Theme) =>
       gap: "4px",
       padding: "2px 4px",
       borderRadius: "8px",
-      transition: "all 0.2s ease",
+      transition: "background-color 0.2s ease",
       
       "&:hover": {
-        background: `${theme.vars.palette.grey[700]}30`
+        backgroundColor: `${theme.vars.palette.grey[700]}30`
       }
     },
 
@@ -99,18 +99,12 @@ const styles = (theme: Theme) =>
       borderRadius: "8px",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       border: `1px solid transparent`,
-      transform: "translateY(0)", // Base transform to prevent layout shift on hover
       
       "&:hover": {
         background: `${theme.vars.palette.grey[600]}40`,
         border: `1px solid ${theme.vars.palette.grey[600]}60`,
-        transform: "translateY(-1px)"
       },
       
-      "&:active": {
-        transform: "translateY(0)"
-      },
-
       "&.active, &.Mui-selected": {
         background: `linear-gradient(135deg, 
           ${theme.vars.palette.primary.dark}30 0%, 
