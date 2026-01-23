@@ -30,6 +30,7 @@ interface ChatComposerProps {
   onNewChat?: () => void;
   disabled?: boolean;
   agentMode?: boolean;
+  toolbarNode?: React.ReactNode;
 }
 
 interface QueuedMessage {
@@ -45,7 +46,8 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   onStop,
   onNewChat,
   disabled = false,
-  agentMode = false
+  agentMode = false,
+  toolbarNode
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -183,56 +185,56 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
               boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}25`
             }}
           >
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              variant="caption"
-              sx={{
-                display: "block",
-                color: "primary.main",
-                fontWeight: 500,
-                mb: 0.25
-              }}
-            >
-              Message queued
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                display: "block",
-                color: "text.secondary",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
-              }}
-            >
-              {queuedMessage?.prompt}
-            </Typography>
-          </Box>
-          <Tooltip title="Send now (interrupts current response)">
-            <IconButton
-              size="small"
-              onClick={handleSendNow}
-              disabled={!onStop}
-              sx={{
-                color: "primary.main",
-                "&:hover": { backgroundColor: theme.vars.palette.primary.main + "20" }
-              }}
-            >
-              <SendIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Cancel queued message">
-            <IconButton
-              size="small"
-              onClick={handleCancelQueued}
-              sx={{
-                color: "text.secondary",
-                "&:hover": { color: "error.main" }
-              }}
-            >
-              <ClearIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  color: "primary.main",
+                  fontWeight: 500,
+                  mb: 0.25
+                }}
+              >
+                Message queued
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  color: "text.secondary",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {queuedMessage?.prompt}
+              </Typography>
+            </Box>
+            <Tooltip title="Send now (interrupts current response)">
+              <IconButton
+                size="small"
+                onClick={handleSendNow}
+                disabled={!onStop}
+                sx={{
+                  color: "primary.main",
+                  "&:hover": { backgroundColor: theme.vars.palette.primary.main + "20" }
+                }}
+              >
+                <SendIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Cancel queued message">
+              <IconButton
+                size="small"
+                onClick={handleCancelQueued}
+                sx={{
+                  color: "text.secondary",
+                  "&:hover": { color: "error.main" }
+                }}
+              >
+                <ClearIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
       </Collapse>
@@ -263,15 +265,18 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             disabled={isInputDisabled}
             placeholder="Type your message..."
           />
-          <ActionButtons
-            isLoading={isLoading}
-            isStreaming={isStreaming}
-            onSend={handleSend}
-            onStop={onStop}
-            onNewChat={onNewChat}
-            isDisabled={isDisabled && !queuedMessage}
-            hasContent={prompt.trim() !== "" || !!queuedMessage}
-          />
+          <div className="composer-footer">
+            {toolbarNode}
+            <ActionButtons
+              isLoading={isLoading}
+              isStreaming={isStreaming}
+              onSend={handleSend}
+              onStop={onStop}
+              onNewChat={onNewChat}
+              isDisabled={isDisabled && !queuedMessage}
+              hasContent={prompt.trim() !== "" || !!queuedMessage}
+            />
+          </div>
         </>
       </div>
     </div>

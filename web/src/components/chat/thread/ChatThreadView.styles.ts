@@ -8,7 +8,6 @@ export const createStyles = (theme: Theme) => ({
     display: "flex",
     flexDirection: "column",
     padding: "2em 0",
-    marginRight: "20px",
     minHeight: 0
   }),
   messageWrapper: css({
