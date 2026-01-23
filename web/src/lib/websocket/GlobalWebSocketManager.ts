@@ -29,9 +29,11 @@ class GlobalWebSocketManager extends EventEmitter {
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
   private isConnecting = false;
   private isConnected = false;
+  private networkListenersSetup = false;
 
   private constructor() {
     super();
+    this.setupNetworkListeners();
   }
 
   static getInstance(): GlobalWebSocketManager {
@@ -72,7 +74,7 @@ class GlobalWebSocketManager extends EventEmitter {
         binaryType: "arraybuffer",
         reconnect: true,
         reconnectInterval: 1000,
-        reconnectAttempts: 5
+        reconnectAttempts: 10  // Increased from 5 to 10 for more retries
       });
 
       this.wsManager.on("open", () => {
@@ -269,6 +271,40 @@ class GlobalWebSocketManager extends EventEmitter {
         log.error("GlobalWebSocketManager: Failed to send tools manifest:", error);
       }
     }
+  }
+
+  /**
+   * Set up network status monitoring to auto-reconnect on network changes
+   */
+  private setupNetworkListeners(): void {
+    if (typeof window === "undefined" || this.networkListenersSetup) {
+      return;
+    }
+
+    this.networkListenersSetup = true;
+
+    const handleOnline = () => {
+      log.info("GlobalWebSocketManager: Network came online, attempting reconnection");
+      if (!this.isConnected && !this.isConnecting) {
+        this.ensureConnection().catch((err) => {
+          log.error("GlobalWebSocketManager: Failed to reconnect after network online:", err);
+        });
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        log.info("GlobalWebSocketManager: Tab became visible, checking connection");
+        if (!this.isConnected && !this.isConnecting) {
+          this.ensureConnection().catch((err) => {
+            log.error("GlobalWebSocketManager: Failed to reconnect after visibility change:", err);
+          });
+        }
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
   }
 
   private async buildAuthenticatedUrl(): Promise<string> {

@@ -41,12 +41,16 @@ const StandaloneChat: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  // Proactively establish WebSocket connection on mount
+  // Initialize GlobalChatStore connection on mount
   useEffect(() => {
-    globalWebSocketManager.ensureConnection().catch((err) => {
-      console.error("Failed to establish WebSocket connection:", err);
+    connect().catch((err) => {
+      console.error("Failed to connect GlobalChatStore:", err);
     });
-  }, []);
+    
+    return () => {
+      disconnect();
+    };
+  }, [connect, disconnect]);
 
   const status = useGlobalChatStore((s) => s.status);
   const sendMessage = useGlobalChatStore((s) => s.sendMessage);
@@ -72,6 +76,8 @@ const StandaloneChat: React.FC = () => {
     (s) => s.currentRunningToolCallId
   );
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
+  const connect = useGlobalChatStore((s) => s.connect);
+  const disconnect = useGlobalChatStore((s) => s.disconnect);
 
   // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =

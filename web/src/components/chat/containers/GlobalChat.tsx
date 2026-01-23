@@ -48,6 +48,8 @@ const GlobalChat: React.FC = () => {
   const workflowId = useGlobalChatStore((s) => s.workflowId);
   const deleteThread = useGlobalChatStore((s) => s.deleteThread);
   const messageCache = useGlobalChatStore((s) => s.messageCache);
+  const connect = useGlobalChatStore((s) => s.connect);
+  const disconnect = useGlobalChatStore((s) => s.disconnect);
 
   // Get connection state from WebSocket manager directly
   const [connectionState, setConnectionState] = useState(
@@ -64,12 +66,16 @@ const GlobalChat: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  // Proactively establish WebSocket connection on mount
+  // Initialize GlobalChatStore connection on mount
   useEffect(() => {
-    globalWebSocketManager.ensureConnection().catch((err) => {
-      console.error("Failed to establish WebSocket connection:", err);
+    connect().catch((err) => {
+      console.error("Failed to connect GlobalChatStore:", err);
     });
-  }, []);
+    
+    return () => {
+      disconnect();
+    };
+  }, [connect, disconnect]);
 
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
