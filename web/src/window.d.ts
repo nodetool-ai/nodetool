@@ -71,20 +71,29 @@ declare global {
   interface Window {
     api: {
       runApp: (workflowId: string) => Promise<void>;
-      clipboardWriteText: (text: string) => Promise<void>;
-      clipboardReadText: () => Promise<string>;
-      clipboardWriteImage: (dataUrl: string) => Promise<void>;
 
       // Clipboard operations (new API)
       clipboard?: {
         readText: (type?: "clipboard" | "selection") => Promise<string>;
-        writeText: (text: string, type?: "clipboard" | "selection") => Promise<void>;
+        writeText: (
+          text: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
         readHTML: (type?: "clipboard" | "selection") => Promise<string>;
-        writeHTML: (markup: string, type?: "clipboard" | "selection") => Promise<void>;
+        writeHTML: (
+          markup: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
         readImage: (type?: "clipboard" | "selection") => Promise<string>;
-        writeImage: (dataUrl: string, type?: "clipboard" | "selection") => Promise<void>;
+        writeImage: (
+          dataUrl: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
         readRTF: (type?: "clipboard" | "selection") => Promise<string>;
-        writeRTF: (text: string, type?: "clipboard" | "selection") => Promise<void>;
+        writeRTF: (
+          text: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
         readBookmark: () => Promise<{ title: string; url: string }>;
         writeBookmark: (
           title: string,
@@ -94,16 +103,18 @@ declare global {
         readFindText: () => Promise<string>;
         writeFindText: (text: string) => Promise<void>;
         clear: (type?: "clipboard" | "selection") => Promise<void>;
-        availableFormats: (type?: "clipboard" | "selection") => Promise<string[]>;
+        availableFormats: (
+          type?: "clipboard" | "selection"
+        ) => Promise<string[]>;
+        readFilePaths: () => Promise<string[]>;
+        readFileAsDataURL: (filePath: string) => Promise<string | null>;
       };
       openLogFile: () => Promise<void>;
       showItemInFolder: (fullPath: string) => Promise<void>;
       openModelDirectory?: (
         target: ModelDirectory
       ) => Promise<FileExplorerResult | void>;
-      openModelPath?: (
-        path: string
-      ) => Promise<FileExplorerResult | void>;
+      openModelPath?: (path: string) => Promise<FileExplorerResult | void>;
       openSystemDirectory?: (
         target: SystemDirectory
       ) => Promise<FileExplorerResult | void>;
@@ -116,16 +127,19 @@ declare global {
       restartLlamaServer?: () => Promise<void>;
       windowControls: WindowControls;
       platform: string;
-      
+
       // Shell module - Desktop integration
       shell?: {
         showItemInFolder: (fullPath: string) => Promise<void>;
         openPath: (path: string) => Promise<string>;
-        openExternal: (url: string, options?: {
-          activate?: boolean;
-          workingDirectory?: string;
-          logUsage?: boolean;
-        }) => Promise<void>;
+        openExternal: (
+          url: string,
+          options?: {
+            activate?: boolean;
+            workingDirectory?: string;
+            logUsage?: boolean;
+          }
+        ) => Promise<void>;
         trashItem: (path: string) => Promise<void>;
         beep: () => Promise<void>;
         writeShortcutLink: (
@@ -157,7 +171,9 @@ declare global {
       // Settings module - Application settings (Windows only)
       settings?: {
         getCloseBehavior: () => Promise<"ask" | "quit" | "background">;
-        setCloseBehavior: (action: "ask" | "quit" | "background") => Promise<void>;
+        setCloseBehavior: (
+          action: "ask" | "quit" | "background"
+        ) => Promise<void>;
         getSystemInfo: () => Promise<SystemInfo>;
       };
 

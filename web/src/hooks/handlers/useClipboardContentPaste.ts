@@ -146,8 +146,8 @@ export const useClipboardContentPaste = () => {
       }
 
       // Legacy Electron API
-      if (window.api?.clipboardReadText) {
-        const text = await window.api.clipboardReadText();
+      if (window.api?.clipboard?.readText) {
+        const text = await window.api.clipboard.readText();
         if (text && text.trim()) {
           return text;
         }
