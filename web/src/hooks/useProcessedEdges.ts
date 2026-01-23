@@ -291,7 +291,7 @@ export function useProcessedEdges({
         classes.push("message-sent");
       }
 
-      const edgeLabel = counter && counter > 0 ? `${counter}` : undefined;
+      const edgeLabel = counter && counter > 1 ? `${counter}` : undefined;
       return {
         ...edge,
         label: edgeLabel,
