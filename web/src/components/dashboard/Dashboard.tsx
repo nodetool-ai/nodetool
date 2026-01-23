@@ -31,6 +31,7 @@ import { uuidv4 } from "../../stores/uuidv4";
 import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
 import AppHeader from "../panels/AppHeader";
+import { usePanelStore } from "../../stores/PanelStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -81,6 +82,11 @@ const Dashboard: React.FC = () => {
 
   // Ensure WebSocket connection while dashboard is visible
   useEnsureChatConnected({ disconnectOnUnmount: false });
+
+  // Close panelLeft when dashboard route is opened
+  useEffect(() => {
+    usePanelStore.getState().setVisibility(false);
+  }, []);
 
   const tryParseModel = (model: string) => {
     try {
