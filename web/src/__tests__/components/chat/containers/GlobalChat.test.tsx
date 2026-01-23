@@ -60,7 +60,9 @@ jest.mock("../../../../stores/GlobalChatStore", () => {
         deleteThread: jest.fn(),
         workflowId: null,
         messageCache: {},
-        threadWorkflowId: {}
+        threadWorkflowId: {},
+        connect: jest.fn().mockResolvedValue(undefined),
+        disconnect: jest.fn()
       };
       if (typeof selector === 'function') {
         return selector(mockState);
@@ -100,7 +102,9 @@ jest.mock("../../../../stores/GlobalChatStore", () => {
         deleteThread: jest.fn(),
         workflowId: null,
         messageCache: {},
-        threadWorkflowId: {}
+        threadWorkflowId: {},
+        connect: jest.fn().mockResolvedValue(undefined),
+        disconnect: jest.fn()
       };
       if (typeof selector === 'function') {
         return selector(mockState);
@@ -268,7 +272,9 @@ describe("GlobalChat", () => {
             deleteThread: jest.fn(),
             workflowId: null,
             messageCache: {},
-            threadWorkflowId: {}
+            threadWorkflowId: {},
+            connect: jest.fn().mockResolvedValue(undefined),
+            disconnect: jest.fn()
           });
         }
         return {
@@ -352,7 +358,9 @@ describe("GlobalChat", () => {
             deleteThread: jest.fn(),
             workflowId: null,
             messageCache: {},
-            threadWorkflowId: {}
+            threadWorkflowId: {},
+            connect: jest.fn().mockResolvedValue(undefined),
+            disconnect: jest.fn()
           });
         }
         return {
