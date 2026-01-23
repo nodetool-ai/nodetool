@@ -11,7 +11,7 @@ import {
   PopoverOrigin
 } from "@mui/material";
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
-import FolderIcon from "@mui/icons-material/Folder";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import { useCollectionStore } from "../../../stores/CollectionStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
@@ -159,18 +159,21 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
           className={`collections-button ${selectedCount > 0 ? "active" : ""}`}
           onClick={handleClick}
           size="small"
-          startIcon={<FolderIcon fontSize="small" />}
+          startIcon={<LibraryBooksOutlinedIcon sx={{ fontSize: 18 }} />}
           endIcon={
             selectedCount > 0 && (
               <Chip
                 size="small"
                 label={selectedCount}
                 sx={{
-                  marginLeft: 1,
-                  backgroundColor: theme.vars.palette.primary.main,
-                  color: theme.vars.palette.common.white,
+                  marginLeft: "-4px",
+                  backgroundColor: theme.vars.palette.grey[700],
+                  color: theme.vars.palette.grey[200],
+                  borderRadius: "6px",
+                  height: "18px",
                   "& .MuiChip-label": {
-                    padding: "0 4px"
+                    padding: "0 5px",
+                    fontSize: "0.7rem"
                   }
                 }}
               />
