@@ -144,7 +144,7 @@ const toolsSelectorStyles = (theme: Theme) =>
       },
       "& .empty-desc": {
         marginBottom: "12px",
-        color: theme.vars.palette.grey[500]
+        color: theme.vars.palette.grey[400]
       },
       "& .empty-hint": {
         fontSize: "0.9em",
@@ -450,11 +450,14 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                 {selectedCount === 0 ? (
                   <div className="empty-selection">
                     <span className="empty-title">Node Tools</span>
+                    <Typography variant="caption" sx={{ color: theme.vars.palette.warning.main, fontSize: "var(--fontSizeTiny)" }}>
+                       EXPERIMENTAL
+                    </Typography>
                     <span className="empty-desc">
                       Enable nodes as tools for the AI assistant to use during conversations.
                     </span>
                     <span className="empty-desc">
-                      The AI can automatically run these nodes to generate images, audio, search the web, and more.
+                      These nodes can automatically run to generate images, audio, search the web, and more.
                     </span>
                     <span className="empty-hint">
                       Click nodes on the left to add them.
