@@ -15,7 +15,7 @@ jobs:
       startsWith(github.event.comment.body, '/opencode')
     runs-on: ubuntu-latest
     env:
-      MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+      ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
     permissions:
       id-token: write
       contents: read
@@ -49,8 +49,8 @@ jobs:
           cd mobile
           npm ci
 
-      - name: Print MINIMAX_API_KEY length
-        run: 'echo "MINIMAX_API_KEY length: ${#MINIMAX_API_KEY}"'
+      - name: Print ZAI_API_KEY length
+        run: 'echo "ZAI_API_KEY length: ${#ZAI_API_KEY}"'
 
       - name: Pre-flight Quality Check
         id: pre-check
@@ -120,7 +120,7 @@ jobs:
       - name: Run opencode
         uses: sst/opencode/github@latest
         with:
-          model: minimax/MiniMax-M2.1
+          model: zai-coding-plan/glm-4.7
           prompt: |
             # NodeTool OpenCode Assistant
 
