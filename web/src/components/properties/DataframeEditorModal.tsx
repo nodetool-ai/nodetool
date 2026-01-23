@@ -520,10 +520,6 @@ const DataframeEditorModal = ({
     setSearchFilter(e.target.value);
   }, []);
 
-  const handleClearSearch = useCallback(() => {
-    setSearchFilter("");
-  }, []);
-
   const content = (
     <div className="dataframe-editor-modal" css={styles(theme)}>
       <div

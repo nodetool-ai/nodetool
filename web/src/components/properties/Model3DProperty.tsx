@@ -170,10 +170,6 @@ const Model3DProperty = (props: PropertyProps) => {
     }
   }, [uri]);
 
-  const handleToggleUrlInput = useCallback(() => {
-    setShowUrlInput(!showUrlInput);
-  }, [showUrlInput]);
-
   const handleCloseViewer = useCallback(() => {
     setOpenViewer(false);
   }, []);
