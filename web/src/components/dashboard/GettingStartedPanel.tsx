@@ -548,28 +548,30 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
             variant="body2"
             sx={{ color: "text.secondary", fontSize: "0.85rem" }}
           >
-            Complete these steps to get up and running
+            {progressPercentage < 100 
+              ? "Complete these steps to get up and running"
+              : "All set, welcome to NodeTool!"}
           </Typography>
         </Box>
       </Box>
 
-      <Box className="progress-section">
-        <Box className="progress-header">
-          <Typography className="progress-text">
-            {completedSteps} of {totalSteps} steps completed
-          </Typography>
-          <Typography className="progress-text">
-            {Math.round(progressPercentage)}%
-          </Typography>
-        </Box>
-        {progressPercentage < 100 && (
+      {progressPercentage < 100 && (
+        <Box className="progress-section">
+          <Box className="progress-header">
+            <Typography className="progress-text">
+              {completedSteps} of {totalSteps} steps completed
+            </Typography>
+            <Typography className="progress-text">
+              {Math.round(progressPercentage)}%
+            </Typography>
+          </Box>
           <LinearProgress
             variant="determinate"
             value={progressPercentage}
             className="progress-bar"
           />
-        )}
-      </Box>
+        </Box>
+      )}
 
       <Box className="scrollable-content">
         <Box className="steps-container">
