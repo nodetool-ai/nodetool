@@ -99,6 +99,10 @@ const InferenceProviderModelSelect = ({
         {
             label: "Together",
             value: "together"
+        },
+        {
+            label: "Z.AI",
+            value: "zai-org"
         }
     ];
     const pipelineTag = useMemo(() => {

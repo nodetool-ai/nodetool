@@ -113,6 +113,12 @@ describe("providerDisplay", () => {
       expect(formatGenericProviderName("GOOGLE")).toBe("Gemini");
     });
 
+    it("should handle special case for Z.AI", () => {
+      expect(formatGenericProviderName("zai-org")).toBe("Z.AI");
+      expect(formatGenericProviderName("zai_org")).toBe("Z.AI");
+      expect(formatGenericProviderName("zai")).toBe("Z.AI");
+    });
+
     it("should add spaces before capitals", () => {
       expect(formatGenericProviderName("OpenAI")).toBe("Open Ai");
       expect(formatGenericProviderName("BlackForestLabs")).toBe("Black Forest Labs");
@@ -158,6 +164,9 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("Replicate")).toBe("https://replicate.com");
       expect(getProviderUrl("aime")).toBe("https://www.aime.info/en/");
       expect(getProviderUrl("AIME")).toBe("https://www.aime.info/en/");
+      expect(getProviderUrl("zai")).toBe("https://z.ai");
+      expect(getProviderUrl("zai-org")).toBe("https://z.ai");
+      expect(getProviderUrl("Z.AI")).toBe("https://z.ai");
     });
 
     it("should return null for unknown providers", () => {
