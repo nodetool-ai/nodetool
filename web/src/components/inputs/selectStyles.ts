@@ -137,3 +137,66 @@ export const selectStyles = (theme: Theme) =>
       boxShadow: "0 0 0 2px rgba(33, 150, 243, 0.2)"
     }
   });
+
+/**
+ * Portal styles for the dropdown options list.
+ * Rendered outside the node container to avoid clipPath clipping.
+ */
+export const portalOptionsStyles = (theme: Theme) =>
+  css({
+    "&.options-list": {
+      position: "fixed",
+      minWidth: "200px",
+      maxHeight: "300px",
+      overflowY: "auto",
+      padding: "4px",
+      margin: 0,
+      listStyle: "none",
+      backgroundColor: "var(--palette-Paper-overlay)",
+      backdropFilter: "blur(10px)",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+      borderRadius: "8px",
+      zIndex: 10000
+    },
+
+    ".option:first-of-type": {
+      color: theme.vars.palette.grey[200]
+    },
+
+    ".option": {
+      padding: "6px 12px",
+      cursor: "pointer",
+      fontSize: theme.fontSizeSmall,
+      color: "var(--text-primary)",
+      transition: "all 0.1s ease",
+      whiteSpace: "nowrap",
+      borderRadius: "4px",
+      marginBottom: "2px"
+    },
+
+    ".option:last-child": {
+      marginBottom: 0
+    },
+
+    ".option:hover": {
+      backgroundColor: theme.vars.palette.action.hover,
+      color: "var(--text-primary)"
+    },
+
+    ".option.matching": {
+      fontWeight: "bold",
+      color: theme.vars.palette.grey[0]
+    },
+
+    ".option.selected": {
+      backgroundColor: theme.vars.palette.action.selected,
+      color: theme.vars.palette.primary.main,
+      fontWeight: 500
+    },
+
+    ".option.highlighted": {
+      backgroundColor: theme.vars.palette.action.hover,
+      color: "var(--text-primary)"
+    }
+  });
