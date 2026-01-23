@@ -30,6 +30,8 @@ import { fetchWorkflowVersions, restoreWorkflowVersion } from "../serverState/us
 import log from "loglevel";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
+import { useRightPanelStore } from "./RightPanelStore";
+import { useVersionHistoryStore } from "./VersionHistoryStore";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -147,6 +149,8 @@ export type WorkflowManagerState = {
   openWorkflows: WorkflowAttributes[];
   queryClient: QueryClient;
   systemStats: SystemStats | null;
+  // Track notified autosave versions to prevent duplicate notifications
+  notifiedAutosaveVersions: Record<string, Set<string>>;
   getSystemStats: () => SystemStats | null;
   getCurrentLoadingState: () => undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
@@ -197,6 +201,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
     return {
       nodeStores: {},
       openWorkflows: [],
+      notifiedAutosaveVersions: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
       loadingStates: {},
       error: null,
@@ -709,6 +714,20 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
               // Check if version is newer and is an autosave
               if (versionTime > workflowTime && latestVersion.save_type === "autosave") {
+                // Check if we've already notified about this version
+                const notifiedSet = get().notifiedAutosaveVersions[workflowId] || new Set();
+                if (notifiedSet.has(latestVersion.id)) {
+                  return; // Already notified about this version
+                }
+
+                // Mark this version as notified
+                set((state) => ({
+                  notifiedAutosaveVersions: {
+                    ...state.notifiedAutosaveVersions,
+                    [workflowId]: new Set([...notifiedSet, latestVersion.id])
+                  }
+                }));
+
                 const timeAgo = formatTimeAgo(new Date(latestVersion.created_at));
                 useNotificationStore.getState().addNotification({
                   content: `Newer autosave available from ${timeAgo}`,
@@ -717,41 +736,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
                   dismissable: true,
                   timeout: 10000,
                   action: {
-                    label: "Restore",
+                    label: "View History",
                     onClick: async () => {
-                      try {
-                        await restoreWorkflowVersion(workflowId, latestVersion.version);
-                        // Invalidate and refetch the workflow
-                        get().queryClient?.invalidateQueries({ queryKey: workflowQueryKey(workflowId) });
-                        // Refetch workflow to update NodeStore
-                        const restored = await fetchWorkflowById(workflowId);
-                        const nodeStore = get().nodeStores[workflowId];
-                        if (nodeStore) {
-                          nodeStore.setState({ workflow: restored });
-                          // Convert graph nodes and edges to ReactFlow format and set them
-                          const reactFlowNodes = (restored.graph?.nodes || []).map((graphNode) =>
-                            graphNodeToReactFlowNode(restored, graphNode)
-                          );
-                          const reactFlowEdges = (restored.graph?.edges || []).map((graphEdge) =>
-                            graphEdgeToReactFlowEdge(graphEdge)
-                          );
-                          nodeStore.getState().setNodes(reactFlowNodes);
-                          nodeStore.getState().setEdges(reactFlowEdges);
-                        }
-                        useNotificationStore.getState().addNotification({
-                          content: "Autosave restored successfully",
-                          type: "success",
-                          alert: true
-                        });
-                      } catch (error) {
-                        log.error("[fetchWorkflow] Failed to restore autosave:", error);
-                        useNotificationStore.getState().addNotification({
-                          content: "Failed to restore autosave",
-                          type: "error",
-                          alert: true,
-                          dismissable: true
-                        });
-                      }
+                      // Open right panel with versions view
+                      useRightPanelStore.getState().handleViewChange("versions");
+                      useVersionHistoryStore.getState().setSelectedVersion(latestVersion.id);
                     }
                   }
                 });
