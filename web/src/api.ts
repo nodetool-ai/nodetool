@@ -223,6 +223,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/assets/{id}/thumbnail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Thumbnail
+         * @description Generate a thumbnail for a video asset.
+         */
+        post: operations["generate_thumbnail_api_assets__id__thumbnail_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/assets/download": {
         parameters: {
             query?: never;
@@ -854,26 +874,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/models/embedding/{provider}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Embedding Models Endpoint
-         * @description Get all available embedding models from a specific provider.
-         */
-        get: operations["get_embedding_models_endpoint_api_models_embedding__provider__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/models/image/{provider}": {
         parameters: {
             query?: never;
@@ -966,6 +966,26 @@ export interface paths {
          * @description Get all available video generation models from a specific provider.
          */
         get: operations["get_video_models_endpoint_api_models_video__provider__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/embedding/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Embedding Models Endpoint
+         * @description Get all available embedding models from a specific provider.
+         */
+        get: operations["get_embedding_models_endpoint_api_models_embedding__provider__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1759,6 +1779,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflows/{id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Version
+         * @description Delete a specific workflow version.
+         *
+         *     Args:
+         *         id: Workflow ID
+         *         version_id: Version ID to delete
+         *
+         *     Returns:
+         *         Success status
+         */
+        delete: operations["delete_version_api_workflows__id__versions__version_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows/{id}/autosave": {
         parameters: {
             query?: never;
@@ -1792,7 +1839,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/workspaces": {
+    "/api/workflows/{id}/dsl-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dsl Export
+         * @description Export a workflow to Python DSL code.
+         *
+         *     Returns Python code that reconstructs the workflow using DSL node wrappers
+         *     and connections. The generated code can be saved to a .py file and executed
+         *     to recreate the workflow graph.
+         *
+         *     Args:
+         *         id: Workflow ID
+         *
+         *     Returns:
+         *         Python source code as a plain text response
+         */
+        get: operations["dsl_export_api_workflows__id__dsl_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflows/{id}/gradio-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gradio Export
+         * @description Export a workflow to a Gradio app Python script.
+         *
+         *     Returns Python code that reconstructs the workflow using DSL node wrappers
+         *     and wraps it in a Gradio app for interactive execution.
+         *
+         *     Args:
+         *         id: Workflow ID
+         *         config: Gradio app configuration options
+         *
+         *     Returns:
+         *         Python source code as a plain text response
+         */
+        post: operations["gradio_export_api_workflows__id__gradio_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/": {
         parameters: {
             query?: never;
             header?: never;
@@ -1806,7 +1913,7 @@ export interface paths {
          *     Returns a list of workspaces with a calculated `is_accessible` boolean
          *     indicating whether the path exists and is writable.
          */
-        get: operations["list_workspaces_api_workspaces_get"];
+        get: operations["list_workspaces_api_workspaces__get"];
         put?: never;
         /**
          * Create Workspace
@@ -1817,7 +1924,27 @@ export interface paths {
          *     - Rejects paths that are not writable by the NodeTool service user
          *     - If `is_default` is true, sets all other user workspaces to `is_default = false`
          */
-        post: operations["create_workspace_api_workspaces_post"];
+        post: operations["create_workspace_api_workspaces__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Default Workspace
+         * @description Get the default workspace for the current user.
+         */
+        get: operations["get_default_workspace_api_workspaces_default_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1849,26 +1976,6 @@ export interface paths {
          *     Returns 400 Bad Request if any workflows are currently linked to this workspace ID.
          */
         delete: operations["delete_workspace_api_workspaces__workspace_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/workspaces/default": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Default Workspace
-         * @description Get the default workspace for the current user.
-         */
-        get: operations["get_default_workspace_api_workspaces_default_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2546,7 +2653,10 @@ export interface paths {
         };
         /**
          * Download File
-         * @description Download a file from the specified path
+         * @description Download a file from the specified path.
+         *
+         *     Security Note: This endpoint restricts downloads to prevent access to sensitive
+         *     system paths like /etc, /root, /proc, etc.
          */
         get: operations["download_file_api_files_download__path__get"];
         put?: never;
@@ -2593,6 +2703,12 @@ export interface paths {
         /**
          * Create Collection
          * @description Create a new collection
+         *
+         *     Args:
+         *         req: Collection creation request with:
+         *             - name: Collection name
+         *             - embedding_model: Model ID for embeddings (e.g., "text-embedding-3-small", "nomic-embed-text")
+         *             - embedding_provider: Optional provider (e.g., "openai", "ollama"). Auto-detected if not specified.
          */
         post: operations["create_collection_api_collections__post"];
         delete?: never;
@@ -2961,6 +3077,12 @@ export interface components {
             force: boolean;
             /** Client Id */
             client_id?: string | null;
+            /** Graph */
+            graph?: {
+                [key: string]: unknown;
+            } | null;
+            /** Max Versions */
+            max_versions?: number | null;
         };
         /** BackgroundJobResponse */
         BackgroundJobResponse: {
@@ -3119,6 +3241,11 @@ export interface components {
              * @default false
              */
             done: boolean;
+            /**
+             * Thinking
+             * @default false
+             */
+            thinking: boolean;
         };
         /** CollectionCreate */
         CollectionCreate: {
@@ -3129,6 +3256,8 @@ export interface components {
              * @default all-minilm:latest
              */
             embedding_model: string;
+            /** Embedding Provider */
+            embedding_provider?: string | null;
         };
         /** CollectionList */
         CollectionList: {
@@ -3353,54 +3482,31 @@ export interface components {
             /** Counter */
             counter?: number | null;
         };
-        /** Email */
-        Email: {
+        /** EmbeddingModel */
+        EmbeddingModel: {
             /**
              * Type
-             * @default email
+             * @default embedding_model
              * @constant
              */
-            type: "email";
+            type: "embedding_model";
+            /** @default empty */
+            provider: components["schemas"]["Provider"];
             /**
              * Id
-             * @description Message ID
              * @default
              */
             id: string;
             /**
-             * Sender
-             * @description Sender email address
+             * Name
              * @default
              */
-            sender: string;
+            name: string;
             /**
-             * Subject
-             * @description Email subject line
-             * @default
+             * Dimensions
+             * @default 0
              */
-            subject: string;
-            /**
-             * @description Email date
-             * @default {
-             *       "type": "datetime",
-             *       "year": 0,
-             *       "month": 0,
-             *       "day": 0,
-             *       "hour": 0,
-             *       "minute": 0,
-             *       "second": 0,
-             *       "microsecond": 0,
-             *       "tzinfo": "UTC",
-             *       "utc_offset": 0
-             *     }
-             */
-            date: components["schemas"]["Datetime"];
-            /**
-             * Body
-             * @description Email body content
-             * @default
-             */
-            body: string | components["schemas"]["TextRef"];
+            dimensions: number;
         };
         /** EncryptedSecretPayload */
         EncryptedSecretPayload: {
@@ -3573,6 +3679,40 @@ export interface components {
             created_at?: string | null;
             /** Updated At */
             updated_at?: string | null;
+        };
+        /**
+         * GradioExportRequest
+         * @description Request model for Gradio export configuration.
+         */
+        GradioExportRequest: {
+            /**
+             * App Title
+             * @description Title for the Gradio app
+             * @default NodeTool Workflow
+             */
+            app_title: string;
+            /**
+             * Theme
+             * @description Gradio theme to use
+             */
+            theme?: string | null;
+            /**
+             * Description
+             * @description Description for the Gradio app
+             */
+            description?: string | null;
+            /**
+             * Allow Flagging
+             * @description Allow flagging in the Gradio app
+             * @default false
+             */
+            allow_flagging: boolean;
+            /**
+             * Queue
+             * @description Enable request queuing
+             * @default true
+             */
+            queue: boolean;
         };
         /** Graph */
         "Graph-Input": {
@@ -5060,33 +5200,6 @@ export interface components {
             /** Supported Tasks */
             supported_tasks?: string[];
         };
-        /** EmbeddingModel */
-        EmbeddingModel: {
-            /**
-             * Type
-             * @default embedding_model
-             * @constant
-             */
-            type: "embedding_model";
-            /** @default empty */
-            provider: components["schemas"]["Provider"];
-            /**
-             * Id
-             * @default
-             */
-            id: string;
-            /**
-             * Name
-             * @default
-             */
-            name: string;
-            /** Path */
-            path?: string | null;
-            /** Dimensions */
-            dimensions?: number | null;
-            /** Supported Tasks */
-            supported_tasks?: string[];
-        };
         /** LlamaModel */
         LlamaModel: {
             /**
@@ -6251,7 +6364,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "cerebras" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "cerebras" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "fake" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
         /**
          * ProviderAggregateResponse
          * @description Response model for provider-level aggregation.
@@ -7818,6 +7931,37 @@ export interface operations {
             };
         };
     };
+    generate_thumbnail_api_assets__id__thumbnail_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     download_assets_api_assets_download_post: {
         parameters: {
             query?: never;
@@ -8811,46 +8955,6 @@ export interface operations {
             };
         };
     };
-    get_embedding_models_endpoint_api_models_embedding__provider__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: components["schemas"]["Provider"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EmbeddingModel"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Provider Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": { detail: string };
-                };
-            };
-        };
-    };
     get_image_models_endpoint_api_models_image__provider__get: {
         parameters: {
             query?: never;
@@ -8982,6 +9086,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VideoModel"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_embedding_models_endpoint_api_models_embedding__provider__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["Provider"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmbeddingModel"][];
                 };
             };
             /** @description Validation Error */
@@ -9239,7 +9374,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["Email"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["Model3DRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["CalendarEvent"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFFlux"] | components["schemas"]["HFFluxKontext"] | components["schemas"]["HFFluxRedux"] | components["schemas"]["HFFluxDepth"] | components["schemas"]["HFFluxFill"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
+                    "application/json": components["schemas"]["AssetRef"] | components["schemas"]["AudioRef"] | components["schemas"]["DataframeRef"] | components["schemas"]["FilePath"] | components["schemas"]["FolderRef"] | components["schemas"]["ImageRef"] | components["schemas"]["NPArray"] | components["schemas"]["VideoRef"] | components["schemas"]["ModelRef"] | components["schemas"]["Model3DRef"] | components["schemas"]["DocumentRef"] | components["schemas"]["FontRef"] | components["schemas"]["TextRef"] | components["schemas"]["WorkflowRef"] | components["schemas"]["NodeRef"] | components["schemas"]["Prediction"] | components["schemas"]["JobUpdate"] | components["schemas"]["CalendarEvent"] | components["schemas"]["LanguageModel"] | components["schemas"]["HuggingFaceModel"] | components["schemas"]["HFImageTextToText"] | components["schemas"]["HFVisualQuestionAnswering"] | components["schemas"]["HFDocumentQuestionAnswering"] | components["schemas"]["HFVideoTextToText"] | components["schemas"]["HFComputerVision"] | components["schemas"]["HFDepthEstimation"] | components["schemas"]["HFImageClassification"] | components["schemas"]["HFObjectDetection"] | components["schemas"]["HFImageSegmentation"] | components["schemas"]["HFFlux"] | components["schemas"]["HFFluxKontext"] | components["schemas"]["HFFluxRedux"] | components["schemas"]["HFFluxDepth"] | components["schemas"]["HFFluxFill"] | components["schemas"]["HFTextToImage"] | components["schemas"]["HFImageToText"] | components["schemas"]["HFImageToImage"] | components["schemas"]["HFImageToVideo"] | components["schemas"]["HFUnconditionalImageGeneration"] | components["schemas"]["HFVideoClassification"] | components["schemas"]["HFTextToVideo"] | components["schemas"]["HFZeroShotImageClassification"] | components["schemas"]["HFMaskGeneration"] | components["schemas"]["HFZeroShotObjectDetection"] | components["schemas"]["HFTextTo3D"] | components["schemas"]["HFImageTo3D"] | components["schemas"]["HFImageFeatureExtraction"] | components["schemas"]["HFNaturalLanguageProcessing"] | components["schemas"]["HFTextClassification"] | components["schemas"]["HFTokenClassification"] | components["schemas"]["HFTableQuestionAnswering"] | components["schemas"]["HFQuestionAnswering"] | components["schemas"]["HFZeroShotClassification"] | components["schemas"]["HFTranslation"] | components["schemas"]["HFSummarization"] | components["schemas"]["HFFeatureExtraction"] | components["schemas"]["HFTextGeneration"] | components["schemas"]["HFText2TextGeneration"] | components["schemas"]["HFFillMask"] | components["schemas"]["HFSentenceSimilarity"] | components["schemas"]["HFTextToSpeech"] | components["schemas"]["HFTextToAudio"] | components["schemas"]["HFAutomaticSpeechRecognition"] | components["schemas"]["HFAudioToAudio"] | components["schemas"]["HFAudioClassification"] | components["schemas"]["HFZeroShotAudioClassification"] | components["schemas"]["HFVoiceActivityDetection"] | components["schemas"]["SVGElement"] | components["schemas"]["SystemStats"] | components["schemas"]["TaskPlan"] | components["schemas"]["PlotlyConfig"] | {
                         [key: string]: unknown;
                     } | components["schemas"]["InferenceProvider"] | components["schemas"]["InferenceProviderAutomaticSpeechRecognitionModel"] | components["schemas"]["InferenceProviderAudioClassificationModel"] | components["schemas"]["InferenceProviderImageClassificationModel"] | components["schemas"]["InferenceProviderTextClassificationModel"] | components["schemas"]["InferenceProviderSummarizationModel"] | components["schemas"]["InferenceProviderTextToImageModel"] | components["schemas"]["InferenceProviderTranslationModel"] | components["schemas"]["InferenceProviderTextToTextModel"] | components["schemas"]["InferenceProviderTextToSpeechModel"] | components["schemas"]["InferenceProviderTextToAudioModel"] | components["schemas"]["InferenceProviderTextGenerationModel"] | components["schemas"]["InferenceProviderImageToImageModel"] | components["schemas"]["InferenceProviderImageSegmentationModel"] | components["schemas"]["NodeUpdate"] | components["schemas"]["NodeProgress"] | components["schemas"]["EdgeUpdate"] | components["schemas"]["Error"] | components["schemas"]["Chunk"] | components["schemas"]["Notification"] | components["schemas"]["PreviewUpdate"] | components["schemas"]["SaveUpdate"] | components["schemas"]["LogUpdate"] | components["schemas"]["TaskUpdate"] | components["schemas"]["ToolCallUpdate"] | components["schemas"]["ToolResultUpdate"] | components["schemas"]["PlanningUpdate"] | components["schemas"]["OutputUpdate"] | components["schemas"]["StepResult"] | components["schemas"]["RunJobRequest"];
                 };
@@ -10137,6 +10272,40 @@ export interface operations {
             };
         };
     };
+    delete_version_api_workflows__id__versions__version_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                version_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     autosave_workflow_api_workflows__id__autosave_post: {
         parameters: {
             query?: never;
@@ -10172,7 +10341,73 @@ export interface operations {
             };
         };
     };
-    list_workspaces_api_workspaces_get: {
+    dsl_export_api_workflows__id__dsl_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    gradio_export_api_workflows__id__gradio_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GradioExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspaces_api_workspaces__get: {
         parameters: {
             query?: {
                 limit?: number;
@@ -10204,7 +10439,7 @@ export interface operations {
             };
         };
     };
-    create_workspace_api_workspaces_post: {
+    create_workspace_api_workspaces__post: {
         parameters: {
             query?: never;
             header?: never;
@@ -10233,6 +10468,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_default_workspace_api_workspaces_default_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResponse"] | null;
                 };
             };
         };
@@ -10328,26 +10583,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_default_workspace_api_workspaces_default_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceResponse"] | null;
                 };
             };
         };
