@@ -87,8 +87,7 @@
   stroke-width: 2.5 !important;
   transition:
     stroke-opacity 0.3s ease-in-out,
-    stroke-width 0.2s ease-in-out,
-    filter 0.3s ease-in-out;
+    stroke-width 0.2s ease-in-out;
 }
 
 /* Dim static edges by default */
@@ -132,18 +131,15 @@
 /* Flow animation for edges on message_sent or running source node */
 .react-flow .react-flow__edge.message-sent .react-flow__edge-path {
   stroke-opacity: 1;
-  stroke-width: 5 !important;
   stroke-linecap: round;
   /* create a repeating dash pattern to simulate flow */
   stroke-dasharray: 14 10;
-  animation: edgeFlow 1s linear infinite;
-  /* glow effect to match running node animation */
-  filter: drop-shadow(0 0 4px currentColor) brightness(1.2);
+  animation: edgeFlow 2s linear infinite;
 }
 
-/* Edge container also gets subtle pulsing glow */
-.react-flow .react-flow__edge.message-sent {
-  animation: edgePulse 2s ease-in-out infinite;
+/* Streaming edges get bigger stroke when animated */
+.react-flow .react-flow__edge.message-sent.streaming-edge .react-flow__edge-path {
+  stroke-width: 4 !important;
 }
 
 @keyframes edgeFlow {
@@ -152,15 +148,6 @@
   }
   100% {
     stroke-dashoffset: -120;
-  }
-}
-
-@keyframes edgePulse {
-  0%, 100% {
-    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
-  }
-  50% {
-    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
   }
 }
 
