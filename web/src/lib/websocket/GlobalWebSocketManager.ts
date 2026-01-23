@@ -14,6 +14,10 @@ type GlobalWebSocketEvent =
   | "reconnecting"
   | "stateChange";
 
+// Configuration constants
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_INTERVAL_MS = 1000;
+
 /**
  * Global WebSocket Manager - Singleton pattern.
  *
@@ -30,6 +34,7 @@ class GlobalWebSocketManager extends EventEmitter {
   private isConnecting = false;
   private isConnected = false;
   private networkListenersSetup = false;
+  private networkCleanup: (() => void) | null = null;
 
   private constructor() {
     super();
@@ -73,8 +78,8 @@ class GlobalWebSocketManager extends EventEmitter {
         url: wsUrl,
         binaryType: "arraybuffer",
         reconnect: true,
-        reconnectInterval: 1000,
-        reconnectAttempts: 10  // Increased from 5 to 10 for more retries
+        reconnectInterval: RECONNECT_INTERVAL_MS,
+        reconnectAttempts: MAX_RECONNECT_ATTEMPTS
       });
 
       this.wsManager.on("open", () => {
@@ -221,6 +226,13 @@ class GlobalWebSocketManager extends EventEmitter {
       this.isConnected = false;
       this.isConnecting = false;
     }
+    
+    // Clean up network listeners
+    if (this.networkCleanup) {
+      this.networkCleanup();
+      this.networkCleanup = null;
+      this.networkListenersSetup = false;
+    }
   }
 
   /**
@@ -305,6 +317,12 @@ class GlobalWebSocketManager extends EventEmitter {
 
     window.addEventListener("online", handleOnline);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Store cleanup function
+    this.networkCleanup = () => {
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }
 
   private async buildAuthenticatedUrl(): Promise<string> {

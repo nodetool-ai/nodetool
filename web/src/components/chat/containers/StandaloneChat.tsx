@@ -52,7 +52,11 @@ const StandaloneChat: React.FC = () => {
     });
     
     return () => {
-      disconnect();
+      try {
+        disconnect();
+      } catch (err) {
+        console.error("Error during GlobalChatStore disconnect:", err);
+      }
     };
   }, [connect, disconnect]);
 
