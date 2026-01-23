@@ -10,8 +10,12 @@ import {
   ListItemIcon,
   List,
   ListItemButton,
-  Tooltip
+  Tooltip,
+  CircularProgress,
+  Typography,
+  Collapse
 } from "@mui/material";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import StarIcon from "@mui/icons-material/Star"; // Favorite
 import HistoryIcon from "@mui/icons-material/History"; // Recent
@@ -37,7 +41,10 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   modelData: {
     models: TModel[] | undefined;
     isLoading: boolean;
+    isFetching?: boolean;
     error: unknown;
+    providerErrors?: Array<{ provider: string; error: unknown }>;
+    loadingProgress?: { total: number; loaded: number; loading: number };
   };
   onModelChange?: (model: TModel) => void;
   title?: string;
@@ -55,7 +62,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   searchPlaceholder = "Search models...",
   storeHook
 }: ModelMenuBaseProps<TModel>) {
-  const { models, isLoading, error: fetchedError } = modelData;
+  const { models, isLoading, isFetching, error: fetchedError, providerErrors, loadingProgress } = modelData;
 
   const isError = !!fetchedError;
   const theme = useTheme();
@@ -207,6 +214,58 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           <ModelFiltersBar />
         </Box>
       </Box>
+
+      {/* Status Banner - shows loading progress and errors */}
+      <Collapse in={!!(isLoading || isFetching || (providerErrors && providerErrors.length > 0))}>
+        <Box
+          sx={{
+            px: 2,
+            py: 0.75,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`,
+            bgcolor: providerErrors && providerErrors.length > 0
+              ? theme.vars.palette.warning.main + "15"
+              : theme.vars.palette.action.hover,
+            fontSize: "0.8rem"
+          }}
+        >
+          {(isLoading || isFetching) && (
+            <>
+              <CircularProgress size={14} />
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                {loadingProgress
+                  ? `Loading models: ${loadingProgress.loaded}/${loadingProgress.total} providers...`
+                  : "Loading models..."}
+              </Typography>
+            </>
+          )}
+          {providerErrors && providerErrors.length > 0 && !isLoading && (
+            <Tooltip
+              title={
+                <Box sx={{ maxWidth: 300 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    Failed to load models from:
+                  </Typography>
+                  {providerErrors.map((pe) => (
+                    <Typography key={pe.provider} variant="caption" component="div" sx={{ mt: 0.5 }}>
+                      • {pe.provider}: {pe.error instanceof Error ? pe.error.message : "Unknown error"}
+                    </Typography>
+                  ))}
+                </Box>
+              }
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "help" }}>
+                <WarningAmberIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                <Typography variant="caption" sx={{ color: "warning.main" }}>
+                  {providerErrors.length} provider{providerErrors.length > 1 ? "s" : ""} failed to load
+                </Typography>
+              </Box>
+            </Tooltip>
+          )}
+        </Box>
+      </Collapse>
 
       {/* Main Content Grid */}
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
