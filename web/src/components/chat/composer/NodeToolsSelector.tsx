@@ -486,7 +486,16 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                             height: "12px"
                           }}
                         />
-                        <Tooltip title={node.title} enterDelay={500}>
+                        <Tooltip
+                          title={node.title}
+                          enterDelay={500}
+                          placement="left"
+                          slotProps={{
+                            popper: {
+                              sx: { zIndex: 1500 }
+                            }
+                          }}
+                        >
                           <span className="selected-item-name">{node.title}</span>
                         </Tooltip>
                         <Tooltip
