@@ -3,6 +3,7 @@ import type { Theme } from "@mui/material/styles";
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
+    backgroundColor: theme.vars.palette.background.default,
     flexGrow: 1,
     position: "relative",
     display: "flex",
@@ -28,16 +29,16 @@ export const createStyles = (theme: Theme) => ({
       background: "transparent !important"
     },
     "&::-webkit-scrollbar-thumb": {
-      background: "var(--palette-grey-600) !important",
+      background: `${theme.vars.palette.action.disabled} !important`,
       borderRadius: "4px"
     },
     "&::-webkit-scrollbar-thumb:hover": {
-      background: "var(--palette-warning-main) !important"
+      background: `${theme.vars.palette.warning.main} !important`
     }
   }),
   chatMessagesList: css({
     listStyleType: "none",
-    maxWidth: "1100px",
+    maxWidth: "800px",
     width: "100%",
     minWidth: 0,
     padding: "0",
@@ -59,16 +60,15 @@ export const createStyles = (theme: Theme) => ({
     },
 
     "li.user": {
-      width: "60%",
+      width: "fit-content",
+      maxWidth: "60%",
+      minWidth: "2em",
       margin: "4em 0 2em auto",
       padding: "0.2em",
-      color: theme.vars.palette.grey[100],
-      background:
-        "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
-      border: "1px solid rgba(255, 255, 255, 0.08)",
-      opacity: 0.9,
-      borderRadius: "16px 16px 4px 16px",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+      color: theme.vars.palette.text.primary,
+      background: theme.vars.palette.background.paper,
+      borderRadius: ".75em",
+      textAlign: "right",
     },
 
     ".chat-message.user .markdown": {
@@ -137,11 +137,11 @@ export const createStyles = (theme: Theme) => ({
     },
 
     "li a": {
-      color: "var(--palette-primary-main)"
+      color: theme.vars.palette.primary.main
     },
 
     "li a:hover": {
-      color: "var(--palette-primary-light) !important",
+      color: `${theme.vars.palette.primary.light} !important`,
       textDecoration: "none"
     },
 
@@ -162,13 +162,13 @@ export const createStyles = (theme: Theme) => ({
       width: "10px",
       height: "10px",
       borderRadius: "50%",
-      backgroundColor: theme.vars.palette.grey[100],
+      backgroundColor: theme.vars.palette.text.secondary,
       margin: "0 5px"
     },
 
     ".node-status": {
       textAlign: "center",
-      color: theme.vars.palette.grey[100],
+      color: theme.vars.palette.text.secondary,
       fontSize: theme.fontSizeSmall,
       margin: "0.5em 0"
     },
@@ -218,17 +218,17 @@ export const createStyles = (theme: Theme) => ({
 
     ".tool-chip": {
       fontWeight: 600,
-      color: "var(--palette-grey-200)",
-      borderColor: "var(--palette-grey-900)"
+      color: theme.vars.palette.text.primary,
+      borderColor: theme.vars.palette.divider
     },
 
     ".tool-message": {
-      color: "var(--palette-grey-400)"
+      color: theme.vars.palette.text.secondary
     },
 
     ".expand-icon": {
       transition: "transform 0.15s ease",
-      color: "var(--palette-grey-500)"
+      color: theme.vars.palette.text.disabled
     },
 
     ".expand-icon.expanded": {
@@ -236,16 +236,16 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-section-title": {
-      color: "var(--palette-grey-500)"
+      color: theme.vars.palette.text.disabled
     },
 
     ".pretty-json": {
       margin: 0,
       padding: "8px 10px",
-      background: "var(--palette-grey-1100, #0f0f0f)",
+      background: theme.vars.palette.background.default,
       borderRadius: 6,
-      color: "var(--palette-grey-300)",
-      border: "1px solid var(--palette-grey-900)",
+      color: theme.vars.palette.text.secondary,
+      border: `1px solid ${theme.vars.palette.divider}`,
       overflowX: "auto"
     },
 

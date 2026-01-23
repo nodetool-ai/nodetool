@@ -100,7 +100,10 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
         className="copy-to-clipboard-button"
         onClick={handleCopy}
         size={size}
-        sx={{ color: "var(--palette-grey-100)", "&:hover": { opacity: 0.8 } }}
+        sx={(theme) => ({
+          color: theme.vars.palette.text.secondary,
+          "&:hover": { opacity: 0.8, color: theme.vars.palette.text.primary }
+        })}
         {...props}
       >
         {showError ? (
