@@ -63,6 +63,13 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
     [onChange, handleClose]
   );
 
+  const handleMenuItemClick = useCallback(
+    (repoId: string) => () => {
+      handleModelSelect(repoId);
+    },
+    [handleModelSelect]
+  );
+
   // no providers menu; just one list of models
 
   return (
@@ -145,7 +152,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
           sortedModels.map((model) => (
             <EditorMenuItem
               key={model.repo_id}
-              onClick={() => handleModelSelect(model.repo_id)}
+              onClick={handleMenuItemClick(model.repo_id)}
               selected={value === model.repo_id}
             >
               {value === model.repo_id && (

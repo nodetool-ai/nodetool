@@ -512,6 +512,14 @@ const DataframeEditorModal = ({
       window.removeEventListener("close-dataframe-editor-modal", handler);
   }, [onClose]);
 
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchFilter(e.target.value);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchFilter("");
+  }, []);
+
   const content = (
     <div className="dataframe-editor-modal" css={styles(theme)}>
       <div
@@ -579,7 +587,7 @@ const DataframeEditorModal = ({
                     placeholder="Search in table..."
                     size="small"
                     value={searchFilter}
-                    onChange={(e) => setSearchFilter(e.target.value)}
+                    onChange={handleSearchChange}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -590,7 +598,7 @@ const DataframeEditorModal = ({
                         <InputAdornment position="end">
                           <IconButton
                             size="small"
-                            onClick={() => setSearchFilter("")}
+                            onClick={handleClearSearch}
                             edge="end"
                           >
                             <ClearIcon />

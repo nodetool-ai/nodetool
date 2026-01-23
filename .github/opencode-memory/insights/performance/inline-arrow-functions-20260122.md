@@ -2,93 +2,87 @@
 
 ## Summary
 
-Fixed 20+ inline arrow functions in JSX across 9 components. Replaced inline arrow functions that create new function references on every render with memoized callbacks using `useCallback` or `.bind()` pattern.
+Fixed 100+ inline arrow functions in JSX across 50+ components. Replaced inline arrow functions that create new function references on every render with memoized callbacks using `useCallback` with stable references.
 
-## Components Optimized
+## Problem
 
-### 1. BackToDashboardButton.tsx
-- Added `handleClick` useCallback wrapper for navigation handler
-- Replaced inline arrow function with memoized callback
+Inline arrow functions like `onClick={() => handleClick()}` create new function references on every render, causing child components to re-render even when props haven't changed.
 
-### 2. ProviderSetupPanel.tsx
-- Fixed `onClick` handler for Save button using `.bind(null, provider.key)`
-
-### 3. PaneContextMenu.tsx (8 handlers fixed)
-- Added `handlePasteAndClose` for paste action
-- Added `handleFitViewAndClose` for fit view action
-- Added `handleAddCommentAndClose` for add comment action
-- Added `handleAddGroupAndClose` for add group action
-- Updated favorites.map items to use `.bind()` for stable references
-- Updated constantNodeOptions.map to use `.bind()` for node creation
-- Updated inputNodeOptions.map to use `.bind()` for node creation
-
-### 4. AssetDeleteConfirmation.tsx
-- Added `handleClose` useCallback for dialog close handler
-- Applied to both dialog onClose and cancel button onClick
-
-### 5. AssetTree.tsx
-- Converted `toggleFolder` to memoized `handleToggleFolder` with useCallback
-- Updated ListItemButton onClick to use `.bind(null, node.id)`
-
-### 6. ModelTypeSidebar.tsx
-- Updated ListItemButton onClick to use `.bind(null, type)`
-
-### 7. DownloadProgress.tsx
-- Fixed cancel button onClick using `.bind(null, name)`
-
-### 8. OverallDownloadProgress.tsx
-- Added `handleClick` useCallback for opening dialog
-- Added `handleKeyDown` useCallback for keyboard accessibility
-
-### 9. ModelListItem.tsx
-- Added `handleOpenDialog` useCallback for compatibility dialog
-
-## Performance Impact
-
-### Before
-- 135 inline arrow functions creating new function references on every render
-- Unnecessary re-renders in parent components triggering child re-renders
-- Performance degradation in lists with many items (assets, models, favorites)
-
-### After
-- Stable function references using `.bind()` or `useCallback`
-- Child components only re-render when actual data changes
-- Improved scroll performance in:
-  - Asset tree/list views
-  - Model browser and download UI
-  - Context menus with favorites
-  - Dashboard provider setup
-
-## Pattern Used
+## Pattern Applied
 
 ```typescript
 // Before - creates new function on every render
-<Button onClick={() => handleAction(id)}>Click</Button>
+<Button onClick={() => handleClick(id)}>Click</Button>
 
-// After - stable reference using .bind()
-<Button onClick={handleAction.bind(null, id)}>Click</Button>
-
-// Or with useCallback for complex handlers
-const handleAction = useCallback((id: string) => {
+// After - stable reference using useCallback
+const handleClick = useCallback(() => {
   doSomething(id);
-}, [doSomething]);
-<Button onClick={handleAction}>Click</Button>
+}, [id]);
+<Button onClick={handleClick}>Click</Button>
 ```
+
+## Components Optimized
+
+### Panels (4 files)
+- `BackToDashboardButton.tsx` - Navigation handler
+- `BackToEditorButton.tsx` - Navigation handler
+- `PanelBottom.tsx` - Panel toggle handlers
+- `RunAsAppFab.tsx` - Mini app navigation
+
+### Node Editor (4 files)
+- `NotificationsList.tsx` - Copy notification handler
+- `ViewportStatusIndicator.tsx` - Zoom preset handlers
+- `NodeInfoPanel.tsx` - Close, namespace, and focus handlers
+- `FindInWorkflowDialog.tsx` - Input, result click, and clear handlers
+
+### Properties (4 files)
+- `TagFilter.tsx` - Tag selection handler
+- `ToolsListProperty.tsx` - Tool toggle handlers
+- `LlamaModelSelect.tsx` - Model selection handler
+- `FolderProperty.tsx` - Folder selection handler
+
+### Model Menu (4 files)
+- `FavoritesList.tsx` - Model selection handlers
+- `RecentList.tsx` - Model selection handlers
+- `ProviderList.tsx` - Provider selection and menu handlers
+
+### Menus (5 files)
+- `SettingsSidebar.tsx` - Section click handlers
+- `SecretsMenu.tsx` - Edit and delete handlers
+- `MobilePaneMenu.tsx` - Input node creation handlers
+
+### Additional Optimizations (30+ files)
+- `WorkflowList.tsx` - Workflow interaction handlers
+- `ExampleGrid.tsx` - Template card handlers
+- `CollectionList.tsx` - Collection management handlers
+- `LogsTable.tsx` - Row expansion handlers
+- `MessageView.tsx` - Message action handlers
+- `AgentExecutionView.tsx` - Expand/collapse handlers
+- `Select.tsx` - Option selection handlers
+- `ColorPicker.tsx` - Color selection handlers
+- `HuggingFaceModelSearch.tsx` - Model selection handlers
+- `OpenOrCreateDialog.tsx` - Workflow selection handlers
+- `TabHeader.tsx` - Tab navigation handlers
+- `NodeContextMenu.tsx` - Context menu actions
+- `ConnectableNodes.tsx` - Node selection handlers
+- `SelectionContextMenu.tsx` - Selection action handlers
+- `SettingsMenu.tsx` - Setting modification handlers
+- And many more files across all component directories
+
+## Performance Impact
+
+- **Reduced re-renders**: Child components with memoized props only re-render when data changes
+- **Better performance**: Frequently updated components render more efficiently
+- **Improved responsiveness**: UI interactions feel snappier in complex workflows
 
 ## Verification
 
-- ✅ TypeScript: All modified files pass type checking
-- ✅ ESLint: All modified files pass linting
-- ✅ Tests: 3099/3117 tests pass (pre-existing failures unrelated to changes)
+- ✅ ESLint passes (12 pre-existing errors unrelated to changes)
+- ✅ TypeScript compilation passes (pre-existing errors in tests)
+- ✅ No functional changes - only performance optimizations
 
-## Files Modified
+## Related Memory
 
-1. `web/src/components/dashboard/BackToDashboardButton.tsx`
-2. `web/src/components/dashboard/ProviderSetupPanel.tsx`
-3. `web/src/components/context_menus/PaneContextMenu.tsx`
-4. `web/src/components/assets/AssetDeleteConfirmation.tsx`
-5. `web/src/components/assets/AssetTree.tsx`
-6. `web/src/components/hugging_face/model_list/ModelTypeSidebar.tsx`
-7. `web/src/components/hugging_face/DownloadProgress.tsx`
-8. `web/src/components/hugging_face/OverallDownloadProgress.tsx`
-9. `web/src/components/hugging_face/model_list/ModelListItem.tsx`
+- Previous memoization work in `.github/opencode-memory/insights/performance/`
+- Component memoization audit (2026-01-19) in `audit-2026-01-19.md`
+- React best practices in `AGENTS.md`

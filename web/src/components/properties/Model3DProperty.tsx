@@ -166,6 +166,14 @@ const Model3DProperty = (props: PropertyProps) => {
     }
   }, [uri]);
 
+  const handleToggleUrlInput = useCallback(() => {
+    setShowUrlInput(!showUrlInput);
+  }, [showUrlInput]);
+
+  const handleCloseViewer = useCallback(() => {
+    setOpenViewer(false);
+  }, []);
+
   return (
     <div className="model3d-property" css={styles(theme)}>
       <PropertyLabel
@@ -197,7 +205,7 @@ const Model3DProperty = (props: PropertyProps) => {
               style={{
                 opacity: showUrlInput ? 0.8 : 1
               }}
-              onClick={() => setShowUrlInput(!showUrlInput)}
+              onClick={handleToggleUrlInput}
             >
               {showUrlInput ? "X" : "URL"}
             </Button>
@@ -226,7 +234,7 @@ const Model3DProperty = (props: PropertyProps) => {
             asset={asset}
             url={uri}
             open={openViewer}
-            onClose={() => setOpenViewer(false)}
+            onClose={handleCloseViewer}
           />
         </div>
       )}

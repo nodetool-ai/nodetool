@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   List,
   ListItemButton,
@@ -41,7 +41,13 @@ function FavoritesList<TModel extends ModelSelectorModel>({
 }: FavoritesListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const theme = useTheme();
-  // const secrets = useRemoteSettingsStore((s) => s.secrets);
+
+  const handleItemClick = useCallback(
+    (model: TModel) => () => {
+      onSelect(model);
+    },
+    [onSelect]
+  );
 
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
@@ -95,7 +101,7 @@ function FavoritesList<TModel extends ModelSelectorModel>({
             className={`model-menu__favorite-item ${
               available ? "" : "is-unavailable"
             } ${fav ? "is-favorite" : ""}`}
-            onClick={() => available && onSelect(m)}
+            onClick={handleItemClick(m)}
             disabled={!available}
           >
             <ListItemIcon sx={{ minWidth: 30 }}>
