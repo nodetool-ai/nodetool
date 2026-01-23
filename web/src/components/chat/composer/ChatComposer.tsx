@@ -9,7 +9,6 @@ import { useTheme } from "@mui/material/styles";
 import { Box, Typography, IconButton, Tooltip, Collapse } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
-import ScheduleSendIcon from "@mui/icons-material/ScheduleSend";
 import { MessageContent } from "../../../stores/ApiTypes";
 import { useKeyPressed } from "../../../stores/KeyPressedStore";
 import { FilePreview } from "./FilePreview";
@@ -89,6 +88,9 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const handleSend = useCallback(() => {
     if (prompt.length === 0) return;
 
+    // Don't allow queuing if there's already a queued message
+    if (queuedMessage) return;
+
     const content: MessageContent[] = [
       {
         type: "text",
@@ -113,13 +115,14 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
       setPrompt("");
       clearFiles();
     }
-  }, [isLoading, isStreaming, prompt, getFileContents, sendMessageNow, clearFiles, agentMode]);
+  }, [isLoading, isStreaming, prompt, getFileContents, sendMessageNow, clearFiles, agentMode, queuedMessage]);
 
   // Send queued message when streaming/loading stops
   useEffect(() => {
     if (!isLoading && !isStreaming && queuedMessage) {
-      sendMessageNow(queuedMessage.content, queuedMessage.prompt, queuedMessage.agentMode);
-      setQueuedMessage(null);
+      const messageToSend = queuedMessage;
+      setQueuedMessage(null); // Clear first to prevent re-firing
+      sendMessageNow(messageToSend.content, messageToSend.prompt, messageToSend.agentMode);
     }
   }, [isLoading, isStreaming, queuedMessage, sendMessageNow]);
 
@@ -129,12 +132,13 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
 
   const handleSendNow = useCallback(() => {
     if (queuedMessage && onStop) {
-      // Stop current response and send queued message immediately
+      // Capture message and clear queue BEFORE stopping to prevent useEffect race
+      const messageToSend = queuedMessage;
+      setQueuedMessage(null);
       onStop();
       // Small delay to ensure stop is processed before sending
       setTimeout(() => {
-        sendMessageNow(queuedMessage.content, queuedMessage.prompt, queuedMessage.agentMode);
-        setQueuedMessage(null);
+        sendMessageNow(messageToSend.content, messageToSend.prompt, messageToSend.agentMode);
       }, 100);
     }
   }, [queuedMessage, onStop, sendMessageNow]);
@@ -164,21 +168,21 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     <div css={createStyles(theme)} className="chat-composer">
       {/* Queued Message Widget */}
       <Collapse in={!!queuedMessage}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            px: 2,
-            py: 1,
-            mb: 1,
-            mx: 1,
-            borderRadius: 2,
-            backgroundColor: theme.vars.palette.primary.main + "15",
-            border: `1px solid ${theme.vars.palette.primary.main}40`
-          }}
-        >
-          <ScheduleSendIcon sx={{ fontSize: 18, color: "primary.main" }} />
+        <Box sx={{ display: "flex", justifyContent: "flex-end", px: 1, mb: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              px: 1.5,
+              py: 0.75,
+              maxWidth: "400px",
+              borderRadius: 2,
+              backgroundColor: theme.vars.palette.background.paper,
+              border: `1px solid ${theme.vars.palette.primary.main}`,
+              boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}25`
+            }}
+          >
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="caption"
@@ -229,6 +233,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
               <ClearIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
+          </Box>
         </Box>
       </Collapse>
 
