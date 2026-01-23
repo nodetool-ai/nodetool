@@ -100,26 +100,26 @@ export const MessageView: React.FC<
 
         if (executionEventType === "planning_update") {
           return (
-            <li className="chat-message-list-item execution-event">
+            <div className="chat-message-list-item execution-event">
               <PlanningUpdateDisplay planningUpdate={executionContent as PlanningUpdate} />
-            </li>
+            </div>
           );
         } else if (executionEventType === "task_update") {
           return (
-            <li className="chat-message-list-item execution-event">
+            <div className="chat-message-list-item execution-event">
               <TaskUpdateDisplay taskUpdate={executionContent as TaskUpdate} />
-            </li>
+            </div>
           );
         } else if (executionEventType === "step_result") {
           const stepResult = executionContent as StepResult;
           return (
-            <li className="chat-message-list-item execution-event">
+            <div className="chat-message-list-item execution-event">
               <StepResultDisplay stepResult={stepResult} />
-            </li>
+            </div>
           );
         } else if (executionEventType === "log_update") {
           return (
-            <li className="chat-message-list-item execution-event">
+            <div className="chat-message-list-item execution-event">
               <Box sx={{
                 fontSize: "0.8rem",
                 padding: "0.5rem 0.75rem",
@@ -131,7 +131,7 @@ export const MessageView: React.FC<
               }}>
                 {executionContent.content}
               </Box>
-            </li>
+            </div>
           );
         }
 
@@ -148,26 +148,26 @@ export const MessageView: React.FC<
 
       if (executionEventType === "planning_update") {
         return (
-          <li className="chat-message-list-item execution-event">
+          <div className="chat-message-list-item execution-event">
             <PlanningUpdateDisplay planningUpdate={executionContent as PlanningUpdate} />
-          </li>
+          </div>
         );
       } else if (executionEventType === "task_update") {
         return (
-          <li className="chat-message-list-item execution-event">
+          <div className="chat-message-list-item execution-event">
             <TaskUpdateDisplay taskUpdate={executionContent as TaskUpdate} />
-          </li>
+          </div>
         );
       } else if (executionEventType === "step_result") {
         const stepResult = executionContent as StepResult;
         return (
-          <li className="chat-message-list-item execution-event">
+          <div className="chat-message-list-item execution-event">
             <StepResultDisplay stepResult={stepResult} />
-          </li>
+          </div>
         );
       } else if (executionEventType === "log_update") {
         return (
-          <li className="chat-message-list-item execution-event">
+          <div className="chat-message-list-item execution-event">
             <Box sx={{
               fontSize: "0.8rem",
               padding: "0.5rem 0.75rem",
@@ -179,7 +179,7 @@ export const MessageView: React.FC<
             }}>
               {executionContent.content}
             </Box>
-          </li>
+          </div>
         );
       }
 
@@ -389,7 +389,7 @@ export const MessageView: React.FC<
     const formattedTime = formatTime(message.created_at);
 
     return (
-      <li className={messageClass}>
+      <div className={messageClass}>
         <div className="message-content">
           {message.role === "assistant" &&
             Array.isArray(message.tool_calls) &&
@@ -438,6 +438,6 @@ export const MessageView: React.FC<
             />
           </div>
         )}
-      </li>
+      </div>
     );
   };

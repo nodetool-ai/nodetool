@@ -211,7 +211,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     }, [messages]);
 
     return (
-      <ul css={componentStyles.chatMessagesList} className="chat-messages-list">
+      <div css={componentStyles.chatMessagesList} className="chat-messages-list">
         {filteredMessages
           .map((msg, index) => {
             if (msg.role === "agent_execution" && msg.agent_execution_id) {
@@ -326,7 +326,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
           lastUserMessageRef={lastUserMessageRef}
           scrollHost={scrollHost}
         />
-      </ul>
+      </div>
     );
   }
 );
