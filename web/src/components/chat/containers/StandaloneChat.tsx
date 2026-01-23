@@ -26,6 +26,10 @@ const StandaloneChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
   
+  // Get store actions first
+  const connect = useGlobalChatStore((s) => s.connect);
+  const disconnect = useGlobalChatStore((s) => s.disconnect);
+  
   // Get connection state from WebSocket manager directly
   const [connectionState, setConnectionState] = React.useState(
     globalWebSocketManager.getConnectionState()
@@ -76,8 +80,6 @@ const StandaloneChat: React.FC = () => {
     (s) => s.currentRunningToolCallId
   );
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
-  const connect = useGlobalChatStore((s) => s.connect);
-  const disconnect = useGlobalChatStore((s) => s.disconnect);
 
   // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =
