@@ -11,7 +11,7 @@
 
 NodeTool is open-source software for creating AI workflows without code. Drag and drop nodes to generate images, process documents, analyze data, and automate tasks. Run models on your machine or use cloud APIs.
 
-![Screenshot](screenshot.png)
+![Screenshot](screen2.png)
 
 ## Why NodeTool
 

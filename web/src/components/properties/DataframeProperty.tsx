@@ -171,7 +171,7 @@ const DataframeProperty = ({
             onChange={onChange}
             onClose={toggleExpand}
             propertyName={property.name}
-            propertyDescription={property.description}
+            propertyDescription={property.description ?? undefined}
           />
         )}
       </div>
@@ -206,7 +206,7 @@ const DataframeProperty = ({
             onChange={onChange}
             onClose={toggleExpand}
             propertyName={property.name}
-            propertyDescription={property.description}
+            propertyDescription={property.description ?? undefined}
           />
         )}
       </div>
