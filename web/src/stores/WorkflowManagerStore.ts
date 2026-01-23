@@ -28,6 +28,8 @@ import { getWorkflowRunnerStore } from "./WorkflowRunner";
 import { useNotificationStore } from "./NotificationStore";
 import { fetchWorkflowVersions, restoreWorkflowVersion } from "../serverState/useWorkflowVersions";
 import log from "loglevel";
+import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
+import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -42,7 +44,7 @@ const formatTimeAgo = (date: Date): string => {
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (seconds < 60) return "just now";
+  if (seconds < 60) {return "just now";}
   if (seconds < 3600) {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
@@ -726,7 +728,15 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
                         const nodeStore = get().nodeStores[workflowId];
                         if (nodeStore) {
                           nodeStore.setState({ workflow: restored });
-                          nodeStore.getState().loadNodesAndEdges(restored.graph.nodes, restored.graph.edges);
+                          // Convert graph nodes and edges to ReactFlow format and set them
+                          const reactFlowNodes = (restored.graph?.nodes || []).map((graphNode) =>
+                            graphNodeToReactFlowNode(restored, graphNode)
+                          );
+                          const reactFlowEdges = (restored.graph?.edges || []).map((graphEdge) =>
+                            graphEdgeToReactFlowEdge(graphEdge)
+                          );
+                          nodeStore.getState().setNodes(reactFlowNodes);
+                          nodeStore.getState().setEdges(reactFlowEdges);
                         }
                         useNotificationStore.getState().addNotification({
                           content: "Autosave restored successfully",

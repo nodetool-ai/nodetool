@@ -53,7 +53,7 @@ interface TabPanelProps {
   index: TabValue;
 }
 
-function TabPanel(props: TabPanelProps) {
+const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   const { children, value, index } = props;
   return (
     <div
@@ -66,7 +66,7 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box className="tab-content">{children}</Box>}
     </div>
   );
-}
+});
 
 const InlineModelDownload: React.FC<{
   model: UnifiedModel;

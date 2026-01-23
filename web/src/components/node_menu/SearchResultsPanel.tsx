@@ -47,6 +47,13 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
     clearDrag();
   }, [clearDrag]);
 
+  const handleNodeClick = useCallback(
+    (node: NodeMetadata) => () => {
+      handleCreateNode(node);
+    },
+    [handleCreateNode]
+  );
+
   const renderSearchRow = useCallback(
     ({ index, style }: ListChildComponentProps) => {
       const node = searchNodes[index];
@@ -56,13 +63,13 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
             node={node}
             onDragStart={handleDragStart(node)}
             onDragEnd={handleDragEnd}
-            onClick={() => handleCreateNode(node)}
+            onClick={handleNodeClick(node)}
             isKeyboardSelected={index === selectedIndex}
           />
         </div>
       );
     },
-    [searchNodes, handleDragStart, handleDragEnd, handleCreateNode, selectedIndex]
+    [searchNodes, handleDragStart, handleDragEnd, handleNodeClick, selectedIndex]
   );
 
   return (

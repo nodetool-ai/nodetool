@@ -106,7 +106,7 @@ Shortcuts, hidden features, and workflow efficiency tips.
 
 ### Using Bypass for Debugging
 
-Bypass is a powerful debugging tool:
+Bypass is a useful debugging technique:
 
 - **Isolate issues**: Bypass nodes one at a time to find the problem
 - **Compare outputs**: Toggle bypass to see before/after results

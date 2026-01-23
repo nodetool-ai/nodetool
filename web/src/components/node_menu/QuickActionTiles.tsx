@@ -500,6 +500,20 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     [getMetadata, setHoveredNode]
   );
 
+  const handleTileClick = useCallback(
+    (definition: QuickActionDefinition) => () => {
+      onTileClick(definition);
+    },
+    [onTileClick]
+  );
+
+  const handleTileMouseEnter = useCallback(
+    (nodeType: string) => () => {
+      onTileMouseEnter(nodeType);
+    },
+    [onTileMouseEnter]
+  );
+
   return (
     <Box css={memoizedStyles}>
       <div className="tiles-header">
@@ -544,8 +558,8 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 draggable
                 onDragStart={handleDragStart(nodeType)}
                 onDragEnd={handleDragEnd}
-                onClick={() => onTileClick(definition)}
-                onMouseEnter={() => onTileMouseEnter(nodeType)}
+                onClick={handleTileClick(definition)}
+                onMouseEnter={handleTileMouseEnter(nodeType)}
                 style={
                   {
                     "--quick-gradient": gradient,
@@ -611,8 +625,8 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 draggable
                 onDragStart={handleDragStart(nodeType)}
                 onDragEnd={handleDragEnd}
-                onClick={() => onTileClick(definition)}
-                onMouseEnter={() => onTileMouseEnter(nodeType)}
+                onClick={handleTileClick(definition)}
+                onMouseEnter={handleTileMouseEnter(nodeType)}
                 style={
                   {
                     "--quick-gradient": gradient,

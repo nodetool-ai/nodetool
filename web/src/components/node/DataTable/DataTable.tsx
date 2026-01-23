@@ -98,8 +98,10 @@ const DataTable: React.FC<DataTableProps> = ({
   // Update undo/redo availability
   const updateHistoryState = useCallback(() => {
     if (tabulatorRef.current && isModalMode) {
-      setCanUndo(tabulatorRef.current.getHistoryUndoSize() > 0);
-      setCanRedo(tabulatorRef.current.getHistoryRedoSize() > 0);
+      const undoSize = tabulatorRef.current.getHistoryUndoSize();
+      const redoSize = tabulatorRef.current.getHistoryRedoSize();
+      setCanUndo(typeof undoSize === "number" && undoSize > 0);
+      setCanRedo(typeof redoSize === "number" && redoSize > 0);
     }
   }, [isModalMode]);
 
@@ -294,9 +296,9 @@ const DataTable: React.FC<DataTableProps> = ({
           type: "like" as const,
           value: searchFilter
         }));
-        tabulatorRef.current.setFilter([filters]);
+        tabulatorRef.current.setFilter([filters] as any);
       } else {
-        tabulatorRef.current.clearFilter();
+        (tabulatorRef.current.clearFilter as () => void)();
       }
     }
   }, [searchFilter, isTableReady]);

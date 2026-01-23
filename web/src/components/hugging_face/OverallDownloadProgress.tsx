@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { Box, Tooltip } from "@mui/material";
 import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -50,6 +50,20 @@ const OverallDownloadProgress: React.FC = () => {
     return { progress: prog };
   }, [downloads]);
 
+  const handleClick = useCallback(() => {
+    openDialog();
+  }, [openDialog]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openDialog();
+      }
+    },
+    [openDialog]
+  );
+
   return (
     <Tooltip title="Download Progress" enterDelay={TOOLTIP_ENTER_DELAY}>
       <Box
@@ -74,15 +88,8 @@ const OverallDownloadProgress: React.FC = () => {
             outlineOffset: "2px"
           }
         }}
-        onClick={() => {
-          openDialog();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            openDialog();
-          }
-        }}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
       >
         <Box
           className="icon-container"

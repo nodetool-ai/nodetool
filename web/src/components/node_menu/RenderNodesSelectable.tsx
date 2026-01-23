@@ -224,6 +224,13 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     [onNodeClick, showCheckboxes, onToggleSelection]
   );
 
+  const handleNodeClickWrapper = useCallback(
+    (node: NodeMetadata) => () => {
+      handleNodeClick(node);
+    },
+    [handleNodeClick]
+  );
+
   const { selectedPath } = useNodeMenuStore((state) => ({
     selectedPath: state.selectedPath.join(".")
   }));
@@ -329,7 +336,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                         node={node}
                         onDragStart={handleDragStart(node)}
                         onDragEnd={handleDragEnd}
-                        onClick={() => handleNodeClick(node)}
+                        onClick={handleNodeClickWrapper(node)}
                         showCheckbox={showCheckboxes}
                         isSelected={selectedNodeTypes.includes(node.node_type)}
                         onToggleSelection={onToggleSelection}
@@ -350,7 +357,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       showCheckboxes,
       selectedNodeTypes,
       onToggleSelection,
-      handleNodeClick,
+      handleNodeClickWrapper,
       computeNamespaceSelectionState,
       toggleNamespace
     ]
@@ -433,7 +440,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                   node={node}
                   onDragStart={handleDragStart(node)}
                   onDragEnd={handleDragEnd}
-                  onClick={() => handleNodeClick(node)}
+                  onClick={handleNodeClickWrapper(node)}
                   showCheckbox={showCheckboxes}
                   isSelected={true}
                   onToggleSelection={onToggleSelection}
@@ -508,14 +515,17 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                 {textForNamespaceHeader}
               </Typography>
             </Box>,
-            <div key={`nodes-${namespace}-${namespaceIndex}`} className="node-items-group">
+            <div
+              key={`nodes-${namespace}-${namespaceIndex}`}
+              className="node-items-group"
+            >
               {nodesInNamespace.map((node) => (
                 <NodeItem
                   key={node.node_type}
                   node={node}
                   onDragStart={handleDragStart(node)}
                   onDragEnd={handleDragEnd}
-                  onClick={() => handleNodeClick(node)}
+                  onClick={handleNodeClickWrapper(node)}
                   showCheckbox={showCheckboxes}
                   isSelected={selectedNodeTypes.includes(node.node_type)}
                   onToggleSelection={onToggleSelection}
@@ -536,7 +546,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     selectedPath,
     handleDragStart,
     handleDragEnd,
-    handleNodeClick,
+    handleNodeClickWrapper,
     showCheckboxes,
     selectedNodeTypes,
     onToggleSelection,

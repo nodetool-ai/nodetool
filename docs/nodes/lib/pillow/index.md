@@ -6,7 +6,7 @@ parent: Lib
 
 # Pillow Library Nodes
 
-Pillow is a powerful image processing library. NodeTool provides nodes for various Pillow operations.
+Pillow is an image processing library. NodeTool provides nodes for various Pillow operations.
 
 ## Submodules
 

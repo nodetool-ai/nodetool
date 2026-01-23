@@ -3,15 +3,15 @@ layout: page
 title: "Supported Models"
 ---
 
-NodeTool provides extensive support for AI models across multiple providers, from cutting-edge proprietary models to
-open-source alternatives. This comprehensive guide covers all supported models and their capabilities.
+NodeTool supports AI models across multiple providers, from proprietary models to
+open-source alternatives. This guide covers supported models and their capabilities.
 
 All providers are accessible through generic nodes (TextToImage, Agent, RealtimeAgent, etc.).
 Switching providers does not require editing the workflow structure.
 
 ## Local Inference Engines
 
-NodeTool provides comprehensive local model support with **1,655+ models** across multiple frameworks.
+NodeTool provides local model support with **1,655+ models** across multiple frameworks.
 
 For provider-based local inference (Ollama, vLLM), please refer to the [Providers documentation](providers.md).
 
@@ -37,7 +37,7 @@ For provider-based local inference (Ollama, vLLM), please refer to the [Provider
 
 ### HuggingFace Transformers
 
-**Transformers** is the standard library for working with state-of-the-art ML models across text, vision, audio, and multimodal tasks. It provides access to the HuggingFace Hub with over 500,000 pre-trained models and supports automatic device detection (GPU/Apple Silicon/CPU).
+**Transformers** is the standard library for working with ML models across text, vision, audio, and multimodal tasks. It provides access to the HuggingFace Hub with over 500,000 pre-trained models and supports automatic device detection (GPU/Apple Silicon/CPU).
 
 ### Comparison Matrix
 
@@ -64,7 +64,7 @@ NodeTool supports a wide range of model types across different domains. Below is
 
 | Model Type | Description | Variants |
 | :--- | :--- | :--- |
-| **Flux** | State-of-the-art text-to-image generation | ✅ Full Precision<br>✅ MLX<br>✅ Nunchaku |
+| **Flux** | Text-to-image generation | ✅ Full Precision<br>✅ MLX<br>✅ Nunchaku |
 | **Flux Fill** | Inpainting/Outpainting for Flux | ✅ Full Precision<br>✅ MLX |
 | **Flux Depth** | Depth-guided generation | ✅ Full Precision<br>✅ MLX |
 | **Flux Redux** | Image variation and mixing | ✅ Full Precision<br>✅ MLX |
@@ -139,9 +139,9 @@ NodeTool supports a wide range of model types across different domains. Below is
 
 ______________________________________________________________________
 
-## Cloud-Based State-of-the-Art Models
+## Cloud Models
 
-In addition to local models, NodeTool provides access to cutting-edge cloud-based models through provider integrations. These models offer the latest capabilities in video, image, and audio generation.
+In addition to local models, NodeTool provides access to cloud-based models through provider integrations. These models offer the latest capabilities in video, image, and audio generation.
 
 ### Video Generation (Cloud)
 

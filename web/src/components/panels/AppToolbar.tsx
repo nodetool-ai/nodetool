@@ -580,8 +580,12 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
     cancel: state.cancel
   }));
 
+  const handleCancel = useCallback(() => {
+    cancel();
+  }, [cancel]);
+
   // Keyboard shortcut for stop (Escape)
-  useCombo(["escape"], cancel, true, isWorkflowRunning);
+  useCombo(["escape"], handleCancel, true, isWorkflowRunning);
 
   return (
     <Tooltip
@@ -592,7 +596,7 @@ const StopWorkflowButton = memo(function StopWorkflowButton() {
         className={`action-button run-stop-button stop-workflow ${
           !isWorkflowRunning ? "disabled" : "running"
         }`}
-        onClick={() => cancel()}
+        onClick={handleCancel}
         tabIndex={-1}
       >
         <StopIcon />
@@ -651,12 +655,16 @@ const EditWorkflowButton = memo(function EditWorkflowButton({
     getWorkflow: state.getWorkflow
   }));
 
+  const handleEditWorkflow = useCallback(() => {
+    setWorkflowToEdit(getWorkflow());
+  }, [getWorkflow, setWorkflowToEdit]);
+
   return (
     <>
       <Tooltip title="Edit Workflow Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
         <Button
           className="action-button"
-          onClick={() => setWorkflowToEdit(getWorkflow())}
+          onClick={handleEditWorkflow}
           tabIndex={-1}
         >
           <EditIcon />

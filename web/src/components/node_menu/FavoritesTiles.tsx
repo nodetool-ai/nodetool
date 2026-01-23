@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
-import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
+import type { CSSProperties, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent } from "react";
 import { Box, Tooltip, Typography, IconButton } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -269,6 +269,27 @@ const FavoritesTiles = memo(function FavoritesTiles() {
     [getMetadata]
   );
 
+  const handleTileClick = useCallback(
+    (nodeType: string) => () => {
+      onTileClick(nodeType);
+    },
+    [onTileClick]
+  );
+
+  const handleTileMouseEnter = useCallback(
+    (nodeType: string) => () => {
+      onTileMouseEnter(nodeType);
+    },
+    [onTileMouseEnter]
+  );
+
+  const handleUnfavoriteClick = useCallback(
+    (nodeType: string, e: ReactMouseEvent) => {
+      handleUnfavorite(nodeType, e);
+    },
+    [handleUnfavorite]
+  );
+
   if (favorites.length === 0) {
     return null;
   }
@@ -330,8 +351,8 @@ const FavoritesTiles = memo(function FavoritesTiles() {
                 draggable
                 onDragStart={handleDragStart(nodeType)}
                 onDragEnd={handleDragEnd}
-                onClick={() => onTileClick(nodeType)}
-                onMouseEnter={() => onTileMouseEnter(nodeType)}
+                onClick={handleTileClick(nodeType)}
+                onMouseEnter={handleTileMouseEnter(nodeType)}
                 style={
                   {
                     background:
@@ -342,7 +363,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
                 <IconButton
                   size="small"
                   className="unfavorite-btn"
-                  onClick={(e) => handleUnfavorite(nodeType, e)}
+                  onClick={handleUnfavoriteClick.bind(null, nodeType)}
                   aria-label={`Remove ${displayName} from favorites`}
                 >
                   <StarBorderIcon fontSize="small" />
