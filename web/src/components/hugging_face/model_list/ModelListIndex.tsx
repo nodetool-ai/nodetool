@@ -405,8 +405,9 @@ const ModelListIndex: React.FC = () => {
                     (cachePending[cacheKey] ||
                       cacheStatuses[cacheKey] === undefined);
                   const isDownloaded =
-                    item.model.type === "llama_model" ||
-                    !!cacheStatuses[cacheKey];
+                    item.model.type === "llama_model"
+                      ? !!item.model.downloaded
+                      : !!cacheStatuses[cacheKey];
                   const displayModel = {
                     ...item.model,
                     downloaded: isDownloaded

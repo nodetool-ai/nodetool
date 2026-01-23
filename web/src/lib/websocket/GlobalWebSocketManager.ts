@@ -14,6 +14,10 @@ type GlobalWebSocketEvent =
   | "reconnecting"
   | "stateChange";
 
+// Configuration constants
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_INTERVAL_MS = 1000;
+
 /**
  * Global WebSocket Manager - Singleton pattern.
  *
@@ -29,9 +33,12 @@ class GlobalWebSocketManager extends EventEmitter {
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
   private isConnecting = false;
   private isConnected = false;
+  private networkListenersSetup = false;
+  private networkCleanup: (() => void) | null = null;
 
   private constructor() {
     super();
+    this.setupNetworkListeners();
   }
 
   static getInstance(): GlobalWebSocketManager {
@@ -71,8 +78,8 @@ class GlobalWebSocketManager extends EventEmitter {
         url: wsUrl,
         binaryType: "arraybuffer",
         reconnect: true,
-        reconnectInterval: 1000,
-        reconnectAttempts: 5
+        reconnectInterval: RECONNECT_INTERVAL_MS,
+        reconnectAttempts: MAX_RECONNECT_ATTEMPTS
       });
 
       this.wsManager.on("open", () => {
@@ -219,6 +226,13 @@ class GlobalWebSocketManager extends EventEmitter {
       this.isConnected = false;
       this.isConnecting = false;
     }
+    
+    // Clean up network listeners
+    if (this.networkCleanup) {
+      this.networkCleanup();
+      this.networkCleanup = null;
+      this.networkListenersSetup = false;
+    }
   }
 
   /**
@@ -269,6 +283,46 @@ class GlobalWebSocketManager extends EventEmitter {
         log.error("GlobalWebSocketManager: Failed to send tools manifest:", error);
       }
     }
+  }
+
+  /**
+   * Set up network status monitoring to auto-reconnect on network changes
+   */
+  private setupNetworkListeners(): void {
+    if (typeof window === "undefined" || this.networkListenersSetup) {
+      return;
+    }
+
+    this.networkListenersSetup = true;
+
+    const handleOnline = () => {
+      log.info("GlobalWebSocketManager: Network came online, attempting reconnection");
+      if (!this.isConnected && !this.isConnecting) {
+        this.ensureConnection().catch((err) => {
+          log.error("GlobalWebSocketManager: Failed to reconnect after network online:", err);
+        });
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        log.info("GlobalWebSocketManager: Tab became visible, checking connection");
+        if (!this.isConnected && !this.isConnecting) {
+          this.ensureConnection().catch((err) => {
+            log.error("GlobalWebSocketManager: Failed to reconnect after visibility change:", err);
+          });
+        }
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Store cleanup function
+    this.networkCleanup = () => {
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }
 
   private async buildAuthenticatedUrl(): Promise<string> {

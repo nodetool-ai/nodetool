@@ -50,6 +50,7 @@ import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
+import DataframeRenderer from "./output/DataframeRenderer";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -579,8 +580,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   {chunks.map((c) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
-                        `chunk:${(c as any)?.content_type ?? ""}:${
-                          (c as any)?.done ? 1 : 0
+                        `chunk:${(c as any)?.content_type ?? ""}:${(c as any)?.done ? 1 : 0
                         }:${hashStringBounded(
                           typeof (c as any)?.content === "string"
                             ? (c as any).content

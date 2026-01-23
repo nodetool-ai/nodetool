@@ -282,6 +282,13 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     [handleToolSelect]
   );
 
+  const handleSelectTool = useCallback(
+    (tool: EditTool) => () => {
+      handleToolClick(tool);
+    },
+    [handleToolClick]
+  );
+
   return (
     <div css={styles(theme)}>
       <div className="toolbar">
@@ -292,7 +299,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Select / Pan" placement="top">
               <IconButton
                 className={`tool-button ${tool === "select" ? "active" : ""}`}
-                onClick={() => handleToolClick("select")}
+                onClick={handleSelectTool("select")}
                 size="small"
               >
                 <PanToolIcon fontSize="small" />
@@ -301,7 +308,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Crop" placement="top">
               <IconButton
                 className={`tool-button ${tool === "crop" ? "active" : ""}`}
-                onClick={() => handleToolClick("crop")}
+                onClick={handleSelectTool("crop")}
                 size="small"
               >
                 <CropIcon fontSize="small" />
@@ -310,7 +317,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Draw / Paint" placement="top">
               <IconButton
                 className={`tool-button ${tool === "draw" ? "active" : ""}`}
-                onClick={() => handleToolClick("draw")}
+                onClick={handleSelectTool("draw")}
                 size="small"
               >
                 <BrushIcon fontSize="small" />
@@ -319,7 +326,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Erase" placement="top">
               <IconButton
                 className={`tool-button ${tool === "erase" ? "active" : ""}`}
-                onClick={() => handleToolClick("erase")}
+                onClick={handleSelectTool("erase")}
                 size="small"
               >
                 <AutoFixHighIcon fontSize="small" />

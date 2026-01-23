@@ -187,19 +187,32 @@ export function FloatingLinkEditor(): JSX.Element | null {
     }
   }, [isEditMode]);
 
-  const handleLinkSubmit = () => {
+  const handleLinkSubmit = useCallback(() => {
     if (lastSelection !== null) {
       if (editedLinkUrl !== "") {
         editor.dispatchCommand(TOGGLE_LINK_COMMAND, editedLinkUrl);
       }
       setIsEditMode(false);
     }
-  };
+  }, [lastSelection, editedLinkUrl, editor]);
 
-  const handleLinkDelete = () => {
+  const handleLinkDelete = useCallback(() => {
     editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
     setIsEditMode(false);
-  };
+  }, [editor]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditMode(false);
+    setEditedLinkUrl(linkUrl);
+  }, [linkUrl]);
+
+  const handleEditMode = useCallback(() => {
+    setIsEditMode(true);
+  }, []);
+
+  const handleOpenLink = useCallback(() => {
+    window.open(linkUrl, "_blank", "noopener,noreferrer");
+  }, [linkUrl]);
 
   if (!linkUrl) {
     return null;
@@ -220,8 +233,7 @@ export function FloatingLinkEditor(): JSX.Element | null {
                 handleLinkSubmit();
               } else if (e.key === "Escape") {
                 e.preventDefault();
-                setIsEditMode(false);
-                setEditedLinkUrl(linkUrl);
+                handleCancelEdit();
               }
             }}
           />
@@ -229,10 +241,7 @@ export function FloatingLinkEditor(): JSX.Element | null {
             <CheckIcon />
           </button>
           <button
-            onClick={() => {
-              setIsEditMode(false);
-              setEditedLinkUrl(linkUrl);
-            }}
+            onClick={handleCancelEdit}
             aria-label="Cancel"
           >
             <CloseIcon />
@@ -243,11 +252,11 @@ export function FloatingLinkEditor(): JSX.Element | null {
           <a href={linkUrl} target="_blank" rel="noopener noreferrer">
             {linkUrl}
           </a>
-          <button onClick={() => setIsEditMode(true)} aria-label="Edit Link">
+          <button onClick={handleEditMode} aria-label="Edit Link">
             <EditIcon />
           </button>
           <button
-            onClick={() => window.open(linkUrl, "_blank", "noopener,noreferrer")}
+            onClick={handleOpenLink}
             aria-label="Open Link"
           >
             <OpenInNewIcon />

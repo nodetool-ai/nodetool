@@ -257,9 +257,23 @@ const NodeExplorer: React.FC = () => {
     [handleNodeFocus]
   );
 
-  const _handleNodeEditClick = useCallback(
+  const handleNodeClickWrapper = useCallback(
+    (entryNodeId: string) => () => {
+      handleNodeClick(entryNodeId);
+    },
+    [handleNodeClick]
+  );
+
+  const handleNodeEditClick = useCallback(
     (event: React.MouseEvent, nodeId: string) => {
       event.stopPropagation();
+      handleNodeEdit(nodeId);
+    },
+    [handleNodeEdit]
+  );
+
+  const handleEditButtonClick = useCallback(
+    (nodeId: string) => () => {
       handleNodeEdit(nodeId);
     },
     [handleNodeEdit]
@@ -311,7 +325,7 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={() => handleNodeClick(entry.node.id)}
+                onClick={handleNodeClickWrapper(entry.node.id)}
                 onContextMenu={(event) => {
                   handleNodeContextMenu(event, entry.node.id);
                 }}
@@ -331,10 +345,7 @@ const NodeExplorer: React.FC = () => {
                 className="node-edit-button"
                 size="small"
                 aria-label="Edit node"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleNodeEdit(entry.node.id);
-                }}
+                onClick={handleEditButtonClick(entry.node.id)}
               >
                 <NorthEastIcon fontSize="small" />
               </Button>
