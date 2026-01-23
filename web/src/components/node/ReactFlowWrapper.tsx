@@ -42,6 +42,7 @@ import { Typography } from "@mui/material";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
+import useStatusStore from "../../stores/StatusStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import { useReactFlowEvents } from "../../hooks/handlers/useReactFlowEvents";
 import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
@@ -347,6 +348,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   });
 
   const edgeStatuses = useResultsStore((state) => state.edges);
+  const nodeStatuses = useStatusStore((state) => state.statuses);
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
@@ -354,6 +356,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     getMetadata,
     workflowId,
     edgeStatuses,
+    nodeStatuses,
     isSelecting
   });
   const activeGradientKeysArray = useMemo(

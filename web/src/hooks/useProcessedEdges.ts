@@ -22,6 +22,8 @@ interface ProcessedEdgesOptions {
   workflowId?: string;
   /** Optional edge status map for execution visualization */
   edgeStatuses?: Record<string, { status: string; counter?: number }>;
+  /** Optional node status map - used to animate edges when source node is running */
+  nodeStatuses?: Record<string, string | Record<string, unknown> | null | undefined>;
   /** true while the selection rectangle is being dragged */
   isSelecting?: boolean;
 }
@@ -96,6 +98,7 @@ export function useProcessedEdges({
   getMetadata,
   workflowId,
   edgeStatuses,
+  nodeStatuses,
   isSelecting
 }: ProcessedEdgesOptions): ProcessedEdgesResult {
   // Keep latest nodes without making them a hard dependency of the memo
@@ -287,7 +290,13 @@ export function useProcessedEdges({
       const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
       const status = statusObj?.status;
       const counter = statusObj?.counter;
-      if (status === "message_sent") {
+
+      // Check if source node is running - animate edges from running nodes
+      const sourceNodeStatusKey = workflowId ? `${workflowId}:${edge.source}` : undefined;
+      const sourceNodeStatus = sourceNodeStatusKey ? nodeStatuses?.[sourceNodeStatusKey] : undefined;
+      const isSourceRunning = sourceNodeStatus === "running" || sourceNodeStatus === "starting" || sourceNodeStatus === "booting";
+      
+      if (status === "message_sent" || isSourceRunning) {
         classes.push("message-sent");
       }
 
@@ -324,5 +333,5 @@ export function useProcessedEdges({
     const result = { processedEdges: processedResultEdges, activeGradientKeys };
     lastResultRef.current = result;
     return result;
-  }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, isSelecting]);
+  }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, nodeStatuses, isSelecting]);
 }
