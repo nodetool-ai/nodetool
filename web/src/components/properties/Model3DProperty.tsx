@@ -126,6 +126,10 @@ const Model3DProperty = (props: PropertyProps) => {
   const [openViewer, setOpenViewer] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  const handleToggleUrlInput = useCallback(() => {
+    setShowUrlInput((prev) => !prev);
+  }, []);
+
   const { onDrop, onDragOver } = useFileDrop({
     uploadAsset: true,
     onChangeAsset: (asset: Asset) =>
