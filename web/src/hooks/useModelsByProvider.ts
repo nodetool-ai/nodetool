@@ -84,11 +84,35 @@ export const useLanguageModelsByProvider = (options?: {
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
 
+  // Track per-provider errors for debugging feedback
+  const providerErrors = useMemo(() => {
+    const errors: Array<{ provider: string; error: unknown }> = [];
+    queries.forEach((q, idx) => {
+      if (q.error && providers[idx]) {
+        errors.push({
+          provider: providers[idx].provider,
+          error: q.error
+        });
+      }
+    });
+    return errors;
+  }, [queries, providers]);
+
+  // Track loading progress
+  const loadingProgress = useMemo(() => {
+    const total = providers.length;
+    const loaded = queries.filter((q) => q.data || q.error).length;
+    const loading = queries.filter((q) => q.isLoading).length;
+    return { total, loaded, loading };
+  }, [providers.length, queries]);
+
   return {
     models: allModels || [],
     isLoading,
     isFetching,
     error,
+    providerErrors,
+    loadingProgress,
     allowedProviders: options?.allowedProviders
   };
 };
