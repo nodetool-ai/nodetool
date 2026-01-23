@@ -49,6 +49,10 @@ const PropertyDropzone = ({
   const imageRef = useRef<HTMLImageElement>(null);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
 
+  const handleToggleUrlInput = useCallback(() => {
+    setShowUrlInput((prev) => !prev);
+  }, []);
+
   const styles = (theme: Theme) =>
     css({
       ".drop-container": {
