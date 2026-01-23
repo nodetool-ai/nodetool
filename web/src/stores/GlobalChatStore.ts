@@ -618,8 +618,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
           }));
 
           return data;
-        } catch (error) {
-          log.error("Failed to fetch thread:", error);
+        } catch (error: any) {
+          const isNotFound = error?.status === 404;
+          if (!isNotFound) {
+            log.error("Failed to fetch thread:", error);
+          }
           return null;
         }
       },
