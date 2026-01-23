@@ -10,14 +10,15 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 
 const styles = (_theme: Theme) =>
   css({
-    width: "100%",
+    width: "90%",
+    maxWidth: "1000px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
     padding: "0",
-    marginTop: "auto",
+    margin: "auto auto 0 auto", // Center horizontally, push to bottom
     flexShrink: 0,
     // Mobile styles handled via separate CSS file
 

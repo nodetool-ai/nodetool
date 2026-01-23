@@ -928,10 +928,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
       addMessageToCache: (threadId: string, message: Message) => {
         set((state) => {
           const existingMessages = state.messageCache[threadId] || [];
+          // Add created_at timestamp if not already present
+          const messageWithTimestamp = {
+            ...message,
+            created_at: (message as any).created_at || new Date().toISOString()
+          };
           return {
             messageCache: {
               ...state.messageCache,
-              [threadId]: [...existingMessages, message]
+              [threadId]: [...existingMessages, messageWithTimestamp]
             }
           };
         });

@@ -37,19 +37,16 @@ export const createStyles = (theme: Theme) => ({
     }
   }),
   chatMessagesList: css({
-    listStyleType: "none",
     maxWidth: "800px",
     width: "100%",
     minWidth: 0,
     padding: "0",
     margin: "0",
-    // backgroundColor: "var(--palette-background-paper)",
 
-    "li.chat-message": {
+    ".chat-message": {
       width: "100%",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
-      listStyleType: "none",
       marginBottom: "1em",
       padding: "0.5em 0",
       borderRadius: "4px",
@@ -59,39 +56,63 @@ export const createStyles = (theme: Theme) => ({
       alignItems: "flex-start",
       gap: "4px",
       border: "1px solid transparent",
-      transition: "border-color 0.15s ease"
+      transition: "border-color 0.25s ease"
     },
-
-    "li.chat-message:hover": {
-      borderColor: theme.vars.palette.divider
+    ".chat-message.assistant": {
+      padding: "1em",
+      borderRadius: "1em",
+      transition: "border-color 0.25s ease"
     },
-
-    "li.user": {
+    ".chat-message.assistant:hover": {
+      border: `1px solid ${theme.vars.palette.divider}`
+    },
+    // User message container (transparent, just for layout)
+    ".user": {
       width: "fit-content",
       maxWidth: "60%",
       minWidth: "2em",
       margin: "4em 0 2em auto",
-      padding: "0.2em",
-      color: theme.vars.palette.text.primary,
-      background: theme.vars.palette.background.paper,
-      borderRadius: ".75em",
-      textAlign: "right",
+      padding: "0",
+      border: "none",
+      background: "transparent",
       alignItems: "flex-end"
+    },
+
+    // User message content gets the colored background
+    ".user .message-content": {
+      background: theme.vars.palette.background.paper,
+      color: theme.vars.palette.text.primary,
+      borderRadius: ".75em",
+      padding: "0.2em",
+      textAlign: "right",
+      border: "1px solid transparent",
+      transition: "border-color 0.15s ease"
+    },
+
+    ".user:hover .message-content": {
+      borderColor: theme.vars.palette.divider
     },
 
     ".chat-message.user .markdown": {
       padding: ".5em 1em"
     },
 
-    "li.assistant": {
-      alignItems: "flex-start"
+    ".assistant": {
+      alignItems: "flex-start",
+      background: "transparent"
     },
 
-    // Message actions container (copy button, timestamp)
+    ".assistant .message-content": {
+      borderRadius: ".5em",
+      transition: "border-color 0.15s ease"
+    },
+
+    // Message actions container (copy button, timestamp) - OUTSIDE the bubble
     ".message-actions": {
       display: "flex",
       alignItems: "center",
-      gap: "8px",
+      gap: "6px",
+      marginTop: "4px",
       opacity: 0,
       pointerEvents: "none",
       transition: "opacity 0.15s ease",
@@ -99,50 +120,28 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.text.disabled
     },
 
-    "li.chat-message:hover .message-actions": {
+    ".chat-message:hover .message-actions": {
       opacity: 1,
       pointerEvents: "auto"
     },
 
     // User message: actions on the right
-    "li.user .message-actions": {
+    ".user .message-actions": {
       justifyContent: "flex-end"
     },
 
     // Assistant message: actions on the left
-    "li.assistant .message-actions": {
+    ".assistant .message-actions": {
       justifyContent: "flex-start"
     },
 
     ".message-timestamp": {
       fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.text.disabled
+      color: theme.vars.palette.text.disabled,
+      whiteSpace: "nowrap"
     },
 
-    // Legacy copy-button styles (fallback)
-    "li.chat-message .copy-button": {
-      cursor: "pointer",
-      opacity: 0,
-      pointerEvents: "none",
-      transition: "opacity 0.2s ease"
-    },
-    "li.chat-message:hover .copy-button": {
-      opacity: 0.7,
-      pointerEvents: "auto"
-    },
-    "li.chat-message .copy-button:hover": {
-      opacity: 1
-    },
-
-    "li.chat-message p": {
-      // margin: "0.2em 0"
-      // fontSize: theme.fontSizeNormal,
-      // lineHeight: "1.5em"
-      // fontWeight: "300"
-      // color: theme.vars.palette.grey[0]
-    },
-
-    "li.error-message": {
+    ".error-message": {
       backgroundColor: theme.vars.palette.error.dark,
       border: `1px solid ${theme.vars.palette.error.main}`,
       borderRadius: "8px",
@@ -157,27 +156,15 @@ export const createStyles = (theme: Theme) => ({
       }
     },
 
-    "li pre": {
-      // fontFamily: theme.fontFamily2,
-      // width: "100%",
-      // backgroundColor: "rgba(0,0,0, 0.8)",
-      // padding: "0.5em"
-    },
-
-    "li pre code": {
-      // fontFamily: theme.fontFamily2,
-      // color: theme.vars.palette.grey[0]
-    },
-
     ".code-block-container": {
       marginBottom: "1em"
     },
 
-    "li a": {
+    ".chat-message a": {
       color: theme.vars.palette.primary.main
     },
 
-    "li a:hover": {
+    ".chat-message a:hover": {
       color: `${theme.vars.palette.primary.light} !important`,
       textDecoration: "none"
     },
@@ -238,12 +225,12 @@ export const createStyles = (theme: Theme) => ({
       marginBottom: 2
     },
 
-    "li.chat-message.tool-calls-only": {
+    ".chat-message.tool-calls-only": {
       marginBottom: "0.4em",
       padding: "0.25em 0"
     },
 
-    "li.chat-message.tool-calls-only .tool-call-card:last-child": {
+    ".chat-message.tool-calls-only .tool-call-card:last-child": {
       marginBottom: 0
     },
 
@@ -293,23 +280,13 @@ export const createStyles = (theme: Theme) => ({
       flexShrink: 0
     },
 
-    "li.chat-message-list-item": {
-      listStyleType: "none",
-      listStyle: "none",
+    ".chat-message-list-item": {
       margin: "0",
-      padding: "0",
-
-      "&::before": {
-        display: "none"
-      },
-
-      "&::marker": {
-        display: "none"
-      }
+      padding: "0"
     },
 
     // Execution event styles
-    "li.execution-event": {
+    ".execution-event": {
       width: "100%",
       marginBottom: "0.5rem"
     },
