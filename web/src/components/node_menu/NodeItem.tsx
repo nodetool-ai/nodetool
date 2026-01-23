@@ -3,6 +3,7 @@ import { useTheme } from "@mui/material/styles";
 import { Typography, Checkbox, IconButton, Tooltip } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
+import CheckIcon from "@mui/icons-material/Check";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { IconForType } from "../../config/data_types";
@@ -112,25 +113,31 @@ const NodeItem = memo(
               alignItems: "center",
               flex: 1,
               gap: "0.5em",
-              position: "relative"
+              position: "relative",
+              paddingLeft: showCheckbox ? "24px" : undefined
             }}
           >
             {showCheckbox && (
-              <Checkbox
-                checked={isSelected}
-                onChange={() => onToggleSelection?.(node.node_type)}
-                size="small"
-                sx={{
-                  color: "var(--palette-grey-500)",
-                  "&.Mui-checked": {
-                    color: "var(--palette-c-hl1)"
-                  },
-                  padding: "2px",
-                  "& .MuiSvgIcon-root": {
-                    fontSize: "1.1rem"
-                  }
+              <div
+                style={{
+                  position: "absolute",
+                  left: "4px",
+                  width: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
                 }}
-              />
+              >
+                {isSelected && (
+                  <CheckIcon
+                    sx={{
+                      fontSize: "1.1rem",
+                      color: theme.vars.palette.primary.main,
+                      padding: "2px"
+                    }}
+                  />
+                )}
+              </div>
             )}
             <IconForType
               iconName={outputType}
