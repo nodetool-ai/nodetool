@@ -204,12 +204,10 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     isLoading: state.isLoading
   }));
 
-  // Only show unselected nodes in the left panel - avoids jumping when selecting
-  const unselectedNodesForDisplay = useMemo(() => {
-    return searchResults.filter(
-      (node) => !selectedNodeTypes.includes(node.node_type)
-    );
-  }, [searchResults, selectedNodeTypes]);
+  // Show all nodes in the left panel, including selected ones (they'll show as selected/disabled)
+  const nodesForDisplay = useMemo(() => {
+    return searchResults;
+  }, [searchResults]);
 
   const handleClick = useCallback(() => {
     setIsMenuOpen(true);
@@ -406,17 +404,17 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   <div className="loading-container">
                     <CircularProgress size={24} />
                   </div>
-                ) : unselectedNodesForDisplay.length === 0 ? (
+                ) : nodesForDisplay.length === 0 ? (
                   <div className="no-nodes-message">
                     <Typography variant="body2">
                       {searchTerm.trim().length > 0
                         ? "No nodes match your search."
-                        : "All available nodes are selected."}
+                        : "No nodes available."}
                     </Typography>
                   </div>
                 ) : (
                   <RenderNodesSelectable
-                    nodes={unselectedNodesForDisplay}
+                    nodes={nodesForDisplay}
                     showCheckboxes={true}
                     selectedNodeTypes={selectedNodeTypes}
                     onToggleSelection={handleToggleNode}
