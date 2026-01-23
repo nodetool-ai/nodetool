@@ -147,7 +147,7 @@ export const getProviderUrl = (provider?: string): string | null => {
   if (providerLower.includes("fal")) {return "https://fal.ai";}
   if (providerLower.includes("replicate")) {return "https://replicate.com";}
   if (providerLower.includes("aime")) {return "https://www.aime.info/en/";}
-  if (providerLower.includes("zai") || providerLower.includes("z.ai"))
+  if (providerLower === "zai" || providerLower === "zai-org" || providerLower === "zai_org" || providerLower === "z.ai")
     {return "https://z.ai";}
   // Unknown
   return null;
