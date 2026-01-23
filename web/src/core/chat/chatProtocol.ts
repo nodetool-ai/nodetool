@@ -10,6 +10,72 @@
  */
 import log from "loglevel";
 
+/**
+ * Chunk deduplication cache to prevent duplicate chunks from being processed
+ * multiple times due to duplicate WebSocket handlers or message routing.
+ * Tracks last processed chunk per thread with a short TTL for cleanup.
+ */
+const chunkDeduplicationCache = new Map<
+  string, // threadId
+  { content: string; timestamp: number; messageLength: number }
+>();
+const CHUNK_DEDUP_TTL_MS = 100; // Short TTL - chunks should arrive in quick succession
+
+/**
+ * Check if a chunk is a duplicate of the last processed chunk for a thread.
+ * Also cleans up stale cache entries.
+ */
+function isChunkDuplicate(
+  threadId: string,
+  chunkContent: string,
+  currentMessageLength: number
+): boolean {
+  const now = Date.now();
+  const cached = chunkDeduplicationCache.get(threadId);
+
+  // Clean up stale entry
+  if (cached && now - cached.timestamp > CHUNK_DEDUP_TTL_MS) {
+    chunkDeduplicationCache.delete(threadId);
+    return false;
+  }
+
+  // Check for duplicate: same content AND same message length (position)
+  if (
+    cached &&
+    cached.content === chunkContent &&
+    cached.messageLength === currentMessageLength
+  ) {
+    log.debug(
+      `Chunk dedup: Skipping duplicate chunk for thread ${threadId}: "${chunkContent.substring(0, 50)}..."`
+    );
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Record a processed chunk in the deduplication cache.
+ */
+function recordProcessedChunk(
+  threadId: string,
+  chunkContent: string,
+  newMessageLength: number
+): void {
+  chunkDeduplicationCache.set(threadId, {
+    content: chunkContent,
+    timestamp: Date.now(),
+    messageLength: newMessageLength
+  });
+}
+
+/**
+ * Clear the deduplication cache for a thread (e.g., when streaming ends).
+ */
+function clearChunkCache(threadId: string): void {
+  chunkDeduplicationCache.delete(threadId);
+}
+
 import {
   Chunk,
   EdgeUpdate,
@@ -263,18 +329,47 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
 
   const messages = state.messageCache[threadId] || [];
   const lastMessage = messages[messages.length - 1];
+
+  // Get current message length for deduplication check
+  const currentMessageLength =
+    lastMessage && lastMessage.role === "assistant"
+      ? String(lastMessage.content || "").length
+      : 0;
+
+  // Check for duplicate chunk (can happen with multiple WebSocket handlers)
+  if (isChunkDuplicate(threadId, chunk.content, currentMessageLength)) {
+    // Still update status if this is the final chunk
+    if (chunk.done) {
+      clearChunkCache(threadId);
+      return {
+        update: {
+          status: "connected",
+          currentPlanningUpdate: null,
+          currentTaskUpdate: null,
+          currentTaskUpdateThreadId: null,
+          currentLogUpdate: null
+        }
+      };
+    }
+    return noopUpdate;
+  }
+
   let updatedMessages: Message[];
+  let newMessageLength: number;
 
   if (lastMessage && lastMessage.role === "assistant") {
+    const newContent = (lastMessage.content || "") + chunk.content;
+    newMessageLength = newContent.length;
     const updatedMessage: Message = {
       ...lastMessage,
-      content: (lastMessage.content || "") + chunk.content
+      content: newContent
     };
     updatedMessages = [...messages.slice(0, -1), updatedMessage];
   } else {
     const localStreamId = `local-stream-${Date.now()}-${Math.random()
       .toString(16)
       .slice(2)}`;
+    newMessageLength = chunk.content.length;
     const message: Message = {
       id: localStreamId,
       role: "assistant",
@@ -283,6 +378,9 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
     };
     updatedMessages = [...messages, message];
   }
+
+  // Record this chunk as processed for deduplication
+  recordProcessedChunk(threadId, chunk.content, newMessageLength);
 
   const baseUpdate: Partial<GlobalChatState> = {
     status: chunk.done ? "connected" : "streaming",
@@ -297,6 +395,9 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   if (!chunk.done) {
     return { update: baseUpdate };
   }
+
+  // Clear deduplication cache when streaming ends
+  clearChunkCache(threadId);
 
   const postAction = (get: ChatStateGetter) => {
     const { selectedModel, summarizeThread, updateThreadTitle } = get();
