@@ -6,6 +6,8 @@ import {
   shell,
   dialog,
 } from "electron";
+import fs from "fs/promises";
+import path from "path";
 import {
   getServerState,
   openLogFile,
@@ -16,7 +18,12 @@ import {
   restartLlamaServer,
 } from "./server";
 import { logMessage } from "./logger";
-import { IpcChannels, IpcEvents, IpcResponse, WindowCloseAction } from "./types.d";
+import {
+  IpcChannels,
+  IpcEvents,
+  IpcResponse,
+  WindowCloseAction,
+} from "./types.d";
 import { readSettings, updateSetting } from "./settings";
 import { createPackageManagerWindow } from "./window";
 import { IpcRequest } from "./types.d";
@@ -32,7 +39,11 @@ import {
   searchNodes,
   checkExpectedPackageVersions,
 } from "./packageManager";
-import { openModelDirectory, openPathInExplorer, openSystemDirectory } from "./fileExplorer";
+import {
+  openModelDirectory,
+  openPathInExplorer,
+  openSystemDirectory,
+} from "./fileExplorer";
 import { exportDebugBundle } from "./debug";
 
 /**
@@ -56,23 +67,23 @@ import { exportDebugBundle } from "./debug";
 
 export type IpcMainHandler<T extends keyof IpcRequest & keyof IpcResponse> = (
   event: Electron.IpcMainInvokeEvent,
-  data: IpcRequest[T]
+  data: IpcRequest[T],
 ) => Promise<IpcResponse[T]>;
 
 export type IpcOnceHandler<T extends keyof IpcEvents> = (
   event: Electron.IpcMainInvokeEvent,
-  data: IpcEvents[T]
+  data: IpcEvents[T],
 ) => Promise<void>;
 
 // Channels that should have their payloads redacted for security
-const SENSITIVE_CHANNELS = ['clipboard:write-text', 'clipboard:read-text'];
+const SENSITIVE_CHANNELS = ["clipboard:write-text", "clipboard:read-text"];
 
 /**
  * Type-safe wrapper for IPC main handlers with logging
  */
 export function createIpcMainHandler<T extends keyof IpcRequest>(
   channel: T,
-  handler: IpcMainHandler<T>
+  handler: IpcMainHandler<T>,
 ): void {
   try {
     // Ensure idempotent registration to avoid "Attempted to register a second handler" errors
@@ -81,9 +92,9 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
     // Best-effort cleanup; continue with handler registration
     logMessage(
       `Warning removing existing IPC handler for ${String(channel)}: ${String(
-        error
+        error,
       )}`,
-      "warn"
+      "warn",
     );
   }
 
@@ -97,10 +108,12 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
     if (isSensitive) {
       logMessage(`IPC → ${channelStr} (payload redacted)`);
     } else {
-      const payloadStr = data !== undefined ? JSON.stringify(data) : 'undefined';
-      const truncatedPayload = payloadStr.length > 200 
-        ? payloadStr.substring(0, 200) + '...' 
-        : payloadStr;
+      const payloadStr =
+        data !== undefined ? JSON.stringify(data) : "undefined";
+      const truncatedPayload =
+        payloadStr.length > 200
+          ? payloadStr.substring(0, 200) + "..."
+          : payloadStr;
       logMessage(`IPC → ${channelStr}: ${truncatedPayload}`);
     }
 
@@ -111,7 +124,10 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      logMessage(`IPC ← ${channelStr} ERROR (${duration}ms): ${String(error)}`, "error");
+      logMessage(
+        `IPC ← ${channelStr} ERROR (${duration}ms): ${String(error)}`,
+        "error",
+      );
       throw error;
     }
   };
@@ -124,7 +140,7 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
  */
 export function createIpcOnceHandler<T extends keyof IpcEvents>(
   channel: T,
-  handler: IpcOnceHandler<T>
+  handler: IpcOnceHandler<T>,
 ): void {
   const wrappedHandler: IpcOnceHandler<T> = async (event, data) => {
     const channelStr = String(channel);
@@ -151,12 +167,15 @@ export function initializeIpcHandlers(): void {
     IpcChannels.CLIPBOARD_WRITE_TEXT,
     async (_event, data) => {
       clipboard.writeText(data.text, data.type);
-    }
+    },
   );
 
-  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_TEXT, async (_event, type) => {
-    return clipboard.readText(type);
-  });
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_READ_TEXT,
+    async (_event, type) => {
+      return clipboard.readText(type);
+    },
+  );
 
   createIpcMainHandler(
     IpcChannels.CLIPBOARD_WRITE_IMAGE,
@@ -164,23 +183,29 @@ export function initializeIpcHandlers(): void {
       const { nativeImage } = await import("electron");
       const image = nativeImage.createFromDataURL(data.dataUrl);
       clipboard.writeImage(image, data.type);
-    }
+    },
   );
 
-  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_IMAGE, async (_event, type) => {
-    const image = clipboard.readImage(type);
-    return image.toDataURL();
-  });
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_READ_IMAGE,
+    async (_event, type) => {
+      const image = clipboard.readImage(type);
+      return image.toDataURL();
+    },
+  );
 
-  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_HTML, async (_event, type) => {
-    return clipboard.readHTML(type);
-  });
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_READ_HTML,
+    async (_event, type) => {
+      return clipboard.readHTML(type);
+    },
+  );
 
   createIpcMainHandler(
     IpcChannels.CLIPBOARD_WRITE_HTML,
     async (_event, data) => {
       clipboard.writeHTML(data.markup, data.type);
-    }
+    },
   );
 
   createIpcMainHandler(IpcChannels.CLIPBOARD_READ_RTF, async (_event, type) => {
@@ -191,7 +216,7 @@ export function initializeIpcHandlers(): void {
     IpcChannels.CLIPBOARD_WRITE_RTF,
     async (_event, data) => {
       clipboard.writeRTF(data.text, data.type);
-    }
+    },
   );
 
   createIpcMainHandler(IpcChannels.CLIPBOARD_READ_BOOKMARK, async () => {
@@ -202,7 +227,7 @@ export function initializeIpcHandlers(): void {
     IpcChannels.CLIPBOARD_WRITE_BOOKMARK,
     async (_event, data) => {
       clipboard.writeBookmark(data.title, data.url, data.type);
-    }
+    },
   );
 
   createIpcMainHandler(IpcChannels.CLIPBOARD_READ_FIND_TEXT, async () => {
@@ -213,7 +238,7 @@ export function initializeIpcHandlers(): void {
     IpcChannels.CLIPBOARD_WRITE_FIND_TEXT,
     async (_event, text) => {
       clipboard.writeFindText(text);
-    }
+    },
   );
 
   createIpcMainHandler(IpcChannels.CLIPBOARD_CLEAR, async (_event, type) => {
@@ -224,7 +249,46 @@ export function initializeIpcHandlers(): void {
     IpcChannels.CLIPBOARD_AVAILABLE_FORMATS,
     async (_event, type) => {
       return clipboard.availableFormats(type);
+    },
+  );
+
+  createIpcMainHandler(IpcChannels.CLIPBOARD_READ_FILE_PATHS, async () => {
+    if (process.platform === "darwin") {
+      const fileUrl = clipboard.read("public.file-url");
+      if (fileUrl) {
+        try {
+          const filePath = decodeURIComponent(fileUrl.replace("file://", ""));
+          return [filePath];
+        } catch {
+          return [];
+        }
+      }
     }
+    // Windows support could involve reading buffer or falling back to text if it contains path
+    return [];
+  });
+
+  createIpcMainHandler(
+    IpcChannels.FILE_READ_AS_DATA_URL,
+    async (_event, filePath) => {
+      try {
+        const buffer = await fs.readFile(filePath);
+        const ext = path.extname(filePath).toLowerCase().replace(".", "");
+        // Simple mime mapping for common image types
+        let mimeType = "application/octet-stream";
+        if (
+          ["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "svg"].includes(
+            ext,
+          )
+        ) {
+          mimeType = `image/${ext === "svg" ? "svg+xml" : ext === "jpg" ? "jpeg" : ext}`;
+        }
+        return `data:${mimeType};base64,${buffer.toString("base64")}`;
+      } catch (error) {
+        logMessage(`Failed to read file as data URL: ${error}`, "warn");
+        return null;
+      }
+    },
   );
 
   // Server state handlers
@@ -240,28 +304,28 @@ export function initializeIpcHandlers(): void {
     IpcChannels.SHOW_ITEM_IN_FOLDER,
     async (_event, fullPath) => {
       showItemInFolder(fullPath);
-    }
+    },
   );
 
   createIpcMainHandler(
     IpcChannels.FILE_EXPLORER_OPEN_PATH,
     async (_event, request) => {
       return openPathInExplorer(request.path);
-    }
+    },
   );
 
   createIpcMainHandler(
     IpcChannels.FILE_EXPLORER_OPEN_DIRECTORY,
     async (_event, target) => {
       return openModelDirectory(target);
-    }
+    },
   );
 
   createIpcMainHandler(
     IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY,
     async (_event, target) => {
       return openSystemDirectory(target);
-    }
+    },
   );
 
   // Continue to app handler
@@ -305,10 +369,10 @@ export function initializeIpcHandlers(): void {
       logMessage(
         `Opening Package Manager window${
           nodeSearch ? ` with search: ${nodeSearch}` : ""
-        }`
+        }`,
       );
       createPackageManagerWindow(nodeSearch);
-    }
+    },
   );
 
   //   createIpcMainHandler(IpcChannels.INSTALL_UPDATE, async () => {
@@ -359,7 +423,7 @@ export function initializeIpcHandlers(): void {
       logMessage(`Creating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
       emitWorkflowsChanged();
-    }
+    },
   );
 
   createIpcMainHandler(
@@ -368,7 +432,7 @@ export function initializeIpcHandlers(): void {
       logMessage(`Updating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
       emitWorkflowsChanged();
-    }
+    },
   );
 
   createIpcMainHandler(
@@ -379,7 +443,7 @@ export function initializeIpcHandlers(): void {
         globalShortcut.unregister(workflow.settings.shortcut);
       }
       emitWorkflowsChanged();
-    }
+    },
   );
 
   // Package manager handlers
@@ -417,7 +481,7 @@ export function initializeIpcHandlers(): void {
         };
       }
       return await uninstallPackage(request.repo_id);
-    }
+    },
   );
 
   createIpcMainHandler(IpcChannels.PACKAGE_UPDATE, async (_event, repoId) => {
@@ -442,7 +506,7 @@ export function initializeIpcHandlers(): void {
         logMessage(`Error in PACKAGE_SEARCH_NODES: ${String(e)}`, "warn");
         return [];
       }
-    }
+    },
   );
 
   createIpcMainHandler(
@@ -450,7 +514,7 @@ export function initializeIpcHandlers(): void {
     async (_event, url) => {
       logMessage(`Opening external URL: ${url}`);
       shell.openExternal(url);
-    }
+    },
   );
 
   // Package version check handler
@@ -482,7 +546,7 @@ export function initializeIpcHandlers(): void {
     async (_event, fullPath) => {
       logMessage(`Showing item in folder: ${fullPath}`);
       shell.showItemInFolder(fullPath);
-    }
+    },
   );
 
   createIpcMainHandler(IpcChannels.SHELL_OPEN_PATH, async (_event, path) => {
@@ -496,7 +560,7 @@ export function initializeIpcHandlers(): void {
     async (_event, request) => {
       logMessage(`Opening external URL: ${request.url}`);
       await shell.openExternal(request.url, request.options);
-    }
+    },
   );
 
   createIpcMainHandler(IpcChannels.SHELL_TRASH_ITEM, async (_event, path) => {
@@ -519,9 +583,9 @@ export function initializeIpcHandlers(): void {
       return shell.writeShortcutLink(
         request.shortcutPath,
         request.operation || "create",
-        request.options || { target: "" }
+        request.options || { target: "" },
       );
-    }
+    },
   );
 
   createIpcMainHandler(
@@ -533,18 +597,15 @@ export function initializeIpcHandlers(): void {
       }
       logMessage(`Reading shortcut: ${shortcutPath}`);
       return shell.readShortcutLink(shortcutPath);
-    }
+    },
   );
 
   // Settings handlers
-  createIpcMainHandler(
-    IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR,
-    async () => {
-      const settings = readSettings();
-      const action = settings.windowCloseAction as WindowCloseAction | undefined;
-      return action || "ask";
-    }
-  );
+  createIpcMainHandler(IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR, async () => {
+    const settings = readSettings();
+    const action = settings.windowCloseAction as WindowCloseAction | undefined;
+    return action || "ask";
+  });
 
   createIpcMainHandler(
     IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR,
@@ -552,7 +613,7 @@ export function initializeIpcHandlers(): void {
       logMessage(`Setting window close behavior to: ${action}`);
       updateSetting("windowCloseAction", action);
       emitServerStateChanged();
-    }
+    },
   );
 
   createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {
@@ -565,7 +626,7 @@ export function initializeIpcHandlers(): void {
     async (_event, request) => {
       logMessage("Exporting debug bundle");
       return await exportDebugBundle(request);
-    }
+    },
   );
 
   // Dialog handlers for native file/folder selection
@@ -586,7 +647,7 @@ export function initializeIpcHandlers(): void {
       });
 
       return { canceled, filePaths };
-    }
+    },
   );
 
   createIpcMainHandler(
@@ -601,6 +662,6 @@ export function initializeIpcHandlers(): void {
       });
 
       return { canceled, filePaths };
-    }
+    },
   );
 }

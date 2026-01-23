@@ -79,8 +79,8 @@ export const useCopyPaste = () => {
       });
 
       // Use Electron's clipboard API if available, otherwise fallback to localStorage
-      if (window.api?.clipboardWriteText) {
-        await window.api.clipboardWriteText(serializedData);
+      if (window.api?.clipboard?.writeText) {
+        await window.api.clipboard.writeText(serializedData);
       } else {
         localStorage.setItem("copiedNodesData", serializedData);
       }
@@ -127,10 +127,10 @@ export const useCopyPaste = () => {
 
     let clipboardData: string | null = null;
 
-    // Try to get data from Electron's clipboard first, then fallback to localStorage
-    if (window.api?.clipboardReadText) {
+    // Try to get data from Author's clipboard first, then fallback to localStorage
+    if (window.api?.clipboard?.readText) {
       try {
-        clipboardData = await window.api.clipboardReadText();
+        clipboardData = await window.api.clipboard.readText();
       } catch (error) {
         console.warn("Failed to read from Electron clipboard:", error);
       }
@@ -243,9 +243,9 @@ export const useCopyPaste = () => {
           workflow_id: workflowId,
           positionAbsolute: positionAbsolute
             ? {
-                x: positionAbsolute.x + offset.x,
-                y: positionAbsolute.y + offset.y
-              }
+              x: positionAbsolute.x + offset.x,
+              y: positionAbsolute.y + offset.y
+            }
             : undefined
         },
         position: {
