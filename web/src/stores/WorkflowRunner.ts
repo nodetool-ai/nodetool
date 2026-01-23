@@ -278,6 +278,7 @@ export const createWorkflowRunnerStore = (
       const clearChunks = useResultsStore.getState().clearChunks;
       const clearPlanningUpdates =
         useResultsStore.getState().clearPlanningUpdates;
+      const clearOutputResults = useResultsStore.getState().clearOutputResults;
 
       let auth_token = "local_token";
       let user = "1";
@@ -298,6 +299,7 @@ export const createWorkflowRunnerStore = (
       clearEdges(workflow.id);
       clearErrors(workflow.id);
       clearResults(workflow.id);
+      clearOutputResults(workflow.id);
       clearPreviews(workflow.id);
       clearProgress(workflow.id);
       clearToolCalls(workflow.id);
