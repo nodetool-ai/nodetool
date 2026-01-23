@@ -253,19 +253,186 @@ export function initializeIpcHandlers(): void {
   );
 
   createIpcMainHandler(IpcChannels.CLIPBOARD_READ_FILE_PATHS, async () => {
-    if (process.platform === "darwin") {
-      const fileUrl = clipboard.read("public.file-url");
-      if (fileUrl) {
-        try {
-          const filePath = decodeURIComponent(fileUrl.replace("file://", ""));
-          return [filePath];
-        } catch {
-          return [];
+    const formats = clipboard.availableFormats();
+    logMessage(`Clipboard formats available: ${formats.join(", ")}`);
+
+    // Linux and some Windows apps use text/uri-list
+    if (formats.includes("text/uri-list")) {
+      try {
+        const uris = clipboard.readText("selection");
+        // Also try clipboard type if selection doesn't have uri-list
+        const urisClipboard = clipboard.read("text/uri-list");
+        const uriText = urisClipboard || uris;
+        if (uriText) {
+          const paths = uriText
+            .split("\n")
+            .filter((line: string) => line.trim().startsWith("file://"))
+            .map((uri: string) => {
+              try {
+                return decodeURIComponent(new URL(uri.trim()).pathname);
+              } catch {
+                return null;
+              }
+            })
+            .filter((p: string | null): p is string => p !== null);
+          if (paths.length > 0) {
+            logMessage(`Read ${paths.length} file paths from text/uri-list`);
+            return paths;
+          }
         }
+      } catch (error) {
+        logMessage(`Error reading text/uri-list: ${error}`, "warn");
       }
     }
-    // Windows support could involve reading buffer or falling back to text if it contains path
+
+    // Windows Explorer uses FileNameW format
+    if (formats.includes("FileNameW")) {
+      try {
+        const buf = clipboard.readBuffer("FileNameW");
+        // FileNameW is UTF-16LE (UCS-2) encoded, null-terminated strings
+        const decoded = buf.toString("ucs2");
+        const paths = decoded.split("\u0000").filter(Boolean);
+        if (paths.length > 0) {
+          logMessage(`Read ${paths.length} file paths from FileNameW`);
+          return paths;
+        }
+      } catch (error) {
+        logMessage(`Error reading FileNameW: ${error}`, "warn");
+      }
+    }
+
+    // macOS Finder uses public.file-url
+    if (formats.includes("public.file-url")) {
+      try {
+        const fileUrl = clipboard.read("public.file-url");
+        if (fileUrl) {
+          const paths = fileUrl
+            .split("\n")
+            .filter(Boolean)
+            .map((uri: string) => {
+              try {
+                // Handle both file:// URLs and plain paths
+                if (uri.startsWith("file://")) {
+                  return decodeURIComponent(new URL(uri.trim()).pathname);
+                }
+                return uri.trim();
+              } catch {
+                return null;
+              }
+            })
+            .filter((p: string | null): p is string => p !== null);
+          if (paths.length > 0) {
+            logMessage(`Read ${paths.length} file paths from public.file-url`);
+            return paths;
+          }
+        }
+      } catch (error) {
+        logMessage(`Error reading public.file-url: ${error}`, "warn");
+      }
+    }
+
+    // Fallback: check if plain text looks like file paths
+    try {
+      const text = clipboard.readText();
+      if (text) {
+        // Check if it looks like file path(s)
+        const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean);
+        const possiblePaths = lines.filter((line: string) => {
+          // Check for common path patterns
+          return (
+            line.startsWith("/") || // Unix absolute path
+            line.startsWith("~") || // Unix home path
+            /^[A-Za-z]:\\/.test(line) || // Windows path
+            line.startsWith("file://") // File URL
+          );
+        });
+        if (possiblePaths.length > 0 && possiblePaths.length === lines.length) {
+          // All lines look like paths
+          const paths = possiblePaths.map((p: string) => {
+            if (p.startsWith("file://")) {
+              try {
+                return decodeURIComponent(new URL(p).pathname);
+              } catch {
+                return p;
+              }
+            }
+            return p;
+          });
+          logMessage(`Read ${paths.length} file paths from plain text`);
+          return paths;
+        }
+      }
+    } catch (error) {
+      logMessage(`Error reading plain text for file paths: ${error}`, "warn");
+    }
+
     return [];
+  });
+
+  // Read raw buffer data from clipboard for a specific format
+  createIpcMainHandler(
+    IpcChannels.CLIPBOARD_READ_BUFFER,
+    async (_event, format) => {
+      try {
+        const buffer = clipboard.readBuffer(format);
+        if (buffer && buffer.length > 0) {
+          // Return as base64 string for safe IPC transfer
+          return buffer.toString("base64");
+        }
+        return null;
+      } catch (error) {
+        logMessage(`Failed to read clipboard buffer for format ${format}: ${error}`, "warn");
+        return null;
+      }
+    },
+  );
+
+  // Get comprehensive clipboard content info for smart paste decisions
+  createIpcMainHandler(IpcChannels.CLIPBOARD_GET_CONTENT_INFO, async () => {
+    const formats = clipboard.availableFormats();
+    
+    // Determine content type based on available formats
+    const hasImage = formats.some((f: string) => 
+      f.includes("image/") || 
+      f === "image/png" || 
+      f === "image/tiff" || 
+      f === "public.tiff" ||
+      f === "org.chromium.image-html"
+    );
+    
+    const hasFiles = formats.some((f: string) => 
+      f === "text/uri-list" || 
+      f === "FileNameW" || 
+      f === "public.file-url" ||
+      f === "CF_HDROP"
+    );
+    
+    const hasHtml = formats.some((f: string) => 
+      f === "text/html" || 
+      f.includes("html")
+    );
+    
+    const hasRtf = formats.some((f: string) => 
+      f === "text/rtf" || 
+      f.includes("rtf")
+    );
+    
+    const hasText = formats.some((f: string) => 
+      f === "text/plain" || 
+      f === "text" ||
+      f === "STRING" ||
+      f === "UTF8_STRING"
+    );
+
+    return {
+      formats,
+      hasImage,
+      hasFiles,
+      hasHtml,
+      hasRtf,
+      hasText,
+      platform: process.platform as "darwin" | "win32" | "linux"
+    };
   });
 
   createIpcMainHandler(
