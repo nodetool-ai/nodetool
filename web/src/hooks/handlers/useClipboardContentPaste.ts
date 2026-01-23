@@ -1,11 +1,11 @@
 /**
  * Hook for handling clipboard content paste operations.
- * 
+ *
  * This hook interprets clipboard content and creates appropriate nodes:
  * - For images: Uploads as an image asset and creates a constant Image node
  * - For files: Uploads image files as assets, creates String nodes for other files
  * - For HTML, RTF, and text: Creates a constant String node with the content
- * 
+ *
  * This complements useCopyPaste which handles pasting of copied nodes.
  */
 
@@ -24,12 +24,29 @@ import { isTextInputActive } from "../../utils/browser";
 /**
  * Supported image file extensions for clipboard file handling
  */
-const IMAGE_FILE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif'];
+const IMAGE_FILE_EXTENSIONS = [
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "webp",
+  "bmp",
+  "ico",
+  "svg",
+  "tiff",
+  "tif"
+];
 
 /**
  * Supported clipboard content types
  */
-type ClipboardContentType = "image" | "file" | "html" | "rtf" | "text" | "unknown";
+type ClipboardContentType =
+  | "image"
+  | "file"
+  | "html"
+  | "rtf"
+  | "text"
+  | "unknown";
 
 /**
  * Result of reading clipboard content
@@ -43,7 +60,7 @@ interface ClipboardContent {
 /**
  * Custom hook for handling clipboard content paste operations.
  * Creates appropriate nodes based on clipboard content type.
- * 
+ *
  * @returns Object containing handleContentPaste function and a check for clipboard content availability
  */
 export const useClipboardContentPaste = () => {
@@ -189,7 +206,9 @@ export const useClipboardContentPaste = () => {
   /**
    * Reads file paths from clipboard (cross-platform: macOS, Windows, Linux)
    */
-  const readClipboardFilePaths = useCallback(async (): Promise<string[] | null> => {
+  const readClipboardFilePaths = useCallback(async (): Promise<
+    string[] | null
+  > => {
     try {
       // Use Electron's cross-platform file paths API
       if (window.api?.clipboard?.readFilePaths) {
@@ -222,84 +241,93 @@ export const useClipboardContentPaste = () => {
   /**
    * Reads the clipboard content and determines its type
    */
-  const readClipboardContent = useCallback(async (): Promise<ClipboardContent> => {
-    // Try to get comprehensive content info first (Electron only)
-    const contentInfo = await getClipboardContentInfo();
-    const formats = contentInfo?.formats ?? await getAvailableFormats();
-    log.debug("Available clipboard formats:", formats);
+  const readClipboardContent =
+    useCallback(async (): Promise<ClipboardContent> => {
+      // Try to get comprehensive content info first (Electron only)
+      const contentInfo = await getClipboardContentInfo();
+      const formats = contentInfo?.formats ?? (await getAvailableFormats());
+      log.debug("Available clipboard formats:", formats);
 
-    // Priority order: files > image > html > rtf > text
-    // Check for files first (when content contains actual file references)
-    // Files take priority because they represent the user's intent to paste a file
-    if (contentInfo?.hasFiles) {
-      const filePaths = await readClipboardFilePaths();
-      if (filePaths && filePaths.length > 0) {
+      // Priority order: files > image > html > rtf > text
+      // Check for files first (when content contains actual file references)
+      // Files take priority because they represent the user's intent to paste a file
+      if (contentInfo?.hasFiles) {
+        const filePaths = await readClipboardFilePaths();
+        if (filePaths && filePaths.length > 0) {
+          return {
+            type: "file",
+            data: filePaths,
+            mimeType: "application/x-file-paths"
+          };
+        }
+      }
+
+      // Check for image (screenshot or copied image)
+      const imageBlob = await readClipboardImage();
+      if (imageBlob) {
         return {
-          type: "file",
-          data: filePaths,
-          mimeType: "application/x-file-paths"
+          type: "image",
+          data: imageBlob,
+          mimeType: imageBlob.type
         };
       }
-    }
 
-    // Check for image (screenshot or copied image)
-    const imageBlob = await readClipboardImage();
-    if (imageBlob) {
-      return {
-        type: "image",
-        data: imageBlob,
-        mimeType: imageBlob.type
-      };
-    }
+      // If no Electron content info, check for files via readFilePaths
+      // This is a fallback for when we don't have content info
+      if (!contentInfo) {
+        const filePaths = await readClipboardFilePaths();
+        if (filePaths && filePaths.length > 0) {
+          return {
+            type: "file",
+            data: filePaths,
+            mimeType: "application/x-file-paths"
+          };
+        }
+      }
 
-    // If no Electron content info, check for files via readFilePaths
-    // This is a fallback for when we don't have content info
-    if (!contentInfo) {
-      const filePaths = await readClipboardFilePaths();
-      if (filePaths && filePaths.length > 0) {
+      // Check for HTML
+      const html = await readClipboardHTML();
+      if (html) {
         return {
-          type: "file",
-          data: filePaths,
-          mimeType: "application/x-file-paths"
+          type: "html",
+          data: html,
+          mimeType: "text/html"
         };
       }
-    }
 
-    // Check for HTML
-    const html = await readClipboardHTML();
-    if (html) {
+      // Check for RTF
+      const rtf = await readClipboardRTF();
+      if (rtf) {
+        return {
+          type: "rtf",
+          data: rtf,
+          mimeType: "text/rtf"
+        };
+      }
+
+      // Check for plain text
+      const text = await readClipboardText();
+      if (text) {
+        return {
+          type: "text",
+          data: text,
+          mimeType: "text/plain"
+        };
+      }
+
       return {
-        type: "html",
-        data: html,
-        mimeType: "text/html"
+        type: "unknown",
+        data: null
       };
-    }
-
-    // Check for RTF
-    const rtf = await readClipboardRTF();
-    if (rtf) {
-      return {
-        type: "rtf",
-        data: rtf,
-        mimeType: "text/rtf"
-      };
-    }
-
-    // Check for plain text
-    const text = await readClipboardText();
-    if (text) {
-      return {
-        type: "text",
-        data: text,
-        mimeType: "text/plain"
-      };
-    }
-
-    return {
-      type: "unknown",
-      data: null
-    };
-  }, [getClipboardContentInfo, getAvailableFormats, readClipboardFilePaths, readClipboardImage, readClipboardHTML, readClipboardRTF, readClipboardText]);
+    }, [
+      getClipboardContentInfo,
+      getAvailableFormats,
+      readClipboardFilePaths,
+      readClipboardImage,
+      readClipboardHTML,
+      readClipboardRTF,
+      readClipboardText
+    ]);
 
   /**
    * Creates a constant String node with the given text content
@@ -375,24 +403,30 @@ export const useClipboardContentPaste = () => {
           // Handle file paths from clipboard
           // Currently processes only the first file - future enhancement could support multiple files
           const filePaths = content.data as string[];
-          log.info(`Handling ${filePaths.length} file(s) from clipboard (processing first file)`);
-          
+          log.info(
+            `Handling ${filePaths.length} file(s) from clipboard (processing first file)`
+          );
+
           if (filePaths.length > 0) {
             const filePath = filePaths[0];
-            const ext = filePath.split('.').pop()?.toLowerCase() || '';
-            
+            const ext = filePath.split(".").pop()?.toLowerCase() || "";
+
             if (IMAGE_FILE_EXTENSIONS.includes(ext)) {
               // Read image file as data URL using Electron API
               if (window.api?.clipboard?.readFileAsDataURL) {
                 try {
-                  const dataUrl = await window.api.clipboard.readFileAsDataURL(filePath);
+                  const dataUrl =
+                    await window.api.clipboard.readFileAsDataURL(filePath);
                   if (dataUrl) {
                     // Convert data URL to Blob
                     const response = await fetch(dataUrl);
                     const blob = await response.blob();
-                    const fileName = filePath.split(/[/\\]/).pop() || `file.${ext}`;
-                    const file = new File([blob], fileName, { type: blob.type });
-                    
+                    const fileName =
+                      filePath.split(/[/\\]/).pop() || `file.${ext}`;
+                    const file = new File([blob], fileName, {
+                      type: blob.type
+                    });
+
                     // Upload the image as an asset
                     uploadAsset({
                       file,
@@ -402,7 +436,10 @@ export const useClipboardContentPaste = () => {
                         createImageNode(uploadedAsset, position);
                       },
                       onFailed: (error: string) => {
-                        log.error("Failed to upload file from clipboard:", error);
+                        log.error(
+                          "Failed to upload file from clipboard:",
+                          error
+                        );
                       }
                     });
                     return true;
@@ -431,9 +468,13 @@ export const useClipboardContentPaste = () => {
               extension = parts[1].split("+")[0] || "png";
             }
           }
-          const file = new File([content.data], `clipboard-image.${extension}`, {
-            type: content.mimeType || "image/png"
-          });
+          const file = new File(
+            [content.data],
+            `clipboard-image.${extension}`,
+            {
+              type: content.mimeType || "image/png"
+            }
+          );
 
           // Upload the image as an asset
           uploadAsset({
@@ -488,7 +529,8 @@ export const useClipboardContentPaste = () => {
   return {
     handleContentPaste,
     hasClipboardContent,
-    readClipboardContent
+    readClipboardContent,
+    readClipboardText
   };
 };
 
