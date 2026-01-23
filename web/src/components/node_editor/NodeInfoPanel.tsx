@@ -17,6 +17,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
+import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -98,6 +99,49 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.5,
       marginTop: "8px"
+    },
+    "& .node-tags": {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "4px",
+      marginTop: "8px"
+    },
+    "& .node-tags span": {
+      fontWeight: 500,
+      fontSize: "10px",
+      color: theme.vars.palette.text.secondary,
+      backgroundColor: theme.vars.palette.action.hover,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: "4px",
+      padding: "2px 6px",
+      textTransform: "uppercase",
+      display: "inline-block",
+      cursor: "pointer",
+      transition: "background-color 0.2s ease",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.selected,
+        color: theme.vars.palette.primary.main
+      }
+    },
+    "& .node-use-cases": {
+      fontSize: "12px",
+      color: theme.vars.palette.text.secondary,
+      lineHeight: 1.5,
+      marginTop: "8px",
+      "& h5": {
+        fontSize: "11px",
+        fontWeight: 600,
+        color: theme.vars.palette.text.primary,
+        marginBottom: "4px",
+        textTransform: "uppercase"
+      },
+      "& ul": {
+        margin: 0,
+        paddingLeft: "1em",
+        "& li": {
+          marginBottom: "2px"
+        }
+      }
     },
     "& .error-message": {
       marginTop: "8px",
@@ -185,12 +229,21 @@ const NodeInfoPanel: React.FC = memo(() => {
     };
   }, [getNode, inspectedNodeId]);
 
+  const parsedDescription = useMemo(() => {
+    if (!nodeInfo?.description) {
+      return null;
+    }
+    return formatNodeDocumentation(nodeInfo.description);
+  }, [nodeInfo?.description]);
+
   const handleClose = useCallback(() => {
     setInspectedNodeId(null);
   }, [setInspectedNodeId]);
 
   const handleNamespaceClick = useCallback(() => {
-    if (!nodeInfo) return;
+    if (!nodeInfo) {
+      return;
+    }
     useNodeMenuStore.getState().openNodeMenu({
       x: 500,
       y: 200,
@@ -199,8 +252,18 @@ const NodeInfoPanel: React.FC = memo(() => {
     });
   }, [nodeInfo]);
 
+  const handleTagClick = useCallback((tag: string) => {
+    useNodeMenuStore.getState().openNodeMenu({
+      x: 500,
+      y: 200
+    });
+    useNodeMenuStore.getState().setSearchTerm(tag.trim());
+  }, []);
+
   const handleFocusClick = useCallback(() => {
-    if (!nodeInfo) return;
+    if (!nodeInfo) {
+      return;
+    }
     setCenter(nodeInfo.position.x, nodeInfo.position.y, { zoom: 1.5, duration: 300 });
   }, [nodeInfo, setCenter]);
 
@@ -249,10 +312,34 @@ const NodeInfoPanel: React.FC = memo(() => {
           </Button>
         </Tooltip>
 
-        {nodeInfo.description && (
-          <Typography className="node-description">
-            {nodeInfo.description}
-          </Typography>
+        {parsedDescription && (
+          <>
+            <Typography className="node-description">
+              {parsedDescription.description}
+            </Typography>
+            {parsedDescription.tags.length > 0 && (
+              <div className="node-tags">
+                {parsedDescription.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    onClick={() => handleTagClick(tag)}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            {parsedDescription.useCases.raw && (
+              <div className="node-use-cases">
+                <h5>Use cases</h5>
+                <ul>
+                  {parsedDescription.useCases.raw.split("\n").map((useCase, index) => (
+                    <li key={index}>{useCase}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
         )}
 
         {nodeInfo.hasError && (

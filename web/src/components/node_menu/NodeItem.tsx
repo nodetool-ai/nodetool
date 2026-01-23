@@ -21,6 +21,7 @@ interface NodeItemProps {
   isSelected?: boolean;
   onToggleSelection?: (nodeType: string) => void;
   showFavoriteButton?: boolean;
+  showDescriptionTooltip?: boolean;
 }
 
 const NodeItem = memo(
@@ -34,7 +35,8 @@ const NodeItem = memo(
         showCheckbox = false,
         isSelected = false,
         onToggleSelection,
-        showFavoriteButton = true
+        showFavoriteButton = true,
+        showDescriptionTooltip = false
       },
       ref
     ) => {
@@ -139,15 +141,56 @@ const NodeItem = memo(
                 )}
               </div>
             )}
-            <Tooltip
-              title={node.description || node.title}
-              placement="right"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-              slotProps={{
-                popper: { sx: { zIndex: 2000 } },
-                tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
-              }}
-            >
+            {showDescriptionTooltip ? (
+              <Tooltip
+                title={node.description || node.title}
+                placement="right"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+                slotProps={{
+                  popper: { sx: { zIndex: 2000 } },
+                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5em",
+                    flex: 1,
+                    minWidth: 0
+                  }}
+                >
+                  <IconForType
+                    iconName={outputType}
+                    containerStyle={{
+                      borderRadius: "0 0 3px 0",
+                      marginLeft: "0",
+                      marginTop: "0"
+                    }}
+                    bgStyle={{
+                      backgroundColor: theme.vars.palette.grey[900],
+                      margin: "0",
+                      padding: "1px",
+                      borderRadius: "0 0 3px 0",
+                      boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
+                      width: "20px",
+                      height: "20px"
+                    }}
+                    svgProps={{
+                      width: "15px",
+                      height: "15px"
+                    }}
+                  />
+                  <Typography fontSize="small">
+                    <HighlightText
+                      text={node.title}
+                      query={searchTerm}
+                      matchStyle="primary"
+                    />
+                  </Typography>
+                </div>
+              </Tooltip>
+            ) : (
               <div
                 style={{
                   display: "flex",
@@ -186,7 +229,7 @@ const NodeItem = memo(
                   />
                 </Typography>
               </div>
-            </Tooltip>
+            )}
             {showFavoriteButton && (
               <Tooltip
                 title={isFavorite ? "Remove from favorites" : "Add to favorites"}
