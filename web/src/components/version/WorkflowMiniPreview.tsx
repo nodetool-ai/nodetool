@@ -183,8 +183,39 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
 }) => {
   const graph = useMemo(() => {
     try {
-      return (workflow.graph as Graph) || { nodes: [], edges: [] };
-    } catch {
+      if (!workflow.graph) {
+        return { nodes: [], edges: [] };
+      }
+      
+      // Handle case where graph might be a JSON string
+      if (typeof workflow.graph === 'string') {
+        const trimmed = workflow.graph.trim();
+        if (!trimmed || trimmed === 'null' || trimmed === '{}') {
+          return { nodes: [], edges: [] };
+        }
+        const parsed = JSON.parse(trimmed);
+        // Ensure parsed result has nodes and edges arrays
+        return {
+          nodes: Array.isArray(parsed?.nodes) ? parsed.nodes : [],
+          edges: Array.isArray(parsed?.edges) ? parsed.edges : []
+        };
+      }
+      
+      // Handle case where graph is already an object
+      const graphObj = workflow.graph as Graph;
+      if (graphObj) {
+        return {
+          nodes: Array.isArray(graphObj.nodes) ? graphObj.nodes : [],
+          edges: Array.isArray(graphObj.edges) ? graphObj.edges : []
+        };
+      }
+      
+      return { nodes: [], edges: [] };
+    } catch (error) {
+      // Log error in development for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to parse workflow graph:', error, workflow.graph);
+      }
       return { nodes: [], edges: [] };
     }
   }, [workflow]);
