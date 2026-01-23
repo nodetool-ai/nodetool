@@ -30,6 +30,7 @@ import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 import { isElectron } from "../../utils/browser";
+import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 
 const containerStyles = css({
   width: "100%",
@@ -334,29 +335,22 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
   const handleCopyToClipboard = useCallback(async () => {
-    const imageSrc = currentAsset?.get_url || url;
-    if (!imageSrc || !isImage) {
+    const assetSrc = currentAsset?.get_url || url;
+    const assetContentType = currentAsset?.content_type || contentType;
+    const assetName = currentAsset?.name;
+
+    if (!assetSrc || !assetContentType) {
       return;
     }
 
     try {
-      const response = await fetch(imageSrc);
-      const blob = await response.blob();
-
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-
-      await window.api.clipboardWriteImage(dataUrl);
+      await copyAssetToClipboard(assetContentType, assetSrc, assetName);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error("Failed to copy image to clipboard:", error);
+      console.error("Failed to copy to clipboard:", error);
     }
-  }, [currentAsset?.get_url, url, isImage]);
+  }, [currentAsset?.get_url, currentAsset?.content_type, currentAsset?.name, url, contentType]);
 
   const handleChangeAsset = useCallback(
     (index: number) => {
@@ -629,14 +623,26 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               <FileDownloadIcon />
             </IconButton>
           </Tooltip>
-          {isElectron && isImage && (
-            <Tooltip title={copied ? "Copied!" : "Copy Image"}>
+          {isElectron && currentAsset?.content_type && isClipboardSupported(currentAsset.content_type) && (
+            <Tooltip 
+              title={
+                copied 
+                  ? "Copied!" 
+                  : currentAsset.content_type.startsWith("image/")
+                  ? "Copy Image (compatible with Photoshop)"
+                  : currentAsset.content_type.startsWith("video/")
+                  ? "Copy Video Info"
+                  : currentAsset.content_type.startsWith("audio/")
+                  ? "Copy Audio Info"
+                  : "Copy Content"
+              }
+            >
               <IconButton
                 className="button copy"
                 edge="end"
                 color="inherit"
                 onMouseDown={handleCopyToClipboard}
-                aria-label="copy image"
+                aria-label="copy to clipboard"
               >
                 {copied ? <CheckIcon /> : <ContentCopyIcon />}
               </IconButton>
