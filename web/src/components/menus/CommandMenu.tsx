@@ -74,6 +74,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     link.download = `${currentWorkflow.name}.json`;
     link.href = url;
     link.click();
+    URL.revokeObjectURL(url);
   }, [workflowJSON, currentWorkflow]);
 
   const copyWorkflow = useCallback(() => {

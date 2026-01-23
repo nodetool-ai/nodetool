@@ -408,6 +408,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     link.download = `${workflow.name}.json`;
     link.href = url;
     link.click();
+    URL.revokeObjectURL(url);
   }, [workflow, workflowJSON]);
 
   const handleAutoLayout = useCallback(() => {
