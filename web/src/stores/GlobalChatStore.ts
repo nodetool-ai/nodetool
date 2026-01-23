@@ -282,6 +282,18 @@ const useGlobalChatStore = create<GlobalChatState>()(
           await get().fetchThreads();
         }
 
+        // Ensure WebSocket connection is established first
+        try {
+          await globalWebSocketManager.ensureConnection();
+        } catch (error) {
+          log.error("Failed to establish WebSocket connection:", error);
+          set({
+            error: "Failed to connect to chat service",
+            status: "failed"
+          });
+          throw error;
+        }
+
         const eventUnsubscribes: Array<() => void> = [];
 
         // Set up event handlers on the shared connection
