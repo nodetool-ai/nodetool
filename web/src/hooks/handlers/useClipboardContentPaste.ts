@@ -23,14 +23,14 @@ import { isTextInputActive } from "../../utils/browser";
 /**
  * Supported clipboard content types
  */
-type ClipboardContentType = "image" | "html" | "rtf" | "text" | "unknown";
+type ClipboardContentType = "image" | "file" | "html" | "rtf" | "text" | "unknown";
 
 /**
  * Result of reading clipboard content
  */
 interface ClipboardContent {
   type: ClipboardContentType;
-  data: string | Blob | null;
+  data: string | Blob | string[] | null;
   mimeType?: string;
 }
 
@@ -181,15 +181,62 @@ export const useClipboardContentPaste = () => {
   }, []);
 
   /**
+   * Reads file paths from clipboard (cross-platform: macOS, Windows, Linux)
+   */
+  const readClipboardFilePaths = useCallback(async (): Promise<string[] | null> => {
+    try {
+      // Use Electron's cross-platform file paths API
+      if (window.api?.clipboard?.readFilePaths) {
+        const paths = await window.api.clipboard.readFilePaths();
+        if (paths && paths.length > 0) {
+          log.debug(`Read ${paths.length} file paths from clipboard`);
+          return paths;
+        }
+      }
+    } catch (error) {
+      log.debug("Failed to read file paths from clipboard:", error);
+    }
+    return null;
+  }, []);
+
+  /**
+   * Gets comprehensive clipboard content info (Electron only)
+   */
+  const getClipboardContentInfo = useCallback(async () => {
+    try {
+      if (window.api?.clipboard?.getContentInfo) {
+        return await window.api.clipboard.getContentInfo();
+      }
+    } catch (error) {
+      log.debug("Failed to get clipboard content info:", error);
+    }
+    return null;
+  }, []);
+
+  /**
    * Reads the clipboard content and determines its type
    */
   const readClipboardContent = useCallback(async (): Promise<ClipboardContent> => {
-    // Check available formats to determine priority
-    const formats = await getAvailableFormats();
+    // Try to get comprehensive content info first (Electron only)
+    const contentInfo = await getClipboardContentInfo();
+    const formats = contentInfo?.formats ?? await getAvailableFormats();
     log.debug("Available clipboard formats:", formats);
 
-    // Priority order: image > html > rtf > text
-    // Check for image first
+    // Priority order: files > image > html > rtf > text
+    // Check for files first (when content contains actual file references)
+    // Files take priority because they represent the user's intent to paste a file
+    if (contentInfo?.hasFiles) {
+      const filePaths = await readClipboardFilePaths();
+      if (filePaths && filePaths.length > 0) {
+        return {
+          type: "file",
+          data: filePaths,
+          mimeType: "application/x-file-paths"
+        };
+      }
+    }
+
+    // Check for image (screenshot or copied image)
     const imageBlob = await readClipboardImage();
     if (imageBlob) {
       return {
@@ -197,6 +244,19 @@ export const useClipboardContentPaste = () => {
         data: imageBlob,
         mimeType: imageBlob.type
       };
+    }
+
+    // If no Electron content info, check for files via readFilePaths
+    // This is a fallback for when we don't have content info
+    if (!contentInfo) {
+      const filePaths = await readClipboardFilePaths();
+      if (filePaths && filePaths.length > 0) {
+        return {
+          type: "file",
+          data: filePaths,
+          mimeType: "application/x-file-paths"
+        };
+      }
     }
 
     // Check for HTML
@@ -233,7 +293,7 @@ export const useClipboardContentPaste = () => {
       type: "unknown",
       data: null
     };
-  }, [getAvailableFormats, readClipboardImage, readClipboardHTML, readClipboardRTF, readClipboardText]);
+  }, [getClipboardContentInfo, getAvailableFormats, readClipboardFilePaths, readClipboardImage, readClipboardHTML, readClipboardRTF, readClipboardText]);
 
   /**
    * Creates a constant String node with the given text content
@@ -304,6 +364,58 @@ export const useClipboardContentPaste = () => {
     const content = await readClipboardContent();
 
     switch (content.type) {
+      case "file":
+        if (Array.isArray(content.data)) {
+          // Handle file paths from clipboard
+          const filePaths = content.data as string[];
+          log.info(`Handling ${filePaths.length} file(s) from clipboard`);
+          
+          // For now, we'll handle the first file if it's an image
+          // Future: could create multiple nodes or handle different file types
+          for (const filePath of filePaths) {
+            // Check if it's an image file based on extension
+            const ext = filePath.split('.').pop()?.toLowerCase() || '';
+            const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg', 'tiff', 'tif'];
+            
+            if (imageExtensions.includes(ext)) {
+              // Read file as data URL using Electron API
+              if (window.api?.clipboard?.readFileAsDataURL) {
+                try {
+                  const dataUrl = await window.api.clipboard.readFileAsDataURL(filePath);
+                  if (dataUrl) {
+                    // Convert data URL to Blob
+                    const response = await fetch(dataUrl);
+                    const blob = await response.blob();
+                    const fileName = filePath.split(/[/\\]/).pop() || `file.${ext}`;
+                    const file = new File([blob], fileName, { type: blob.type });
+                    
+                    // Upload the image as an asset
+                    uploadAsset({
+                      file,
+                      workflow_id: workflow.id,
+                      parent_id: currentFolderId || user?.id,
+                      onCompleted: (uploadedAsset: Asset) => {
+                        createImageNode(uploadedAsset, position);
+                      },
+                      onFailed: (error: string) => {
+                        log.error("Failed to upload file from clipboard:", error);
+                      }
+                    });
+                    return true;
+                  }
+                } catch (error) {
+                  log.error("Failed to read file as data URL:", error);
+                }
+              }
+            } else {
+              // For non-image files, create a string node with the file path
+              createStringNode(filePath, position);
+              return true;
+            }
+          }
+        }
+        break;
+
       case "image":
         if (content.data instanceof Blob) {
           // Extract file extension from MIME type with validation

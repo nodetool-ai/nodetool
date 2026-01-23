@@ -142,10 +142,6 @@ const api = {
   runApp: (workflowId: string) =>
     ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
 
-  /** Run a workflow as an app */
-  runApp: (workflowId: string) =>
-    ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
-
   /** OS integration (legacy names) */
   openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
   showItemInFolder: (fullPath: string) =>
@@ -415,9 +411,17 @@ const api = {
     availableFormats: (type?: ClipboardType) =>
       ipcRenderer.invoke(IpcChannels.CLIPBOARD_AVAILABLE_FORMATS, type),
 
-    /** Read file paths from clipboard */
+    /** Read file paths from clipboard (cross-platform) */
     readFilePaths: () =>
       ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_FILE_PATHS),
+
+    /** Read raw buffer data from clipboard for a specific format (returns base64) */
+    readBuffer: (format: string) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_BUFFER, format),
+
+    /** Get comprehensive clipboard content info for smart paste decisions */
+    getContentInfo: () =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_GET_CONTENT_INFO),
 
     /** Read file content as data URL */
     readFileAsDataURL: (filePath: string) =>
