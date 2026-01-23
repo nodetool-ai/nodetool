@@ -34,6 +34,7 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 
@@ -60,6 +61,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   const { handlers, conditions } = useNodeContextMenu();
+  const { runFromHere, isWorkflowRunning } = useRunFromHere(node as Node<NodeData> | null);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const dropdownOpen = Boolean(anchorEl);
@@ -165,7 +167,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         <Tooltip
           title={
             <span>
-              {conditions.isWorkflowRunning ? "Running..." : "Run From Here"}
+              {isWorkflowRunning ? "Running..." : "Run From Here"}
             </span>
           }
           enterDelay={TOOLTIP_ENTER_DELAY}
@@ -173,9 +175,9 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           <span>
             <IconButton
               className="nodrag"
-              onClick={handlers.handleRunFromHere}
+              onClick={runFromHere}
               tabIndex={-1}
-              disabled={conditions.isWorkflowRunning}
+              disabled={isWorkflowRunning}
               size="small"
             >
               <PlayArrowIcon fontSize="small" />
