@@ -343,7 +343,7 @@ const StandaloneChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed &&
-          (error || !connectionState.isConnected) && (
+          (error || (!connectionState.isConnected && status !== "streaming" && status !== "loading")) && (
             <Alert
               className="standalone-chat-status-alert"
               severity={

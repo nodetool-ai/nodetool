@@ -99,6 +99,7 @@ const styles = (theme: Theme) =>
       borderRadius: "8px",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       border: `1px solid transparent`,
+      transform: "translateY(0)", // Base transform to prevent layout shift on hover
       
       "&:hover": {
         background: `${theme.vars.palette.grey[600]}40`,
