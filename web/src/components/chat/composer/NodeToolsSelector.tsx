@@ -66,6 +66,91 @@ const toolsSelectorStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center"
+    },
+    // Selected panel styles
+    ".selected-panel": {
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      overflow: "hidden"
+    },
+    ".selected-header": {
+      padding: "8px 12px",
+      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      flexShrink: 0
+    },
+    ".selected-title": {
+      fontSize: "0.75em",
+      fontWeight: 600,
+      color: theme.vars.palette.grey[400],
+      textTransform: "uppercase",
+      letterSpacing: "0.05em"
+    },
+    ".selected-count": {
+      fontSize: "0.7em",
+      color: theme.vars.palette.grey[500],
+      marginLeft: "6px"
+    },
+    ".selected-list": {
+      flex: 1,
+      overflow: "auto",
+      padding: "4px"
+    },
+    ".selected-item": {
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "4px 6px",
+      borderRadius: "4px",
+      marginBottom: "2px",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[800],
+        "& .remove-btn": {
+          opacity: 1
+        }
+      }
+    },
+    ".selected-item-name": {
+      fontSize: "0.8em",
+      color: theme.vars.palette.grey[200],
+      flex: 1,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    ".remove-btn": {
+      opacity: 0.5,
+      padding: "2px",
+      transition: "opacity 150ms ease"
+    },
+    ".empty-selection": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      justifyContent: "flex-start",
+      height: "100%",
+      padding: "12px",
+      textAlign: "left",
+      color: theme.vars.palette.grey[400],
+      fontSize: "0.75em",
+      lineHeight: 1.5,
+      "& .empty-title": {
+        fontWeight: 600,
+        marginBottom: "8px",
+        color: theme.vars.palette.grey[300]
+      },
+      "& .empty-desc": {
+        marginBottom: "12px",
+        color: theme.vars.palette.grey[500]
+      },
+      "& .empty-hint": {
+        fontSize: "0.9em",
+        color: theme.vars.palette.grey[500],
+        fontStyle: "italic"
+      }
     }
   });
 
@@ -111,30 +196,20 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
     searchTerm,
     setSearchTerm,
     searchResults,
-    isLoading,
-    selectedPath,
-    hoveredNode
+    isLoading
   } = useNodeToolsMenuStore((state) => ({
     searchTerm: state.searchTerm,
     setSearchTerm: state.setSearchTerm,
     searchResults: state.searchResults,
-    isLoading: state.isLoading,
-    selectedPath: state.selectedPath,
-    hoveredNode: state.hoveredNode
+    isLoading: state.isLoading
   }));
 
-  // Union of available nodes and selected nodes to always show selected at the top
-  const allNodesForDisplay = useMemo(() => {
-    const nodeTypeToNode = new Map<string, NodeMetadata>();
-    // Selected first to preserve order preference when rendered
-    selectedNodeMetadatas.forEach((node) => {
-      if (!nodeTypeToNode.has(node.node_type)) { nodeTypeToNode.set(node.node_type, node); }
-    });
-    searchResults.forEach((node) => {
-      if (!nodeTypeToNode.has(node.node_type)) { nodeTypeToNode.set(node.node_type, node); }
-    });
-    return Array.from(nodeTypeToNode.values());
-  }, [selectedNodeMetadatas, searchResults]);
+  // Only show unselected nodes in the left panel - avoids jumping when selecting
+  const unselectedNodesForDisplay = useMemo(() => {
+    return searchResults.filter(
+      (node) => !selectedNodeTypes.includes(node.node_type)
+    );
+  }, [searchResults, selectedNodeTypes]);
 
   const handleClick = useCallback(() => {
     setIsMenuOpen(true);
@@ -313,9 +388,9 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
           </Box>
         </Box>
 
-        {/* Main Content */}
+        {/* Main Content - Split Panel */}
         <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {/* Node List */}
+          {/* Left Panel - Available Nodes */}
           <Box
             sx={{
               flex: 1,
@@ -331,55 +406,115 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   <div className="loading-container">
                     <CircularProgress size={24} />
                   </div>
-                ) : searchResults.length === 0 && selectedCount === 0 ? (
+                ) : unselectedNodesForDisplay.length === 0 ? (
                   <div className="no-nodes-message">
                     <Typography variant="body2">
-                      {(() => {
-                        const hasNamespaceSelected = selectedPath.length > 0;
-                        const searchLength = searchTerm.trim().length;
-
-                        if (hasNamespaceSelected && searchLength === 0) {
-                          return "No nodes available.";
-                        } else if (hasNamespaceSelected && searchLength > 0) {
-                          return "No nodes match your search.";
-                        } else {
-                          return "No nodes match your search.";
-                        }
-                      })()}
+                      {searchTerm.trim().length > 0
+                        ? "No nodes match your search."
+                        : "All available nodes are selected."}
                     </Typography>
                   </div>
                 ) : (
                   <RenderNodesSelectable
-                    nodes={allNodesForDisplay}
+                    nodes={unselectedNodesForDisplay}
                     showCheckboxes={true}
                     selectedNodeTypes={selectedNodeTypes}
                     onToggleSelection={handleToggleNode}
                     onSetSelection={handleSetSelection}
+                    hideSelectedSection={true}
                   />
                 )}
               </div>
             </Box>
           </Box>
 
-          {/* Right Pane - Node Info (compact) */}
-          {hoveredNode && (
-            <Box
-              sx={{
-                width: 180,
-                flexShrink: 0,
-                borderLeft: `1px solid ${theme.vars.palette.divider}`,
-                overflow: "auto",
-                bgcolor: theme.vars.palette.background.default,
-                p: 1
-              }}
-            >
-              <NodeInfo
-                nodeMetadata={hoveredNode}
-                showConnections={false}
-                menuWidth={160}
-              />
-            </Box>
-          )}
+          {/* Right Panel - Selected Nodes */}
+          <Box
+            sx={{
+              width: 180,
+              flexShrink: 0,
+              borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
+              bgcolor: theme.vars.palette.grey[900],
+              display: "flex",
+              flexDirection: "column"
+            }}
+          >
+            <div className="selected-panel">
+              <div className="selected-header">
+                <span>
+                  <span className="selected-title">Selected</span>
+                  <span className="selected-count">({selectedCount})</span>
+                </span>
+              </div>
+              <div className="selected-list">
+                {selectedCount === 0 ? (
+                  <div className="empty-selection">
+                    <span className="empty-title">Node Tools</span>
+                    <span className="empty-desc">
+                      Enable nodes as tools for the AI assistant to use during conversations.
+                    </span>
+                    <span className="empty-desc">
+                      The AI can automatically run these nodes to generate images, audio, search the web, and more.
+                    </span>
+                    <span className="empty-hint">
+                      Click nodes on the left to add them.
+                    </span>
+                  </div>
+                ) : (
+                  selectedNodeMetadatas.map((node) => {
+                    const outputType =
+                      node.outputs.length > 0 ? node.outputs[0].type.type : "";
+                    return (
+                      <div key={node.node_type} className="selected-item">
+                        <IconForType
+                          iconName={outputType}
+                          containerStyle={{
+                            borderRadius: "2px",
+                            marginLeft: "0",
+                            marginTop: "0"
+                          }}
+                          bgStyle={{
+                            backgroundColor: theme.vars.palette.grey[800],
+                            margin: "0",
+                            padding: "1px",
+                            borderRadius: "2px",
+                            width: "16px",
+                            height: "16px"
+                          }}
+                          svgProps={{
+                            width: "12px",
+                            height: "12px"
+                          }}
+                        />
+                        <Tooltip title={node.title} enterDelay={500}>
+                          <span className="selected-item-name">{node.title}</span>
+                        </Tooltip>
+                        <Tooltip
+                          title="Remove"
+                          enterDelay={300}
+                          placement="left"
+                          slotProps={{
+                            popper: {
+                              sx: { zIndex: 1500 }
+                            }
+                          }}
+                        >
+                          <IconButton
+                            size="small"
+                            className="remove-btn"
+                            onClick={() => handleToggleNode(node.node_type)}
+                            sx={{ color: theme.vars.palette.grey[500] }}
+                          >
+                            <Close sx={{ fontSize: "14px" }} />
+                          </IconButton>
+                        </Tooltip>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </Box>
         </Box>
       </Popover>
     </>

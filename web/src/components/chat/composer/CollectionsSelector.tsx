@@ -283,9 +283,12 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
               <Typography variant="body2" sx={{ mb: 1 }}>
                 No collections available
               </Typography>
+              <Typography variant="caption" sx={{ display: "block", opacity: 0.8, mb: 1 }}>
+                Collections are vector databases used for semantic search during chat.
+                When selected, relevant document chunks are retrieved and included as context.
+              </Typography>
               <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
-                Collections are document databases that the AI can search for context.
-                Create a collection from the Assets panel to add documents, PDFs, or text files.
+                Create a collection from the left sidebar, then add documents, PDFs, or text files to index them.
               </Typography>
             </Box>
           ) : (
