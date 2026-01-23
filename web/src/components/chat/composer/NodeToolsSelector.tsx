@@ -20,7 +20,7 @@ import {
   IconButton
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
-import { Extension, Close } from "@mui/icons-material";
+import { Widgets, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useNodeToolsMenuStore } from "../../../stores/NodeMenuStore";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -316,20 +316,21 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
           className={`node-tools-button ${selectedCount > 0 ? "active" : ""}`}
           onClick={handleClick}
           size="small"
-          startIcon={<Extension fontSize="small" />}
+          startIcon={<Widgets sx={{ fontSize: 18 }} />}
           endIcon={
             selectedCount > 0 && (
               <Chip
                 size="small"
                 label={selectedCount}
                 sx={{
+                  marginLeft: "-4px",
                   backgroundColor: theme.vars.palette.grey[700],
                   color: theme.vars.palette.grey[200],
                   borderRadius: "6px",
                   height: "18px",
                   "& .MuiChip-label": {
                     padding: "0 5px",
-                    fontSize: "var(--fontSizeSmaller)"
+                    fontSize: "0.7rem"
                   }
                 }}
               />

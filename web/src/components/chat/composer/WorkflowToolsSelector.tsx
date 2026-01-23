@@ -21,7 +21,7 @@ import {
   PopoverOrigin
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
-import { AccountTree } from "@mui/icons-material";
+import { Schema } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useWorkflowTools } from "../../../serverState/useWorkflowTools";
 import { useTheme } from "@mui/material/styles";
@@ -214,13 +214,21 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
             }`}
           onClick={handleClick}
           size="small"
-          startIcon={<AccountTree fontSize="small" />}
+          startIcon={<Schema sx={{ fontSize: 18 }} />}
           endIcon={
             selectedTools.length > 0 && (
               <Chip
                 size="small"
                 label={selectedTools.length}
                 className="selected-count"
+                sx={{
+                  marginLeft: "-4px",
+                  height: "18px",
+                  "& .MuiChip-label": {
+                    padding: "0 5px",
+                    fontSize: "0.7rem"
+                  }
+                }}
               />
             )
           }

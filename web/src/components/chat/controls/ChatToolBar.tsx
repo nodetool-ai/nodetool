@@ -71,7 +71,13 @@ const styles = (theme: Theme) =>
       background: `${theme.vars.palette.grey[800]}50`,
       padding: "4px 8px",
       borderRadius: "8px",
-      border: `1px solid ${theme.vars.palette.grey[700]}40`
+      border: `1px solid ${theme.vars.palette.grey[700]}40`,
+      transition: "background-color 0.2s ease, border-color 0.2s ease",
+
+      "&:hover": {
+        backgroundColor: `${theme.vars.palette.grey[700]}40`,
+        borderColor: `${theme.vars.palette.grey[600]}60`
+      }
     },
 
     // Divider styling
@@ -90,63 +96,6 @@ const styles = (theme: Theme) =>
     ".toolbar-spacer": {
       flex: 1,
       minWidth: "8px"
-    },
-
-    // Button styling enhancements
-    "& .MuiButton-root, & .MuiIconButton-root": {
-      padding: "6px 10px",
-      margin: "0",
-      borderRadius: "8px",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-      border: `1px solid transparent`,
-
-      "&:hover": {
-        background: `${theme.vars.palette.grey[600]}40`,
-        border: `1px solid ${theme.vars.palette.grey[600]}60`,
-      },
-
-      "&.active, &.Mui-selected": {
-        background: `linear-gradient(135deg, 
-          ${theme.vars.palette.primary.dark}30 0%, 
-          ${theme.vars.palette.primary.main}20 100%)`,
-        border: `1px solid ${theme.vars.palette.primary.main}60`,
-        boxShadow: `0 0 12px ${theme.vars.palette.primary.main}25`
-      }
-    },
-
-    // IconButton specific
-    "& .MuiIconButton-root": {
-      padding: "6px",
-
-      "&.active": {
-        color: theme.vars.palette.primary.main,
-        background: `${theme.vars.palette.primary.main}15`,
-        border: `1px solid ${theme.vars.palette.primary.main}40`
-      }
-    },
-
-    // Model select enhancements
-    "& .model-select-button, & .language-model-select": {
-      background: `${theme.vars.palette.grey[800]}60`,
-      border: `1px solid ${theme.vars.palette.grey[700]}50`,
-
-      "&:hover": {
-        background: `${theme.vars.palette.grey[700]}60`,
-        border: `1px solid ${theme.vars.palette.grey[600]}70`
-      }
-    },
-
-    // Chip styling for counts
-    "& .MuiChip-root": {
-      height: "20px",
-      fontSize: "0.7rem",
-      fontWeight: 600,
-      background: `linear-gradient(135deg, 
-        ${theme.vars.palette.primary.main}90 0%, 
-        ${theme.vars.palette.primary.dark} 100%)`,
-      color: theme.vars.palette.grey[100],
-      border: "none",
-      boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}30`
     }
   });
 
