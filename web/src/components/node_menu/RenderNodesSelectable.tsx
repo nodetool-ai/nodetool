@@ -429,6 +429,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                           showCheckbox={showCheckboxes}
                           isSelected={selectedNodeTypes.includes(node.node_type)}
                           onToggleSelection={onToggleSelection}
+                          showDescriptionTooltip={true}
                         />
                       ))}
                     </div>
@@ -564,6 +565,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                       showCheckbox={showCheckboxes}
                       isSelected={selectedNodeTypes.includes(node.node_type)}
                       onToggleSelection={onToggleSelection}
+                      showDescriptionTooltip={true}
                     />
                   ))}
                 </div>
