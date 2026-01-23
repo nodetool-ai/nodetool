@@ -133,7 +133,9 @@ class GlobalWebSocketManager extends EventEmitter {
   }
 
   /**
-   * Route incoming message to registered handlers
+   * Route incoming message to registered handlers.
+   * Each handler is called at most once per message, even if the message
+   * matches multiple routing keys (thread_id, workflow_id, job_id).
    */
   private routeMessage(message: any): void {
     const routingKeys = new Set<string>();
@@ -158,10 +160,19 @@ class GlobalWebSocketManager extends EventEmitter {
       return;
     }
 
+    // Track which handlers have already been called for this message
+    // to avoid duplicates when a message matches multiple routing keys
+    const calledHandlers = new Set<MessageHandler>();
+
     routingKeys.forEach((routingKey) => {
       const handlers = this.messageHandlers.get(routingKey);
       if (handlers && handlers.size > 0) {
         handlers.forEach((handler) => {
+          // Skip if this handler was already called for this message
+          if (calledHandlers.has(handler)) {
+            return;
+          }
+          calledHandlers.add(handler);
           try {
             handler(message);
           } catch (error) {
