@@ -50,23 +50,27 @@ const ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS = 200;
 const SPACER_RECALC_DEBOUNCE_MS = 100;
 
 // Dynamic scroll spacer component that adapts to content and viewport
+// Purpose: Provide enough space at the bottom so the last user message can be scrolled to the top
 interface DynamicScrollSpacerProps {
   lastUserMessageRef: React.RefObject<HTMLDivElement>;
+  bottomRef: React.RefObject<HTMLDivElement>;
   scrollHost: HTMLElement | null;
 }
 
 const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
   lastUserMessageRef,
+  bottomRef,
   scrollHost
 }) => {
   const [spacerHeight, setSpacerHeight] = useState(0);
   const prevSpacerHeightRef = useRef(0);
+  const spacerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let recalcTimeoutId: number | null = null;
 
     const calculateOptimalSpacerHeight = () => {
-      if (!scrollHost || !lastUserMessageRef.current) {
+      if (!scrollHost || !lastUserMessageRef.current || !bottomRef.current) {
         if (prevSpacerHeightRef.current !== 0) {
           prevSpacerHeightRef.current = 0;
           setSpacerHeight(0);
@@ -74,24 +78,24 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
         return;
       }
 
+      const viewportHeight = scrollHost.clientHeight;
       const lastUserMessage = lastUserMessageRef.current;
+      const bottomElement = bottomRef.current;
+
+      // Get positions relative to the scroll container's content
       const lastUserMessageRect = lastUserMessage.getBoundingClientRect();
-      const scrollHostRect = scrollHost.getBoundingClientRect();
+      const bottomRect = bottomElement.getBoundingClientRect();
 
-      // Calculate the space needed to bring user message to top
-      const currentOffset = lastUserMessageRect.top - scrollHostRect.top;
+      // Calculate height of content from user message top to bottom marker
+      // This is the content that needs to fit when the user message is at the top
+      const contentBelowUserMessage = bottomRect.bottom - lastUserMessageRect.top;
 
-      // If message is already at or near top, no spacer needed
-      if (currentOffset <= 10) {
-        if (prevSpacerHeightRef.current !== 0) {
-          prevSpacerHeightRef.current = 0;
-          setSpacerHeight(0);
-        }
-        return;
-      }
+      // Spacer should fill the remaining viewport space so the message can scroll to top
+      // If content below user message is less than viewport, we need a spacer
+      let neededHeight = Math.max(0, viewportHeight - contentBelowUserMessage);
 
-      // Calculate height needed to push message to top, with small buffer
-      const neededHeight = Math.max(0, currentOffset + 10);
+      // Safety cap: never exceed viewport height (which is the max useful spacer)
+      neededHeight = Math.min(neededHeight, viewportHeight);
 
       // Only update if there's a meaningful change to avoid layout thrashing
       if (Math.abs(neededHeight - prevSpacerHeightRef.current) > 5) {
@@ -113,13 +117,24 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
     // Calculate initial height
     calculateOptimalSpacerHeight();
 
-    // Use MutationObserver to watch for content changes
-    const mutationObserver = new MutationObserver(scheduleRecalculation);
+    // Use MutationObserver to watch for content changes (exclude spacer changes)
+    const mutationObserver = new MutationObserver((mutations) => {
+      // Ignore mutations that only affect the spacer itself
+      const hasNonSpacerMutation = mutations.some(m => {
+        if (m.target === spacerRef.current) { return false; }
+        if (m.type === 'attributes' && m.target === spacerRef.current) { return false; }
+        return true;
+      });
+      if (hasNonSpacerMutation) {
+        scheduleRecalculation();
+      }
+    });
 
     if (lastUserMessageRef.current) {
       mutationObserver.observe(lastUserMessageRef.current.parentElement || lastUserMessageRef.current, {
         childList: true,
-        subtree: true
+        subtree: true,
+        attributes: false
       });
     }
 
@@ -137,15 +152,15 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
         clearTimeout(recalcTimeoutId);
       }
     };
-  }, [scrollHost, lastUserMessageRef]);
+  }, [scrollHost, lastUserMessageRef, bottomRef]);
 
   return (
     <div
+      ref={spacerRef}
       className="scroll-spacer"
       style={{
         height: `${spacerHeight}px`,
-        flexShrink: 0,
-        willChange: 'height'
+        flexShrink: 0
       }}
     />
   );
@@ -324,6 +339,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
         {/* Dynamic spacer that adapts based on viewport and content needs */}
         <DynamicScrollSpacer 
           lastUserMessageRef={lastUserMessageRef}
+          bottomRef={bottomRef}
           scrollHost={scrollHost}
         />
       </div>
