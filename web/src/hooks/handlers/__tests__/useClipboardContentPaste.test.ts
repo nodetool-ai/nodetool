@@ -7,6 +7,7 @@ import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import useAuth from "../../../stores/useAuth";
 import useMetadataStore from "../../../stores/MetadataStore";
 import * as MousePosition from "../../../utils/MousePosition";
+import * as Browser from "../../../utils/browser";
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
@@ -18,6 +19,7 @@ jest.mock("../../../stores/AssetGridStore");
 jest.mock("../../../stores/useAuth");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../utils/MousePosition");
+jest.mock("../../../utils/browser");
 
 describe("useClipboardContentPaste", () => {
   const mockScreenToFlowPosition = jest.fn();
@@ -41,6 +43,9 @@ describe("useClipboardContentPaste", () => {
       x: 100,
       y: 200
     });
+
+    // Mock isTextInputActive - default to false (not in text input)
+    jest.spyOn(Browser, "isTextInputActive").mockReturnValue(false);
 
     // Mock useReactFlow
     mockScreenToFlowPosition.mockReturnValue({ x: 50, y: 100 });
@@ -114,10 +119,8 @@ describe("useClipboardContentPaste", () => {
 
   describe("handleContentPaste", () => {
     it("returns false when active element is a text input", async () => {
-      // Create and focus an input element
-      const input = document.createElement("input");
-      document.body.appendChild(input);
-      input.focus();
+      // Mock isTextInputActive to return true
+      jest.spyOn(Browser, "isTextInputActive").mockReturnValue(true);
 
       const { result } = renderHook(() => useClipboardContentPaste());
 
@@ -127,16 +130,11 @@ describe("useClipboardContentPaste", () => {
       });
 
       expect(handled).toBe(false);
-
-      // Cleanup
-      document.body.removeChild(input);
     });
 
     it("returns false when active element is a textarea", async () => {
-      // Create and focus a textarea element
-      const textarea = document.createElement("textarea");
-      document.body.appendChild(textarea);
-      textarea.focus();
+      // Mock isTextInputActive to return true
+      jest.spyOn(Browser, "isTextInputActive").mockReturnValue(true);
 
       const { result } = renderHook(() => useClipboardContentPaste());
 
@@ -146,18 +144,10 @@ describe("useClipboardContentPaste", () => {
       });
 
       expect(handled).toBe(false);
-
-      // Cleanup
-      document.body.removeChild(textarea);
     });
 
     it("returns false when mouse position is not available", async () => {
-      jest.spyOn(MousePosition, "getMousePosition").mockReturnValue(null);
-
-      // Ensure no text input is focused
-      const div = document.createElement("div");
-      document.body.appendChild(div);
-      div.focus();
+      jest.spyOn(MousePosition, "getMousePosition").mockReturnValue(null as unknown as { x: number; y: number });
 
       const { result } = renderHook(() => useClipboardContentPaste());
 
@@ -167,19 +157,11 @@ describe("useClipboardContentPaste", () => {
       });
 
       expect(handled).toBe(false);
-
-      // Cleanup
-      document.body.removeChild(div);
     });
   });
 
   describe("readClipboardContent", () => {
     it("returns unknown type when no clipboard data is available", async () => {
-      // Ensure no text input is focused
-      const div = document.createElement("div");
-      document.body.appendChild(div);
-      div.focus();
-
       const { result } = renderHook(() => useClipboardContentPaste());
 
       let content: { type: string; data: unknown };
@@ -189,9 +171,6 @@ describe("useClipboardContentPaste", () => {
 
       expect(content!.type).toBe("unknown");
       expect(content!.data).toBeNull();
-
-      // Cleanup
-      document.body.removeChild(div);
     });
   });
 });

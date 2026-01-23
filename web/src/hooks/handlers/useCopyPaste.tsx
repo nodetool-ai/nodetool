@@ -16,6 +16,7 @@ import { useCallback, useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "./useClipboardContentPaste";
+import { isTextInputActive } from "../../utils/browser";
 
 const hasValidPosition = (position: any) =>
   !!position &&
@@ -119,15 +120,8 @@ export const useCopyPaste = () => {
   );
 
   const handlePaste = useCallback(async () => {
-    // Check if the active element is a text input (should use native paste instead)
-    const activeElement = document.activeElement;
-    const isTextInput =
-      activeElement instanceof HTMLInputElement ||
-      activeElement instanceof HTMLTextAreaElement ||
-      (activeElement as HTMLElement)?.isContentEditable;
-
-    // Skip paste handling if user is typing in a text field
-    if (isTextInput) {
+    // Skip paste handling if user is typing in a text field (should use native paste instead)
+    if (isTextInputActive()) {
       return;
     }
 

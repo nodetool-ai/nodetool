@@ -18,6 +18,7 @@ import useAuth from "../../stores/useAuth";
 import useMetadataStore from "../../stores/MetadataStore";
 import { Asset } from "../../stores/ApiTypes";
 import log from "loglevel";
+import { isTextInputActive } from "../../utils/browser";
 
 /**
  * Supported clipboard content types
@@ -284,14 +285,8 @@ export const useClipboardContentPaste = () => {
    * Returns true if content was handled, false if not (allowing fallback to node paste).
    */
   const handleContentPaste = useCallback(async (): Promise<boolean> => {
-    // Check if the active element is a text input (should use native paste instead)
-    const activeElement = document.activeElement;
-    const isTextInput =
-      activeElement instanceof HTMLInputElement ||
-      activeElement instanceof HTMLTextAreaElement ||
-      (activeElement as HTMLElement)?.isContentEditable;
-
-    if (isTextInput) {
+    // Skip if user is typing in a text field (should use native paste instead)
+    if (isTextInputActive()) {
       return false;
     }
 
@@ -311,8 +306,15 @@ export const useClipboardContentPaste = () => {
     switch (content.type) {
       case "image":
         if (content.data instanceof Blob) {
-          // Create a File from the Blob for upload
-          const extension = content.mimeType?.split("/")[1] || "png";
+          // Extract file extension from MIME type with validation
+          let extension = "png"; // default
+          if (content.mimeType && content.mimeType.includes("/")) {
+            const parts = content.mimeType.split("/");
+            if (parts.length === 2 && parts[1]) {
+              // Handle special cases like "image/svg+xml"
+              extension = parts[1].split("+")[0] || "png";
+            }
+          }
           const file = new File([content.data], `clipboard-image.${extension}`, {
             type: content.mimeType || "image/png"
           });
