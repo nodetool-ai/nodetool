@@ -94,6 +94,17 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
       title={tooltipText}
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement={tooltipPlacement}
+      slotProps={{
+        tooltip: {
+          sx: (theme) => ({
+            backgroundColor: theme.vars.palette.background.paper,
+            color: theme.vars.palette.text.primary,
+            border: `1px solid ${theme.vars.palette.divider}`,
+            fontSize: "0.75rem",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+          })
+        }
+      }}
     >
       <IconButton
         tabIndex={-1}
