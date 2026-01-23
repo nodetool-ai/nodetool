@@ -1,82 +1,62 @@
-import { act } from "@testing-library/react";
 import { useMiniMapStore } from "../MiniMapStore";
 
 describe("MiniMapStore", () => {
   beforeEach(() => {
-    useMiniMapStore.setState({
-      visible: false
-    });
+    useMiniMapStore.setState(useMiniMapStore.getInitialState());
+  });
+
+  afterEach(() => {
+    useMiniMapStore.setState(useMiniMapStore.getInitialState());
   });
 
   describe("initial state", () => {
-    test("should initialize with visible set to false", () => {
-      expect(useMiniMapStore.getState().visible).toBe(false);
+    it("should have visible set to false by default", () => {
+      const state = useMiniMapStore.getState();
+      expect(state.visible).toBe(false);
     });
   });
 
   describe("setVisible", () => {
-    test("should set visibility to true", () => {
-      act(() => {
-        useMiniMapStore.getState().setVisible(true);
-      });
-
+    it("should set visible to true", () => {
+      useMiniMapStore.getState().setVisible(true);
       expect(useMiniMapStore.getState().visible).toBe(true);
     });
 
-    test("should set visibility to false", () => {
-      act(() => {
-        useMiniMapStore.getState().setVisible(true);
-        useMiniMapStore.getState().setVisible(false);
-      });
+    it("should set visible to false", () => {
+      useMiniMapStore.getState().setVisible(true);
+      useMiniMapStore.getState().setVisible(false);
+      expect(useMiniMapStore.getState().visible).toBe(false);
+    });
 
+    it("should handle multiple setVisible calls", () => {
+      useMiniMapStore.getState().setVisible(true);
+      useMiniMapStore.getState().setVisible(true);
+      useMiniMapStore.getState().setVisible(false);
       expect(useMiniMapStore.getState().visible).toBe(false);
     });
   });
 
   describe("toggleVisible", () => {
-    test("should toggle visibility from false to true", () => {
-      act(() => {
-        useMiniMapStore.getState().toggleVisible();
-      });
-
+    it("should toggle from false to true", () => {
+      expect(useMiniMapStore.getState().visible).toBe(false);
+      useMiniMapStore.getState().toggleVisible();
       expect(useMiniMapStore.getState().visible).toBe(true);
     });
 
-    test("should toggle visibility from true to false", () => {
-      act(() => {
-        useMiniMapStore.getState().setVisible(true);
-        useMiniMapStore.getState().toggleVisible();
-      });
-
+    it("should toggle from true to false", () => {
+      useMiniMapStore.getState().setVisible(true);
+      useMiniMapStore.getState().toggleVisible();
       expect(useMiniMapStore.getState().visible).toBe(false);
     });
 
-    test("should handle multiple toggle operations", () => {
-      act(() => {
-        useMiniMapStore.getState().toggleVisible();
-        useMiniMapStore.getState().toggleVisible();
-        useMiniMapStore.getState().toggleVisible();
-      });
-
-      expect(useMiniMapStore.getState().visible).toBe(true);
-    });
-  });
-
-  describe("explicit setVisible values", () => {
-    test("should handle setVisible with explicit true value", () => {
-      act(() => {
-        useMiniMapStore.getState().setVisible(true);
-      });
-
-      expect(useMiniMapStore.getState().visible).toBe(true);
-    });
-
-    test("should handle setVisible with explicit false value", () => {
-      act(() => {
-        useMiniMapStore.getState().setVisible(false);
-      });
-
+    it("should toggle multiple times", () => {
       expect(useMiniMapStore.getState().visible).toBe(false);
+      useMiniMapStore.getState().toggleVisible();
+      expect(useMiniMapStore.getState().visible).toBe(true);
+      useMiniMapStore.getState().toggleVisible();
+      expect(useMiniMapStore.getState().visible).toBe(false);
+      useMiniMapStore.getState().toggleVisible();
+      expect(useMiniMapStore.getState().visible).toBe(true);
     });
   });
 });

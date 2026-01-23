@@ -61,7 +61,7 @@ const styles = (theme: Theme) =>
       padding: "2px 4px",
       borderRadius: "8px",
       transition: "background-color 0.2s ease",
-      
+
       "&:hover": {
         backgroundColor: `${theme.vars.palette.grey[700]}30`
       }
@@ -99,12 +99,12 @@ const styles = (theme: Theme) =>
       borderRadius: "8px",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       border: `1px solid transparent`,
-      
+
       "&:hover": {
         background: `${theme.vars.palette.grey[600]}40`,
         border: `1px solid ${theme.vars.palette.grey[600]}60`,
       },
-      
+
       "&.active, &.Mui-selected": {
         background: `linear-gradient(135deg, 
           ${theme.vars.palette.primary.dark}30 0%, 
@@ -117,7 +117,7 @@ const styles = (theme: Theme) =>
     // IconButton specific
     "& .MuiIconButton-root": {
       padding: "6px",
-      
+
       "&.active": {
         color: theme.vars.palette.primary.main,
         background: `${theme.vars.palette.primary.main}15`,
@@ -129,7 +129,7 @@ const styles = (theme: Theme) =>
     "& .model-select-button, & .language-model-select": {
       background: `${theme.vars.palette.grey[800]}60`,
       border: `1px solid ${theme.vars.palette.grey[700]}50`,
-      
+
       "&:hover": {
         background: `${theme.vars.palette.grey[700]}60`,
         border: `1px solid ${theme.vars.palette.grey[600]}70`
@@ -160,6 +160,7 @@ interface ChatToolBarProps {
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
   allowedProviders?: string[];
+  embedded?: boolean;
 }
 
 const ChatToolBar: React.FC<ChatToolBarProps> = ({
@@ -171,7 +172,8 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   onAgentModeToggle,
   selectedCollections,
   onCollectionsChange,
-  allowedProviders
+  allowedProviders,
+  embedded = false
 }) => {
   const theme = useTheme();
 
@@ -180,10 +182,26 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   const hasAgentSection = onAgentModeToggle;
 
   return (
-    <div className="chat-tool-bar" css={styles(theme)}>
+    <div className={`chat-tool-bar ${embedded ? "embedded" : ""}`} css={[styles(theme), embedded && css({
+      background: "transparent",
+      backdropFilter: "none",
+      border: "none",
+      boxShadow: "none",
+      padding: "0",
+      minHeight: "auto",
+      width: "auto",
+      flex: 1,
+      "&:hover": {
+        border: "none",
+        boxShadow: "none"
+      },
+      "&::before": {
+        display: "none"
+      }
+    })]}>
       {/* Model Selection Group */}
       {hasModelSection && (
-        <Box className="toolbar-group toolbar-group-primary">
+        <Box className={`toolbar-group ${!embedded ? "toolbar-group-primary" : ""}`}>
           <LanguageModelSelect
             onChange={(model) => onModelChange(model)}
             value={selectedModel?.id || ""}
@@ -215,7 +233,7 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
       )}
 
       {/* Spacer to push agent toggle to the right */}
-      <div className="toolbar-spacer" />
+      {!embedded && <div className="toolbar-spacer" />}
 
       {/* Agent Mode Toggle */}
       {hasAgentSection && (

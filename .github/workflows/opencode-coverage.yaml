@@ -45,9 +45,9 @@ jobs:
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
-          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         with:
-          model: minimax/MiniMax-M2.1
+          model: zai-coding-plan/glm-4.7
           prompt: |
             # NodeTool Test Coverage Improvement
 

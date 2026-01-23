@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useCallback } from "react";
 import { Box, Typography, List, ListItem, ListItemButton } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -251,24 +251,24 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isOpen, closeFind, navigateNext, navigatePrevious, results.length, goToSelected]);
 
-    if (!isOpen) {
-      return null;
-    }
-
-    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
       performSearch(event.target.value);
-    };
+    }, [performSearch]);
 
-    const handleResultClick = (index: number) => {
+    const handleResultClick = useCallback((index: number) => (event: React.MouseEvent) => {
       selectNode(index);
       goToSelected();
       closeFind();
-    };
+    }, [selectNode, goToSelected, closeFind]);
 
-    const handleClear = () => {
+    const handleClear = useCallback(() => {
       clearSearch();
       inputRef.current?.focus();
-    };
+    }, [clearSearch]);
+
+    if (!isOpen) {
+      return null;
+    }
 
     const formatNodeType = (type: string): string => {
       const parts = type.split(".");
@@ -331,13 +331,13 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           )}
         </Box>
 
-        {results.length > 0 ? (
+          {results.length > 0 ? (
           <List className="results-list" ref={listRef}>
             {results.map((result, index) => (
               <ListItem key={result.node.id} className="result-item" disablePadding>
                 <ListItemButton
                   className={`result-button ${index === selectedIndex ? "selected" : ""}`}
-                  onClick={() => handleResultClick(index)}
+                  onClick={handleResultClick(index)}
                 >
                   <Typography className="result-name" variant="body2">
                     {getNodeDisplayName(result.node)}

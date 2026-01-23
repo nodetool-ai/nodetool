@@ -102,13 +102,17 @@ const ProviderList: React.FC<ProviderListProps> = ({
     setSelected(null);
   }, [setSelected]);
 
-  const _handleSelectProvider = useCallback((p: string) => {
+  const handleSelectProvider = useCallback((p: string) => () => {
     setSelected(p);
   }, [setSelected]);
 
-  const _handleMenuOpen = useCallback((e: React.MouseEvent<HTMLElement>, p: string) => {
-    e.preventDefault();
-    setMenuAnchor(e.currentTarget);
+  const handleProviderChange = useCallback((p: string, enabled: boolean) => () => {
+    setProviderEnabled(p, enabled);
+  }, [setProviderEnabled]);
+
+  const handleMenuOpen = useCallback((event: React.MouseEvent, p: string) => {
+    event.preventDefault();
+    setMenuAnchor(event.currentTarget as HTMLElement);
     setMenuProvider(p);
   }, []);
 
@@ -120,10 +124,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
   const handleOpenSettings = useCallback(() => {
     setMenuOpen(true, 1);
   }, [setMenuOpen]);
-
-  const _handleCheckboxChange = useCallback((p: string, enabled: boolean) => {
-    setProviderEnabled(p, enabled);
-  }, [setProviderEnabled]);
 
   const handleStopPropagation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -265,12 +265,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 className={`model-menu__provider-item ${selected === p ? "is-selected" : ""
                   }`}
                 selected={selected === p}
-                onClick={() => setSelected(p)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setMenuAnchor(e.currentTarget);
-                  setMenuProvider(p);
-                }}
+                onClick={handleSelectProvider(p)}
+                onContextMenu={(e) => handleMenuOpen(e, p)}
                 sx={{
                   gap: 0.1,
                   opacity: enabled && available ? 1 : 0.5,
@@ -377,9 +373,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             }
                           }}
                           checked={enabled}
-                          onChange={(e) => {
-                            setProviderEnabled(p, e.target.checked);
-                          }}
+                          onChange={(e) => handleProviderChange(p, e.target.checked)}
                         />
                       </Tooltip>
                     </Box>

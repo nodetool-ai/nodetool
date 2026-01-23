@@ -61,16 +61,36 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: web/src/components/node/output/PlotlyRenderer.tsx (NEW), web/src/components/node/OutputRenderer.tsx
 
 **Impact**: Initial bundle smaller; 4.6 MB chart library loads only when needed.
-> ### TypeScript and Lint Fixes (2026-01-22)
-> **What**: Fixed 5 TypeScript errors and 11 lint issues - history size type handling, null coalescing for descriptions, non-existent method replacement, and unused variable cleanup.
-> **Files**: DataTable.tsx, DataframeProperty.tsx, WorkflowManagerStore.ts, TableActions.tsx, OutputRenderer.tsx, VersionHistoryPanel.tsx
->
-> ---
->
-> ### TypeScript Syntax and Type Fixes (2026-01-20)
+
+### NodeContextMenu Handler Memoization (2026-01-22)
+
+**What**: Memoized 3 inline arrow functions and handleSelectMode callback in NodeContextMenu using useCallback.
+
+**Files**: web/src/components/context_menus/NodeContextMenu.tsx
+
+**Impact**: Reduced re-renders in node context menus, stable function references for sync mode handlers.
+
+---
+
+### PaneContextMenu useCallback Fix (2026-01-22)
+
+**What**: Wrapped addComment function in useCallback to fix exhaustive-deps lint warning.
+
+**Files**: web/src/components/context_menus/PaneContextMenu.tsx
+
+**Impact**: Fixed lint warning, stable context menu operations.
+
+---
+
 ### Inline Arrow Function Performance Fix - Node Menu (2026-01-22)
 
-### Inline Arrow Function Performance Fix (2026-01-22)
+### Additional Inline Arrow Function Performance Fix (2026-01-22)
+
+**What**: Fixed 15+ inline arrow functions across 12 components using useCallback for stable references.
+
+**Files**: AssetGridRow.tsx, ModelPackCard.tsx, AssetMoveToFolderConfirmation.tsx, AssetRenameConfirmation.tsx, AssetCreateFolderConfirmation.tsx, AssetActions.tsx, AssetItem.tsx, ModelCardContent.tsx, HuggingFaceModelSearch.tsx, PropertyDropzone.tsx, Model3DProperty.tsx, DataframeEditorModal.tsx
+
+**Impact**: Improved render performance in asset management, model browser, property editors, and dataframe editor.
 
 **What**: Fixed 25+ inline arrow functions in 9 node menu components using .bind() and useCallback for stable references.
 
@@ -264,7 +284,6 @@ const store = useNodeStore();  // ❌ causes re-renders
 **Files**: `mobile/tsconfig.json`
 
 ---
-
 
 **What**: Extended Zustand store subscription optimization to additional components that were still using full store destructuring.
 

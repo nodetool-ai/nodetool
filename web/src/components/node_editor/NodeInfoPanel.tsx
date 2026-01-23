@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -185,6 +185,25 @@ const NodeInfoPanel: React.FC = memo(() => {
     };
   }, [getNode, inspectedNodeId]);
 
+  const handleClose = useCallback(() => {
+    setInspectedNodeId(null);
+  }, [setInspectedNodeId]);
+
+  const handleNamespaceClick = useCallback(() => {
+    if (!nodeInfo) return;
+    useNodeMenuStore.getState().openNodeMenu({
+      x: 500,
+      y: 200,
+      dropType: nodeInfo.namespace,
+      selectedPath: nodeInfo.namespace.split(".")
+    });
+  }, [nodeInfo]);
+
+  const handleFocusClick = useCallback(() => {
+    if (!nodeInfo) return;
+    setCenter(nodeInfo.position.x, nodeInfo.position.y, { zoom: 1.5, duration: 300 });
+  }, [nodeInfo, setCenter]);
+
   if (!nodeInfo) {
     return null;
   }
@@ -197,7 +216,7 @@ const NodeInfoPanel: React.FC = memo(() => {
           <Tooltip title="Close" arrow>
             <IconButton
               size="small"
-              onClick={() => setInspectedNodeId(null)}
+              onClick={handleClose}
               sx={{ color: "text.secondary" }}>
               <CloseIcon fontSize="small" />
             </IconButton>
@@ -224,14 +243,7 @@ const NodeInfoPanel: React.FC = memo(() => {
           <Button
             tabIndex={1}
             className="namespace-button"
-            onClick={() => {
-              useNodeMenuStore.getState().openNodeMenu({
-                x: 500,
-                y: 200,
-                dropType: nodeInfo.namespace,
-                selectedPath: nodeInfo.namespace.split(".")
-              });
-            }}
+            onClick={handleNamespaceClick}
           >
             <PrettyNamespace namespace={nodeInfo.namespace} />
           </Button>
@@ -253,7 +265,7 @@ const NodeInfoPanel: React.FC = memo(() => {
           className="action-button"
           size="small"
           startIcon={<OpenInNewIcon fontSize="small" />}
-          onClick={() => setCenter(nodeInfo.position.x, nodeInfo.position.y, { zoom: 1.5, duration: 300 })}
+          onClick={handleFocusClick}
         >
           Focus
         </Button>

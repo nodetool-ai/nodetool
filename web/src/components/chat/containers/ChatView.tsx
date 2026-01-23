@@ -26,7 +26,8 @@ const styles = (_theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      minHeight: 0
+      minHeight: 0,
+      padding: "0 20px 20px 20px",
     },
     ".chat-thread-container": {
       flex: 1,
@@ -53,15 +54,15 @@ const styles = (_theme: Theme) =>
 
 type ChatViewProps = {
   status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "loading"
+  | "error"
+  | "streaming"
+  | "reconnecting"
+  | "disconnecting"
+  | "failed";
   progress: number;
   total: number;
   messages: Array<Message>;

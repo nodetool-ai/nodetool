@@ -187,6 +187,10 @@ const FindReplaceBar = ({
     }
   }, [onReplace, searchTerm, replaceTerm]);
 
+  const handleToggleReplace = useCallback(() => {
+    setShowReplace(!showReplace);
+  }, [showReplace]);
+
   if (!isVisible) {return null;}
 
   const isValidSearch = isValidInput(searchTerm);
@@ -248,7 +252,7 @@ const FindReplaceBar = ({
         <Tooltip title="Toggle Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton
             className="toolbar-button"
-            onClick={() => setShowReplace(!showReplace)}
+            onClick={handleToggleReplace}
             size="small"
           >
             <ReplaceIcon fontSize="small" />

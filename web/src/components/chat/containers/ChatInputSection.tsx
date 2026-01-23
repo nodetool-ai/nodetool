@@ -16,7 +16,7 @@ const styles = (_theme: Theme) =>
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
-    padding: "1.5em",
+    padding: "0",
     marginTop: "auto",
     flexShrink: 0,
     // Mobile styles handled via separate CSS file
@@ -38,15 +38,15 @@ const styles = (_theme: Theme) =>
 
 type ChatInputSectionProps = {
   status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "loading"
+  | "error"
+  | "streaming"
+  | "reconnecting"
+  | "disconnecting"
+  | "failed";
   showToolbar?: boolean;
   onSendMessage: (
     content: MessageContent[],
@@ -86,8 +86,39 @@ const ChatInputSection = ({
   const isStreaming = status === "streaming";
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const toolbarNode = (!isMobile && showToolbar) ? (
+    <ChatToolBar
+      selectedTools={selectedTools}
+      onToolsChange={onToolsChange}
+      selectedCollections={selectedCollections}
+      onCollectionsChange={onCollectionsChange}
+      selectedModel={selectedModel}
+      onModelChange={onModelChange}
+      agentMode={agentMode}
+      onAgentModeToggle={onAgentModeToggle}
+      allowedProviders={allowedProviders}
+      embedded={true}
+    />
+  ) : null;
+
   return (
     <div className="chat-input-section" css={styles(theme)}>
+      {isMobile && showToolbar && (
+        <div className="chat-controls">
+          <MobileChatToolbar
+            selectedTools={selectedTools}
+            onToolsChange={onToolsChange}
+            selectedCollections={selectedCollections}
+            onCollectionsChange={onCollectionsChange}
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
+            agentMode={agentMode}
+            onAgentModeToggle={onAgentModeToggle}
+            allowedProviders={allowedProviders}
+          />
+        </div>
+      )}
       <div className="chat-composer-wrapper">
         <ChatComposer
           isLoading={isLoading}
@@ -96,37 +127,9 @@ const ChatInputSection = ({
           onStop={onStop}
           onNewChat={onNewChat}
           agentMode={agentMode}
+          toolbarNode={toolbarNode}
         />
       </div>
-      {showToolbar && (
-        <div className="chat-controls">
-          {isMobile ? (
-            <MobileChatToolbar
-              selectedTools={selectedTools}
-              onToolsChange={onToolsChange}
-              selectedCollections={selectedCollections}
-              onCollectionsChange={onCollectionsChange}
-              selectedModel={selectedModel}
-              onModelChange={onModelChange}
-              agentMode={agentMode}
-              onAgentModeToggle={onAgentModeToggle}
-              allowedProviders={allowedProviders}
-            />
-          ) : (
-            <ChatToolBar
-              selectedTools={selectedTools}
-              onToolsChange={onToolsChange}
-              selectedCollections={selectedCollections}
-              onCollectionsChange={onCollectionsChange}
-              selectedModel={selectedModel}
-              onModelChange={onModelChange}
-              agentMode={agentMode}
-              onAgentModeToggle={onAgentModeToggle}
-              allowedProviders={allowedProviders}
-            />
-          )}
-        </div>
-      )}
     </div>
   );
 };

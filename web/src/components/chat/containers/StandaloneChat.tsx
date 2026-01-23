@@ -26,6 +26,10 @@ const StandaloneChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
   
+  // Get store actions first
+  const connect = useGlobalChatStore((s) => s.connect);
+  const disconnect = useGlobalChatStore((s) => s.disconnect);
+  
   // Get connection state from WebSocket manager directly
   const [connectionState, setConnectionState] = React.useState(
     globalWebSocketManager.getConnectionState()
@@ -41,12 +45,20 @@ const StandaloneChat: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  // Proactively establish WebSocket connection on mount
+  // Initialize GlobalChatStore connection on mount
   useEffect(() => {
-    globalWebSocketManager.ensureConnection().catch((err) => {
-      console.error("Failed to establish WebSocket connection:", err);
+    connect().catch((err) => {
+      console.error("Failed to connect GlobalChatStore:", err);
     });
-  }, []);
+    
+    return () => {
+      try {
+        disconnect();
+      } catch (err) {
+        console.error("Error during GlobalChatStore disconnect:", err);
+      }
+    };
+  }, [connect, disconnect]);
 
   const status = useGlobalChatStore((s) => s.status);
   const sendMessage = useGlobalChatStore((s) => s.sendMessage);

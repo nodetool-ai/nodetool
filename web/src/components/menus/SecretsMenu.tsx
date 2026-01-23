@@ -143,18 +143,31 @@ const SecretsMenu = () => {
     setOpenDialog(false);
   };
 
-  const handleOpenEditDialog = (secret: any) => {
+  const handleOpenEditDialog = useCallback((secret: any) => (event: React.MouseEvent) => {
     setEditingSecret(secret);
     setFormData({
       key: secret.key,
       value: ""
     });
     setOpenDialog(true);
+  }, []);
+
+  const handleDeleteClick = useCallback((key: string) => (event: React.MouseEvent) => {
+    setSecretToDelete(key);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const confirmDelete = () => {
+    if (secretToDelete) {
+      deleteMutation.mutate(secretToDelete);
+    }
+    setDeleteDialogOpen(false);
+    setSecretToDelete(null);
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     resetForm();
-  };
+  }, []);
 
   const handleSave = useCallback(() => {
     if (!formData.value) {
@@ -168,19 +181,6 @@ const SecretsMenu = () => {
 
     updateMutation.mutate();
   }, [formData, updateMutation, addNotification]);
-
-  const handleDelete = (key: string) => {
-    setSecretToDelete(key);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (secretToDelete) {
-      deleteMutation.mutate(secretToDelete);
-    }
-    setDeleteDialogOpen(false);
-    setSecretToDelete(null);
-  };
 
   return (
     <>
@@ -289,22 +289,22 @@ const SecretsMenu = () => {
                             flexShrink: 0
                           }}
                         >
-                          <Tooltip title="Update secret">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenEditDialog(secret)}
-                              disabled={updateMutation.isPending}
-                            >
+                           <Tooltip title="Update secret">
+                             <IconButton
+                               size="small"
+                               onClick={handleOpenEditDialog(secret)}
+                               disabled={updateMutation.isPending}
+                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete secret">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDelete(secret.key)}
-                              disabled={deleteMutation.isPending}
-                            >
+                           <Tooltip title="Delete secret">
+                             <IconButton
+                               size="small"
+                               color="error"
+                               onClick={handleDeleteClick(secret.key)}
+                               disabled={deleteMutation.isPending}
+                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -356,12 +356,12 @@ const SecretsMenu = () => {
                             flexShrink: 0
                           }}
                         >
-                          <Tooltip title="Set secret">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenEditDialog(secret)}
-                              disabled={updateMutation.isPending}
-                            >
+                           <Tooltip title="Set secret">
+                             <IconButton
+                               size="small"
+                               onClick={handleOpenEditDialog(secret)}
+                               disabled={updateMutation.isPending}
+                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -482,10 +482,7 @@ const SecretsMenu = () => {
 
       <ConfirmDialog
         open={deleteDialogOpen}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setSecretToDelete(null);
-        }}
+        onClose={handleClose}
         onConfirm={confirmDelete}
         title="Delete Secret"
         content={`Are you sure you want to delete the secret "${secretToDelete}"?`}

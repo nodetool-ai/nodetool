@@ -87,6 +87,13 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     [zoomTo]
   );
 
+  const handlePresetClick = useCallback(
+    (preset: ZoomPreset) => () => {
+      handlePresetZoom(preset);
+    },
+    [handlePresetZoom]
+  );
+
   const handleOpenZoomMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       setZoomMenuAnchor(event.currentTarget);
@@ -268,7 +275,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           {ZOOM_PRESETS.map((preset) => (
             <ListItemButton
               key={preset}
-              onClick={() => handlePresetZoom(preset)}
+              onClick={handlePresetClick(preset)}
               selected={Math.abs(zoom - preset) < 0.01}
               sx={{
                 py: 0.5,

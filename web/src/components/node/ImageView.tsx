@@ -9,6 +9,7 @@ import AssetViewer from "../assets/AssetViewer";
 import { isElectron } from "../../utils/browser";
 import { createImageUrl } from "../../utils/imageUtils";
 import ImageDimensions from "./ImageDimensions";
+import { copyAssetToClipboard } from "../../utils/clipboardUtils";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -55,18 +56,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     if (!imageUrl) { return; }
 
     try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-
-      await window.api.clipboardWriteImage(dataUrl);
-
+      await copyAssetToClipboard("image/png", imageUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -109,7 +99,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         }}
       >
         {isElectron && (
-          <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
+          <Tooltip title={copied ? "Copied!" : "Copy to clipboard (compatible with Photoshop)"}>
             <IconButton
               onClick={handleCopyToClipboard}
               size="small"

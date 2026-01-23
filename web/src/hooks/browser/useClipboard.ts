@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo } from "react";
 import log from "loglevel";
 import useSessionStateStore from "../../stores/SessionStateStore";
+import { copyAssetToClipboard } from "../../utils/clipboardUtils";
+import type {} from "../../window.d";
 
 export const useClipboard = () => {
   const {
@@ -53,11 +55,30 @@ export const useClipboard = () => {
     
     if (isFirefox && clipboardData) {
       data = clipboardData;
+    } else if (hasElectronApi && window.api?.clipboard?.readText) {
+      // Prefer new Electron API when available
+      try {
+        data = await window.api.clipboard.readText();
+        log.info("Clipboard read via Electron clipboard API.");
+      } catch {
+        log.warn("Electron clipboard read failed, falling back to legacy API.");
+        if (window.api?.clipboardReadText) {
+          try {
+            data = await window.api.clipboardReadText();
+            log.info("Clipboard read via legacy Electron API.");
+          } catch {
+            log.warn("Legacy Electron clipboard read failed, falling back to navigator.");
+            if (document.hasFocus() && navigator.clipboard) {
+              data = await navigator.clipboard.readText();
+            }
+          }
+        }
+      }
     } else if (hasElectronApi && window.api?.clipboardReadText) {
-      // Prefer Electron API when available
+      // Fallback to legacy Electron API
       try {
         data = await window.api.clipboardReadText();
-        log.info("Clipboard read via Electron API.");
+        log.info("Clipboard read via legacy Electron API.");
       } catch {
         log.warn("Electron clipboard read failed, falling back to navigator.");
         if (document.hasFocus() && navigator.clipboard) {
@@ -104,10 +125,13 @@ export const useClipboard = () => {
         }
         setClipboardData(outputData);
         
-        // Prefer Electron API when available
-        if (hasElectronApi && window.api?.clipboardWriteText) {
+        // Prefer new Electron API when available
+        if (hasElectronApi && window.api?.clipboard?.writeText) {
+          await window.api.clipboard.writeText(outputData);
+          log.info("Clipboard written via Electron clipboard API.");
+        } else if (hasElectronApi && window.api?.clipboardWriteText) {
           window.api.clipboardWriteText(outputData);
-          log.info("Clipboard written via Electron API.");
+          log.info("Clipboard written via legacy Electron API.");
         } else {
           await navigator.clipboard.writeText(outputData);
           log.info("Clipboard written via navigator API.");
@@ -117,5 +141,12 @@ export const useClipboard = () => {
     [hasElectronApi, isFirefox, setClipboardData, setIsClipboardValid, validateData]
   );
 
-  return { clipboardData, readClipboard, writeClipboard, isClipboardValid };
+  return { 
+    clipboardData, 
+    readClipboard, 
+    writeClipboard, 
+    isClipboardValid,
+    // Export utility function for asset-based clipboard operations
+    copyAssetToClipboard
+  };
 };

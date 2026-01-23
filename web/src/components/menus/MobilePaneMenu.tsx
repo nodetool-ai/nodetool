@@ -173,7 +173,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
   }, [handleAction, createNode, addNode, getViewportCenter]);
 
   const addInputNode = useCallback(
-    (nodeType: string) => {
+    (nodeType: string) => () => {
       handleAction(() => {
         const metadata = useMetadataStore
           .getState()
@@ -301,7 +301,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           {/* Input Nodes */}
           <div className="menu-section-title">Input Nodes</div>
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("StringInput")}>
+            <ListItemButton onClick={addInputNode("StringInput")}>
               <ListItemIcon className="menu-item-icon">
                 <TextFieldsIcon />
               </ListItemIcon>
@@ -314,7 +314,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("IntegerInput")}>
+            <ListItemButton onClick={addInputNode("IntegerInput")}>
               <ListItemIcon className="menu-item-icon">
                 <NumbersIcon />
               </ListItemIcon>
@@ -327,7 +327,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("FloatInput")}>
+            <ListItemButton onClick={addInputNode("FloatInput")}>
               <ListItemIcon className="menu-item-icon">
                 <NumbersIcon />
               </ListItemIcon>
@@ -340,7 +340,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("ChatInput")}>
+            <ListItemButton onClick={addInputNode("ChatInput")}>
               <ListItemIcon className="menu-item-icon">
                 <ChatIcon />
               </ListItemIcon>
@@ -353,7 +353,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
           </ListItem>
 
           <ListItem className="menu-item">
-            <ListItemButton onClick={() => addInputNode("ImageInput")}>
+            <ListItemButton onClick={addInputNode("ImageInput")}>
               <ListItemIcon className="menu-item-icon">
                 <ImageIcon />
               </ListItemIcon>
