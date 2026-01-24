@@ -192,7 +192,8 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
 
     runnerStore.getState().setMessageHandler(handler);
 
-    const unsubscribe = globalWebSocketManager.subscribe(
+    // Subscribe to workflow_id for messages that include workflow_id
+    const unsubscribeWorkflow = globalWebSocketManager.subscribe(
       workflowKey,
       (message: any) => {
         const currentWorkflow =
@@ -203,8 +204,50 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       }
     );
 
+    // Track job_id subscription for messages that only include job_id
+    // (e.g., terminal job completion updates may not include workflow_id)
+    let unsubscribeJob: (() => void) | null = null;
+
+    const updateJobSubscription = (jobId: string | null) => {
+      if (unsubscribeJob) {
+        unsubscribeJob();
+        unsubscribeJob = null;
+      }
+
+      if (!jobId) {
+        return;
+      }
+
+      unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message: any) => {
+        // Avoid double-processing when the backend already provides workflow_id
+        if (message?.workflow_id) {
+          return;
+        }
+
+        const currentWorkflow =
+          runnerStore.getState().workflow || selectedWorkflow;
+        if (currentWorkflow) {
+          handler(currentWorkflow, message);
+        }
+      });
+    };
+
+    // Subscribe to current job_id if already set
+    updateJobSubscription(runnerStore.getState().job_id);
+
+    // Track job_id changes to update subscription
+    const unsubscribeRunnerStore = runnerStore.subscribe((state, prevState) => {
+      if (state.job_id !== prevState.job_id) {
+        updateJobSubscription(state.job_id);
+      }
+    });
+
     return () => {
-      unsubscribe();
+      unsubscribeWorkflow();
+      unsubscribeRunnerStore();
+      if (unsubscribeJob) {
+        unsubscribeJob();
+      }
       runnerStore.getState().setMessageHandler(originalHandler);
     };
   }, [
