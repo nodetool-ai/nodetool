@@ -68,9 +68,9 @@ const styles = (
     // Drawer content area (appears right of toolbar)
     ".drawer-content": {
       height: "100%",
-      backgroundColor: theme.vars.palette.background.paper,
+      backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: "4px 0 10px rgba(0, 0, 0, 0.15)",
+      boxShadow: "4px 0 8px rgba(0, 0, 0, 0.05)",
       overflow: "hidden",
       display: "flex",
       flexDirection: "column"
@@ -221,13 +221,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
   const handleWorkspacesClick = useCallback(() => {
     setWorkspacesOpen(true);
   }, [setWorkspacesOpen]);
-
-  const handleViewChangeInternal = useCallback(
-    (view: LeftPanelView) => {
-      onViewChange(view);
-    },
-    [onViewChange]
-  );
 
   const handlePanelToggleClick = useCallback(() => {
     handlePanelToggle();
