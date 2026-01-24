@@ -21,6 +21,7 @@ interface WorkflowListItemProps {
   isCurrent: boolean;
   isAlternate: boolean;
   showCheckboxes: boolean;
+  hideDate?: boolean;
   onOpenWorkflow: (workflow: Workflow) => void;
   onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
   onSelect: (workflow: Workflow) => void;
@@ -36,6 +37,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   isCurrent,
   isAlternate,
   showCheckboxes,
+  hideDate = false,
   onOpenWorkflow,
   onDuplicateWorkflow,
   onSelect,
@@ -307,7 +309,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       </Box>
       <Box className="date-container">
         {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "0.85rem", color: "warning.main" }} />}
-        <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>
+        {!hideDate && <Typography className="date">{relativeTime(workflow.updated_at)}</Typography>}
       </Box>
     </Box>
   );

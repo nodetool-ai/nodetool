@@ -1,25 +1,19 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  Button,
   CircularProgress,
-  Collapse,
   LinearProgress,
   Typography
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import AutorenewIcon from "@mui/icons-material/Autorenew";
 import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import MiniAppResults from "./components/MiniAppResults";
 import MiniAppInputsForm from "./components/MiniAppInputsForm";
+import MiniAppSidePanel from "./components/MiniAppSidePanel";
 import { useMiniAppInputs } from "./hooks/useMiniAppInputs";
 import { useMiniAppRunner } from "./hooks/useMiniAppRunner";
 import { clampNumber } from "./utils";
@@ -28,8 +22,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
-import ThemeToggle from "../ui/ThemeToggle";
-import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
 import { usePanelStore } from "../../stores/PanelStore";
 
 const MiniAppPage: React.FC = () => {
@@ -37,7 +29,6 @@ const MiniAppPage: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { workflowId } = useParams<{ workflowId?: string }>();
   const [_submitError, setSubmitError] = useState<string | null>(null);
-  const [showGraph, setShowGraph] = useState(false);
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
     fetchWorkflow: state.fetchWorkflow
@@ -64,7 +55,6 @@ const MiniAppPage: React.FC = () => {
   const {
     runWorkflow,
     runnerState,
-    statusMessage,
     results,
     progress,
     resetWorkflowState
@@ -197,16 +187,17 @@ const MiniAppPage: React.FC = () => {
 
         {workflow && (
           <>
+            {/* Side Panel */}
+            <MiniAppSidePanel
+              workflow={workflow}
+              isRunning={runnerState === "running"}
+            />
+
             {/* Header Section */}
             <div className="page-header">
-              <div className="page-header-row">
-                <Typography variant="h5" fontWeight="600">
-                  {workflow.name}
-                </Typography>
-                <div className="page-header-actions">
-                  <ThemeToggle />
-                </div>
-              </div>
+              <Typography variant="h5" fontWeight="600">
+                {workflow.name}
+              </Typography>
               {workflow.description && (
                 <Typography variant="body2" className="workflow-description">
                   {workflow.description}
@@ -214,60 +205,16 @@ const MiniAppPage: React.FC = () => {
               )}
             </div>
 
-            {/* Status Bar - Only shown when running */}
-            {isRunning && (
+            {/* Progress Bar - Only shown when running with progress */}
+            {isRunning && progress && (
               <div className="status-bar">
-                <div className="status-bar-text">
-                  <AutorenewIcon
-                    fontSize="small"
-                    css={css`
-                      @keyframes spin {
-                        from {
-                          transform: rotate(0deg);
-                        }
-                        to {
-                          transform: rotate(360deg);
-                        }
-                      }
-                      animation: spin 1s linear infinite;
-                    `}
+                <Box className="status-bar-progress" sx={{ width: "100%" }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={(progress.current * 100.0) / progress.total}
+                    sx={{ height: 6, borderRadius: 3 }}
                   />
-                  <Typography
-                    variant="body2"
-                    fontWeight="500"
-                    css={css`
-                      @keyframes statusPulseColor {
-                        0% {
-                          color: #ff6b3d;
-                        }
-                        25% {
-                          color: #ffd700;
-                        }
-                        50% {
-                          color: #40e0d0;
-                        }
-                        75% {
-                          color: #48d1ff;
-                        }
-                        100% {
-                          color: #9370db;
-                        }
-                      }
-                      animation: statusPulseColor 3s linear infinite;
-                    `}
-                  >
-                    {statusMessage || "Processing..."}
-                  </Typography>
-                </div>
-                {progress && (
-                  <Box className="status-bar-progress">
-                    <LinearProgress
-                      variant="determinate"
-                      value={(progress.current * 100.0) / progress.total}
-                      sx={{ height: 6, borderRadius: 3 }}
-                    />
-                  </Box>
-                )}
+                </Box>
               </div>
             )}
 
@@ -288,34 +235,8 @@ const MiniAppPage: React.FC = () => {
                 onClear={
                   workflow?.id ? () => clearResults(workflow.id) : undefined
                 }
+                workflow={workflow}
               />
-            </div>
-
-            {/* Collapsible Workflow Graph Section */}
-            <div className="graph-section">
-              <Button
-                className="graph-toggle-button"
-                onClick={() => setShowGraph(!showGraph)}
-                startIcon={<AccountTreeIcon fontSize="small" />}
-                endIcon={
-                  showGraph ? (
-                    <ExpandLessIcon fontSize="small" />
-                  ) : (
-                    <ExpandMoreIcon fontSize="small" />
-                  )
-                }
-                size="small"
-              >
-                {showGraph ? "Hide Workflow" : "Show Workflow"}
-              </Button>
-              <Collapse in={showGraph}>
-                <div className="graph-container">
-                  <MiniWorkflowGraph
-                    workflow={workflow}
-                    isRunning={runnerState === "running"}
-                  />
-                </div>
-              </Collapse>
             </div>
           </>
         )}
