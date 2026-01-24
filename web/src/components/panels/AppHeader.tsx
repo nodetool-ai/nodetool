@@ -3,17 +3,13 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Tooltip, Toolbar, Box, IconButton } from "@mui/material";
+import { Tooltip, Toolbar, Box, Button } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
-import ViewModuleIcon from "@mui/icons-material/ViewModule";
-import EditIcon from "@mui/icons-material/Edit";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { IconForType } from "../../config/data_types";
 
 const styles = (theme: Theme) =>
   css({
@@ -75,7 +71,10 @@ const styles = (theme: Theme) =>
     ".mode-pills": {
       display: "flex",
       alignItems: "center",
-      gap: "2px"
+      gap: "2px",
+      border: "1px solid var(--palette-grey-800)",
+      borderRadius: "1em",
+      height: "1.6em",
     },
     ".mode-pill": {
       padding: "5px 14px",
@@ -100,7 +99,10 @@ const styles = (theme: Theme) =>
       },
       "& .icon-container": {
         width: "15px",
-        height: "15px"
+        height: "15px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
       },
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.08)",
@@ -115,46 +117,6 @@ const styles = (theme: Theme) =>
         }
       }
     },
-    // Standalone nav button (Templates)
-    ".nav-button": {
-      padding: "4px 12px",
-      borderRadius: "6px",
-      fontWeight: 500,
-      letterSpacing: "0.02em",
-      color: theme.vars.palette.text.secondary,
-      minWidth: "auto",
-      transition: "all 0.2s ease-out",
-      border: "1px solid transparent",
-      "& svg": {
-        marginRight: "6px",
-        transition: "color 0.2s ease"
-      },
-      "& .icon-container": {
-        marginRight: "6px"
-      },
-      position: "relative",
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
-        color: theme.vars.palette.text.primary,
-        "& svg": {
-          color: theme.vars.palette.text.primary
-        }
-      },
-      "&.active": {
-        backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.1)",
-        border: `1px solid rgba(var(--palette-primary-main-channel) / 0.2)`,
-        color: theme.vars.palette.primary.main,
-        "& svg, & .icon-container svg": {
-          color: theme.vars.palette.primary.main
-        }
-      }
-    },
-    ".nav-button-text": {
-      display: "inline",
-      fontSize: theme.vars.fontSizeSmall,
-      textTransform: "uppercase",
-      fontWeight: 300
-    },
     ".logo-container": {
       display: "flex",
       alignItems: "center",
@@ -168,6 +130,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       background: "transparent",
       flexShrink: 0,
+      marginLeft: "1em",
       marginRight: "4px",
       gap: "4px"
     }
@@ -231,7 +194,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
           tabIndex={-1}
           aria-current={isEditorActive ? "page" : undefined}
         >
-          <EditIcon />
+          {/* <EditIcon /> */}
           <span>Editor</span>
         </button>
       </Tooltip>
@@ -242,7 +205,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
           tabIndex={-1}
           aria-current={isChatActive ? "page" : undefined}
         >
-          <IconForType iconName="message" showTooltip={false} />
+          {/* <IconForType iconName="message" showTooltip={false} /> */}
           <span>Chat</span>
         </button>
       </Tooltip>
@@ -255,7 +218,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
           disabled={!currentWorkflowId}
           style={{ opacity: currentWorkflowId ? 1 : 0.5 }}
         >
-          <RocketLaunchIcon />
+          {/* <RocketLaunchIcon /> */}
           <span>App</span>
         </button>
       </Tooltip>
@@ -281,15 +244,32 @@ const TemplatesButton = memo(function TemplatesButton({
       enterDelay={TOOLTIP_ENTER_DELAY}
       placement="bottom"
     >
-      <IconButton
+      <Button
+        variant="outlined"
+        size="small"
+        sx={{
+          height: "1.75em",
+          color: "var(--palette-text-default)",
+          border: "1px solid transparent",
+          "&:hover": {
+            backgroundColor: "rgba(255, 255, 255, 0.08)",
+            color: "var(--palette-text-primary)",
+            borderColor: "transparent",
+          },
+          "&.active": {
+
+            color: "var(--palette-primary-contrastText)",
+            backgroundColor: "var(--palette-primary-main)",
+            borderColor: "var(--palette-primary-main)",
+          }
+        }}
         className={`nav-button templates-button ${isActive ? "active" : ""}`}
         onClick={handleClick}
         tabIndex={-1}
         aria-current={isActive ? "page" : undefined}
       >
-        <ViewModuleIcon />
         <span className="nav-button-text">Templates</span>
-      </IconButton>
+      </Button>
     </Tooltip>
   );
 });
@@ -328,7 +308,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
           className="buttons-right"
           style={{ WebkitAppRegion: "no-drag" } as any}
         >
-          {/* Templates button - closer to right utility icons */}
           <TemplatesButton isActive={path.startsWith("/templates")} />
           <RightSideButtons />
         </div>
