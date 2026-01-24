@@ -2,8 +2,7 @@
 import React, {
   useRef,
   useState,
-  useCallback,
-  useEffect
+  useCallback
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Box, Typography, IconButton, Tooltip, Collapse } from "@mui/material";
@@ -16,6 +15,7 @@ import { MessageInput } from "./MessageInput";
 import { ActionButtons } from "./ActionButtons";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createStyles } from "./ChatComposer.styles";
 
 interface ChatComposerProps {
@@ -33,12 +33,6 @@ interface ChatComposerProps {
   toolbarNode?: React.ReactNode;
 }
 
-interface QueuedMessage {
-  content: MessageContent[];
-  prompt: string;
-  agentMode: boolean;
-}
-
 const ChatComposer: React.FC<ChatComposerProps> = ({
   isLoading,
   isStreaming,
@@ -52,7 +46,6 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
-  const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null);
 
   const { metaKeyPressed, altKeyPressed, shiftKeyPressed } = useKeyPressed(
     (state) => ({
@@ -68,6 +61,14 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
 
+  const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } = useMessageQueue({
+    isLoading,
+    isStreaming,
+    onSendMessage,
+    onStop,
+    textareaRef
+  });
+
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       setPrompt(event.target.value);
@@ -75,23 +76,10 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     []
   );
 
-  const sendMessageNow = useCallback((
-    content: MessageContent[],
-    messagePrompt: string,
-    messageAgentMode: boolean
-  ) => {
-    onSendMessage(content, messagePrompt, messageAgentMode);
-    // Keep focus in the textarea after sending
-    requestAnimationFrame(() => {
-      textareaRef.current?.focus();
-    });
-  }, [onSendMessage]);
-
   const handleSend = useCallback(() => {
-    if (prompt.length === 0) return;
-
-    // Don't allow queuing if there's already a queued message
-    if (queuedMessage) return;
+    if (prompt.length === 0) {
+      return;
+    }
 
     const content: MessageContent[] = [
       {
@@ -102,48 +90,10 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
     const fileContents = getFileContents();
     const fullContent = [...content, ...fileContents];
 
-    if (!isLoading && !isStreaming) {
-      // Send immediately
-      sendMessageNow(fullContent, prompt, agentMode);
-      setPrompt("");
-      clearFiles();
-    } else {
-      // Queue the message
-      setQueuedMessage({
-        content: fullContent,
-        prompt: prompt,
-        agentMode: agentMode
-      });
-      setPrompt("");
-      clearFiles();
-    }
-  }, [isLoading, isStreaming, prompt, getFileContents, sendMessageNow, clearFiles, agentMode, queuedMessage]);
-
-  // Send queued message when streaming/loading stops
-  useEffect(() => {
-    if (!isLoading && !isStreaming && queuedMessage) {
-      const messageToSend = queuedMessage;
-      setQueuedMessage(null); // Clear first to prevent re-firing
-      sendMessageNow(messageToSend.content, messageToSend.prompt, messageToSend.agentMode);
-    }
-  }, [isLoading, isStreaming, queuedMessage, sendMessageNow]);
-
-  const handleCancelQueued = useCallback(() => {
-    setQueuedMessage(null);
-  }, []);
-
-  const handleSendNow = useCallback(() => {
-    if (queuedMessage && onStop) {
-      // Capture message and clear queue BEFORE stopping to prevent useEffect race
-      const messageToSend = queuedMessage;
-      setQueuedMessage(null);
-      onStop();
-      // Small delay to ensure stop is processed before sending
-      setTimeout(() => {
-        sendMessageNow(messageToSend.content, messageToSend.prompt, messageToSend.agentMode);
-      }, 100);
-    }
-  }, [queuedMessage, onStop, sendMessageNow]);
+    sendMessage(fullContent, prompt, agentMode);
+    setPrompt("");
+    clearFiles();
+  }, [prompt, getFileContents, sendMessage, clearFiles, agentMode]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -213,7 +163,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             <Tooltip title="Send now (interrupts current response)">
               <IconButton
                 size="small"
-                onClick={handleSendNow}
+                onClick={sendQueuedNow}
                 disabled={!onStop}
                 sx={{
                   color: "primary.main",
@@ -226,7 +176,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
             <Tooltip title="Cancel queued message">
               <IconButton
                 size="small"
-                onClick={handleCancelQueued}
+                onClick={cancelQueued}
                 sx={{
                   color: "text.secondary",
                   "&:hover": { color: "error.main" }
