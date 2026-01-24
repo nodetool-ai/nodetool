@@ -262,6 +262,23 @@ const Inspector: React.FC = () => {
     [multiNodeIds, updateNodeProperties]
   );
 
+  const handleOpenNodeMenu = useCallback(() => {
+    if (!metadata) {return;}
+    openNodeMenu({
+      x: 500,
+      y: 200,
+      dropType: metadata.namespace
+    });
+  }, [openNodeMenu, metadata]);
+
+  const handleTagClick = useCallback((tag: string) => {
+    openNodeMenu({
+      x: 500,
+      y: 200,
+      searchTerm: tag
+    });
+  }, [openNodeMenu]);
+
   if (selectedNodes.length === 0) {
     return (
       <EditorUiProvider scope="inspector">
@@ -390,22 +407,6 @@ const Inspector: React.FC = () => {
   if (!metadata) {
     return <Typography>No metadata available for this node</Typography>;
   }
-
-  const handleOpenNodeMenu = useCallback(() => {
-    openNodeMenu({
-      x: 500,
-      y: 200,
-      dropType: metadata.namespace
-    });
-  }, [openNodeMenu, metadata.namespace]);
-
-  const handleTagClick = useCallback((tag: string) => {
-    openNodeMenu({
-      x: 500,
-      y: 200,
-      searchTerm: tag
-    });
-  }, [openNodeMenu]);
 
   return (
     <EditorUiProvider scope="inspector">
