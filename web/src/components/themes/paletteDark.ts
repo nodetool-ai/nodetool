@@ -203,7 +203,6 @@ export const paletteDark: PaletteOptions = {
   c_tabs_header: "#1E1E1E",
 
   primary: {
-    // main: "#60A5FA",
     main: "#4f7dab",
     light: "#618fbb",
     dark: "#43678a",

@@ -211,9 +211,6 @@ export const paletteLight: PaletteOptions = {
     main: "#4f7dab",
     light: "#618fbb",
     dark: "#43678a",
-    // main: "#4187deff",
-    // light: "#93C5FD",
-    // dark: "#1449dbff",
     contrastText: "#FAF7F2"
   },
   secondary: {
