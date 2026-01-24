@@ -21,9 +21,9 @@ const FileUploadButton = (props: FileUploadButtonProps): JSX.Element => {
     [props]
   );
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     fileInputRef.current?.click();
-  };
+  }, []);
 
   const tooltip = (
     <>

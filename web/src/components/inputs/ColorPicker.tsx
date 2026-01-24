@@ -80,13 +80,13 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   const [showModal, setShowModal] = useState(false);
   const currentColorRef = useRef(color || "#ffffff");
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
 
   const open = Boolean(anchorEl);
   const id = open ? "color-picker-popover" : undefined;
@@ -96,14 +96,14 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
       onColorChange(newColor);
       handleClose();
     },
-    [onColorChange]
+    [onColorChange, handleClose]
   );
 
   const handleOpenModal = useCallback(() => {
     currentColorRef.current = color || "#ffffff";
     setShowModal(true);
     handleClose();
-  }, [color]);
+  }, [color, handleClose]);
 
   const handleModalChange = useCallback(
     (newColor: string, alpha: number) => {

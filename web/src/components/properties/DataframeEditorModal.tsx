@@ -497,11 +497,11 @@ const DataframeEditorModal = ({
     });
   }, [handleDataframeChange, localValue]);
 
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleOverlayClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === modalOverlayRef.current) {
       onClose();
     }
-  };
+  }, [onClose]);
 
   // Escape key closes modal
   useCombo(["escape"], onClose);

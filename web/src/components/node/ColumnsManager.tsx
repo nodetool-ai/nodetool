@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState, useEffect, useRef, memo } from "react";
+import React, { useState, useEffect, useRef, memo, useCallback } from "react";
 import { Grid, InputLabel } from "@mui/material";
 import log from "loglevel";
 import { ColumnDef } from "../../stores/ApiTypes";
@@ -139,6 +139,8 @@ const styles = (theme: Theme) =>
     }
   });
 
+const validDataTypes = ["string", "float", "int", "datetime"];
+
 interface ColumnsManagerProps {
   columns: ColumnDef[];
   allData: { [key: string]: any }[];
@@ -161,7 +163,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
     setLocalColumns(columns);
   }, [columns]);
 
-  const handleNameChange = (index: number, newName: string) => {
+  const handleNameChange = useCallback((index: number, newName: string) => {
     if (
       newName.trim() === "" ||
       localColumns.some((col) => col.name === newName)
@@ -190,20 +192,18 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
     setTimeout(() => {
       inputRefs.current[index]?.focus();
     }, 0);
-  };
+  }, [localColumns, columns, allData, onChange]);
 
-  const validDataTypes = ["string", "float", "int", "datetime"];
-
-  const handleDescriptionChange = (index: number, newDescription: string) => {
+  const handleDescriptionChange = useCallback((index: number, newDescription: string) => {
     const newColumns = localColumns.map((col, i) =>
       i === index ? { ...col, description: newDescription } : col
     );
 
     setLocalColumns(newColumns);
     onChange(newColumns, allData);
-  };
+  }, [localColumns, allData, onChange]);
 
-  const handleDataTypeChange = (index: number, newType: string) => {
+  const handleDataTypeChange = useCallback((index: number, newType: string) => {
     if (!validDataTypes.includes(newType)) {
       return;
     }
@@ -215,9 +215,9 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
 
     setLocalColumns(newColumns);
     onChange(newColumns, allData);
-  };
+  }, [localColumns, allData, onChange]);
 
-  const handleDelete = (index: number) => {
+  const handleDelete = useCallback((index: number) => {
     const newColumns = localColumns.filter((_, i) => i !== index);
     const newData = allData.map((row) => {
       const newRow = { ...row };
@@ -227,7 +227,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
 
     setLocalColumns(newColumns);
     onChange(newColumns, newData);
-  };
+  }, [localColumns, allData, onChange]);
 
   return (
     <Grid container spacing={0} css={styles(theme)}>
