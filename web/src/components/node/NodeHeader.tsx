@@ -10,9 +10,12 @@ import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
+import HistoryIcon from "@mui/icons-material/History";
 import { Visibility, InputOutlined } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import NodeHistoryPanel from "./NodeHistoryPanel";
+import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
 
 export interface NodeHeaderProps {
   id: string;
@@ -54,8 +57,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const nodeWorkflowId = useNodes((state) => state.workflow?.id);
   const logs = useLogsStore((state) => state.getLogs(workflowId || nodeWorkflowId || "", id));
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   const logCount = logs?.length || 0;
+  const historyCount = useNodeResultHistoryStore((state) =>
+    workflowId || nodeWorkflowId ? state.getHistoryCount(workflowId || nodeWorkflowId || "", id) : 0
+  );
 
   // Common icon button styles for toggle buttons
   const toggleIconButtonStyles = {
@@ -172,6 +179,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     setLogsDialogOpen(true);
   }, []);
 
+  const handleOpenHistoryDialog = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHistoryDialogOpen(true);
+  }, []);
+
   const handleShowResultsClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onShowResults?.();
@@ -184,6 +196,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const handleCloseLogsDialog = useCallback(() => {
     setLogsDialogOpen(false);
+  }, []);
+
+  const handleCloseHistoryDialog = useCallback(() => {
+    setHistoryDialogOpen(false);
   }, []);
 
   const hasIcon = Boolean(iconType);
@@ -256,6 +272,19 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             </IconButton>
           </Tooltip>
         )}
+        {historyCount > 0 && (
+          <Tooltip title={`${historyCount} history results`} arrow>
+            <IconButton
+              size="small"
+              onClick={handleOpenHistoryDialog}
+              sx={{ padding: "4px" }}
+            >
+              <Badge badgeContent={historyCount} color="info" max={99}>
+                <HistoryIcon sx={{ fontSize: "1rem" }} />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+        )}
       </div>
 
       {/* Right side toggle buttons */}
@@ -293,6 +322,13 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         workflowId={workflowId || nodeWorkflowId || ""}
         open={logsDialogOpen}
         onClose={handleCloseLogsDialog}
+      />
+      <NodeHistoryPanel
+        workflowId={workflowId || nodeWorkflowId || ""}
+        nodeId={id}
+        nodeName={metadataTitle}
+        open={historyDialogOpen}
+        onClose={handleCloseHistoryDialog}
       />
     </div>
   );
