@@ -4,7 +4,8 @@ import React from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { TextField, InputAdornment, Box } from "@mui/material";
-import { useColorConversion, ColorMode } from "../../hooks/useColorConversion";
+import { useColorConversion } from "../../hooks/useColorConversion";
+import type { ColorMode } from "../../hooks/useColorConversion";
 
 const styles = (theme: Theme) =>
   css({
@@ -45,7 +46,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export { ColorMode };
+export type { ColorMode };
 
 interface ColorInputsProps {
   color: string; // hex color
