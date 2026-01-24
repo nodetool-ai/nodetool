@@ -221,6 +221,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       <Paper
         elevation={3}
         sx={{
+          backgroundColor: "var(--palette-background-default)",
           width: "100%",
           height: "100%",
           display: "flex",
@@ -238,9 +239,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
   if (error) {
     return (
-      <Paper
-        elevation={3}
+      <Box
         sx={{
+          backgroundColor: "var(--palette-background-default)",
           width: "100%",
           height: "100%",
           display: "flex",
@@ -260,14 +261,13 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         <Typography variant="caption" color="text.secondary">
           {String(error)}
         </Typography>
-      </Paper>
+        </Box>
     );
   }
 
   return (
-    <Paper
+    <Box
       className="version-history-panel"
-      elevation={3}
       sx={{
         width: "100%",
         height: "100%",
@@ -458,7 +458,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-    </Paper>
+    </Box>
   );
 };
 
