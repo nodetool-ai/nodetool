@@ -402,7 +402,7 @@ export const Terminal: React.FC = () => {
     };
   }, [isTerminalReady, sendMessage]);
 
-  const handleReconnect = () => {
+  const handleReconnect = useCallback(() => {
     // Force re-render to trigger reconnection
     setIsTerminalReady(false);
     setTimeout(() => {
@@ -410,7 +410,7 @@ export const Terminal: React.FC = () => {
         setIsTerminalReady(true);
       }
     }, 100);
-  };
+  }, []);
 
   return (
     <Box css={styles(theme)} className="terminal-container">

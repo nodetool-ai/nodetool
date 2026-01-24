@@ -25,18 +25,18 @@ const AddPanelDropdown: React.FC<AddPanelDropdownProps> = ({
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
 
   const handleAddPanel = useCallback((panelId: string) => {
     onAddPanel(panelId);
     handleClose();
-  }, [onAddPanel]);
+  }, [onAddPanel, handleClose]);
 
   if (availablePanels.length === 0) {
     return null;

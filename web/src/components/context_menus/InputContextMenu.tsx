@@ -180,16 +180,16 @@ const InputContextMenu: React.FC = () => {
     ]
   );
 
-  const handleCreateInputNode = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleCreateInputNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       createInputNode(event);
     }
     closeContextMenu();
-  };
+  }, [createInputNode, closeContextMenu]);
 
-  const handleShowConnectableNodes = (
+  const handleShowConnectableNodes = useCallback((
     event?: React.MouseEvent<HTMLElement>
   ) => {
     if (event) {
@@ -206,7 +206,7 @@ const InputContextMenu: React.FC = () => {
       showMenu({ x: menuPosition.x, y: menuPosition.y });
     }
     closeContextMenu();
-  };
+  }, [menuPosition, handleId, nodeId, type, setTargetHandle, setNodeId, setFilterType, setConnectableType, showMenu, closeContextMenu]);
 
   if (!menuPosition) {return null;}
   return (
