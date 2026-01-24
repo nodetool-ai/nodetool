@@ -128,7 +128,6 @@ const styles = (theme: Theme) =>
 
 const NodeExplorer: React.FC = () => {
   const theme = useTheme();
-  const explorerStyles = styles(theme);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const { nodes, setSelectedNodes } = useNodes((state) => ({
     nodes: state.nodes,
@@ -264,14 +263,6 @@ const NodeExplorer: React.FC = () => {
     [handleNodeClick]
   );
 
-  const handleNodeEditClick = useCallback(
-    (event: React.MouseEvent, nodeId: string) => {
-      event.stopPropagation();
-      handleNodeEdit(nodeId);
-    },
-    [handleNodeEdit]
-  );
-
   const handleEditButtonClick = useCallback(
     (nodeId: string) => () => {
       handleNodeEdit(nodeId);
@@ -280,7 +271,7 @@ const NodeExplorer: React.FC = () => {
   );
 
   return (
-    <Box className="node-explorer" css={explorerStyles}>
+    <Box className="node-explorer" css={styles(theme)}>
       <PanelHeadline
         title="Node Explorer"
         actions={
