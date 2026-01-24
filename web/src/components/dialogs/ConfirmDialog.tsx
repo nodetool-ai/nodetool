@@ -3,7 +3,7 @@ import { useTheme } from "@mui/material/styles";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import dialogStyles from "../../styles/DialogStyles";
 
-import React from "react";
+import React, { useCallback } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -41,7 +41,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const theme = useTheme();
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     onConfirm();
     onClose();
     if (notificationMessage) {
@@ -51,7 +51,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         alert: alert
       });
     }
-  };
+  }, [onConfirm, onClose, notificationMessage, addNotification, notificationType, alert]);
 
   return (
     <div>
