@@ -423,15 +423,9 @@ export const createStyles = (theme: Theme) => {
 
     ".composer-actions": {
       display: "flex",
-      justifyContent: "flex-end",
-      gap: theme.spacing(2),
-      alignItems: "center",
-
-      [theme.breakpoints.down("sm")]: {
-        flexDirection: "column",
-        alignItems: "stretch",
-        gap: theme.spacing(1.5)
-      }
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: theme.spacing(1)
     },
 
     ".generate-button": {
