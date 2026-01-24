@@ -391,21 +391,21 @@ const Inspector: React.FC = () => {
     return <Typography>No metadata available for this node</Typography>;
   }
 
-  const handleOpenNodeMenu = () => {
+  const handleOpenNodeMenu = useCallback(() => {
     openNodeMenu({
       x: 500,
       y: 200,
       dropType: metadata.namespace
     });
-  };
+  }, [openNodeMenu, metadata.namespace]);
 
-  const handleTagClick = (tag: string) => {
+  const handleTagClick = useCallback((tag: string) => {
     openNodeMenu({
       x: 500,
       y: 200,
       searchTerm: tag
     });
-  };
+  }, [openNodeMenu]);
 
   return (
     <EditorUiProvider scope="inspector">
