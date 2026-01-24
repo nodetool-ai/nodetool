@@ -41,6 +41,12 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
   );
   const upsertResult = useMiniAppsStore((state) => state.upsertResult);
   const setProgressState = useMiniAppsStore((state) => state.setProgress);
+  const setLastRunDuration = useMiniAppsStore(
+    (state) => state.setLastRunDuration
+  );
+  const lastRunDuration = useMiniAppsStore((state) =>
+    workflowId ? state.apps[workflowId]?.lastRunDuration ?? null : null
+  );
   const resetWorkflowState = useMiniAppsStore(
     (state) => state.resetWorkflowState
   );
@@ -187,6 +193,10 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         ) {
           setProgressState(workflow.id, null);
         }
+        // Store duration when job completes successfully
+        if (jobUpdate.status === "completed" && jobUpdate.duration != null) {
+          setLastRunDuration(workflow.id, jobUpdate.duration);
+        }
       }
     };
 
@@ -254,6 +264,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     runnerStore,
     selectedWorkflow,
     setProgressState,
+    setLastRunDuration,
     upsertResult,
     workflowKey
   ]);
@@ -275,6 +286,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     notifications,
     results,
     progress,
+    lastRunDuration,
     resetWorkflowState
   } as const;
 };

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
@@ -60,6 +60,7 @@ const MiniAppPage: React.FC = () => {
     runnerState,
     results,
     progress,
+    lastRunDuration,
     resetWorkflowState
   } = useMiniAppRunner(workflow);
 
@@ -162,6 +163,37 @@ const MiniAppPage: React.FC = () => {
 
   const isRunning = runnerState === "running" || runnerState === "connecting";
 
+  // Live timer during execution
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isRunning) {
+      startTimeRef.current = Date.now();
+      setElapsedTime(0);
+      const interval = setInterval(() => {
+        if (startTimeRef.current) {
+          setElapsedTime((Date.now() - startTimeRef.current) / 1000);
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    } else {
+      startTimeRef.current = null;
+    }
+  }, [isRunning]);
+
+  const formatDuration = (seconds: number): string => {
+    if (seconds < 1) {
+      return `${Math.round(seconds * 1000)}ms`;
+    }
+    if (seconds < 60) {
+      return `${seconds.toFixed(1)}s`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds.toFixed(0)}s`;
+  };
+
   return (
     <NodeContext.Provider value={activeNodeStore ?? null}>
       <Box
@@ -260,6 +292,24 @@ const MiniAppPage: React.FC = () => {
                       </Button>
                     </span>
                   </Tooltip>
+                  {isRunning && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "block", textAlign: "center", mt: 1, width: "100%" }}
+                    >
+                      {formatDuration(elapsedTime)}
+                    </Typography>
+                  )}
+                  {lastRunDuration != null && !isRunning && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: "block", textAlign: "center", mt: 1, width: "100%" }}
+                    >
+                      Completed in {formatDuration(lastRunDuration)}
+                    </Typography>
+                  )}
                 </div>
               </div>
               <MiniAppResults

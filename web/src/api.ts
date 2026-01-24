@@ -5174,6 +5174,8 @@ export interface components {
             /** Traceback */
             traceback?: string | null;
             run_state?: components["schemas"]["RunStateInfo"] | null;
+            /** Duration in seconds */
+            duration?: number | null;
         };
         /** LanguageModel */
         LanguageModel: {
