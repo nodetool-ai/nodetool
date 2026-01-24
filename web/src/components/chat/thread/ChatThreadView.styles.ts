@@ -69,13 +69,14 @@ export const createStyles = (theme: Theme) => ({
     // User message container (transparent, just for layout)
     ".user": {
       width: "fit-content",
-      maxWidth: "60%",
+      maxWidth: "75%",
       minWidth: "2em",
       margin: "4em 0 2em auto",
       padding: "0",
       border: "none",
       background: "transparent",
-      alignItems: "flex-end"
+      alignItems: "flex-end",
+      fontWeight: 500,
     },
 
     // User message content gets the colored background
