@@ -16,6 +16,7 @@ import {
   MiniAppInputKind,
   MiniAppInputValues
 } from "../types";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface MiniAppInputsFormProps {
   workflow: Workflow;
@@ -187,6 +188,12 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
       onSubmit={handleSubmitEvent}
       autoComplete="off"
     >
+      <div className="inputs-card-header">
+        <Typography variant="subtitle2" fontWeight="600" color="text.secondary">
+          Inputs
+        </Typography>
+      </div>
+
       <div className="inputs-shell">
         {propertyEntries.length > 0 ? (
           propertyEntries.map(
@@ -233,21 +240,22 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
             }
           )
         ) : (
-          <Typography variant="body2" color="text.secondary">
-            This workflow does not define any configurable inputs.
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+            This workflow runs without inputs. Click Run to execute.
           </Typography>
         )}
       </div>
 
       <div className="composer-actions">
         <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
           title={
             isSubmitDisabled
-              ? "Select a workflow to run"
+              ? "Workflow is running..."
               : "Run the workflow with the configured inputs"
           }
         >
-          <span>
+          <span style={{ width: "100%" }}>
             <Button
               color="primary"
               variant="contained"
@@ -255,6 +263,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               endIcon={<SendIcon />}
               disabled={isSubmitDisabled}
               className="generate-button"
+              fullWidth
             >
               Run Workflow
             </Button>

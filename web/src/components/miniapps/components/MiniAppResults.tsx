@@ -1,19 +1,23 @@
 import React, { useState, useCallback } from "react";
-import { Typography, IconButton, Tooltip } from "@mui/material";
+import { Typography, IconButton, Tooltip, Box } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import OutputRenderer from "../../node/OutputRenderer";
 import { MiniAppResult } from "../types";
 
 interface MiniAppResultsProps {
   results: MiniAppResult[];
+  isRunning?: boolean;
   onClear?: () => void;
 }
 
 const MiniAppResults: React.FC<MiniAppResultsProps> = ({
   results,
+  isRunning = false,
   onClear
 }) => {
   const hasResults = results.length > 0;
@@ -61,24 +65,32 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
   return (
     <section className="results-shell glass-card">
       <div className="results-heading">
-        {hasResults && (
-          <>
-            <Typography variant="body2" color="text.secondary">
-              {results.length} {results.length === 1 ? "result" : "results"}
-            </Typography>
-            {onClear && (
-              <Tooltip title="Clear results">
-                <IconButton
-                  size="small"
-                  onClick={onClear}
-                  aria-label="Clear results"
-                  sx={{ ml: "auto" }}
-                >
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-          </>
+        <Typography variant="subtitle2" fontWeight="600" color="text.secondary">
+          Results
+          {hasResults && (
+            <Box
+              component="span"
+              sx={{
+                ml: 1,
+                fontSize: "0.75rem",
+                fontWeight: 400,
+                opacity: 0.7
+              }}
+            >
+              ({results.length})
+            </Box>
+          )}
+        </Typography>
+        {hasResults && onClear && (
+          <Tooltip title="Clear results">
+            <IconButton
+              size="small"
+              onClick={onClear}
+              aria-label="Clear results"
+            >
+              <ClearIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         )}
       </div>
 
@@ -86,6 +98,20 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
         <div className="results-list">
           {results.map((result) => (
             <div className="result-card" key={result.id}>
+              {result.outputName && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    display: "block",
+                    fontWeight: 500,
+                    opacity: 0.7,
+                    mb: 0.5
+                  }}
+                >
+                  {result.outputName}
+                </Typography>
+              )}
               <div className="result-card-body">
                 <OutputRenderer value={result.value} showTextActions={false} />
                 <Tooltip
@@ -120,13 +146,35 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
         </div>
       ) : (
         <div className="result-placeholder">
-          <Typography
-            className="empty-eyebrow"
-            variant="overline"
-            color="text.secondary"
-          >
-            No results
-          </Typography>
+          {isRunning ? (
+            <>
+              <AutoAwesomeIcon className="result-placeholder-icon" />
+              <Typography variant="h6" className="result-placeholder-title">
+                Creating something amazing...
+              </Typography>
+              <Typography
+                variant="body2"
+                className="result-placeholder-subtitle"
+              >
+                Your workflow is running. Results will appear here as they're
+                generated.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <PlayCircleOutlineIcon className="result-placeholder-icon" />
+              <Typography variant="h6" className="result-placeholder-title">
+                Ready to run
+              </Typography>
+              <Typography
+                variant="body2"
+                className="result-placeholder-subtitle"
+              >
+                Configure your inputs on the left and click "Run Workflow" to
+                see results here.
+              </Typography>
+            </>
+          )}
         </div>
       )}
     </section>
