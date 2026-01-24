@@ -234,11 +234,13 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   // Build URLs for current images and cleanup URLs for removed ones
   useEffect(() => {
     const map = urlMapRef.current;
-    const currentSet = new Set<ImageSource>(images);
+    const currentSet = new Set<ImageSource>(images.filter((img) => img != null));
 
     // Add new URLs
     let changed = false;
     images.forEach((img) => {
+      // Skip null/undefined images
+      if (img == null) return;
       if (!map.has(img)) {
         const url =
           typeof img === "string"
@@ -318,6 +320,8 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
         }}
       >
         {images.map((img, idx) => {
+          // Skip null/undefined images
+          if (img == null) return null;
           const isSelected = selectedIndices.has(idx);
           return (
             <div
