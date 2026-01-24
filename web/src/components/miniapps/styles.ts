@@ -14,6 +14,7 @@ export const createStyles = (theme: Theme) => {
     height: "100%",
     padding: theme.spacing(3, 4),
     paddingTop: "70px",
+    paddingBottom: theme.spacing(6),
     paddingLeft: theme.spacing(2),
     gap: theme.spacing(2.5),
     overflow: "auto",
@@ -25,6 +26,7 @@ export const createStyles = (theme: Theme) => {
     [theme.breakpoints.down("md")]: {
       padding: theme.spacing(2, 2.5),
       paddingTop: "65px",
+      paddingBottom: theme.spacing(4),
       paddingLeft: theme.spacing(1.5)
     },
 
@@ -40,11 +42,12 @@ export const createStyles = (theme: Theme) => {
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(0.5),
-      paddingRight: theme.spacing(5), // Space for side panel toggle on the right
+      paddingRight: theme.spacing(5),
       marginBottom: theme.spacing(1)
     },
 
     ".workflow-description": {
+      fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.text.secondary,
       maxWidth: "800px"
     },
@@ -343,18 +346,30 @@ export const createStyles = (theme: Theme) => {
       lineHeight: 1.5
     },
 
+    ".inputs-column": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(2),
+      position: "sticky",
+      top: theme.spacing(2),
+      maxHeight: "calc(100vh - 200px)",
+      marginBottom: theme.spacing(4),
+      alignSelf: "start",
+
+      [theme.breakpoints.down("md")]: {
+        position: "static",
+        maxHeight: "none"
+      }
+    },
+
     ".inputs-card": {
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(2),
       padding: theme.spacing(2.5),
-      height: "fit-content",
-      position: "sticky",
-      top: theme.spacing(2),
-
-      [theme.breakpoints.down("md")]: {
-        position: "static"
-      },
+      flex: "1 1 auto",
+      minHeight: 0,
+      overflow: "auto",
 
       [theme.breakpoints.down("sm")]: {
         padding: theme.spacing(2),
