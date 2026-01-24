@@ -8,7 +8,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkflowAssetStore } from "../stores/WorkflowAssetStore";
 import { useAssetStore } from "../stores/AssetStore";
-import { Asset } from "../stores/ApiTypes";
 
 export const useWorkflowAssets = (workflowId: string | null) => {
   const queryClient = useQueryClient();
