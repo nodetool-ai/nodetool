@@ -485,7 +485,7 @@ function FileBrowserDialog({
     setIsEditingPath(true);
   }, []);
 
-  const handleUp = () => {
+  const handleUp = useCallback(() => {
     if (currentPath === "~" || currentPath === "/") {return;}
     // Naive parent path
     const separator = currentPath.includes("\\") ? "\\" : "/";
@@ -497,13 +497,13 @@ function FileBrowserDialog({
     if (parent.endsWith(":")) {parent += "\\";} // Windows drive root often needs backslash
 
     handleNavigate(parent || "~");
-  };
+  }, [currentPath, handleNavigate]);
 
   const handleRefresh = useCallback(() => {
     handleNavigate(currentPath);
   }, [currentPath, handleNavigate]);
 
-  const handleFileClick = (file: FileInfo) => {
+  const handleFileClick = useCallback((file: FileInfo) => {
     if (file.is_dir) {
       if (selectionMode === "directory") {
         setSelectedPath(file.path);
@@ -513,9 +513,9 @@ function FileBrowserDialog({
         setSelectedPath(file.path);
       }
     }
-  };
+  }, [selectionMode]);
 
-  const handleFileDoubleClick = (file: FileInfo) => {
+  const handleFileDoubleClick = useCallback((file: FileInfo) => {
     if (file.is_dir) {
       handleNavigate(file.path);
     } else {
@@ -524,13 +524,13 @@ function FileBrowserDialog({
         onConfirm(file.path);
       }
     }
-  };
+  }, [selectionMode, handleNavigate, onConfirm]);
 
-  const handleConfirmClick = () => {
+  const handleConfirmClick = useCallback(() => {
     if (selectedPath) {
       onConfirm(selectedPath);
     }
-  };
+  }, [selectedPath, onConfirm]);
 
   // --- Tree Logic ---
 
@@ -593,10 +593,10 @@ function FileBrowserDialog({
     );
   };
 
-  const handleTreeItemClick = (event: React.MouseEvent, itemId: string) => {
+  const handleTreeItemClick = useCallback((event: React.MouseEvent, itemId: string) => {
     if (itemId.endsWith("_loading")) {return;}
     handleNavigate(itemId);
-  };
+  }, [handleNavigate]);
 
   // --- Renderers ---
 
