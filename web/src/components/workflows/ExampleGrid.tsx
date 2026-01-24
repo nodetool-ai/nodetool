@@ -385,16 +385,16 @@ const TemplateGrid = memo(function TemplateGrid() {
     };
   }, []);
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchQuery("");
     setInputValue("");
     // Update URL to remove node parameter
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.delete("node");
     navigate({ search: newSearchParams.toString() });
-  };
+  }, [searchParams, navigate]);
 
-  const handleInputChange = (newInputValue: string) => {
+  const handleInputChange = useCallback((newInputValue: string) => {
     setInputValue(newInputValue);
     if (newInputValue.trim()) {
       setSelectedTag(null);
@@ -404,7 +404,7 @@ const TemplateGrid = memo(function TemplateGrid() {
     } else {
       handleClearSearch();
     }
-  };
+  }, [handleClearSearch]);
   const theme = useTheme();
 
   // Grid configuration - adjusted for new card design with image-first layout
