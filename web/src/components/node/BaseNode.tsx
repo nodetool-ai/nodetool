@@ -37,6 +37,7 @@ import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
+import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
@@ -86,17 +87,12 @@ const Toolbar = memo(function Toolbar({
 }) {
   const { activeSelect } = useSelect();
   const selectedCount = useNodes((state) => state.getSelectedNodes().length);
-  const [delayedSelected, setDelayedSelected] = useState(false);
-
+  
   // Delay showing toolbar to avoid flash when clicking to drag
-  useEffect(() => {
-    if (selected && !dragging) {
-      const timer = setTimeout(() => setDelayedSelected(true), TOOLBAR_SHOW_DELAY);
-      return () => clearTimeout(timer);
-    } else {
-      setDelayedSelected(false);
-    }
-  }, [selected, dragging]);
+  const delayedSelected = useDelayedVisibility({
+    shouldBeVisible: selected && !dragging,
+    delay: TOOLBAR_SHOW_DELAY
+  });
 
   // Only show toolbar when exactly one node is selected
   const isVisible = delayedSelected && !activeSelect && !dragging && selectedCount === 1;
