@@ -29,7 +29,6 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
   const panelWidth = 360;
 
   const styles = css({
-    // Toggle button (always visible)
     ".side-panel-toggle": {
       position: "fixed",
       top: 80,
@@ -51,6 +50,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
       right: 0,
       bottom: 0,
       width: panelWidth,
+      padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.background.paper,
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: theme.shadows[8],
@@ -68,20 +68,14 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
       alignItems: "center",
       justifyContent: "flex-end",
       padding: theme.spacing(1.5, 2),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`
-    },
-
-    ".side-panel-actions": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      width: "100%"
     },
 
     ".theme-toggle-wrapper": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1)
+      gap: theme.spacing(1.5),
+      paddingTop: theme.spacing(2),
+      borderTop: `1px solid ${theme.vars.palette.divider}`
     },
 
     // Panel content
@@ -169,29 +163,28 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
       {/* Panel */}
       <div className="side-panel">
         <div className="side-panel-header">
-          <div className="side-panel-actions">
-            <div className="theme-toggle-wrapper">
-              <Typography variant="caption" color="text.secondary">
-                Theme
-              </Typography>
-              <ThemeToggle />
-            </div>
-            <IconButton size="small" onClick={() => setIsOpen(false)}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </div>
+          <IconButton size="small" onClick={() => setIsOpen(false)}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </div>
 
         <div className="side-panel-content">
           {/* Description */}
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-            App Mode provides a simplified interface for running workflows. 
-            Configure inputs, run the workflow, and view results without 
-            the full editor complexity.
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              fontSize: theme.fontSizeSmall,
+              lineHeight: 1.5,
+              color: theme.vars.palette.text.primary,
+              marginBottom: theme.spacing(4),
+            }}
+          >
+            App Mode turns workflows into applications. 
+            Input nodes become form fields, output nodes display results.
           </Typography>
 
           {/* Workflow Graph Section */}
-          <div className="panel-section">
+          <div className="panel-section" style={{ marginTop: theme.spacing(1) }}>
             <div
               className="panel-section-header"
               onClick={() => setShowGraph(!showGraph)}
@@ -211,6 +204,17 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
                 <MiniWorkflowGraph workflow={workflow} isRunning={isRunning} />
               </div>
             </Collapse>
+          </div>
+
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+
+          {/* Theme toggle at bottom */}
+          <div className="theme-toggle-wrapper">
+            <Typography variant="caption" color="text.secondary">
+              Theme
+            </Typography>
+            <ThemeToggle />
           </div>
         </div>
       </div>

@@ -3,8 +3,10 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
+  Button,
   CircularProgress,
   LinearProgress,
+  Tooltip,
   Typography
 } from "@mui/material";
 import { useParams } from "react-router-dom";
@@ -23,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
 import { usePanelStore } from "../../stores/PanelStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const MiniAppPage: React.FC = () => {
   const theme = useTheme();
@@ -195,7 +198,7 @@ const MiniAppPage: React.FC = () => {
 
             {/* Header Section */}
             <div className="page-header">
-              <Typography variant="h5" fontWeight="600">
+              <Typography variant="h2" fontWeight={300}>
                 {workflow.name}
               </Typography>
               {workflow.description && (
@@ -219,16 +222,46 @@ const MiniAppPage: React.FC = () => {
             )}
 
             {/* Main Content Grid */}
-            <div className="content-grid">
-              <MiniAppInputsForm
-                workflow={workflow}
-                inputDefinitions={inputDefinitions}
-                inputValues={inputValues}
-                onInputChange={updateInputValue}
-                isSubmitDisabled={isSubmitDisabled}
-                onSubmit={handleSubmit}
-                onError={setSubmitError}
-              />
+            <form
+              className="content-grid"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSubmit();
+              }}
+              autoComplete="off"
+            >
+              <div className="inputs-column">
+                <MiniAppInputsForm
+                  workflow={workflow}
+                  inputDefinitions={inputDefinitions}
+                  inputValues={inputValues}
+                  onInputChange={updateInputValue}
+                  onError={setSubmitError}
+                />
+                <div className="composer-actions">
+                  <Tooltip
+                    enterDelay={TOOLTIP_ENTER_DELAY * 2}
+                    title={
+                      isSubmitDisabled
+                        ? "Workflow is running..."
+                        : ""
+                    }
+                  >
+                    <span style={{ width: "100%" }}>
+                      <Button
+                        color="primary"
+                        variant="contained"
+                        type="submit"
+                        disabled={isSubmitDisabled}
+                        className="generate-button"
+                        fullWidth
+                      >
+                        Run Workflow
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </div>
+              </div>
               <MiniAppResults
                 results={results}
                 isRunning={isRunning}
@@ -237,7 +270,7 @@ const MiniAppPage: React.FC = () => {
                 }
                 workflow={workflow}
               />
-            </div>
+            </form>
           </>
         )}
       </Box>

@@ -1,5 +1,5 @@
-import React, { FormEvent, useCallback, useMemo } from "react";
-import { Button, Tooltip, Typography } from "@mui/material";
+import React, { useMemo } from "react";
+import { Typography } from "@mui/material";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
 import { PropertyProps } from "../../node/PropertyInput";
@@ -15,15 +15,12 @@ import {
   MiniAppInputKind,
   MiniAppInputValues
 } from "../types";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface MiniAppInputsFormProps {
   workflow: Workflow;
   inputDefinitions: MiniAppInputDefinition[];
   inputValues: MiniAppInputValues;
   onInputChange: (name: string, value: unknown) => void;
-  isSubmitDisabled: boolean;
-  onSubmit: () => void | Promise<void>;
   onError?: (message: string | null) => void;
 }
 
@@ -137,18 +134,8 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
   inputDefinitions,
   inputValues,
   onInputChange,
-  isSubmitDisabled,
-  onSubmit,
   onError
 }) => {
-  const handleSubmitEvent = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      void onSubmit();
-    },
-    [onSubmit]
-  );
-
   const propertyEntries = useMemo(
     () =>
       inputDefinitions
@@ -181,84 +168,58 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
     [inputDefinitions]
   );
 
+  if (propertyEntries.length === 0) {
+    return null;
+  }
+
   return (
-    <form
-      className="inputs-card application-card"
-      onSubmit={handleSubmitEvent}
-      autoComplete="off"
-    >
+    <div className="inputs-card application-card">
       <div className="inputs-shell">
-        {propertyEntries.length > 0 ? (
-          propertyEntries.map(
-            ({ definition, property, Component, propertyIndex }) => {
-              const inputId = `miniapp-input-${definition.nodeId}`;
-              const value = resolveInputValue(
-                definition,
-                property,
-                inputValues
-              );
+        {propertyEntries.map(
+          ({ definition, property, Component, propertyIndex }) => {
+            const inputId = `miniapp-input-${definition.nodeId}`;
+            const value = resolveInputValue(
+              definition,
+              property,
+              inputValues
+            );
 
-              const handleChange = (nextValue: unknown) => {
-                onError?.(null);
-                onInputChange(definition.data.name, nextValue);
-              };
+            const handleChange = (nextValue: unknown) => {
+              onError?.(null);
+              onInputChange(definition.data.name, nextValue);
+            };
 
-              return (
-                <div
-                  className="input-field"
-                  key={`${definition.nodeId}-${property.name}`}
-                >
-                  <div className="input-field-control">
-                    <Component
-                      property={property}
-                      value={value}
-                      nodeType={definition.nodeType}
-                      nodeId={definition.nodeId}
-                      propertyIndex={propertyIndex}
-                      onChange={handleChange}
-                      tabIndex={Number(propertyIndex) + 1}
-                    />
-                  </div>
-                  {definition.data.description && (
-                    <Typography
-                      id={`${inputId}-description`}
-                      variant="caption"
-                      color="text.secondary"
-                    >
-                      {definition.data.description}
-                    </Typography>
-                  )}
+            return (
+              <div
+                className="input-field"
+                key={`${definition.nodeId}-${property.name}`}
+              >
+                <div className="input-field-control">
+                  <Component
+                    property={property}
+                    value={value}
+                    nodeType={definition.nodeType}
+                    nodeId={definition.nodeId}
+                    propertyIndex={propertyIndex}
+                    onChange={handleChange}
+                    tabIndex={Number(propertyIndex) + 1}
+                  />
                 </div>
-              );
-            }
-          )
-        ) : null}
-      </div>
-
-      <div className="composer-actions">
-        <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          title={
-            isSubmitDisabled
-              ? "Workflow is running..."
-              : "Run the workflow with the configured inputs"
+                {definition.data.description && (
+                  <Typography
+                    id={`${inputId}-description`}
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    {definition.data.description}
+                  </Typography>
+                )}
+              </div>
+            );
           }
-        >
-          <span style={{ width: "100%" }}>
-            <Button
-              color="primary"
-              variant="contained"
-              type="submit"
-              disabled={isSubmitDisabled}
-              className="generate-button"
-              fullWidth
-            >
-              Run Workflow
-            </Button>
-          </span>
-        </Tooltip>
+        )}
       </div>
-    </form>
+    </div>
   );
 };
 
