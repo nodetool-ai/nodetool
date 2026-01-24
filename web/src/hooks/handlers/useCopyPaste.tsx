@@ -78,12 +78,23 @@ export const useCopyPaste = () => {
         edges: connectedEdges
       });
 
-      // Use Electron's clipboard API if available, otherwise fallback to localStorage
+      // Use Electron's clipboard API if available, otherwise fallback to browser clipboard API
       if (window.api?.clipboard?.writeText) {
         await window.api.clipboard.writeText(serializedData);
+      } else if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(serializedData);
+        } catch (error) {
+          // Browser clipboard may fail due to permissions, fall back to localStorage
+          log.debug("Browser clipboard write failed, using localStorage:", error);
+          localStorage.setItem("copiedNodesData", serializedData);
+        }
       } else {
         localStorage.setItem("copiedNodesData", serializedData);
       }
+      
+      // Also store in localStorage as backup for cross-tab paste
+      localStorage.setItem("copiedNodesData", serializedData);
 
       // Let UI know we have valid node data available for paste
       setClipboardData(serializedData);
