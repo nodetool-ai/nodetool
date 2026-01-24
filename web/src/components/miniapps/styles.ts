@@ -14,24 +14,24 @@ export const createStyles = (theme: Theme) => {
     height: "100%",
     padding: theme.spacing(3, 4),
     paddingTop: "70px",
+    paddingLeft: theme.spacing(2),
     gap: theme.spacing(2.5),
     overflow: "auto",
     width: "100%",
-    maxWidth: "1600px",
-    margin: "0 auto",
+    maxWidth: "1400px",
+    marginLeft: "auto",
+    marginRight: theme.spacing(8),
 
     [theme.breakpoints.down("md")]: {
       padding: theme.spacing(2, 2.5),
-      paddingTop: "65px"
+      paddingTop: "65px",
+      paddingLeft: theme.spacing(1.5)
     },
 
-    ".glass-card": {
+    ".application-card": {
       position: "relative",
       borderRadius: doubledRadius,
-      backdropFilter: "blur(12px)",
-      backgroundColor: `color-mix(in srgb, ${theme.vars.palette.background.paper}, transparent 60%)`,
-      boxShadow: theme.shadows[4],
-      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.paper,
       overflow: "hidden"
     },
 
@@ -39,26 +39,9 @@ export const createStyles = (theme: Theme) => {
     ".page-header": {
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1)
-    },
-
-    ".page-header-row": {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: theme.spacing(2),
-
-      [theme.breakpoints.down("sm")]: {
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: theme.spacing(1)
-      }
-    },
-
-    ".page-header-actions": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(1.5)
+      gap: theme.spacing(0.5),
+      paddingRight: theme.spacing(5), // Space for side panel toggle on the right
+      marginBottom: theme.spacing(1)
     },
 
     ".workflow-description": {
@@ -97,30 +80,6 @@ export const createStyles = (theme: Theme) => {
       [theme.breakpoints.down("sm")]: {
         maxWidth: "none"
       }
-    },
-
-    // Graph toggle section
-    ".graph-section": {
-      display: "flex",
-      flexDirection: "column",
-      gap: theme.spacing(1)
-    },
-
-    ".graph-toggle-button": {
-      alignSelf: "flex-start",
-      textTransform: "none",
-      color: theme.vars.palette.text.secondary,
-      "&:hover": {
-        backgroundColor: `color-mix(in srgb, ${theme.vars.palette.action.hover}, transparent 50%)`
-      }
-    },
-
-    ".graph-container": {
-      height: "250px",
-      borderRadius: doubledRadius,
-      overflow: "hidden",
-      border: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.background.paper
     },
 
     ".hero": {
@@ -259,36 +218,18 @@ export const createStyles = (theme: Theme) => {
     ".results-shell": {
       display: "flex",
       flexDirection: "column",
-      padding: theme.spacing(2.5),
+      padding: theme.spacing(2),
+      paddingBottom: theme.spacing(4),
       minHeight: "400px",
-      height: "100%",
-      gap: theme.spacing(2),
+      height: "90%",
+      gap: theme.spacing(1.5),
       overflow: "hidden",
 
       [theme.breakpoints.down("sm")]: {
-        padding: theme.spacing(2),
+        padding: theme.spacing(1.5),
+        paddingBottom: theme.spacing(3),
         minHeight: "300px"
       }
-    },
-
-    ".results-heading": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: theme.spacing(1),
-      paddingBottom: theme.spacing(1),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      marginBottom: theme.spacing(0.5),
-
-      [theme.breakpoints.down("sm")]: {
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: theme.spacing(0.5)
-      }
-    },
-
-    ".results-title": {
-      fontWeight: 600
     },
 
     ".results-list": {
@@ -421,15 +362,6 @@ export const createStyles = (theme: Theme) => {
       }
     },
 
-    ".inputs-card-header": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingBottom: theme.spacing(1),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      marginBottom: theme.spacing(0.5)
-    },
-
     ".inputs-shell": {
       display: "flex",
       flexDirection: "column",
@@ -489,7 +421,7 @@ export const createStyles = (theme: Theme) => {
 
     ".generate-button": {
       padding: theme.spacing(1.25, 2.5),
-      fontWeight: 600,
+      fontWeight: 500,
 
       [theme.breakpoints.down("sm")]: {
         width: "100%"

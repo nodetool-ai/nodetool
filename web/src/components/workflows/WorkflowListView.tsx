@@ -174,14 +174,15 @@ const listStyles = (theme: Theme) =>
     },
     ".date-header": {
       padding: "8px 12px 4px",
-      color: theme.vars.palette.grey[300],
+      color: theme.vars.palette.grey[200],
+      backgroundColor: "transparent",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       fontWeight: 600,
+      textAlign: "right",
       textTransform: "uppercase",
       letterSpacing: "0.05em",
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-      backgroundColor: theme.vars.palette.background.paper
     }
   });
 
@@ -315,6 +316,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           isSelected={selectedWorkflows?.includes(workflow.id) || false}
           isCurrent={currentWorkflowId === workflow.id}
           showCheckboxes={showCheckboxes}
+          hideDate={sortBy === "date"}
           onOpenWorkflow={onOpenWorkflow}
           onDuplicateWorkflow={onDuplicateWorkflow}
           onSelect={onSelect}

@@ -1,6 +1,5 @@
 import React, { FormEvent, useCallback, useMemo } from "react";
 import { Button, Tooltip, Typography } from "@mui/material";
-import SendIcon from "@mui/icons-material/Send";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
 import { PropertyProps } from "../../node/PropertyInput";
@@ -184,16 +183,10 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
 
   return (
     <form
-      className="inputs-card glass-card"
+      className="inputs-card application-card"
       onSubmit={handleSubmitEvent}
       autoComplete="off"
     >
-      <div className="inputs-card-header">
-        <Typography variant="subtitle2" fontWeight="600" color="text.secondary">
-          Inputs
-        </Typography>
-      </div>
-
       <div className="inputs-shell">
         {propertyEntries.length > 0 ? (
           propertyEntries.map(
@@ -239,11 +232,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
             }
           )
-        ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-            This workflow runs without inputs. Click Run to execute.
-          </Typography>
-        )}
+        ) : null}
       </div>
 
       <div className="composer-actions">
@@ -260,7 +249,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               color="primary"
               variant="contained"
               type="submit"
-              endIcon={<SendIcon />}
               disabled={isSubmitDisabled}
               className="generate-button"
               fullWidth

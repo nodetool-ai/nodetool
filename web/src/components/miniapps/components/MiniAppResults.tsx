@@ -1,27 +1,50 @@
-import React, { useState, useCallback } from "react";
-import { Typography, IconButton, Tooltip, Box } from "@mui/material";
+import React, { useState, useCallback, useMemo } from "react";
+import { Typography, IconButton, Tooltip, CircularProgress } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import OutputRenderer from "../../node/OutputRenderer";
 import { MiniAppResult } from "../types";
+import { Workflow } from "../../../stores/ApiTypes";
 
 interface MiniAppResultsProps {
   results: MiniAppResult[];
   isRunning?: boolean;
   onClear?: () => void;
+  workflow?: Workflow;
 }
 
 const MiniAppResults: React.FC<MiniAppResultsProps> = ({
   results,
   isRunning = false,
-  onClear
+  onClear,
+  workflow
 }) => {
   const hasResults = results.length > 0;
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Check for output nodes and their bypass status
+  const outputNodeStatus = useMemo(() => {
+    if (!workflow?.graph?.nodes) {
+      return { totalOutputs: 0, activeOutputs: 0, allBypassed: false };
+    }
+
+    const outputNodes = workflow.graph.nodes.filter(
+      (node) => node.type?.includes(".output.") || node.type?.includes(".preview.")
+    );
+    const activeOutputNodes = outputNodes.filter(
+      (node: any) => !node.ui_properties?.bypassed
+    );
+
+    return {
+      totalOutputs: outputNodes.length,
+      activeOutputs: activeOutputNodes.length,
+      allBypassed: outputNodes.length > 0 && activeOutputNodes.length === 0
+    };
+  }, [workflow]);
 
   const handleCopy = useCallback(
     async (result: MiniAppResult) => {
@@ -63,36 +86,30 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
   );
 
   return (
-    <section className="results-shell glass-card">
-      <div className="results-heading">
-        <Typography variant="subtitle2" fontWeight="600" color="text.secondary">
-          Results
-          {hasResults && (
-            <Box
-              component="span"
-              sx={{
-                ml: 1,
-                fontSize: "0.75rem",
-                fontWeight: 400,
-                opacity: 0.7
-              }}
-            >
-              ({results.length})
-            </Box>
-          )}
-        </Typography>
-        {hasResults && onClear && (
-          <Tooltip title="Clear results">
-            <IconButton
-              size="small"
-              onClick={onClear}
-              aria-label="Clear results"
-            >
-              <ClearIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
-      </div>
+    <section className="results-shell application-card">
+      {/* Clear button - shown only when there are results */}
+      {hasResults && onClear && (
+        <Tooltip title={`Clear ${results.length} result${results.length > 1 ? "s" : ""}`}>
+          <IconButton
+            size="small"
+            onClick={onClear}
+            aria-label="Clear results"
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              zIndex: 10,
+              backgroundColor: "background.paper",
+              boxShadow: 1,
+              "&:hover": {
+                backgroundColor: "action.hover"
+              }
+            }}
+          >
+            <ClearIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
 
       {hasResults ? (
         <div className="results-list">
@@ -147,17 +164,33 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
       ) : (
         <div className="result-placeholder">
           {isRunning ? (
+            <CircularProgress size={40} />
+          ) : outputNodeStatus.totalOutputs === 0 ? (
             <>
-              <AutoAwesomeIcon className="result-placeholder-icon" />
+              <InfoOutlinedIcon className="result-placeholder-icon" />
               <Typography variant="h6" className="result-placeholder-title">
-                Creating something amazing...
+                No output nodes
               </Typography>
               <Typography
                 variant="body2"
                 className="result-placeholder-subtitle"
               >
-                Your workflow is running. Results will appear here as they're
-                generated.
+                This workflow has no output nodes. The workflow can still run
+                and perform actions, but results won&apos;t be displayed here.
+              </Typography>
+            </>
+          ) : outputNodeStatus.allBypassed ? (
+            <>
+              <InfoOutlinedIcon className="result-placeholder-icon" />
+              <Typography variant="h6" className="result-placeholder-title">
+                All outputs bypassed
+              </Typography>
+              <Typography
+                variant="body2"
+                className="result-placeholder-subtitle"
+              >
+                All output nodes in this workflow are currently bypassed. The
+                workflow can still run, but no results will be displayed.
               </Typography>
             </>
           ) : (
@@ -170,7 +203,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
                 variant="body2"
                 className="result-placeholder-subtitle"
               >
-                Configure your inputs on the left and click "Run Workflow" to
+                Configure your inputs on the left and click &quot;Run Workflow&quot; to
                 see results here.
               </Typography>
             </>
