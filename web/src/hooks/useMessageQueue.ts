@@ -98,7 +98,9 @@ export function useMessageQueue({
       messageAgentMode: boolean
     ) => {
       // Don't allow queuing if there's already a queued message
-      if (queuedMessage) return;
+      if (queuedMessage) {
+        return;
+      }
 
       if (!isLoading && !isStreaming) {
         // Send immediately

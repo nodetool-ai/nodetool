@@ -148,7 +148,7 @@ describe("useCopyToClipboard", () => {
       await act(async () => {
         try {
           await result.current.copyToClipboard("test text");
-        } catch (e) {
+        } catch (_e) {
           // Expected to throw
         }
       });
@@ -180,7 +180,7 @@ describe("useCopyToClipboard", () => {
       await act(async () => {
         try {
           await result.current.copyToClipboard("test text");
-        } catch (e) {
+        } catch (_e) {
           // Expected to throw
         }
       });
@@ -330,7 +330,7 @@ describe("useCopyToClipboard", () => {
       await act(async () => {
         try {
           await result.current.copyToClipboard("test text");
-        } catch (e) {
+        } catch (_e) {
           // Expected to throw
         }
       });

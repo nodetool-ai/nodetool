@@ -77,7 +77,9 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
   );
 
   const handleSend = useCallback(() => {
-    if (prompt.length === 0) return;
+    if (prompt.length === 0) {
+      return;
+    }
 
     const content: MessageContent[] = [
       {
