@@ -262,6 +262,12 @@ const Inspector: React.FC = () => {
     [multiNodeIds, updateNodeProperties]
   );
 
+  // Define selectedNode and metadata early so callbacks can reference them
+  const selectedNode = selectedNodes[0] || null;
+  const metadata = selectedNode
+    ? getMetadata(selectedNode.type as string)
+    : null;
+
   const handleOpenNodeMenu = useCallback(() => {
     if (!metadata) {return;}
     openNodeMenu({
@@ -380,11 +386,6 @@ const Inspector: React.FC = () => {
       </EditorUiProvider>
     );
   }
-
-  const selectedNode = selectedNodes[0] || null;
-  const metadata = selectedNode
-    ? getMetadata(selectedNode.type as string)
-    : null;
 
   if (!selectedNode) {
     return (
