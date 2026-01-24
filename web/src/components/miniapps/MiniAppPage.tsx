@@ -4,10 +4,16 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
+  Button,
   CircularProgress,
+  Collapse,
   LinearProgress,
   Typography
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
 import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -31,6 +37,7 @@ const MiniAppPage: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { workflowId } = useParams<{ workflowId?: string }>();
   const [_submitError, setSubmitError] = useState<string | null>(null);
+  const [showGraph, setShowGraph] = useState(false);
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
     fetchWorkflow: state.fetchWorkflow
@@ -160,6 +167,8 @@ const MiniAppPage: React.FC = () => {
   const { isVisible, panelSize } = usePanelStore((state) => state.panel);
   const leftOffset = isVisible ? panelSize : 50;
 
+  const isRunning = runnerState === "running" || runnerState === "connecting";
+
   return (
     <NodeContext.Provider value={activeNodeStore ?? null}>
       <Box
@@ -172,34 +181,97 @@ const MiniAppPage: React.FC = () => {
           transition: "margin-left 0.2s ease-out, width 0.2s ease-out"
         }}
       >
-        {/* <MiniAppHero
-        workflows={workflows}
-        selectedWorkflowId={selectedWorkflowId}
-        onWorkflowChange={handleWorkflowChange}
-        onRefresh={() => refetch()}
-        workflowsLoading={workflowsLoading}
-        runnerState={runnerState}
-        statusMessage={statusMessage}
-        progress={progress}
-        showWorkflowControls={false}
-      /> */}
-        {isLoading && <CircularProgress />}
-        {error && <Typography color="error">{error.message}</Typography>}
+        {/* Loading State */}
+        {isLoading && (
+          <Box display="flex" justifyContent="center" py={8}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <Box py={4}>
+            <Typography color="error">{error.message}</Typography>
+          </Box>
+        )}
+
         {workflow && (
           <>
-            <Box
-              mb={2}
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Typography variant="h5" fontWeight="500">
-                {workflow?.name}
-              </Typography>
-              <Box display="flex" alignItems="center" gap={2}>
-                <ThemeToggle />
-              </Box>
-            </Box>
+            {/* Header Section */}
+            <div className="page-header">
+              <div className="page-header-row">
+                <Typography variant="h5" fontWeight="600">
+                  {workflow.name}
+                </Typography>
+                <div className="page-header-actions">
+                  <ThemeToggle />
+                </div>
+              </div>
+              {workflow.description && (
+                <Typography variant="body2" className="workflow-description">
+                  {workflow.description}
+                </Typography>
+              )}
+            </div>
+
+            {/* Status Bar - Only shown when running */}
+            {isRunning && (
+              <div className="status-bar">
+                <div className="status-bar-text">
+                  <AutorenewIcon
+                    fontSize="small"
+                    css={css`
+                      @keyframes spin {
+                        from {
+                          transform: rotate(0deg);
+                        }
+                        to {
+                          transform: rotate(360deg);
+                        }
+                      }
+                      animation: spin 1s linear infinite;
+                    `}
+                  />
+                  <Typography
+                    variant="body2"
+                    fontWeight="500"
+                    css={css`
+                      @keyframes statusPulseColor {
+                        0% {
+                          color: #ff6b3d;
+                        }
+                        25% {
+                          color: #ffd700;
+                        }
+                        50% {
+                          color: #40e0d0;
+                        }
+                        75% {
+                          color: #48d1ff;
+                        }
+                        100% {
+                          color: #9370db;
+                        }
+                      }
+                      animation: statusPulseColor 3s linear infinite;
+                    `}
+                  >
+                    {statusMessage || "Processing..."}
+                  </Typography>
+                </div>
+                {progress && (
+                  <Box className="status-bar-progress">
+                    <LinearProgress
+                      variant="determinate"
+                      value={(progress.current * 100.0) / progress.total}
+                      sx={{ height: 6, borderRadius: 3 }}
+                    />
+                  </Box>
+                )}
+              </div>
+            )}
+
+            {/* Main Content Grid */}
             <div className="content-grid">
               <MiniAppInputsForm
                 workflow={workflow}
@@ -210,83 +282,42 @@ const MiniAppPage: React.FC = () => {
                 onSubmit={handleSubmit}
                 onError={setSubmitError}
               />
-              <Box
-                display="flex"
-                flexDirection="column"
-                gap={1}
-                flex={1}
-                minHeight={0}
+              <MiniAppResults
+                results={results}
+                isRunning={isRunning}
+                onClear={
+                  workflow?.id ? () => clearResults(workflow.id) : undefined
+                }
+              />
+            </div>
+
+            {/* Collapsible Workflow Graph Section */}
+            <div className="graph-section">
+              <Button
+                className="graph-toggle-button"
+                onClick={() => setShowGraph(!showGraph)}
+                startIcon={<AccountTreeIcon fontSize="small" />}
+                endIcon={
+                  showGraph ? (
+                    <ExpandLessIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )
+                }
+                size="small"
               >
-                {statusMessage && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    css={
-                      runnerState === "running"
-                        ? css`
-                            @keyframes statusPulseColor {
-                              0% {
-                                color: #ff6b3d;
-                              }
-                              20% {
-                                color: #ffd700;
-                              }
-                              40% {
-                                color: #9acd32;
-                              }
-                              60% {
-                                color: #40e0d0;
-                              }
-                              80% {
-                                color: #48d1ff;
-                              }
-                              100% {
-                                color: #9370db;
-                              }
-                            }
-                            @keyframes statusSlideIn {
-                              from {
-                                transform: translateY(-2px);
-                                opacity: 0;
-                              }
-                              to {
-                                transform: translateY(0);
-                                opacity: 1;
-                              }
-                            }
-                            animation: statusPulseColor 3s linear infinite,
-                              statusSlideIn 0.25s ease-out;
-                          `
-                        : undefined
-                    }
-                  >
-                    {statusMessage}
-                  </Typography>
-                )}
-                {progress ? (
-                  <LinearProgress
-                    value={(progress.current * 100.0) / progress.total}
+                {showGraph ? "Hide Workflow" : "Show Workflow"}
+              </Button>
+              <Collapse in={showGraph}>
+                <div className="graph-container">
+                  <MiniWorkflowGraph
+                    workflow={workflow}
+                    isRunning={runnerState === "running"}
                   />
-                ) : null}
-                <Box flex={1} minHeight={0} sx={{ height: 0 }}>
-                  <MiniAppResults
-                    results={results}
-                    onClear={
-                      workflow?.id ? () => clearResults(workflow.id) : undefined
-                    }
-                  />
-                </Box>
-              </Box>
+                </div>
+              </Collapse>
             </div>
           </>
-        )}
-        {workflow && (
-          <Box mt={4} height={200}>
-            <MiniWorkflowGraph
-              workflow={workflow}
-              isRunning={runnerState === "running"}
-            />
-          </Box>
         )}
       </Box>
     </NodeContext.Provider>
