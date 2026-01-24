@@ -208,9 +208,12 @@ export const paletteLight: PaletteOptions = {
   providerHf: "#6D4B6F",
 
   primary: {
-    main: "#4187deff",
-    light: "#93C5FD",
-    dark: "#1449dbff",
+    main: "#4f7dab",
+    light: "#618fbb",
+    dark: "#43678a",
+    // main: "#4187deff",
+    // light: "#93C5FD",
+    // dark: "#1449dbff",
     contrastText: "#FAF7F2"
   },
   secondary: {
