@@ -48,7 +48,7 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
 
   const buttonStyles = css({
     position: "fixed",
-    bottom: "110px",
+    bottom: "120px",
     left: leftPosition !== null ? `${leftPosition}px` : "50%",
     transform: "translateX(-50%)",
     zIndex: theme.zIndex.appBar,
@@ -74,7 +74,7 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
       onClick={onClick}
       size="small"
       style={{
-        opacity: isVisible ? 0.8 : 0,
+        opacity: isVisible ? 0.7 : 0,
         pointerEvents: isVisible ? "auto" : "none"
       }}
       disableRipple
