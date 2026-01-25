@@ -1095,7 +1095,8 @@ export const DeleteConfirmDialog: React.FC = () => {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await deleteItem();
+      // Simulate delete operation - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setOpen(false);
     } finally {
       setIsDeleting(false);

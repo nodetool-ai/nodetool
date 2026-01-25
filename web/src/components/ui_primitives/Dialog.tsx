@@ -152,6 +152,7 @@ export const Dialog = memo(
           onClose={onClose}
           css={dialogStyles(theme)}
           className={`dialog ${className ?? ""}`}
+          // Inline style for consistency with existing dialogs and DialogStyles
           style={{ minWidth: "100%", minHeight: "100%" }}
           aria-labelledby={title ? "dialog-title" : undefined}
           {...dialogProps}
