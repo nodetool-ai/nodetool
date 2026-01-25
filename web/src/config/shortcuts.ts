@@ -440,14 +440,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Distribute selected nodes evenly horizontally",
     registerCombo: true
   },
-  {
-    title: "Distribute Vertically",
-    slug: "distributeVertical",
-    keyCombo: ["Control", "Shift", "D"],
-    category: "editor",
-    description: "Distribute selected nodes evenly vertically",
-    registerCombo: true
-  },
+  // {
+  //   title: "Distribute Vertically",
+  //   slug: "distributeVertical",
+  //   keyCombo: ["Control", "Shift", "D"],
+  //   category: "editor",
+  //   description: "Distribute selected nodes evenly vertically",
+  //   registerCombo: true
+  // },
   {
     title: "Delete Selected",
     slug: "deleteSelected",
