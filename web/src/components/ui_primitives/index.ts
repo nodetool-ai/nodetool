@@ -9,7 +9,10 @@
 export { NodeSlider } from "./NodeSlider";
 export type { NodeSliderProps } from "./NodeSlider";
 
-// Export button primitives
+// Export dialog primitives
+export { Dialog } from "./Dialog";
+export type { DialogProps } from "./Dialog";
+
 export { DialogActionButtons } from "./DialogActionButtons";
 export type { DialogActionButtonsProps } from "./DialogActionButtons";
 

@@ -22,10 +22,14 @@ The UI primitives provide:
 - **NodeMenuItem** - Menu item for use with NodeSelect
 - **NodeSlider** - Range slider with visual feedback
 
+### Dialogs
+
+- **Dialog** - Standardized modal dialog with consistent styling and optional action buttons
+- **DialogActionButtons** - Standardized confirm/cancel button pairs for dialogs
+
 ### Buttons
 
 - **EditorButton** - Button with density variants
-- **DialogActionButtons** - Standardized confirm/cancel button pairs for dialogs
 - **ToolbarIconButton** - Icon button with tooltip for toolbar actions
 - **NavButton** - Navigation button with icon and optional label
 - **CreateFab** - Extended FAB for create/add actions
@@ -133,6 +137,48 @@ import {
 >
   Click me
 </EditorButton>
+
+// Dialog with auto-generated action buttons
+<Dialog
+  open={isOpen}
+  onClose={handleClose}
+  title="Confirm Action"
+  onConfirm={handleConfirm}
+  confirmText="Save"
+  cancelText="Cancel"
+>
+  <DialogContent>
+    Are you sure you want to continue?
+  </DialogContent>
+</Dialog>
+
+// Dialog with manual content and no action buttons
+<Dialog
+  open={isOpen}
+  onClose={handleClose}
+  title="Information"
+>
+  <DialogContent>
+    <Typography>Custom dialog content</Typography>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={handleClose}>Close</Button>
+  </DialogActions>
+</Dialog>
+
+// Dialog with destructive action
+<Dialog
+  open={isOpen}
+  onClose={handleClose}
+  title="Delete Item"
+  onConfirm={handleDelete}
+  confirmText="Delete"
+  destructive={true}
+>
+  <DialogContent>
+    This action cannot be undone.
+  </DialogContent>
+</Dialog>
 ```
 
 ### Utilities
