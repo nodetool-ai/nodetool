@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
-import { Typography, Box, Button, Tooltip } from "@mui/material";
+import { Typography, Box, Tooltip } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   NavigateNext as NavigateIcon
@@ -483,9 +484,9 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                     </div>
                     {onNavigateToFolder && (
                       <Tooltip title="Go to folder">
-                        <Button
+                        <EditorButton
                           className="global-search-navigate-btn folder-navigate-btn"
-                          size="small"
+                          density="compact"
                           variant="text"
                           startIcon={<NavigateIcon fontSize="small" />}
                           onClick={(e) => {
@@ -497,7 +498,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                           }}
                           data-testid="global-search-navigate-folder"
                           data-folder-id={asset.folder_id}
-                        ></Button>
+                        ></EditorButton>
                       </Tooltip>
                     )}
                   </div>

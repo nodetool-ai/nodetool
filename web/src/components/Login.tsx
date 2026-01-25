@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useCallback } from "react";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import { EditorButton } from "./ui_primitives";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
 
@@ -106,13 +107,14 @@ function Login() {
       <GoogleAuthButton />
       <div className="button-group">
         {linkItems.map((item) => (
-          <Button
+          <EditorButton
             key={item.name}
             onClick={handleButtonClick(item.url)}
             className="list-button"
+            density="normal"
           >
             {item.name}
-          </Button>
+          </EditorButton>
         ))}
       </div>
     </Box>

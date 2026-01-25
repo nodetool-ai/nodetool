@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef, useEffect } from "react";
-import { Box, Typography, CircularProgress, Alert, Button } from "@mui/material";
+import { Box, Typography, CircularProgress, Alert } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { useWorkflowAssets } from "../../../serverState/useWorkflowAssets";

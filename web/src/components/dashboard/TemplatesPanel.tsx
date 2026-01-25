@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
-import { Box, Typography, CircularProgress, Button } from "@mui/material";
+import { Box, Typography, CircularProgress } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
@@ -137,14 +138,14 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
         <Typography variant="h3" className="section-title">
           Start with a Template
         </Typography>
-        <Button
+        <EditorButton
           onClick={handleViewAllTemplates}
-          size="small"
           variant="text"
           sx={{ color: "primary.main" }}
+          density="compact"
         >
           View All
-        </Button>
+        </EditorButton>
       </Box>
       <Box className="content-scrollable">
         {isLoadingTemplates ? (

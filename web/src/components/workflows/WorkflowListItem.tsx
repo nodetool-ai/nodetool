@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { Box, Typography, Tooltip, Button } from "@mui/material";
+import { Box, Typography, Tooltip } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
@@ -12,7 +12,7 @@ import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
-import { FavoriteButton, EditButton } from "../ui_primitives";
+import { FavoriteButton, EditButton, EditorButton } from "../ui_primitives";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -266,12 +266,12 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           </Typography>
         )}
         <Box className="actions">
-          <Button
+          <EditorButton
             className="open-button"
-            size="small"
             variant="contained"
             onClick={handleOpen}
             title="Open workflow"
+            density="compact"
             sx={{
               padding: "2px 10px",
               minWidth: "unset",
@@ -283,7 +283,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             }}
           >
             OPEN
-          </Button>
+          </EditorButton>
           <FavoriteButton
             isFavorite={isFavorite}
             onToggle={handleToggleFavorite}

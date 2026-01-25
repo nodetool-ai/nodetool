@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import { Box, Button, Tooltip } from "@mui/material";
+import { Box, Tooltip } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -49,13 +50,14 @@ const TagFilter = memo(({
           enterDelay={TOOLTIP_ENTER_DELAY}
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
-          <Button
+          <EditorButton
             onClick={handleSelectGettingStarted}
             variant="outlined"
             className={selectedTag === "getting-started" ? "selected" : ""}
+            density="normal"
           >
             Getting Started
-          </Button>
+          </EditorButton>
         </Tooltip>
         {sortedTags.map((tag) => (
             <Tooltip
@@ -64,13 +66,14 @@ const TagFilter = memo(({
               enterDelay={TOOLTIP_ENTER_DELAY}
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
-              <Button
+              <EditorButton
                 onClick={handleTagClick(tag)}
                 variant="outlined"
                 className={selectedTag === tag ? "selected" : ""}
+                density="normal"
               >
                 {tag}
-              </Button>
+              </EditorButton>
             </Tooltip>
           ))}
         <Tooltip
@@ -78,12 +81,13 @@ const TagFilter = memo(({
           enterDelay={TOOLTIP_ENTER_DELAY}
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
-          <Button
+          <EditorButton
             onClick={handleSelectAll}
             className={selectedTag === null ? "selected" : ""}
+            density="normal"
           >
             SHOW ALL
-          </Button>
+          </EditorButton>
         </Tooltip>
       </div>
     </Box>
