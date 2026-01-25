@@ -11,7 +11,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import DeleteButton from "../buttons/DeleteButton";
+import { DeleteButton } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -353,9 +353,8 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     >
       {showDeleteButton && (
         <ButtonGroup className="asset-item-actions" size="small" tabIndex={-1}>
-          <DeleteButton<Asset>
+          <DeleteButton
             className="asset-delete"
-            item={asset}
             onClick={() => handleDelete()}
           />
         </ButtonGroup>

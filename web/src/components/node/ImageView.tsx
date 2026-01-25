@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { Typography, IconButton, Tooltip } from "@mui/material";
+import { Typography } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import AssetViewer from "../assets/AssetViewer";
@@ -10,6 +10,7 @@ import { isElectron } from "../../utils/browser";
 import { createImageUrl } from "../../utils/imageUtils";
 import ImageDimensions from "./ImageDimensions";
 import { copyAssetToClipboard } from "../../utils/clipboardUtils";
+import { ToolbarIconButton } from "../ui_primitives";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -99,21 +100,20 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         }}
       >
         {isElectron && (
-          <Tooltip title={copied ? "Copied!" : "Copy to clipboard (compatible with Photoshop)"}>
-            <IconButton
-              onClick={handleCopyToClipboard}
-              size="small"
-              sx={{
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
-                color: "white",
-                "&:hover": {
-                  backgroundColor: "rgba(0, 0, 0, 0.7)"
-                }
-              }}
-            >
-              {copied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={copied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+            tooltip={copied ? "Copied!" : "Copy to clipboard (compatible with Photoshop)"}
+            onClick={handleCopyToClipboard}
+            size="small"
+            nodrag={false}
+            sx={{
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              color: "white",
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.7)"
+              }
+            }}
+          />
         )}
       </div>
       <img
