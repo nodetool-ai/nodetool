@@ -13,6 +13,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, memo, forwardRef } from "react";
 import { IconButton, Tooltip } from "@mui/material";
+import { SxProps, Theme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -79,6 +80,10 @@ export interface CopyButtonProps {
    * Additional class name
    */
   className?: string;
+  /**
+   * Additional sx styles
+   */
+  sx?: SxProps<Theme>;
 }
 
 export const CopyButton = memo(
@@ -93,7 +98,8 @@ export const CopyButton = memo(
         onCopySuccess,
         onCopyError,
         disabled = false,
-        className
+        className,
+        sx
       },
       ref
     ) => {
@@ -181,7 +187,8 @@ export const CopyButton = memo(
               "&:hover": {
                 color: theme.vars.palette.grey[100],
                 backgroundColor: "rgba(255, 255, 255, 0.08)"
-              }
+              },
+              ...(sx ?? {})
             }}
           >
             {state === "error" ? (

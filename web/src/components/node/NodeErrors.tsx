@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
-import { useClipboard } from "../../hooks/browser/useClipboard";
 import useErrorStore from "../../stores/ErrorStore";
 import isEqual from "lodash/isEqual";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 
 export const errorStyles = (theme: Theme) =>
   css({
@@ -47,21 +46,6 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
   const error = useErrorStore((state) =>
     workflow_id !== undefined ? state.getError(workflow_id, id) : undefined
   );
-  const { writeClipboard } = useClipboard();
-
-  const handleCopyError = useCallback(() => {
-    let errorString = '';
-    if (typeof error === 'string') {
-      errorString = error;
-    } else if (error instanceof Error) {
-      errorString = error.message;
-    } else if (error && typeof error === 'object' && 'message' in error) {
-      errorString = String(error.message);
-    } else if (error) {
-      errorString = JSON.stringify(error);
-    }
-    writeClipboard(errorString, true);
-  }, [writeClipboard, error]);
 
   if (!error) {
     return null;
@@ -81,12 +65,11 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
   return (
     <div css={errorStyles(theme)} className="node-error nodrag nowheel">
       <Box sx={{ position: "absolute", top: 10, right: 10 }}>
-
-      <CopyToClipboardButton
-        copyValue={errorDisplay}
-        onCopy={handleCopyError}
+        <CopyButton
+          value={errorDisplay}
+          tooltip="Copy to clipboard"
         />
-        </Box>
+      </Box>
       <div className="error-text">{errorDisplay}</div>
     </div>
   );

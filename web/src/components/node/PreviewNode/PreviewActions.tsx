@@ -2,7 +2,7 @@ import React from "react";
 import { Button, Box, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
+import { CopyButton } from "../../ui_primitives";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
 type PreviewActionsProps = {
@@ -53,8 +53,8 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
           <AddIcon />
         </Button>
       </Tooltip>
-      <CopyToClipboardButton
-        copyValue={copyValue}
+      <CopyButton
+        value={copyValue}
         onCopyError={handleCopyError}
         className="action-button copy"
         sx={{
