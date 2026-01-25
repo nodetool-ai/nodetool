@@ -7,14 +7,14 @@ import {
 import AssetItem from "./AssetItem";
 import { colorForType, IconForType } from "../../config/data_types";
 import { Asset } from "../../stores/ApiTypes";
-import { ExpandLess, ExpandMore } from "@mui/icons-material";
-import { IconButton, Typography, Tooltip } from "@mui/material";
+import { Typography, Tooltip } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
+import { ExpandCollapseButton } from "../ui_primitives";
 
 interface AssetGridRowProps {
   index: number;
@@ -159,9 +159,13 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             />
           </span>
 
-          <IconButton size="small" tabIndex={-1}>
-            {isExpanded ? <ExpandLess /> : <ExpandMore />}
-          </IconButton>
+          <ExpandCollapseButton
+            expanded={isExpanded}
+            onClick={() => {}}
+            size="small"
+            nodrag={false}
+            sx={{ pointerEvents: 'none' }}
+          />
         </div>
       </Tooltip>
     );

@@ -29,9 +29,9 @@ export interface ToolbarIconButtonProps
    */
   icon: React.ReactNode;
   /**
-   * Tooltip text
+   * Tooltip text or element
    */
-  tooltip: string;
+  tooltip: React.ReactNode;
   /**
    * Tooltip placement
    * @default "bottom"
