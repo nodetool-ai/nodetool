@@ -1,14 +1,14 @@
 /* @jsxImportSource @emotion/react */
 import React, { memo, useCallback } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { List, ListItem, ListItemText, Box, IconButton } from "@mui/material";
+import { List, ListItem, ListItemText, Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { NOTIFICATIONS_LIST_MAX_ITEMS } from "../../config/constants";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
 import { useClipboard } from "../../hooks/browser/useClipboard";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { CopyButton } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -159,14 +159,14 @@ const NotificationsList: React.FC = () => {
                 </div>
               }
             />
-            <IconButton
+            <CopyButton
+              value={notification.content}
+              tooltip="Copy to clipboard"
+              buttonSize="small"
               className="copy-button"
-              size="small"
-              onClick={handleCopyClick(notification.content)}
-              title="Copy to clipboard"
-            >
-              <ContentCopyIcon fontSize="small" />
-            </IconButton>
+              nodrag={false}
+              onCopySuccess={handleCopyClick(notification.content)}
+            />
           </ListItem>
         ))}
       </List>
