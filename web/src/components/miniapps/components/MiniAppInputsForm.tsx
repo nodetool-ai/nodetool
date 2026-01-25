@@ -10,6 +10,8 @@ import BoolProperty from "../../properties/BoolProperty";
 import ImageProperty from "../../properties/ImageProperty";
 import AudioProperty from "../../properties/AudioProperty";
 import FilePathProperty from "../../properties/FilePathProperty";
+import PropertyLabel from "../../node/PropertyLabel";
+import { NodeTextField, editorClassNames, cn } from "../../editor_ui";
 import {
   MiniAppInputDefinition,
   MiniAppInputKind,
@@ -130,6 +132,32 @@ const resolveInputValue = (
   }
 };
 
+const getStringInputConfig = (definition: MiniAppInputDefinition) => {
+  const DEFAULT_STRING_INPUT_MAX_LENGTH = 100000;
+  const data = definition.data as {
+    max_length?: unknown;
+    line_mode?: unknown;
+    multiline?: unknown;
+  };
+
+  const maxLength = (() => {
+    if (data.max_length === 0) {
+      return 0;
+    }
+    if (typeof data.max_length === "number" && Number.isFinite(data.max_length)) {
+      return Math.max(0, Math.floor(data.max_length));
+    }
+    return DEFAULT_STRING_INPUT_MAX_LENGTH;
+  })();
+
+  const lineMode =
+    data.line_mode === "multiline" || data.multiline === true
+      ? "multiline"
+      : "single_line";
+
+  return { maxLength, lineMode } as const;
+};
+
 const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
   inputDefinitions,
   inputValues,
@@ -188,6 +216,57 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               onError?.(null);
               onInputChange(definition.data.name, nextValue);
             };
+
+            if (definition.kind === "string") {
+              const { maxLength, lineMode } = getStringInputConfig(definition);
+              const multiline = lineMode === "multiline";
+
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="string-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <NodeTextField
+                        className={cn("string-value-input", editorClassNames.nowheel)}
+                        value={typeof value === "string" ? value : ""}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const raw = e.target.value ?? "";
+                          const next =
+                            maxLength > 0 ? raw.slice(0, maxLength) : raw;
+                          handleChange(next);
+                        }}
+                        tabIndex={Number(propertyIndex) + 1}
+                        multiline={multiline}
+                        minRows={multiline ? 4 : 1}
+                        maxRows={multiline ? 12 : 1}
+                        slotProps={{
+                          htmlInput:
+                            maxLength > 0
+                              ? { maxLength }
+                              : undefined
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
 
             return (
               <div

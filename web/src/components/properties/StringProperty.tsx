@@ -11,6 +11,9 @@ import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 
+const STRING_INPUT_NODE_TYPE = "nodetool.input.StringInput";
+const DEFAULT_STRING_INPUT_MAX_LENGTH = 100000;
+
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
     return "python";
@@ -50,20 +53,54 @@ const StringProperty = ({
   const [isHovered, setIsHovered] = useState(false);
   // const focusHandler = useFocusPan(nodeId);
   // const handleFocus = isInspector ? () => {} : focusHandler;
-  const isConnected = useNodes(
+  const { isConnected, stringInputConfig } = useNodes(
     useCallback(
-      (state) =>
-        state.edges.some(
+      (state) => {
+        const connected = state.edges.some(
           (edge) =>
             edge.target === nodeId && edge.targetHandle === property.name
-        ),
-      [nodeId, property.name]
+        );
+
+        if (nodeType !== STRING_INPUT_NODE_TYPE || property.name !== "value") {
+          return { isConnected: connected, stringInputConfig: null };
+        }
+
+        const node = state.findNode(nodeId);
+        const props = (node?.data as any)?.properties ?? {};
+        const maxLengthRaw = props?.max_length;
+        const maxLength = (() => {
+          if (maxLengthRaw === 0) {
+            return 0;
+          }
+          if (typeof maxLengthRaw === "number" && Number.isFinite(maxLengthRaw)) {
+            return Math.max(0, Math.floor(maxLengthRaw));
+          }
+          return DEFAULT_STRING_INPUT_MAX_LENGTH;
+        })();
+        const lineMode =
+          props?.line_mode === "multiline" || props?.multiline === true
+            ? "multiline"
+            : "single_line";
+
+        return {
+          isConnected: connected,
+          stringInputConfig: { maxLength, lineMode } as const
+        };
+      },
+      [nodeId, nodeType, property.name]
     )
   );
 
   const showTextEditor = !isConnected;
   const isConstant = nodeType.startsWith("nodetool.constant.");
   const codeLanguage = determineCodeLanguage(nodeType);
+  const isStringInputValue =
+    nodeType === STRING_INPUT_NODE_TYPE && property.name === "value";
+  const maxLength = isStringInputValue ? (stringInputConfig?.maxLength ?? 0) : 0;
+  const multiline =
+    isStringInputValue
+      ? (stringInputConfig?.lineMode ?? "single_line") === "multiline"
+      : true;
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
@@ -152,7 +189,14 @@ const StringProperty = ({
               }
               value={value || ""}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                onChange(e.target.value)
+                {
+                  const raw = e.target.value ?? "";
+                  const next =
+                    isStringInputValue && maxLength > 0
+                      ? raw.slice(0, maxLength)
+                      : raw;
+                  onChange(next);
+                }
               }
               onFocus={(e) => {
                 e.preventDefault();
@@ -168,9 +212,17 @@ const StringProperty = ({
                 e.stopPropagation();
               }}
               tabIndex={tabIndex}
-              multiline
-              minRows={1}
-              maxRows={isConstant ? 20 : 2}
+              multiline={multiline}
+              minRows={multiline ? (isStringInputValue ? 4 : 1) : 1}
+              maxRows={
+                isConstant ? 20 : multiline ? (isStringInputValue ? 12 : 2) : 1
+              }
+              slotProps={{
+                htmlInput:
+                  isStringInputValue && maxLength > 0
+                    ? { maxLength }
+                    : undefined
+              }}
               autoFocus={false}
               changed={changed}
             />
