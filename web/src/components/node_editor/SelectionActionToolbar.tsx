@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { Box, IconButton, Tooltip, Divider } from "@mui/material";
+import { Box, Divider } from "@mui/material";
 import {
   AlignHorizontalLeft,
   AlignHorizontalCenter,
@@ -17,6 +17,7 @@ import {
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { ToolbarIconButton } from "../ui_primitives";
 
 interface SelectionActionToolbarProps {
   visible: boolean;
@@ -43,34 +44,25 @@ const isDividerButton = (button: ButtonItem): button is DividerButton => {
 };
 
 const renderButton = (button: ActionButton, index: number, active?: boolean): React.ReactNode => (
-  <Tooltip
+  <ToolbarIconButton
     key={`${button.slug}-${index}`}
-    title={getShortcutTooltip(button.slug, "both", "full", true)}
-    arrow
-    placement="top"
-  >
-    <span>
-      <IconButton
-        size="small"
-        aria-label={button.label}
-        onClick={button.action}
-        disabled={button.disabled}
-        color={active ? "primary" : "default"}
-        sx={{
-          width: 32,
-          height: 32,
-          "&:hover": {
-            bgcolor: active ? "primary.main" : "action.hover"
-          },
-          "&.Mui-disabled": {
-            opacity: 0.4
-          }
-        }}
-      >
-        {button.icon}
-      </IconButton>
-    </span>
-  </Tooltip>
+    icon={button.icon}
+    tooltip={getShortcutTooltip(button.slug, "both", "full", true)}
+    onClick={button.action}
+    disabled={button.disabled}
+    variant={active ? "primary" : "default"}
+    active={active}
+    size="small"
+    nodrag={true}
+    tooltipPlacement="top"
+    sx={{
+      width: 32,
+      height: 32,
+      "&.Mui-disabled": {
+        opacity: 0.4
+      }
+    }}
+  />
 );
 
 const renderDivider = (index: number): React.ReactNode => (
