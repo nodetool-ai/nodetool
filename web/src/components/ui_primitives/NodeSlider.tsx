@@ -13,6 +13,7 @@
 import React, { forwardRef } from "react";
 import { Slider, SliderProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { useEditorScope } from "../editor_ui";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 
 export interface NodeSliderProps extends Omit<SliderProps, "size"> {
