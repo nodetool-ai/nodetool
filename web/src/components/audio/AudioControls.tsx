@@ -180,11 +180,11 @@ const AudioControls: React.FC<AudioControlsProps> = ({
 
   const handleToggleLoop = useCallback(() => {
     setLoop(!loop);
-  }, [loop]);
+  }, [loop, setLoop]);
 
   const handleToggleMute = useCallback(() => {
     setMute(!mute);
-  }, [mute]);
+  }, [mute, setMute]);
 
   return (
     <div

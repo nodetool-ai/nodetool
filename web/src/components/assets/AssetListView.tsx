@@ -487,7 +487,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
         )}
       </div>
     );
-  }, [virtualListItems, selectedAssetIds, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate]);
+  }, [virtualListItems, selectedAssetIds, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback]);
 
   if (assets.length === 0) {
     return (
