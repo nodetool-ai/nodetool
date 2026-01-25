@@ -1,6 +1,33 @@
-import { ImageRef } from "../../stores/ApiTypes";
+import {
+  AudioRef,
+  DataframeRef,
+  DocumentRef,
+  FolderRef,
+  ImageRef,
+  VideoRef
+} from "../../stores/ApiTypes";
 
-export type MiniAppInputKind = "string" | "integer" | "float" | "boolean" | "image" | "audio" | "file_path" | "select" | "language_model" | "image_model" | "video_model" | "tts_model" | "asr_model" | "embedding_model";
+export type MiniAppInputKind =
+  | "string"
+  | "integer"
+  | "float"
+  | "boolean"
+  | "color"
+  | "image"
+  | "video"
+  | "audio"
+  | "document"
+  | "dataframe"
+  | "file_path"
+  | "folder_path"
+  | "folder"
+  | "select"
+  | "language_model"
+  | "image_model"
+  | "video_model"
+  | "tts_model"
+  | "asr_model"
+  | "embedding_model";
 
 export interface InputNodeData {
   name: string;
@@ -47,4 +74,14 @@ export interface MiniAppProgress {
 
 export type RunnerMessage = { type?: string } & Record<string, unknown>;
 
-export type MiniAppInputValues = Record<string, unknown | ImageRef | undefined>;
+export type MiniAppInputValues = Record<
+  string,
+  | unknown
+  | ImageRef
+  | AudioRef
+  | VideoRef
+  | DocumentRef
+  | DataframeRef
+  | FolderRef
+  | undefined
+>;
