@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
+import { Box, Typography, Tooltip, Button } from "@mui/material";
 import Checkbox from "@mui/material/Checkbox";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
@@ -11,9 +11,8 @@ import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
 import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/FavoriteWorkflowsStore";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
-import EditIcon from "@mui/icons-material/Edit";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
+import { FavoriteButton, EditButton } from "../ui_primitives";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -57,9 +56,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleToggleFavorite = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+    () => {
       toggleFavorite(workflow.id);
     },
     [toggleFavorite, workflow.id]
@@ -287,24 +284,23 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           >
             OPEN
           </Button>
-          <IconButton
+          <FavoriteButton
+            isFavorite={isFavorite}
+            onToggle={handleToggleFavorite}
+            addTooltip="Add to favorites"
+            removeTooltip="Remove from favorites"
+            buttonSize="small"
             className="favorite-button"
-            size="small"
-            onClick={handleToggleFavorite}
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-            sx={{ padding: "4px" }}
-          >
-            {isFavorite ? <StarIcon sx={{ fontSize: "1rem", color: "warning.main" }} /> : <StarBorderIcon sx={{ fontSize: "1rem" }} />}
-          </IconButton>
-          <IconButton
-            className="edit-button"
-            size="small"
+            stopPropagation={false}
+          />
+          <EditButton
             onClick={handleEdit}
-            title="Edit workflow settings"
+            tooltip="Edit workflow settings"
+            buttonSize="small"
+            className="edit-button"
+            nodrag={false}
             sx={{ padding: "4px" }}
-          >
-            <EditIcon sx={{ fontSize: "1rem" }} />
-          </IconButton>
+          />
         </Box>
       </Box>
       <Box className="date-container">

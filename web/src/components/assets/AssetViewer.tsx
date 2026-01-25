@@ -3,12 +3,10 @@ import { css } from "@emotion/react";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
-import { Typography, Dialog, Tooltip, Button } from "@mui/material";
+import { Typography, Dialog, Button } from "@mui/material";
 //icons
-import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import CompareIcon from "@mui/icons-material/Compare";
@@ -20,7 +18,6 @@ import { ImageComparer } from "../widgets";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
 //utils
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";

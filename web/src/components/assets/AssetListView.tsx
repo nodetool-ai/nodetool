@@ -11,7 +11,6 @@ import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { IconForType } from "../../config/data_types";
 import FolderIcon from "@mui/icons-material/Folder";
-import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { ExpandCollapseButton } from "../ui_primitives";

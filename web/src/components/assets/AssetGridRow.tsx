@@ -7,7 +7,6 @@ import {
 import AssetItem from "./AssetItem";
 import { colorForType, IconForType } from "../../config/data_types";
 import { Asset } from "../../stores/ApiTypes";
-import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { Typography, Tooltip } from "@mui/material";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";

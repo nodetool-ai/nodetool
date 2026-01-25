@@ -11,7 +11,7 @@ import SortIcon from "@mui/icons-material/Sort";
 import ClearIcon from "@mui/icons-material/Clear";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import CheckIcon from "@mui/icons-material/Check";
-import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
