@@ -55,15 +55,15 @@ Jane,25,92.3`;
 
       expect(result.type).toBe("dataframe");
       expect(result.columns).toHaveLength(3);
-      expect(result.columns[0].name).toBe("name");
-      expect(result.columns[0].data_type).toBe("string");
-      expect(result.columns[1].name).toBe("age");
-      expect(result.columns[1].data_type).toBe("int");
-      expect(result.columns[2].name).toBe("score");
-      expect(result.columns[2].data_type).toBe("float");
+      expect(result.columns![0].name).toBe("name");
+      expect(result.columns![0].data_type).toBe("string");
+      expect(result.columns![1].name).toBe("age");
+      expect(result.columns![1].data_type).toBe("int");
+      expect(result.columns![2].name).toBe("score");
+      expect(result.columns![2].data_type).toBe("float");
       expect(result.data).toHaveLength(2);
-      expect(result.data[0]).toEqual(["John", 30, 85.5]);
-      expect(result.data[1]).toEqual(["Jane", 25, 92.3]);
+      expect(result.data![0]).toEqual(["John", 30, 85.5]);
+      expect(result.data![1]).toEqual(["Jane", 25, 92.3]);
     });
 
     it("should handle quoted values with commas", () => {
@@ -73,7 +73,7 @@ Jane,25,92.3`;
       const result = parseCSV(csv);
 
       expect(result.columns).toHaveLength(2);
-      expect(result.data[0]).toEqual(["Smith, John", "123 Main St, Apt 4"]);
+      expect(result.data![0]).toEqual(["Smith, John", "123 Main St, Apt 4"]);
     });
 
     it("should handle escaped quotes in quoted values", () => {
@@ -82,7 +82,7 @@ John,"He said ""hello"""`;
 
       const result = parseCSV(csv);
 
-      expect(result.data[0]).toEqual(["John", 'He said "hello"']);
+      expect(result.data![0]).toEqual(["John", 'He said "hello"']);
     });
 
     it("should handle empty CSV", () => {
@@ -109,7 +109,7 @@ Conference,2024-02-20`;
 
       const result = parseCSV(csv);
 
-      expect(result.columns[1].data_type).toBe("datetime");
+      expect(result.columns![1].data_type).toBe("datetime");
     });
 
     it("should handle Windows-style line endings", () => {
@@ -118,7 +118,7 @@ Conference,2024-02-20`;
       const result = parseCSV(csv);
 
       expect(result.data).toHaveLength(2);
-      expect(result.data[0]).toEqual(["John", 30]);
+      expect(result.data![0]).toEqual(["John", 30]);
     });
 
     it("should use Column N for empty headers", () => {
@@ -127,9 +127,9 @@ a,1,x`;
 
       const result = parseCSV(csv);
 
-      expect(result.columns[0].name).toBe("Column 1");
-      expect(result.columns[1].name).toBe("value");
-      expect(result.columns[2].name).toBe("Column 3");
+      expect(result.columns![0].name).toBe("Column 1");
+      expect(result.columns![1].name).toBe("value");
+      expect(result.columns![2].name).toBe("Column 3");
     });
   });
 
