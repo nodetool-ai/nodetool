@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Box, TextField, IconButton, Paper } from "@mui/material";
+import { Box, Paper, InputAdornment } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import { client } from "../../stores/ApiClient";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -7,6 +7,7 @@ import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge"
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { createErrorMessage } from "../../utils/errorHandling";
+import { NodeTextField, ToolbarIconButton } from "../ui_primitives";
 
 const WorkflowGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState("");
@@ -84,9 +85,8 @@ const WorkflowGenerator: React.FC = () => {
         }}
       >
         <form onSubmit={handleSubmit} style={{ display: "flex" }}>
-          <TextField
+          <NodeTextField
             fullWidth
-            variant="outlined"
             placeholder="Describe the workflow you want to create..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -99,15 +99,17 @@ const WorkflowGenerator: React.FC = () => {
             }}
             InputProps={{
               endAdornment: (
-                <IconButton
-                  type="submit"
-                  disabled={isLoading || !prompt.trim()}
-                  sx={{ mr: 0.5 }}
-                >
-                  <SendIcon
-                    color={isLoading || !prompt.trim() ? "disabled" : "primary"}
+                <InputAdornment position="end">
+                  <ToolbarIconButton
+                    icon={<SendIcon
+                      color={isLoading || !prompt.trim() ? "disabled" : "primary"}
+                    />}
+                    tooltip="Generate workflow"
+                    onClick={handleSubmit}
+                    disabled={isLoading || !prompt.trim()}
+                    sx={{ mr: 0.5 }}
                   />
-                </IconButton>
+                </InputAdornment>
               )
             }}
           />
