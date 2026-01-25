@@ -51,11 +51,11 @@ const CollectionList = () => {
 
   const handleShowForm = useCallback(() => {
     setShowForm(true);
-  }, [setShowForm]);
+  }, []);
 
   const handleClearIndexErrors = useCallback(() => {
     setIndexErrors([]);
-  }, [setIndexErrors]);
+  }, []);
 
   const totalCount = collections?.collections.length || 0;
 
