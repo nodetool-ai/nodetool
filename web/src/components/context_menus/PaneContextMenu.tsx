@@ -2,7 +2,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { Divider, Menu, Typography, Box, Button } from "@mui/material";
+import { Divider, Menu, Typography, Box } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -372,25 +373,27 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         <ContextMenuItem
           onClick={handleOpenConstantMenu}
           controlElement={
-            <Button
+            <EditorButton
               className="action"
               endIcon={<KeyboardArrowRightIcon />}
+              density="normal"
             >
               <DataObjectIcon />
               <span className="label">Add Constant Node</span>
-            </Button>
+            </EditorButton>
           }
         />
         <ContextMenuItem
           onClick={handleOpenInputMenu}
           controlElement={
-            <Button
+            <EditorButton
               className="action"
               endIcon={<KeyboardArrowRightIcon />}
+              density="normal"
             >
               <InputIcon />
               <span className="label">Add Input Node</span>
-            </Button>
+            </EditorButton>
           }
         />
         <Divider />
