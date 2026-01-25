@@ -1,5 +1,5 @@
 /* @jsxImportSource @emotion/react */
-import React, { memo, useCallback } from "react";
+import React, { memo } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { List, ListItem, ListItemText, Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -7,7 +7,6 @@ import { NOTIFICATIONS_LIST_MAX_ITEMS } from "../../config/constants";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
-import { useClipboard } from "../../hooks/browser/useClipboard";
 import { CopyButton } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
@@ -108,17 +107,12 @@ const styles = (theme: Theme) =>
 const NotificationsList: React.FC = () => {
   const theme = useTheme();
   const notifications = useNotificationStore((state) => state.notifications);
-  const { writeClipboard } = useClipboard();
   const recentNotifications = [...notifications]
     .sort(
       (a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
     .slice(0, NOTIFICATIONS_LIST_MAX_ITEMS);
-
-  const handleCopy = useCallback(async (content: string) => {
-    await writeClipboard(content, true);
-  }, [writeClipboard]);
 
   return (
     <Box css={styles(theme)} className="notifications-list-container">
@@ -158,7 +152,6 @@ const NotificationsList: React.FC = () => {
               buttonSize="small"
               className="copy-button"
               nodrag={false}
-              onCopySuccess={() => handleCopy(notification.content)}
             />
           </ListItem>
         ))}
