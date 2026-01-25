@@ -46,6 +46,9 @@ export interface NodeSliderProps extends Omit<SliderProps, "size"> {
 export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
   ({ className, sx, changed, density = "compact", ...props }, ref) => {
     const theme = useTheme();
+    // useEditorScope is called to maintain consistency with other editor_ui primitives
+    // and can be used for future scope-aware styling (inspector vs node context)
+    useEditorScope();
 
     const height = density === "compact" ? 5 : 6;
     const thumbSize = density === "compact" ? 8 : 10;
