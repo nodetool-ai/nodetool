@@ -389,8 +389,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     });
   }, [data, dataframeColumns, addNotification]);
 
-  // Export JSON - exclude select and rownum columns
-  const handleExportJSON = useCallback(() => {
+  // Export JSON - exclude select and rownum columns - kept for future use
+  const _handleExportJSON = useCallback(() => {
     if (!dataframeColumns || !Array.isArray(data)) {return;}
     
     // Build clean data without utility columns

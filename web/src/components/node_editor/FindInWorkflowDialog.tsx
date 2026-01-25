@@ -255,7 +255,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       performSearch(event.target.value);
     }, [performSearch]);
 
-    const handleResultClick = useCallback((index: number) => (event: React.MouseEvent) => {
+    const handleResultClick = useCallback((index: number) => (_event: React.MouseEvent) => {
       selectNode(index);
       goToSelected();
       closeFind();

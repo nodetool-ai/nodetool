@@ -1,14 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { Dialog, Tooltip } from "@mui/material";
+import { Dialog } from "@mui/material";
 import { CloseButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { ImageComparer } from "../widgets";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+
 import { useCombo } from "../../stores/KeyPressedStore";
 
 const styles = (theme: Theme) =>

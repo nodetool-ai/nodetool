@@ -23,11 +23,12 @@ describe("ActionButtonGroup", () => {
   });
 
   it("filters out falsy children", () => {
+    const showSecondButton = false;
     const { container } = render(
       <ThemeProvider theme={mockTheme}>
         <ActionButtonGroup>
           <button>Button 1</button>
-          {false && <button>Button 2</button>}
+          {showSecondButton && <button>Button 2</button>}
           {null}
           {undefined}
           <button>Button 3</button>

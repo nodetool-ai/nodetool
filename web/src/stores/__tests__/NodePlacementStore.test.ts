@@ -1,5 +1,5 @@
 import { act } from "@testing-library/react";
-import useNodePlacementStore, { NodePlacementSource } from "../NodePlacementStore";
+import useNodePlacementStore from "../NodePlacementStore";
 
 describe("NodePlacementStore", () => {
   beforeEach(() => {

@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useState } from "react";
-import { Box, Typography, Paper, Divider, Stack, Dialog, DialogTitle, DialogContent } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import { Box, Typography, Paper, Stack, Dialog, DialogTitle, DialogContent } from "@mui/material";
+
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -55,7 +55,7 @@ const UIPrimitivesButtonsDemo = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedCount, setSelectedCount] = useState(3);
   const [isRunning, setIsRunning] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, _setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [showDestructiveDialog, setShowDestructiveDialog] = useState(false);
 

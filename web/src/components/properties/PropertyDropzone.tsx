@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useMemo, useState, useRef, useEffect } from "react";
+import { memo, useCallback, useMemo, useState, useRef } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Button, Tooltip } from "@mui/material";
@@ -200,7 +200,7 @@ const PropertyDropzone = ({
     setOpenViewer(false);
   }, []);
 
-  const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     onChange({ uri: e.target.value, type: contentType });
   }, [onChange, contentType]);
 

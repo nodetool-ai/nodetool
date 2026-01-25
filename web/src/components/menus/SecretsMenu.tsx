@@ -143,7 +143,7 @@ const SecretsMenu = () => {
     setOpenDialog(false);
   };
 
-  const handleOpenEditDialog = useCallback((secret: any) => (event: React.MouseEvent) => {
+  const handleOpenEditDialog = useCallback((secret: any) => (_event: React.MouseEvent) => {
     setEditingSecret(secret);
     setFormData({
       key: secret.key,
@@ -152,7 +152,7 @@ const SecretsMenu = () => {
     setOpenDialog(true);
   }, []);
 
-  const handleDeleteClick = useCallback((key: string) => (event: React.MouseEvent) => {
+  const handleDeleteClick = useCallback((key: string) => (_event: React.MouseEvent) => {
     setSecretToDelete(key);
     setDeleteDialogOpen(true);
   }, []);
