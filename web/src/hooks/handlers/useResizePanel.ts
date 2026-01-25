@@ -83,7 +83,9 @@ export const useResizePanel = (panelPosition: "left" | "right" = "left") => {
         }
 
         actions.setIsDragging(false);
-        setTimeout(() => actions.setHasDragged(false), 0);
+        // Reset hasDragged flag after drag completes
+        // Using requestAnimationFrame ensures this happens after the current frame
+        requestAnimationFrame(() => actions.setHasDragged(false));
 
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);

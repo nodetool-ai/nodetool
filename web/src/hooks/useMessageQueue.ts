@@ -68,6 +68,7 @@ export function useMessageQueue({
 }: UseMessageQueueOptions): UseMessageQueueReturn {
   const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null);
   const sendMessageRef = useRef(onSendMessage);
+  const pendingSendRef = useRef<QueuedMessage | null>(null);
 
   // Keep the onSendMessage ref up to date
   useEffect(() => {
@@ -119,14 +120,27 @@ export function useMessageQueue({
 
   // Send queued message when streaming/loading stops
   useEffect(() => {
-    if (!isLoading && !isStreaming && queuedMessage) {
-      const messageToSend = queuedMessage;
-      setQueuedMessage(null); // Clear first to prevent re-firing
-      sendMessageNow(
-        messageToSend.content,
-        messageToSend.prompt,
-        messageToSend.agentMode
-      );
+    if (!isLoading && !isStreaming) {
+      // Handle pending message from interrupt (sendQueuedNow)
+      if (pendingSendRef.current) {
+        const messageToSend = pendingSendRef.current;
+        pendingSendRef.current = null;
+        sendMessageNow(
+          messageToSend.content,
+          messageToSend.prompt,
+          messageToSend.agentMode
+        );
+      } 
+      // Handle normal queued message
+      else if (queuedMessage) {
+        const messageToSend = queuedMessage;
+        setQueuedMessage(null); // Clear first to prevent re-firing
+        sendMessageNow(
+          messageToSend.content,
+          messageToSend.prompt,
+          messageToSend.agentMode
+        );
+      }
     }
   }, [isLoading, isStreaming, queuedMessage, sendMessageNow]);
 
@@ -139,17 +153,11 @@ export function useMessageQueue({
       // Capture message and clear queue BEFORE stopping to prevent useEffect race
       const messageToSend = queuedMessage;
       setQueuedMessage(null);
+      // Store in pendingSendRef to be sent when stream stops
+      pendingSendRef.current = messageToSend;
       onStop();
-      // Small delay to ensure stop is processed before sending
-      setTimeout(() => {
-        sendMessageNow(
-          messageToSend.content,
-          messageToSend.prompt,
-          messageToSend.agentMode
-        );
-      }, 100);
     }
-  }, [queuedMessage, onStop, sendMessageNow]);
+  }, [queuedMessage, onStop]);
 
   return {
     queuedMessage,

@@ -315,13 +315,17 @@ describe("useMessageQueue", () => {
 
   describe("sendQueuedNow", () => {
     it("sends queued message immediately and calls onStop", () => {
-      const { result } = renderHook(() =>
-        useMessageQueue({
-          isLoading: true,
-          isStreaming: false,
-          onSendMessage: mockOnSendMessage,
-          onStop: mockOnStop
-        })
+      const { result, rerender } = renderHook(
+        ({ isLoading, isStreaming }) =>
+          useMessageQueue({
+            isLoading,
+            isStreaming,
+            onSendMessage: mockOnSendMessage,
+            onStop: mockOnStop
+          }),
+        {
+          initialProps: { isLoading: true, isStreaming: false }
+        }
       );
 
       const content = createMockContent("test message");
@@ -337,10 +341,8 @@ describe("useMessageQueue", () => {
       expect(mockOnStop).toHaveBeenCalled();
       expect(result.current.queuedMessage).toBeNull();
 
-      // Wait for setTimeout delay
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
+      // Simulate the streaming state changing to stopped
+      rerender({ isLoading: false, isStreaming: false });
 
       expect(mockOnSendMessage).toHaveBeenCalledWith(
         content,
