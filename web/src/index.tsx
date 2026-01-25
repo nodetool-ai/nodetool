@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 // Ensure global MUI/Emotion type augmentations are loaded in the TS program
-import type {} from "./theme";
-import type {} from "./emotion";
-import type {} from "./material-ui";
-import type {} from "./window";
+import type { } from "./theme";
+import type { } from "./emotion";
+import type { } from "./material-ui";
+import type { } from "./window";
 // import type {} from "./types/svg-react"; // removed: file does not exist
 
 // Early polyfills / globals must come before other imports.
@@ -57,7 +57,6 @@ import {
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
-import { useJobReconnection } from "./hooks/useJobReconnection";
 
 import log from "loglevel";
 import Alert from "./components/node_editor/Alert";
@@ -333,14 +332,6 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
-/**
- * Component to handle job reconnection on app load
- */
-const JobReconnectionManager = () => {
-  useJobReconnection();
-  return null;
-};
-
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
 
@@ -359,7 +350,6 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <JobReconnectionManager />
         <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />

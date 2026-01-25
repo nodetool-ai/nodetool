@@ -366,7 +366,8 @@ export const handleUpdate = (
         runner.addNotification({
           type: "info",
           alert: true,
-          content: job.message || "Workflow suspended - waiting for external input",
+          content:
+            job.message || "Workflow suspended - waiting for external input",
           timeout: 10000
         });
         break;
@@ -444,14 +445,19 @@ export const handleUpdate = (
 
       // Track execution timing
       const previousStatus = getStatus(workflow.id, update.node_id);
-      const isStarting = update.status === "running" ||
-                         update.status === "starting" ||
-                         update.status === "booting";
-      const isFinishing = update.status === "completed" ||
-                          update.status === "error";
+      const isStarting =
+        update.status === "running" ||
+        update.status === "starting" ||
+        update.status === "booting";
+      const isFinishing =
+        update.status === "completed" || update.status === "error";
 
-      if (isStarting && previousStatus !== "running" &&
-          previousStatus !== "starting" && previousStatus !== "booting") {
+      if (
+        isStarting &&
+        previousStatus !== "running" &&
+        previousStatus !== "starting" &&
+        previousStatus !== "booting"
+      ) {
         startExecution(workflow.id, update.node_id);
       } else if (isFinishing) {
         endExecution(workflow.id, update.node_id);
@@ -462,7 +468,7 @@ export const handleUpdate = (
       // Store result if present
       if (update.result) {
         setResult(workflow.id, update.node_id, update.result);
-        
+
         // Add to history (persists across runs)
         addToHistory(workflow.id, update.node_id, {
           result: update.result,
