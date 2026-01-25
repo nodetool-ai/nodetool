@@ -530,6 +530,14 @@ function FileBrowserDialog({
     }
   }, [selectedPath, onConfirm]);
 
+  const handlePathInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPathInputValue(e.target.value);
+  }, []);
+
+  const handleSearchQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
   // --- Tree Logic ---
 
   const handleItemExpansionToggle = async (
@@ -705,7 +713,7 @@ function FileBrowserDialog({
                 size="small"
                 fullWidth
                 value={pathInputValue}
-                onChange={(e) => setPathInputValue(e.target.value)}
+                onChange={handlePathInputChange}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {handlePathSubmit();}
                   if (e.key === "Escape") {
@@ -757,7 +765,7 @@ function FileBrowserDialog({
               size="small"
               placeholder="Search in current folder..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchQueryChange}
               slotProps={{
                 input: {
                   startAdornment: (
