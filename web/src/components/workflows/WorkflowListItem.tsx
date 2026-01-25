@@ -56,7 +56,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleToggleFavorite = useCallback(
-    () => {
+    (_isFavorite: boolean) => {
       toggleFavorite(workflow.id);
     },
     [toggleFavorite, workflow.id]
