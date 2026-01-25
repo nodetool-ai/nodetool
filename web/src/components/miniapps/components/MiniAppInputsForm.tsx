@@ -423,6 +423,142 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
             }
 
+            // Video model input
+            if (definition.kind === "video_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <VideoModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // TTS model input
+            if (definition.kind === "tts_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <TTSModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // ASR model input
+            if (definition.kind === "asr_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <ASRModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // Embedding model input
+            if (definition.kind === "embedding_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <EmbeddingModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
             // Generic component rendering (Component should be defined at this point)
             if (!Component) {
               return null;
