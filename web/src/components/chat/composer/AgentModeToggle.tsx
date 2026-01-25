@@ -1,10 +1,7 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import React from "react";
-import { Tooltip, IconButton, Typography } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import { StateIconButton } from "../../ui_primitives";
+import { Typography } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface AgentModeToggleProps {
@@ -13,59 +10,34 @@ interface AgentModeToggleProps {
   disabled?: boolean;
 }
 
-const styles = (_theme: Theme) =>
-  css({
-    ".agent-toggle": {
-      transition: "all 0.2s ease-in-out",
-      border: "1px solid transparent"
-    }
-  });
-
 export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
   agentMode,
   onToggle,
   disabled = false
 }) => {
-  const theme = useTheme();
+  const tooltipContent = (
+    <div style={{ textAlign: "center" }}>
+      <Typography variant="inherit">
+        {agentMode ? "Agent Mode ON" : "Agent Mode OFF"}
+      </Typography>
+      <Typography variant="caption" display="block">
+        {agentMode ? "Disable" : "Enable"} agent mode
+      </Typography>
+    </div>
+  );
 
   return (
-    <Tooltip
+    <StateIconButton
+      icon={<PsychologyIcon fontSize="small" />}
+      tooltip={tooltipContent}
+      tooltipPlacement="top"
+      onClick={() => onToggle(!agentMode)}
+      disabled={disabled}
+      size="small"
+      isActive={agentMode}
+      color={agentMode ? "primary" : "default"}
+      className={`agent-toggle ${agentMode ? "active" : ""}`}
       enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="top"
-      slotProps={{
-        popper: {
-          modifiers: [
-            {
-              name: "preventOverflow",
-              options: {
-                altAxis: true,
-                padding: 8
-              }
-            }
-          ]
-        }
-      }}
-      title={
-        <div style={{ textAlign: "center" }}>
-          <Typography variant="inherit">
-            {agentMode ? "Agent Mode ON" : "Agent Mode OFF"}
-          </Typography>
-          <Typography variant="caption" display="block">
-            {agentMode ? "Disable" : "Enable"} agent mode
-          </Typography>
-        </div>
-      }
-    >
-      <IconButton
-        className={`agent-toggle ${agentMode ? "active" : ""}`}
-        css={styles(theme)}
-        onClick={() => onToggle(!agentMode)}
-        disabled={disabled}
-        size="small"
-        color={agentMode ? "primary" : "default"}
-      >
-        <PsychologyIcon fontSize="small" />
-      </IconButton>
-    </Tooltip>
+    />
   );
 };
