@@ -1,22 +1,37 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { IconButton, IconButtonProps } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
-import { useClipboard } from "../../hooks/browser/useClipboard";
-import { Tooltip } from "@mui/material";
+import React, { useMemo } from "react";
+import { IconButtonProps } from "@mui/material";
+import { CopyButton } from "../ui_primitives";
 import { serializeValue } from "../../utils/serializeValue";
-
-const CHECKMARK_TIMEOUT = 2000;
-const TOOLTIP_ENTER_DELAY = 500;
+import { SxProps, Theme, useTheme } from "@mui/material/styles";
 
 interface CopyToClipboardButtonProps extends Omit<IconButtonProps, "onClick"> {
   copyValue: unknown;
   onCopySuccess?: () => void;
-  onCopyError?: (err: any) => void;
+  onCopyError?: (err: Error) => void;
   tooltipPlacement?: "top" | "bottom" | "left" | "right";
+  sx?: SxProps<Theme>;
 }
 
+// Map IconButton size to CopyButton buttonSize
+const mapButtonSize = (
+  size: IconButtonProps["size"]
+): "small" | "medium" | "large" => {
+  switch (size) {
+    case "medium":
+      return "medium";
+    case "large":
+      return "large";
+    default:
+      return "small";
+  }
+};
+
+/**
+ * CopyToClipboardButton - A wrapper around CopyButton from ui_primitives
+ * that adds special serialization for complex values.
+ * 
+ * @deprecated Consider using CopyButton from ui_primitives directly for new code.
+ */
 export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
   copyValue,
   onCopySuccess,
@@ -24,111 +39,51 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
   title = "Copy to clipboard",
   size = "small",
   tooltipPlacement = "bottom",
+  sx,
   ...props
 }) => {
-  const { writeClipboard } = useClipboard();
-  const [isCopied, setIsCopied] = useState(false);
-  const [showError, setShowError] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const theme = useTheme();
+  
+  // Serialize value using the existing serializeValue utility for backward compatibility
   const resolvedText = useMemo(() => {
     if (typeof copyValue === "string") {
       return copyValue;
     }
     return serializeValue(copyValue);
   }, [copyValue]);
+  
+  // Replace non-breaking spaces for clipboard compatibility
   const sanitizedText = useMemo(() => {
-    return resolvedText?.replace(/\u00A0/g, " ") ?? null;
+    return resolvedText?.replace(/\u00A0/g, " ") ?? "";
   }, [resolvedText]);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+  
+  // Merge sx styles properly
+  const mergedSx = useMemo(() => {
+    const baseSx = {
+      color: theme.vars.palette.text.secondary,
+      "&:hover": { opacity: 0.8, color: theme.vars.palette.text.primary }
     };
-  }, []);
-
-  const handleCopy = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+    if (!sx) {
+      return baseSx;
     }
-
-    // Reset states
-    setIsCopied(false);
-    setShowError(false);
-
-    const hasTextToCopy =
-      sanitizedText !== null && sanitizedText.trim().length > 0;
-
-    // Don't attempt to copy if there's nothing to copy
-    if (!hasTextToCopy) {
-      setShowError(true);
-      timeoutRef.current = setTimeout(() => {
-        setShowError(false);
-      }, CHECKMARK_TIMEOUT);
-      return;
+    if (typeof sx === "function") {
+      return { ...baseSx, ...sx(theme) };
     }
-
-    writeClipboard(sanitizedText!, true)
-      .then(() => {
-        setIsCopied(true);
-        if (onCopySuccess) {
-          onCopySuccess();
-        }
-        timeoutRef.current = setTimeout(() => {
-          setIsCopied(false);
-        }, CHECKMARK_TIMEOUT);
-      })
-      .catch((err: Error) => {
-        if (onCopyError) {
-          onCopyError(err);
-        }
-        console.error("Failed to copy text: ", err);
-      });
-  };
-
-  const tooltipText = showError ? "Nothing to copy" : title;
+    return { ...baseSx, ...(sx as object) };
+  }, [theme, sx]);
 
   return (
-    <Tooltip
-      title={tooltipText}
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement={tooltipPlacement}
-      slotProps={{
-        tooltip: {
-          sx: (theme) => ({
-            backgroundColor: theme.vars.palette.background.paper,
-            color: theme.vars.palette.text.primary,
-            border: `1px solid ${theme.vars.palette.divider}`,
-            fontSize: "0.75rem",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-          })
-        }
-      }}
-    >
-      <IconButton
-        tabIndex={-1}
-        className="copy-to-clipboard-button"
-        onClick={handleCopy}
-        size={size}
-        sx={(theme) => ({
-          color: theme.vars.palette.text.secondary,
-          "&:hover": { opacity: 0.8, color: theme.vars.palette.text.primary }
-        })}
-        {...props}
-      >
-        {showError ? (
-          <CloseIcon
-            sx={{ fontSize: "0.875rem", color: "var(--palette-error-main)" }}
-          />
-        ) : isCopied ? (
-          <CheckIcon
-            sx={{ fontSize: "0.875rem", color: "var(--palette-success-main)" }}
-          />
-        ) : (
-          <ContentCopyIcon sx={{ fontSize: "0.875rem", color: "inherit" }} />
-        )}
-      </IconButton>
-    </Tooltip>
+    <CopyButton
+      value={sanitizedText}
+      tooltip={typeof title === "string" ? title : "Copy to clipboard"}
+      tooltipPlacement={tooltipPlacement}
+      buttonSize={mapButtonSize(size)}
+      onCopySuccess={onCopySuccess}
+      onCopyError={onCopyError}
+      className="copy-to-clipboard-button"
+      nodrag={false}
+      sx={mergedSx}
+      {...props}
+    />
   );
 };

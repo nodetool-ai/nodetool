@@ -34,18 +34,18 @@ export interface DeleteButtonProps {
    * @default "bottom"
    */
   tooltipPlacement?:
-    | "top"
-    | "bottom"
-    | "left"
-    | "right"
-    | "bottom-end"
-    | "bottom-start"
-    | "left-end"
-    | "left-start"
-    | "right-end"
-    | "right-start"
-    | "top-end"
-    | "top-start";
+  | "top"
+  | "bottom"
+  | "left"
+  | "right"
+  | "bottom-end"
+  | "bottom-start"
+  | "left-end"
+  | "left-start"
+  | "right-end"
+  | "right-start"
+  | "top-end"
+  | "top-start";
   /**
    * Button size
    * @default "small"

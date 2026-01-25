@@ -1,7 +1,7 @@
 import React from "react";
-import { Box, Fab } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { Box } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { CreateFab } from "../../ui_primitives";
 
 interface NewChatButtonProps {
   onNewThread: () => void;
@@ -10,23 +10,25 @@ interface NewChatButtonProps {
 export const NewChatButton: React.FC<NewChatButtonProps> = ({
   onNewThread
 }) => {
-  const theme = useTheme();
   return (
     <Box className="new-chat-section">
-      <Fab
-        className={`new-chat-button`}
+      <CreateFab
+        className="new-chat-button"
+        icon={<AddIcon sx={{ fontSize: "1.3rem" }} />}
+        label="New Chat"
+        tooltip="Start a new chat"
         onClick={onNewThread}
-        variant="extended"
-        aria-label="New Chat"
-        sx={{
+        fabColor="default"
+        nodrag={false}
+        sx={(theme) => ({
           height: "2.75em",
           textAlign: "center",
           position: "relative",
           overflow: "hidden",
-          border: `1px solid ${(theme as any).vars.palette.grey[600]}`,
+          border: `1px solid ${theme.vars.palette.grey[600]}`,
           borderRadius: ".5em",
-          color: (theme as any).vars.palette.text.primary,
-          background: (theme as any).vars.palette.grey[800],
+          color: theme.vars.palette.text.primary,
+          background: theme.vars.palette.grey[800],
           boxShadow: "2px 2px 0px var(--palette-grey-600)",
           fontSize: "var(--fontSizeSmaller)",
           fontWeight: 300,
@@ -34,20 +36,15 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
           justifyContent: "center",
           transition: "all 0.1s ease-in-out",
           "&:hover": {
-            background: (theme as any).vars.palette.grey[700],
+            background: theme.vars.palette.grey[700],
             boxShadow: "0px 0px 3px var(--palette-grey-500)",
-            border: `1px solid ${(theme as any).vars.palette.grey[700]}`,
+            border: `1px solid ${theme.vars.palette.grey[700]}`
           },
           "&:active": {
-            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-          },
-          "& svg": {
-            fontSize: "1.3rem",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)"
           }
-        }}
-      >
-        <AddIcon sx={{ mr: 1 }} /> New Chat
-      </Fab>
+        })}
+      />
     </Box>
   );
 };

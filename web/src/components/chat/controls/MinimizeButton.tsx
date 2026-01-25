@@ -1,11 +1,12 @@
 import React from "react";
-import { IconButton } from "@mui/material";
 import MinimizeIcon from "@mui/icons-material/Minimize";
+import { ToolbarIconButton } from "../../ui_primitives";
+import { SxProps, Theme } from "@mui/material/styles";
 
 interface MinimizeButtonProps {
   onClick: () => void;
   isMinimized: boolean;
-  sx?: any;
+  sx?: SxProps<Theme>;
 }
 
 export const MinimizeButton: React.FC<MinimizeButtonProps> = ({
@@ -13,9 +14,11 @@ export const MinimizeButton: React.FC<MinimizeButtonProps> = ({
   isMinimized,
   sx
 }) => (
-  <IconButton
+  <ToolbarIconButton
+    icon={isMinimized ? <></> : <MinimizeIcon fontSize="small" />}
+    tooltip={isMinimized ? "Expand" : "Minimize"}
     onClick={onClick}
-    size="small"
+    nodrag={false}
     sx={{
       color: "text.secondary",
       "&:hover": {
@@ -23,7 +26,5 @@ export const MinimizeButton: React.FC<MinimizeButtonProps> = ({
       },
       ...sx
     }}
-  >
-    {isMinimized ? <></> : <MinimizeIcon fontSize="small" />}
-  </IconButton>
+  />
 );

@@ -355,9 +355,6 @@ export const createWorkflowRunnerStore = (
         }
       });
 
-      // Invalidate running jobs query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-
       set({
         state: "running",
         notifications: []
