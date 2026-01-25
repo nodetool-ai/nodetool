@@ -3559,22 +3559,6 @@ export interface components {
          * @enum {string}
          */
         ExecutionStrategy: "threaded" | "subprocess" | "docker";
-        /**
-         * FileInfo
-         * @description Information about a file or directory.
-         */
-        FileInfo: {
-            /** Name */
-            name: string;
-            /** Path */
-            path: string;
-            /** Size */
-            size: number;
-            /** Is Dir */
-            is_dir: boolean;
-            /** Modified At */
-            modified_at: string;
-        };
         /** FilePath */
         FilePath: {
             /**
@@ -5161,7 +5145,7 @@ export interface components {
             /** Job Type */
             job_type: string;
             /** Status */
-            status: string;
+            status: string | null;
             /** Workflow Id */
             workflow_id: string;
             /** Started At */
@@ -5172,7 +5156,19 @@ export interface components {
             error?: string | null;
             /** Cost */
             cost?: number | null;
-            run_state?: components["schemas"]["RunStateResponse"] | null;
+            /** Suspended Node Id */
+            suspended_node_id?: string | null;
+            /** Suspension Reason */
+            suspension_reason?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Execution Strategy */
+            execution_strategy?: string | null;
+            /**
+             * Is Resumable
+             * @default false
+             */
+            is_resumable: boolean;
         };
         /** JobUpdate */
         JobUpdate: {
@@ -5199,7 +5195,7 @@ export interface components {
             /** Traceback */
             traceback?: string | null;
             run_state?: components["schemas"]["RunStateInfo"] | null;
-            /** Duration in seconds */
+            /** Duration */
             duration?: number | null;
         };
         /** LanguageModel */
@@ -6546,27 +6542,6 @@ export interface components {
              */
             is_resumable: boolean;
         };
-        /**
-         * RunStateResponse
-         * @description Subset of RunState for API responses.
-         */
-        RunStateResponse: {
-            /** Status */
-            status: string;
-            /** Suspended Node Id */
-            suspended_node_id?: string | null;
-            /** Suspension Reason */
-            suspension_reason?: string | null;
-            /** Error Message */
-            error_message?: string | null;
-            /** Execution Strategy */
-            execution_strategy?: string | null;
-            /**
-             * Is Resumable
-             * @default false
-             */
-            is_resumable: boolean;
-        };
         /** RunWorkflowRequest */
         RunWorkflowRequest: {
             /**
@@ -7565,6 +7540,22 @@ export interface components {
         };
         /** FileInfo */
         nodetool__api__file__FileInfo: {
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Size */
+            size: number;
+            /** Is Dir */
+            is_dir: boolean;
+            /** Modified At */
+            modified_at: string;
+        };
+        /**
+         * FileInfo
+         * @description Information about a file or directory.
+         */
+        nodetool__api__workspace__FileInfo: {
             /** Name */
             name: string;
             /** Path */
@@ -10620,7 +10611,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FileInfo"][];
+                    "application/json": components["schemas"]["nodetool__api__workspace__FileInfo"][];
                 };
             };
             /** @description Validation Error */

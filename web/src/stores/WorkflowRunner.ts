@@ -38,7 +38,6 @@ import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager"
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
-import { queryClient } from "../queryClient";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
 
 export type ProcessingContext = {
