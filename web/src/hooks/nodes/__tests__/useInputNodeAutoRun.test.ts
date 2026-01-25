@@ -107,7 +107,10 @@ describe("useInputNodeAutoRun", () => {
       return selector(state);
     });
 
-    mockUseResultsStore.mockReturnValue(mockGetResult);
+    mockUseResultsStore.mockImplementation((selector) => {
+      const state = { getResult: mockGetResult };
+      return selector(state);
+    });
 
     // Default: instantUpdate is disabled
     mockUseSettingsStore.mockImplementation((selector) => {

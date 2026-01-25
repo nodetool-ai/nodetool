@@ -187,12 +187,13 @@ describe("GlobalChatStore", () => {
       const threadId = store.getState().currentThreadId as string;
       expect(threadId).toBeTruthy();
       expect(store.getState().threads[threadId]).toBeDefined();
-      expect(store.getState().messageCache[threadId][0]).toEqual({
+      const cachedMessage = store.getState().messageCache[threadId][0];
+      expect(cachedMessage).toMatchObject({
         ...msg,
-        workflow_id: undefined,
         thread_id: threadId,
         agent_mode: false
       });
+      expect(cachedMessage.created_at).toBeDefined();
       expect(store.getState().status).toBe("loading");
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -358,7 +359,8 @@ describe("GlobalChatStore", () => {
         content: " world!",
         content_type: "text",
         content_metadata: {},
-        done: false
+        done: false,
+        thinking: false
       };
 
       if (threadSubscriptions[threadId]) {
@@ -377,7 +379,8 @@ describe("GlobalChatStore", () => {
         content: "New message",
         content_type: "text",
         content_metadata: {},
-        done: false
+        done: false,
+        thinking: false
       };
 
       const threadId = store.getState().currentThreadId!;
@@ -399,7 +402,8 @@ describe("GlobalChatStore", () => {
         content: "Hello",
         content_type: "text",
         content_metadata: {},
-        done: true
+        done: true,
+        thinking: false
       };
 
       const threadId = store.getState().currentThreadId!;
@@ -1022,7 +1026,8 @@ describe("GlobalChatStore", () => {
         content: "Test chunk",
         content_type: "text",
         content_metadata: {},
-        done: false
+        done: false,
+        thinking: false
       };
 
       const initialState = store.getState();

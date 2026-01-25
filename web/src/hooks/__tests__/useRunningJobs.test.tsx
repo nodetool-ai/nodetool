@@ -1,3 +1,4 @@
+import React from "react";
 import { renderHook, waitFor } from "@testing-library/react";
 import { useRunningJobs } from "../useRunningJobs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,7 +12,7 @@ jest.mock("../../stores/useAuth");
 const mockClient = client as jest.Mocked<typeof client>;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
-const createWrapper = () => {
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -20,33 +21,33 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 };
+
+const createWrapper = () => TestWrapper;
 
 describe("useRunningJobs", () => {
   const mockJobs: Job[] = [
     {
-      type: "job",
       id: "job-1",
+      user_id: "test-user",
+      job_type: "workflow",
       workflow_id: "workflow-1",
       status: "running",
-      created_at: "2026-01-22T10:00:00Z",
     },
     {
-      type: "job",
       id: "job-2",
+      user_id: "test-user",
+      job_type: "workflow",
       workflow_id: "workflow-2",
       status: "queued",
-      created_at: "2026-01-22T10:05:00Z",
     },
     {
-      type: "job",
       id: "job-3",
+      user_id: "test-user",
+      job_type: "workflow",
       workflow_id: "workflow-3",
       status: "completed",
-      created_at: "2026-01-22T10:10:00Z",
     },
   ];
 
