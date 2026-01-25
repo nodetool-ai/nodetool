@@ -61,14 +61,6 @@ const CollectionList = () => {
     setIndexErrors([]);
   }, [setIndexErrors]);
 
-  const handleShowForm = useCallback(() => {
-    setShowForm(true);
-  }, []);
-
-  const handleClearIndexErrors = useCallback(() => {
-    setIndexErrors([]);
-  }, []);
-
   const totalCount = collections?.collections.length || 0;
 
   return (
