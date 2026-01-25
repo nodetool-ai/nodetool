@@ -133,22 +133,16 @@ const resolveInputValue = (
 };
 
 const getStringInputConfig = (definition: MiniAppInputDefinition) => {
-  const DEFAULT_STRING_INPUT_MAX_LENGTH = 100000;
   const data = definition.data as {
     max_length?: unknown;
     line_mode?: unknown;
     multiline?: unknown;
   };
 
-  const maxLength = (() => {
-    if (data.max_length === 0) {
-      return 0;
-    }
-    if (typeof data.max_length === "number" && Number.isFinite(data.max_length)) {
-      return Math.max(0, Math.floor(data.max_length));
-    }
-    return DEFAULT_STRING_INPUT_MAX_LENGTH;
-  })();
+  const maxLength =
+    typeof data.max_length === "number" && Number.isFinite(data.max_length)
+      ? Math.max(0, Math.floor(data.max_length))
+      : 0;
 
   const lineMode =
     data.line_mode === "multiline" || data.multiline === true
