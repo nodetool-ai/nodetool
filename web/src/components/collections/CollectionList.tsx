@@ -11,7 +11,7 @@ import {
   Button,
   Fab
 } from "@mui/material";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useCallback } from "react";
 import CollectionForm from "./CollectionForm";
 import AddIcon from "@mui/icons-material/Add";
 import CollectionHeader from "./CollectionHeader";
@@ -49,6 +49,14 @@ const CollectionList = () => {
     setDeleteTarget(collectionName);
   };
 
+  const handleShowForm = useCallback(() => {
+    setShowForm(true);
+  }, [setShowForm]);
+
+  const handleClearIndexErrors = useCallback(() => {
+    setIndexErrors([]);
+  }, [setIndexErrors]);
+
   const totalCount = collections?.collections.length || 0;
 
   return (
@@ -74,7 +82,7 @@ const CollectionList = () => {
             </Box>
             <Fab
               variant="extended"
-              onClick={() => setShowForm(true)}
+              onClick={handleShowForm}
               aria-label="Create Collection"
               sx={{
                 position: "relative",
@@ -207,7 +215,7 @@ const CollectionList = () => {
       </Dialog>
 
       {indexErrors.length > 0 && (
-        <Dialog open={true} onClose={() => setIndexErrors([])}>
+        <Dialog open={true} onClose={handleClearIndexErrors}>
           <DialogTitle>Indexing Report</DialogTitle>
           <DialogContent>
             <Typography variant="body1" sx={{ mb: 2 }}>
@@ -222,7 +230,7 @@ const CollectionList = () => {
             </List>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setIndexErrors([])}>Close</Button>
+            <Button onClick={handleClearIndexErrors}>Close</Button>
           </DialogActions>
         </Dialog>
       )}
