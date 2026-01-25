@@ -10,8 +10,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  useTheme,
-  IconButton
+  useTheme
 } from "@mui/material";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
@@ -27,7 +26,9 @@ import ChatIcon from "@mui/icons-material/Chat";
 import ImageIcon from "@mui/icons-material/Image";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import DataObjectIcon from "@mui/icons-material/DataObject";
-import CloseIcon from "@mui/icons-material/Close";
+
+//primitives
+import { CloseButton } from "../ui_primitives";
 
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
@@ -231,9 +232,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
     >
       <div className="menu-header">
         <div className="menu-title">Canvas Menu</div>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
       </div>
 
       <DialogContent className="menu-content">

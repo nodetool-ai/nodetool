@@ -22,7 +22,7 @@ import type {
   NodeCompatibilityInfo
 } from "./useModelCompatibility";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
-import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
+import { CopyButton } from "../../ui_primitives";
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -208,9 +208,9 @@ const NodeList: React.FC<{
               )}
             </div>
             <div className="copy-button">
-              <CopyToClipboardButton
-                copyValue={node.nodeType}
-                title="Copy node type"
+              <CopyButton
+                value={node.nodeType}
+                tooltip="Copy node type"
                 tooltipPlacement="left"
               />
             </div>

@@ -14,7 +14,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 
 const popoverStyles = css({
   paddingRight: "4em",
@@ -184,10 +184,10 @@ const NotificationButton: React.FC = React.memo(() => {
                 >
                   {notification.timestamp.toLocaleString()}
                 </Typography>
-                <CopyToClipboardButton
-                  copyValue={notification.content}
+                <CopyButton
+                  value={notification.content}
                   className="copy-button"
-                  title="Copy to clipboard"
+                  tooltip="Copy to clipboard"
                 />
               </Box>
             ))

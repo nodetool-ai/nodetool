@@ -29,7 +29,7 @@ import Markdown from "react-markdown";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useCombo } from "../../stores/KeyPressedStore";
 
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LexicalPlugins from "../textEditor/LexicalEditor";
@@ -908,7 +908,7 @@ const TextEditorModal = ({
             ) : (
               <EditorInsertionProvider value={insertIntoEditor}>
                 <div className="editor-pane">
-                  <CopyToClipboardButton copyValue={value} />
+                  <CopyButton value={value} />
                   {isCodeEditor ? (
                     <div style={{ height: "100%" }}>
                       {MonacoEditor ? (

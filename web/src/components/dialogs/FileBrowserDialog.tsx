@@ -29,9 +29,7 @@ import {
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,
   Search as SearchIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  Refresh as RefreshIcon,
-  Close as CloseIcon
+  ArrowUpward as ArrowUpwardIcon
 } from "@mui/icons-material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
@@ -42,7 +40,7 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { createErrorMessage } from "../../utils/errorHandling";
 import log from "loglevel";
 
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton, CloseButton, RefreshButton } from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
 
@@ -676,9 +674,7 @@ function FileBrowserDialog({
         >
           {title}
         </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
       </DialogTitle>
 
       <DialogContent
@@ -774,13 +770,11 @@ function FileBrowserDialog({
               sx={{ width: 200, "& .MuiInputBase-root": { height: 32 } }}
             />
 
-            <IconButton
+            <RefreshButton
               onClick={handleRefresh}
-              size="small"
-              style={{ width: 32, height: 32 }}
-            >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
+              buttonSize="small"
+              tooltip="Refresh"
+            />
           </div>
 
           {/* Split View */}
@@ -845,10 +839,10 @@ function FileBrowserDialog({
           {selectedPath ? `Selected: ${selectedPath}` : "No selection"}
         </Typography>
         {selectedPath && (
-          <CopyToClipboardButton
-            copyValue={selectedPath}
-            title="Copy path"
-            size="small"
+          <CopyButton
+            value={selectedPath}
+            tooltip="Copy path"
+            buttonSize="small"
           />
         )}
         <Button onClick={onClose} color="inherit">

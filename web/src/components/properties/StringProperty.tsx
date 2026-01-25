@@ -7,7 +7,7 @@ import TextEditorModal from "./TextEditorModal";
 import isEqual from "lodash/isEqual";
 import { IconButton, Tooltip } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 
@@ -127,7 +127,7 @@ const StringProperty = ({
                   <OpenInFullIcon />
                 </IconButton>
               </Tooltip>
-              <CopyToClipboardButton copyValue={value} size="small" />
+              <CopyButton value={value} buttonSize="small" />
             </div>
           )}
           <div

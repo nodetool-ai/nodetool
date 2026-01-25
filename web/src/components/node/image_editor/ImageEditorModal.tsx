@@ -9,12 +9,14 @@ import React, {
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip, Typography, CircularProgress } from "@mui/material";
+import { Tooltip, Typography, CircularProgress } from "@mui/material";
 
 // Icons
-import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
+
+// UI Primitives
+import { CloseButton } from "../../ui_primitives";
 
 import { useCombo } from "../../../stores/KeyPressedStore";
 import ImageEditorToolbar from "./ImageEditorToolbar";
@@ -555,11 +557,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
                 Save
               </button>
             </Tooltip>
-            <Tooltip title="Close (Esc)">
-              <IconButton size="small" onClick={onClose}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close (Esc)" />
           </div>
         </div>
 

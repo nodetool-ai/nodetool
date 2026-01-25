@@ -9,7 +9,7 @@ import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import { IconButton, Tooltip } from "@mui/material";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 import TextEditorModal from "./TextEditorModal";
 
 const JSONProperty = (props: PropertyProps) => {
@@ -150,7 +150,7 @@ const JSONProperty = (props: PropertyProps) => {
                 <OpenInFullIcon />
               </IconButton>
             </Tooltip>
-            <CopyToClipboardButton copyValue={value} size="small" />
+            <CopyButton value={value} buttonSize="small" />
           </div>
         )}
         <div

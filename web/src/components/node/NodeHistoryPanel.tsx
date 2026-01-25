@@ -9,17 +9,15 @@ import {
   Box,
   Typography,
   CircularProgress,
-  IconButton,
   Alert,
   Chip,
-  Stack,
-  Tooltip
+  Stack
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
 import HistoryIcon from "@mui/icons-material/History";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import { CloseButton } from "../ui_primitives";
 import { useNodeResultHistory } from "../../hooks/nodes/useNodeResultHistory";
 import { HistoricalResult } from "../../stores/NodeResultHistoryStore";
 import PreviewImageGrid, { ImageSource } from "./PreviewImageGrid";
@@ -186,11 +184,7 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
             </Typography>
             <Chip size="small" label={`${historyCount}`} />
           </Stack>
-          <Tooltip title="Close">
-            <IconButton size="small" onClick={onClose} aria-label="Close">
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
         </Stack>
       </DialogTitle>
 
