@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import PropertyField from "./node/PropertyField";
-import { Box, Button, Tooltip, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
@@ -16,7 +16,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import { typesAreEqual } from "../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
 import { EditorUiProvider } from "./editor_ui";
-import { CloseButton } from "./ui_primitives";
+import { CloseButton, EditorButton } from "./ui_primitives";
 import PanelHeadline from "./ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
@@ -500,17 +500,17 @@ const Inspector: React.FC = () => {
             onTagClick={handleTagClick}
           />
           <Tooltip title="Show in NodeMenu" placement="top-start">
-            <Button
+            <EditorButton
               variant="outlined"
-              size="small"
               sx={{
                 padding: ".5em"
               }}
               className="namespace"
               onClick={handleOpenNodeMenu}
+              density="compact"
             >
               {metadata.namespace}
-            </Button>
+            </EditorButton>
           </Tooltip>
         </div>
       </Box>
