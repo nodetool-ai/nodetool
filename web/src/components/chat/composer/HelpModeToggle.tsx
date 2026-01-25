@@ -1,11 +1,7 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import React from "react";
-import { Tooltip, IconButton, Typography } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import HelpIcon from "@mui/icons-material/Help";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import { StateIconButton } from "../../ui_primitives";
+import { Typography } from "@mui/material";
 
 interface HelpModeToggleProps {
   helpMode: boolean;
@@ -13,47 +9,35 @@ interface HelpModeToggleProps {
   disabled?: boolean;
 }
 
-const styles = (_theme: Theme) =>
-  css({
-    ".help-toggle": {
-      transition: "all 0.2s ease-in-out",
-      border: "1px solid transparent"
-    }
-  });
-
 export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
   helpMode,
   onToggle,
   disabled = false
 }) => {
-  const theme = useTheme();
+  const tooltipContent = (
+    <div style={{ textAlign: "center" }}>
+      <Typography variant="inherit">
+        {helpMode ? "Help Mode ON" : "Help Mode OFF"}
+      </Typography>
+      <Typography variant="caption" display="block">
+        {helpMode
+          ? "Disable Nodetool help mode for chat."
+          : "Include Nodetool help context for chat."}
+      </Typography>
+    </div>
+  );
 
   return (
-    <Tooltip
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      title={
-        <div style={{ textAlign: "center" }}>
-          <Typography variant="inherit">
-            {helpMode ? "Help Mode ON" : "Help Mode OFF"}
-          </Typography>
-          <Typography variant="caption" display="block">
-            {helpMode
-              ? "Disable Nodetool help mode for chat."
-              : "Include Nodetool help context for chat."}
-          </Typography>
-        </div>
-      }
-    >
-      <IconButton
-        className={`help-toggle ${helpMode ? "active" : ""}`}
-        css={styles(theme)}
-        onClick={() => onToggle(!helpMode)}
-        disabled={disabled}
-        size="small"
-        color={helpMode ? "primary" : "default"}
-      >
-        <HelpIcon fontSize="small" />
-      </IconButton>
-    </Tooltip>
+    <StateIconButton
+      icon={<HelpIcon fontSize="small" />}
+      tooltip={tooltipContent}
+      tooltipPlacement="top"
+      onClick={() => onToggle(!helpMode)}
+      disabled={disabled}
+      size="small"
+      isActive={helpMode}
+      color={helpMode ? "primary" : "default"}
+      className={`help-toggle ${helpMode ? "active" : ""}`}
+    />
   );
 };

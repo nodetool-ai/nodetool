@@ -1,5 +1,5 @@
 import React from "react";
-import { IconButton, Tooltip } from "@mui/material";
+import { StateIconButton } from "../ui_primitives";
 import { useColorScheme } from "@mui/material/styles";
 import { LightMode, DarkMode } from "@mui/icons-material";
 
@@ -15,18 +15,16 @@ export const ThemeToggle: React.FC = () => {
   if (!mode) {return null;}
 
   return (
-    <Tooltip title={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}>
-      <IconButton
-        onClick={toggleTheme}
-        color="inherit"
-        size="small"
-        sx={{
-          color: "var(--palette-text-primary)"
-        }}
-      >
-        {mode === "dark" ? <LightMode /> : <DarkMode />}
-      </IconButton>
-    </Tooltip>
+    <StateIconButton
+      icon={mode === "dark" ? <LightMode /> : <DarkMode />}
+      tooltip={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+      onClick={toggleTheme}
+      size="small"
+      color="default"
+      sx={{
+        color: "var(--palette-text-primary)"
+      }}
+    />
   );
 };
 
