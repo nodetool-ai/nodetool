@@ -12,7 +12,7 @@ import {
   Link
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import CloseButton from "../../buttons/CloseButton";
+import { CloseButton } from "../../ui_primitives";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";
