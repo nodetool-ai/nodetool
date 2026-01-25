@@ -181,6 +181,7 @@ const PanelRight: React.FC = () => {
                   <LogPanel />
                 ) : activeView === "jobs" ? (
                   <Box
+                    className="jobs-panel"
                     sx={{
                       width: "100%",
                       height: "100%",
@@ -193,6 +194,7 @@ const PanelRight: React.FC = () => {
                   </Box>
                 ) : activeView === "workspace" ? (
                   <Box
+                    className="workspace-panel"
                     sx={{
                       width: "100%",
                       height: "100%",
@@ -212,6 +214,7 @@ const PanelRight: React.FC = () => {
                 ) : activeView === "workflow" ? (
                   activeNodeStore && currentWorkflowId ? (
                     <Box
+                      className="workflow-panel"
                       sx={{
                         width: "100%",
                         height: "100%",
@@ -226,6 +229,7 @@ const PanelRight: React.FC = () => {
                   ) : null
                 ) : activeView === "workflowAssets" ? (
                   <Box
+                    className="workflow-assets-panel"
                     sx={{
                       width: "100%",
                       height: "100%",
@@ -236,7 +240,7 @@ const PanelRight: React.FC = () => {
                     }}
                   >
                     <PanelHeadline title="Workflow Assets" />
-                    <Box sx={{ flex: 1, overflow: "hidden" }}>
+                    <Box className="workflow-assets-panel-inner"  sx={{ flex: 1, overflow: "hidden" }}>
                       <WorkflowAssetPanel />
                     </Box>
                   </Box>
