@@ -10,6 +10,7 @@ import BoolProperty from "../../properties/BoolProperty";
 import ImageProperty from "../../properties/ImageProperty";
 import AudioProperty from "../../properties/AudioProperty";
 import FilePathProperty from "../../properties/FilePathProperty";
+import EnumProperty from "../../properties/EnumProperty";
 import PropertyLabel from "../../node/PropertyLabel";
 import { NodeTextField, editorClassNames, cn } from "../../editor_ui";
 import {
@@ -36,7 +37,8 @@ const KIND_TO_PROPERTY_TYPE: Record<
   boolean: "bool",
   image: "image",
   audio: "audio",
-  file_path: "str"
+  file_path: "str",
+  select: "enum"
 };
 
 const PROPERTY_COMPONENT_MAP: Partial<
@@ -47,7 +49,8 @@ const PROPERTY_COMPONENT_MAP: Partial<
   float: FloatProperty,
   bool: BoolProperty,
   image: ImageProperty,
-  audio: AudioProperty
+  audio: AudioProperty,
+  enum: EnumProperty
 };
 
 const JSON_SCHEMA_EXTRA_TYPE_MAP: Partial<
@@ -72,19 +75,30 @@ const createPropertyFromDefinition = (
         return "";
       case "boolean":
         return false;
+      case "select":
+        // Default to first option if available
+        return definition.data.options?.[0] ?? "";
       default:
         return null;
     }
   })();
+
+  // For select kind, use the options from the node data
+  const enumValues =
+    definition.kind === "select" && definition.data.options
+      ? definition.data.options
+      : null;
+  const enumTypeName =
+    definition.kind === "select" ? definition.data.enum_type_name ?? null : null;
 
   const property: Property = {
     name: definition.data.name,
     type: {
       type: KIND_TO_PROPERTY_TYPE[definition.kind],
       optional: true,
-      values: null,
+      values: enumValues,
       type_args: [],
-      type_name: null
+      type_name: enumTypeName
     },
     default: defaultValue,
     title: definition.data.label,

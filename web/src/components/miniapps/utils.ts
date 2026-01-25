@@ -25,6 +25,8 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
       return "audio";
     case "nodetool.input.FilePathInput":
       return "file_path";
+    case "nodetool.input.SelectInput":
+      return "select";
     default:
       return null;
   }
