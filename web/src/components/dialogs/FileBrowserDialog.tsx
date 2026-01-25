@@ -30,8 +30,7 @@ import {
   InsertDriveFile as FileIcon,
   Search as SearchIcon,
   ArrowUpward as ArrowUpwardIcon,
-  Refresh as RefreshIcon,
-  Close as CloseIcon
+  Refresh as RefreshIcon
 } from "@mui/icons-material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
@@ -42,7 +41,7 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { createErrorMessage } from "../../utils/errorHandling";
 import log from "loglevel";
 
-import { CopyButton } from "../ui_primitives";
+import { CopyButton, CloseButton } from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
 
@@ -676,9 +675,7 @@ function FileBrowserDialog({
         >
           {title}
         </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
       </DialogTitle>
 
       <DialogContent
