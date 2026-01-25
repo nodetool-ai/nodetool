@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState } from "react";
-import { Button, Tooltip, Box, Menu, MenuItem, Chip } from "@mui/material";
+import { Tooltip, Box, Menu, MenuItem, Chip } from "@mui/material";
 import SearchInput from "../search/SearchInput";
+import { ToolbarIconButton, DeleteButton } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -15,13 +16,11 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShowGraphPreview, useWorkflowListViewStore, useSortBy, useSelectedTags, SortBy } from "../../stores/WorkflowListViewStore";
-import { ToolbarIconButton } from "../ui_primitives";
 
 interface WorkflowToolbarProps {
   setFilterValue: (value: string) => void;
@@ -345,19 +344,11 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
         <div className="buttons-row">
           {selectedWorkflowsCount > 0 && (
-            <Tooltip
-              title={`Delete ${selectedWorkflowsCount} selected workflow${selectedWorkflowsCount > 1 ? "s" : ""
-                }`}
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <Button
-                variant="outlined"
-                className="delete-selected-button"
-                onClick={onBulkDelete}
-              >
-                <DeleteIcon />
-              </Button>
-            </Tooltip>
+            <DeleteButton
+              tooltip={`Delete ${selectedWorkflowsCount} selected workflow${selectedWorkflowsCount > 1 ? "s" : ""}`}
+              onClick={onBulkDelete}
+              className="delete-selected-button"
+            />
           )}
 
           <ToolbarIconButton

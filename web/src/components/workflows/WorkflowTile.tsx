@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback } from "react";
-import { Box, Button, Tooltip, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
-import { DeleteButton } from "../ui_primitives";
+import { DeleteButton, EditorButton } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
@@ -86,14 +86,14 @@ export const WorkflowTile = ({
       </Typography>
 
       <div className="actions">
-        <Button
-          size="small"
+        <EditorButton
           className="open-button"
           color="primary"
           onClick={handleOpenClick}
+          density="compact"
         >
           Open
-        </Button>
+        </EditorButton>
         {workflowCategory === "user" && (
           <>
             <Tooltip
@@ -101,13 +101,13 @@ export const WorkflowTile = ({
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
-              <Button
-                size="small"
+              <EditorButton
                 color="primary"
                 onClick={(event) => onDuplicateWorkflow(event, workflow)}
+                density="compact"
               >
                 Duplicate
-              </Button>
+              </EditorButton>
             </Tooltip>
 
             <DeleteButton onClick={(e) => onDelete(e, workflow)} />
