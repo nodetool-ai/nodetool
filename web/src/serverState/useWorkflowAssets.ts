@@ -49,7 +49,7 @@ export const useWorkflowAssets = (workflowId: string | null) => {
       if (!workflowId) {
         throw new Error("No workflow ID provided");
       }
-      return createAsset(file, workflowId, null, (progressEvent) => {
+      return createAsset(file, workflowId, undefined, (progressEvent) => {
         const progress = progressEvent.lengthComputable
           ? (progressEvent.loaded / progressEvent.total) * 100
           : 0;

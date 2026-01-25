@@ -60,7 +60,8 @@ describe("MiniAppsStore", () => {
           workflow1: {
             inputValues: { textInput: "existingValue" },
             results: [],
-            progress: null
+            progress: null,
+            lastRunDuration: null
           }
         }
       });
@@ -344,7 +345,8 @@ describe("MiniAppsStore", () => {
           workflow1: {
             inputValues: {},
             results: [],
-            progress: null
+            progress: null,
+            lastRunDuration: null
           }
         }
       });
