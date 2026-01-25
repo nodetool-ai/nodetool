@@ -388,10 +388,25 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   // Import Sketch file
   const handleImportSketch = useCallback(
     async (file: File) => {
+      // Validate file type (defense in depth - input already filters)
+      if (!file.name.toLowerCase().endsWith(".sketch")) {
+        console.error("Invalid file type: expected .sketch file");
+        // Note: In a production app, you'd show a toast notification here
+        return;
+      }
+
+      // Limit file size to 100MB
+      const MAX_FILE_SIZE = 100 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        console.error("File too large: maximum size is 100MB");
+        return;
+      }
+
       try {
         const result = await readSketchFile(file);
         if (!result.success || !result.contents) {
           console.error("Failed to import Sketch file:", result.error);
+          // Note: In a production app, you'd show a toast notification here
           return;
         }
 
@@ -403,6 +418,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         }
       } catch (error) {
         console.error("Error importing Sketch file:", error);
+        // Note: In a production app, you'd show a toast notification here
       }
     },
     [setCanvasData]
@@ -417,6 +433,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       });
     } catch (error) {
       console.error("Error exporting Sketch file:", error);
+      // Note: In a production app, you'd show a toast notification here
     }
   }, [canvasData]);
 

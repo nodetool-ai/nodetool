@@ -22,6 +22,14 @@ const NumericalBool = FileFormat.NumericalBool;
 const BundleId = FileFormat.BundleId;
 
 /**
+ * Sanitize a filename to prevent path traversal attacks
+ */
+function sanitizeFilename(filename: string): string {
+  // Remove directory separators and any path traversal attempts
+  return filename.replace(/[/\\]/g, "_").replace(/\.\./g, "_");
+}
+
+/**
  * Default Sketch document template
  */
 function createDefaultDocument(pages: SketchPage[]): SketchDocument {
@@ -167,7 +175,9 @@ export async function writeSketchFile(
     const imagesFolder = zip.folder("images");
     if (imagesFolder) {
       for (const [name, blob] of images) {
-        imagesFolder.file(name, blob);
+        // Sanitize filename to prevent path traversal
+        const sanitizedName = sanitizeFilename(name);
+        imagesFolder.file(sanitizedName, blob);
       }
     }
   }

@@ -32,6 +32,49 @@ export async function readSketchFile(
 }
 
 /**
+ * Maximum file size for individual JSON files (10MB)
+ */
+const MAX_JSON_SIZE = 10 * 1024 * 1024;
+
+/**
+ * Maximum number of pages to process
+ */
+const MAX_PAGES = 100;
+
+/**
+ * Maximum image size (50MB per image)
+ */
+const MAX_IMAGE_SIZE = 50 * 1024 * 1024;
+
+/**
+ * Maximum total images
+ */
+const MAX_IMAGES = 500;
+
+/**
+ * Sanitize a filename to prevent path traversal attacks
+ */
+function sanitizeFilename(filename: string): string {
+  // Remove directory separators and any path traversal attempts
+  return filename.replace(/[/\\]/g, "_").replace(/\.\./g, "_");
+}
+
+/**
+ * Safely parse JSON with size limit
+ */
+async function safeParseJson<T>(
+  file: JSZip.JSZipObject,
+  maxSize: number = MAX_JSON_SIZE
+): Promise<T> {
+  // Check file size first if available
+  const content = await file.async("string");
+  if (content.length > maxSize) {
+    throw new Error(`File ${file.name} exceeds maximum allowed size`);
+  }
+  return JSON.parse(content) as T;
+}
+
+/**
  * Parse a Sketch file from binary data
  */
 export async function parseSketchFile(
@@ -48,7 +91,7 @@ export async function parseSketchFile(
         error: "Invalid Sketch file: missing document.json"
       };
     }
-    const document = JSON.parse(await documentJson.async("string")) as SketchDocument;
+    const document = await safeParseJson<SketchDocument>(documentJson);
     
     // Parse meta.json
     const metaJson = zip.file("meta.json");
@@ -58,7 +101,7 @@ export async function parseSketchFile(
         error: "Invalid Sketch file: missing meta.json"
       };
     }
-    const meta = JSON.parse(await metaJson.async("string")) as Meta;
+    const meta = await safeParseJson<Meta>(metaJson);
     
     // Parse user.json
     const userJson = zip.file("user.json");
@@ -68,7 +111,7 @@ export async function parseSketchFile(
         error: "Invalid Sketch file: missing user.json"
       };
     }
-    const user = JSON.parse(await userJson.async("string")) as User;
+    const user = await safeParseJson<User>(userJson);
     
     // Parse pages from pages/ folder
     const pages: SketchPage[] = [];
@@ -77,33 +120,37 @@ export async function parseSketchFile(
     if (pagesFolder) {
       const pageFiles: JSZip.JSZipObject[] = [];
       pagesFolder.forEach((_relativePath, file) => {
-        if (file.name.endsWith(".json")) {
+        if (file.name.endsWith(".json") && pageFiles.length < MAX_PAGES) {
           pageFiles.push(file);
         }
       });
       
       for (const pageFile of pageFiles) {
-        const pageContent = await pageFile.async("string");
-        const page = JSON.parse(pageContent) as SketchPage;
+        const page = await safeParseJson<SketchPage>(pageFile);
         pages.push(page);
       }
     }
     
-    // Extract images from images/ folder
+    // Extract images from images/ folder with size limits
     const images = new Map<string, Blob>();
     const imagesFolder = zip.folder("images");
     
     if (imagesFolder) {
       const imageFiles: [string, JSZip.JSZipObject][] = [];
       imagesFolder.forEach((relativePath, file) => {
-        if (!file.dir) {
-          imageFiles.push([relativePath, file]);
+        // Sanitize path and skip directories
+        if (!file.dir && imageFiles.length < MAX_IMAGES) {
+          const sanitizedPath = sanitizeFilename(relativePath);
+          imageFiles.push([sanitizedPath, file]);
         }
       });
       
-      for (const [relativePath, imageFile] of imageFiles) {
+      for (const [sanitizedPath, imageFile] of imageFiles) {
         const blob = await imageFile.async("blob");
-        images.set(relativePath, blob);
+        // Skip images that are too large
+        if (blob.size <= MAX_IMAGE_SIZE) {
+          images.set(sanitizedPath, blob);
+        }
       }
     }
     
