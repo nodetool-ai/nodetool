@@ -1,8 +1,8 @@
-import { Select, MenuItem, TextField, IconButton } from "@mui/material";
 import { ColumnDef } from "../../stores/ApiTypes";
 import CloseIcon from "@mui/icons-material/Close";
 import isEqual from "lodash/isEqual";
 import { memo } from "react";
+import { NodeTextField, NodeSelect, NodeMenuItem, DeleteButton } from "../ui_primitives";
 
 interface ColumnProps {
   index: number;
@@ -29,9 +29,9 @@ const Column: React.FC<ColumnProps> = ({
 }: ColumnProps) => (
   <div className="column" key={index}>
     <div className="item-name">
-      <TextField
+      <NodeTextField
         inputRef={inputRef}
-        className="textfield nodrag"
+        className="textfield"
         margin="dense"
         value={field.name}
         onChange={(e) => handleNameChange(index, e.target.value)}
@@ -39,8 +39,8 @@ const Column: React.FC<ColumnProps> = ({
     </div>
     {showDescription && (
       <div className="item-description">
-        <TextField
-          className="textfield nodrag"
+        <NodeTextField
+          className="textfield"
           margin="dense"
           value={field.description}
           onChange={(e) => handleDescriptionChange(index, e.target.value)}
@@ -49,12 +49,11 @@ const Column: React.FC<ColumnProps> = ({
     )}
 
     <div className="item-datatype">
-      <Select
+      <NodeSelect
         labelId={`${field}-${index}-type`}
         value={field.data_type}
-        onChange={(e) => handleDataTypeChange(index, e.target.value)}
-        variant="standard"
-        className="mui-select nodrag"
+        onChange={(e) => handleDataTypeChange(index, e.target.value as string)}
+        className="mui-select"
         disableUnderline={true}
         MenuProps={{
           anchorOrigin: {
@@ -68,15 +67,13 @@ const Column: React.FC<ColumnProps> = ({
         }}
       >
         {validDataTypes.map((type) => (
-          <MenuItem key={type} value={type}>
+          <NodeMenuItem key={type} value={type}>
             {type}
-          </MenuItem>
+          </NodeMenuItem>
         ))}
-      </Select>
+      </NodeSelect>
     </div>
-    <IconButton className="delete-button" onClick={onDelete} size="small">
-      <CloseIcon fontSize="small" />
-    </IconButton>
+    <DeleteButton onClick={onDelete} buttonSize="small" tooltip="Delete column" className="delete-button" />
   </div>
 );
 

@@ -10,7 +10,7 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
-import { Button, ButtonGroup, Tooltip, TextField, InputAdornment, IconButton } from "@mui/material";
+import { Tooltip, InputAdornment } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import Markdown from "react-markdown";
 
@@ -23,6 +23,7 @@ import { useModalResize } from "../../hooks/editor/useModalResize";
 import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
 import ColumnsManager from "../node/ColumnsManager";
+import { NavButton, NodeTextField, CloseButton as CloseButtonPrimitive } from "../ui_primitives";
 
 interface DataframeEditorModalProps {
   value: DataframeRef;
@@ -569,11 +570,14 @@ const DataframeEditorModal = ({
             <div className="editor-content">
               {!readOnly && (
                 <div className="columns-section">
-                  <ButtonGroup className="add-column-group">
-                    <Button className="add-column" onClick={addColumn}>
-                      <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column
-                    </Button>
-                  </ButtonGroup>
+                  <div className="add-column-group">
+                    <NavButton 
+                      className="add-column" 
+                      onClick={addColumn}
+                      icon={<TableRowsIcon style={{ rotate: "90deg" }} />}
+                      label="Add Column"
+                    />
+                  </div>
                   <ColumnsManager
                     columns={localValue.columns || []}
                     onChange={onChangeColumns}
@@ -583,9 +587,8 @@ const DataframeEditorModal = ({
               )}
               <div className="table-section">
                 <div className="search-bar">
-                  <TextField
+                  <NodeTextField
                     placeholder="Search in table..."
-                    size="small"
                     value={searchFilter}
                     onChange={handleSearchChange}
                     InputProps={{
@@ -596,13 +599,11 @@ const DataframeEditorModal = ({
                       ),
                       endAdornment: searchFilter && (
                         <InputAdornment position="end">
-                          <IconButton
-                            size="small"
+                          <CloseButtonPrimitive
+                            buttonSize="small"
                             onClick={handleClearSearch}
-                            edge="end"
-                          >
-                            <ClearIcon />
-                          </IconButton>
+                            tooltip="Clear search"
+                          />
                         </InputAdornment>
                       )
                     }}
