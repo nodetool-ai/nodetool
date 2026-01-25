@@ -2,7 +2,6 @@ import React from "react";
 import HelpIcon from "@mui/icons-material/Help";
 import { StateIconButton } from "../../ui_primitives";
 import { Typography } from "@mui/material";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface HelpModeToggleProps {
   helpMode: boolean;
@@ -39,7 +38,6 @@ export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
       isActive={helpMode}
       color={helpMode ? "primary" : "default"}
       className={`help-toggle ${helpMode ? "active" : ""}`}
-      enterDelay={TOOLTIP_ENTER_DELAY}
     />
   );
 };
