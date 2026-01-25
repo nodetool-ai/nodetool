@@ -618,3 +618,406 @@ When migrating existing components to use primitives:
 4. **Use EditorUiProvider** for consistent context
 5. **Test with keyboard navigation** and accessibility tools
 6. **Document custom patterns** in component comments
+
+## New State & Toggle Components
+
+### StateIconButton
+
+A versatile icon button that handles multiple states (loading, active, disabled):
+
+```tsx
+import React, { useState } from "react";
+import { StateIconButton } from "../ui_primitives";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import SaveIcon from "@mui/icons-material/Save";
+import FilterIcon from "@mui/icons-material/FilterList";
+import FilterOffIcon from "@mui/icons-material/FilterListOff";
+
+// Simple action button
+export const RunButton: React.FC = () => {
+  const [isRunning, setIsRunning] = useState(false);
+
+  return (
+    <StateIconButton
+      icon={<PlayArrowIcon />}
+      tooltip="Run workflow"
+      onClick={() => setIsRunning(true)}
+      isLoading={isRunning}
+    />
+  );
+};
+
+// Toggle button with active state
+export const FilterButton: React.FC = () => {
+  const [isActive, setIsActive] = useState(false);
+
+  return (
+    <StateIconButton
+      icon={<FilterIcon />}
+      activeIcon={<FilterOffIcon />}
+      tooltip={isActive ? "Disable filter" : "Enable filter"}
+      isActive={isActive}
+      onClick={() => setIsActive(!isActive)}
+      color="primary"
+    />
+  );
+};
+
+// Button with custom colors and sizes
+export const SaveButton: React.FC = () => {
+  const { save, isSaving } = useSave();
+
+  return (
+    <StateIconButton
+      icon={<SaveIcon />}
+      tooltip="Save changes"
+      onClick={save}
+      isLoading={isSaving}
+      size="medium"
+      color="success"
+    />
+  );
+};
+```
+
+### LabeledToggle
+
+A toggle button with icon, label, and expand/collapse indicator:
+
+```tsx
+import React, { useState } from "react";
+import { LabeledToggle } from "../ui_primitives";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
+import PsychologyIcon from "@mui/icons-material/Psychology";
+import InfoIcon from "@mui/icons-material/Info";
+
+// Collapsible section toggle
+export const ReasoningSection: React.FC = () => {
+  const [showReasoning, setShowReasoning] = useState(false);
+
+  return (
+    <div>
+      <LabeledToggle
+        isOpen={showReasoning}
+        onToggle={() => setShowReasoning(!showReasoning)}
+        showLabel="Show reasoning"
+        hideLabel="Hide reasoning"
+        icon={<LightbulbIcon fontSize="inherit" />}
+      />
+      {showReasoning && <div>Reasoning content...</div>}
+    </div>
+  );
+};
+
+// Mode toggle without expand icon
+export const AgentModeToggle: React.FC = () => {
+  const [agentMode, setAgentMode] = useState(false);
+
+  return (
+    <LabeledToggle
+      isOpen={agentMode}
+      onToggle={() => setAgentMode(!agentMode)}
+      showLabel="Enable agent mode"
+      hideLabel="Disable agent mode"
+      icon={<PsychologyIcon fontSize="small" />}
+      showExpandIcon={false}
+    />
+  );
+};
+
+// Simple info toggle
+export const InfoToggle: React.FC = () => {
+  const [showInfo, setShowInfo] = useState(false);
+
+  return (
+    <LabeledToggle
+      isOpen={showInfo}
+      onToggle={() => setShowInfo(!showInfo)}
+      label="More information"
+      icon={<InfoIcon />}
+      size="medium"
+    />
+  );
+};
+```
+
+### CircularActionButton
+
+A circular action button with consistent styling for primary actions:
+
+```tsx
+import React, { useState } from "react";
+import { CircularActionButton } from "../ui_primitives";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import AddIcon from "@mui/icons-material/Add";
+
+// Primary workflow action
+export const RunWorkflowButton: React.FC = () => {
+  const { run, isRunning } = useWorkflow();
+
+  return (
+    <CircularActionButton
+      icon={<PlayArrowIcon />}
+      onClick={run}
+      tooltip="Run workflow"
+      isLoading={isRunning}
+      backgroundColor="primary"
+      size={32}
+    />
+  );
+};
+
+// Scroll to bottom button (fixed position)
+export const ScrollToBottomButton: React.FC<{ isVisible: boolean }> = ({
+  isVisible
+}) => {
+  const scrollToBottom = () => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  };
+
+  return (
+    <CircularActionButton
+      icon={<ArrowDownwardIcon />}
+      onClick={scrollToBottom}
+      tooltip="Scroll to bottom"
+      position="fixed"
+      bottom={120}
+      left="50%"
+      transform="translateX(-50%)"
+      zIndex={1000}
+      isVisible={isVisible}
+      backgroundColor="grey.500"
+      hoverBackgroundColor="grey.400"
+    />
+  );
+};
+
+// Create/add action with custom styling
+export const CreateButton: React.FC = () => {
+  const handleCreate = () => {
+    console.log("Create new item");
+  };
+
+  return (
+    <CircularActionButton
+      icon={<AddIcon />}
+      onClick={handleCreate}
+      tooltip="Create new"
+      size={48}
+      backgroundColor="success.main"
+      color="common.white"
+      opacity={0.9}
+    />
+  );
+};
+
+// Bypass/toggle button with state-based colors
+export const BypassButton: React.FC = () => {
+  const [isBypassed, setIsBypassed] = useState(false);
+
+  return (
+    <CircularActionButton
+      icon={isBypassed ? <VisibilityIcon /> : <VisibilityOffIcon />}
+      onClick={() => setIsBypassed(!isBypassed)}
+      tooltip={isBypassed ? "Enable" : "Bypass"}
+      size={28}
+      backgroundColor={isBypassed ? "warning.dark" : "transparent"}
+      hoverBackgroundColor={isBypassed ? "warning.main" : "grey.800"}
+      color={isBypassed ? "warning.contrastText" : "grey.400"}
+    />
+  );
+};
+```
+
+## Composite Example: Using New Primitives Together
+
+```tsx
+import React, { useState } from "react";
+import {
+  StateIconButton,
+  LabeledToggle,
+  CircularActionButton
+} from "../ui_primitives";
+import SaveIcon from "@mui/icons-material/Save";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import SettingsIcon from "@mui/icons-material/Settings";
+import FilterIcon from "@mui/icons-material/FilterList";
+
+export const WorkflowControls: React.FC = () => {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [filterActive, setFilterActive] = useState(false);
+  const { save, run, isRunning, isSaving } = useWorkflow();
+
+  return (
+    <div className="workflow-controls">
+      {/* Primary action */}
+      <CircularActionButton
+        icon={<PlayArrowIcon />}
+        onClick={run}
+        tooltip="Run workflow"
+        isLoading={isRunning}
+        size={40}
+      />
+
+      {/* Secondary actions */}
+      <div className="secondary-actions">
+        <StateIconButton
+          icon={<SaveIcon />}
+          tooltip="Save"
+          onClick={save}
+          isLoading={isSaving}
+          color="success"
+        />
+
+        <StateIconButton
+          icon={<FilterIcon />}
+          tooltip="Toggle filter"
+          isActive={filterActive}
+          onClick={() => setFilterActive(!filterActive)}
+          color="primary"
+        />
+
+        <StateIconButton
+          icon={<SettingsIcon />}
+          tooltip="Settings"
+          onClick={() => console.log("Open settings")}
+        />
+      </div>
+
+      {/* Advanced options toggle */}
+      <LabeledToggle
+        isOpen={showAdvanced}
+        onToggle={() => setShowAdvanced(!showAdvanced)}
+        showLabel="Show advanced options"
+        hideLabel="Hide advanced options"
+      />
+
+      {showAdvanced && (
+        <div className="advanced-options">
+          {/* Advanced options content */}
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+### ActionButtonGroup
+
+A flexible container for grouping action buttons with consistent spacing and layout:
+
+```tsx
+import React from "react";
+import {
+  ActionButtonGroup,
+  StateIconButton,
+  CircularActionButton
+} from "../ui_primitives";
+import SaveIcon from "@mui/icons-material/Save";
+import DeleteIcon from "@mui/icons-material/Delete";
+import ShareIcon from "@mui/icons-material/Share";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import EditIcon from "@mui/icons-material/Edit";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DownloadIcon from "@mui/icons-material/Download";
+
+// Simple horizontal group
+export const BasicToolbar: React.FC = () => (
+  <ActionButtonGroup>
+    <StateIconButton icon={<SaveIcon />} onClick={handleSave} tooltip="Save" />
+    <StateIconButton icon={<DeleteIcon />} onClick={handleDelete} tooltip="Delete" />
+    <StateIconButton icon={<ShareIcon />} onClick={handleShare} tooltip="Share" />
+  </ActionButtonGroup>
+);
+
+// Vertical group with dividers
+export const VerticalActions: React.FC = () => (
+  <ActionButtonGroup direction="column" divider={true} spacing={0}>
+    <StateIconButton icon={<EditIcon />} onClick={handleEdit} tooltip="Edit" />
+    <StateIconButton icon={<ContentCopyIcon />} onClick={handleCopy} tooltip="Copy" />
+    <StateIconButton icon={<DownloadIcon />} onClick={handleDownload} tooltip="Download" />
+    <StateIconButton icon={<DeleteIcon />} onClick={handleDelete} tooltip="Delete" />
+  </ActionButtonGroup>
+);
+
+// Justified layout (space between)
+export const HeaderActions: React.FC = () => (
+  <ActionButtonGroup justify="space-between" fullWidth>
+    <StateIconButton icon={<EditIcon />} onClick={handleEdit} tooltip="Edit" />
+    <StateIconButton icon={<MoreVertIcon />} onClick={handleMore} tooltip="More" />
+  </ActionButtonGroup>
+);
+
+// With background and padding (card-like)
+export const CardActions: React.FC = () => (
+  <ActionButtonGroup
+    padding={2}
+    borderRadius={2}
+    backgroundColor="background.paper"
+    border="1px solid"
+    borderColor="divider"
+  >
+    <CircularActionButton icon={<SaveIcon />} onClick={handleSave} size={28} />
+    <CircularActionButton icon={<ShareIcon />} onClick={handleShare} size={28} />
+    <CircularActionButton icon={<DeleteIcon />} onClick={handleDelete} size={28} />
+  </ActionButtonGroup>
+);
+
+// Wrapping group for responsive layouts
+export const ResponsiveToolbar: React.FC = () => (
+  <ActionButtonGroup wrap={true} spacing={1.5}>
+    <StateIconButton icon={<SaveIcon />} onClick={handleSave} tooltip="Save" />
+    <StateIconButton icon={<EditIcon />} onClick={handleEdit} tooltip="Edit" />
+    <StateIconButton icon={<ContentCopyIcon />} onClick={handleCopy} tooltip="Copy" />
+    <StateIconButton icon={<ShareIcon />} onClick={handleShare} tooltip="Share" />
+    <StateIconButton icon={<DownloadIcon />} onClick={handleDownload} tooltip="Download" />
+    <StateIconButton icon={<DeleteIcon />} onClick={handleDelete} tooltip="Delete" />
+  </ActionButtonGroup>
+);
+
+// Centered group
+export const CenteredActions: React.FC = () => (
+  <ActionButtonGroup justify="center" fullWidth>
+    <CircularActionButton 
+      icon={<PlayArrowIcon />} 
+      onClick={handlePlay}
+      tooltip="Play"
+      size={48}
+    />
+    <CircularActionButton 
+      icon={<PauseIcon />} 
+      onClick={handlePause}
+      tooltip="Pause"
+      size={48}
+    />
+    <CircularActionButton 
+      icon={<StopIcon />} 
+      onClick={handleStop}
+      tooltip="Stop"
+      size={48}
+    />
+  </ActionButtonGroup>
+);
+
+// Combining with other components
+export const MixedControls: React.FC = () => {
+  const [isActive, setIsActive] = useState(false);
+
+  return (
+    <ActionButtonGroup spacing={2} align="center">
+      <LabeledToggle
+        isOpen={isActive}
+        onToggle={() => setIsActive(!isActive)}
+        label="Active mode"
+        showExpandIcon={false}
+      />
+      
+      <ActionButtonGroup spacing={0.5}>
+        <StateIconButton icon={<SaveIcon />} onClick={handleSave} tooltip="Save" />
+        <StateIconButton icon={<ShareIcon />} onClick={handleShare} tooltip="Share" />
+      </ActionButtonGroup>
+    </ActionButtonGroup>
+  );
+};
+```

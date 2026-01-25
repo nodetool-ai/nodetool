@@ -118,6 +118,19 @@ export type { MenuItemPrimitiveProps } from "./MenuItemPrimitive";
 export { HelpButton } from "./HelpButton";
 export type { HelpButtonProps, HelpIconVariant } from "./HelpButton";
 
+// New composite/state buttons
+export { StateIconButton } from "./StateIconButton";
+export type { StateIconButtonProps } from "./StateIconButton";
+
+export { LabeledToggle } from "./LabeledToggle";
+export type { LabeledToggleProps } from "./LabeledToggle";
+
+export { CircularActionButton } from "./CircularActionButton";
+export type { CircularActionButtonProps } from "./CircularActionButton";
+
+export { ActionButtonGroup } from "./ActionButtonGroup";
+export type { ActionButtonGroupProps } from "./ActionButtonGroup";
+
 // Re-export editor_ui primitives for convenience
 export {
   NodeTextField,
