@@ -248,109 +248,72 @@ const DataframeProperty = ({
     (value.columns && value.columns.length > 0) ||
     (value.data && value.data.length > 0);
 
-  if (nodeType === "nodetool.constant.DataFrame") {
-    return (
-      <div
-        className="dataframe-editor"
-        css={styles(theme)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className="property-header">
-          <ButtonGroup className="button-group">
-            <Button className="add-column" onClick={addColumn}>
-              <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column
-            </Button>
-          </ButtonGroup>
-          {isHovered && (
-            <div className="dataframe-action-buttons">
-              <Tooltip title="Open Editor" placement="bottom">
-                <IconButton size="small" onClick={toggleExpand}>
-                  <OpenInFullIcon />
-                </IconButton>
-              </Tooltip>
-            </div>
-          )}
-        </div>
-
-        {/* Drop zone for CSV/Excel files */}
-        <div
-          className={`dropzone ${isDragOver ? "drag-over" : ""}`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <div className="dropzone-content">
-            <UploadFileIcon />
-            <span className="dropzone-text">
-              {isLoading ? "Loading..." : "Drop CSV or Excel file"}
-            </span>
-            <span className="dropzone-subtext">Supported: CSV, XLSX, XLS</span>
+  return (
+    <div
+      className="dataframe-editor"
+      css={styles(theme)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="property-header">
+        <ButtonGroup className="button-group">
+          <Button className="add-column" onClick={addColumn}>
+            <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column
+          </Button>
+        </ButtonGroup>
+        {isHovered && (
+          <div className="dataframe-action-buttons">
+            <Tooltip title="Open Editor" placement="bottom">
+              <IconButton size="small" onClick={toggleExpand}>
+                <OpenInFullIcon />
+              </IconButton>
+            </Tooltip>
           </div>
-        </div>
-
-        {hasData && (
-          <>
-            <ColumnsManager
-              columns={value.columns || []}
-              onChange={onChangeColumns}
-              allData={value.data || []}
-            />
-            <DataTable
-              dataframe={value}
-              onChange={onCellChange}
-              editable={true}
-            />
-          </>
-        )}
-
-        {isExpanded && (
-          <DataframeEditorModal
-            value={value}
-            onChange={onChange}
-            onClose={toggleExpand}
-            propertyName={property.name}
-            propertyDescription={property.description ?? undefined}
-          />
         )}
       </div>
-    );
-  } else {
-    return (
+
+      {/* Drop zone for CSV/Excel files */}
       <div
-        className="dataframe-property"
-        css={styles(theme)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className={`dropzone ${isDragOver ? "drag-over" : ""}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
-        <div className="property-header">
-          <PropertyLabel
-            name={property.name}
-            description={property.description}
-            id={id}
-          />
-          {isHovered && (
-            <div className="dataframe-action-buttons">
-              <Tooltip title="Open Editor" placement="bottom">
-                <IconButton size="small" onClick={toggleExpand}>
-                  <OpenInFullIcon />
-                </IconButton>
-              </Tooltip>
-            </div>
-          )}
+        <div className="dropzone-content">
+          <UploadFileIcon />
+          <span className="dropzone-text">
+            {isLoading ? "Loading..." : "Drop CSV or Excel file"}
+          </span>
+          <span className="dropzone-subtext">Supported: CSV, XLSX, XLS</span>
         </div>
-        {isExpanded && (
-          <DataframeEditorModal
-            value={value}
-            onChange={onChange}
-            onClose={toggleExpand}
-            propertyName={property.name}
-            propertyDescription={property.description ?? undefined}
-          />
-        )}
       </div>
-    );
-  }
+
+      {hasData && (
+        <>
+          <ColumnsManager
+            columns={value.columns || []}
+            onChange={onChangeColumns}
+            allData={value.data || []}
+          />
+          <DataTable
+            dataframe={value}
+            onChange={onCellChange}
+            editable={true}
+          />
+        </>
+      )}
+
+      {isExpanded && (
+        <DataframeEditorModal
+          value={value}
+          onChange={onChange}
+          onClose={toggleExpand}
+          propertyName={property.name}
+          propertyDescription={property.description ?? undefined}
+        />
+      )}
+    </div>
+  );
 };
 
 export default memo(DataframeProperty, isEqual);
