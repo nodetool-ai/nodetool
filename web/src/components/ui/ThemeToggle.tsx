@@ -20,7 +20,7 @@ export const ThemeToggle: React.FC = () => {
       tooltip={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
       onClick={toggleTheme}
       size="small"
-      color="inherit"
+      color="default"
       sx={{
         color: "var(--palette-text-primary)"
       }}

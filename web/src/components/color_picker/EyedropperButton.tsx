@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import { StateIconButton } from "../ui_primitives";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 import log from "loglevel";
+import type { Theme } from "@mui/material/styles";
 
 // EyeDropper API types (not yet in TypeScript standard library)
 interface EyeDropperResult {
@@ -72,7 +73,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
       isLoading={isPicking}
       size="small"
       className="eyedropper-button"
-      sx={(theme) => ({
+      sx={(theme: Theme) => ({
         borderRadius: "4px",
         backgroundColor: theme.vars.palette.grey[800],
         border: `1px solid ${theme.vars.palette.grey[700]}`,
