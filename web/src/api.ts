@@ -74,6 +74,7 @@ export interface paths {
         /**
          * Index
          * @description Returns all assets for a given user or workflow.
+         *     Can be filtered by parent_id, content_type, workflow_id, node_id, or job_id.
          */
         get: operations["index_api_assets__get"];
         put?: never;
@@ -2851,6 +2852,10 @@ export interface components {
             thumb_url: string | null;
             /** Duration */
             duration?: number | null;
+            /** Node Id */
+            node_id?: string | null;
+            /** Job Id */
+            job_id?: string | null;
         };
         /** AssetDownloadRequest */
         AssetDownloadRequest: {
@@ -3000,6 +3005,10 @@ export interface components {
             thumb_url: string | null;
             /** Duration */
             duration: number | null;
+            /** Node Id */
+            node_id?: string | null;
+            /** Job Id */
+            job_id?: string | null;
             /**
              * Folder Name
              * @description Direct parent folder name
@@ -3550,6 +3559,22 @@ export interface components {
          * @enum {string}
          */
         ExecutionStrategy: "threaded" | "subprocess" | "docker";
+        /**
+         * FileInfo
+         * @description Information about a file or directory.
+         */
+        FileInfo: {
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Size */
+            size: number;
+            /** Is Dir */
+            is_dir: boolean;
+            /** Modified At */
+            modified_at: string;
+        };
         /** FilePath */
         FilePath: {
             /**
@@ -6366,7 +6391,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "cerebras" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "empty" | "mlx" | "fal_ai" | "fake" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "cerebras" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "zai" | "empty" | "mlx" | "fal_ai" | "fake" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
         /**
          * ProviderAggregateResponse
          * @description Response model for provider-level aggregation.
@@ -7551,22 +7576,6 @@ export interface components {
             /** Modified At */
             modified_at: string;
         };
-        /**
-         * FileInfo
-         * @description Information about a file or directory.
-         */
-        nodetool__api__workspace__FileInfo: {
-            /** Name */
-            name: string;
-            /** Path */
-            path: string;
-            /** Size */
-            size: number;
-            /** Is Dir */
-            is_dir: boolean;
-            /** Modified At */
-            modified_at: string;
-        };
     };
     responses: never;
     parameters: never;
@@ -7656,6 +7665,9 @@ export interface operations {
             query?: {
                 parent_id?: string | null;
                 content_type?: string | null;
+                workflow_id?: string | null;
+                node_id?: string | null;
+                job_id?: string | null;
                 cursor?: string | null;
                 page_size?: number | null;
                 _duration?: number | null;
@@ -10608,7 +10620,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["nodetool__api__workspace__FileInfo"][];
+                    "application/json": components["schemas"]["FileInfo"][];
                 };
             };
             /** @description Validation Error */

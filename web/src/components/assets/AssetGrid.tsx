@@ -91,30 +91,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
-  const _isGlobalSearchActive = useAssetGridStore(
-    (state) => state.isGlobalSearchActive
-  );
-  const _isGlobalSearchMode = useAssetGridStore(
-    (state) => state.isGlobalSearchMode
-  );
-  const _globalSearchResults = useAssetGridStore(
-    (state) => state.globalSearchResults
-  );
-  const _setIsGlobalSearchActive = useAssetGridStore(
-    (state) => state.setIsGlobalSearchActive
-  );
-  const _setIsGlobalSearchMode = useAssetGridStore(
-    (state) => state.setIsGlobalSearchMode
-  );
-  const _setCurrentFolderId = useAssetGridStore(
-    (state) => state.setCurrentFolderId
-  );
-  void _isGlobalSearchActive;
-  void _isGlobalSearchMode;
-  void _globalSearchResults;
-  void _setIsGlobalSearchActive;
-  void _setIsGlobalSearchMode;
-  void _setCurrentFolderId;
   const theme = useTheme();
 
   // Dockview panel components are defined below; handlers for files live inside the Files panel

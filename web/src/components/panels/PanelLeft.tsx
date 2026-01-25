@@ -16,6 +16,7 @@ import isEqual from "lodash/isEqual";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
+
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -28,6 +29,7 @@ import PanelHeadline from "../ui/PanelHeadline";
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
 import DatasetIcon from "@mui/icons-material/Dataset";
+
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
 // Models, Workspaces, and Collections (modals)
@@ -158,7 +160,7 @@ const styles = (
     ".panel-inner-content": {
       display: "flex",
       flex: 1,
-      height: "100%", 
+      height: "100%",
       overflow: "hidden"
     },
 
@@ -198,7 +200,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handlePanelToggle: () => void;
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
-  
+
   // Modal states for Collections, Models, and Workspaces
   const isCollectionsOpen = useCollectionsManagerStore((state) => state.isOpen);
   const setCollectionsOpen = useCollectionsManagerStore((state) => state.setIsOpen);
@@ -206,7 +208,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   const setModelsOpen = useModelManagerStore((state) => state.setIsOpen);
   const isWorkspacesOpen = useWorkspaceManagerStore((state) => state.isOpen);
   const setWorkspacesOpen = useWorkspaceManagerStore((state) => state.setIsOpen);
-  
+
   // Conditional visibility for Models/Workspaces
   const showModelsWorkspaces = getIsElectronDetails().isElectron || !isProduction;
 
@@ -264,6 +266,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <IconForType iconName="asset" showTooltip={false} iconSize="small" />
         </IconButton>
       </Tooltip>
+
 
       {/* Divider between drawer views and external actions */}
       <Divider sx={{ my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" }} />
@@ -389,6 +392,7 @@ const PanelContent = memo(function PanelContent({
           </Box>
         </Box>
       )}
+
     </>
   );
 });
@@ -415,6 +419,7 @@ const PanelLeft: React.FC = () => {
 
   useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["2"], () => handlePanelToggle("assets"), false);
+
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";
