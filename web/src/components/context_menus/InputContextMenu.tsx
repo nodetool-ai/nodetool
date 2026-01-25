@@ -71,10 +71,36 @@ const getNodePathsForType = (
     enum: {
       inputPath: "nodetool.input.SelectInput",
       constantPath: "nodetool.constant.Select"
+    },
+    // Model types
+    language_model: {
+      inputPath: "nodetool.input.LanguageModelInput",
+      constantPath: "nodetool.constant.LanguageModelConstant"
+    },
+    image_model: {
+      inputPath: "nodetool.input.ImageModelInput",
+      constantPath: "nodetool.constant.ImageModelConstant"
+    },
+    video_model: {
+      inputPath: "nodetool.input.VideoModelInput",
+      constantPath: "nodetool.constant.VideoModelConstant"
+    },
+    tts_model: {
+      inputPath: "nodetool.input.TTSModelInput",
+      constantPath: "nodetool.constant.TTSModelConstant"
+    },
+    asr_model: {
+      inputPath: "nodetool.input.ASRModelInput",
+      constantPath: "nodetool.constant.ASRModelConstant"
+    },
+    embedding_model: {
+      inputPath: "nodetool.input.EmbeddingModelInput",
+      constantPath: "nodetool.constant.EmbeddingModelConstant"
     }
   };
   return mapping[typeName] ?? null;
 };
+
 
 const InputContextMenu: React.FC = () => {
   const theme = useTheme();
