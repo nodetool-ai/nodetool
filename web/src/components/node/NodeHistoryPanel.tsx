@@ -30,6 +30,35 @@ interface NodeHistoryPanelProps {
   onClose: () => void;
 }
 
+function ConfirmDialog({
+  open,
+  title,
+  message,
+  onConfirm,
+  onCancel
+}: {
+  open: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
+      <DialogTitle>{title}</DialogTitle>
+      <DialogContent>
+        <Typography>{message}</Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button onClick={onConfirm} color="error" variant="contained">
+          Confirm
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 /**
  * Extract image URIs from a result object.
  * Handles various result formats: single images, arrays, nested objects.
@@ -109,6 +138,7 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
 }) => {
   const theme = useTheme();
   const [showAssetHistory, setShowAssetHistory] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const {
     sessionHistory,
@@ -134,16 +164,17 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
   }, [loadAssetHistory]);
 
   const handleClearHistory = useCallback(() => {
-    // Confirm before clearing history
-     
-    if (
-      window.confirm(
-        "Are you sure you want to clear the history for this node?"
-      )
-    ) {
-      clearHistory();
-    }
+    setShowClearConfirm(true);
+  }, []);
+
+  const handleConfirmClearHistory = useCallback(() => {
+    clearHistory();
+    setShowClearConfirm(false);
   }, [clearHistory]);
+
+  const handleCancelClearHistory = useCallback(() => {
+    setShowClearConfirm(false);
+  }, []);
 
   const handleImageDoubleClick = useCallback((index: number) => {
     // Could open image in lightbox or asset viewer
@@ -289,6 +320,13 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
         </Button>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
+      <ConfirmDialog
+        open={showClearConfirm}
+        title="Clear History"
+        message="Are you sure you want to clear the history for this node?"
+        onConfirm={handleConfirmClearHistory}
+        onCancel={handleCancelClearHistory}
+      />
     </Dialog>
   );
 };
