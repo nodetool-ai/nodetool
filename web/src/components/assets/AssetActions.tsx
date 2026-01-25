@@ -35,7 +35,7 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import FileUploadButton from "../buttons/FileUploadButton";
+import { UploadButton } from "../ui_primitives";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -311,9 +311,11 @@ const AssetActions = ({
   }, [createFolder, currentFolder?.id, createFolderName, addNotification, refetchAssetsAndFolders]);
   return (
     <div className="asset-actions" css={styles(theme)}>
-      <FileUploadButton
-        onFileChange={(files) => onUploadFiles?.(files)}
-        compact
+      <UploadButton
+        onFileSelect={(files) => onUploadFiles?.(files)}
+        iconVariant="file"
+        tooltip="Upload files"
+        multiple
       />
       <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
         <Tooltip
