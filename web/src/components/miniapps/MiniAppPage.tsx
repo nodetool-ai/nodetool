@@ -147,6 +147,10 @@ const MiniAppPage: React.FC = () => {
     workflowNodes
   ]);
 
+  const handleCancelWorkflow = useCallback(() => {
+    void cancelWorkflow();
+  }, [cancelWorkflow]);
+
   const isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
@@ -276,7 +280,7 @@ const MiniAppPage: React.FC = () => {
                     <Button
                       color="warning"
                       variant="contained"
-                      onClick={() => void cancelWorkflow()}
+                      onClick={handleCancelWorkflow}
                       className="generate-button"
                       fullWidth
                     >

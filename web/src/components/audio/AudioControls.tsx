@@ -177,6 +177,15 @@ const AudioControls: React.FC<AudioControlsProps> = ({
     },
     [onZoomChange]
   );
+
+  const handleToggleLoop = useCallback(() => {
+    setLoop(!loop);
+  }, [loop]);
+
+  const handleToggleMute = useCallback(() => {
+    setMute(!mute);
+  }, [mute]);
+
   return (
     <div
       css={styles(theme)}
@@ -206,7 +215,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 className={`loop-button${loop ? "" : " disabled"}`}
                 size="small"
                 color="primary"
-                onClick={() => setLoop(!loop)}
+                onClick={handleToggleLoop}
               >
                 <LoopIcon />
               </Button>
@@ -216,7 +225,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
                 className={`mute-button${mute ? "" : " disabled"}`}
                 size="small"
                 color="primary"
-                onClick={() => setMute(!mute)}
+                onClick={handleToggleMute}
               >
                 {mute ? <OffIcon /> : <UpIcon />}
               </Button>

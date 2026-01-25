@@ -329,6 +329,13 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     onSetCurrentAudioAsset?.(asset);
   }, [onSetCurrentAudioAsset, asset]);
 
+  const handleDoubleClickWithStop = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDoubleClick) {
+      onDoubleClick(asset);
+    }
+  }, [onDoubleClick, asset]);
+
   const result = (
     <div
       css={styles(theme)}
@@ -341,12 +348,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       draggable={draggable}
       onDragStart={handleDrag}
       onDragEnd={handleDragEnd}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        if (onDoubleClick) {
-          onDoubleClick(asset);
-        }
-      }}
+      onDoubleClick={handleDoubleClickWithStop}
       onClick={() => handleClick(onSelect, onClickParent, isParent)}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
@@ -362,7 +364,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         >
           <DeleteButton
             className="asset-delete"
-            onClick={() => handleDelete()}
+            onClick={handleDelete}
             buttonSize="small"
           />
         </div>

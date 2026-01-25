@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Box, IconButton, Tooltip, Typography, Collapse } from "@mui/material";
@@ -25,6 +25,18 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [showGraph, setShowGraph] = useState(true);
+
+  const handleOpenPanel = useCallback(() => {
+    setIsOpen(true);
+  }, []);
+
+  const handleClosePanel = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const handleToggleGraph = useCallback(() => {
+    setShowGraph(!showGraph);
+  }, [showGraph]);
 
   const panelWidth = 360;
 
@@ -146,7 +158,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
         <Tooltip title="Open settings" placement="left">
           <IconButton
             className="side-panel-toggle"
-            onClick={() => setIsOpen(true)}
+            onClick={handleOpenPanel}
             size="small"
           >
             <MenuIcon fontSize="small" />
@@ -157,13 +169,13 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
       {/* Backdrop */}
       <div
         className="side-panel-backdrop"
-        onClick={() => setIsOpen(false)}
+        onClick={handleClosePanel}
       />
 
       {/* Panel */}
       <div className="side-panel">
         <div className="side-panel-header">
-          <IconButton size="small" onClick={() => setIsOpen(false)}>
+          <IconButton size="small" onClick={handleClosePanel}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </div>
@@ -187,7 +199,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
           <div className="panel-section" style={{ marginTop: theme.spacing(1) }}>
             <div
               className="panel-section-header"
-              onClick={() => setShowGraph(!showGraph)}
+              onClick={handleToggleGraph}
             >
               <span className="panel-section-title">
                 <AccountTreeIcon sx={{ fontSize: 16 }} />
