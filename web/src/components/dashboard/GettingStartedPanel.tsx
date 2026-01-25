@@ -276,7 +276,7 @@ const InlineModelDownload: React.FC<{
   const downloadKey = model.repo_id || model.id;
 
   const inProgress = !!downloads[downloadKey];
-  
+
   const handleDownload = useCallback(() => {
     startDownload(
       model.repo_id || "",
@@ -397,7 +397,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   const fetchSecrets = useSecretsStore((state) => state.fetchSecrets);
 
   useQuery({
-    queryKey: ["secrets-onboarding"],
+    queryKey: ["secrets"],
     queryFn: () => fetchSecrets(),
     staleTime: 30000
   });
@@ -408,10 +408,10 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
     queryFn: async () => {
       const { data } = await client.GET("/api/models/ollama");
       // Handle potential response structures (array or object with models property)
-      if (Array.isArray(data)) {return data;}
-      
+      if (Array.isArray(data)) { return data; }
+
       const responseData = data as any;
-      if (responseData?.models && Array.isArray(responseData.models)) {return responseData.models;}
+      if (responseData?.models && Array.isArray(responseData.models)) { return responseData.models; }
       return [];
     },
     refetchInterval: 5000 // Poll every 5s to check for new downloads
@@ -430,12 +430,12 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   }, [secrets]);
 
   // Getting started progress from store (persisted in localStorage)
-  const { 
-    progress, 
-    setHasCreatedWorkflow, 
-    setHasTriedTemplate 
+  const {
+    progress,
+    setHasCreatedWorkflow,
+    setHasTriedTemplate
   } = useGettingStartedStore();
-  
+
   const hasCreatedWorkflow = progress.hasCreatedWorkflow;
   const hasTriedTemplate = progress.hasTriedTemplate;
 
@@ -447,7 +447,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   }, [isLoadingWorkflows, sortedWorkflows.length, hasCreatedWorkflow, setHasCreatedWorkflow]);
 
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
-  
+
   const handleOpenSettings = useCallback(() => {
     // Open settings dialog on "API Settings" tab (index 1)
     setMenuOpen(true, 1);
@@ -548,7 +548,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
             variant="body2"
             sx={{ color: "text.secondary", fontSize: "0.85rem" }}
           >
-            {progressPercentage < 100 
+            {progressPercentage < 100
               ? "Complete these steps to get up and running"
               : "All set, welcome to NodeTool!"}
           </Typography>
@@ -638,7 +638,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
                                 <div className="local-model-actions">
                                   <Box className="model-variant-buttons">
                                     {((model as FeaturedModel).variants &&
-                                    (model as FeaturedModel).variants!.length > 0
+                                      (model as FeaturedModel).variants!.length > 0
                                       ? (model as FeaturedModel).variants!
                                       : [model.id.split(":")[1] || "latest"]
                                     ).map((variant) => {
@@ -692,14 +692,14 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
                                 >
                                   {((model as FeaturedModel).reasoning ??
                                     false) && (
-                                    <Chip
-                                      size="small"
-                                      label="Reasoning"
-                                      color="primary"
-                                      variant="outlined"
-                                      sx={{ height: "20px", fontSize: "0.7em" }}
-                                    />
-                                  )}
+                                      <Chip
+                                        size="small"
+                                        label="Reasoning"
+                                        color="primary"
+                                        variant="outlined"
+                                        sx={{ height: "20px", fontSize: "0.7em" }}
+                                      />
+                                    )}
                                   {((model as FeaturedModel).vision ?? false) && (
                                     <Chip
                                       size="small"
