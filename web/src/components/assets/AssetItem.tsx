@@ -352,11 +352,20 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       onDragOver={handleDragOver}
     >
       {showDeleteButton && (
-        <DeleteButton
-          className="asset-delete"
-          onClick={() => handleDelete()}
-          buttonSize="small"
-        />
+        <div
+          css={css({
+            position: "absolute",
+            top: 0,
+            right: 0,
+            zIndex: 1000
+          })}
+        >
+          <DeleteButton
+            className="asset-delete"
+            onClick={() => handleDelete()}
+            buttonSize="small"
+          />
+        </div>
       )}
       <div className="asset">
         {!asset.get_url && <div className="asset-missing" />}
