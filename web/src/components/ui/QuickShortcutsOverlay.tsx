@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, Fragment } from "react";
 import { css } from "@emotion/react";
 import {
   Box,
@@ -21,6 +21,8 @@ import {
   type Shortcut
 } from "../../config/shortcuts";
 import { isMac } from "../../utils/platform";
+
+import type { FC } from "react";
 
 interface QuickShortcutsOverlayProps {
   open: boolean;
@@ -202,7 +204,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const QuickShortcutsOverlay: React.FC<QuickShortcutsOverlayProps> = ({
+const QuickShortcutsOverlay: FC<QuickShortcutsOverlayProps> = ({
   open,
   onClose
 }) => {
@@ -392,12 +394,12 @@ const QuickShortcutsOverlay: React.FC<QuickShortcutsOverlayProps> = ({
                       </Box>
                       <Box className="shortcut-keys">
                         {shortcut.keyCombo.map((key, idx) => (
-                          <React.Fragment key={idx}>
+                          <Fragment key={`${shortcut.slug}-${idx}`}>
                             <Box className="key">{formatKey(key)}</Box>
                             {idx < shortcut.keyCombo.length - 1 && (
                               <span className="key-separator">+</span>
                             )}
-                          </React.Fragment>
+                          </Fragment>
                         ))}
                       </Box>
                     </Box>

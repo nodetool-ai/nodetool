@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### UI/Frontend
+- **Quick Keyboard Shortcuts Overlay** - Press `?` in the workflow editor to instantly view all available keyboard shortcuts with search and category filtering
 - Node bypass feature to skip nodes in workflows without deleting them
 - Professional image editor with crop, rotate, flip, and draw tools
 - Professional color picker with harmony modes, gradient builder, swatches, and contrast checker
