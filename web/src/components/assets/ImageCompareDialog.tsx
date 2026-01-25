@@ -8,7 +8,6 @@ import type { Theme } from "@mui/material/styles";
 
 import { ImageComparer } from "../widgets";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-
 import { useCombo } from "../../stores/KeyPressedStore";
 
 const styles = (theme: Theme) =>
