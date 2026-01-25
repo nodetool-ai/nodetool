@@ -66,7 +66,7 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
     <div css={errorStyles(theme)} className="node-error nodrag nowheel">
       <Box sx={{ position: "absolute", top: 10, right: 10 }}>
         <CopyButton
-          value={String(errorDisplay)}
+          value={errorDisplay}
           tooltip="Copy to clipboard"
         />
       </Box>

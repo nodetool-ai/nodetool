@@ -188,7 +188,7 @@ export const CopyButton = memo(
                 color: theme.vars.palette.grey[100],
                 backgroundColor: "rgba(255, 255, 255, 0.08)"
               },
-              ...sx
+              ...(sx ?? {})
             }}
           >
             {state === "error" ? (
