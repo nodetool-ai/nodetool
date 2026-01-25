@@ -24,7 +24,8 @@ export const muiComponentsByCategory = {
     "TextareaAutosize",
     "IconButton"
   ],
-  dataDisplay: ["Typography", "List", "ListItem", "ListItemText", "Chip"]
+  dataDisplay: ["Typography", "List", "ListItem", "ListItemText", "Chip"],
+  uiPrimitives: ["UIPrimitivesButtons"]
   // feedback: ["Alert", "CircularProgress", "LinearProgress", "Tooltip"],
   // surfaces: [
   //   'Dialog', 'DialogActions', 'DialogContent', 'DialogTitle', 'Popover'

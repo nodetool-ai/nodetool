@@ -13,7 +13,7 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { getShortcutTooltip } from "../config/shortcuts";
-import { CopyToClipboardButton } from "../components/common/CopyToClipboardButton";
+import { CopyButton } from "../components/ui_primitives";
 
 interface MarkdownRendererProps {
   content: string;
@@ -165,7 +165,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
       >
         {(isHovered || Boolean(isReadme)) && (
           <div className="markdown-output-actions">
-            <CopyToClipboardButton copyValue={content ?? ""} size="small" />
+            <CopyButton value={content ?? ""} buttonSize="small" />
             <Tooltip title="Enter fullscreen" enterDelay={TOOLTIP_ENTER_DELAY}>
               <IconButton
                 className="fullscreen-button"
@@ -232,9 +232,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           }}
         >
           <div className="markdown-output-actions">
-            <CopyToClipboardButton
-              copyValue={content ?? ""}
-              size="small"
+            <CopyButton
+              value={content ?? ""}
+              buttonSize="small"
               tooltipPlacement="bottom"
             />
             <Tooltip

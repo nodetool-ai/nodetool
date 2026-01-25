@@ -299,8 +299,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         },
 
        /**
-        * Creates a new workflow using the backend API.
-        * Ensures the workflow exists server-side for autosave and edits.
+        * Creates a new workflow in memory only.
+        * Does not save to server until saveWorkflow() is explicitly called.
         * Generates a unique name like NEW_001, NEW_002, etc.
         * @returns {Promise<Workflow>} The created workflow
         */
@@ -339,19 +339,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          const nextNumber = highestNumber + 1;
          const newName = `NEW_${nextNumber.toString().padStart(3, "0")}`;
 
-         return get().create({
-           name: newName,
-           description: "",
-           access: "private",
-           graph: {
-             nodes: [],
-             edges: []
-           },
-           settings: {
-             hide_ui: false
-           },
-           run_mode: "workflow"
-         });
+         const workflow = get().newWorkflow();
+         workflow.name = newName;
+         get().addWorkflow(workflow);
+         get().setCurrentWorkflowId(workflow.id);
+         return workflow;
        },
 
        /**

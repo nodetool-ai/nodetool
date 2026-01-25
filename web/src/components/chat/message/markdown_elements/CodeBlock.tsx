@@ -8,7 +8,7 @@ import {
   oneLight
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
-import { CopyToClipboardButton } from "../../../common/CopyToClipboardButton";
+import { CopyButton } from "../../../ui_primitives/CopyButton";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 
 interface CodeBlockProps {
@@ -98,7 +98,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
                 Insert into editor
               </button>
             )}
-            <CopyToClipboardButton copyValue={codeContent} />
+            <CopyButton value={codeContent} />
           </div>
         </div>
         <SyntaxHighlighter

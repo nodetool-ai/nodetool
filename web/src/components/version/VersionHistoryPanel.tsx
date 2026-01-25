@@ -8,7 +8,6 @@ import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Typography,
-  IconButton,
   List,
   Paper,
   Button,
@@ -16,14 +15,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
   CircularProgress
 } from "@mui/material";
 import {
-  Close as CloseIcon,
   Compare as CompareIcon,
   FilterList as FilterIcon
 } from "@mui/icons-material";
@@ -35,6 +32,7 @@ import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import PanelHeadline from "../ui/PanelHeadline";
+import { CloseButton, DialogActionButtons } from "../ui_primitives";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
@@ -252,9 +250,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         <PanelHeadline
           title="Version History"
           actions={
-            <IconButton onClick={onClose} size="small">
-              <CloseIcon />
-            </IconButton>
+            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
           }
         />
         <Typography color="error">Failed to load versions</Typography>
@@ -283,9 +279,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         <PanelHeadline
           title="Version History"
           actions={
-            <IconButton onClick={onClose} size="small">
-              <CloseIcon />
-            </IconButton>
+            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
           }
         />
       </Box>
@@ -451,12 +445,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>Cancel</Button>
-          <Button onClick={handleConfirmDelete} color="error" autoFocus>
-            Delete
-          </Button>
-        </DialogActions>
+        <DialogActionButtons
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCloseDeleteDialog}
+          confirmText="Delete"
+          destructive
+        />
       </Dialog>
     </Box>
   );

@@ -89,7 +89,7 @@ const StandaloneMiniApp: React.FC = () => {
     setSubmitError(null);
   }, [workflowId]);
 
-  const handleSubmit = useCallback(async () => {
+  const _handleSubmit = useCallback(async () => {
     if (!workflow) {
       return;
     }
@@ -144,7 +144,7 @@ const StandaloneMiniApp: React.FC = () => {
     workflowNodes
   ]);
 
-  const isSubmitDisabled =
+  const _isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
   const activeNodeStore = useWorkflowManager((state) =>
@@ -225,8 +225,6 @@ const StandaloneMiniApp: React.FC = () => {
                 inputDefinitions={inputDefinitions}
                 inputValues={inputValues}
                 onInputChange={updateInputValue}
-                isSubmitDisabled={isSubmitDisabled}
-                onSubmit={handleSubmit}
                 onError={setSubmitError}
               />
               <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>

@@ -468,10 +468,10 @@ const Inspector: React.FC = () => {
                     const sourceMeta = getMetadata(sourceNode.type || "");
                     const handle = sourceMeta
                       ? findOutputHandle(
-                          sourceNode,
-                          incoming.sourceHandle || "",
-                          sourceMeta
-                        )
+                        sourceNode,
+                        incoming.sourceHandle || "",
+                        sourceMeta
+                      )
                       : undefined;
                     if (handle?.type) {
                       resolvedType = handle.type;

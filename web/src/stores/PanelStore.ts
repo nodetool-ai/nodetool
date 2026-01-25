@@ -1,9 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type LeftPanelView =
-  | "assets"
-  | "workflowGrid";
+export type LeftPanelView = "assets" | "workflowGrid";
 export type PanelView = LeftPanelView;
 
 interface PanelState {

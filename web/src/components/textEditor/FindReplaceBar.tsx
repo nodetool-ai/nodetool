@@ -4,11 +4,11 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useState, useEffect, useCallback } from "react";
 import { Box, IconButton, TextField, Tooltip } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { CloseButton } from "../ui_primitives";
 
 const MAX_SEARCH_LENGTH = 1000;
 
@@ -305,11 +305,7 @@ const FindReplaceBar = ({
         </div>
       )}
 
-      <Tooltip title="Close Find/Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
-        <IconButton className="toolbar-button" onClick={onClose} size="small">
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <CloseButton onClick={() => onClose?.()} buttonSize="small" tooltip="Close Find/Replace" className="toolbar-button" />
     </Box>
   );
 };

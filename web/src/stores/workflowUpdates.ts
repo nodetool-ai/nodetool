@@ -26,6 +26,7 @@ import { useNotificationStore } from "./NotificationStore";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
+import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 
 type WorkflowSubscription = {
   workflowId: string;
@@ -169,6 +170,7 @@ export const handleUpdate = (
   const startExecution = useExecutionTimeStore.getState().startExecution;
   const endExecution = useExecutionTimeStore.getState().endExecution;
   const clearTimings = useExecutionTimeStore.getState().clearTimings;
+  const addToHistory = useNodeResultHistoryStore.getState().addToHistory;
 
   if (window.__UPDATES__ === undefined) {
     window.__UPDATES__ = [];
@@ -459,6 +461,14 @@ export const handleUpdate = (
       // Store result if present
       if (update.result) {
         setResult(workflow.id, update.node_id, update.result);
+        
+        // Add to history (persists across runs)
+        addToHistory(workflow.id, update.node_id, {
+          result: update.result,
+          timestamp: Date.now(),
+          jobId: runner.job_id,
+          status: update.status
+        });
       }
     }
 
