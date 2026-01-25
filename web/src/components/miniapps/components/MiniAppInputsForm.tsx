@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Typography } from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
+import { Tooltip, Typography } from "@mui/material";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
 import { PropertyProps } from "../../node/PropertyInput";
@@ -164,6 +164,31 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
   onInputChange,
   onError
 }) => {
+  const [stringDrafts, setStringDrafts] = useState<Record<string, string>>({});
+
+  // Seed drafts for string inputs from stored values.
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    let changed = false;
+
+    inputDefinitions.forEach((definition) => {
+      if (definition.kind !== "string") {
+        return;
+      }
+      const key = definition.data.name;
+      if (stringDrafts[key] !== undefined) {
+        return;
+      }
+      const stored = inputValues[key];
+      next[key] = typeof stored === "string" ? stored : "";
+      changed = true;
+    });
+
+    if (changed) {
+      setStringDrafts((prev) => ({ ...next, ...prev }));
+    }
+  }, [inputDefinitions, inputValues, stringDrafts]);
+
   const propertyEntries = useMemo(
     () =>
       inputDefinitions
@@ -220,6 +245,8 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
             if (definition.kind === "string") {
               const { maxLength, lineMode } = getStringInputConfig(definition);
               const multiline = lineMode === "multiline";
+              const draft = stringDrafts[definition.data.name] ?? (typeof value === "string" ? value : "");
+              const exceedsMaxLength = maxLength > 0 && draft.length > maxLength;
 
               return (
                 <div
@@ -235,24 +262,43 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                       />
                       <NodeTextField
                         className={cn("string-value-input", editorClassNames.nowheel)}
-                        value={typeof value === "string" ? value : ""}
+                        value={draft}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const raw = e.target.value ?? "";
-                          const next =
-                            maxLength > 0 ? raw.slice(0, maxLength) : raw;
-                          handleChange(next);
+                          setStringDrafts((prev) => ({
+                            ...prev,
+                            [definition.data.name]: raw
+                          }));
+
+                          // Allow typing past limit, but only propagate within limit.
+                          const sent =
+                            maxLength === 0 ? raw : raw.slice(0, Math.max(0, maxLength));
+                          handleChange(sent);
                         }}
                         tabIndex={Number(propertyIndex) + 1}
                         multiline={multiline}
                         minRows={multiline ? 4 : 1}
                         maxRows={multiline ? 12 : 1}
-                        slotProps={{
-                          htmlInput:
-                            maxLength > 0
-                              ? { maxLength }
-                              : undefined
-                        }}
+                        slotProps={{ htmlInput: undefined }}
                       />
+                      {maxLength > 0 && (
+                        <Tooltip
+                          title={
+                            exceedsMaxLength
+                              ? `${draft.length - maxLength} characters over the limit; extra characters will not be sent.`
+                              : "Max length. Extra characters will not be sent."
+                          }
+                          placement="bottom"
+                        >
+                          <Typography
+                            variant="caption"
+                            color={exceedsMaxLength ? "warning.main" : "text.secondary"}
+                            sx={{ display: "block", marginTop: 0.5, width: "fit-content" }}
+                          >
+                            {draft.length}/{maxLength}
+                          </Typography>
+                        </Tooltip>
+                      )}
                     </div>
                   </div>
                   {definition.data.description && (
