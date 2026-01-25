@@ -93,7 +93,6 @@ const ToolsListProperty = (props: PropertyProps) => {
   const openMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setMenuAnchor(event.currentTarget);
   }, []);
-  const closeMenu = useCallback(() => setMenuAnchor(null), []);
 
   const onChange = useCallback(
     (selectedToolNames: string[]) => {
@@ -190,7 +189,7 @@ const ToolsListProperty = (props: PropertyProps) => {
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
-        onClose={closeMenu}
+        onClose={() => setMenuAnchor(null)}
       >
         {AVAILABLE_TOOLS.map((tool) => {
           const selected = toolNames.includes(tool);

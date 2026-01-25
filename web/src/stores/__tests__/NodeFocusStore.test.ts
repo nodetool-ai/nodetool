@@ -79,6 +79,7 @@ describe("NodeFocusStore", () => {
 
     it("should not change state if already in navigation mode", () => {
       useNodeFocusStore.getState().enterNavigationMode();
+      const _prevState = useNodeFocusStore.getState();
       useNodeFocusStore.getState().enterNavigationMode();
       expect(useNodeFocusStore.getState().isNavigationMode).toBe(true);
     });

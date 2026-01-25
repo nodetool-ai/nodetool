@@ -389,7 +389,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     });
   }, [data, dataframeColumns, addNotification]);
 
-  // Export JSON - exclude select and rownum columns
+  // Export JSON - exclude select and rownum columns - kept for future use
   const _handleExportJSON = useCallback(() => {
     if (!dataframeColumns || !Array.isArray(data)) {return;}
     

@@ -99,7 +99,7 @@ describe("useRunningJobs", () => {
 
   it("returns all jobs when all are active", async () => {
     const allActiveJobs = mockJobs.filter((j) =>
-      j.status && ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
+      ["running", "queued", "starting", "suspended", "paused"].includes(j.status ?? "")
     );
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: allActiveJobs },

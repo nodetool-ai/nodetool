@@ -2,14 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Tooltip, Typography } from "@mui/material";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
-import { PropertyProps } from "../../node/PropertyInput";
-import StringProperty from "../../properties/StringProperty";
-import IntegerProperty from "../../properties/IntegerProperty";
-import FloatProperty from "../../properties/FloatProperty";
-import BoolProperty from "../../properties/BoolProperty";
-import ImageProperty from "../../properties/ImageProperty";
-import AudioProperty from "../../properties/AudioProperty";
-import FilePathProperty from "../../properties/FilePathProperty";
+import { getComponentForProperty } from "../../node/PropertyInput";
+import LanguageModelSelect from "../../properties/LanguageModelSelect";
+import ImageModelSelect from "../../properties/ImageModelSelect";
+import VideoModelSelect from "../../properties/VideoModelSelect";
+import TTSModelSelect from "../../properties/TTSModelSelect";
+import ASRModelSelect from "../../properties/ASRModelSelect";
+import EmbeddingModelSelect from "../../properties/EmbeddingModelSelect";
 import PropertyLabel from "../../node/PropertyLabel";
 import { NodeTextField, editorClassNames, cn } from "../../editor_ui";
 import {
@@ -34,26 +33,22 @@ const KIND_TO_PROPERTY_TYPE: Record<
   integer: "int",
   float: "float",
   boolean: "bool",
+  color: "color",
   image: "image",
+  video: "video",
   audio: "audio",
-  file_path: "str"
-};
-
-const PROPERTY_COMPONENT_MAP: Partial<
-  Record<Property["type"]["type"], React.ComponentType<PropertyProps>>
-> = {
-  str: StringProperty,
-  int: IntegerProperty,
-  float: FloatProperty,
-  bool: BoolProperty,
-  image: ImageProperty,
-  audio: AudioProperty
-};
-
-const JSON_SCHEMA_EXTRA_TYPE_MAP: Partial<
-  Record<string, React.ComponentType<PropertyProps>>
-> = {
-  file_path: FilePathProperty
+  document: "document",
+  dataframe: "dataframe",
+  file_path: "str",
+  folder_path: "str",
+  folder: "folder",
+  select: "enum",
+  language_model: "language_model",
+  image_model: "image_model",
+  video_model: "video_model",
+  tts_model: "tts_model",
+  asr_model: "asr_model",
+  embedding_model: "embedding_model"
 };
 
 const createPropertyFromDefinition = (
@@ -69,22 +64,34 @@ const createPropertyFromDefinition = (
     switch (definition.kind) {
       case "string":
       case "file_path":
+      case "folder_path":
         return "";
       case "boolean":
         return false;
+      case "select":
+        // Default to first option if available
+        return definition.data.options?.[0] ?? "";
       default:
         return null;
     }
   })();
+
+  // For select kind, use the options from the node data
+  const enumValues =
+    definition.kind === "select" && definition.data.options
+      ? definition.data.options
+      : null;
+  const enumTypeName =
+    definition.kind === "select" ? definition.data.enum_type_name ?? null : null;
 
   const property: Property = {
     name: definition.data.name,
     type: {
       type: KIND_TO_PROPERTY_TYPE[definition.kind],
       optional: true,
-      values: null,
+      values: enumValues,
       type_args: [],
-      type_name: null
+      type_name: enumTypeName
     },
     default: defaultValue,
     title: definition.data.label,
@@ -103,6 +110,9 @@ const createPropertyFromDefinition = (
   // Set json_schema_extra for file_path to trigger FilePathProperty component
   if (definition.kind === "file_path") {
     property.json_schema_extra = { type: "file_path" };
+  }
+  if (definition.kind === "folder_path") {
+    property.json_schema_extra = { type: "folder_path" };
   }
 
   return property;
@@ -124,6 +134,7 @@ const resolveInputValue = (
   switch (definition.kind) {
     case "string":
     case "file_path":
+    case "folder_path":
       return "";
     case "boolean":
       return false;
@@ -151,6 +162,16 @@ const getStringInputConfig = (definition: MiniAppInputDefinition) => {
 
   return { maxLength, lineMode } as const;
 };
+
+const SPECIAL_RENDER_KINDS: ReadonlySet<MiniAppInputKind> = new Set([
+  "string",
+  "language_model",
+  "image_model",
+  "video_model",
+  "tts_model",
+  "asr_model",
+  "embedding_model"
+]);
 
 const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
   inputDefinitions,
@@ -189,20 +210,17 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
         .map((definition, index) => {
           const property = createPropertyFromDefinition(definition);
 
-          // Check json_schema_extra first (like PropertyInput.tsx does)
-          let Component: React.ComponentType<PropertyProps> | undefined;
-          if (property.json_schema_extra?.type) {
-            Component = JSON_SCHEMA_EXTRA_TYPE_MAP[property.json_schema_extra.type as string];
+          // Special render kinds don't need a Component
+          if (SPECIAL_RENDER_KINDS.has(definition.kind)) {
+            return {
+              definition,
+              property,
+              Component: undefined,
+              propertyIndex: index.toString()
+            };
           }
 
-          // Fall back to type-based mapping
-          if (!Component) {
-            Component = PROPERTY_COMPONENT_MAP[property.type.type];
-          }
-
-          if (!Component) {
-            return null;
-          }
+          const Component = getComponentForProperty(property);
 
           return {
             definition,
@@ -210,8 +228,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
             Component,
             propertyIndex: index.toString()
           };
-        })
-        .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+        }),
     [inputDefinitions]
   );
 
@@ -306,6 +323,215 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                   )}
                 </div>
               );
+            }
+
+            // Language model input
+            if (definition.kind === "language_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <LanguageModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // Image model input
+            if (definition.kind === "image_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <ImageModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // Video model input
+            if (definition.kind === "video_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <VideoModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // TTS model input
+            if (definition.kind === "tts_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <TTSModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // ASR model input
+            if (definition.kind === "asr_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <ASRModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // Embedding model input
+            if (definition.kind === "embedding_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <EmbeddingModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // Generic component rendering (Component should be defined at this point)
+            if (!Component) {
+              return null;
             }
 
             return (

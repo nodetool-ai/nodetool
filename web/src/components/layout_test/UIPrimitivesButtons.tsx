@@ -54,6 +54,7 @@ const UIPrimitivesButtonsDemo = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedCount, setSelectedCount] = useState(3);
   const [isRunning, setIsRunning] = useState(false);
+  const [_isLoading, _setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [showDestructiveDialog, setShowDestructiveDialog] = useState(false);
 

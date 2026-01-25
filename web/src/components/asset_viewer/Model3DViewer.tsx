@@ -528,6 +528,14 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     }
   }, []);
 
+  const toggleGrid = useCallback(() => {
+    setShowGrid((prev) => !prev);
+  }, []);
+
+  const toggleAxes = useCallback(() => {
+    setShowAxes((prev) => !prev);
+  }, []);
+
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -590,6 +598,14 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   const handleBackgroundChange = useCallback((event: SelectChangeEvent) => {
     setBackgroundColor(event.target.value as BackgroundColor);
   }, []);
+
+  const handleToggleGrid = useCallback(() => {
+    setShowGrid(!showGrid);
+  }, [showGrid]);
+
+  const handleToggleAxes = useCallback(() => {
+    setShowAxes(!showAxes);
+  }, [showAxes]);
 
   if (!modelUrl) {
     return (
@@ -724,7 +740,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Tooltip title="Toggle Grid">
               <IconButton
                 size="small"
-                onClick={() => setShowGrid(!showGrid)}
+                onClick={handleToggleGrid}
                 className={showGrid ? "active" : ""}
               >
                 <GridOnIcon fontSize="small" />
@@ -735,7 +751,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Tooltip title="Toggle Axes">
               <IconButton
                 size="small"
-                onClick={() => setShowAxes(!showAxes)}
+                onClick={handleToggleAxes}
                 className={showAxes ? "active" : ""}
               >
                 <ViewInArIcon fontSize="small" />

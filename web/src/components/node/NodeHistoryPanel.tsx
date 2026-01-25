@@ -136,7 +136,11 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
   const handleClearHistory = useCallback(() => {
     // Confirm before clearing history
     // eslint-disable-next-line no-alert
-    if (window.confirm("Are you sure you want to clear the history for this node?")) {
+    if (
+      window.confirm(
+        "Are you sure you want to clear the history for this node?"
+      )
+    ) {
       clearHistory();
     }
   }, [clearHistory]);

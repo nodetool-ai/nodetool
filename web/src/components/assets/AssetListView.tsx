@@ -341,6 +341,9 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   const showType = containerWidth > typeThreshold;
   const showDate = containerWidth > dateThreshold;
 
+  // Empty callback for disabled button - prevents new function creation on each render
+  const emptyCallback = useCallback(() => {}, []);
+
   const getRowHeight = useCallback((index: number) => {
     const item = virtualListItems[index];
     if (item?.type === 'header') {
@@ -389,7 +392,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
           </Typography>
           <ExpandCollapseButton
             expanded={isExpanded}
-            onClick={() => {}}
+            onClick={emptyCallback}
             size="small"
             nodrag={false}
             sx={{ pointerEvents: 'none' }}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, memo } from "react";
 import { Button, Tooltip } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import RecommendedModelsDialog from "../hugging_face/RecommendedModelsDialog";
@@ -19,11 +19,6 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
   const [openModelDialog, setOpenModelDialog] = useState(false);
   const startDownload = useModelDownloadStore((state) => state.startDownload);
   const openDialog = useModelDownloadStore((state) => state.openDialog);
-  const handleOpenModelDialog = useCallback(() => setOpenModelDialog(true), []);
-  const handleCloseModelDialog = useCallback(
-    () => setOpenModelDialog(false),
-    []
-  );
 
   const onStartDownload = React.useCallback(
     (model: UnifiedModel) => {
@@ -57,7 +52,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
             variant="outlined"
             size="small"
             className="model-button"
-            onClick={handleOpenModelDialog}
+            onClick={() => setOpenModelDialog(true)}
             startIcon={<DownloadIcon fontSize="small" />}
             sx={(theme) => ({
               width: "90%",
@@ -75,7 +70,7 @@ const ModelRecommendationsButton: React.FC<ModelRecommendationsButtonProps> = ({
 
       <RecommendedModelsDialog
         open={openModelDialog}
-        onClose={handleCloseModelDialog}
+        onClose={() => setOpenModelDialog(false)}
         recommendedModels={recommendedModels}
         modelPacks={modelPacks}
         startDownload={onStartDownload}

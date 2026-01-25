@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useState, memo } from "react";
+import React, { useMemo, useState, memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -347,13 +347,17 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
 
+  const handleToggleExpanded = useCallback(() => {
+    setExpanded(!expanded);
+  }, [expanded]);
+
   if (!toolCalls || toolCalls.length === 0) {return null;}
 
   return (
     <div className="tool-calls-container">
       <div 
         className="tool-calls-header"
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleToggleExpanded}
       >
         <div className="tool-calls-title">
           <KeyboardArrowDownIcon 

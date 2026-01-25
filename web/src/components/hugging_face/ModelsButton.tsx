@@ -7,13 +7,13 @@ import { ToolbarIconButton } from "../ui_primitives";
 const ModelsButton: React.FC = memo(function ModelsButton() {
   const isOpen = useModelManagerStore((state) => state.isOpen);
   const setIsOpen = useModelManagerStore((state) => state.setIsOpen);
-  
+
+  // useCallback needed for handleOpen as it's passed to memoized ToolbarIconButton
   const handleOpen = useCallback(() => setIsOpen(true), [setIsOpen]);
-  const handleClose = useCallback(() => setIsOpen(false), [setIsOpen]);
 
   return (
     <>
-      <ModelsManager open={isOpen} onClose={handleClose} />
+      <ModelsManager open={isOpen} onClose={() => setIsOpen(false)} />
       <ToolbarIconButton
         icon={<IconForType iconName="language_model" showTooltip={false} />}
         tooltip="Model Manager"
