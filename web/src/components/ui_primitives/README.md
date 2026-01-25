@@ -41,6 +41,7 @@ The UI primitives provide:
 - **StateIconButton** - Versatile icon button with loading, active, and disabled states
 - **LabeledToggle** - Toggle button with icon, label, and expand/collapse indicator
 - **CircularActionButton** - Circular action button for primary actions and FABs
+- **ActionButtonGroup** - Flexible container for grouping action buttons with consistent spacing
 
 ### Menus
 

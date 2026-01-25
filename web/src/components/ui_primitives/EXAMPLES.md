@@ -902,3 +902,122 @@ export const WorkflowControls: React.FC = () => {
   );
 };
 ```
+
+### ActionButtonGroup
+
+A flexible container for grouping action buttons with consistent spacing and layout:
+
+```tsx
+import React from "react";
+import {
+  ActionButtonGroup,
+  StateIconButton,
+  CircularActionButton
+} from "../ui_primitives";
+import SaveIcon from "@mui/icons-material/Save";
+import DeleteIcon from "@mui/icons-material/Delete";
+import ShareIcon from "@mui/icons-material/Share";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import EditIcon from "@mui/icons-material/Edit";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DownloadIcon from "@mui/icons-material/Download";
+
+// Simple horizontal group
+export const BasicToolbar: React.FC = () => (
+  <ActionButtonGroup>
+    <StateIconButton icon={<SaveIcon />} onClick={handleSave} tooltip="Save" />
+    <StateIconButton icon={<DeleteIcon />} onClick={handleDelete} tooltip="Delete" />
+    <StateIconButton icon={<ShareIcon />} onClick={handleShare} tooltip="Share" />
+  </ActionButtonGroup>
+);
+
+// Vertical group with dividers
+export const VerticalActions: React.FC = () => (
+  <ActionButtonGroup direction="column" divider={true} spacing={0}>
+    <StateIconButton icon={<EditIcon />} onClick={handleEdit} tooltip="Edit" />
+    <StateIconButton icon={<ContentCopyIcon />} onClick={handleCopy} tooltip="Copy" />
+    <StateIconButton icon={<DownloadIcon />} onClick={handleDownload} tooltip="Download" />
+    <StateIconButton icon={<DeleteIcon />} onClick={handleDelete} tooltip="Delete" />
+  </ActionButtonGroup>
+);
+
+// Justified layout (space between)
+export const HeaderActions: React.FC = () => (
+  <ActionButtonGroup justify="space-between" fullWidth>
+    <StateIconButton icon={<EditIcon />} onClick={handleEdit} tooltip="Edit" />
+    <StateIconButton icon={<MoreVertIcon />} onClick={handleMore} tooltip="More" />
+  </ActionButtonGroup>
+);
+
+// With background and padding (card-like)
+export const CardActions: React.FC = () => (
+  <ActionButtonGroup
+    padding={2}
+    borderRadius={2}
+    backgroundColor="background.paper"
+    border="1px solid"
+    borderColor="divider"
+  >
+    <CircularActionButton icon={<SaveIcon />} onClick={handleSave} size={28} />
+    <CircularActionButton icon={<ShareIcon />} onClick={handleShare} size={28} />
+    <CircularActionButton icon={<DeleteIcon />} onClick={handleDelete} size={28} />
+  </ActionButtonGroup>
+);
+
+// Wrapping group for responsive layouts
+export const ResponsiveToolbar: React.FC = () => (
+  <ActionButtonGroup wrap={true} spacing={1.5}>
+    <StateIconButton icon={<SaveIcon />} onClick={handleSave} tooltip="Save" />
+    <StateIconButton icon={<EditIcon />} onClick={handleEdit} tooltip="Edit" />
+    <StateIconButton icon={<ContentCopyIcon />} onClick={handleCopy} tooltip="Copy" />
+    <StateIconButton icon={<ShareIcon />} onClick={handleShare} tooltip="Share" />
+    <StateIconButton icon={<DownloadIcon />} onClick={handleDownload} tooltip="Download" />
+    <StateIconButton icon={<DeleteIcon />} onClick={handleDelete} tooltip="Delete" />
+  </ActionButtonGroup>
+);
+
+// Centered group
+export const CenteredActions: React.FC = () => (
+  <ActionButtonGroup justify="center" fullWidth>
+    <CircularActionButton 
+      icon={<PlayArrowIcon />} 
+      onClick={handlePlay}
+      tooltip="Play"
+      size={48}
+    />
+    <CircularActionButton 
+      icon={<PauseIcon />} 
+      onClick={handlePause}
+      tooltip="Pause"
+      size={48}
+    />
+    <CircularActionButton 
+      icon={<StopIcon />} 
+      onClick={handleStop}
+      tooltip="Stop"
+      size={48}
+    />
+  </ActionButtonGroup>
+);
+
+// Combining with other components
+export const MixedControls: React.FC = () => {
+  const [isActive, setIsActive] = useState(false);
+
+  return (
+    <ActionButtonGroup spacing={2} align="center">
+      <LabeledToggle
+        isOpen={isActive}
+        onToggle={() => setIsActive(!isActive)}
+        label="Active mode"
+        showExpandIcon={false}
+      />
+      
+      <ActionButtonGroup spacing={0.5}>
+        <StateIconButton icon={<SaveIcon />} onClick={handleSave} tooltip="Save" />
+        <StateIconButton icon={<ShareIcon />} onClick={handleShare} tooltip="Share" />
+      </ActionButtonGroup>
+    </ActionButtonGroup>
+  );
+};
+```

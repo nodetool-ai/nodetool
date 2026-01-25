@@ -128,6 +128,9 @@ export type { LabeledToggleProps } from "./LabeledToggle";
 export { CircularActionButton } from "./CircularActionButton";
 export type { CircularActionButtonProps } from "./CircularActionButton";
 
+export { ActionButtonGroup } from "./ActionButtonGroup";
+export type { ActionButtonGroupProps } from "./ActionButtonGroup";
+
 // Re-export editor_ui primitives for convenience
 export {
   NodeTextField,
