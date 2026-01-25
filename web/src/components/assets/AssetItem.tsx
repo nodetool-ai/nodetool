@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo, useCallback } from "react";
-import { ButtonGroup, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
@@ -352,12 +352,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       onDragOver={handleDragOver}
     >
       {showDeleteButton && (
-        <ButtonGroup className="asset-item-actions" size="small" tabIndex={-1}>
-          <DeleteButton
-            className="asset-delete"
-            onClick={() => handleDelete()}
-          />
-        </ButtonGroup>
+        <DeleteButton
+          className="asset-delete"
+          onClick={() => handleDelete()}
+          buttonSize="small"
+        />
       )}
       <div className="asset">
         {!asset.get_url && <div className="asset-missing" />}

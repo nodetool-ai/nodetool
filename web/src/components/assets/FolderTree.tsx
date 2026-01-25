@@ -2,7 +2,8 @@
 import { css } from "@emotion/react";
 
 import React, { useEffect, useState } from "react";
-import { Box, Button } from "@mui/material";
+import { Box } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { useAssetStore, type AssetTreeNode } from "../../stores/AssetStore";
@@ -100,7 +101,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         label={
           <div>
             {node.name}
-            <Button onClick={(e) => handleOnSelect(e, node)}>&gt;</Button>
+            <EditorButton onClick={(e) => handleOnSelect(e, node)} density="compact">&gt;</EditorButton>
           </div>
         }
       >

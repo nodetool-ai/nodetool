@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
-import { Typography, Dialog, Button } from "@mui/material";
+import { Typography, Dialog } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -506,12 +507,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               );
               const isCompareSelected = compareAssetA?.id === asset.id;
               return (
-                <Button
+                <EditorButton
                   className={`item ${
                     isCompareSelected ? "compare-selected" : ""
                   }`}
                   key={asset.id || idx}
                   onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
+                  density="compact"
                 >
                   <AssetItem
                     asset={asset}
@@ -523,7 +525,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                     showDuration={true}
                     showFiletype={true}
                   />
-                </Button>
+                </EditorButton>
               );
             })}
           </div>
@@ -548,12 +550,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               const assetIndex = currentIndex + 1 + idx;
               const isCompareSelected = compareAssetA?.id === asset.id;
               return (
-                <Button
+                <EditorButton
                   className={`item ${
                     isCompareSelected ? "compare-selected" : ""
                   }`}
                   key={asset.id || idx}
                   onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
+                  density="compact"
                 >
                   <AssetItem
                     asset={asset}
@@ -565,7 +568,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                     showDuration={true}
                     showFiletype={true}
                   />
-                </Button>
+                </EditorButton>
               );
             })}
           </div>
@@ -658,9 +661,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             <Typography variant="body2">
               Select another image from the thumbnails below to compare
             </Typography>
-            <Button size="small" onClick={cancelCompareMode}>
+            <EditorButton density="compact" onClick={cancelCompareMode}>
               Cancel
-            </Button>
+            </EditorButton>
           </div>
         )}
 

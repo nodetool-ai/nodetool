@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { Dialog, IconButton, Tooltip } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { Dialog, Tooltip } from "@mui/material";
+import { CloseButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -100,17 +100,12 @@ const ImageCompareDialog: React.FC = () => {
     >
       <div className="compare-container">
         <div className="actions">
-          <Tooltip title="Close" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton
-              className="button close"
-              edge="end"
-              color="inherit"
-              onMouseDown={closeCompareView}
-              aria-label="close"
-            >
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
+          <CloseButton
+            className="button close"
+            onClick={closeCompareView}
+            tooltip="Close"
+            nodrag={false}
+          />
         </div>
         <ImageComparer
           imageA={imageAUrl}
