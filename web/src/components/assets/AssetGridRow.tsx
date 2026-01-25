@@ -78,6 +78,9 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     }
   }, [openContextMenu, rowItems]);
 
+  // Empty callback for disabled button - prevents new function creation on each render
+  const emptyCallback = useCallback(() => {}, []);
+
   const handleToggleExpanded = useCallback(() => {
     if (rowItems.length > 0 && rowItems[0]?.isDivider) {
       const divider = rowItems[0] as {
@@ -161,7 +164,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
 
           <ExpandCollapseButton
             expanded={isExpanded}
-            onClick={() => {}}
+            onClick={emptyCallback}
             size="small"
             nodrag={false}
             sx={{ pointerEvents: 'none' }}
