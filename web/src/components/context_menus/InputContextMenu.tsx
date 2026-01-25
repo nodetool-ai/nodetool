@@ -1,4 +1,4 @@
-import React, { useCallback, memo } from "react";
+import React, { useCallback, memo, useMemo } from "react";
 //mui
 import { Divider, Menu } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -20,6 +20,62 @@ import { isCollectType, Slugify } from "../../utils/TypeHandler";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodes } from "../../contexts/NodeContext";
 
+/**
+ * Maps a type to the corresponding input and constant node type paths.
+ * Returns null for types that don't have corresponding nodes.
+ */
+const getNodePathsForType = (
+  typeName: string
+): { inputPath: string; constantPath: string } | null => {
+  const mapping: Record<string, { inputPath: string; constantPath: string }> = {
+    str: {
+      inputPath: "nodetool.input.StringInput",
+      constantPath: "nodetool.constant.String"
+    },
+    int: {
+      inputPath: "nodetool.input.IntegerInput",
+      constantPath: "nodetool.constant.Integer"
+    },
+    float: {
+      inputPath: "nodetool.input.FloatInput",
+      constantPath: "nodetool.constant.Float"
+    },
+    bool: {
+      inputPath: "nodetool.input.BooleanInput",
+      constantPath: "nodetool.constant.Bool"
+    },
+    boolean: {
+      inputPath: "nodetool.input.BooleanInput",
+      constantPath: "nodetool.constant.Bool"
+    },
+    image: {
+      inputPath: "nodetool.input.ImageInput",
+      constantPath: "nodetool.constant.Image"
+    },
+    audio: {
+      inputPath: "nodetool.input.AudioInput",
+      constantPath: "nodetool.constant.Audio"
+    },
+    video: {
+      inputPath: "nodetool.input.VideoInput",
+      constantPath: "nodetool.constant.Video"
+    },
+    document: {
+      inputPath: "nodetool.input.DocumentInput",
+      constantPath: "nodetool.constant.Document"
+    },
+    dataframe: {
+      inputPath: "nodetool.input.DataframeInput",
+      constantPath: "nodetool.constant.DataFrame"
+    },
+    enum: {
+      inputPath: "nodetool.input.SelectInput",
+      constantPath: "nodetool.constant.Select"
+    }
+  };
+  return mapping[typeName] ?? null;
+};
+
 const InputContextMenu: React.FC = () => {
   const theme = useTheme();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
@@ -34,11 +90,25 @@ const InputContextMenu: React.FC = () => {
       closeContextMenu: state.closeContextMenu
     }));
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+
+  // Use explicit mapping for type -> node paths instead of labelForType
+  const nodePaths = useMemo(
+    () => getNodePathsForType(type?.type || ""),
+    [type?.type]
+  );
+
+  // Fallback to the old label-based approach for types not in the mapping
   const datatypeLabel = labelForType(type?.type || "").replaceAll(" ", "");
-  const inputNodePath = `nodetool.input.${datatypeLabel}Input`;
+  const fallbackInputPath = `nodetool.input.${datatypeLabel}Input`;
+  const fallbackConstantPath = `nodetool.constant.${datatypeLabel}`;
+
+  const inputNodePath = nodePaths?.inputPath ?? fallbackInputPath;
+  const constantNodePath = nodePaths?.constantPath ?? fallbackConstantPath;
   const inputNodeMetadata = getMetadata(inputNodePath);
-  const constantNodePath = `nodetool.constant.${datatypeLabel}`;
   const constantNodeMetadata = getMetadata(constantNodePath);
+
+  // Check if this is an enum type (for prefilling Select nodes)
+  const isEnumType = type?.type === "enum";
   const {
     showMenu,
     setNodeId,
@@ -104,6 +174,19 @@ const InputContextMenu: React.FC = () => {
         width: 200,
         height: 200
       };
+
+      // For enum handles, prefill the Select node with enum identity and options
+      if (isEnumType && type) {
+        if (type.type_name) {
+          newNode.data.properties.enum_type_name = type.type_name;
+        }
+        if (type.values && type.values.length > 0) {
+          newNode.data.properties.options = type.values;
+          // Default to first option
+          newNode.data.properties.value = type.values[0];
+        }
+      }
+
       addNode(newNode);
       const validEdges = isCollect
         ? edges
@@ -132,6 +215,7 @@ const InputContextMenu: React.FC = () => {
       nodeId,
       handleId,
       type,
+      isEnumType,
       setEdges
     ]
   );
@@ -224,6 +308,19 @@ const InputContextMenu: React.FC = () => {
       if (handleId && newNode.data.properties.name !== undefined) {
         newNode.data.properties.name = handleId;
       }
+
+      // For enum handles, prefill the SelectInput node with enum identity and options
+      if (isEnumType && type) {
+        if (type.type_name) {
+          newNode.data.properties.enum_type_name = type.type_name;
+        }
+        if (type.values && type.values.length > 0) {
+          newNode.data.properties.options = type.values;
+          // Default to first option
+          newNode.data.properties.value = type.values[0];
+        }
+      }
+
       addNode(newNode);
       const validEdges = isCollect
         ? edges
@@ -252,6 +349,7 @@ const InputContextMenu: React.FC = () => {
       nodeId,
       handleId,
       type,
+      isEnumType,
       setEdges
     ]
   );

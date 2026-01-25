@@ -1,6 +1,6 @@
 import { ImageRef } from "../../stores/ApiTypes";
 
-export type MiniAppInputKind = "string" | "integer" | "float" | "boolean" | "image" | "audio" | "file_path";
+export type MiniAppInputKind = "string" | "integer" | "float" | "boolean" | "image" | "audio" | "file_path" | "select" | "language_model" | "image_model" | "video_model" | "tts_model" | "asr_model" | "embedding_model";
 
 export interface InputNodeData {
   name: string;
@@ -15,6 +15,10 @@ export interface InputNodeData {
   /** Backwards/compat: some graphs may store boolean instead of enum */
   multiline?: boolean;
   value?: unknown;
+  /** SelectInput: available options for the dropdown */
+  options?: string[];
+  /** SelectInput: enum type name for type matching */
+  enum_type_name?: string;
 }
 
 export interface MiniAppInputDefinition {

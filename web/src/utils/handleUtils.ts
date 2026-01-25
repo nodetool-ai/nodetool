@@ -8,6 +8,43 @@ import {
 } from "../stores/ApiTypes";
 
 /**
+ * Node types that output an enum-like type based on their instance properties.
+ * These nodes store enum_type_name and options in their properties, and their
+ * output should be treated as an enum for connectability purposes.
+ */
+const SELECT_NODE_TYPES = [
+  "nodetool.input.SelectInput",
+  "nodetool.constant.Select"
+];
+
+/**
+ * Checks if a node type is a Select node (outputs enum-like type).
+ */
+export function isSelectNodeType(nodeType: string): boolean {
+  return SELECT_NODE_TYPES.includes(nodeType);
+}
+
+/**
+ * Gets the effective output type for a Select node based on its properties.
+ * Returns an enum TypeMetadata with type_name and values from the node's properties.
+ */
+export function getSelectNodeEffectiveOutputType(
+  node: Node<NodeData>
+): TypeMetadata {
+  const props = node.data.properties || {};
+  const enumTypeName = (props.enum_type_name as string) || null;
+  const options = (props.options as string[]) || [];
+
+  return {
+    type: "enum",
+    optional: false,
+    values: options.length > 0 ? options : null,
+    type_args: [],
+    type_name: enumTypeName
+  };
+}
+
+/**
  * Represents an output handle (either static or dynamic)
  */
 export interface OutputHandle {
@@ -29,6 +66,10 @@ export interface InputHandle {
 /**
  * Finds an output handle by name on a node
  * Checks both static outputs (from metadata) and dynamic outputs (from node data)
+ *
+ * For Select nodes (SelectInput, Select), returns an effective enum type based
+ * on the node's instance properties (enum_type_name, options) so that
+ * connectability and highlighting work correctly.
  */
 export function findOutputHandle(
   node: Node<NodeData>,
@@ -41,6 +82,16 @@ export function findOutputHandle(
   );
 
   if (staticOutput) {
+    // For Select nodes, return an effective enum type instead of the static "str" type
+    if (handleName === "output" && isSelectNodeType(metadata.node_type)) {
+      return {
+        name: staticOutput.name,
+        type: getSelectNodeEffectiveOutputType(node),
+        stream: staticOutput.stream,
+        isDynamic: false
+      };
+    }
+
     return {
       name: staticOutput.name,
       type: staticOutput.type,
@@ -115,12 +166,19 @@ export function getAllOutputHandles(
   metadata: NodeMetadata
 ): OutputHandle[] {
   const handles: OutputHandle[] = [];
+  const isSelectNode = isSelectNodeType(metadata.node_type);
 
   // Add static outputs
   metadata.outputs.forEach((output: OutputSlot) => {
+    // For Select nodes, return an effective enum type for the "output" handle
+    const effectiveType =
+      isSelectNode && output.name === "output"
+        ? getSelectNodeEffectiveOutputType(node)
+        : output.type;
+
     handles.push({
       name: output.name,
-      type: output.type,
+      type: effectiveType,
       stream: output.stream,
       isDynamic: false
     });

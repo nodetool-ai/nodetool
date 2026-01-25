@@ -65,6 +65,11 @@ export const useMiniAppsStore = create<MiniAppsState>((set) => ({
           nextValues[key] = false;
           return;
         }
+        // For select inputs, default to first option if available
+        if (definition.kind === "select" && definition.data.options?.length) {
+          nextValues[key] = definition.data.options[0];
+          return;
+        }
         nextValues[key] = undefined;
       });
       return {
