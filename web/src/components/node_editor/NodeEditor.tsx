@@ -45,6 +45,7 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import QuickShortcutsOverlay from "../ui/QuickShortcutsOverlay";
 
 declare global {
   interface Window {
@@ -63,6 +64,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const { isUploading } = useAssetUpload();
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [quickShortcutsOpen, setQuickShortcutsOpen] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
@@ -97,6 +99,18 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active && selectedNodes.length > 0) {
         toggleInspectedNode(selectedNodes[0].id);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Quick Shortcuts Overlay (? key)
+  useCombo(
+    ["?"],
+    () => {
+      if (active) {
+        setQuickShortcutsOpen(true);
       }
     },
     true,
@@ -170,6 +184,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <QuickShortcutsOverlay
+                open={quickShortcutsOpen}
+                onClose={() => setQuickShortcutsOpen(false)}
+              />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {
