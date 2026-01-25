@@ -63,6 +63,9 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
       sx,
       changed,
       invalid,
+      // Extract legacy props that Autocomplete passes - these contain critical refs
+      InputProps,
+      inputProps,
       ...props
     },
     ref
@@ -93,19 +96,25 @@ export const NodeTextField = forwardRef<HTMLDivElement, NodeTextFieldProps>(
         slotProps={{
           ...slotProps,
           input: {
+            // Merge legacy InputProps (from Autocomplete) with slotProps.input
+            ...InputProps,
             ...slotProps?.input,
             className: cn(
               editorClassNames.nodrag,
               editorUiClasses.control,
               scopeClass,
+              (InputProps as SlotPropsWithClassName | undefined)?.className,
               (slotProps?.input as SlotPropsWithClassName | undefined)
                 ?.className
             )
           },
           htmlInput: {
+            // Merge legacy inputProps (from Autocomplete) with slotProps.htmlInput
+            ...inputProps,
             ...slotProps?.htmlInput,
             className: cn(
               editorClassNames.nodrag,
+              (inputProps as SlotPropsWithClassName | undefined)?.className,
               (slotProps?.htmlInput as SlotPropsWithClassName | undefined)
                 ?.className
             )
