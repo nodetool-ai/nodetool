@@ -147,7 +147,7 @@ const styles = (theme: Theme) =>
 
 // Fetch workspaces
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { data, error } = await client.GET("/api/workspaces", {
+  const { data, error } = await client.GET("/api/workspaces/", {
     params: { query: { limit: 100 } }
   });
   if (error) {
@@ -226,7 +226,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
       path: string;
       is_default: boolean;
     }) => {
-      const { data: result, error } = await client.POST("/api/workspaces", {
+      const { data: result, error } = await client.POST("/api/workspaces/", {
         body: data
       });
       if (error) {

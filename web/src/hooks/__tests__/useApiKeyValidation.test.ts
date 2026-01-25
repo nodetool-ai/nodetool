@@ -6,6 +6,14 @@ jest.mock("../useSecrets");
 
 const mockUseSecrets = useSecrets as jest.MockedFunction<typeof useSecrets>;
 
+// Helper to create mock return value for useSecrets
+const createMockSecrets = (isApiKeySet: (key: string) => boolean, isLoading = false) => ({
+  secrets: [],
+  isLoading,
+  isSuccess: !isLoading,
+  isApiKeySet
+});
+
 describe("useApiKeyValidation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -13,10 +21,9 @@ describe("useApiKeyValidation", () => {
 
   describe("OpenAI namespace", () => {
     it("returns null when OpenAI API key is set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn((key: string) => key === "OPENAI_API_KEY"),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets((key: string) => key === "OPENAI_API_KEY")
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("openai.chat"));
 
@@ -24,10 +31,9 @@ describe("useApiKeyValidation", () => {
     });
 
     it("returns display name when OpenAI API key is not set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("openai.chat"));
 
@@ -35,10 +41,9 @@ describe("useApiKeyValidation", () => {
     });
 
     it("handles nested OpenAI namespaces", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn((key: string) => key === "OPENAI_API_KEY"),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets((key: string) => key === "OPENAI_API_KEY")
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("openai.completion"));
 
@@ -48,10 +53,9 @@ describe("useApiKeyValidation", () => {
 
   describe("Anthropic namespace", () => {
     it("returns null when Anthropic API key is set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn((key: string) => key === "ANTHROPIC_API_KEY"),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets((key: string) => key === "ANTHROPIC_API_KEY")
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("anthropic.complete"));
 
@@ -59,10 +63,9 @@ describe("useApiKeyValidation", () => {
     });
 
     it("returns display name when Anthropic API key is not set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("anthropic.complete"));
 
@@ -72,10 +75,9 @@ describe("useApiKeyValidation", () => {
 
   describe("Google/Gemini namespace", () => {
     it("returns null when Google API key is set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn((key: string) => key === "GEMINI_API_KEY"),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets((key: string) => key === "GEMINI_API_KEY")
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("google.generate"));
 
@@ -83,10 +85,9 @@ describe("useApiKeyValidation", () => {
     });
 
     it("returns display name when Google API key is not set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("gemini.chat"));
 
@@ -96,10 +97,9 @@ describe("useApiKeyValidation", () => {
 
   describe("HuggingFace namespace", () => {
     it("returns null when HuggingFace token is set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn((key: string) => key === "HF_TOKEN"),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets((key: string) => key === "HF_TOKEN")
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("huggingface.inference"));
 
@@ -107,10 +107,9 @@ describe("useApiKeyValidation", () => {
     });
 
     it("returns display name when HuggingFace token is not set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("huggingface.inference"));
 
@@ -120,10 +119,9 @@ describe("useApiKeyValidation", () => {
 
   describe("Replicate namespace", () => {
     it("returns null when Replicate token is set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn((key: string) => key === "REPLICATE_API_TOKEN"),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets((key: string) => key === "REPLICATE_API_TOKEN")
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("replicate.predict"));
 
@@ -131,10 +129,9 @@ describe("useApiKeyValidation", () => {
     });
 
     it("returns display name when Replicate token is not set", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("replicate.predict"));
 
@@ -144,10 +141,9 @@ describe("useApiKeyValidation", () => {
 
   describe("Unknown namespace", () => {
     it("returns null when no API key is required", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("custom.unknown"));
 
@@ -155,10 +151,9 @@ describe("useApiKeyValidation", () => {
     });
 
     it("handles case-sensitive namespaces", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("CUSTOM.NAMESPACE"));
 
@@ -168,10 +163,9 @@ describe("useApiKeyValidation", () => {
 
   describe("Loading state", () => {
     it("returns null while loading", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: true,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false, true)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("openai.chat"));
 
@@ -181,10 +175,9 @@ describe("useApiKeyValidation", () => {
 
   describe("AIME namespace", () => {
     it("returns correct display name for AIME", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("aime.chat"));
 
@@ -194,10 +187,9 @@ describe("useApiKeyValidation", () => {
 
   describe("Calendly namespace", () => {
     it("returns correct display name for Calendly", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("calendly.events"));
 
@@ -207,10 +199,9 @@ describe("useApiKeyValidation", () => {
 
   describe("FAL namespace", () => {
     it("returns correct display name for FAL", () => {
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: jest.fn(() => false),
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
 
       const { result } = renderHook(() => useApiKeyValidation("fal.image"));
 
@@ -220,16 +211,15 @@ describe("useApiKeyValidation", () => {
 
   describe("Multiple namespaces", () => {
     it("validates multiple different namespaces", () => {
-      const isApiKeySetMock = jest.fn((key: string) => {
+      const isApiKeySetFn = (key: string) => {
         if (key === "OPENAI_API_KEY") return true;
         if (key === "ANTHROPIC_API_KEY") return false;
         return false;
-      });
+      };
 
-      mockUseSecrets.mockReturnValue({
-        isApiKeySet: isApiKeySetMock,
-        isLoading: false,
-      });
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(isApiKeySetFn)
+      );
 
       const { result, rerender } = renderHook(
         ({ namespace }: { namespace: string }) => useApiKeyValidation(namespace),

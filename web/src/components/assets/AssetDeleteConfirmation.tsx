@@ -4,10 +4,8 @@ import { css } from "@emotion/react";
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
-  Button,
   CircularProgress,
   List,
   ListItem,
@@ -25,6 +23,7 @@ import { useAuth } from "../../stores/useAuth";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { DialogActionButtons } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -205,18 +204,15 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
           </>
         )}
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button
-          onClick={executeDeletion}
-          disabled={isLoading || isAssetTreeLoading || showRootFolderWarning}
-          color="error"
-        >
-          {isLoading ? <CircularProgress size={24} /> : "Delete"}
-        </Button>
-      </DialogActions>
+      <DialogActionButtons
+        onConfirm={executeDeletion}
+        onCancel={() => setDialogOpen(false)}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isLoading={isLoading}
+        confirmDisabled={isAssetTreeLoading || showRootFolderWarning}
+        destructive={true}
+      />
     </Dialog>
   );
 };

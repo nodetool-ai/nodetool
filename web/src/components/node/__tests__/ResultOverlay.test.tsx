@@ -13,6 +13,22 @@ jest.mock("../OutputRenderer", () => ({
   )
 }));
 
+// Mock NodeHistoryPanel
+jest.mock("../NodeHistoryPanel", () => ({
+  __esModule: true,
+  default: () => <div data-testid="node-history-panel" />
+}));
+
+// Mock NodeResultHistoryStore
+jest.mock("../../../stores/NodeResultHistoryStore", () => ({
+  useNodeResultHistoryStore: (selector: any) => {
+    const mockState = {
+      getHistory: () => []
+    };
+    return selector ? selector(mockState) : mockState;
+  }
+}));
+
 const renderWithProviders = (component: React.ReactElement) => {
   return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
@@ -43,5 +59,14 @@ describe("ResultOverlay", () => {
     expect(screen.getByTestId("output-renderer")).toHaveTextContent(
       JSON.stringify(objectResult)
     );
+  });
+
+  it("renders without nodeId and workflowId", () => {
+    const result = { test: "data" };
+    renderWithProviders(<ResultOverlay result={result} />);
+
+    expect(screen.getByTestId("output-renderer")).toBeInTheDocument();
+    // Should not show session results header when no nodeId/workflowId
+    expect(screen.queryByText(/Session Results/)).not.toBeInTheDocument();
   });
 });

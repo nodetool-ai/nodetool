@@ -120,7 +120,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     return { nodes, edges };
   }, [workflow]);
 
-  const handleSubmit = useCallback(async () => {
+  const _handleSubmit = useCallback(async () => {
     if (!workflow) {
       return;
     }
@@ -170,7 +170,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     workflowNodes
   ]);
 
-  const isSubmitDisabled =
+  const _isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
   const handleOpenInEditor = useCallback(() => {
@@ -261,8 +261,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                 inputDefinitions={inputDefinitions}
                 inputValues={inputValues}
                 onInputChange={updateInputValue}
-                isSubmitDisabled={isSubmitDisabled}
-                onSubmit={handleSubmit}
               />
               <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
                 {statusMessage && (

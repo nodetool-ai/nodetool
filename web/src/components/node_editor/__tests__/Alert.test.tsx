@@ -1,6 +1,8 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 import Alert from "../Alert";
+import mockTheme from "../../../__mocks__/themeMock";
 
 jest.useFakeTimers();
 
@@ -30,7 +32,11 @@ const renderWithStore = (notifications: any[]) => {
   (useNotificationStore as unknown as jest.Mock).mockImplementation(
     (sel: any) => sel(makeStoreState(notifications))
   );
-  return render(<Alert />);
+  return render(
+    <ThemeProvider theme={mockTheme}>
+      <Alert />
+    </ThemeProvider>
+  );
 };
 
 const notification = {

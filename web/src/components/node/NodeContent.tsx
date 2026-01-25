@@ -122,6 +122,9 @@ const NodeContent: React.FC<NodeContentProps> = ({
         >
           <ResultOverlay
             result={result}
+            nodeId={id}
+            workflowId={workflowId}
+            nodeName={nodeMetadata.title}
             onShowInputs={isOutputNode ? undefined : onShowInputs}
           />
         </Box>

@@ -362,6 +362,223 @@ export const ThemedSlider: React.FC = () => {
 };
 ```
 
+## Button Primitives Examples
+
+### DialogActionButtons
+
+Standardized confirm/cancel button pairs for dialogs:
+
+```tsx
+import React from "react";
+import { DialogActionButtons } from "../ui_primitives";
+
+export const DeleteConfirmDialog: React.FC = () => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsDeleting(true);
+    await deleteItem();
+    setIsDeleting(false);
+  };
+
+  return (
+    <Dialog open={true}>
+      <DialogTitle>Delete Item?</DialogTitle>
+      <DialogContent>Are you sure?</DialogContent>
+      <DialogActionButtons
+        onConfirm={handleConfirm}
+        onCancel={handleClose}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isLoading={isDeleting}
+        destructive={true}
+      />
+    </Dialog>
+  );
+};
+```
+
+### ToolbarIconButton
+
+Icon buttons with tooltips for toolbars:
+
+```tsx
+import React from "react";
+import { ToolbarIconButton } from "../ui_primitives";
+import SaveIcon from "@mui/icons-material/Save";
+import DeleteIcon from "@mui/icons-material/Delete";
+
+export const EditorToolbar: React.FC = () => (
+  <div className="toolbar">
+    <ToolbarIconButton
+      icon={<SaveIcon />}
+      tooltip="Save (Ctrl+S)"
+      onClick={handleSave}
+      variant="primary"
+    />
+    <ToolbarIconButton
+      icon={<DeleteIcon />}
+      tooltip="Delete"
+      onClick={handleDelete}
+      variant="error"
+    />
+  </div>
+);
+```
+
+### PlaybackButton
+
+Audio/video playback controls:
+
+```tsx
+import React, { useState } from "react";
+import { PlaybackButton } from "../ui_primitives";
+
+export const AudioPlayer: React.FC = () => {
+  const [playState, setPlayState] = useState<"stopped" | "playing" | "paused">("stopped");
+
+  return (
+    <div className="audio-controls">
+      <PlaybackButton
+        state={playState}
+        onPlay={() => setPlayState("playing")}
+        onPause={() => setPlayState("paused")}
+      />
+      <PlaybackButton
+        state={playState}
+        playbackAction="stop"
+        onStop={() => setPlayState("stopped")}
+      />
+    </div>
+  );
+};
+```
+
+### RunWorkflowButton
+
+Run/stop workflow controls:
+
+```tsx
+import React from "react";
+import { RunWorkflowButton } from "../ui_primitives";
+
+export const WorkflowControls: React.FC = () => {
+  const { isRunning, run, stop, isLoading } = useWorkflow();
+
+  return (
+    <RunWorkflowButton
+      isRunning={isRunning}
+      onRun={run}
+      onStop={stop}
+      isLoading={isLoading}
+      variant="fab"
+      showLabel
+    />
+  );
+};
+```
+
+### SelectionControls
+
+Bulk selection controls:
+
+```tsx
+import React from "react";
+import { SelectionControls } from "../ui_primitives";
+
+export const AssetList: React.FC = () => {
+  const { selectedIds, selectAll, clearSelection, assets } = useAssetSelection();
+
+  return (
+    <div>
+      <SelectionControls
+        selectedCount={selectedIds.length}
+        totalCount={assets.length}
+        onSelectAll={selectAll}
+        onClear={clearSelection}
+      />
+      {/* Asset list */}
+    </div>
+  );
+};
+```
+
+### ViewModeToggle
+
+View mode toggle buttons:
+
+```tsx
+import React, { useState } from "react";
+import { ViewModeToggle } from "../ui_primitives";
+import GridViewIcon from "@mui/icons-material/GridView";
+import ListIcon from "@mui/icons-material/List";
+
+export const AssetView: React.FC = () => {
+  const [viewMode, setViewMode] = useState("grid");
+
+  return (
+    <ViewModeToggle
+      value={viewMode}
+      onChange={setViewMode}
+      options={[
+        { value: "grid", icon: <GridViewIcon />, tooltip: "Grid view" },
+        { value: "list", icon: <ListIcon />, tooltip: "List view" }
+      ]}
+    />
+  );
+};
+```
+
+### ExpandCollapseButton
+
+Expand/collapse content:
+
+```tsx
+import React, { useState } from "react";
+import { ExpandCollapseButton } from "../ui_primitives";
+
+export const CollapsibleSection: React.FC = () => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div>
+      <div className="header">
+        <span>Section Title</span>
+        <ExpandCollapseButton
+          expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+        />
+      </div>
+      {expanded && <div className="content">...</div>}
+    </div>
+  );
+};
+```
+
+### RefreshButton
+
+Refresh/reset actions:
+
+```tsx
+import React from "react";
+import { RefreshButton } from "../ui_primitives";
+
+export const DataTable: React.FC = () => {
+  const { refetch, isRefetching } = useData();
+
+  return (
+    <div>
+      <RefreshButton
+        tooltip="Refresh data"
+        onClick={refetch}
+        isLoading={isRefetching}
+      />
+      {/* Table content */}
+    </div>
+  );
+};
+```
+
 ## Migration Checklist
 
 When migrating existing components to use primitives:
