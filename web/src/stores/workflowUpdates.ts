@@ -296,8 +296,9 @@ export const handleUpdate = (
     }
 
     // Invalidate jobs query to refresh the job panel when job state changes
+    // TEMPORARILY DISABLED "running" - testing performance impact of polling
     if (
-      job.status === "running" ||
+      // job.status === "running" ||
       job.status === "completed" ||
       job.status === "cancelled" ||
       job.status === "failed" ||

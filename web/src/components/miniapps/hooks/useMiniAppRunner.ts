@@ -29,6 +29,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
   }, [workflowKey]);
 
   const runWorkflowFromStore = useStore(runnerStore, (state) => state.run);
+  const cancelWorkflowFromStore = useStore(runnerStore, (state) => state.cancel);
   const runnerState = useStore(runnerStore, (state) => state.state);
   const statusMessage = useStore(runnerStore, (state) => state.statusMessage);
   const notifications = useStore(runnerStore, (state) => state.notifications);
@@ -279,8 +280,13 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     [runWorkflowFromStore, resetWorkflowState]
   );
 
+  const cancelWorkflow = useCallback(async () => {
+    await cancelWorkflowFromStore();
+  }, [cancelWorkflowFromStore]);
+
   return {
     runWorkflow,
+    cancelWorkflow,
     runnerState,
     statusMessage,
     notifications,
