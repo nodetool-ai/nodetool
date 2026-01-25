@@ -106,22 +106,22 @@ const TypeFilter = memo(({
     setSelectedOutputType(e.target.value as string);
   }, [setSelectedOutputType]);
 
-  const handleInputMouseEnter = useCallback(() => setInputHover(true), []);
-  const handleInputMouseLeave = useCallback(() => setInputHover(false), []);
-  const handleOutputMouseEnter = useCallback(() => setOutputHover(true), []);
-  const handleOutputMouseLeave = useCallback(() => setOutputHover(false), []);
+  const handleInputMouseEnter = () => setInputHover(true);
+  const handleInputMouseLeave = () => setInputHover(false);
+  const handleOutputMouseEnter = () => setOutputHover(true);
+  const handleOutputMouseLeave = () => setOutputHover(false);
 
-  const handleInputOpen = useCallback(() => setInputSelectOpen(true), []);
-  const handleInputClose = useCallback(() => {
+  const handleInputOpen = () => setInputSelectOpen(true);
+  const handleInputClose = () => {
     setInputSelectOpen(false);
     setInputHover(false);
-  }, []);
+  };
 
-  const handleOutputOpen = useCallback(() => setOutputSelectOpen(true), []);
-  const handleOutputClose = useCallback(() => {
+  const handleOutputOpen = () => setOutputSelectOpen(true);
+  const handleOutputClose = () => {
     setOutputSelectOpen(false);
     setOutputHover(false);
-  }, []);
+  };
 
   const typeFilterStyles = (theme: Theme) =>
     css({
