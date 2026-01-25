@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { Asset } from "../../stores/ApiTypes";
 import log from "loglevel";
@@ -285,8 +285,11 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
     fetchDevices();
 
     return () => {
-      if (mediaRecorderRef.current && isRecording) {
-        mediaRecorderRef.current.stop();
+      if (mediaRecorderRef.current) {
+        // Check if it's currently recording before stopping
+        if (mediaRecorderRef.current.state === "recording") {
+          mediaRecorderRef.current.stop();
+        }
       }
       stopStream();
       if (abortControllerRef.current) {
@@ -294,7 +297,6 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
         abortControllerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchDevices, stopStream]);
 
   const [isDeviceListVisible, setIsDeviceListVisible] =
@@ -304,15 +306,6 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
     setIsDeviceListVisible((prevState) => !prevState);
     fetchDevices();
   }, [fetchDevices]);
-
-  const memoizedVideoInputDevices = useMemo(
-    () => videoInputDevices,
-    [videoInputDevices]
-  );
-  const memoizedAudioInputDevices = useMemo(
-    () => audioInputDevices,
-    [audioInputDevices]
-  );
 
   const handleVideoDeviceChange = useCallback((deviceId: string) => {
     setSelectedVideoDeviceId(deviceId);
@@ -332,8 +325,8 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
     isLoading,
     startPreview,
     stopStream,
-    videoInputDevices: memoizedVideoInputDevices,
-    audioInputDevices: memoizedAudioInputDevices,
+    videoInputDevices,
+    audioInputDevices,
     isDeviceListVisible,
     toggleDeviceListVisibility,
     selectedVideoDeviceId,
