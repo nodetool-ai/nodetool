@@ -1,6 +1,6 @@
 import { memo, useCallback, forwardRef, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Typography, Checkbox, IconButton, Tooltip, Box } from "@mui/material";
+import { Typography, IconButton, Tooltip, Box } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";

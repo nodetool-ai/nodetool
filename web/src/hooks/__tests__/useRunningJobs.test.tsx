@@ -34,6 +34,7 @@ describe("useRunningJobs", () => {
       job_type: "workflow",
       workflow_id: "workflow-1",
       status: "running",
+      is_resumable: false,
     },
     {
       id: "job-2",
@@ -41,6 +42,7 @@ describe("useRunningJobs", () => {
       job_type: "workflow",
       workflow_id: "workflow-2",
       status: "queued",
+      is_resumable: false,
     },
     {
       id: "job-3",
@@ -48,6 +50,7 @@ describe("useRunningJobs", () => {
       job_type: "workflow",
       workflow_id: "workflow-3",
       status: "completed",
+      is_resumable: false,
     },
   ];
 
@@ -93,7 +96,7 @@ describe("useRunningJobs", () => {
 
   it("returns all jobs when all are active", async () => {
     const allActiveJobs = mockJobs.filter((j) =>
-      ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
+      ["running", "queued", "starting", "suspended", "paused"].includes(j.status ?? "")
     );
     mockClient.GET.mockResolvedValueOnce({
       data: { jobs: allActiveJobs },
