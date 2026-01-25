@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useRef, useState } from "react";
-import { IDockviewPanelProps } from "dockview";
+import React, { useCallback, useRef, useEffect } from "react";
 import { Box, Typography, CircularProgress, Alert, Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
@@ -8,41 +7,78 @@ import { useWorkflowAssets } from "../../../serverState/useWorkflowAssets";
 import { Asset } from "../../../stores/ApiTypes";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import AssetGridContent from "../AssetGridContent";
-import FileUploadButton from "../../buttons/FileUploadButton";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-
-export interface WorkflowAssetPanelParams {
-  isHorizontal?: boolean;
-  itemSpacing?: number;
-}
+import useResultsStore from "../../../stores/ResultsStore";
 
 /**
- * WorkflowAssetPanel displays assets scoped to the current workflow.
+ * WorkflowAssetPanelContent displays assets scoped to the current workflow.
+ * 
+ * This is a standalone version of WorkflowAssetPanel that doesn't require
+ * dockview props, suitable for use in the left panel.
  * 
  * Features:
  * - Displays only assets associated with the current workflow
- * - Upload button automatically sets workflow_id
- * - Refresh to reload workflow assets
+ * - Auto-refreshes when new results are received
  * - Reuses existing AssetGridContent for consistent UI
  */
-const WorkflowAssetPanel: React.FC<
-  IDockviewPanelProps<WorkflowAssetPanelParams>
-> = (props) => {
+const WorkflowAssetPanel: React.FC = () => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
-  const { currentWorkflowId } = useWorkflowManager();
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
+  // Subscribe to results store to detect new results
+  const results = useResultsStore((state) => state.results);
+  const outputResults = useResultsStore((state) => state.outputResults);
 
   const {
     assets,
     isLoading,
     error,
     refetch,
-    uploadAsset,
-    isUploading
   } = useWorkflowAssets(currentWorkflowId);
+
+  // Track results for the current workflow and refetch when they change
+  const prevResultsRef = useRef<{ results: typeof results; outputResults: typeof outputResults } | null>(null);
+
+  useEffect(() => {
+    if (!currentWorkflowId) {
+      return;
+    }
+
+    // Filter results for current workflow
+    const currentWorkflowResults = Object.keys(results).filter(
+      (key) => key.startsWith(currentWorkflowId)
+    );
+    const currentWorkflowOutputResults = Object.keys(outputResults).filter(
+      (key) => key.startsWith(currentWorkflowId)
+    );
+
+    // Check if we have new results
+    const prevResults = prevResultsRef.current;
+    if (prevResults) {
+      const prevWorkflowResults = Object.keys(prevResults.results).filter(
+        (key) => key.startsWith(currentWorkflowId)
+      );
+      const prevWorkflowOutputResults = Object.keys(prevResults.outputResults).filter(
+        (key) => key.startsWith(currentWorkflowId)
+      );
+
+      // If result count changed, refetch assets (new result likely created new asset)
+      if (
+        currentWorkflowResults.length !== prevWorkflowResults.length ||
+        currentWorkflowOutputResults.length !== prevWorkflowOutputResults.length
+      ) {
+        // Debounce the refetch slightly to avoid too many requests
+        const timeoutId = setTimeout(() => {
+          refetch();
+        }, 1000);
+
+        return () => clearTimeout(timeoutId);
+      }
+    }
+
+    prevResultsRef.current = { results, outputResults };
+  }, [results, outputResults, currentWorkflowId, refetch]);
 
   const handleDoubleClick = useCallback(
     (asset: Asset) => {
@@ -50,31 +86,6 @@ const WorkflowAssetPanel: React.FC<
     },
     [setOpenAsset]
   );
-
-  const handleFileSelect = useCallback(
-    (file: File) => {
-      setUploadProgress(0);
-      uploadAsset(
-        { file, onProgress: setUploadProgress },
-        {
-          onSuccess: () => {
-            setUploadProgress(null);
-          },
-          onError: () => {
-            setUploadProgress(null);
-          }
-        }
-      );
-    },
-    [uploadAsset]
-  );
-
-  const handleRefresh = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  const isHorizontal = props.params?.isHorizontal;
-  const itemSpacing = props.params?.itemSpacing;
 
   // No workflow selected
   if (!currentWorkflowId) {
@@ -126,13 +137,6 @@ const WorkflowAssetPanel: React.FC<
         <Alert severity="error">
           Failed to load workflow assets: {error.message}
         </Alert>
-        <Button
-          onClick={handleRefresh}
-          startIcon={<RefreshIcon />}
-          sx={{ mt: 2 }}
-        >
-          Retry
-        </Button>
       </Box>
     );
   }
@@ -151,28 +155,9 @@ const WorkflowAssetPanel: React.FC<
           backgroundColor: theme.vars.palette.c_editor_bg_color
         }}
       >
-        <CloudUploadIcon
-          sx={{ fontSize: 64, color: "text.secondary", mb: 2, opacity: 0.5 }}
-        />
         <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
           No assets for this workflow yet
         </Typography>
-        <FileUploadButton
-          onFileSelect={handleFileSelect}
-          disabled={isUploading}
-        />
-        {uploadProgress !== null && (
-          <Box sx={{ mt: 2, width: "200px" }}>
-            <CircularProgress
-              variant="determinate"
-              value={uploadProgress}
-              size={24}
-            />
-            <Typography variant="caption" sx={{ ml: 1 }}>
-              {Math.round(uploadProgress)}%
-            </Typography>
-          </Box>
-        )}
       </Box>
     );
   }
@@ -189,51 +174,10 @@ const WorkflowAssetPanel: React.FC<
         flexDirection: "column"
       }}
     >
-      {/* Header with upload and refresh */}
-      <Box
-        sx={{
-          display: "flex",
-          gap: 1,
-          p: 1,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`
-        }}
-      >
-        <FileUploadButton
-          onFileSelect={handleFileSelect}
-          disabled={isUploading}
-          size="small"
-        />
-        <Button
-          onClick={handleRefresh}
-          startIcon={<RefreshIcon />}
-          size="small"
-          disabled={isLoading}
-        >
-          Refresh
-        </Button>
-        {uploadProgress !== null && (
-          <Box sx={{ display: "flex", alignItems: "center", ml: "auto" }}>
-            <CircularProgress
-              variant="determinate"
-              value={uploadProgress}
-              size={20}
-            />
-            <Typography variant="caption" sx={{ ml: 1 }}>
-              {Math.round(uploadProgress)}%
-            </Typography>
-          </Box>
-        )}
-      </Box>
-
-      {/* Asset grid */}
-      <Box sx={{ flex: 1, overflow: "hidden" }}>
-        <AssetGridContent
-          assets={assets}
-          isHorizontal={isHorizontal}
-          itemSpacing={itemSpacing}
-          onDoubleClick={handleDoubleClick}
-        />
-      </Box>
+      <AssetGridContent
+        assets={assets}
+        onDoubleClick={handleDoubleClick}
+      />
     </Box>
   );
 };

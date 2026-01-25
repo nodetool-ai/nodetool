@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,13 +8,12 @@ import {
   Button,
   Box,
   Typography,
-  List,
-  ListItem,
-  Divider,
   CircularProgress,
   IconButton,
   Alert,
-  Chip
+  Chip,
+  Stack,
+  Tooltip
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
@@ -23,7 +22,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import { useNodeResultHistory } from "../../hooks/nodes/useNodeResultHistory";
 import { HistoricalResult } from "../../stores/NodeResultHistoryStore";
-import OutputRenderer from "./OutputRenderer";
+import PreviewImageGrid, { ImageSource } from "./PreviewImageGrid";
 
 interface NodeHistoryPanelProps {
   workflowId: string;
@@ -34,13 +33,73 @@ interface NodeHistoryPanelProps {
 }
 
 /**
+ * Extract image URIs from a result object.
+ * Handles various result formats: single images, arrays, nested objects.
+ */
+function extractImageSources(result: any): ImageSource[] {
+  if (!result) {
+    return [];
+  }
+
+  const images: ImageSource[] = [];
+
+  // Handle array of results
+  if (Array.isArray(result)) {
+    result.forEach((item) => {
+      images.push(...extractImageSources(item));
+    });
+    return images;
+  }
+
+  // Handle single image/asset with uri
+  if (result.type === "image" && result.uri) {
+    images.push(result.uri);
+    return images;
+  }
+
+  // Handle asset with uri
+  if (result.uri && typeof result.uri === "string") {
+    // Check if it looks like an image URI
+    const uri = result.uri.toLowerCase();
+    if (
+      uri.endsWith(".png") ||
+      uri.endsWith(".jpg") ||
+      uri.endsWith(".jpeg") ||
+      uri.endsWith(".gif") ||
+      uri.endsWith(".webp") ||
+      uri.includes("/image/") ||
+      result.content_type?.startsWith("image/")
+    ) {
+      images.push(result.uri);
+      return images;
+    }
+  }
+
+  // Handle base64 data
+  if (result.data && result.data instanceof Uint8Array) {
+    images.push(result.data);
+    return images;
+  }
+
+  // Handle nested output property
+  if (result.output) {
+    images.push(...extractImageSources(result.output));
+  }
+
+  // Handle nested result property
+  if (result.result) {
+    images.push(...extractImageSources(result.result));
+  }
+
+  return images;
+}
+
+/**
  * NodeHistoryPanel displays the execution history for a specific node.
  * 
  * Features:
- * - Shows session history (accumulated results from current session)
+ * - Shows session history as image tiles (accumulated results from current session)
  * - Option to load persistent asset-based history
- * - Timestamp and status for each result
- * - Preview of each historical result
  * - Clear history action
  */
 const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
@@ -62,6 +121,15 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
     loadAssetHistory
   } = useNodeResultHistory(workflowId, nodeId);
 
+  // Extract all images from session history
+  const allImages = useMemo(() => {
+    const images: ImageSource[] = [];
+    sessionHistory.forEach((item: HistoricalResult) => {
+      images.push(...extractImageSources(item.result));
+    });
+    return images;
+  }, [sessionHistory]);
+
   const handleLoadAssetHistory = useCallback(() => {
     setShowAssetHistory(true);
     loadAssetHistory();
@@ -79,118 +147,85 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
     }
   }, [clearHistory]);
 
-  const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "success";
-      case "error":
-      case "failed":
-        return "error";
-      case "running":
-        return "info";
-      default:
-        return "default";
-    }
-  };
+  const handleImageDoubleClick = useCallback((index: number) => {
+    // Could open image in lightbox or asset viewer
+    console.log("Double clicked image at index:", index);
+  }, []);
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: {
-          height: "80vh",
-          backgroundColor: theme.vars.palette.c_editor_bg_color
+      maxWidth="md"
+      slotProps={{
+        backdrop: {
+          style: {
+            backdropFilter: theme.vars.palette.glass.blur,
+            backgroundColor: theme.vars.palette.glass.backgroundDialog
+          }
+        },
+        paper: {
+          style: {
+            maxWidth: "950px",
+            width: "950px",
+            height: "80vh",
+            border: `1px solid ${theme.vars.palette.grey[700]}`,
+            borderRadius: theme.vars.rounded.dialog,
+            background: theme.vars.palette.glass.backgroundDialogContent
+          }
         }
       }}
     >
-      <DialogTitle
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: `1px solid ${theme.vars.palette.divider}`
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <HistoryIcon />
-          <Typography variant="h6">
-            {nodeName ? `${nodeName} - History` : "Node History"}
-          </Typography>
-          <Chip label={`${historyCount} results`} size="small" />
-        </Box>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+      <DialogTitle className="dialog-title">
+        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" width="100%">
+          <Stack direction="row" spacing={1} alignItems="center">
+            <HistoryIcon />
+            <Typography variant="h6" component="h6">
+              {nodeName ? `${nodeName} - History` : "Node History"}
+            </Typography>
+            <Chip size="small" label={`${historyCount}`} />
+          </Stack>
+          <Tooltip title="Close">
+            <IconButton size="small" onClick={onClose} aria-label="Close">
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0 }}>
-        {/* Session History */}
-        {sessionHistory.length > 0 ? (
-          <List sx={{ p: 0 }}>
-            {sessionHistory.map((item: HistoricalResult, index: number) => (
-              <React.Fragment key={`${item.timestamp}-${index}`}>
-                <ListItem
-                  sx={{
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                    py: 2
-                  }}
-                >
-                  {/* Header */}
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      mb: 1
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary">
-                      {formatTimestamp(item.timestamp)}
-                    </Typography>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      {item.jobId && (
-                        <Chip
-                          label={`Job: ${item.jobId.slice(0, 8)}`}
-                          size="small"
-                          variant="outlined"
-                        />
-                      )}
-                      <Chip
-                        label={item.status}
-                        size="small"
-                        color={getStatusColor(item.status) as any}
-                      />
-                    </Box>
-                  </Box>
-
-                  {/* Result Preview */}
-                  <Box
-                    sx={{
-                      p: 2,
-                      backgroundColor: theme.vars.palette.background.paper,
-                      borderRadius: 1,
-                      maxHeight: "200px",
-                      overflow: "auto"
-                    }}
-                  >
-                    <OutputRenderer
-                      key={`output-${item.timestamp}-${index}`}
-                      result={item.result}
-                      nodeId={nodeId}
-                    />
-                  </Box>
-                </ListItem>
-                {index < sessionHistory.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-          </List>
+      <DialogContent dividers sx={{ p: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* Session History as Image Grid */}
+        {allImages.length > 0 ? (
+          <Box sx={{ flex: 1, overflow: "hidden" }}>
+            <PreviewImageGrid
+              images={allImages}
+              onDoubleClick={handleImageDoubleClick}
+              itemSize={128}
+              gap={8}
+            />
+          </Box>
+        ) : sessionHistory.length > 0 ? (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+              p: 4
+            }}
+          >
+            <Typography variant="body1" sx={{ color: theme.vars.palette.text.secondary }}>
+              {historyCount} result(s) available, but no images to display
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ mt: 1, color: theme.vars.palette.text.secondary }}
+            >
+              Only image outputs are shown as tiles
+            </Typography>
+          </Box>
         ) : (
           <Box
             sx={{
@@ -203,15 +238,14 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
             }}
           >
             <HistoryIcon
-              sx={{ fontSize: 64, color: "text.secondary", mb: 2, opacity: 0.5 }}
+              sx={{ fontSize: 64, color: theme.vars.palette.text.secondary, mb: 2, opacity: 0.5 }}
             />
-            <Typography variant="body1" color="text.secondary">
+            <Typography variant="body1" sx={{ color: theme.vars.palette.text.secondary }}>
               No history available for this node
             </Typography>
             <Typography
               variant="caption"
-              color="text.secondary"
-              sx={{ mt: 1 }}
+              sx={{ mt: 1, color: theme.vars.palette.text.secondary }}
             >
               Results will appear here as you run the workflow
             </Typography>
@@ -221,7 +255,7 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
         {/* Asset History Section */}
         {showAssetHistory && (
           <Box sx={{ p: 2, borderTop: `1px solid ${theme.vars.palette.divider}` }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, color: theme.vars.palette.text.primary }}>
               Persistent Asset History
             </Typography>
             {isLoadingAssets ? (
@@ -241,12 +275,7 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
         )}
       </DialogContent>
 
-      <DialogActions
-        sx={{
-          borderTop: `1px solid ${theme.vars.palette.divider}`,
-          p: 2
-        }}
-      >
+      <DialogActions>
         {!showAssetHistory && (
           <Button
             startIcon={<CloudDownloadIcon />}

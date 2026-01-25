@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback } from "react";
-import { Box, Button, Typography, Divider } from "@mui/material";
+import { Box, IconButton, Typography, Divider, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
@@ -59,31 +59,33 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         flex: 1
       }}
     >
-      {/* Header with history button */}
+      {/* History button - only shows on hover */}
       {hasSessionHistory && nodeId && workflowId && (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            px: 1,
-            py: 0.5,
-            borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            backgroundColor: theme.vars.palette.background.paper
-          }}
-        >
-          <Typography variant="caption" color="text.secondary">
-            Session Results ({sessionHistory.length})
-          </Typography>
-          <Button
+        <Tooltip title="View History" placement="left">
+          <IconButton
             size="small"
-            startIcon={<HistoryIcon />}
             onClick={handleOpenHistory}
-            sx={{ minWidth: "auto", fontSize: "0.75rem" }}
+            sx={{
+              position: "absolute",
+              top: 4,
+              right: 4,
+              zIndex: 10,
+              opacity: 0,
+              transition: "opacity 0.2s ease",
+              backgroundColor: theme.vars.palette.background.paper,
+              border: `1px solid ${theme.vars.palette.divider}`,
+              padding: "4px",
+              ".result-overlay:hover &": {
+                opacity: 1
+              },
+              "&:hover": {
+                backgroundColor: theme.vars.palette.action.hover
+              }
+            }}
           >
-            Full History
-          </Button>
-        </Box>
+            <HistoryIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
       )}
 
       {/* Render accumulated session results */}
