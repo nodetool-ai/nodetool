@@ -23,6 +23,7 @@ export interface PreviewImageGridProps {
 const styles = (theme: Theme, gap: number) =>
   css({
     "&": {
+      position: "relative",
       width: "100%",
       height: "100%",
       overflow: "auto"
@@ -200,7 +201,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   }, []);
 
   const handleCompare = useCallback(() => {
-    if (selectedIndices.size !== 2) {return;}
+    if (selectedIndices.size !== 2) { return; }
     const indices = Array.from(selectedIndices);
     const map = urlMapRef.current;
     const urlA = map.get(images[indices[0]]);
@@ -246,8 +247,8 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           typeof img === "string"
             ? img
             : URL.createObjectURL(
-                new Blob([toArrayBuffer(img)], { type: "image/png" })
-              );
+              new Blob([toArrayBuffer(img)], { type: "image/png" })
+            );
         map.set(img, url);
         changed = true;
       }
@@ -268,7 +269,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       }
     }
 
-    if (changed) {setVersion((v) => v + 1);}
+    if (changed) { setVersion((v) => v + 1); }
 
     // Cleanup all on unmount
     return () => {
@@ -291,7 +292,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
   // Lightweight resize observer to trigger reflow on container changes, if needed later.
   useEffect(() => {
-    if (!containerRef.current) {return;}
+    if (!containerRef.current) { return; }
     const ro = new ResizeObserver(() => {
       // no-op for now; grid is auto-fill and responds via CSS
     });

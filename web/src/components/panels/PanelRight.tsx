@@ -27,6 +27,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import SvgFileIcon from "../SvgFileIcon";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
@@ -41,6 +42,7 @@ import { useWorkflowRunnerState } from "../../hooks/useWorkflowRunnerState";
 import { useWorkflow } from "../../serverState/useWorkflow";
 import { queryClient } from "../../queryClient";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 
 const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
@@ -171,7 +173,7 @@ const JobItem = ({ job }: { job: Job }) => {
   };
 
   const getStatusIcon = () => {
-    if (job.error) {return <ErrorOutlineIcon color="error" />;}
+    if (job.error) { return <ErrorOutlineIcon color="error" />; }
     switch (job.status) {
       case "running": return <CircularProgress size={24} />;
       case "queued":
@@ -183,8 +185,8 @@ const JobItem = ({ job }: { job: Job }) => {
   const workflowName = workflow?.name || "Loading...";
   const statusText = job.status === "running" ? `Running • ${elapsedTime}`
     : job.status === "queued" ? "Queued"
-    : job.status === "starting" ? "Starting..."
-    : job.status;
+      : job.status === "starting" ? "Starting..."
+        : job.status;
 
   return (
     <ListItem
@@ -238,6 +240,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle,
   handleVersionsToggle,
   handleWorkflowToggle,
+  handleWorkflowAssetsToggle,
   activeView,
   panelVisible
 }: {
@@ -248,7 +251,8 @@ const VerticalToolbar = memo(function VerticalToolbar({
   handleWorkspaceToggle: () => void;
   handleVersionsToggle: () => void;
   handleWorkflowToggle: () => void;
-  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs";
+  handleWorkflowAssetsToggle: () => void;
+  activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets";
   panelVisible: boolean;
 }) {
   return (
@@ -370,6 +374,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
           }
         >
           <SettingsIcon />
+        </IconButton>
+      </Tooltip>
+
+      {/* Workflow Assets Button */}
+      <Tooltip
+        title={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Workflow Assets</div>
+            <div className="tooltip-key">
+              <kbd>3</kbd>
+            </div>
+          </div>
+        }
+        placement="left-start"
+        enterDelay={TOOLTIP_ENTER_DELAY}
+      >
+        <IconButton
+          tabIndex={-1}
+          onClick={handleWorkflowAssetsToggle}
+          className={
+            activeView === "workflowAssets" && panelVisible
+              ? "workflowAssets active"
+              : "workflowAssets"
+          }
+        >
+          <FolderSpecialIcon />
         </IconButton>
       </Tooltip>
 
@@ -540,6 +570,22 @@ const PanelRight: React.FC = () => {
                       />
                     </Box>
                   ) : null
+                ) : activeView === "workflowAssets" ? (
+                  <Box
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
+                      padding: "0 1em"
+                    }}
+                  >
+                    <PanelHeadline title="Workflow Assets" />
+                    <Box sx={{ flex: 1, overflow: "hidden" }}>
+                      <WorkflowAssetPanel />
+                    </Box>
+                  </Box>
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -564,6 +610,7 @@ const PanelRight: React.FC = () => {
         handleWorkspaceToggle={() => handlePanelToggle("workspace")}
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
+        handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
         activeView={activeView}
         panelVisible={isVisible}
       />
