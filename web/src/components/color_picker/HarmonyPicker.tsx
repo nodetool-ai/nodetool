@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 import React, { useMemo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography, Tooltip, IconButton } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { Box, Typography, Tooltip } from "@mui/material";
+import { CopyButton } from "../ui_primitives";
 import {
   HarmonyType,
   generateHarmony,
@@ -94,11 +94,6 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
     }));
   }, [color, harmonyInfo]);
 
-  const handleCopyAll = useCallback((colors: string[]) => {
-    const colorsText = colors.join(", ");
-    navigator.clipboard.writeText(colorsText);
-  }, []);
-
   const handleColorSelectWithHarmony = useCallback(
     (harmonyColor: string, harmonyType: HarmonyType) => {
       onColorSelect(harmonyColor);
@@ -107,13 +102,6 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
       }
     },
     [onColorSelect, onHarmonyChange]
-  );
-
-  const handleCopyAllColors = useCallback(
-    (colors: string[]) => () => {
-      handleCopyAll(colors);
-    },
-    [handleCopyAll]
   );
 
   const handleSelectColorWithHarmony = useCallback(
@@ -140,14 +128,11 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
                 {harmony.description}
               </Typography>
             </div>
-            <Tooltip title="Copy all colors">
-              <IconButton
-                size="small"
-                onClick={handleCopyAllColors(harmony.colors)}
-              >
-                <ContentCopyIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-            </Tooltip>
+            <CopyButton
+              tooltip="Copy all colors"
+              value={harmony.colors.join(", ")}
+              buttonSize="small"
+            />
           </div>
           <div className="harmony-colors">
             {harmony.colors.map((harmonyColor, index) => {
