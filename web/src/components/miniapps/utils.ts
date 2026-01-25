@@ -27,6 +27,10 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
       return "file_path";
     case "nodetool.input.SelectInput":
       return "select";
+    case "nodetool.input.LanguageModelInput":
+      return "language_model";
+    case "nodetool.input.ImageModelInput":
+      return "image_model";
     default:
       return null;
   }

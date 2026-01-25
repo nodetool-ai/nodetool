@@ -11,6 +11,8 @@ import ImageProperty from "../../properties/ImageProperty";
 import AudioProperty from "../../properties/AudioProperty";
 import FilePathProperty from "../../properties/FilePathProperty";
 import EnumProperty from "../../properties/EnumProperty";
+import LanguageModelSelect from "../../properties/LanguageModelSelect";
+import ImageModelSelect from "../../properties/ImageModelSelect";
 import PropertyLabel from "../../node/PropertyLabel";
 import { NodeTextField, editorClassNames, cn } from "../../editor_ui";
 import {
@@ -38,7 +40,9 @@ const KIND_TO_PROPERTY_TYPE: Record<
   image: "image",
   audio: "audio",
   file_path: "str",
-  select: "enum"
+  select: "enum",
+  language_model: "language_model",
+  image_model: "image_model"
 };
 
 const PROPERTY_COMPONENT_MAP: Partial<
@@ -197,11 +201,28 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
     }
   }, [inputDefinitions, inputValues, stringDrafts]);
 
+  // Kinds that use special rendering (no generic Component needed)
+  const SPECIAL_RENDER_KINDS = new Set<MiniAppInputKind>([
+    "string",
+    "language_model",
+    "image_model"
+  ]);
+
   const propertyEntries = useMemo(
     () =>
       inputDefinitions
         .map((definition, index) => {
           const property = createPropertyFromDefinition(definition);
+
+          // Special render kinds don't need a Component
+          if (SPECIAL_RENDER_KINDS.has(definition.kind)) {
+            return {
+              definition,
+              property,
+              Component: undefined,
+              propertyIndex: index.toString()
+            };
+          }
 
           // Check json_schema_extra first (like PropertyInput.tsx does)
           let Component: React.ComponentType<PropertyProps> | undefined;
@@ -320,6 +341,79 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
                   )}
                 </div>
               );
+            }
+
+            // Language model input
+            if (definition.kind === "language_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <LanguageModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // Image model input
+            if (definition.kind === "image_model") {
+              const modelValue = value as { id?: string } | undefined;
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="model-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <ImageModelSelect
+                        onChange={handleChange}
+                        value={modelValue?.id || ""}
+                      />
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
+
+            // Generic component rendering (Component should be defined at this point)
+            if (!Component) {
+              return null;
             }
 
             return (

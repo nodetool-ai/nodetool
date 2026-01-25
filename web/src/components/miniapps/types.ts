@@ -1,6 +1,6 @@
 import { ImageRef } from "../../stores/ApiTypes";
 
-export type MiniAppInputKind = "string" | "integer" | "float" | "boolean" | "image" | "audio" | "file_path" | "select";
+export type MiniAppInputKind = "string" | "integer" | "float" | "boolean" | "image" | "audio" | "file_path" | "select" | "language_model" | "image_model";
 
 export interface InputNodeData {
   name: string;
