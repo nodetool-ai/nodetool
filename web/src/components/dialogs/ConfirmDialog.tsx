@@ -1,13 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { useTheme } from "@mui/material/styles";
-import { useNotificationStore } from "../../stores/NotificationStore";
-import dialogStyles from "../../styles/DialogStyles";
-
 import React, { useCallback } from "react";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import { DialogActionButtons } from "../ui_primitives";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { Dialog } from "../ui_primitives";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -38,8 +32,6 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     (state) => state.addNotification
   );
 
-  const theme = useTheme();
-
   const handleConfirm = useCallback(() => {
     onConfirm();
     onClose();
@@ -53,28 +45,16 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   }, [onConfirm, onClose, notificationMessage, addNotification, notificationType, alert]);
 
   return (
-    <div>
-      <Dialog
-        style={{ minWidth: "100%", minHeight: "100%" }}
-        css={dialogStyles(theme)}
-        className="dialog"
-        open={open}
-        onClose={onClose}
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-description"
-      >
-        <DialogTitle className="dialog-title" id="confirm-dialog-title">
-          {title}
-        </DialogTitle>
-        {content && <DialogContent>{content}</DialogContent>}
-        <DialogActionButtons
-          onConfirm={handleConfirm}
-          onCancel={onClose}
-          confirmText={confirmText}
-          cancelText={cancelText}
-        />
-      </Dialog>
-    </div>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={title}
+      content={content}
+      onConfirm={handleConfirm}
+      onCancel={onClose}
+      confirmText={confirmText}
+      cancelText={cancelText}
+    />
   );
 };
 
