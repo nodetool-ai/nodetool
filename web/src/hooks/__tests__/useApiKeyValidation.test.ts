@@ -212,8 +212,8 @@ describe("useApiKeyValidation", () => {
   describe("Multiple namespaces", () => {
     it("validates multiple different namespaces", () => {
       const isApiKeySetFn = (key: string) => {
-        if (key === "OPENAI_API_KEY") return true;
-        if (key === "ANTHROPIC_API_KEY") return false;
+        if (key === "OPENAI_API_KEY") {return true;}
+        if (key === "ANTHROPIC_API_KEY") {return false;}
         return false;
       };
 
