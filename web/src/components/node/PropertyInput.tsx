@@ -119,7 +119,7 @@ function InputProperty(props: PropertyProps) {
   );
 }
 
-function getComponentForProperty(
+export function getComponentForProperty(
   property: Property
 ): React.ComponentType<PropertyProps> {
   if (property.json_schema_extra?.type) {

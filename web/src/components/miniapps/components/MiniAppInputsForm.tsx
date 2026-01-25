@@ -2,15 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Tooltip, Typography } from "@mui/material";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
-import { PropertyProps } from "../../node/PropertyInput";
-import StringProperty from "../../properties/StringProperty";
-import IntegerProperty from "../../properties/IntegerProperty";
-import FloatProperty from "../../properties/FloatProperty";
-import BoolProperty from "../../properties/BoolProperty";
-import ImageProperty from "../../properties/ImageProperty";
-import AudioProperty from "../../properties/AudioProperty";
-import FilePathProperty from "../../properties/FilePathProperty";
-import EnumProperty from "../../properties/EnumProperty";
+import { getComponentForProperty } from "../../node/PropertyInput";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import VideoModelSelect from "../../properties/VideoModelSelect";
@@ -41,9 +33,15 @@ const KIND_TO_PROPERTY_TYPE: Record<
   integer: "int",
   float: "float",
   boolean: "bool",
+  color: "color",
   image: "image",
+  video: "video",
   audio: "audio",
+  document: "document",
+  dataframe: "dataframe",
   file_path: "str",
+  folder_path: "str",
+  folder: "folder",
   select: "enum",
   language_model: "language_model",
   image_model: "image_model",
@@ -51,24 +49,6 @@ const KIND_TO_PROPERTY_TYPE: Record<
   tts_model: "tts_model",
   asr_model: "asr_model",
   embedding_model: "embedding_model"
-};
-
-const PROPERTY_COMPONENT_MAP: Partial<
-  Record<Property["type"]["type"], React.ComponentType<PropertyProps>>
-> = {
-  str: StringProperty,
-  int: IntegerProperty,
-  float: FloatProperty,
-  bool: BoolProperty,
-  image: ImageProperty,
-  audio: AudioProperty,
-  enum: EnumProperty
-};
-
-const JSON_SCHEMA_EXTRA_TYPE_MAP: Partial<
-  Record<string, React.ComponentType<PropertyProps>>
-> = {
-  file_path: FilePathProperty
 };
 
 const createPropertyFromDefinition = (
@@ -84,6 +64,7 @@ const createPropertyFromDefinition = (
     switch (definition.kind) {
       case "string":
       case "file_path":
+      case "folder_path":
         return "";
       case "boolean":
         return false;
@@ -130,6 +111,9 @@ const createPropertyFromDefinition = (
   if (definition.kind === "file_path") {
     property.json_schema_extra = { type: "file_path" };
   }
+  if (definition.kind === "folder_path") {
+    property.json_schema_extra = { type: "folder_path" };
+  }
 
   return property;
 };
@@ -150,6 +134,7 @@ const resolveInputValue = (
   switch (definition.kind) {
     case "string":
     case "file_path":
+    case "folder_path":
       return "";
     case "boolean":
       return false;
@@ -177,6 +162,16 @@ const getStringInputConfig = (definition: MiniAppInputDefinition) => {
 
   return { maxLength, lineMode } as const;
 };
+
+const SPECIAL_RENDER_KINDS: ReadonlySet<MiniAppInputKind> = new Set([
+  "string",
+  "language_model",
+  "image_model",
+  "video_model",
+  "tts_model",
+  "asr_model",
+  "embedding_model"
+]);
 
 const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
   inputDefinitions,
@@ -209,17 +204,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
     }
   }, [inputDefinitions, inputValues, stringDrafts]);
 
-  // Kinds that use special rendering (no generic Component needed)
-  const SPECIAL_RENDER_KINDS = new Set<MiniAppInputKind>([
-    "string",
-    "language_model",
-    "image_model",
-    "video_model",
-    "tts_model",
-    "asr_model",
-    "embedding_model"
-  ]);
-
   const propertyEntries = useMemo(
     () =>
       inputDefinitions
@@ -236,20 +220,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
             };
           }
 
-          // Check json_schema_extra first (like PropertyInput.tsx does)
-          let Component: React.ComponentType<PropertyProps> | undefined;
-          if (property.json_schema_extra?.type) {
-            Component = JSON_SCHEMA_EXTRA_TYPE_MAP[property.json_schema_extra.type as string];
-          }
-
-          // Fall back to type-based mapping
-          if (!Component) {
-            Component = PROPERTY_COMPONENT_MAP[property.type.type];
-          }
-
-          if (!Component) {
-            return null;
-          }
+          const Component = getComponentForProperty(property);
 
           return {
             definition,
@@ -257,8 +228,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
             Component,
             propertyIndex: index.toString()
           };
-        })
-        .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+        }),
     [inputDefinitions]
   );
 
