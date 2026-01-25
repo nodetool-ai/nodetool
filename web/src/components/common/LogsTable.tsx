@@ -8,7 +8,7 @@ import { VariableSizeList, ListChildComponentProps } from "react-window";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DataObjectIcon from "@mui/icons-material/DataObject";
-import { CopyToClipboardButton } from "./CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 
 export type Severity = "info" | "warning" | "error";
 
@@ -267,9 +267,9 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
           <div className="cell timestamp">{formatTime(r.timestamp)}</div>
         )}
         <div className="cell actions" onClick={(e) => e.stopPropagation()}>
-          <CopyToClipboardButton
-            copyValue={r.content}
-            title="Copy log to clipboard"
+          <CopyButton
+            value={r.content}
+            tooltip="Copy log to clipboard"
             tooltipPlacement="top"
             className="copy-btn"
             sx={{ padding: "2px" }}

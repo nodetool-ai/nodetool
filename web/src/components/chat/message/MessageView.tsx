@@ -20,7 +20,7 @@ import {
 } from "../utils/messageUtils";
 import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
+import { CopyButton } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
@@ -431,10 +431,10 @@ export const MessageView: React.FC<
             {message.role === "user" && formattedTime && (
               <span className="message-timestamp">{formattedTime}</span>
             )}
-            <CopyToClipboardButton
-              copyValue={handleCopy()}
-              size="small"
-              title="Copy to clipboard"
+            <CopyButton
+              value={handleCopy()}
+              buttonSize="small"
+              tooltip="Copy to clipboard"
             />
           </div>
         )}

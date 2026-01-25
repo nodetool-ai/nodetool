@@ -42,7 +42,7 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { createErrorMessage } from "../../utils/errorHandling";
 import log from "loglevel";
 
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
 
@@ -845,10 +845,10 @@ function FileBrowserDialog({
           {selectedPath ? `Selected: ${selectedPath}` : "No selection"}
         </Typography>
         {selectedPath && (
-          <CopyToClipboardButton
-            copyValue={selectedPath}
-            title="Copy path"
-            size="small"
+          <CopyButton
+            value={selectedPath}
+            tooltip="Copy path"
+            buttonSize="small"
           />
         )}
         <Button onClick={onClose} color="inherit">

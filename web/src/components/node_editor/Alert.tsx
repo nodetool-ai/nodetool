@@ -9,7 +9,7 @@ import {
   useNotificationStore,
   Notification
 } from "../../stores/NotificationStore";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 
 const TRANSITION_DURATION = 300; // Duration for fade in/out animations
 const DEFAULT_NOTIFICATION_TIMEOUT = 3000; // Default time before notification auto-closes
@@ -229,10 +229,10 @@ const Alert: React.FC = () => {
                 {notification.content}
               </MUIAlert>
               {(notification.dismissable || notification.type === "error") && (
-                <CopyToClipboardButton
-                  copyValue={notification.content}
+                <CopyButton
+                  value={notification.content}
                   className={`copy-button ${notification.action ? "has-action" : ""}`}
-                  title="Copy to clipboard"
+                  tooltip="Copy to clipboard"
                 />
               )}
             </li>
