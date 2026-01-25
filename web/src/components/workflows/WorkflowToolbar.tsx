@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState } from "react";
-import { Button, Tooltip, Box, IconButton, Menu, MenuItem, Chip } from "@mui/material";
+import { Button, Tooltip, Box, Menu, MenuItem, Chip } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
@@ -21,6 +21,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShowGraphPreview, useWorkflowListViewStore, useSortBy, useSelectedTags, SortBy } from "../../stores/WorkflowListViewStore";
+import { ToolbarIconButton } from "../ui_primitives";
 
 interface WorkflowToolbarProps {
   setFilterValue: (value: string) => void;
@@ -302,14 +303,14 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           </Tooltip>
           {availableTags.length > 0 && (
             <>
-              <Tooltip title="Filter by tags" enterDelay={TOOLTIP_ENTER_DELAY}>
-                <IconButton
-                  className={`tags-button ${selectedTags.length > 0 ? "has-selection" : ""}`}
-                  onClick={handleTagsMenuOpen}
-                >
-                  <LocalOfferIcon />
-                </IconButton>
-              </Tooltip>
+              <ToolbarIconButton
+                icon={<LocalOfferIcon />}
+                tooltip="Filter by tags"
+                onClick={handleTagsMenuOpen}
+                active={selectedTags.length > 0}
+                className={`tags-button ${selectedTags.length > 0 ? "has-selection" : ""}`}
+                nodrag={false}
+              />
               <Menu
                 anchorEl={tagsMenuAnchor}
                 open={Boolean(tagsMenuAnchor)}
@@ -359,56 +360,45 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             </Tooltip>
           )}
 
-          <Tooltip
-            title={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
-            placement="top"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-          >
-            <IconButton className="checkbox-button" onClick={toggleCheckboxes}>
-              <CheckBoxIcon />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<CheckBoxIcon />}
+            tooltip={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
+            onClick={toggleCheckboxes}
+            tooltipPlacement="top"
+            className="checkbox-button"
+            nodrag={false}
+          />
 
           {onToggleFavorites && (
-            <Tooltip
-              title={`${showFavoritesOnly ? "Show all workflows" : "Show favorites only"}`}
-              placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-            >
-              <IconButton
-                className={`favorite-button ${showFavoritesOnly ? "active" : ""}`}
-                onClick={onToggleFavorites}
-              >
-                {showFavoritesOnly ? <StarIcon /> : <StarBorderIcon />}
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              icon={showFavoritesOnly ? <StarIcon /> : <StarBorderIcon />}
+              tooltip={`${showFavoritesOnly ? "Show all workflows" : "Show favorites only"}`}
+              onClick={onToggleFavorites}
+              tooltipPlacement="top"
+              active={showFavoritesOnly}
+              className={`favorite-button ${showFavoritesOnly ? "active" : ""}`}
+              nodrag={false}
+            />
           )}
 
-          <Tooltip
-            title={`${showGraphPreview ? "Hide" : "Show"} graph preview`}
-            placement="top"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-          >
-            <IconButton
-              className={`preview-toggle-button ${showGraphPreview ? "active" : ""}`}
-              onClick={handleToggleGraphPreview}
-            >
-              {showGraphPreview ? <ViewModuleIcon /> : <ViewListIcon />}
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={showGraphPreview ? <ViewModuleIcon /> : <ViewListIcon />}
+            tooltip={`${showGraphPreview ? "Hide" : "Show"} graph preview`}
+            onClick={handleToggleGraphPreview}
+            tooltipPlacement="top"
+            active={showGraphPreview}
+            className={`preview-toggle-button ${showGraphPreview ? "active" : ""}`}
+            nodrag={false}
+          />
 
-          <Tooltip
-            title={`Sort by ${sortBy === "date" ? "date" : "name"}`}
-            placement="top"
-            enterDelay={TOOLTIP_ENTER_DELAY}
-          >
-            <IconButton
-              className="preview-toggle-button"
-              onClick={handleSortMenuOpen}
-            >
-              <SortIcon />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<SortIcon />}
+            tooltip={`Sort by ${sortBy === "date" ? "date" : "name"}`}
+            onClick={handleSortMenuOpen}
+            tooltipPlacement="top"
+            className="preview-toggle-button"
+            nodrag={false}
+          />
           <Menu
             anchorEl={sortMenuAnchor}
             open={Boolean(sortMenuAnchor)}
@@ -438,20 +428,15 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
           <div style={{ flexGrow: 1 }} />
 
-          <Tooltip
-            enterDelay={TOOLTIP_ENTER_DELAY}
-            enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
-            placement="top"
-            title="Create new workflow"
-          >
-            <IconButton
-              className="add-button"
-              onClick={handleCreateWorkflow}
-              size="large"
-            >
-              <AddIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<AddIcon fontSize="small" />}
+            tooltip="Create new workflow"
+            onClick={handleCreateWorkflow}
+            size="large"
+            tooltipPlacement="top"
+            className="add-button"
+            nodrag={false}
+          />
         </div>
 
         {selectedTags.length > 0 && (
@@ -466,15 +451,14 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               />
             ))}
             {selectedTags.length > 1 && (
-              <Tooltip title="Clear all tag filters" enterDelay={TOOLTIP_ENTER_DELAY}>
-                <IconButton
-                  className="clear-tags-button"
-                  onClick={clearSelectedTags}
-                  size="small"
-                >
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <ToolbarIconButton
+                icon={<ClearIcon fontSize="small" />}
+                tooltip="Clear all tag filters"
+                onClick={clearSelectedTags}
+                size="small"
+                className="clear-tags-button"
+                nodrag={false}
+              />
             )}
           </div>
         )}

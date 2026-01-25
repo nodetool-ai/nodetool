@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import PropertyField from "./node/PropertyField";
-import { Box, Button, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Tooltip, Typography } from "@mui/material";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
@@ -13,10 +13,10 @@ import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { typesAreEqual } from "../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
 import { EditorUiProvider } from "./editor_ui";
+import { CloseButton } from "./ui_primitives";
 import PanelHeadline from "./ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
@@ -324,14 +324,12 @@ const Inspector: React.FC = () => {
                 <PanelHeadline
                   title="Inspector"
                   actions={
-                    <IconButton
-                      className="close-button"
-                      aria-label="Close inspector"
-                      size="small"
+                    <CloseButton
                       onClick={handleInspectorClose}
-                    >
-                      <CloseRoundedIcon fontSize="small" />
-                    </IconButton>
+                      tooltip="Close inspector"
+                      buttonSize="small"
+                      nodrag={false}
+                    />
                   }
                 />
                 <div className="title">
@@ -418,14 +416,12 @@ const Inspector: React.FC = () => {
               <PanelHeadline
                 title="Inspector"
                 actions={
-                  <IconButton
-                    className="close-button"
-                    aria-label="Close inspector"
-                    size="small"
+                  <CloseButton
                     onClick={handleInspectorClose}
-                  >
-                    <CloseRoundedIcon fontSize="small" />
-                  </IconButton>
+                    tooltip="Close inspector"
+                    buttonSize="small"
+                    nodrag={false}
+                  />
                 }
               />
               <div className="header-row">
