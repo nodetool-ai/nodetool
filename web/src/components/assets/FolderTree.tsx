@@ -101,7 +101,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         label={
           <div>
             {node.name}
-            <EditorButton onClick={(e) => handleOnSelect(e, node)} density="compact">&gt;</EditorButton>
+            <EditorButton onClick={(e) => handleOnSelect(e, node)} density="compact">{">"}</EditorButton>
           </div>
         }
       >

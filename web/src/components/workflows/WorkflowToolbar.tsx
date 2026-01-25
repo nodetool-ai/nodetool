@@ -348,7 +348,6 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               tooltip={`Delete ${selectedWorkflowsCount} selected workflow${selectedWorkflowsCount > 1 ? "s" : ""}`}
               onClick={onBulkDelete}
               className="delete-selected-button"
-              iconVariant="outline"
             />
           )}
 
