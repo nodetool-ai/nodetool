@@ -1021,3 +1021,184 @@ export const MixedControls: React.FC = () => {
   );
 };
 ```
+
+### Dialog
+
+A standardized modal dialog with consistent styling and optional action buttons:
+
+```tsx
+import React, { useState } from "react";
+import { Dialog } from "../ui_primitives";
+import { DialogContent, DialogActions, Typography, Button, TextField } from "@mui/material";
+
+// Simple confirmation dialog
+export const SimpleConfirmDialog: React.FC = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Open Dialog</Button>
+      
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Confirm Action"
+        onConfirm={() => {
+          console.log("Confirmed!");
+          setOpen(false);
+        }}
+        confirmText="Confirm"
+        cancelText="Cancel"
+      >
+        <DialogContent>
+          Are you sure you want to continue with this action?
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+// Dialog with custom content (no auto action buttons)
+export const CustomContentDialog: React.FC = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Show Info</Button>
+      
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Information"
+      >
+        <DialogContent>
+          <Typography variant="body1">
+            This is a custom dialog with flexible content.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            You can add any content here, including forms, lists, or other components.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
+// Destructive action dialog
+export const DeleteConfirmDialog: React.FC = () => {
+  const [open, setOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteItem();
+      setOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <Button color="error" onClick={() => setOpen(true)}>Delete Item</Button>
+      
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Delete Item"
+        onConfirm={handleDelete}
+        confirmText="Delete"
+        destructive={true}
+        isLoading={isDeleting}
+      >
+        <DialogContent>
+          <Typography>
+            This action cannot be undone. Are you sure you want to delete this item?
+          </Typography>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+// Dialog with form validation
+export const FormDialog: React.FC = () => {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      setError("Name is required");
+      return;
+    }
+    console.log("Saving:", name);
+    setOpen(false);
+    setName("");
+    setError("");
+  };
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Add New Item</Button>
+      
+      <Dialog
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setName("");
+          setError("");
+        }}
+        title="Add New Item"
+        onConfirm={handleSave}
+        confirmText="Save"
+        confirmDisabled={!name.trim()}
+      >
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Name"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setError("");
+            }}
+            error={!!error}
+            helperText={error}
+            autoFocus
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+// Dialog with custom size
+export const LargeDialog: React.FC = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Open Large Dialog</Button>
+      
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Large Dialog"
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogContent>
+          <Typography>
+            This dialog uses MUI's fullWidth and maxWidth props for custom sizing.
+          </Typography>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+```
