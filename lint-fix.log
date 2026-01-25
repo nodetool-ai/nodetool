@@ -1,0 +1,63 @@
+Fixing web linting issues...
+cd web && npm run lint:fix
+
+> nodetool@0.6.3-rc.5 lint:fix
+> eslint src --fix
+
+
+/home/runner/work/nodetool/nodetool/web/src/components/assets/ImageCompareDialog.tsx
+   4:18  warning  'Tooltip' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+  11:10  warning  'TOOLTIP_ENTER_DELAY' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/components/layout_test/UIPrimitivesButtons.tsx
+   4:34  warning  'Divider' is defined but never used. Allowed unused vars must match /^_/u                @typescript-eslint/no-unused-vars
+   5:8   warning  'AddIcon' is defined but never used. Allowed unused vars must match /^_/u                @typescript-eslint/no-unused-vars
+  58:10  warning  'isLoading' is assigned a value but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  58:21  warning  'setIsLoading' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/components/menus/SecretsMenu.tsx
+  146:62  warning  'event' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  155:59  warning  'event' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/components/node/DataTable/TableActions.tsx
+  393:9  warning  'handleExportJSON' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/components/node/NodeHistoryPanel.tsx
+  140:7  warning  Unexpected confirm  no-alert
+
+/home/runner/work/nodetool/nodetool/web/src/components/node/StepResultDisplay.tsx
+  6:22  warning  'Box' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/components/node_editor/FindInWorkflowDialog.tsx
+  258:63  warning  'event' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/components/node_menu/NodeItem.tsx
+  3:22  warning  'Checkbox' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/components/panels/VerticalToolbar.tsx
+  4:10  warning  'SvgIconProps' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/components/properties/PropertyDropzone.tsx
+    4:56  warning  'useEffect' is defined but never used. Allowed unused vars must match /^_/u                 @typescript-eslint/no-unused-vars
+  203:9   warning  'handleUrlChange' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/NodeFocusStore.test.ts
+  82:13  warning  'prevState' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/NodePlacementStore.test.ts
+  2:33  warning  'NodePlacementSource' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/RecentNodesStore.test.ts
+  2:31  warning  'RecentNode' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/stores/workflowUpdates.ts
+  4:3  warning  'Job' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 20 problems (0 errors, 20 warnings)
+
+Fixing electron linting issues...
+cd electron && npm run lint:fix
+
+> nodetool-electron@0.6.3-rc.5 lint:fix
+> eslint . --fix
+
