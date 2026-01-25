@@ -9,7 +9,6 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import SearchIcon from "@mui/icons-material/Search";
-import ClearIcon from "@mui/icons-material/Clear";
 import { Tooltip, InputAdornment } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import Markdown from "react-markdown";

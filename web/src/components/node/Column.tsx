@@ -1,5 +1,4 @@
 import { ColumnDef } from "../../stores/ApiTypes";
-import CloseIcon from "@mui/icons-material/Close";
 import isEqual from "lodash/isEqual";
 import { memo } from "react";
 import { NodeTextField, NodeSelect, NodeMenuItem, DeleteButton } from "../ui_primitives";

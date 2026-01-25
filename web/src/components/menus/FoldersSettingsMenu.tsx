@@ -2,7 +2,7 @@
 import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import { useMemo, useState, useCallback } from "react";
-import { Typography, Box, Tooltip } from "@mui/material";
+import { Typography, Box } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
