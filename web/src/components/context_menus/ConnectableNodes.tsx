@@ -296,6 +296,9 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     hideMenu();
   }, [createConnectableNode, hideMenu]);
 
+  // Empty callback for onDragStart - prevents new function creation on each render
+  const handleDragStart = useCallback(() => {}, []);
+
   if (!menuPosition || !isVisible) {return null;}
 
   return (
@@ -436,7 +439,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                     <NodeItem
                       key={nodeMetadata.node_type}
                       node={nodeMetadata}
-                      onDragStart={() => {}}
+                      onDragStart={handleDragStart}
                       onClick={() => handleNodeClick(nodeMetadata)}
                     />
                   </div>
