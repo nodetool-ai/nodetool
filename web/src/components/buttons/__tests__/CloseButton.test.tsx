@@ -1,19 +1,25 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
-import CloseButton from "../CloseButton";
+import { CloseButton } from "../../ui_primitives";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock MUI Button to avoid reliance on theme.vars internals in tests
-jest.mock("@mui/material/Button", () => ({
+// Mock MUI IconButton to avoid reliance on theme.vars internals in tests
+jest.mock("@mui/material/IconButton", () => ({
   __esModule: true,
   default: ({ children, ...rest }: any) => <button {...rest}>{children}</button>
 }));
 
-// Mock icon to a simple element
-jest.mock("@mui/icons-material/Clear", () => ({
+// Mock Tooltip to avoid wrapper complexity
+jest.mock("@mui/material/Tooltip", () => ({
   __esModule: true,
-  default: () => <span data-testid="clear-icon" />
+  default: ({ children }: any) => <>{children}</>
+}));
+
+// Mock icon to a simple element
+jest.mock("@mui/icons-material/Close", () => ({
+  __esModule: true,
+  default: () => <span data-testid="close-icon" />
 }));
 
 describe("CloseButton", () => {

@@ -4,7 +4,7 @@ import { Box, Button, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
-import DeleteButton from "../buttons/DeleteButton";
+import { DeleteButton } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
@@ -110,7 +110,7 @@ export const WorkflowTile = ({
               </Button>
             </Tooltip>
 
-            <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
+            <DeleteButton onClick={(e) => onDelete(e, workflow)} />
           </>
         )}
       </div>
