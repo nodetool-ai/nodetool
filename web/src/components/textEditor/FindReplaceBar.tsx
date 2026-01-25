@@ -3,11 +3,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useState, useEffect, useCallback } from "react";
-import { Box, Tooltip } from "@mui/material";
+import { Box } from "@mui/material";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { CloseButton, NodeTextField, ToolbarIconButton } from "../ui_primitives";
 
 const MAX_SEARCH_LENGTH = 1000;
@@ -262,29 +261,25 @@ const FindReplaceBar = ({
             }}
           />
 
-          <Tooltip title="Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <span>
-              <ToolbarIconButton
-                icon="Replace"
-                tooltip="Replace"
-                onClick={handleReplace}
-                disabled={!isValidSearch || totalMatches === 0}
-                className="toolbar-button"
-              />
-            </span>
-          </Tooltip>
+          <span>
+            <ToolbarIconButton
+              icon={<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Replace</span>}
+              tooltip="Replace"
+              onClick={handleReplace}
+              disabled={!isValidSearch || totalMatches === 0}
+              className="toolbar-button"
+            />
+          </span>
 
-          <Tooltip title="Replace All" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <span>
-              <ToolbarIconButton
-                icon="All"
-                tooltip="Replace All"
-                onClick={handleReplaceAll}
-                disabled={!isValidSearch || totalMatches === 0}
-                className="toolbar-button"
-              />
-            </span>
-          </Tooltip>
+          <span>
+            <ToolbarIconButton
+              icon={<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>All</span>}
+              tooltip="Replace All"
+              onClick={handleReplaceAll}
+              disabled={!isValidSearch || totalMatches === 0}
+              className="toolbar-button"
+            />
+          </span>
         </div>
       )}
 

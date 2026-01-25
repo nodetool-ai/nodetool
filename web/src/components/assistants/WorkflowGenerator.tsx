@@ -105,7 +105,10 @@ const WorkflowGenerator: React.FC = () => {
                       color={isLoading || !prompt.trim() ? "disabled" : "primary"}
                     />}
                     tooltip="Generate workflow"
-                    onClick={handleSubmit}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSubmit(e as any);
+                    }}
                     disabled={isLoading || !prompt.trim()}
                     sx={{ mr: 0.5 }}
                   />
