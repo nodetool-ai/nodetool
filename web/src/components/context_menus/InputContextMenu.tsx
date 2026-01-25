@@ -16,7 +16,7 @@ import log from "loglevel";
 import { labelForType } from "../../config/data_types";
 import useMetadataStore from "../../stores/MetadataStore";
 import { Edge, useReactFlow } from "@xyflow/react";
-import { Slugify } from "../../utils/TypeHandler";
+import { isCollectType, Slugify } from "../../utils/TypeHandler";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -52,6 +52,19 @@ const InputContextMenu: React.FC = () => {
     setConnectableType: state.setTypeMetadata,
     setTargetHandle: state.setTargetHandle
   }));
+
+  // "collect" handle: allow connecting T -> list[T] and multiple connections
+  const isCollectHandleType = type ? isCollectType(type) : false;
+  const collectElementType = isCollectHandleType ? type?.type_args?.[0] : undefined;
+  const collectElementDatatypeLabel = collectElementType
+    ? labelForType(collectElementType.type || "").replaceAll(" ", "")
+    : "";
+  const collectElementConstantNodePath = collectElementDatatypeLabel
+    ? `nodetool.constant.${collectElementDatatypeLabel}`
+    : "";
+  const collectElementConstantNodeMetadata = collectElementConstantNodePath
+    ? getMetadata(collectElementConstantNodePath)
+    : null;
   const handleOpenNodeMenu = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {
       if (event) {
@@ -79,6 +92,7 @@ const InputContextMenu: React.FC = () => {
   const createConstantNode = useCallback(
     (event: React.MouseEvent) => {
       if (!constantNodeMetadata) {return;}
+      const isCollect = type ? isCollectType(type) : false;
       const newNode = createNode(
         constantNodeMetadata,
         reactFlowInstance.screenToFlowPosition({
@@ -91,10 +105,12 @@ const InputContextMenu: React.FC = () => {
         height: 200
       };
       addNode(newNode);
-      const validEdges = edges.filter(
-        (edge: Edge) =>
-          !(edge.target === nodeId && edge.targetHandle === handleId)
-      );
+      const validEdges = isCollect
+        ? edges
+        : edges.filter(
+            (edge: Edge) =>
+              !(edge.target === nodeId && edge.targetHandle === handleId)
+          );
       const newEdge = {
         id: generateEdgeId(),
         source: newNode.id,
@@ -115,6 +131,51 @@ const InputContextMenu: React.FC = () => {
       generateEdgeId,
       nodeId,
       handleId,
+      type,
+      setEdges
+    ]
+  );
+
+  const createCollectElementConstantNode = useCallback(
+    (event: React.MouseEvent) => {
+      if (!collectElementConstantNodeMetadata) {return;}
+      const newNode = createNode(
+        collectElementConstantNodeMetadata,
+        reactFlowInstance.screenToFlowPosition({
+          x: event.clientX - 250,
+          y: event.clientY - 200
+        })
+      );
+      newNode.data.size = {
+        width: 200,
+        height: 200
+      };
+      addNode(newNode);
+
+      // For collect handles (list[T]), do not replace existing connections.
+      const validEdges = edges;
+      const newEdge = {
+        id: generateEdgeId(),
+        source: newNode.id,
+        target: nodeId || "",
+        sourceHandle: "output",
+        targetHandle: handleId,
+        type: "default",
+        // Use element type for edge styling when connecting T -> list[T]
+        className: Slugify(collectElementType?.type || type?.type || "")
+      };
+      setEdges([...validEdges, newEdge]);
+    },
+    [
+      collectElementConstantNodeMetadata,
+      createNode,
+      reactFlowInstance,
+      addNode,
+      edges,
+      generateEdgeId,
+      nodeId,
+      handleId,
+      collectElementType?.type,
       type?.type,
       setEdges
     ]
@@ -133,9 +194,22 @@ const InputContextMenu: React.FC = () => {
     [createConstantNode, closeContextMenu]
   );
 
+  const handleCreateCollectElementConstantNode = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        createCollectElementConstantNode(event);
+      }
+      closeContextMenu();
+    },
+    [createCollectElementConstantNode, closeContextMenu]
+  );
+
   const createInputNode = useCallback(
     (event: React.MouseEvent) => {
       if (!inputNodeMetadata) {return;}
+      const isCollect = type ? isCollectType(type) : false;
       const newNode = createNode(
         inputNodeMetadata,
         reactFlowInstance.screenToFlowPosition({
@@ -151,10 +225,12 @@ const InputContextMenu: React.FC = () => {
         newNode.data.properties.name = handleId;
       }
       addNode(newNode);
-      const validEdges = edges.filter(
-        (edge: Edge) =>
-          !(edge.target === nodeId && edge.targetHandle === handleId)
-      );
+      const validEdges = isCollect
+        ? edges
+        : edges.filter(
+            (edge: Edge) =>
+              !(edge.target === nodeId && edge.targetHandle === handleId)
+          );
       const newEdge = {
         id: generateEdgeId(),
         source: newNode.id,
@@ -175,7 +251,7 @@ const InputContextMenu: React.FC = () => {
       generateEdgeId,
       nodeId,
       handleId,
-      type?.type,
+      type,
       setEdges
     ]
   );
@@ -240,6 +316,14 @@ const InputContextMenu: React.FC = () => {
         }}
         transitionDuration={200}
       >
+        {collectElementConstantNodeMetadata && (
+          <ContextMenuItem
+            onClick={handleCreateCollectElementConstantNode}
+            label={`Create ${labelForType(collectElementType?.type || "")} Constant Node`}
+            addButtonClassName="create-collect-element-constant-node"
+            IconComponent={<PushPinIcon />}
+          />
+        )}
         {constantNodeMetadata && (
           <ContextMenuItem
             onClick={handleCreateConstantNode}
