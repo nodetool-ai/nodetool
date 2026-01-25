@@ -1,3 +1,4 @@
+import React from "react";
 import { renderHook, waitFor, cleanup } from "@testing-library/react";
 import { useJobReconnection } from "../useJobReconnection";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -15,7 +16,7 @@ const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.MockedFunction
 >;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
-const createWrapper = () => {
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -24,10 +25,10 @@ const createWrapper = () => {
       },
     },
   });
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 };
+
+const createWrapper = () => TestWrapper;
 
 describe("useJobReconnection", () => {
   const mockWorkflow = {

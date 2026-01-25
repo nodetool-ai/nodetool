@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
 
 // Fetch workspaces
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { data, error } = await client.GET("/api/workspaces", {
+  const { data, error } = await client.GET("/api/workspaces/", {
     params: { query: { limit: 100 } }
   });
   if (error) {
