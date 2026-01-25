@@ -13,6 +13,10 @@ import FilePathProperty from "../../properties/FilePathProperty";
 import EnumProperty from "../../properties/EnumProperty";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import ImageModelSelect from "../../properties/ImageModelSelect";
+import VideoModelSelect from "../../properties/VideoModelSelect";
+import TTSModelSelect from "../../properties/TTSModelSelect";
+import ASRModelSelect from "../../properties/ASRModelSelect";
+import EmbeddingModelSelect from "../../properties/EmbeddingModelSelect";
 import PropertyLabel from "../../node/PropertyLabel";
 import { NodeTextField, editorClassNames, cn } from "../../editor_ui";
 import {
@@ -42,7 +46,11 @@ const KIND_TO_PROPERTY_TYPE: Record<
   file_path: "str",
   select: "enum",
   language_model: "language_model",
-  image_model: "image_model"
+  image_model: "image_model",
+  video_model: "video_model",
+  tts_model: "tts_model",
+  asr_model: "asr_model",
+  embedding_model: "embedding_model"
 };
 
 const PROPERTY_COMPONENT_MAP: Partial<
@@ -205,7 +213,11 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
   const SPECIAL_RENDER_KINDS = new Set<MiniAppInputKind>([
     "string",
     "language_model",
-    "image_model"
+    "image_model",
+    "video_model",
+    "tts_model",
+    "asr_model",
+    "embedding_model"
   ]);
 
   const propertyEntries = useMemo(

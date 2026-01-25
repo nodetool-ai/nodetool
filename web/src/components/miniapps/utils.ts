@@ -31,6 +31,14 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
       return "language_model";
     case "nodetool.input.ImageModelInput":
       return "image_model";
+    case "nodetool.input.VideoModelInput":
+      return "video_model";
+    case "nodetool.input.TTSModelInput":
+      return "tts_model";
+    case "nodetool.input.ASRModelInput":
+      return "asr_model";
+    case "nodetool.input.EmbeddingModelInput":
+      return "embedding_model";
     default:
       return null;
   }
