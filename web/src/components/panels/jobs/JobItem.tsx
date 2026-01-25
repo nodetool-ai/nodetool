@@ -24,20 +24,40 @@ import { useJobAssets } from "../../../serverState/useJobAssets";
 import AssetGridContent from "../../assets/AssetGridContent";
 
 /**
+ * Format a duration in milliseconds to a human-readable string
+ */
+const formatDuration = (ms: number): string => {
+    if (ms < 0) { return "0ms"; }
+    if (ms < 1000) { return `${ms}ms`; }
+    const seconds = Math.floor(ms / 1000);
+    const milliseconds = ms % 1000;
+    if (seconds < 60) { return `${seconds}.${String(milliseconds).padStart(3, "0").slice(0, 2)}s`; }
+    if (seconds < 3600) { return `${Math.floor(seconds / 60)}m ${seconds % 60}s`; }
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+};
+
+/**
  * Format elapsed time since job started
  */
 const formatElapsedTime = (startedAt: string | null | undefined): string => {
     if (!startedAt) { return "Not started"; }
     const start = new Date(startedAt).getTime();
     if (isNaN(start)) { return "Invalid date"; }
-    const now = Date.now();
-    const elapsed = Math.floor((now - start) / 1000);
-    if (elapsed < 0) { return "0s"; }
-    if (elapsed < 60) { return `${elapsed}s`; }
-    if (elapsed < 3600) { return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`; }
-    const hours = Math.floor(elapsed / 3600);
-    const minutes = Math.floor((elapsed % 3600) / 60);
-    return `${hours}h ${minutes}m`;
+    const elapsed = Date.now() - start;
+    return formatDuration(elapsed);
+};
+
+/**
+ * Calculate job duration from started_at to finished_at
+ */
+const getJobDuration = (startedAt: string | null | undefined, finishedAt: string | null | undefined): string | null => {
+    if (!startedAt || !finishedAt) { return null; }
+    const start = new Date(startedAt).getTime();
+    const end = new Date(finishedAt).getTime();
+    if (isNaN(start) || isNaN(end)) { return null; }
+    return formatDuration(end - start);
 };
 
 const JobAssets = ({ jobId }: { jobId: string }) => {
@@ -101,6 +121,7 @@ const JobItem = ({ job }: { job: Job }) => {
 
     const workflowName = workflow?.name || "Loading...";
     const startedTime = job.started_at ? new Date(Date.parse(job.started_at)).toLocaleTimeString() : "";
+    const duration = getJobDuration(job.started_at, job.finished_at);
     const statusText = job.status === "running" ? `Running • ${elapsedTime}`
         : job.status === "queued" ? "Queued"
             : job.status === "starting" ? "Starting..."
@@ -135,9 +156,14 @@ const JobItem = ({ job }: { job: Job }) => {
                     </IconButton>
                 )}
                 <ListItemText sx={{ flex: "0 0 auto", textAlign: "right", mr: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                         {startedTime}
                     </Typography>
+                    {duration && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.7rem" }}>
+                            {duration}
+                        </Typography>
+                    )}
                 </ListItemText>
             </ListItem>
             <Collapse in={expanded} timeout="auto" unmountOnExit>
