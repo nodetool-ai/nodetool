@@ -36,13 +36,19 @@ function inferDataType(
       return "int";
     }
 
-    // Check for float
-    if (/^-?\d+\.\d+$/.test(trimmed)) {
+    // Check for float (including scientific notation)
+    if (/^-?\d*\.?\d+([eE][+-]?\d+)?$/.test(trimmed) && trimmed.includes(".")) {
       return "float";
     }
 
-    // Check for ISO date format
-    if (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?/.test(trimmed)) {
+    // Check for scientific notation without decimal point
+    if (/^-?\d+[eE][+-]?\d+$/.test(trimmed)) {
+      return "float";
+    }
+
+    // Check for ISO date format with basic validation
+    // Validates YYYY-MM-DD with optional time component
+    if (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(T([01]\d|2[0-3]):[0-5]\d:[0-5]\d)?/.test(trimmed)) {
       const date = new Date(trimmed);
       if (!isNaN(date.getTime())) {
         return "datetime";
@@ -292,16 +298,8 @@ export async function parseExcel(file: File): Promise<DataframeRef> {
     cell !== null && cell !== undefined ? String(cell) : `Column ${index + 1}`
   );
 
-  // Data rows
-  const rawData: unknown[][] = rows.slice(1).map((row) =>
-    row.map((cell) => {
-      // Handle Date objects from Excel
-      if (cell instanceof Date) {
-        return cell;
-      }
-      return cell;
-    })
-  );
+  // Data rows - cells are returned as-is (Date objects from Excel are preserved)
+  const rawData: unknown[][] = rows.slice(1).map((row) => [...row]);
 
   // Infer column types
   const columnTypes: ("int" | "float" | "datetime" | "string" | "object")[] =
