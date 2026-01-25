@@ -1,11 +1,8 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import React, { useCallback, useState } from "react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip, CircularProgress } from "@mui/material";
+import { StateIconButton } from "../ui_primitives";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 import log from "loglevel";
+import type { Theme } from "@mui/material/styles";
 
 // EyeDropper API types (not yet in TypeScript standard library)
 interface EyeDropperResult {
@@ -26,25 +23,6 @@ declare global {
   }
 }
 
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      display: "inline-flex"
-    },
-    ".eyedropper-button": {
-      borderRadius: "4px",
-      backgroundColor: theme.vars.palette.grey[800],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700],
-        borderColor: theme.vars.palette.primary.main
-      },
-      "&.Mui-disabled": {
-        opacity: 0.5
-      }
-    }
-  });
-
 interface EyedropperButtonProps {
   onColorPicked: (color: string) => void;
   disabled?: boolean;
@@ -59,7 +37,6 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
   onColorPicked,
   disabled = false
 }) => {
-  const theme = useTheme();
   const [isPicking, setIsPicking] = useState(false);
   const isSupported = isEyeDropperSupported();
 
@@ -88,24 +65,27 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
   }
 
   return (
-    <div css={styles(theme)}>
-      <Tooltip title={isPicking ? "Picking color..." : "Pick color from screen"}>
-        <span>
-          <IconButton
-            className="eyedropper-button"
-            onClick={handleClick}
-            disabled={disabled || isPicking}
-            size="small"
-          >
-            {isPicking ? (
-              <CircularProgress size={18} />
-            ) : (
-              <ColorizeIcon fontSize="small" />
-            )}
-          </IconButton>
-        </span>
-      </Tooltip>
-    </div>
+    <StateIconButton
+      icon={<ColorizeIcon fontSize="small" />}
+      tooltip={isPicking ? "Picking color..." : "Pick color from screen"}
+      onClick={handleClick}
+      disabled={disabled || isPicking}
+      isLoading={isPicking}
+      size="small"
+      className="eyedropper-button"
+      sx={(theme: Theme) => ({
+        borderRadius: "4px",
+        backgroundColor: theme.vars.palette.grey[800],
+        border: `1px solid ${theme.vars.palette.grey[700]}`,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.grey[700],
+          borderColor: theme.vars.palette.primary.main
+        },
+        "&.Mui-disabled": {
+          opacity: 0.5
+        }
+      })}
+    />
   );
 };
 
