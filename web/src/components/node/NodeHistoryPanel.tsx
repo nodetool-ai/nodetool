@@ -135,6 +135,7 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
 
   const handleClearHistory = useCallback(() => {
     // Confirm before clearing history
+     
     if (
       window.confirm(
         "Are you sure you want to clear the history for this node?"
