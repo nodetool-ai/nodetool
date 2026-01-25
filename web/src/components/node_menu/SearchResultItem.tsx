@@ -108,6 +108,11 @@ const searchResultStyles = (theme: Theme) =>
           fontSize: "16px"
         }
       },
+      ".matched-tags-inline": {
+        display: "flex",
+        gap: "4px",
+        marginLeft: "4px"
+      },
       ".result-tags": {
         display: "flex",
         flexWrap: "wrap",
@@ -116,18 +121,11 @@ const searchResultStyles = (theme: Theme) =>
       },
       ".result-tag": {
         fontSize: "0.65rem",
-        padding: "1px 5px",
-        borderRadius: "3px",
-        backgroundColor: theme.vars.palette.action.hover,
+        padding: "2px 6px",
+        borderRadius: "8px",
+        backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.text.secondary,
-        textTransform: "uppercase",
-        letterSpacing: "0.3px",
-        border: `1px solid ${theme.vars.palette.divider}`,
-        "&.matched": {
-          backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-          color: "var(--palette-primary-main)",
-          borderColor: "rgba(var(--palette-primary-mainChannel) / 0.3)"
-        }
+        letterSpacing: "0.3px"
       },
       ".io-info-wrapper": {
         position: "absolute",
@@ -183,11 +181,17 @@ const SearchResultItem = memo(
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
       // Parse description and tags
-      const { description } = formatNodeDocumentation(
+      const { description, tags } = formatNodeDocumentation(
         node.description,
         searchTerm,
         node.searchInfo
       );
+
+      // Find matching tags by comparing with search term
+      const searchLower = searchTerm.toLowerCase();
+      const matchingTags = searchTerm 
+        ? tags.filter((tag) => tag.toLowerCase().includes(searchLower))
+        : [];
 
       // Truncate description if too long
       const truncatedDescription =
@@ -259,6 +263,15 @@ const SearchResultItem = memo(
                     matchStyle="primary"
                   />
                 </Typography>
+                {matchingTags.length > 0 && (
+                  <div className="matched-tags-inline">
+                    {matchingTags.slice(0, 2).map((tag, idx) => (
+                      <span key={idx} className="result-tag matched">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
