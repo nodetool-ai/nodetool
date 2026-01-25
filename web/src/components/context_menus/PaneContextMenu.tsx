@@ -156,6 +156,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
             "nodetool.constant.Model_3D"
           ]
         },
+        { label: "Select", nodeTypes: ["nodetool.constant.Select"] },
         { label: "String", nodeTypes: ["nodetool.constant.String"] },
         { label: "Video", nodeTypes: ["nodetool.constant.Video"] }
       ].sort((a, b) => a.label.localeCompare(b.label)),
@@ -173,7 +174,8 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
         { label: "Audio", nodeTypes: ["nodetool.input.AudioInput"] },
         { label: "Video", nodeTypes: ["nodetool.input.VideoInput"] },
         { label: "Document", nodeTypes: ["nodetool.input.DocumentInput"] },
-        { label: "Data Frame", nodeTypes: ["nodetool.input.DataFrameInput"] }
+        { label: "Data Frame", nodeTypes: ["nodetool.input.DataFrameInput"] },
+        { label: "Select", nodeTypes: ["nodetool.input.SelectInput"] }
       ].sort((a, b) => a.label.localeCompare(b.label)),
     []
   );
