@@ -1,9 +1,74 @@
 import { NodeTypes } from "@xyflow/react";
-import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
+import { Property, UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
 import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
+
+const STRING_INPUT_NODE_TYPE = "nodetool.input.StringInput";
+const DEFAULT_STRING_INPUT_MAX_LENGTH = 100000;
+
+const upsertProperty = (properties: Property[], next: Property): Property[] => {
+  const idx = properties.findIndex((p) => p.name === next.name);
+  if (idx === -1) {
+    return [...properties, next];
+  }
+  const merged = { ...properties[idx], ...next } satisfies Property;
+  const copy = [...properties];
+  copy[idx] = merged;
+  return copy;
+};
+
+const patchStringInputMetadata = (md: NodeMetadata): NodeMetadata => {
+  if (md.node_type !== STRING_INPUT_NODE_TYPE) {
+    return md;
+  }
+
+  const base = md.properties ?? [];
+
+  const lineModeProperty: Property = {
+    name: "line_mode",
+    title: "Line mode",
+    description: "Choose between a single-line input or a multiline text area.",
+    required: false,
+    default: "single_line",
+    type: {
+      type: "enum",
+      optional: true,
+      values: ["single_line", "multiline"],
+      type_args: [],
+      type_name: null
+    }
+  };
+
+  const maxLengthProperty: Property = {
+    name: "max_length",
+    title: "Max length",
+    description:
+      "Maximum number of characters allowed. Use 0 for unlimited.",
+    required: false,
+    default: DEFAULT_STRING_INPUT_MAX_LENGTH,
+    min: 0,
+    max: null,
+    type: {
+      type: "int",
+      optional: true,
+      values: null,
+      type_args: [],
+      type_name: null
+    }
+  };
+
+  const patchedProperties = upsertProperty(
+    upsertProperty(base, lineModeProperty),
+    maxLengthProperty
+  );
+
+  return {
+    ...md,
+    properties: patchedProperties
+  };
+};
 
 const defaultMetadata: Record<string, NodeMetadata> = {
   "nodetool.workflows.base_node.Preview": {
@@ -45,8 +110,9 @@ export const loadMetadata = async () => {
   const metadataByType: Record<string, NodeMetadata> = { ...defaultMetadata };
   
   data.forEach((md: NodeMetadata) => {
+    const patched = patchStringInputMetadata(md);
     nodeTypes[md.node_type] = BaseNode;
-    metadataByType[md.node_type] = md;
+    metadataByType[patched.node_type] = patched;
   });
 
   const recommendedModels = data.reduce<UnifiedModel[]>(
