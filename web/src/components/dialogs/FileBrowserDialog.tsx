@@ -29,8 +29,7 @@ import {
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,
   Search as SearchIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  Refresh as RefreshIcon
+  ArrowUpward as ArrowUpwardIcon
 } from "@mui/icons-material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
@@ -41,7 +40,7 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { createErrorMessage } from "../../utils/errorHandling";
 import log from "loglevel";
 
-import { CopyButton, CloseButton } from "../ui_primitives";
+import { CopyButton, CloseButton, RefreshButton } from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
 
@@ -771,13 +770,11 @@ function FileBrowserDialog({
               sx={{ width: 200, "& .MuiInputBase-root": { height: 32 } }}
             />
 
-            <IconButton
+            <RefreshButton
               onClick={handleRefresh}
-              size="small"
-              style={{ width: 32, height: 32 }}
-            >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
+              buttonSize="small"
+              tooltip="Refresh"
+            />
           </div>
 
           {/* Split View */}
