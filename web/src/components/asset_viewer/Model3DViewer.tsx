@@ -591,6 +591,14 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     setBackgroundColor(event.target.value as BackgroundColor);
   }, []);
 
+  const handleToggleGrid = useCallback(() => {
+    setShowGrid(!showGrid);
+  }, [showGrid]);
+
+  const handleToggleAxes = useCallback(() => {
+    setShowAxes(!showAxes);
+  }, [showAxes]);
+
   if (!modelUrl) {
     return (
       <Box
@@ -724,7 +732,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Tooltip title="Toggle Grid">
               <IconButton
                 size="small"
-                onClick={() => setShowGrid(!showGrid)}
+                onClick={handleToggleGrid}
                 className={showGrid ? "active" : ""}
               >
                 <GridOnIcon fontSize="small" />
@@ -735,7 +743,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Tooltip title="Toggle Axes">
               <IconButton
                 size="small"
-                onClick={() => setShowAxes(!showAxes)}
+                onClick={handleToggleAxes}
                 className={showAxes ? "active" : ""}
               >
                 <ViewInArIcon fontSize="small" />
