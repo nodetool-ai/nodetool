@@ -5,7 +5,6 @@ import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
 import { Typography, Dialog, Tooltip, Button } from "@mui/material";
 //icons
-import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -31,6 +30,7 @@ import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
+import { ToolbarIconButton, CloseButton, DownloadButton } from "../ui_primitives";
 
 const containerStyles = css({
   width: "100%",
@@ -482,20 +482,22 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       <>
         {!compareMode && (
           <>
-            <IconButton
-              className="prev-next-button left"
-              onMouseDown={handlePrevAsset}
+            <ToolbarIconButton
+              icon={<KeyboardArrowLeftIcon />}
+              tooltip="Previous asset"
+              onClick={handlePrevAsset}
               disabled={prevAssets?.length === 0}
-            >
-              <KeyboardArrowLeftIcon />
-            </IconButton>
-            <IconButton
-              className="prev-next-button right"
-              onMouseDown={handleNextAsset}
+              className="prev-next-button left"
+              nodrag={false}
+            />
+            <ToolbarIconButton
+              icon={<KeyboardArrowRightIcon />}
+              tooltip="Next asset"
+              onClick={handleNextAsset}
               disabled={nextAssets?.length === 0}
-            >
-              <KeyboardArrowRightIcon />
-            </IconButton>
+              className="prev-next-button right"
+              nodrag={false}
+            />
           </>
         )}
         <div className="asset-navigation">
@@ -612,20 +614,15 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         onClose={handleClose}
       >
         <div className="actions">
-          <Tooltip title="Download">
-            <IconButton
-              className="button download"
-              edge="end"
-              color="inherit"
-              onMouseDown={handleDownload}
-              aria-label="download"
-            >
-              <FileDownloadIcon />
-            </IconButton>
-          </Tooltip>
+          <DownloadButton
+            onClick={handleDownload}
+            className="button download"
+            nodrag={false}
+          />
           {isElectron && currentAsset?.content_type && isClipboardSupported(currentAsset.content_type) && (
-            <Tooltip 
-              title={
+            <ToolbarIconButton
+              icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
+              tooltip={
                 copied 
                   ? "Copied!" 
                   : currentAsset.content_type.startsWith("image/")
@@ -636,42 +633,26 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                   ? "Copy Audio Info"
                   : "Copy Content"
               }
-            >
-              <IconButton
-                className="button copy"
-                edge="end"
-                color="inherit"
-                onMouseDown={handleCopyToClipboard}
-                aria-label="copy to clipboard"
-              >
-                {copied ? <CheckIcon /> : <ContentCopyIcon />}
-              </IconButton>
-            </Tooltip>
+              onClick={handleCopyToClipboard}
+              className="button copy"
+              nodrag={false}
+            />
           )}
           {canCompare && !compareMode && !compareAssetB && (
-            <Tooltip title="Compare with another image">
-              <IconButton
-                className="button compare"
-                edge="end"
-                color="inherit"
-                onMouseDown={startCompareMode}
-                aria-label="compare"
-              >
-                <CompareIcon />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              icon={<CompareIcon />}
+              tooltip="Compare with another image"
+              onClick={startCompareMode}
+              className="button compare"
+              nodrag={false}
+            />
           )}
-          <Tooltip title="Close" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton
-              className="button close"
-              edge="end"
-              color="inherit"
-              onMouseDown={compareAssetB ? exitCompareView : handleClose}
-              aria-label="close"
-            >
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
+          <CloseButton
+            onClick={compareAssetB ? exitCompareView : handleClose}
+            tooltip="Close"
+            className="button close"
+            nodrag={false}
+          />
         </div>
 
         {/* Compare mode instruction bar */}

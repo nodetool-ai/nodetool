@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, useRef, useState, useEffect, memo } from "react";
-import { Typography, Box, IconButton } from "@mui/material";
+import { Typography, Box } from "@mui/material";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { VariableSizeList as List } from "react-window";
 import { Asset } from "../../stores/ApiTypes";
@@ -14,6 +14,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { ExpandCollapseButton } from "../ui_primitives";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -387,9 +388,13 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
           <Typography className="asset-content-type-title">
             {getTypeDisplayName(type)} ({count})
           </Typography>
-          <IconButton size="small" tabIndex={-1}>
-            {isExpanded ? <ExpandLess /> : <ExpandMore />}
-          </IconButton>
+          <ExpandCollapseButton
+            expanded={isExpanded}
+            onClick={() => {}}
+            size="small"
+            nodrag={false}
+            sx={{ pointerEvents: 'none' }}
+          />
         </div>
       );
     }
