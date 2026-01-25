@@ -36,6 +36,12 @@ The UI primitives provide:
 - **SelectionControls** - Bulk selection controls (select all/clear)
 - **ViewModeToggle** - Toggle button group for view mode switching
 
+### State & Toggle Buttons (New)
+
+- **StateIconButton** - Versatile icon button with loading, active, and disabled states
+- **LabeledToggle** - Toggle button with icon, label, and expand/collapse indicator
+- **CircularActionButton** - Circular action button for primary actions and FABs
+
 ### Menus
 
 - **EditorMenu** - Context menu with consistent styling
