@@ -120,13 +120,6 @@ const NotificationsList: React.FC = () => {
     await writeClipboard(content, true);
   }, [writeClipboard]);
 
-  const handleCopyClick = useCallback(
-    (content: string) => () => {
-      handleCopy(content);
-    },
-    [handleCopy]
-  );
-
   return (
     <Box css={styles(theme)} className="notifications-list-container">
       <List dense className="notifications-list">
@@ -165,7 +158,7 @@ const NotificationsList: React.FC = () => {
               buttonSize="small"
               className="copy-button"
               nodrag={false}
-              onCopySuccess={handleCopyClick(notification.content)}
+              onCopySuccess={() => handleCopy(notification.content)}
             />
           </ListItem>
         ))}

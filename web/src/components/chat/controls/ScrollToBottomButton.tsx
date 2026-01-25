@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { CircularActionButton } from "../../ui_primitives";
+import { useTheme } from "@mui/material/styles";
 
 interface ScrollToBottomButtonProps {
   isVisible: boolean;
@@ -14,6 +15,7 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
   onClick,
   containerElement
 }) => {
+  const theme = useTheme();
   const [leftPosition, setLeftPosition] = useState<number | null>(null);
 
   // Calculate center position based on container element
@@ -51,6 +53,7 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
       bottom={120}
       left={leftPosition !== null ? `${leftPosition}px` : "50%"}
       transform="translateX(-50%)"
+      zIndex={theme.zIndex.appBar}
       size={32}
       backgroundColor="grey.500"
       hoverBackgroundColor="grey.400"
