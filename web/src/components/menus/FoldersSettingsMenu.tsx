@@ -2,7 +2,7 @@
 import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import { useMemo, useState, useCallback } from "react";
-import { Button, TextField, Typography, Box, IconButton, Tooltip } from "@mui/material";
+import { Typography, Box } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -19,6 +19,7 @@ import {
 } from "../../utils/fileExplorer";
 import { isElectron } from "../../utils/browser";
 import { isLocalhost } from "../../stores/ApiClient";
+import { NavButton, NodeTextField, ToolbarIconButton } from "../ui_primitives";
 
 interface FolderButtonProps {
   label: string;
@@ -26,9 +27,9 @@ interface FolderButtonProps {
 }
 
 const FolderButton = ({ label, onClick }: FolderButtonProps) => (
-  <Button
-    variant="outlined"
-    startIcon={<FolderOutlinedIcon />}
+  <NavButton
+    icon={<FolderOutlinedIcon />}
+    label={label}
     onClick={onClick}
     sx={{
       padding: "0.5em 1.5em",
@@ -36,9 +37,7 @@ const FolderButton = ({ label, onClick }: FolderButtonProps) => (
       justifyContent: "flex-start",
       minWidth: "200px"
     }}
-  >
-    {label}
-  </Button>
+  />
 );
 
 const FoldersSettings = () => {
@@ -157,15 +156,12 @@ const FoldersSettings = () => {
       return null;
     }
     return (
-      <Tooltip title="Open folder in file explorer">
-        <IconButton
-          size="small"
-          onClick={() => openInExplorer(settingValue)}
-          sx={{ ml: 1 }}
-        >
-          <FolderOutlinedIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <ToolbarIconButton
+        icon={<FolderOutlinedIcon fontSize="small" />}
+        tooltip="Open folder in file explorer"
+        onClick={() => openInExplorer(settingValue)}
+        sx={{ ml: 1 }}
+      />
     );
   };
 
@@ -253,7 +249,7 @@ const FoldersSettings = () => {
                       {groupSettings.map((setting) => (
                         <div key={setting.env_var} className="settings-item large">
                           <Box sx={{ display: "flex", alignItems: "flex-end", width: "100%" }}>
-                            <TextField
+                            <NodeTextField
                               type={setting.is_secret ? "text" : "text"}
                               autoComplete="off"
                               id={`${setting.env_var.toLowerCase()}-input`}
@@ -262,7 +258,6 @@ const FoldersSettings = () => {
                               onChange={(e) =>
                                 handleChange(setting.env_var, e.target.value)
                               }
-                              variant="standard"
                               onKeyDown={(e) => e.stopPropagation()}
                               sx={{ flex: 1 }}
                             />
@@ -281,15 +276,13 @@ const FoldersSettings = () => {
               )}
 
               <div className="save-button-container">
-                <Button
-                  variant="contained"
-                  color="primary"
+                <NavButton
+                  icon={<SaveIcon />}
+                  label="SAVE FOLDER SETTINGS"
                   onClick={handleSave}
+                  color="primary"
                   className="save-button"
-                  startIcon={<SaveIcon />}
-                >
-                  SAVE FOLDER SETTINGS
-                </Button>
+                />
               </div>
             </>
           )}
