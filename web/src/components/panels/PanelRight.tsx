@@ -160,9 +160,11 @@ const JobItem = ({ job }: { job: Job }) => {
 
   useEffect(() => {
     if (runnerState === "idle" || runnerState === "error" || runnerState === "cancelled") {
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.setQueriesData({ queryKey: ["jobs"] }, (oldJobs: Job[] = []) => {
+        return oldJobs.filter(j => j.id !== job.id);
+      });
     }
-  }, [runnerState]);
+  }, [runnerState, job.id]);
 
   const handleClick = () => navigate(`/editor/${job.workflow_id}`);
 

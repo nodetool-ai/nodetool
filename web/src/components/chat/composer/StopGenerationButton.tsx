@@ -1,6 +1,6 @@
 import React, { forwardRef } from "react";
 import StopIcon from "@mui/icons-material/Stop";
-import { IconButton } from "@mui/material";
+import { ToolbarIconButton } from "../../ui_primitives";
 
 interface StopGenerationButtonProps {
   onClick: () => void;
@@ -11,15 +11,18 @@ export const StopGenerationButton = forwardRef<
   StopGenerationButtonProps
 >(({ onClick }, ref) => {
   return (
-    <IconButton
+    <ToolbarIconButton
       ref={ref}
+      icon={<StopIcon fontSize="small" />}
+      tooltip="Stop generation"
       onClick={onClick}
-      size="small"
+      nodrag={false}
       sx={(theme) => ({
         width: 36,
         height: 36,
         padding: 0,
         backgroundColor: theme.vars.palette.grey[600],
+        color: theme.vars.palette.text.primary,
         transition: "background-color 0.15s ease, transform 0.1s ease",
         boxShadow: "none",
         "&:hover": {
@@ -32,14 +35,7 @@ export const StopGenerationButton = forwardRef<
           opacity: 0.5
         }
       })}
-    >
-      <StopIcon
-        fontSize="small"
-        sx={(theme) => ({
-          color: theme.vars.palette.text.primary
-        })}
-      />
-    </IconButton>
+    />
   );
 });
 

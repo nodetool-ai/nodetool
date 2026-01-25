@@ -1,6 +1,7 @@
 import {
   WorkflowAttributes,
   JobUpdate,
+  Job,
   Prediction,
   NodeProgress,
   NodeUpdate,
