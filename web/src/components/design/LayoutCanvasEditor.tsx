@@ -27,12 +27,15 @@ import CanvasElement from "./CanvasElement";
 import CanvasToolbar from "./CanvasToolbar";
 import LayerPanel from "./LayerPanel";
 import ElementProperties from "./ElementProperties";
+import { readSketchFile, downloadSketchFile, convertFromSketch, convertToSketch } from "./sketch";
 
 interface LayoutCanvasEditorProps {
   value: LayoutCanvasData;
   onChange: (data: LayoutCanvasData) => void;
   width?: number;
   height?: number;
+  /** Enable Sketch file import/export */
+  enableSketchSupport?: boolean;
 }
 
 // Grid lines component
@@ -83,7 +86,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   value,
   onChange,
   width = 800,
-  height = 600
+  height = 600,
+  enableSketchSupport = true
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -381,6 +385,41 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     });
   }, [gridSettings.enabled, setGridSettings]);
 
+  // Import Sketch file
+  const handleImportSketch = useCallback(
+    async (file: File) => {
+      try {
+        const result = await readSketchFile(file);
+        if (!result.success || !result.contents) {
+          console.error("Failed to import Sketch file:", result.error);
+          return;
+        }
+
+        // Convert the first page to our format
+        const page = result.contents.pages[0];
+        if (page) {
+          const canvasDataImported = convertFromSketch(page);
+          setCanvasData(canvasDataImported);
+        }
+      } catch (error) {
+        console.error("Error importing Sketch file:", error);
+      }
+    },
+    [setCanvasData]
+  );
+
+  // Export as Sketch file
+  const handleExportSketch = useCallback(async () => {
+    try {
+      const page = convertToSketch(canvasData, "Page 1");
+      await downloadSketchFile([page], "design.sketch", new Map(), {
+        includePreview: true
+      });
+    } catch (error) {
+      console.error("Error exporting Sketch file:", error);
+    }
+  }, [canvasData]);
+
   // Get currently selected element for properties panel
   const selectedElement =
     selectedIds.length === 1 ? findElement(selectedIds[0]) : null;
@@ -431,6 +470,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         onZoomOut={handleZoomOut}
         onFitToScreen={handleFitToScreen}
         onExport={handleExport}
+        onImportSketch={enableSketchSupport ? handleImportSketch : undefined}
+        onExportSketch={enableSketchSupport ? handleExportSketch : undefined}
       />
 
       {/* Main content area */}

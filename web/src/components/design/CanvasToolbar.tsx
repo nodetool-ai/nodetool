@@ -2,7 +2,7 @@
  * CanvasToolbar - Toolbar for the layout canvas editor
  */
 
-import React, { useCallback, memo } from "react";
+import React, { useCallback, memo, useRef } from "react";
 import {
   Box,
   IconButton,
@@ -40,6 +40,8 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import DownloadIcon from "@mui/icons-material/Download";
+import FileUploadIcon from "@mui/icons-material/FileUpload";
+import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import { ElementType, GridSettings } from "./types";
 
 interface CanvasToolbarProps {
@@ -70,6 +72,8 @@ interface CanvasToolbarProps {
   onZoomOut: () => void;
   onFitToScreen: () => void;
   onExport: () => void;
+  onImportSketch?: (file: File) => void;
+  onExportSketch?: () => void;
 }
 
 // Toolbar button component
@@ -146,10 +150,13 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onZoomIn,
   onZoomOut,
   onFitToScreen,
-  onExport
+  onExport,
+  onImportSketch,
+  onExportSketch
 }) => {
   const theme = useTheme();
   const [addMenuAnchor, setAddMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenAddMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
@@ -168,6 +175,24 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       handleCloseAddMenu();
     },
     [onAddElement, handleCloseAddMenu]
+  );
+
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file && onImportSketch) {
+        onImportSketch(file);
+      }
+      // Reset the input so the same file can be imported again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [onImportSketch]
   );
 
   const hasSelection = selectedCount > 0;
@@ -344,12 +369,37 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
       <ToolbarDivider />
 
-      {/* Export */}
+      {/* Export PNG */}
       <ToolbarButton
         icon={<DownloadIcon />}
         tooltip="Export as PNG"
         onClick={onExport}
       />
+
+      {/* Sketch file import/export */}
+      {onImportSketch && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".sketch"
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+          />
+          <ToolbarButton
+            icon={<FileUploadIcon />}
+            tooltip="Import Sketch file (.sketch)"
+            onClick={handleImportClick}
+          />
+        </>
+      )}
+      {onExportSketch && (
+        <ToolbarButton
+          icon={<SaveAltIcon />}
+          tooltip="Export as Sketch file (.sketch)"
+          onClick={onExportSketch}
+        />
+      )}
 
       {/* Spacer */}
       <Box sx={{ flexGrow: 1 }} />

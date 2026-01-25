@@ -9,3 +9,5 @@ export { default as LayerPanel } from "./LayerPanel";
 export { default as ElementProperties } from "./ElementProperties";
 export { useLayoutCanvasStore } from "./LayoutCanvasStore";
 export * from "./types";
+// Sketch file format support
+export * as sketch from "./sketch";
