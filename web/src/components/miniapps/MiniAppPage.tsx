@@ -57,6 +57,7 @@ const MiniAppPage: React.FC = () => {
 
   const {
     runWorkflow,
+    cancelWorkflow,
     runnerState,
     results,
     progress,
@@ -271,27 +272,39 @@ const MiniAppPage: React.FC = () => {
                   onError={setSubmitError}
                 />
                 <div className="composer-actions">
-                  <Tooltip
-                    enterDelay={TOOLTIP_ENTER_DELAY * 2}
-                    title={
-                      isSubmitDisabled
-                        ? "Workflow is running..."
-                        : ""
-                    }
-                  >
-                    <span style={{ width: "100%" }}>
-                      <Button
-                        color="primary"
-                        variant="contained"
-                        type="submit"
-                        disabled={isSubmitDisabled}
-                        className="generate-button"
-                        fullWidth
-                      >
-                        Run Workflow
-                      </Button>
-                    </span>
-                  </Tooltip>
+                  {isRunning ? (
+                    <Button
+                      color="warning"
+                      variant="contained"
+                      onClick={() => void cancelWorkflow()}
+                      className="generate-button"
+                      fullWidth
+                    >
+                      Stop
+                    </Button>
+                  ) : (
+                    <Tooltip
+                      enterDelay={TOOLTIP_ENTER_DELAY * 2}
+                      title={
+                        isSubmitDisabled
+                          ? "Workflow is running..."
+                          : ""
+                      }
+                    >
+                      <span style={{ width: "100%" }}>
+                        <Button
+                          color="primary"
+                          variant="contained"
+                          type="submit"
+                          disabled={isSubmitDisabled}
+                          className="generate-button"
+                          fullWidth
+                        >
+                          Run Workflow
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  )}
                   {isRunning && (
                     <Typography
                       variant="caption"

@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Typography } from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
+import { Tooltip, Typography } from "@mui/material";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
 import { PropertyProps } from "../../node/PropertyInput";
@@ -10,6 +10,8 @@ import BoolProperty from "../../properties/BoolProperty";
 import ImageProperty from "../../properties/ImageProperty";
 import AudioProperty from "../../properties/AudioProperty";
 import FilePathProperty from "../../properties/FilePathProperty";
+import PropertyLabel from "../../node/PropertyLabel";
+import { NodeTextField, editorClassNames, cn } from "../../editor_ui";
 import {
   MiniAppInputDefinition,
   MiniAppInputKind,
@@ -130,12 +132,57 @@ const resolveInputValue = (
   }
 };
 
+const getStringInputConfig = (definition: MiniAppInputDefinition) => {
+  const data = definition.data as {
+    max_length?: unknown;
+    line_mode?: unknown;
+    multiline?: unknown;
+  };
+
+  const maxLength =
+    typeof data.max_length === "number" && Number.isFinite(data.max_length)
+      ? Math.max(0, Math.floor(data.max_length))
+      : 0;
+
+  const lineMode =
+    data.line_mode === "multiline" || data.multiline === true
+      ? "multiline"
+      : "single_line";
+
+  return { maxLength, lineMode } as const;
+};
+
 const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
   inputDefinitions,
   inputValues,
   onInputChange,
   onError
 }) => {
+  const [stringDrafts, setStringDrafts] = useState<Record<string, string>>({});
+
+  // Seed drafts for string inputs from stored values.
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    let changed = false;
+
+    inputDefinitions.forEach((definition) => {
+      if (definition.kind !== "string") {
+        return;
+      }
+      const key = definition.data.name;
+      if (stringDrafts[key] !== undefined) {
+        return;
+      }
+      const stored = inputValues[key];
+      next[key] = typeof stored === "string" ? stored : "";
+      changed = true;
+    });
+
+    if (changed) {
+      setStringDrafts((prev) => ({ ...next, ...prev }));
+    }
+  }, [inputDefinitions, inputValues, stringDrafts]);
+
   const propertyEntries = useMemo(
     () =>
       inputDefinitions
@@ -188,6 +235,78 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               onError?.(null);
               onInputChange(definition.data.name, nextValue);
             };
+
+            if (definition.kind === "string") {
+              const { maxLength, lineMode } = getStringInputConfig(definition);
+              const multiline = lineMode === "multiline";
+              const draft = stringDrafts[definition.data.name] ?? (typeof value === "string" ? value : "");
+              const exceedsMaxLength = maxLength > 0 && draft.length > maxLength;
+
+              return (
+                <div
+                  className="input-field"
+                  key={`${definition.nodeId}-${property.name}`}
+                >
+                  <div className="input-field-control">
+                    <div className="string-property">
+                      <PropertyLabel
+                        name={property.name}
+                        description={property.description}
+                        id={inputId}
+                      />
+                      <NodeTextField
+                        className={cn("string-value-input", editorClassNames.nowheel)}
+                        value={draft}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const raw = e.target.value ?? "";
+                          setStringDrafts((prev) => ({
+                            ...prev,
+                            [definition.data.name]: raw
+                          }));
+
+                          // Allow typing past limit, but only propagate within limit.
+                          const sent =
+                            maxLength === 0 ? raw : raw.slice(0, Math.max(0, maxLength));
+                          handleChange(sent);
+                        }}
+                        tabIndex={Number(propertyIndex) + 1}
+                        multiline={multiline}
+                        minRows={multiline ? 4 : 1}
+                        maxRows={multiline ? 12 : 1}
+                        slotProps={{ htmlInput: undefined }}
+                      />
+                      {maxLength > 0 && (
+                        <Tooltip
+                          title={
+                            exceedsMaxLength
+                              ? `${draft.length - maxLength} characters over the limit; extra characters will not be sent.`
+                              : "Max length. Extra characters will not be sent."
+                          }
+                          placement="bottom"
+                        >
+                          <Typography
+                            variant="caption"
+                            color={exceedsMaxLength ? "warning.main" : "text.secondary"}
+                            sx={{ display: "block", marginTop: 0.5, width: "fit-content" }}
+                          >
+                            {draft.length}/{maxLength}
+                          </Typography>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </div>
+                  {definition.data.description && (
+                    <Typography
+                      id={`${inputId}-description`}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      {definition.data.description}
+                    </Typography>
+                  )}
+                </div>
+              );
+            }
 
             return (
               <div

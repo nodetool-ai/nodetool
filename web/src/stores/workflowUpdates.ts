@@ -298,51 +298,17 @@ export const handleUpdate = (
       runnerStore.setState({ statusMessage: runState.suspension_reason });
     }
 
-    // Update cached jobs data directly from WebSocket updates
-    // This keeps the job list in sync without triggering network refetches
-    const activeStatuses = new Set([
-      "running",
-      "queued",
-      "starting",
-      "suspended",
-      "paused"
-    ]);
-
-    if (job.job_id) {
-      const jobId = job.job_id;
-      queryClient.setQueriesData<Job[]>({ queryKey: ["jobs"] }, (oldJobs = []) => {
-        const existingIndex = oldJobs.findIndex(j => j.id === jobId);
-        const shouldInclude = activeStatuses.has(job.status);
-
-        if (shouldInclude) {
-          const existingJob = existingIndex >= 0 ? oldJobs[existingIndex] : undefined;
-          const updatedJob: Job = {
-            id: jobId,
-            user_id: existingJob?.user_id ?? "",
-            job_type: existingJob?.job_type ?? "workflow",
-            status: job.status,
-            workflow_id: job.workflow_id ?? existingJob?.workflow_id ?? "",
-            started_at: existingJob?.started_at ?? null,
-            finished_at: job.status === "completed" || job.status === "failed" || job.status === "cancelled"
-              ? new Date().toISOString()
-              : existingJob?.finished_at ?? null,
-            error: job.error ?? existingJob?.error ?? null,
-            run_state: job.run_state ?? existingJob?.run_state ?? undefined
-          };
-          if (existingIndex >= 0) {
-            const newJobs = [...oldJobs];
-            newJobs[existingIndex] = updatedJob;
-            return newJobs;
-          } else {
-            return [...oldJobs, updatedJob];
-          }
-        } else {
-          if (existingIndex >= 0) {
-            return oldJobs.filter(j => j.id !== job.job_id);
-          }
-          return oldJobs;
-        }
-      });
+    // Invalidate jobs query to refresh the job panel when job state changes
+    // TEMPORARILY DISABLED "running" - testing performance impact of polling
+    if (
+      // job.status === "running" ||
+      job.status === "completed" ||
+      job.status === "cancelled" ||
+      job.status === "failed" ||
+      job.status === "suspended" ||
+      job.status === "paused"
+    ) {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
     }
     
     switch (job.status) {

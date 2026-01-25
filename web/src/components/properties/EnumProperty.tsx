@@ -20,7 +20,7 @@ const EnumProperty: React.FC<PropertyProps> = ({
   const values = useMemo(() => {
     return property.type.type === "enum"
       ? property.type.values
-      : property.type.type_args?.[0].values;
+      : property.type.type_args?.[0]?.values;
   }, [property.type]);
 
   return (
