@@ -33,6 +33,7 @@ import CollectionProperty from "../properties/CollectionProperty";
 import FolderPathProperty from "../properties/FolderPathProperty";
 import DocumentProperty from "../properties/DocumentProperty";
 import FontProperty from "../properties/FontProperty";
+import SelectProperty from "../properties/SelectProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import { useTheme } from "@mui/material/styles";
@@ -177,6 +178,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return FolderProperty;
     case "asset":
       return AssetProperty;
+    case "select":
+      return SelectProperty;
     case "workflow":
       return WorkflowProperty;
     case "dataframe":

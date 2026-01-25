@@ -1,7 +1,6 @@
 import { memo } from "react";
 import { Tooltip, IconButton, Divider } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { SvgIconProps } from "@mui/material";
 
 // icons
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";

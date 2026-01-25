@@ -528,6 +528,14 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     }
   }, []);
 
+  const toggleGrid = useCallback(() => {
+    setShowGrid((prev) => !prev);
+  }, []);
+
+  const toggleAxes = useCallback(() => {
+    setShowAxes((prev) => !prev);
+  }, []);
+
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {

@@ -45,9 +45,21 @@ const CollectionList = () => {
     fetchCollections();
   }, [fetchCollections]);
 
-  const handleDeleteClick = (collectionName: string) => {
+  const handleDeleteClick = useCallback((collectionName: string) => {
     setDeleteTarget(collectionName);
-  };
+  }, [setDeleteTarget]);
+
+  const handleShowForm = useCallback(() => {
+    setShowForm(true);
+  }, [setShowForm]);
+
+  const handleHideForm = useCallback(() => {
+    setShowForm(false);
+  }, [setShowForm]);
+
+  const handleClearIndexErrors = useCallback(() => {
+    setIndexErrors([]);
+  }, [setIndexErrors]);
 
   const handleShowForm = useCallback(() => {
     setShowForm(true);
@@ -197,7 +209,7 @@ const CollectionList = () => {
           )}
         </>
       )}
-      {showForm && <CollectionForm onClose={() => setShowForm(false)} />}
+      {showForm && <CollectionForm onClose={handleHideForm} />}
 
       <Dialog open={Boolean(deleteTarget)} onClose={cancelDelete}>
         <DialogTitle>Confirm Deletion</DialogTitle>

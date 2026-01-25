@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, Box, Collapse } from "@mui/material";
+import { Typography, Collapse } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { StepResult } from "../../stores/ApiTypes";
 import { ExpandCollapseButton } from "../ui_primitives";

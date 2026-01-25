@@ -25,6 +25,20 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
       return "audio";
     case "nodetool.input.FilePathInput":
       return "file_path";
+    case "nodetool.input.SelectInput":
+      return "select";
+    case "nodetool.input.LanguageModelInput":
+      return "language_model";
+    case "nodetool.input.ImageModelInput":
+      return "image_model";
+    case "nodetool.input.VideoModelInput":
+      return "video_model";
+    case "nodetool.input.TTSModelInput":
+      return "tts_model";
+    case "nodetool.input.ASRModelInput":
+      return "asr_model";
+    case "nodetool.input.EmbeddingModelInput":
+      return "embedding_model";
     default:
       return null;
   }
