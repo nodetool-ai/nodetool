@@ -390,6 +390,157 @@ describe('useNodeSelection', () => {
 - Provide meaningful error messages
 - Use try-catch in async operations
 
+---
+
+## React Hook Usage Rules
+
+These rules govern when to use React hooks and memoization. Follow them to avoid unnecessary complexity.
+
+### useEffect
+
+**Use when:**
+- You need to synchronize React with the outside world
+- Side effects: network requests, subscriptions, timers, DOM mutations, logging
+- Something must run after render
+
+**Do not use when:**
+- You only derive data from props or state
+- You want to "react" to state changes inside render logic
+- You try to fix re-render performance
+
+**Rules:**
+- Effects are for effects, not data flow
+- If you can compute it during render, do it there
+- Every value used inside must be in the dependency array or intentionally stable
+
+**Pattern:**
+```typescript
+useEffect(() => {
+  fetchData(id);
+}, [id]);
+```
+
+**Smell (avoid):**
+```typescript
+// ❌ Bad - should be plain: const value = a + b
+useEffect(() => setValue(a + b), [a, b]);
+```
+
+---
+
+### useMemo
+
+**Use when:**
+- Computation is expensive
+- Result is reused across renders
+- Referential stability matters for child props or dependency arrays
+
+**Do not use when:**
+- Computation is cheap
+- You are trying to prevent re-renders
+- You are guessing about performance
+
+**Rule:** `useMemo` caches values, not renders.
+
+**Pattern:**
+```typescript
+const filtered = useMemo(() => heavyFilter(data), [data]);
+```
+
+**Smell (avoid):**
+```typescript
+// ❌ Bad - pointless memoization
+const sum = useMemo(() => a + b, [a, b]);
+```
+
+---
+
+### useCallback
+
+**Use when:**
+- Passing functions to memoized children (wrapped in `React.memo`)
+- Function is a dependency of `useEffect` or `useMemo`
+- You need stable function identity for other reasons
+
+**Do not use when:**
+- Function is only used locally
+- Child component is not memoized
+- You are trying to speed things up blindly
+
+**Rule:** `useCallback` is just `useMemo` for functions.
+
+**Pattern:**
+```typescript
+// Child component is memoized, so stable callback prevents re-renders
+const onClick = useCallback(() => {
+  doSomething(id);
+}, [id]);
+
+// Pass to memoized child
+<MemoizedButton onClick={onClick} />
+```
+
+**Smell (avoid):**
+```typescript
+// ❌ Bad - unnecessary unless passed to memoized child
+const onClick = useCallback(() => setOpen(true), []);
+
+// If the child is not memoized, just use a regular function:
+const onClick = () => setOpen(true);
+```
+
+---
+
+### React.memo
+
+**Use when:**
+- Component is pure (same props → same output)
+- It receives stable props
+- It renders often
+- Rendering is expensive
+
+**Do not use when:**
+- Props change every render (breaks memoization)
+- Component is small or cheap to render
+- You need internal state updates to trigger render
+
+**Rule:** Memoization only works if props are referentially stable.
+
+**Pattern:**
+```typescript
+const Item = React.memo(function Item({ data, onSelect }) {
+  // ...
+});
+```
+
+**Smell (avoid):**
+```typescript
+// ❌ Bad - new object every render breaks memo
+<Item data={{ x: 1 }} />
+
+// ✅ Good - stable reference
+const data = useMemo(() => ({ x: 1 }), []);
+<Item data={data} />
+```
+
+---
+
+### Combined Rules Summary
+
+| Hook | Purpose |
+|------|---------|
+| `useEffect` | External world (side effects) |
+| `useMemo` | Expensive value computation |
+| `useCallback` | Stable function identity |
+| `React.memo` | Stable component identity |
+
+**Never:**
+- Add these "just in case"
+- Add them without measuring or clear reasoning
+- Use them to patch design problems
+
+**If performance is fine:** Do nothing.
+
 ## Common Patterns in NodeTool
 
 ### Creating Nodes from Hooks
