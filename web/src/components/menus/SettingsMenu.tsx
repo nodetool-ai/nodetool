@@ -811,6 +811,34 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     <div className="settings-section">
                       <div className="settings-item">
                         <FormControl>
+                          <InputLabel htmlFor={id}>Theme Preset</InputLabel>
+                          <Select
+                            id={id}
+                            labelId={id}
+                            value={settings.themePreset || "dark"}
+                            variant="standard"
+                            onChange={(e) =>
+                              useSettingsStore.getState().setThemePreset(
+                                e.target.value as "light" | "dark" | "ocean" | "forest" | "sunset" | "midnight"
+                              )
+                            }
+                          >
+                            <MenuItem value={"light"}>Light</MenuItem>
+                            <MenuItem value={"dark"}>Dark</MenuItem>
+                            <MenuItem value={"ocean"}>Ocean</MenuItem>
+                            <MenuItem value={"forest"}>Forest</MenuItem>
+                            <MenuItem value={"sunset"}>Sunset</MenuItem>
+                            <MenuItem value={"midnight"}>Midnight</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Typography className="description">
+                          Choose your preferred color theme. The theme preset
+                          determines the overall look and feel of the interface.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
                           <InputLabel htmlFor={id}>Time Format</InputLabel>
                           <Select
                             id={id}
