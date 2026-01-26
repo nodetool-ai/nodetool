@@ -357,8 +357,8 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         <div
           css={css({
             position: "absolute",
-            top: 0,
-            right: 0,
+            top: 4,
+            right: 4,
             zIndex: 1000
           })}
         >
@@ -366,6 +366,17 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             className="asset-delete"
             onClick={handleDelete}
             buttonSize="small"
+            sx={{
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              color: "white",
+              width: 24,
+              height: 24,
+              padding: "4px",
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
+                color: "white"
+              }
+            }}
           />
         </div>
       )}
