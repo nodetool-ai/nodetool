@@ -176,10 +176,8 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
     setShowClearConfirm(false);
   }, []);
 
-  const handleImageDoubleClick = useCallback((index: number) => {
-    // Could open image in lightbox or asset viewer
-    console.log("Double clicked image at index:", index);
-  }, []);
+  // Double-click is now handled internally by PreviewImageGrid
+  // which opens the image in AssetViewer
 
   return (
     <Dialog
@@ -225,9 +223,9 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
           <Box sx={{ flex: 1, overflow: "hidden" }}>
             <PreviewImageGrid
               images={allImages}
-              onDoubleClick={handleImageDoubleClick}
               itemSize={128}
               gap={8}
+              showActions={true}
             />
           </Box>
         ) : sessionHistory.length > 0 ? (
