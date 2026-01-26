@@ -13,6 +13,8 @@ import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import ImageDimensions from "../node/ImageDimensions";
 import { isElectron } from "../../utils/browser";
+import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 interface ImageItem {
   uri: string;
@@ -215,12 +217,51 @@ const ImageListProperty = (props: PropertyProps) => {
     }
   }, []);
 
-  // Handle file drops
+  // Handle file drops (both internal nodetool assets and external files)
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       event.stopPropagation();
       setIsDragOver(false);
+
+      // First, try to handle internal nodetool asset drops
+      const dragData = deserializeDragData(event.dataTransfer);
+      if (dragData) {
+        const droppedImages: ImageItem[] = [];
+
+        // Handle multiple assets
+        if (dragData.type === "assets-multiple") {
+          const selectedIds = dragData.payload as string[];
+          const { filteredAssets, globalSearchResults, selectedAssets } = useAssetGridStore.getState();
+          const potentialAssets = [...filteredAssets, ...globalSearchResults, ...(selectedAssets || [])];
+          const foundAssets = potentialAssets.filter(a => selectedIds.includes(a.id));
+          const uniqueAssets = Array.from(new Map(foundAssets.map(item => [item.id, item])).values());
+
+          uniqueAssets.forEach(asset => {
+            if (asset.get_url && asset.content_type?.startsWith("image/")) {
+              droppedImages.push({ uri: asset.get_url, type: "image" });
+            }
+          });
+        }
+
+        // Handle single asset
+        if (droppedImages.length === 0 && dragData.type === "asset") {
+          const asset = dragData.payload as Asset;
+          if (asset.get_url && asset.content_type?.startsWith("image/")) {
+            droppedImages.push({ uri: asset.get_url, type: "image" });
+          }
+        }
+
+        if (droppedImages.length > 0) {
+          handleAddImages(droppedImages);
+          return;
+        }
+      }
+
+      // Fall back to handling external file drops
+      if (!hasExternalFiles(event.dataTransfer)) {
+        return;
+      }
 
       const files = Array.from(event.dataTransfer.files).filter((file) =>
         file.type.startsWith("image/")
@@ -260,8 +301,6 @@ const ImageListProperty = (props: PropertyProps) => {
         handleAddImages(newImages);
       } catch (error) {
         console.error("Failed to upload images:", error);
-        // TODO: Show user-facing error notification
-        // Consider using useNotificationStore to display error to user
       }
     },
     [uploadAsset, handleAddImages]
