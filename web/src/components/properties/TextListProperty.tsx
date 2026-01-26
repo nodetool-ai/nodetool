@@ -6,11 +6,13 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip, Typography } from "@mui/material";
+import { IconButton, Tooltip, Typography, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import DescriptionIcon from "@mui/icons-material/Description";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { isElectron } from "../../utils/browser";
 
 interface TextItem {
   uri: string;
@@ -25,6 +27,20 @@ const styles = (theme: Theme) =>
     },
     ".property-label": {
       marginBottom: "5px"
+    },
+    ".native-picker-button": {
+      color: theme.vars.palette.grey[500],
+      backgroundColor: "transparent",
+      minWidth: "unset",
+      transition: "all 0.2s ease",
+      marginBottom: "4px",
+      "&:hover": {
+        color: theme.vars.palette.primary.main,
+        backgroundColor: theme.vars.palette.action.hover
+      },
+      "& svg": {
+        fontSize: "1.2rem"
+      }
     },
     ".text-grid": {
       display: "flex",
@@ -236,6 +252,62 @@ const TextListProperty = (props: PropertyProps) => {
     setIsDragOver(false);
   }, []);
 
+  // Native file picker for Electron
+  const handleNativeFilePicker = useCallback(async () => {
+    if (!window.api?.dialog?.openFile) {
+      return;
+    }
+
+    try {
+      const result = await window.api.dialog.openFile({
+        title: "Select text files",
+        filters: [
+          { name: "Text Files", extensions: ["txt", "md", "json", "csv", "xml", "html", "htm", "yaml", "yml", "log", "ini", "cfg", "conf"] }
+        ],
+        multiSelections: true
+      });
+
+      if (!result.canceled && result.filePaths.length > 0) {
+        const uploadPromises = result.filePaths.map(async (filePath: string) => {
+          const dataUrl = await window.api.clipboard?.readFileAsDataURL(filePath);
+          if (!dataUrl) {
+            throw new Error("Failed to read file");
+          }
+
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+
+          const pathSegments = filePath.split(/[\\/]/);
+          const fileName = pathSegments[pathSegments.length - 1] || "file.txt";
+
+          const file = new File([blob], fileName, { type: "text/plain" });
+
+          return new Promise<TextItem>((resolve, reject) => {
+            uploadAsset({
+              file,
+              onCompleted: (asset: Asset) => {
+                const uri = asset.get_url;
+                if (!uri) {
+                  reject(new Error("Asset URL is missing"));
+                  return;
+                }
+                resolve({ uri, type: "text" });
+              },
+              onFailed: (error: string) => {
+                reject(new Error(error));
+              }
+            });
+          });
+        });
+
+        const newTexts = await Promise.all(uploadPromises);
+        handleAddTexts(newTexts);
+      }
+    } catch (error) {
+      console.error("Error opening file picker:", error);
+    }
+  }, [uploadAsset, handleAddTexts]);
+
   return (
     <div className="text-list-property" css={styles(theme)}>
       <PropertyLabel
@@ -243,6 +315,20 @@ const TextListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
+
+      {/* Native file picker for Electron */}
+      {isElectron && (
+        <Tooltip title="Select text files from your computer">
+          <Button
+            className="native-picker-button"
+            variant="text"
+            onClick={handleNativeFilePicker}
+          >
+            <FolderOpenIcon />
+            Select text files
+          </Button>
+        </Tooltip>
+      )}
       
       {/* Text List */}
       {texts.length > 0 && (

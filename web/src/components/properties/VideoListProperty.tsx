@@ -6,10 +6,12 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip } from "@mui/material";
+import { IconButton, Tooltip, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { isElectron } from "../../utils/browser";
 
 interface VideoItem {
   uri: string;
@@ -24,6 +26,20 @@ const styles = (theme: Theme) =>
     },
     ".property-label": {
       marginBottom: "5px"
+    },
+    ".native-picker-button": {
+      color: theme.vars.palette.grey[500],
+      backgroundColor: "transparent",
+      minWidth: "unset",
+      transition: "all 0.2s ease",
+      marginBottom: "4px",
+      "&:hover": {
+        color: theme.vars.palette.primary.main,
+        backgroundColor: theme.vars.palette.action.hover
+      },
+      "& svg": {
+        fontSize: "1.2rem"
+      }
     },
     ".video-grid": {
       display: "grid",
@@ -209,6 +225,62 @@ const VideoListProperty = (props: PropertyProps) => {
     setIsDragOver(false);
   }, []);
 
+  // Native file picker for Electron
+  const handleNativeFilePicker = useCallback(async () => {
+    if (!window.api?.dialog?.openFile) {
+      return;
+    }
+
+    try {
+      const result = await window.api.dialog.openFile({
+        title: "Select videos",
+        filters: [
+          { name: "Video", extensions: ["mp4", "avi", "mov", "wmv", "flv", "webm", "mkv"] }
+        ],
+        multiSelections: true
+      });
+
+      if (!result.canceled && result.filePaths.length > 0) {
+        const uploadPromises = result.filePaths.map(async (filePath: string) => {
+          const dataUrl = await window.api.clipboard?.readFileAsDataURL(filePath);
+          if (!dataUrl) {
+            throw new Error("Failed to read file");
+          }
+
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+
+          const pathSegments = filePath.split(/[\\/]/);
+          const fileName = pathSegments[pathSegments.length - 1] || "video.mp4";
+
+          const file = new File([blob], fileName, { type: "video/mp4" });
+
+          return new Promise<VideoItem>((resolve, reject) => {
+            uploadAsset({
+              file,
+              onCompleted: (asset: Asset) => {
+                const uri = asset.get_url;
+                if (!uri) {
+                  reject(new Error("Asset URL is missing"));
+                  return;
+                }
+                resolve({ uri, type: "video" });
+              },
+              onFailed: (error: string) => {
+                reject(new Error(error));
+              }
+            });
+          });
+        });
+
+        const newVideos = await Promise.all(uploadPromises);
+        handleAddVideos(newVideos);
+      }
+    } catch (error) {
+      console.error("Error opening file picker:", error);
+    }
+  }, [uploadAsset, handleAddVideos]);
+
   return (
     <div className="video-list-property" css={styles(theme)}>
       <PropertyLabel
@@ -216,6 +288,20 @@ const VideoListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
+
+      {/* Native file picker for Electron */}
+      {isElectron && (
+        <Tooltip title="Select video files from your computer">
+          <Button
+            className="native-picker-button"
+            variant="text"
+            onClick={handleNativeFilePicker}
+          >
+            <FolderOpenIcon />
+            Select videos
+          </Button>
+        </Tooltip>
+      )}
       
       {/* Video Grid */}
       {videos.length > 0 && (
