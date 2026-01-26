@@ -140,7 +140,7 @@ export const DialogActionButtons = memo(
             autoFocus
             sx={{
               color: destructive
-                ? theme.vars.palette.error.main
+                ? theme.vars.palette.error.contrastText
                 : "var(--palette-primary-main)",
               fontWeight: "bold",
               "&:hover": {
