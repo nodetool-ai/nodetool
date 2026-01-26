@@ -48,7 +48,11 @@ const KIND_TO_PROPERTY_TYPE: Record<
   video_model: "video_model",
   tts_model: "tts_model",
   asr_model: "asr_model",
-  embedding_model: "embedding_model"
+  embedding_model: "embedding_model",
+  image_list: "list",
+  video_list: "list",
+  audio_list: "list",
+  text_list: "list"
 };
 
 const createPropertyFromDefinition = (
@@ -71,6 +75,11 @@ const createPropertyFromDefinition = (
       case "select":
         // Default to first option if available
         return definition.data.options?.[0] ?? "";
+      case "image_list":
+      case "video_list":
+      case "audio_list":
+      case "text_list":
+        return [];
       default:
         return null;
     }
@@ -84,13 +93,29 @@ const createPropertyFromDefinition = (
   const enumTypeName =
     definition.kind === "select" ? definition.data.enum_type_name ?? null : null;
 
+  // For list kinds, set the appropriate element type in type_args
+  const getTypeArgsForKind = (kind: MiniAppInputKind) => {
+    switch (kind) {
+      case "image_list":
+        return [{ type: "image", optional: false, type_args: [] }];
+      case "video_list":
+        return [{ type: "video", optional: false, type_args: [] }];
+      case "audio_list":
+        return [{ type: "audio", optional: false, type_args: [] }];
+      case "text_list":
+        return [{ type: "str", optional: false, type_args: [] }];
+      default:
+        return [];
+    }
+  };
+
   const property: Property = {
     name: definition.data.name,
     type: {
       type: KIND_TO_PROPERTY_TYPE[definition.kind],
       optional: true,
       values: enumValues,
-      type_args: [],
+      type_args: getTypeArgsForKind(definition.kind),
       type_name: enumTypeName
     },
     default: defaultValue,
@@ -138,6 +163,11 @@ const resolveInputValue = (
       return "";
     case "boolean":
       return false;
+    case "image_list":
+    case "video_list":
+    case "audio_list":
+    case "text_list":
+      return [];
     default:
       return undefined;
   }
