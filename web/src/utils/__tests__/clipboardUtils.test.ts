@@ -115,7 +115,7 @@ describe("clipboardUtils", () => {
     it("provides message for image types", () => {
       const message = getClipboardSupportMessage("image/png");
       expect(message).toContain("Image");
-      expect(message).toContain("Photoshop");
+      expect(message).toContain("image editor");
     });
 
     it("provides message for HTML types", () => {
