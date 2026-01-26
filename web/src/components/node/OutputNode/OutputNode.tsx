@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
-import { Container, Typography, Box, Divider, IconButton, Tooltip } from "@mui/material";
+import { Container, Typography, Box, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
@@ -519,7 +519,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
           {resultsToDisplay.length === 0 && (
             <Typography className="hint">
-              Displays output data from connected nodes
+              Exposes data to App Mode
             </Typography>
           )}
           <PreviewActions
@@ -533,35 +533,66 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
           className={`content ${
             isScrollable ? "scrollable nowheel" : "noscroll"
           }`}
-          style={{ width: "100%", height: "100%" }}
+          style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
           tabIndex={0}
           onFocus={handleContentFocus}
           onBlur={handleContentBlur}
           onPointerDown={handleContentPointerDown}
         >
-          {/* Render results with dividers between them */}
-          {resultsToDisplay.map((item, index) => (
-            <Box key={`result-${item.timestamp}-${index}`}>
-              {index > 0 && (
-                <Divider sx={{ my: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Result {resultsToDisplay.length - index}
-                  </Typography>
-                </Divider>
-              )}
-              <OutputRenderer
-                value={
-                  typeof item.result === "object" &&
-                    item.result !== null &&
-                    "output" in item.result &&
-                    item.result.output !== undefined
-                    ? item.result.output
-                    : item.result
-                }
-                showTextActions={false}
-              />
-            </Box>
-          ))}
+          {/* Render results with dividers between history items */}
+          {resultsToDisplay.map((item, index) => {
+            const resultValue =
+              typeof item.result === "object" &&
+              item.result !== null &&
+              "output" in item.result &&
+              item.result.output !== undefined
+                ? item.result.output
+                : item.result;
+            
+            return (
+              <Box 
+                key={`result-${item.timestamp}-${index}`}
+                sx={{ 
+                  flex: index === 0 ? 1 : "0 0 auto",
+                  minHeight: 0,
+                  display: "flex",
+                  flexDirection: "column"
+                }}
+              >
+                {index > 0 && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      py: 0.5,
+                      px: 1,
+                      borderTop: "1px solid",
+                      borderColor: "divider"
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: "0.65rem",
+                        color: "text.disabled",
+                        whiteSpace: "nowrap",
+                        lineHeight: 1
+                      }}
+                    >
+                      Run {resultsToDisplay.length - index}
+                    </Typography>
+                  </Box>
+                )}
+                <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+                  <OutputRenderer
+                    value={resultValue}
+                    showTextActions={false}
+                  />
+                </Box>
+              </Box>
+            );
+          })}
         </div>
       </div>
 
