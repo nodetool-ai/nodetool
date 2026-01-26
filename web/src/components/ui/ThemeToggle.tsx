@@ -2,9 +2,11 @@ import React from "react";
 import { StateIconButton } from "../ui_primitives";
 import { useColorScheme } from "@mui/material/styles";
 import { Palette } from "@mui/icons-material";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 export const ThemeToggle: React.FC = () => {
   const { mode } = useColorScheme();
+  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
 
   // Don't render until we have the mode
   if (!mode) {
@@ -19,9 +21,8 @@ export const ThemeToggle: React.FC = () => {
       icon={<Palette />}
       tooltip={`Current theme: ${modeDisplay}`}
       onClick={() => {
-        // Open settings to theme section
-        const settingsStore = require("../../stores/SettingsStore").useSettingsStore;
-        settingsStore.getState().setMenuOpen(true, 1);
+        // Open settings to theme section (tab 1 = Editor & View)
+        setMenuOpen(true, 1);
       }}
       size="small"
       color="default"

@@ -12,7 +12,8 @@ export const ThemeSync = () => {
 
   useEffect(() => {
     if (themePreset && setMode) {
-      setMode(themePreset);
+      // Cast to 'any' to allow custom theme modes beyond MUI's default 'light' | 'dark'
+      setMode(themePreset as any);
     }
   }, [themePreset, setMode]);
 
