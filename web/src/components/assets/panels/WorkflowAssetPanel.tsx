@@ -8,6 +8,7 @@ import { Asset } from "../../../stores/ApiTypes";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import AssetGridContent from "../AssetGridContent";
 import AssetViewer from "../AssetViewer";
+import AssetDeleteConfirmation from "../AssetDeleteConfirmation";
 import useResultsStore from "../../../stores/ResultsStore";
 
 /**
@@ -27,6 +28,7 @@ const WorkflowAssetPanel: React.FC = () => {
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
   const openAsset = useAssetGridStore((state) => state.openAsset);
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
+  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
 
   // Subscribe to results store to detect new results
   const results = useResultsStore((state) => state.results);
@@ -193,6 +195,8 @@ const WorkflowAssetPanel: React.FC = () => {
           onClose={handleCloseViewer}
         />
       )}
+      {/* Delete confirmation dialog */}
+      <AssetDeleteConfirmation assets={selectedAssetIds} />
     </Box>
   );
 };
