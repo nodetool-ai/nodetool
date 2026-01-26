@@ -317,7 +317,8 @@ export const handleUpdate = (
           alert: true,
           content: "Job completed"
         });
-        clearEdges(workflow.id);
+        // Note: Don't clear edges on completion - keep the stream item counts visible
+        // Edges are cleared when a new run starts (in WorkflowRunner.ts)
         clearProgress(workflow.id);
         clearTimings(workflow.id);
         break;
