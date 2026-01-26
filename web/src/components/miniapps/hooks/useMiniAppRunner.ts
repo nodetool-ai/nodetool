@@ -75,14 +75,28 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         // Handle asset types with binary data conversion
         if (assetTypes.includes(update.output_type)) {
           if (typeof update.value === "string") {
-            // Convert base64 string to Uint8Array
-            const binary = atob(update.value);
-            const len = binary.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-              bytes[i] = binary.charCodeAt(i);
+            const strValue = update.value;
+            // Check if it's a URI - don't try to base64 decode URIs
+            const isUri = /^(https?|file|data|blob):|^\//.test(strValue);
+            
+            if (isUri) {
+              // Keep URI strings as-is
+              value = strValue;
+            } else {
+              // Try to convert base64 string to Uint8Array
+              try {
+                const binary = atob(strValue);
+                const len = binary.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                  bytes[i] = binary.charCodeAt(i);
+                }
+                value = bytes;
+              } catch {
+                // Not valid base64, keep as string
+                value = strValue;
+              }
             }
-            value = bytes;
           } else if (
             update.value &&
             typeof update.value === "object" &&
@@ -117,14 +131,28 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
 
         // Handle binary data conversion for preview images
         if (typeof update.value === "string") {
-          // Convert base64 string to Uint8Array
-          const binary = atob(update.value);
-          const len = binary.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binary.charCodeAt(i);
+          const strValue = update.value;
+          // Check if it's a URI - don't try to base64 decode URIs
+          const isUri = /^(https?|file|data|blob):|^\//.test(strValue);
+          
+          if (isUri) {
+            // Keep URI strings as-is
+            value = strValue;
+          } else {
+            // Try to convert base64 string to Uint8Array
+            try {
+              const binary = atob(strValue);
+              const len = binary.length;
+              const bytes = new Uint8Array(len);
+              for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
+              }
+              value = bytes;
+            } catch {
+              // Not valid base64, keep as string
+              value = strValue;
+            }
           }
-          value = bytes;
         } else if (
           update.value &&
           typeof update.value === "object" &&
