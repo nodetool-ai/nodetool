@@ -441,8 +441,10 @@ export function initializeIpcHandlers(): void {
       try {
         const buffer = await fs.readFile(filePath);
         const ext = path.extname(filePath).toLowerCase().replace(".", "");
-        // Simple mime mapping for common image types
+        // MIME type mapping for common file types
         let mimeType = "application/octet-stream";
+        
+        // Image types
         if (
           ["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "svg"].includes(
             ext,
@@ -450,6 +452,27 @@ export function initializeIpcHandlers(): void {
         ) {
           mimeType = `image/${ext === "svg" ? "svg+xml" : ext === "jpg" ? "jpeg" : ext}`;
         }
+        // Audio types
+        else if (["mp3", "wav", "ogg", "m4a", "flac", "aac"].includes(ext)) {
+          mimeType = `audio/${ext === "mp3" ? "mpeg" : ext}`;
+        }
+        // Video types
+        else if (["mp4", "avi", "mov", "wmv", "flv", "webm", "mkv"].includes(ext)) {
+          mimeType = `video/${ext}`;
+        }
+        // Document types
+        else if (ext === "pdf") {
+          mimeType = "application/pdf";
+        } else if (ext === "doc") {
+          mimeType = "application/msword";
+        } else if (ext === "docx") {
+          mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        } else if (ext === "txt") {
+          mimeType = "text/plain";
+        } else if (ext === "html") {
+          mimeType = "text/html";
+        }
+        
         return `data:${mimeType};base64,${buffer.toString("base64")}`;
       } catch (error) {
         logMessage(`Failed to read file as data URL: ${error}`, "warn");
