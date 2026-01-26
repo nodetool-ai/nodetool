@@ -4,7 +4,6 @@ import type { } from "./theme";
 import type { } from "./emotion";
 import type { } from "./material-ui";
 import type { } from "./window";
-// import type {} from "./types/svg-react"; // removed: file does not exist
 
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
