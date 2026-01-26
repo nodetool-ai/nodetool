@@ -12,7 +12,7 @@ import {
   Divider
 } from "@mui/material";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
-import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
+import { DeleteButton } from "../ui_primitives/DeleteButton";
 import InfoIcon from "@mui/icons-material/Info";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
@@ -189,7 +189,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           title={
             <span>
               {isBypassed ? "Enable Node" : "Bypass Node"}{" "}
-              <span className="shortcut">B</span>
+              {getShortcutTooltip("bypassNode", undefined, "combo")}
             </span>
           }
           enterDelay={TOOLTIP_ENTER_DELAY}
@@ -228,7 +228,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           title={
             <span>
               Duplicate{" "}
-              <span className="shortcut">{getShortcutTooltip("duplicate")}</span>
+              {getShortcutTooltip("duplicate", undefined, "combo")}
             </span>
           }
           enterDelay={TOOLTIP_ENTER_DELAY}
@@ -243,24 +243,19 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           </IconButton>
         </Tooltip>
 
-        <Tooltip
-          title={
+        <DeleteButton
+          onClick={handleDelete}
+          tooltip={
             <span>
               Delete{" "}
-              <span className="shortcut">{getShortcutTooltip("delete")}</span>
+              {getShortcutTooltip("deleteSelected", undefined, "combo")}
             </span>
           }
-          enterDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <IconButton
-            className="nodrag"
-            onClick={handleDelete}
-            tabIndex={-1}
-            size="small"
-          >
-            <RemoveCircleIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+          sx={{
+            color: "inherit",
+            "& svg": { width: 18, height: 18 }
+          }}
+        />
 
         <Tooltip
           title={<span>Info</span>}
