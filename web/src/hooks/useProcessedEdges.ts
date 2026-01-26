@@ -153,11 +153,13 @@ export function useProcessedEdges({
     function typeInfoFromTypeString(typeString: string | undefined): {
       slug: string;
       color: string;
+      label: string;
     } {
       if (!typeString) {
         return {
           slug: anyType?.slug || "any",
-          color: defaultColor
+          color: defaultColor,
+          label: anyType?.label || "Any"
         };
       }
       const t = dataTypeByValue.get(typeString) || 
@@ -165,14 +167,15 @@ export function useProcessedEdges({
                 dataTypeBySlug.get(typeString);
       return {
         slug: t?.slug || "any",
-        color: t?.color || defaultColor
+        color: t?.color || defaultColor,
+        label: t?.label || "Any"
       };
     }
 
     function getEffectiveSourceType(
       startNodeId: string,
       startHandle: string | null | undefined
-    ): { slug: string; color: string } {
+    ): { slug: string; color: string; label: string } {
       let currentNode = getNode(startNodeId);
       let currentHandle = startHandle || "";
       const visited = new Set<string>();
@@ -216,6 +219,7 @@ export function useProcessedEdges({
 
       let sourceTypeSlug = "any";
       let sourceColor = defaultColor;
+      let sourceTypeLabel = "Any";
       let targetTypeSlug = "any";
 
       if (sourceNode && edge.sourceHandle) {
@@ -225,6 +229,7 @@ export function useProcessedEdges({
         );
         sourceTypeSlug = effective.slug;
         sourceColor = effective.color;
+        sourceTypeLabel = effective.label;
       }
 
       if (targetNode && edge.targetHandle) {
@@ -311,7 +316,8 @@ export function useProcessedEdges({
         data: {
           ...edge.data,
           status: status || null,
-          counter: counter || null
+          counter: counter || null,
+          dataTypeLabel: sourceTypeLabel
         }
       };
     });
