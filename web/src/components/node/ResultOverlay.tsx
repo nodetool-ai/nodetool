@@ -6,6 +6,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
 import NodeHistoryPanel from "./NodeHistoryPanel";
 import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ResultOverlayProps {
   result: any;
@@ -61,31 +62,31 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
     >
       {/* History button - only shows on hover */}
       {hasSessionHistory && nodeId && workflowId && (
-        <Tooltip title="View History" placement="left">
+        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="View History" placement="left">
           <IconButton
             size="small"
             onClick={handleOpenHistory}
             sx={{
               position: "absolute",
               top: 4,
-              right: 4,
+              right: 12,
               zIndex: 10,
-              width: 24,
-              height: 24,
+              width: 32,
+              height: 32,
               padding: "4px",
               opacity: 0,
               transition: "opacity 0.2s ease",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              backgroundColor: "rgba(0, 0, 0, 0.3)",
               color: "white",
               ".result-overlay:hover &": {
                 opacity: 1
               },
               "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.7)"
+                backgroundColor: "rgba(0, 0, 0, 0.8)"
               }
             }}
           >
-            <HistoryIcon sx={{ fontSize: 14 }} />
+            <HistoryIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
       )}
