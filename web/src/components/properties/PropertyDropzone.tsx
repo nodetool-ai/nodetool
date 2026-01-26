@@ -13,7 +13,9 @@ import AudioPlayer from "../audio/AudioPlayer";
 import VideoRecorder from "../video/VideoRecorder";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
-import { NodeTextField } from "../ui_primitives";
+import { isElectron } from "../../utils/browser";
+import { useAssetUpload } from "../../serverState/useAssetUpload";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -43,15 +45,10 @@ const PropertyDropzone = ({
     type: contentType as "image" | "audio" | "video" | "all"
   });
 
-  const [showUrlInput, setShowUrlInput] = useState(false);
   const [openViewer, setOpenViewer] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
-
-  const handleToggleUrlInput = useCallback(() => {
-    setShowUrlInput((prev) => !prev);
-  }, []);
 
   const styles = (theme: Theme) =>
     css({
@@ -64,38 +61,23 @@ const PropertyDropzone = ({
         alignItems: "normal",
         gap: "0"
       },
-      ".toggle-url-button": {
-        position: "absolute",
-        top: "-15px",
-        right: "0",
-        zIndex: 2,
+      ".native-picker-button": {
         color: theme.vars.palette.grey[500],
         backgroundColor: "transparent",
-        fontSize: "10px",
-        fontWeight: 600,
-        lineHeight: "1",
-        height: "auto",
         minWidth: "unset",
-        margin: "0",
-        padding: "2px 4px",
-        borderRadius: "4px",
         transition: "all 0.2s ease",
         "&:hover": {
           color: theme.vars.palette.primary.main,
           backgroundColor: theme.vars.palette.action.hover
+        },
+        "& svg": {
+          fontSize: "1.2rem"
         }
-      },
-      ".url-input": {
-        width: "calc(100% - 24px)",
-        maxWidth: "120px",
-        zIndex: 1,
-        bottom: "0em",
-        margin: "0 0 .5em 0"
       },
       ".dropzone": {
         position: "relative",
         minHeight: "30px",
-        width: showUrlInput ? "100%" : "100%",
+        width: "100%",
         border: "0",
         maxWidth: "none",
         textAlign: "left",
@@ -208,6 +190,88 @@ const PropertyDropzone = ({
     e.currentTarget.volume = 1;
   }, []);
 
+  const { uploadAsset: uploadAssetFn } = useAssetUpload();
+
+  const handleNativeFilePicker = useCallback(async () => {
+    if (!window.api?.dialog?.openFile) {
+      return;
+    }
+
+    try {
+      // Get appropriate file filters based on content type
+      const getFilters = () => {
+        const type = contentType.split("/")[0];
+        switch (type) {
+          case "image":
+            return [
+              { name: "Images", extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"] }
+            ];
+          case "audio":
+            return [
+              { name: "Audio", extensions: ["mp3", "wav", "ogg", "m4a", "flac", "aac"] }
+            ];
+          case "video":
+            return [
+              { name: "Video", extensions: ["mp4", "avi", "mov", "wmv", "flv", "webm", "mkv"] }
+            ];
+          case "document":
+            return [
+              { name: "Documents", extensions: ["pdf", "doc", "docx", "txt", "html"] }
+            ];
+          default:
+            return undefined;
+        }
+      };
+
+      const result = await window.api.dialog.openFile({
+        title: `Select ${contentType.split("/")[0]}`,
+        filters: getFilters()
+      });
+
+      if (!result.canceled && result.filePaths.length > 0) {
+        const filePath = result.filePaths[0];
+
+        // Read the file as data URL using Electron's IPC
+        const dataUrl = await window.api.clipboard?.readFileAsDataURL(filePath);
+
+        if (!dataUrl) {
+          console.error("Failed to read file");
+          return;
+        }
+
+        // Convert data URL to Blob
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+
+        // Get filename with fallback that includes an extension
+        const pathSegments = filePath.split(/[\\/]/);
+        let fileName = pathSegments[pathSegments.length - 1];
+
+        if (!fileName) {
+          // If we can't get filename, create one based on content type
+          const ext = contentType.split("/")[1] || "bin";
+          fileName = `file.${ext}`;
+        }
+
+        // Use contentType for consistency, not blob.type which may be incorrect
+        const file = new File([blob], fileName, { type: contentType });
+
+        // Upload the file as an asset
+        uploadAssetFn({
+          file,
+          onCompleted: (asset) => {
+            onChange({ uri: asset.get_url || "", type: contentType });
+          },
+          onFailed: (error) => {
+            console.error("Failed to upload asset:", error);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error opening file picker:", error);
+    }
+  }, [contentType, onChange, uploadAssetFn]);
+
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
       case "image":
@@ -223,7 +287,7 @@ const PropertyDropzone = ({
               <img
                 ref={imageRef}
                 src={asset?.get_url || uri || ""}
-                alt=""
+                alt={asset?.name || ""}
                 style={{ width: "100%", height: "auto" }}
                 onLoad={handleImageLoad}
                 onDoubleClick={handleDoubleClick}
@@ -325,51 +389,23 @@ const PropertyDropzone = ({
 
   return (
     <div css={styles(theme)}>
-      <div className="drop-container">
-        {showUrlInput && (
-          <NodeTextField
-            className="url-input"
-            value={uri || ""}
-            onChange={(e) =>
-              onChange({ uri: e.target.value, type: contentType })
-            }
-            placeholder={`Enter ${contentType.split("/")[0]} URL`}
-            sx={{
-              backgroundColor: theme.vars.palette.grey[600],
-              "& .MuiOutlinedInput-root": {
-                height: "1.8em"
-              },
-              "& .MuiOutlinedInput-input": {
-                padding: ".2em .5em",
-                fontFamily: theme.fontFamily1,
-                fontSize: theme.fontSizeTiny
-              },
-              "& .MuiOutlinedInput-notchedOutline": {
-                border: "0"
-              }
-            }}
-          />
-        )}
-
-        <Tooltip
-          title={showUrlInput ? "Hide URL input" : "Show input to enter a URL"}
-        >
+      {isElectron && (
+        <Tooltip title="Open file picker to select a file from your computer">
           <Button
-            className="toggle-url-button"
+            className="native-picker-button"
             variant="text"
-            style={{
-              opacity: showUrlInput ? 0.8 : 1
-            }}
-            onClick={handleToggleUrlInput}
+            onClick={handleNativeFilePicker}
           >
-            {showUrlInput ? "X" : "URL"}
+            <FolderOpenIcon />
+            Select {contentType}
           </Button>
         </Tooltip>
+      )}
 
+      <div className="drop-container">
         <div
-          className={`dropzone ${uri ? "dropped" : ""} ${
-            isDragOver ? "drag-over" : ""
-          }`}
+          className={`dropzone ${uri ? "dropped" : ""} ${isDragOver ? "drag-over" : ""
+            }`}
           style={{
             borderWidth: uri === "" ? "1px" : "0px"
           }}
