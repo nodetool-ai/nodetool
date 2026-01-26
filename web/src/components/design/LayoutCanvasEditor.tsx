@@ -163,12 +163,14 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     redo,
     findElement,
     snapGuides,
-    snapEnabled,
+    // snapEnabled is available for future feature toggles
+    snapEnabled: _snapEnabled,
     calculateSnapGuides,
     setSnapGuides,
     clearSnapGuides,
     distributeHorizontally,
-    distributeVertically
+    distributeVertically,
+    tidyElements
   } = useLayoutCanvasStore();
 
   // Initialize store with value
@@ -524,14 +526,15 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         onSendToBack={() => sendToBack(selectedIds)}
         onBringForward={() => bringForward(selectedIds)}
         onSendBackward={() => sendBackward(selectedIds)}
-        onAlignLeft={() => alignLeft(selectedIds)}
-        onAlignCenter={() => alignCenter(selectedIds)}
-        onAlignRight={() => alignRight(selectedIds)}
-        onAlignTop={() => alignTop(selectedIds)}
-        onAlignMiddle={() => alignMiddle(selectedIds)}
-        onAlignBottom={() => alignBottom(selectedIds)}
+        onAlignLeft={(toCanvas) => alignLeft(selectedIds, toCanvas)}
+        onAlignCenter={(toCanvas) => alignCenter(selectedIds, toCanvas)}
+        onAlignRight={(toCanvas) => alignRight(selectedIds, toCanvas)}
+        onAlignTop={(toCanvas) => alignTop(selectedIds, toCanvas)}
+        onAlignMiddle={(toCanvas) => alignMiddle(selectedIds, toCanvas)}
+        onAlignBottom={(toCanvas) => alignBottom(selectedIds, toCanvas)}
         onDistributeHorizontally={() => distributeHorizontally(selectedIds)}
         onDistributeVertically={() => distributeVertically(selectedIds)}
+        onTidy={() => tidyElements(selectedIds)}
         onToggleGrid={handleToggleGrid}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}

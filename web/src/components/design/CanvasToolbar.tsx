@@ -46,6 +46,7 @@ import FitScreenIcon from "@mui/icons-material/FitScreen";
 import DownloadIcon from "@mui/icons-material/Download";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { ElementType, GridSettings } from "./types";
 
 interface CanvasToolbarProps {
@@ -65,14 +66,15 @@ interface CanvasToolbarProps {
   onSendToBack: () => void;
   onBringForward: () => void;
   onSendBackward: () => void;
-  onAlignLeft: () => void;
-  onAlignCenter: () => void;
-  onAlignRight: () => void;
-  onAlignTop: () => void;
-  onAlignMiddle: () => void;
-  onAlignBottom: () => void;
+  onAlignLeft: (toCanvas?: boolean) => void;
+  onAlignCenter: (toCanvas?: boolean) => void;
+  onAlignRight: (toCanvas?: boolean) => void;
+  onAlignTop: (toCanvas?: boolean) => void;
+  onAlignMiddle: (toCanvas?: boolean) => void;
+  onAlignBottom: (toCanvas?: boolean) => void;
   onDistributeHorizontally: () => void;
   onDistributeVertically: () => void;
+  onTidy: () => void;
   onToggleGrid: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -154,6 +156,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onAlignBottom,
   onDistributeHorizontally,
   onDistributeVertically,
+  onTidy,
   onToggleGrid,
   onZoomIn,
   onZoomOut,
@@ -203,8 +206,34 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     [onImportSketch]
   );
 
+  // Handlers that check for Alt/Option key for canvas alignment
+  const handleAlignLeft = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignLeft(event.altKey || selectedCount === 1);
+  }, [onAlignLeft, selectedCount]);
+
+  const handleAlignCenter = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignCenter(event.altKey || selectedCount === 1);
+  }, [onAlignCenter, selectedCount]);
+
+  const handleAlignRight = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignRight(event.altKey || selectedCount === 1);
+  }, [onAlignRight, selectedCount]);
+
+  const handleAlignTop = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignTop(event.altKey || selectedCount === 1);
+  }, [onAlignTop, selectedCount]);
+
+  const handleAlignMiddle = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignMiddle(event.altKey || selectedCount === 1);
+  }, [onAlignMiddle, selectedCount]);
+
+  const handleAlignBottom = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignBottom(event.altKey || selectedCount === 1);
+  }, [onAlignBottom, selectedCount]);
+
   const hasSelection = selectedCount > 0;
-  const hasMultipleSelection = selectedCount > 1;
+  // hasMultipleSelection is kept for future features that need 2+ selection
+  const _hasMultipleSelection = selectedCount > 1;
 
   return (
     <Box
@@ -340,47 +369,47 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
       <ToolbarDivider />
 
-      {/* Alignment (visible only when multiple selected) */}
+      {/* Alignment - works with single element (aligns to canvas) or multiple */}
       <ToolbarButton
         icon={<AlignHorizontalLeftIcon />}
-        tooltip="Align left"
-        onClick={onAlignLeft}
-        disabled={!hasMultipleSelection}
+        tooltip="Align left (⌥+click = to canvas)"
+        onClick={handleAlignLeft}
+        disabled={!hasSelection}
       />
       <ToolbarButton
         icon={<AlignHorizontalCenterIcon />}
-        tooltip="Align center horizontally"
-        onClick={onAlignCenter}
-        disabled={!hasMultipleSelection}
+        tooltip="Align center (⌥+click = to canvas)"
+        onClick={handleAlignCenter}
+        disabled={!hasSelection}
       />
       <ToolbarButton
         icon={<AlignHorizontalRightIcon />}
-        tooltip="Align right"
-        onClick={onAlignRight}
-        disabled={!hasMultipleSelection}
+        tooltip="Align right (⌥+click = to canvas)"
+        onClick={handleAlignRight}
+        disabled={!hasSelection}
       />
       <ToolbarButton
         icon={<AlignVerticalTopIcon />}
-        tooltip="Align top"
-        onClick={onAlignTop}
-        disabled={!hasMultipleSelection}
+        tooltip="Align top (⌥+click = to canvas)"
+        onClick={handleAlignTop}
+        disabled={!hasSelection}
       />
       <ToolbarButton
         icon={<AlignVerticalCenterIcon />}
-        tooltip="Align center vertically"
-        onClick={onAlignMiddle}
-        disabled={!hasMultipleSelection}
+        tooltip="Align center (⌥+click = to canvas)"
+        onClick={handleAlignMiddle}
+        disabled={!hasSelection}
       />
       <ToolbarButton
         icon={<AlignVerticalBottomIcon />}
-        tooltip="Align bottom"
-        onClick={onAlignBottom}
-        disabled={!hasMultipleSelection}
+        tooltip="Align bottom (⌥+click = to canvas)"
+        onClick={handleAlignBottom}
+        disabled={!hasSelection}
       />
 
       <ToolbarDivider />
 
-      {/* Distribute */}
+      {/* Distribute & Tidy */}
       <ToolbarButton
         icon={<ViewColumnIcon />}
         tooltip="Distribute horizontally"
@@ -392,6 +421,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         tooltip="Distribute vertically"
         onClick={onDistributeVertically}
         disabled={selectedCount < 3}
+      />
+      <ToolbarButton
+        icon={<AutoFixHighIcon />}
+        tooltip="Tidy - arrange into neat grid"
+        onClick={onTidy}
+        disabled={selectedCount < 2}
       />
 
       <ToolbarDivider />

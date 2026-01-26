@@ -24,6 +24,25 @@ const generateId = (): string => {
   return `el_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 };
 
+// Helper type for position updates
+type PositionUpdate = { id: string; x?: number; y?: number };
+
+// Helper function to apply position updates to elements
+const applyPositionUpdates = (
+  elements: LayoutElement[],
+  positions: PositionUpdate[]
+): LayoutElement[] => {
+  return elements.map((el) => {
+    const pos = positions.find((p) => p.id === el.id);
+    if (!pos) {return el;}
+    return {
+      ...el,
+      ...(pos.x !== undefined && { x: pos.x }),
+      ...(pos.y !== undefined && { y: pos.y })
+    };
+  });
+};
+
 interface LayoutCanvasStoreState {
   // Canvas data
   canvasData: LayoutCanvasData;
@@ -73,14 +92,21 @@ interface LayoutCanvasStoreState {
   reorderElements: (fromIndex: number, toIndex: number) => void;
 
   // Alignment
-  alignLeft: (ids: string[]) => void;
-  alignCenter: (ids: string[]) => void;
-  alignRight: (ids: string[]) => void;
-  alignTop: (ids: string[]) => void;
-  alignMiddle: (ids: string[]) => void;
-  alignBottom: (ids: string[]) => void;
+  alignLeft: (ids: string[], toCanvas?: boolean) => void;
+  alignCenter: (ids: string[], toCanvas?: boolean) => void;
+  alignRight: (ids: string[], toCanvas?: boolean) => void;
+  alignTop: (ids: string[], toCanvas?: boolean) => void;
+  alignMiddle: (ids: string[], toCanvas?: boolean) => void;
+  alignBottom: (ids: string[], toCanvas?: boolean) => void;
   distributeHorizontally: (ids: string[]) => void;
   distributeVertically: (ids: string[]) => void;
+  
+  // Tidy - arrange elements into a neat grid
+  tidyElements: (ids: string[], spacing?: number) => void;
+  
+  // Set specific spacing between elements
+  setHorizontalSpacing: (ids: string[], spacing: number) => void;
+  setVerticalSpacing: (ids: string[], spacing: number) => void;
 
   // Visibility & lock
   toggleVisibility: (id: string) => void;
@@ -414,100 +440,132 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
   },
 
   // Alignment helpers
-  alignLeft: (ids) => {
-    const elements = get().canvasData.elements.filter((el) => ids.includes(el.id));
-    if (elements.length < 2) {return;}
+  // When toCanvas is true, single elements align to canvas boundaries
+  // When toCanvas is false (default), multiple elements align to selection bounds
+  alignLeft: (ids, toCanvas = false) => {
+    const { canvasData } = get();
+    const elements = canvasData.elements.filter((el) => ids.includes(el.id));
+    if (elements.length === 0) {return;}
     
-    const minX = Math.min(...elements.map((el) => el.x));
+    // Single element: align to canvas if toCanvas is true
+    // Multiple elements: align to leftmost element
+    const targetX = (elements.length === 1 && toCanvas) ? 0 : Math.min(...elements.map((el) => el.x));
+    
     set((state) => ({
       canvasData: {
         ...state.canvasData,
         elements: state.canvasData.elements.map((el) =>
-          ids.includes(el.id) ? { ...el, x: minX } : el
+          ids.includes(el.id) ? { ...el, x: targetX } : el
         )
       }
     }));
     get().saveToHistory();
   },
 
-  alignCenter: (ids) => {
-    const elements = get().canvasData.elements.filter((el) => ids.includes(el.id));
-    if (elements.length < 2) {return;}
+  alignCenter: (ids, toCanvas = false) => {
+    const { canvasData } = get();
+    const elements = canvasData.elements.filter((el) => ids.includes(el.id));
+    if (elements.length === 0) {return;}
     
-    const centers = elements.map((el) => el.x + el.width / 2);
-    const avgCenter = centers.reduce((a, b) => a + b, 0) / centers.length;
+    let targetCenterX: number;
+    if (elements.length === 1 && toCanvas) {
+      // Center in canvas
+      targetCenterX = canvasData.width / 2;
+    } else {
+      // Center based on selection bounds
+      const centers = elements.map((el) => el.x + el.width / 2);
+      targetCenterX = centers.reduce((a, b) => a + b, 0) / centers.length;
+    }
     
     set((state) => ({
       canvasData: {
         ...state.canvasData,
         elements: state.canvasData.elements.map((el) =>
-          ids.includes(el.id) ? { ...el, x: avgCenter - el.width / 2 } : el
+          ids.includes(el.id) ? { ...el, x: targetCenterX - el.width / 2 } : el
         )
       }
     }));
     get().saveToHistory();
   },
 
-  alignRight: (ids) => {
-    const elements = get().canvasData.elements.filter((el) => ids.includes(el.id));
-    if (elements.length < 2) {return;}
+  alignRight: (ids, toCanvas = false) => {
+    const { canvasData } = get();
+    const elements = canvasData.elements.filter((el) => ids.includes(el.id));
+    if (elements.length === 0) {return;}
     
-    const maxRight = Math.max(...elements.map((el) => el.x + el.width));
+    const targetRight = (elements.length === 1 && toCanvas) 
+      ? canvasData.width 
+      : Math.max(...elements.map((el) => el.x + el.width));
+    
     set((state) => ({
       canvasData: {
         ...state.canvasData,
         elements: state.canvasData.elements.map((el) =>
-          ids.includes(el.id) ? { ...el, x: maxRight - el.width } : el
+          ids.includes(el.id) ? { ...el, x: targetRight - el.width } : el
         )
       }
     }));
     get().saveToHistory();
   },
 
-  alignTop: (ids) => {
-    const elements = get().canvasData.elements.filter((el) => ids.includes(el.id));
-    if (elements.length < 2) {return;}
+  alignTop: (ids, toCanvas = false) => {
+    const { canvasData } = get();
+    const elements = canvasData.elements.filter((el) => ids.includes(el.id));
+    if (elements.length === 0) {return;}
     
-    const minY = Math.min(...elements.map((el) => el.y));
+    const targetY = (elements.length === 1 && toCanvas) ? 0 : Math.min(...elements.map((el) => el.y));
+    
     set((state) => ({
       canvasData: {
         ...state.canvasData,
         elements: state.canvasData.elements.map((el) =>
-          ids.includes(el.id) ? { ...el, y: minY } : el
+          ids.includes(el.id) ? { ...el, y: targetY } : el
         )
       }
     }));
     get().saveToHistory();
   },
 
-  alignMiddle: (ids) => {
-    const elements = get().canvasData.elements.filter((el) => ids.includes(el.id));
-    if (elements.length < 2) {return;}
+  alignMiddle: (ids, toCanvas = false) => {
+    const { canvasData } = get();
+    const elements = canvasData.elements.filter((el) => ids.includes(el.id));
+    if (elements.length === 0) {return;}
     
-    const middles = elements.map((el) => el.y + el.height / 2);
-    const avgMiddle = middles.reduce((a, b) => a + b, 0) / middles.length;
+    let targetCenterY: number;
+    if (elements.length === 1 && toCanvas) {
+      // Center in canvas
+      targetCenterY = canvasData.height / 2;
+    } else {
+      // Center based on selection bounds
+      const middles = elements.map((el) => el.y + el.height / 2);
+      targetCenterY = middles.reduce((a, b) => a + b, 0) / middles.length;
+    }
     
     set((state) => ({
       canvasData: {
         ...state.canvasData,
         elements: state.canvasData.elements.map((el) =>
-          ids.includes(el.id) ? { ...el, y: avgMiddle - el.height / 2 } : el
+          ids.includes(el.id) ? { ...el, y: targetCenterY - el.height / 2 } : el
         )
       }
     }));
     get().saveToHistory();
   },
 
-  alignBottom: (ids) => {
-    const elements = get().canvasData.elements.filter((el) => ids.includes(el.id));
-    if (elements.length < 2) {return;}
+  alignBottom: (ids, toCanvas = false) => {
+    const { canvasData } = get();
+    const elements = canvasData.elements.filter((el) => ids.includes(el.id));
+    if (elements.length === 0) {return;}
     
-    const maxBottom = Math.max(...elements.map((el) => el.y + el.height));
+    const targetBottom = (elements.length === 1 && toCanvas) 
+      ? canvasData.height 
+      : Math.max(...elements.map((el) => el.y + el.height));
+    
     set((state) => ({
       canvasData: {
         ...state.canvasData,
         elements: state.canvasData.elements.map((el) =>
-          ids.includes(el.id) ? { ...el, y: maxBottom - el.height } : el
+          ids.includes(el.id) ? { ...el, y: targetBottom - el.height } : el
         )
       }
     }));
@@ -528,7 +586,7 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     const gap = totalSpace / (elements.length - 1);
     
     let currentX = minX;
-    const positions = elements.map((el) => {
+    const positions: PositionUpdate[] = elements.map((el) => {
       const pos = currentX;
       currentX += el.width + gap;
       return { id: el.id, x: pos };
@@ -537,10 +595,7 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     set((state) => ({
       canvasData: {
         ...state.canvasData,
-        elements: state.canvasData.elements.map((el) => {
-          const pos = positions.find((p) => p.id === el.id);
-          return pos ? { ...el, x: pos.x } : el;
-        })
+        elements: applyPositionUpdates(state.canvasData.elements, positions)
       }
     }));
     get().saveToHistory();
@@ -560,7 +615,7 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     const gap = totalSpace / (elements.length - 1);
     
     let currentY = minY;
-    const positions = elements.map((el) => {
+    const positions: PositionUpdate[] = elements.map((el) => {
       const pos = currentY;
       currentY += el.height + gap;
       return { id: el.id, y: pos };
@@ -569,10 +624,105 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     set((state) => ({
       canvasData: {
         ...state.canvasData,
-        elements: state.canvasData.elements.map((el) => {
-          const pos = positions.find((p) => p.id === el.id);
-          return pos ? { ...el, y: pos.y } : el;
-        })
+        elements: applyPositionUpdates(state.canvasData.elements, positions)
+      }
+    }));
+    get().saveToHistory();
+  },
+  
+  // Tidy: Arrange elements into a neat grid with even spacing
+  tidyElements: (ids, spacing = 10) => {
+    const elements = get()
+      .canvasData.elements.filter((el) => ids.includes(el.id));
+    
+    if (elements.length < 2) {return;}
+    
+    // Sort by position (top-left to bottom-right reading order)
+    const sorted = [...elements].sort((a, b) => {
+      const rowDiff = Math.floor(a.y / 50) - Math.floor(b.y / 50);
+      if (rowDiff !== 0) {return rowDiff;}
+      return a.x - b.x;
+    });
+    
+    // Calculate grid dimensions
+    const avgWidth = sorted.reduce((sum, el) => sum + el.width, 0) / sorted.length;
+    const avgHeight = sorted.reduce((sum, el) => sum + el.height, 0) / sorted.length;
+    
+    // Determine optimal columns based on selection bounds
+    const minX = Math.min(...sorted.map((el) => el.x));
+    const maxX = Math.max(...sorted.map((el) => el.x + el.width));
+    const boundsWidth = maxX - minX;
+    
+    // Calculate columns to fit in existing width (rows are implicitly determined)
+    const cols = Math.max(1, Math.floor((boundsWidth + spacing) / (avgWidth + spacing)));
+    
+    // Calculate starting position (use bounds of original selection)
+    const startX = minX;
+    const startY = Math.min(...sorted.map((el) => el.y));
+    
+    // Position elements in grid - row is derived from index/cols
+    const positions: PositionUpdate[] = sorted.map((el, idx) => {
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
+      return {
+        id: el.id,
+        x: startX + col * (avgWidth + spacing) + (avgWidth - el.width) / 2,
+        y: startY + row * (avgHeight + spacing) + (avgHeight - el.height) / 2
+      };
+    });
+    
+    set((state) => ({
+      canvasData: {
+        ...state.canvasData,
+        elements: applyPositionUpdates(state.canvasData.elements, positions)
+      }
+    }));
+    get().saveToHistory();
+  },
+  
+  // Set specific horizontal spacing between selected elements
+  setHorizontalSpacing: (ids, spacing) => {
+    const elements = get()
+      .canvasData.elements.filter((el) => ids.includes(el.id))
+      .sort((a, b) => a.x - b.x);
+    
+    if (elements.length < 2) {return;}
+    
+    let currentX = elements[0].x;
+    const positions: PositionUpdate[] = elements.map((el) => {
+      const pos = currentX;
+      currentX += el.width + spacing;
+      return { id: el.id, x: pos };
+    });
+    
+    set((state) => ({
+      canvasData: {
+        ...state.canvasData,
+        elements: applyPositionUpdates(state.canvasData.elements, positions)
+      }
+    }));
+    get().saveToHistory();
+  },
+  
+  // Set specific vertical spacing between selected elements
+  setVerticalSpacing: (ids, spacing) => {
+    const elements = get()
+      .canvasData.elements.filter((el) => ids.includes(el.id))
+      .sort((a, b) => a.y - b.y);
+    
+    if (elements.length < 2) {return;}
+    
+    let currentY = elements[0].y;
+    const positions: PositionUpdate[] = elements.map((el) => {
+      const pos = currentY;
+      currentY += el.height + spacing;
+      return { id: el.id, y: pos };
+    });
+    
+    set((state) => ({
+      canvasData: {
+        ...state.canvasData,
+        elements: applyPositionUpdates(state.canvasData.elements, positions)
       }
     }));
     get().saveToHistory();

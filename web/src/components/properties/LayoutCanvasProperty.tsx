@@ -43,7 +43,7 @@ const LayoutCanvasProperty: React.FC<PropertyProps> = (props) => {
   const syncExposedInputs = useCallback(
     (exposedInputs: ExposedInput[]) => {
       const node = findNode(props.nodeId);
-      if (!node) return;
+      if (!node) {return;}
 
       // Build dynamic properties from exposed inputs
       const dynamicProps: Record<string, any> = {};

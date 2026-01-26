@@ -418,7 +418,8 @@ interface ShadowEditorProps {
 }
 
 const ShadowEditor: React.FC<ShadowEditorProps> = memo(({ shadow, onUpdate }) => {
-  const theme = useTheme();
+  // theme reserved for future styling enhancements
+  const _theme = useTheme();
   const currentShadow = shadow || DEFAULT_SHADOW;
 
   const handleToggle = useCallback(() => {
