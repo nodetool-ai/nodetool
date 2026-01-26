@@ -418,7 +418,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     name: "",
     slug: "",
     namespace: "",
-    icon: "ViewInAr"
+    icon: "tensor"
   },
   {
     value: "message",
