@@ -18,6 +18,8 @@ import AddIcon from "@mui/icons-material/Add";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ImageIcon from "@mui/icons-material/Image";
 import RectangleIcon from "@mui/icons-material/Rectangle";
+import CircleIcon from "@mui/icons-material/Circle";
+import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
 import FolderIcon from "@mui/icons-material/Folder";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
@@ -237,6 +239,18 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             <RectangleIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Rectangle</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleAddElement("ellipse")}>
+          <ListItemIcon>
+            <CircleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Ellipse</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleAddElement("line")}>
+          <ListItemIcon>
+            <HorizontalRuleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Line</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => handleAddElement("image")}>
           <ListItemIcon>

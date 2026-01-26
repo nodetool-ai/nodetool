@@ -12,6 +12,8 @@ import {
   DEFAULT_TEXT_PROPS,
   DEFAULT_IMAGE_PROPS,
   DEFAULT_RECT_PROPS,
+  DEFAULT_ELLIPSE_PROPS,
+  DEFAULT_LINE_PROPS,
   DEFAULT_GROUP_PROPS,
   GridSettings
 } from "./types";
@@ -159,6 +161,14 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
         break;
       case "rectangle":
         properties = { ...DEFAULT_RECT_PROPS };
+        break;
+      case "ellipse":
+        properties = { ...DEFAULT_ELLIPSE_PROPS };
+        break;
+      case "line":
+        properties = { ...DEFAULT_LINE_PROPS };
+        width = 100;
+        height = 2;
         break;
       case "group":
         properties = { ...DEFAULT_GROUP_PROPS };

@@ -29,29 +29,40 @@ Essential features for basic Sketch file compatibility.
 - [x] Opacity
 - [x] Layer visibility and lock state
 
-## Phase 2: Enhanced Layer Support (PRIORITY: HIGH)
+## Phase 2: Enhanced User Features (✅ COMPLETED)
 
-Essential for professional design workflows.
+Essential features for professional design workflows from a user perspective.
 
 ### 2.1 Additional Shape Types
-- [ ] Ellipse/Oval (native - not converted to rectangle)
-- [ ] Line tool
-- [ ] Polygon shapes
-- [ ] Star shapes
-- [ ] Triangle shapes
+- [x] Ellipse/Oval (native element type)
+- [x] Line tool
+- [ ] Polygon shapes (future)
+- [ ] Star shapes (future)
+- [ ] Triangle shapes (future)
 
-### 2.2 Vector Path Support
-- [ ] Basic path parsing (ShapePath)
-- [ ] CurvePoint interpretation
-- [ ] Bezier curve rendering
-- [ ] Pen tool for path creation
-- [ ] Path editing (node manipulation)
+### 2.2 Drop Shadows (User's Most Requested Styling)
+- [x] Shadow on/off toggle
+- [x] Shadow color with alpha
+- [x] Shadow offset X/Y
+- [x] Shadow blur radius
+- [x] Shadows on rectangles, ellipses, text, images
 
-### 2.3 Boolean Operations
-- [ ] Union
-- [ ] Subtract
-- [ ] Intersect
-- [ ] Difference
+### 2.3 Preserved NodeTool Integration
+- [x] Exposed inputs for text content
+- [x] Exposed inputs for image sources
+- [x] Inputs preserved through Sketch import/export
+- [x] Dynamic variable binding for workflows
+
+### 2.4 Data Format Evaluation
+**Decision**: Use thin wrapper around Sketch format rather than using Sketch format directly.
+
+**Rationale**:
+- Sketch format is verbose (~50+ properties per layer)
+- Our wrapper keeps essential properties only
+- Enables nodetool-specific features (exposedInputs)
+- Simpler state management with Zustand
+- Better performance for large documents
+- Bidirectional conversion maintained for interop
 
 ## Phase 3: Advanced Styling (PRIORITY: MEDIUM-HIGH)
 
@@ -65,7 +76,7 @@ Features needed for full design fidelity.
 - [ ] Gradient editing UI
 
 ### 3.2 Effects
-- [ ] Drop shadows
+- [x] Drop shadows (basic)
 - [ ] Inner shadows
 - [ ] Gaussian blur
 - [ ] Background blur

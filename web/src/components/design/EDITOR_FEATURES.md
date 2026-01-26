@@ -8,6 +8,8 @@ This document outlines important editor features that should be implemented to c
 - [x] Infinite canvas with pan and zoom
 - [x] Grid and snap-to-grid
 - [x] Basic shapes (Rectangle)
+- [x] Ellipse/Oval shapes
+- [x] Line tool
 - [x] Text layers with font properties
 - [x] Image layers with fit modes
 - [x] Groups
@@ -19,6 +21,8 @@ This document outlines important editor features that should be implemented to c
 - [x] Layer visibility and locking
 - [x] PNG export
 - [x] Sketch file import/export
+- [x] Drop shadows on all shapes
+- [x] Exposed inputs for dynamic text/image content
 
 ---
 
@@ -26,20 +30,20 @@ This document outlines important editor features that should be implemented to c
 
 ### 1.1 Selection & Transform Improvements
 - [ ] Marquee/box selection (drag to select multiple)
-- [ ] Precision controls (numeric input for position/size)
+- [x] Precision controls (numeric input for position/size)
 - [ ] Constrain proportions toggle
 - [ ] Center/distribute tools (not just align)
 - [ ] Flip horizontal/vertical
 - [ ] Rotation handle with angle snapping (15° increments)
 
 ### 1.2 Additional Shape Tools
-- [ ] Ellipse/Circle tool
+- [x] Ellipse/Circle tool
   - Native oval drawing
-  - Perfect circle with Shift modifier
-- [ ] Line tool
+  - Perfect circle with Shift modifier (future)
+- [x] Line tool
   - Straight lines
-  - Arrow endpoints
-  - Bezier curves
+  - Arrow endpoints (toggleable)
+  - Bezier curves (future)
 - [ ] Polygon tool
   - Configurable number of sides
   - Star shapes
@@ -76,12 +80,13 @@ This document outlines important editor features that should be implemented to c
 - [ ] Dash patterns (custom arrays)
 - [ ] Stroke position (inside/center/outside)
 - [ ] Line caps and joins
-- [ ] Arrow/marker endpoints
+- [x] Arrow/marker endpoints (on line tool)
 
 ### 2.3 Effects/Shadows
-- [ ] Drop shadow
-  - Color, blur, offset X/Y, spread
-  - Multiple shadows
+- [x] Drop shadow
+  - Color, blur, offset X/Y
+  - Single shadow per layer
+- [ ] Multiple shadows per layer
 - [ ] Inner shadow
 - [ ] Blur effects
   - Gaussian blur

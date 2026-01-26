@@ -10,8 +10,11 @@ import type {
   LayoutElement,
   TextProps,
   RectProps,
+  EllipseProps,
+  LineProps,
   ImageProps,
-  GroupProps
+  GroupProps,
+  ExposedInput
 } from "../types";
 import {
   generateSketchUUID,
@@ -64,10 +67,14 @@ const TextVerticalAlignment = FileFormat.TextVerticalAlignment;
 
 /**
  * Convert a Sketch page to our LayoutCanvas format
+ * @param page - Sketch page to convert
+ * @param artboardIndex - Index of artboard to use (default 0)
+ * @param existingExposedInputs - Preserve exposed inputs from previous state
  */
 export function convertFromSketch(
   page: SketchPage,
-  artboardIndex: number = 0
+  artboardIndex: number = 0,
+  existingExposedInputs: ExposedInput[] = []
 ): LayoutCanvasData {
   // Find the artboard to use (or use the page itself)
   const artboard = page.layers.find(
@@ -91,13 +98,19 @@ export function convertFromSketch(
     }
   }
   
+  // Filter exposed inputs to only include those that reference existing elements
+  const elementIds = new Set(elements.map((el) => el.id));
+  const validExposedInputs = existingExposedInputs.filter(
+    (input) => elementIds.has(input.elementId)
+  );
+  
   return {
     type: "layout_canvas",
     width: canvasWidth,
     height: canvasHeight,
     backgroundColor,
     elements,
-    exposedInputs: []
+    exposedInputs: validExposedInputs
   };
 }
 
@@ -335,6 +348,8 @@ function convertElementToSketch(
   switch (element.type) {
     case "rectangle":
       return convertRectangleToSketch(element);
+    case "ellipse":
+      return convertEllipseToSketch(element);
     case "text":
       return convertTextToSketch(element);
     case "image":
@@ -382,6 +397,41 @@ function convertRectangleToSketch(element: LayoutElement): SketchRectangle {
     fixedRadius: props.borderRadius,
     hasConvertedToNewRoundCorners: true,
     needsConvertionToNewRoundCorners: false
+  };
+}
+
+function convertEllipseToSketch(element: LayoutElement): SketchOval {
+  const props = element.properties as EllipseProps;
+  
+  return {
+    _class: "oval",
+    do_objectID: generateSketchUUID(),
+    booleanOperation: BooleanOperation.None,
+    exportOptions: createDefaultExportOptions(),
+    frame: createRect(element.x, element.y, element.width, element.height),
+    isFixedToViewport: false,
+    isFlippedHorizontal: false,
+    isFlippedVertical: false,
+    isLocked: element.locked,
+    isTemplate: false,
+    isVisible: element.visible,
+    layerListExpandedType: LayerListExpanded.Undecided,
+    name: element.name,
+    nameIsFixed: false,
+    resizingConstraint: 63,
+    resizingType: ResizeType.Stretch,
+    rotation: element.rotation,
+    shouldBreakMaskChain: false,
+    style: createStyle({
+      fillColor: props.fillColor,
+      borderColor: props.borderColor,
+      borderWidth: props.borderWidth,
+      opacity: props.opacity
+    }),
+    edited: false,
+    isClosed: true,
+    pointRadiusBehaviour: PointsRadiusBehaviour.Rounded,
+    points: createOvalPoints()
   };
 }
 
@@ -713,5 +763,15 @@ function createRectanglePoints(): CurvePoint[] {
     createCurvePoint("{1, 0}"),
     createCurvePoint("{1, 1}"),
     createCurvePoint("{0, 1}")
+  ];
+}
+
+function createOvalPoints(): CurvePoint[] {
+  // Oval uses 4 points with bezier curves
+  return [
+    createCurvePoint("{0.5, 0}", "{0.22385763, 0}", "{0.77614237, 0}"),
+    createCurvePoint("{1, 0.5}", "{1, 0.22385763}", "{1, 0.77614237}"),
+    createCurvePoint("{0.5, 1}", "{0.77614237, 1}", "{0.22385763, 1}"),
+    createCurvePoint("{0, 0.5}", "{0, 0.77614237}", "{0, 0.22385763}")
   ];
 }

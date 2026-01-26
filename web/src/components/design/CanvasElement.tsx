@@ -9,7 +9,9 @@ import {
   Text,
   Image as KonvaImage,
   Group,
-  Transformer
+  Transformer,
+  Ellipse,
+  Line
 } from "react-konva";
 import Konva from "konva";
 import {
@@ -17,7 +19,11 @@ import {
   TextProps,
   ImageProps,
   RectProps,
-  GroupProps
+  EllipseProps,
+  LineProps,
+  GroupProps,
+  ShadowEffect,
+  Fill
 } from "./types";
 
 interface CanvasElementProps {
@@ -30,6 +36,43 @@ interface CanvasElementProps {
   ) => void;
   onDragEnd: (id: string, x: number, y: number) => void;
   snapToGrid: (value: number) => number;
+}
+
+/**
+ * Convert shadow effect to Konva shadow props
+ */
+function getShadowProps(shadow?: ShadowEffect) {
+  if (!shadow?.enabled) {
+    return {};
+  }
+  return {
+    shadowColor: shadow.color,
+    shadowBlur: shadow.blur,
+    shadowOffsetX: shadow.offsetX,
+    shadowOffsetY: shadow.offsetY,
+    shadowEnabled: true
+  };
+}
+
+/**
+ * Get fill color or gradient from Fill type
+ */
+function getFillFromFill(fill?: Fill, fallbackColor?: string): string | CanvasGradient | undefined {
+  if (!fill) {
+    return fallbackColor;
+  }
+  
+  if (fill.type === "solid") {
+    return fill.color;
+  }
+  
+  // For gradients, return the first color as fallback
+  // Full gradient support would require Konva's fillLinearGradientColorStops
+  if (fill.stops.length > 0) {
+    return fill.stops[0].color;
+  }
+  
+  return fallbackColor;
 }
 
 // Text Element Component
@@ -51,6 +94,7 @@ const TextElement: React.FC<{
       align={props.alignment}
       lineHeight={props.lineHeight}
       wrap="word"
+      {...getShadowProps(props.shadow)}
     />
   );
 });
@@ -61,21 +105,68 @@ const RectElement: React.FC<{
   element: LayoutElement;
   props: RectProps;
 }> = memo(({ element, props }) => {
+  const fillColor = getFillFromFill(props.fill, props.fillColor);
+  
   return (
     <Rect
       x={0}
       y={0}
       width={element.width}
       height={element.height}
-      fill={props.fillColor}
+      fill={fillColor as string}
       stroke={props.borderWidth > 0 ? props.borderColor : undefined}
       strokeWidth={props.borderWidth}
       cornerRadius={props.borderRadius}
       opacity={props.opacity}
+      {...getShadowProps(props.shadow)}
     />
   );
 });
 RectElement.displayName = "RectElement";
+
+// Ellipse Element Component (new)
+const EllipseElement: React.FC<{
+  element: LayoutElement;
+  props: EllipseProps;
+}> = memo(({ element, props }) => {
+  const fillColor = getFillFromFill(props.fill, props.fillColor);
+  
+  return (
+    <Ellipse
+      x={element.width / 2}
+      y={element.height / 2}
+      radiusX={element.width / 2}
+      radiusY={element.height / 2}
+      fill={fillColor as string}
+      stroke={props.borderWidth > 0 ? props.borderColor : undefined}
+      strokeWidth={props.borderWidth}
+      opacity={props.opacity}
+      {...getShadowProps(props.shadow)}
+    />
+  );
+});
+EllipseElement.displayName = "EllipseElement";
+
+// Line Element Component (new)
+const LineElement: React.FC<{
+  element: LayoutElement;
+  props: LineProps;
+}> = memo(({ element, props }) => {
+  // Draw a line from top-left to bottom-right of the bounding box
+  const points = [0, element.height / 2, element.width, element.height / 2];
+  
+  return (
+    <Line
+      points={points}
+      stroke={props.strokeColor}
+      strokeWidth={props.strokeWidth}
+      opacity={props.opacity}
+      lineCap="round"
+      lineJoin="round"
+    />
+  );
+});
+LineElement.displayName = "LineElement";
 
 // Image Element Component
 const ImageElement: React.FC<{
@@ -271,6 +362,20 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
           <RectElement
             element={element}
             props={element.properties as RectProps}
+          />
+        );
+      case "ellipse":
+        return (
+          <EllipseElement
+            element={element}
+            props={element.properties as EllipseProps}
+          />
+        );
+      case "line":
+        return (
+          <LineElement
+            element={element}
+            props={element.properties as LineProps}
           />
         );
       case "image":

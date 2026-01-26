@@ -2,6 +2,62 @@
  * Types for the LayoutCanvas design editor
  */
 
+// =============================================================================
+// Shadow & Gradient Types (Sketch-compatible)
+// =============================================================================
+
+/**
+ * Drop shadow effect - compatible with Sketch shadow format
+ */
+export interface ShadowEffect {
+  enabled: boolean;
+  color: string;
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  spread: number;
+}
+
+/**
+ * Gradient stop for linear/radial gradients
+ */
+export interface GradientStop {
+  position: number; // 0-1
+  color: string;
+}
+
+/**
+ * Linear gradient fill - compatible with Sketch gradient format
+ */
+export interface LinearGradient {
+  type: "linear";
+  angle: number; // degrees, 0 = left-to-right
+  stops: GradientStop[];
+}
+
+/**
+ * Radial gradient fill - compatible with Sketch gradient format
+ */
+export interface RadialGradient {
+  type: "radial";
+  centerX: number; // 0-1
+  centerY: number; // 0-1
+  radius: number; // 0-1
+  stops: GradientStop[];
+}
+
+/**
+ * Fill type - solid color or gradient
+ */
+export type Fill = 
+  | { type: "solid"; color: string }
+  | LinearGradient 
+  | RadialGradient;
+
+// =============================================================================
+// Element Properties
+// =============================================================================
+
 // Text element properties
 export interface TextProps {
   content: string;
@@ -11,6 +67,7 @@ export interface TextProps {
   color: string;
   alignment: "left" | "center" | "right";
   lineHeight: number;
+  shadow?: ShadowEffect;
 }
 
 // Image element properties
@@ -18,15 +75,37 @@ export interface ImageProps {
   source: string; // URI to the image or ImageRef asset_id
   fit: "cover" | "contain" | "fill";
   opacity: number;
+  shadow?: ShadowEffect;
 }
 
-// Rectangle element properties
+// Rectangle element properties (with enhanced styling)
 export interface RectProps {
   fillColor: string;
+  fill?: Fill; // Enhanced fill (overrides fillColor if present)
   borderColor: string;
   borderWidth: number;
   borderRadius: number;
   opacity: number;
+  shadow?: ShadowEffect;
+}
+
+// Ellipse element properties (new)
+export interface EllipseProps {
+  fillColor: string;
+  fill?: Fill; // Enhanced fill (overrides fillColor if present)
+  borderColor: string;
+  borderWidth: number;
+  opacity: number;
+  shadow?: ShadowEffect;
+}
+
+// Line element properties (new)
+export interface LineProps {
+  strokeColor: string;
+  strokeWidth: number;
+  opacity: number;
+  startArrow: boolean;
+  endArrow: boolean;
 }
 
 // Group element properties (container)
@@ -35,10 +114,10 @@ export interface GroupProps {
 }
 
 // Union type for all element properties
-export type ElementProps = TextProps | ImageProps | RectProps | GroupProps;
+export type ElementProps = TextProps | ImageProps | RectProps | EllipseProps | LineProps | GroupProps;
 
 // Element type enumeration
-export type ElementType = "text" | "image" | "rectangle" | "group";
+export type ElementType = "text" | "image" | "rectangle" | "ellipse" | "line" | "group";
 
 // Layout element definition
 export interface LayoutElement {
@@ -126,8 +205,32 @@ export const DEFAULT_RECT_PROPS: RectProps = {
   opacity: 1
 };
 
+export const DEFAULT_ELLIPSE_PROPS: EllipseProps = {
+  fillColor: "#cccccc",
+  borderColor: "#000000",
+  borderWidth: 0,
+  opacity: 1
+};
+
+export const DEFAULT_LINE_PROPS: LineProps = {
+  strokeColor: "#000000",
+  strokeWidth: 2,
+  opacity: 1,
+  startArrow: false,
+  endArrow: false
+};
+
 export const DEFAULT_GROUP_PROPS: GroupProps = {
   name: "Group"
+};
+
+export const DEFAULT_SHADOW: ShadowEffect = {
+  enabled: false,
+  color: "#00000040",
+  offsetX: 0,
+  offsetY: 4,
+  blur: 8,
+  spread: 0
 };
 
 // Default canvas data
