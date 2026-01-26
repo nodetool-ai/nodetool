@@ -155,10 +155,10 @@ const styles = (theme: Theme) =>
     },
     ".asset-delete": {
       pointerEvents: "none",
-      opacity: 0
+      opacity: 0,
+      transition: "opacity 0.2s ease"
     },
     "&.selected:hover .asset-delete": {
-      backgroundColor: "transparent",
       pointerEvents: "all",
       opacity: 1
     },
@@ -366,17 +366,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             className="asset-delete"
             onClick={handleDelete}
             buttonSize="small"
-            sx={{
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              color: "white",
-              width: 24,
-              height: 24,
-              padding: "4px",
-              "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.7)",
-                color: "white"
-              }
-            }}
           />
         </div>
       )}
