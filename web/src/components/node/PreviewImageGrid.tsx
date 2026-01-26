@@ -8,16 +8,25 @@ import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DownloadIcon from "@mui/icons-material/Download";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import CheckIcon from "@mui/icons-material/Check";
 import { ImageComparer } from "../widgets";
+import { copyAssetToClipboard } from "../../utils/clipboardUtils";
+import { isElectron } from "../../utils/browser";
+import AssetViewer from "../assets/AssetViewer";
 
 export type ImageSource = Uint8Array | string;
 
 export interface PreviewImageGridProps {
   images: ImageSource[];
   onDoubleClick?: (index: number) => void;
+  onOpenInViewer?: (index: number) => void; // Open in asset viewer
   itemSize?: number; // base min size for tiles
   gap?: number; // grid gap in px
   enableSelection?: boolean; // enable multi-select mode
+  showActions?: boolean; // show copy/download/open buttons on hover
 }
 
 const styles = (theme: Theme, gap: number) =>
@@ -99,6 +108,33 @@ const styles = (theme: Theme, gap: number) =>
       outline: `3px solid ${theme.vars.palette.primary.main}`,
       outlineOffset: -3
     },
+    ".tile-actions": {
+      position: "absolute",
+      top: 4,
+      right: 4,
+      display: "flex",
+      gap: 2,
+      zIndex: 5,
+      opacity: 0,
+      transition: "opacity 0.15s ease"
+    },
+    ".tile:hover .tile-actions": {
+      opacity: 1
+    },
+    ".tile-action-btn": {
+      width: 24,
+      height: 24,
+      padding: 4,
+      backgroundColor: "rgba(0,0,0,0.6)",
+      color: "#fff",
+      borderRadius: 4,
+      "&:hover": {
+        backgroundColor: "rgba(0,0,0,0.85)"
+      },
+      "& svg": {
+        fontSize: 14
+      }
+    },
     ".tile .select-checkbox": {
       position: "absolute",
       top: 4,
@@ -164,9 +200,11 @@ function toArrayBuffer(view: Uint8Array): ArrayBuffer {
 const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   images,
   onDoubleClick,
+  onOpenInViewer,
   itemSize = 128,
   gap = 8,
-  enableSelection = true
+  enableSelection = true,
+  showActions = true
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -176,6 +214,13 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [compareDialogOpen, setCompareDialogOpen] = useState(false);
   const [compareImages, setCompareImages] = useState<[string, string] | null>(null);
+  
+  // Asset viewer state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  
+  // Copy state
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   // Reset selection when images change
   useEffect(() => {
@@ -215,6 +260,56 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   const handleCloseCompare = useCallback(() => {
     setCompareDialogOpen(false);
     setCompareImages(null);
+  }, []);
+
+  // Action handlers for tiles
+  const handleCopyImage = useCallback(async (index: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const img = images[index];
+    const url = urlMapRef.current.get(img);
+    if (!url) { return; }
+
+    try {
+      await copyAssetToClipboard("image/png", url);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (error) {
+      console.error("Failed to copy image:", error);
+    }
+  }, [images]);
+
+  const handleDownloadImage = useCallback((index: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const img = images[index];
+    const url = urlMapRef.current.get(img);
+    if (!url) { return; }
+
+    // Create a temporary link to download
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `image-${index + 1}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [images]);
+
+  const handleOpenInViewer = useCallback((index: number, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onOpenInViewer) {
+      onOpenInViewer(index);
+    } else {
+      const img = images[index];
+      const url = urlMapRef.current.get(img);
+      if (url) {
+        setViewerUrl(url);
+        setViewerOpen(true);
+      }
+    }
+  }, [images, onOpenInViewer]);
+
+  const handleCloseViewer = useCallback(() => {
+    setViewerOpen(false);
+    setViewerUrl(null);
   }, []);
 
   const toggleSelectionMode = useCallback(() => {
@@ -333,8 +428,16 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
               key={idx}
               className={`tile ${isSelected ? "selected" : ""}`}
               onDoubleClick={() => {
-                if (!selectionMode && onDoubleClick) {
+                if (selectionMode) { return; }
+                if (onDoubleClick) {
                   onDoubleClick(idx);
+                } else {
+                  // Default: open in viewer
+                  const url = urlMapRef.current.get(img);
+                  if (url) {
+                    setViewerUrl(url);
+                    setViewerOpen(true);
+                  }
                 }
               }}
               onClick={(e) => {
@@ -353,6 +456,40 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 />
               ) : (
                 <div className="placeholder">IMAGE</div>
+              )}
+              {/* Action buttons on hover */}
+              {showActions && !selectionMode && (
+                <div className="tile-actions">
+                  {isElectron && (
+                    <Tooltip title={copiedIndex === idx ? "Copied!" : "Copy"} placement="top">
+                      <IconButton
+                        className="tile-action-btn"
+                        size="small"
+                        onClick={(e) => handleCopyImage(idx, e)}
+                      >
+                        {copiedIndex === idx ? <CheckIcon /> : <ContentCopyIcon />}
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  <Tooltip title="Download" placement="top">
+                    <IconButton
+                      className="tile-action-btn"
+                      size="small"
+                      onClick={(e) => handleDownloadImage(idx, e)}
+                    >
+                      <DownloadIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Open in Viewer" placement="top">
+                    <IconButton
+                      className="tile-action-btn"
+                      size="small"
+                      onClick={(e) => handleOpenInViewer(idx, e)}
+                    >
+                      <OpenInNewIcon />
+                    </IconButton>
+                  </Tooltip>
+                </div>
               )}
               {selectionMode && (
                 <Checkbox
@@ -430,6 +567,16 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             />
           </Box>
         </Dialog>
+      )}
+
+      {/* Asset Viewer for full-screen viewing */}
+      {viewerUrl && (
+        <AssetViewer
+          url={viewerUrl}
+          contentType="image/*"
+          open={viewerOpen}
+          onClose={handleCloseViewer}
+        />
       )}
     </div>
   );
