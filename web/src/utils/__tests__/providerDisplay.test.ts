@@ -105,6 +105,13 @@ describe("providerDisplay", () => {
       expect(formatGenericProviderName("anthropic")).toBe("Anthropic");
       expect(formatGenericProviderName("test_provider")).toBe("Test Provider");
       expect(formatGenericProviderName("test-provider")).toBe("Test Provider");
+      expect(formatGenericProviderName("hunyuan3d-v2")).toBe("Hunyuan3D V2");
+      expect(formatGenericProviderName("trellis-2")).toBe("Trellis 2");
+      expect(formatGenericProviderName("triposr")).toBe("TripoSR");
+      expect(formatGenericProviderName("shap_e")).toBe("Shap-E");
+      expect(formatGenericProviderName("point_e")).toBe("Point-E");
+      expect(formatGenericProviderName("meshy")).toBe("Meshy AI");
+      expect(formatGenericProviderName("rodin")).toBe("Rodin AI");
     });
 
     it("should handle special case for Google", () => {
@@ -164,6 +171,13 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("Replicate")).toBe("https://replicate.com");
       expect(getProviderUrl("aime")).toBe("https://www.aime.info/en/");
       expect(getProviderUrl("AIME")).toBe("https://www.aime.info/en/");
+      expect(getProviderUrl("meshy")).toBe("https://www.meshy.ai");
+      expect(getProviderUrl("rodin")).toBe("https://rodin.ai");
+      expect(getProviderUrl("triposr")).toBe("https://triposr.github.io");
+      expect(getProviderUrl("trellis-2")).toBe("https://trellis3d.github.io");
+      expect(getProviderUrl("shap_e")).toBe("https://github.com/openai/shap-e");
+      expect(getProviderUrl("point_e")).toBe("https://github.com/openai/point-e");
+      expect(getProviderUrl("hunyuan3d")).toBe("https://github.com/Tencent/Hunyuan3D");
       expect(getProviderUrl("zai")).toBe("https://z.ai");
       expect(getProviderUrl("zai-org")).toBe("https://z.ai");
       expect(getProviderUrl("Z.AI")).toBe("https://z.ai");

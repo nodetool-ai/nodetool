@@ -10,6 +10,7 @@ jest.mock("../../stores/ModelMenuStore", () => ({
       anthropic: "ANTHROPIC_API_KEY",
       huggingface: "HF_TOKEN",
       replicate: "REPLICATE_API_TOKEN",
+      meshy: "MESHY_API_KEY",
       local: null,
       "no-key-provider": null,
     };
@@ -86,6 +87,23 @@ describe("useProviderApiKeyValidation", () => {
         providerDisplayName: "Openai",
         secretKey: "OPENAI_API_KEY",
         secretDisplayName: "OpenAI API Key",
+        isMissing: true,
+      });
+    });
+
+    it("handles custom provider secret mapping", () => {
+      mockIsApiKeySet.mockReturnValue(false);
+
+      const { result } = renderHook(() =>
+        useProviderApiKeyValidation(["meshy"])
+      );
+
+      expect(result.current).toHaveLength(1);
+      expect(result.current[0]).toEqual({
+        provider: "meshy",
+        providerDisplayName: "Meshy",
+        secretKey: "MESHY_API_KEY",
+        secretDisplayName: "Meshy API Key",
         isMissing: true,
       });
     });
