@@ -152,18 +152,51 @@ const LineElement: React.FC<{
   element: LayoutElement;
   props: LineProps;
 }> = memo(({ element, props }) => {
-  // Draw a line from top-left to bottom-right of the bounding box
+  // Draw a horizontal line from left to right of the bounding box
   const points = [0, element.height / 2, element.width, element.height / 2];
   
+  // Calculate arrow points if enabled
+  const arrowSize = Math.min(props.strokeWidth * 4, 12);
+  
   return (
-    <Line
-      points={points}
-      stroke={props.strokeColor}
-      strokeWidth={props.strokeWidth}
-      opacity={props.opacity}
-      lineCap="round"
-      lineJoin="round"
-    />
+    <>
+      <Line
+        points={points}
+        stroke={props.strokeColor}
+        strokeWidth={props.strokeWidth}
+        opacity={props.opacity}
+        lineCap="round"
+        lineJoin="round"
+      />
+      {props.startArrow && (
+        <Line
+          points={[
+            arrowSize, element.height / 2 - arrowSize / 2,
+            0, element.height / 2,
+            arrowSize, element.height / 2 + arrowSize / 2
+          ]}
+          stroke={props.strokeColor}
+          strokeWidth={props.strokeWidth}
+          opacity={props.opacity}
+          lineCap="round"
+          lineJoin="round"
+        />
+      )}
+      {props.endArrow && (
+        <Line
+          points={[
+            element.width - arrowSize, element.height / 2 - arrowSize / 2,
+            element.width, element.height / 2,
+            element.width - arrowSize, element.height / 2 + arrowSize / 2
+          ]}
+          stroke={props.strokeColor}
+          strokeWidth={props.strokeWidth}
+          opacity={props.opacity}
+          lineCap="round"
+          lineJoin="round"
+        />
+      )}
+    </>
   );
 });
 LineElement.displayName = "LineElement";

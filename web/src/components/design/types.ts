@@ -15,7 +15,6 @@ export interface ShadowEffect {
   offsetX: number;
   offsetY: number;
   blur: number;
-  spread: number;
 }
 
 /**
@@ -229,8 +228,7 @@ export const DEFAULT_SHADOW: ShadowEffect = {
   color: "#00000040",
   offsetX: 0,
   offsetY: 4,
-  blur: 8,
-  spread: 0
+  blur: 8
 };
 
 // Default canvas data
