@@ -14,6 +14,7 @@ import {
   Typography
 } from "@mui/material";
 import { InsertDriveFile } from "@mui/icons-material";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssets } from "../../serverState/useAssets";
@@ -66,6 +67,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const user = useAuth((state) => state.user);
   const theme = useTheme();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!dialogOpen) {return;} // Only process when dialog is actually open
@@ -107,6 +109,10 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   }, [dialogOpen, selectedAssets, user]);
 
   const handleClose = useCallback(() => {
+    // Blur focused element to prevent aria-hidden focus warning
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     setDialogOpen(false);
   }, [setDialogOpen]);
 
@@ -123,7 +129,13 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       } else if (typeof response === "object" && response !== null) {
         log.info("Deleted asset IDs:", (response as any).deleted_asset_ids);
       }
+      // Blur focused element to prevent aria-hidden focus warning
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       setDialogOpen(false);
+      // Invalidate all asset queries (including workflow-specific ones)
+      await queryClient.invalidateQueries({ queryKey: ["assets"] });
       await refetchAssetsAndFolders();
     } catch (error) {
       if (error instanceof Error) {
@@ -132,7 +144,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [mutation, assets, setDialogOpen, refetchAssetsAndFolders, setIsLoading]);
+  }, [mutation, assets, setDialogOpen, refetchAssetsAndFolders, queryClient]);
 
   const getDialogTitle = () => {
     if (isAssetTreeLoading && folderCount > 0) {
@@ -160,6 +172,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       className="asset-delete-confirmation"
       open={dialogOpen}
       onClose={handleClose}
+      disableRestoreFocus
     >
       <DialogTitle sx={{ color: theme.vars.palette.warning.main }}>
         {getDialogTitle()}
@@ -206,7 +219,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       </DialogContent>
       <DialogActionButtons
         onConfirm={executeDeletion}
-        onCancel={() => setDialogOpen(false)}
+        onCancel={handleClose}
         confirmText="Delete"
         cancelText="Cancel"
         isLoading={isLoading}
