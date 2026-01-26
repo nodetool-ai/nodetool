@@ -14,6 +14,8 @@ import VideoRecorder from "../video/VideoRecorder";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
 import { NodeTextField } from "../ui_primitives";
+import { isElectron } from "../../utils/browser";
+import { useAssetUpload } from "../../serverState/useAssetUpload";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -64,10 +66,9 @@ const PropertyDropzone = ({
         alignItems: "normal",
         gap: "0"
       },
-      ".toggle-url-button": {
+      ".toggle-url-button, .native-picker-button": {
         position: "absolute",
         top: "-15px",
-        right: "0",
         zIndex: 2,
         color: theme.vars.palette.grey[500],
         backgroundColor: "transparent",
@@ -84,6 +85,12 @@ const PropertyDropzone = ({
           color: theme.vars.palette.primary.main,
           backgroundColor: theme.vars.palette.action.hover
         }
+      },
+      ".toggle-url-button": {
+        right: "0"
+      },
+      ".native-picker-button": {
+        right: isElectron ? "28px" : "0"
       },
       ".url-input": {
         width: "calc(100% - 24px)",
@@ -207,6 +214,77 @@ const PropertyDropzone = ({
   const handleVolumeChange = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
     e.currentTarget.volume = 1;
   }, []);
+
+  const { uploadAsset: uploadAssetFn } = useAssetUpload();
+
+  const handleNativeFilePicker = useCallback(async () => {
+    if (!window.api?.dialog?.openFile) {
+      return;
+    }
+
+    try {
+      // Get appropriate file filters based on content type
+      const getFilters = () => {
+        const type = contentType.split("/")[0];
+        switch (type) {
+          case "image":
+            return [
+              { name: "Images", extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"] }
+            ];
+          case "audio":
+            return [
+              { name: "Audio", extensions: ["mp3", "wav", "ogg", "m4a", "flac", "aac"] }
+            ];
+          case "video":
+            return [
+              { name: "Video", extensions: ["mp4", "avi", "mov", "wmv", "flv", "webm", "mkv"] }
+            ];
+          case "document":
+            return [
+              { name: "Documents", extensions: ["pdf", "doc", "docx", "txt", "html"] }
+            ];
+          default:
+            return undefined;
+        }
+      };
+
+      const result = await window.api.dialog.openFile({
+        title: `Select ${contentType.split("/")[0]}`,
+        filters: getFilters()
+      });
+
+      if (!result.canceled && result.filePaths.length > 0) {
+        const filePath = result.filePaths[0];
+        
+        // Read the file as data URL using Electron's IPC
+        const dataUrl = await window.api.clipboard?.readFileAsDataURL(filePath);
+        
+        if (!dataUrl) {
+          console.error("Failed to read file");
+          return;
+        }
+
+        // Convert data URL to Blob
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const fileName = filePath.split(/[\\/]/).pop() || "file";
+        const file = new File([blob], fileName, { type: blob.type || contentType });
+
+        // Upload the file as an asset
+        uploadAssetFn({
+          file,
+          onCompleted: (asset) => {
+            onChange({ uri: asset.get_url || "", type: contentType });
+          },
+          onFailed: (error) => {
+            console.error("Failed to upload asset:", error);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error opening file picker:", error);
+    }
+  }, [contentType, onChange, uploadAssetFn]);
 
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
@@ -349,6 +427,18 @@ const PropertyDropzone = ({
               }
             }}
           />
+        )}
+
+        {isElectron && (
+          <Tooltip title="Open file picker to select a file from your computer">
+            <Button
+              className="native-picker-button"
+              variant="text"
+              onClick={handleNativeFilePicker}
+            >
+              FILE
+            </Button>
+          </Tooltip>
         )}
 
         <Tooltip
