@@ -7,6 +7,7 @@ import { useWorkflowAssets } from "../../../serverState/useWorkflowAssets";
 import { Asset } from "../../../stores/ApiTypes";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import AssetGridContent from "../AssetGridContent";
+import AssetViewer from "../AssetViewer";
 import useResultsStore from "../../../stores/ResultsStore";
 
 /**
@@ -24,6 +25,7 @@ const WorkflowAssetPanel: React.FC = () => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+  const openAsset = useAssetGridStore((state) => state.openAsset);
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
 
   // Subscribe to results store to detect new results
@@ -86,6 +88,10 @@ const WorkflowAssetPanel: React.FC = () => {
     },
     [setOpenAsset]
   );
+
+  const handleCloseViewer = useCallback(() => {
+    setOpenAsset(null);
+  }, [setOpenAsset]);
 
   // No workflow selected
   if (!currentWorkflowId) {
@@ -178,6 +184,15 @@ const WorkflowAssetPanel: React.FC = () => {
         assets={assets}
         onDoubleClick={handleDoubleClick}
       />
+      {/* Asset Viewer for double-click */}
+      {openAsset && (
+        <AssetViewer
+          asset={openAsset}
+          sortedAssets={assets}
+          open={!!openAsset}
+          onClose={handleCloseViewer}
+        />
+      )}
     </Box>
   );
 };
