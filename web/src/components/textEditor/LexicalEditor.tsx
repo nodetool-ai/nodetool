@@ -68,6 +68,7 @@ const styles = (theme: Theme) =>
     },
     ".editor-heading-h1": {
       fontSize: theme.fontSizeBigger,
+      lineHeight: "1.2",
       fontWeight: "bold",
       margin: "0.5em 0"
     },
