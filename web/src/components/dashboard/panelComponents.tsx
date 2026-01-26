@@ -2,7 +2,7 @@ import React from "react";
 import { Box } from "@mui/material";
 import { IDockviewPanelProps } from "dockview";
 import ChatView from "../chat/containers/ChatView";
-import WorkflowsList from "./WorkflowsList";
+import WorkflowList from "../workflows/WorkflowList";
 import RecentChats from "./RecentChats";
 import WelcomePanel from "./WelcomePanel";
 import ProviderSetupPanel from "./ProviderSetupPanel";
@@ -12,6 +12,8 @@ import { PanelProps } from "./panelConfig";
 import ActivityPanel from "./ActivityPanel";
 import TemplatesPanel from "./TemplatesPanel";
 import MiniAppPanel from "./miniApps/MiniAppPanel";
+import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
+import ContextMenus from "../context_menus/ContextMenus";
 
 export const createPanelComponents = () => ({
   "getting-started": (props: IDockviewPanelProps<PanelProps>) => (
@@ -28,16 +30,6 @@ export const createPanelComponents = () => ({
   ),
   activity: (props: IDockviewPanelProps<PanelProps>) => (
     <ActivityPanel
-      // Workflow props
-      sortedWorkflows={props.params?.sortedWorkflows || []}
-      isLoadingWorkflows={props.params?.isLoadingWorkflows ?? true}
-      settings={props.params?.settings || {}}
-      handleOrderChange={props.params?.handleOrderChange || (() => {})}
-      handleCreateNewWorkflow={
-        props.params?.handleCreateNewWorkflow || (() => {})
-      }
-      handleWorkflowClick={props.params?.handleWorkflowClick || (() => {})}
-      
       // Chat props
       threads={props.params?.threads || {}}
       currentThreadId={props.params?.currentThreadId || null}
@@ -61,17 +53,13 @@ export const createPanelComponents = () => ({
     />
   ),
   // Legacy panels kept for backward compatibility
-  workflows: (props: IDockviewPanelProps<PanelProps>) => (
-    <WorkflowsList
-      sortedWorkflows={props.params?.sortedWorkflows || []}
-      isLoadingWorkflows={props.params?.isLoadingWorkflows ?? true}
-      settings={props.params?.settings || {}}
-      handleOrderChange={props.params?.handleOrderChange || (() => {})}
-      handleCreateNewWorkflow={
-        props.params?.handleCreateNewWorkflow || (() => {})
-      }
-      handleWorkflowClick={props.params?.handleWorkflowClick || (() => {})}
-    />
+  workflows: (_props: IDockviewPanelProps<PanelProps>) => (
+    <ContextMenuProvider>
+      <ContextMenus />
+      <Box sx={{ overflow: "hidden", height: "100%", padding: "0 1em" }}>
+        <WorkflowList />
+      </Box>
+    </ContextMenuProvider>
   ),
   "recent-chats": (props: IDockviewPanelProps<PanelProps>) => (
     <Box sx={{ overflow: "auto", height: "100%" }}>
