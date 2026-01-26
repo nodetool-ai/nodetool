@@ -145,6 +145,20 @@ const styles = (theme: Theme) =>
     }
   });
 
+// Helper to get MIME type from file extension
+const getAudioMimeType = (fileName: string): string => {
+  const ext = fileName.toLowerCase().split(".").pop();
+  const mimeTypes: Record<string, string> = {
+    mp3: "audio/mpeg",
+    wav: "audio/wav",
+    ogg: "audio/ogg",
+    m4a: "audio/mp4",
+    flac: "audio/flac",
+    aac: "audio/aac"
+  };
+  return mimeTypes[ext || ""] || "audio/mpeg";
+};
+
 const AudioListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `audio-list-${props.property.name}-${props.propertyIndex}`;
@@ -273,7 +287,7 @@ const AudioListProperty = (props: PropertyProps) => {
           const pathSegments = filePath.split(/[\\/]/);
           const fileName = pathSegments[pathSegments.length - 1] || "audio.mp3";
 
-          const file = new File([blob], fileName, { type: "audio/mpeg" });
+          const file = new File([blob], fileName, { type: getAudioMimeType(fileName) });
 
           return new Promise<AudioItem>((resolve, reject) => {
             uploadAsset({

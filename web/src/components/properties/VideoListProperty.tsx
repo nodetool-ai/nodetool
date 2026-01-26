@@ -137,6 +137,21 @@ const styles = (theme: Theme) =>
     }
   });
 
+// Helper to get MIME type from file extension
+const getVideoMimeType = (fileName: string): string => {
+  const ext = fileName.toLowerCase().split(".").pop();
+  const mimeTypes: Record<string, string> = {
+    mp4: "video/mp4",
+    avi: "video/x-msvideo",
+    mov: "video/quicktime",
+    wmv: "video/x-ms-wmv",
+    flv: "video/x-flv",
+    webm: "video/webm",
+    mkv: "video/x-matroska"
+  };
+  return mimeTypes[ext || ""] || "video/mp4";
+};
+
 const VideoListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `video-list-${props.property.name}-${props.propertyIndex}`;
@@ -253,7 +268,7 @@ const VideoListProperty = (props: PropertyProps) => {
           const pathSegments = filePath.split(/[\\/]/);
           const fileName = pathSegments[pathSegments.length - 1] || "video.mp4";
 
-          const file = new File([blob], fileName, { type: "video/mp4" });
+          const file = new File([blob], fileName, { type: getVideoMimeType(fileName) });
 
           return new Promise<VideoItem>((resolve, reject) => {
             uploadAsset({

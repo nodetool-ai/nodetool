@@ -146,6 +146,21 @@ const styles = (theme: Theme) =>
     }
   });
 
+// Helper to get MIME type from file extension
+const getImageMimeType = (fileName: string): string => {
+  const ext = fileName.toLowerCase().split(".").pop();
+  const mimeTypes: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    bmp: "image/bmp",
+    webp: "image/webp",
+    svg: "image/svg+xml"
+  };
+  return mimeTypes[ext || ""] || "image/png";
+};
+
 const ImageListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `image-list-${props.property.name}-${props.propertyIndex}`;
@@ -289,7 +304,7 @@ const ImageListProperty = (props: PropertyProps) => {
           const pathSegments = filePath.split(/[\\/]/);
           const fileName = pathSegments[pathSegments.length - 1] || "image.png";
 
-          const file = new File([blob], fileName, { type: "image/png" });
+          const file = new File([blob], fileName, { type: getImageMimeType(fileName) });
 
           return new Promise<ImageItem>((resolve, reject) => {
             uploadAsset({

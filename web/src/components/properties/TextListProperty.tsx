@@ -154,6 +154,27 @@ const isTextFile = (file: File): boolean => {
   return TEXT_EXTENSIONS.some((ext) => fileName.endsWith(ext));
 };
 
+// Helper to get MIME type from file extension
+const getTextMimeType = (fileName: string): string => {
+  const ext = fileName.toLowerCase().split(".").pop();
+  const mimeTypes: Record<string, string> = {
+    txt: "text/plain",
+    md: "text/markdown",
+    json: "application/json",
+    csv: "text/csv",
+    xml: "application/xml",
+    html: "text/html",
+    htm: "text/html",
+    yaml: "application/yaml",
+    yml: "application/yaml",
+    log: "text/plain",
+    ini: "text/plain",
+    cfg: "text/plain",
+    conf: "text/plain"
+  };
+  return mimeTypes[ext || ""] || "text/plain";
+};
+
 const TextListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `text-list-${props.property.name}-${props.propertyIndex}`;
@@ -280,7 +301,7 @@ const TextListProperty = (props: PropertyProps) => {
           const pathSegments = filePath.split(/[\\/]/);
           const fileName = pathSegments[pathSegments.length - 1] || "file.txt";
 
-          const file = new File([blob], fileName, { type: "text/plain" });
+          const file = new File([blob], fileName, { type: getTextMimeType(fileName) });
 
           return new Promise<TextItem>((resolve, reject) => {
             uploadAsset({
