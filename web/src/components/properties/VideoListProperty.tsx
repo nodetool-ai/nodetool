@@ -12,6 +12,8 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
+import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
+import { useAssetGridStore } from "../../stores/AssetGridStore";
 
 interface VideoItem {
   uri: string;
@@ -182,11 +184,51 @@ const VideoListProperty = (props: PropertyProps) => {
   );
 
   // Handle file drops
+  // Handle file drops (both internal nodetool assets and external files)
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       event.stopPropagation();
       setIsDragOver(false);
+
+      // First, try to handle internal nodetool asset drops
+      const dragData = deserializeDragData(event.dataTransfer);
+      if (dragData) {
+        const droppedVideos: VideoItem[] = [];
+
+        // Handle multiple assets
+        if (dragData.type === "assets-multiple") {
+          const selectedIds = dragData.payload as string[];
+          const { filteredAssets, globalSearchResults, selectedAssets } = useAssetGridStore.getState();
+          const potentialAssets = [...filteredAssets, ...globalSearchResults, ...(selectedAssets || [])];
+          const foundAssets = potentialAssets.filter(a => selectedIds.includes(a.id));
+          const uniqueAssets = Array.from(new Map(foundAssets.map(item => [item.id, item])).values());
+
+          uniqueAssets.forEach(asset => {
+            if (asset.get_url && asset.content_type?.startsWith("video/")) {
+              droppedVideos.push({ uri: asset.get_url, type: "video" });
+            }
+          });
+        }
+
+        // Handle single asset
+        if (droppedVideos.length === 0 && dragData.type === "asset") {
+          const asset = dragData.payload as Asset;
+          if (asset.get_url && asset.content_type?.startsWith("video/")) {
+            droppedVideos.push({ uri: asset.get_url, type: "video" });
+          }
+        }
+
+        if (droppedVideos.length > 0) {
+          handleAddVideos(droppedVideos);
+          return;
+        }
+      }
+
+      // Fall back to handling external file drops
+      if (!hasExternalFiles(event.dataTransfer)) {
+        return;
+      }
 
       const files = Array.from(event.dataTransfer.files).filter((file) =>
         file.type.startsWith("video/")
