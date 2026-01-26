@@ -96,7 +96,7 @@ const StringProperty = ({
       ? (stringInputConfig?.lineMode ?? "single_line") === "multiline"
       : true;
 
-  const externalValue = typeof value === "string" ? value : value || "";
+  const externalValue = typeof value === "string" ? value : "";
   const [draftValue, setDraftValue] = useState<string>(externalValue);
   const lastExternalValueRef = useRef<string>(externalValue);
 
@@ -202,7 +202,7 @@ const StringProperty = ({
                   }
                   : undefined
               }
-              value={isStringInputValue ? draftValue : (value || "")}
+              value={isStringInputValue ? draftValue : (typeof value === "string" ? value : "")}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const raw = e.target.value ?? "";
                 if (isStringInputValue) {
@@ -263,7 +263,7 @@ const StringProperty = ({
         </div>
         {isExpanded && (
           <TextEditorModal
-            value={isStringInputValue ? draftValue : (value || "")}
+            value={isStringInputValue ? draftValue : (typeof value === "string" ? value : "")}
             language={codeLanguage}
             onChange={(next) => {
               if (!isStringInputValue) {
