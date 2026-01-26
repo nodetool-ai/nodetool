@@ -4,7 +4,6 @@ import type { } from "./theme";
 import type { } from "./emotion";
 import type { } from "./material-ui";
 import type { } from "./window";
-// import type {} from "./types/svg-react"; // removed: file does not exist
 
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
@@ -98,19 +97,11 @@ const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
-import "./lib/tools/builtin/setSelectionMode";
-import "./lib/tools/builtin/setAutoLayout";
 import "./lib/tools/builtin/setNodeSyncMode";
 import "./lib/tools/builtin/connectNodes";
-import "./lib/tools/builtin/deleteNode";
-import "./lib/tools/builtin/deleteEdge";
 import "./lib/tools/builtin/updateNodeData";
 import "./lib/tools/builtin/moveNode";
-import "./lib/tools/builtin/autoLayout";
 import "./lib/tools/builtin/setNodeTitle";
-import "./lib/tools/builtin/setNodeColor";
-import "./lib/tools/builtin/alignNodes";
-import "./lib/tools/builtin/fitView";
 import "./lib/tools/builtin/graph";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
