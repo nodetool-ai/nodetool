@@ -130,7 +130,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const rootStyles = useMemo(
     () =>
       css({
-        marginTop: "0.5em"
+        marginTop: "1em",
+        marginBottom: "0.5em"
       }),
     []
   );
