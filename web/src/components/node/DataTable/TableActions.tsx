@@ -159,7 +159,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     if (selectedRows.length > 0) {
       handleDeleteRows();
     }
-  }, [selectedRows.length, handleDeleteRows]);
+  }, [selectedRows, handleDeleteRows]);
 
   const handleToggleSelect = useCallback(() => {
     setShowSelect(!showSelect);
