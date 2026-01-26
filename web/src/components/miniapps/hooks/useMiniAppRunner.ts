@@ -57,7 +57,11 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     const originalHandler = store.messageHandler;
 
     const handler: MessageHandler = (workflow: WorkflowAttributes, data) => {
-      originalHandler(workflow, data);
+      try {
+        originalHandler(workflow, data);
+      } catch (error) {
+        console.error("MiniAppRunner: originalHandler error:", error);
+      }
 
       if (!selectedWorkflow || workflow.id !== selectedWorkflow.id) {
         return;
@@ -67,88 +71,59 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       const messageType = typedData.type;
 
       if (messageType === "output_update") {
-        const update = typedData as unknown as OutputUpdate;
-        const assetTypes = ["image", "audio", "video", "document"];
+        try {
+          const update = typedData as unknown as OutputUpdate;
 
-        let value: unknown = update.value;
+          // Keep the value as-is - no base64 conversion needed
+          // The OutputRenderer will handle the value appropriately
+          const value = update.value;
 
-        // Handle asset types with binary data conversion
-        if (assetTypes.includes(update.output_type)) {
-          if (typeof update.value === "string") {
-            // Convert base64 string to Uint8Array
-            const binary = atob(update.value);
-            const len = binary.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-              bytes[i] = binary.charCodeAt(i);
-            }
-            value = bytes;
-          } else if (
-            update.value &&
-            typeof update.value === "object" &&
-            "data" in (update.value as any)
-          ) {
-            // Extract Uint8Array from object with data property
-            value = (update.value as { data: Uint8Array }).data;
-          }
+          // Generate unique ID for each streaming update to allow multiple items
+          const timestamp = Date.now();
+          const random = Math.random().toString(36).substring(2, 9);
+          const result: MiniAppResult = {
+            id: `${update.node_id}:${update.output_name}:${timestamp}:${random}`,
+            nodeId: update.node_id,
+            nodeName: update.node_name,
+            outputName: update.output_name,
+            outputType: update.output_type,
+            value: value,
+            metadata: (update.metadata || {}) as Record<string, unknown>,
+            receivedAt: timestamp
+          };
+
+          upsertResult(workflow.id, result);
+        } catch (error) {
+          console.error("MiniAppRunner: output_update error:", error);
         }
-
-        // Generate unique ID for each streaming update to allow multiple items
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(2, 9);
-        const result: MiniAppResult = {
-          id: `${update.node_id}:${update.output_name}:${timestamp}:${random}`,
-          nodeId: update.node_id,
-          nodeName: update.node_name,
-          outputName: update.output_name,
-          outputType: update.output_type,
-          value: value,
-          metadata: (update.metadata || {}) as Record<string, unknown>,
-          receivedAt: timestamp
-        };
-
-        upsertResult(workflow.id, result);
       }
 
       if (messageType === "preview_update") {
-        const update = typedData as unknown as PreviewUpdate;
+        try {
+          const update = typedData as unknown as PreviewUpdate;
 
-        let value: unknown = update.value;
+          // Keep the value as-is - no base64 conversion needed
+          // The OutputRenderer will handle the value appropriately
+          const value = update.value;
 
-        // Handle binary data conversion for preview images
-        if (typeof update.value === "string") {
-          // Convert base64 string to Uint8Array
-          const binary = atob(update.value);
-          const len = binary.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binary.charCodeAt(i);
-          }
-          value = bytes;
-        } else if (
-          update.value &&
-          typeof update.value === "object" &&
-          "data" in (update.value as any)
-        ) {
-          // Extract Uint8Array from object with data property
-          value = (update.value as { data: Uint8Array }).data;
+          // Generate unique ID for each streaming preview update to allow multiple items
+          const timestamp = Date.now();
+          const random = Math.random().toString(36).substring(2, 9);
+          const result: MiniAppResult = {
+            id: `${update.node_id}:preview:${timestamp}:${random}`,
+            nodeId: update.node_id,
+            nodeName: "Preview",
+            outputName: "preview",
+            outputType: "image",
+            value: value,
+            metadata: {},
+            receivedAt: timestamp
+          };
+
+          upsertResult(workflow.id, result);
+        } catch (error) {
+          console.error("MiniAppRunner: preview_update error:", error);
         }
-
-        // Generate unique ID for each streaming preview update to allow multiple items
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(2, 9);
-        const result: MiniAppResult = {
-          id: `${update.node_id}:preview:${timestamp}:${random}`,
-          nodeId: update.node_id,
-          nodeName: "Preview",
-          outputName: "preview",
-          outputType: "image",
-          value: value,
-          metadata: {},
-          receivedAt: timestamp
-        };
-
-        upsertResult(workflow.id, result);
       }
 
       if (messageType === "node_update") {

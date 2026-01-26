@@ -7,6 +7,7 @@ import {
 } from "../types";
 import { getInputKind } from "../utils";
 import { useMiniAppsStore } from "../../../stores/MiniAppsStore";
+import { NodeUIProperties } from "../../../stores/nodeUiDefaults";
 
 export const useMiniAppInputs = (selectedWorkflow?: Workflow) => {
   const inputDefinitions = useMemo(() => {
@@ -16,6 +17,12 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow) => {
 
     return (selectedWorkflow.graph.nodes || [])
       .map((node: Node) => {
+        // Skip bypassed input nodes - they shouldn't show in app mode
+        const uiProps = node.ui_properties as NodeUIProperties | undefined;
+        if (uiProps?.bypassed) {
+          return null;
+        }
+
         const kind = getInputKind(node.type);
         if (!kind) {
           return null;

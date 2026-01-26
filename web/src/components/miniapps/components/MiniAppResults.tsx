@@ -23,17 +23,41 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
   onClear,
   workflow
 }) => {
-  const hasResults = results.length > 0;
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Check for output nodes and their bypass status
+  // Get set of bypassed node IDs and preview node IDs for filtering results
+  const excludedNodeIds = useMemo(() => {
+    if (!workflow?.graph?.nodes) {
+      return new Set<string>();
+    }
+    return new Set(
+      workflow.graph.nodes
+        .filter((node: any) => 
+          // Exclude bypassed nodes
+          node.ui_properties?.bypassed ||
+          // Exclude PreviewNode - they shouldn't show in app mode
+          node.type === "nodetool.workflows.base_node.Preview"
+        )
+        .map((node) => node.id)
+    );
+  }, [workflow]);
+
+  // Filter out results from bypassed and preview nodes
+  const filteredResults = useMemo(() => {
+    return results.filter((result) => !excludedNodeIds.has(result.nodeId));
+  }, [results, excludedNodeIds]);
+
+  const hasResults = filteredResults.length > 0;
+
+  // Check for output nodes and their bypass status (exclude preview nodes)
   const outputNodeStatus = useMemo(() => {
     if (!workflow?.graph?.nodes) {
       return { totalOutputs: 0, activeOutputs: 0, allBypassed: false };
     }
 
+    // Only count actual output nodes, not preview nodes
     const outputNodes = workflow.graph.nodes.filter(
-      (node) => node.type?.includes(".output.") || node.type?.includes(".preview.")
+      (node) => node.type?.includes(".output.")
     );
     const activeOutputNodes = outputNodes.filter(
       (node: any) => !node.ui_properties?.bypassed
@@ -89,7 +113,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
     <section className="results-shell application-card">
       {/* Clear button - shown only when there are results */}
       {hasResults && onClear && (
-        <Tooltip title={`Clear ${results.length} result${results.length > 1 ? "s" : ""}`}>
+        <Tooltip title={`Clear ${filteredResults.length} result${filteredResults.length > 1 ? "s" : ""}`}>
           <IconButton
             size="small"
             onClick={onClear}
@@ -113,7 +137,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
 
       {hasResults ? (
         <div className="results-list">
-          {results.map((result) => (
+          {filteredResults.map((result) => (
             <div className="result-card" key={result.id}>
               {result.outputName && (
                 <Typography
