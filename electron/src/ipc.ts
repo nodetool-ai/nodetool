@@ -452,13 +452,35 @@ export function initializeIpcHandlers(): void {
         ) {
           mimeType = `image/${ext === "svg" ? "svg+xml" : ext === "jpg" ? "jpeg" : ext}`;
         }
-        // Audio types
-        else if (["mp3", "wav", "ogg", "m4a", "flac", "aac"].includes(ext)) {
-          mimeType = `audio/${ext === "mp3" ? "mpeg" : ext}`;
+        // Audio types with correct MIME mappings
+        else if (ext === "mp3") {
+          mimeType = "audio/mpeg";
+        } else if (ext === "wav") {
+          mimeType = "audio/wav";
+        } else if (ext === "ogg") {
+          mimeType = "audio/ogg";
+        } else if (ext === "m4a") {
+          mimeType = "audio/mp4";
+        } else if (ext === "flac") {
+          mimeType = "audio/flac";
+        } else if (ext === "aac") {
+          mimeType = "audio/aac";
         }
-        // Video types
-        else if (["mp4", "avi", "mov", "wmv", "flv", "webm", "mkv"].includes(ext)) {
-          mimeType = `video/${ext}`;
+        // Video types with correct MIME mappings
+        else if (ext === "mp4") {
+          mimeType = "video/mp4";
+        } else if (ext === "avi") {
+          mimeType = "video/x-msvideo";
+        } else if (ext === "mov") {
+          mimeType = "video/quicktime";
+        } else if (ext === "wmv") {
+          mimeType = "video/x-ms-wmv";
+        } else if (ext === "flv") {
+          mimeType = "video/x-flv";
+        } else if (ext === "webm") {
+          mimeType = "video/webm";
+        } else if (ext === "mkv") {
+          mimeType = "video/x-matroska";
         }
         // Document types
         else if (ext === "pdf") {

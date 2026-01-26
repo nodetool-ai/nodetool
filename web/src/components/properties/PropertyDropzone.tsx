@@ -90,7 +90,7 @@ const PropertyDropzone = ({
         right: "0"
       },
       ".native-picker-button": {
-        right: isElectron ? "28px" : "0"
+        right: isElectron ? "30px" : "0"
       },
       ".url-input": {
         width: "calc(100% - 24px)",
@@ -267,7 +267,11 @@ const PropertyDropzone = ({
         // Convert data URL to Blob
         const response = await fetch(dataUrl);
         const blob = await response.blob();
-        const fileName = filePath.split(/[\\/]/).pop() || "file";
+        
+        // Get filename with fallback
+        const pathSegments = filePath.split(/[\\/]/);
+        const fileName = pathSegments[pathSegments.length - 1] || "unknown_file";
+        
         const file = new File([blob], fileName, { type: blob.type || contentType });
 
         // Upload the file as an asset
