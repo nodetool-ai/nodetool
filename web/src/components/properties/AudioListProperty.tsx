@@ -248,6 +248,7 @@ const AudioListProperty = (props: PropertyProps) => {
                   src={audio.uri}
                   controls
                   preload="metadata"
+                  aria-label={getFilename(audio.uri)}
                 />
                 <Typography className="audio-filename" title={getFilename(audio.uri)}>
                   {getFilename(audio.uri)}
@@ -258,6 +259,7 @@ const AudioListProperty = (props: PropertyProps) => {
                   className="remove-button"
                   onClick={() => handleRemoveAudio(index)}
                   size="small"
+                  aria-label="Remove audio"
                 >
                   <CloseIcon />
                 </IconButton>

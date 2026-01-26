@@ -260,6 +260,7 @@ const TextListProperty = (props: PropertyProps) => {
                   className="remove-button"
                   onClick={() => handleRemoveText(index)}
                   size="small"
+                  aria-label="Remove text file"
                 >
                   <CloseIcon />
                 </IconButton>

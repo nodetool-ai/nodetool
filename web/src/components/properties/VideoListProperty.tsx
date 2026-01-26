@@ -228,6 +228,7 @@ const VideoListProperty = (props: PropertyProps) => {
                   controls
                   muted
                   preload="metadata"
+                  aria-label={`Video ${index + 1}`}
                 />
               </div>
               <Tooltip title="Remove video">
@@ -235,6 +236,7 @@ const VideoListProperty = (props: PropertyProps) => {
                   className="remove-button"
                   onClick={() => handleRemoveVideo(index)}
                   size="small"
+                  aria-label="Remove video"
                 >
                   <CloseIcon />
                 </IconButton>
