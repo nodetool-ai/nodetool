@@ -45,25 +45,28 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
 
   startExecution: (workflowId: string, nodeId: string) => {
     const key = hashKey(workflowId, nodeId);
-    set({
+    set((state) => ({
       timings: {
-        ...get().timings,
+        ...state.timings,
         [key]: { startTime: Date.now() }
       }
-    });
+    }));
   },
 
   endExecution: (workflowId: string, nodeId: string) => {
     const key = hashKey(workflowId, nodeId);
-    const existing = get().timings[key];
-    if (existing) {
-      set({
-        timings: {
-          ...get().timings,
-          [key]: { ...existing, endTime: Date.now() }
-        }
-      });
-    }
+    set((state) => {
+      const existing = state.timings[key];
+      if (existing) {
+        return {
+          timings: {
+            ...state.timings,
+            [key]: { ...existing, endTime: Date.now() }
+          }
+        };
+      }
+      return state;
+    });
   },
 
   getTiming: (workflowId: string, nodeId: string) => {
@@ -81,14 +84,13 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
   },
 
   clearTimings: (workflowId: string) => {
-    const timings = get().timings;
-    const newTimings: Record<string, ExecutionTiming> = {};
-    for (const key in timings) {
-      if (!key.startsWith(workflowId)) {
-        newTimings[key] = timings[key];
-      }
-    }
-    set({ timings: newTimings });
+    set((state) => ({
+      timings: Object.fromEntries(
+        Object.entries(state.timings).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   }
 }));
 
