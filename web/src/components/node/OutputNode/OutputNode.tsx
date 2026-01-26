@@ -3,10 +3,9 @@ import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
-import { Container, Typography, Box, IconButton, Tooltip } from "@mui/material";
+import { Container, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import HistoryIcon from "@mui/icons-material/History";
 import log from "loglevel";
 import isEqual from "lodash/isEqual";
 
@@ -14,19 +13,17 @@ import { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import { useNodeResultHistoryStore } from "../../../stores/NodeResultHistoryStore";
+
 import { createAssetFile } from "../../../utils/createAssetFile";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
-import NodeHistoryPanel from "../NodeHistoryPanel";
 import { NodeInputs } from "../NodeInputs";
 import PreviewActions from "../PreviewNode/PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import useMetadataStore from "../../../stores/MetadataStore";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 const styles = (theme: Theme) =>
   css([
@@ -94,9 +91,9 @@ const styles = (theme: Theme) =>
         fontSize: theme.vars.fontSizeTiny + " !important"
       },
       ".output-node-content .content .tabulator-col-resize-handle,.output-node-content .content .tabulator-row":
-        {
-          height: "fit-content !important"
-        },
+      {
+        height: "fit-content !important"
+      },
       // header
       ".node-header": {
         width: "100%",
@@ -290,8 +287,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const createAsset = useAssetStore((state) => state.createAsset);
   const hasParent = props.parentId !== undefined;
   const [isContentFocused, setIsContentFocused] = useState(false);
-  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  
+
   // Get metadata for this node type
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
@@ -301,38 +297,13 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
     state.getOutputResult(props.data.workflow_id, props.id)
   );
 
-  // Get session history for this node
-  const sessionHistory = useNodeResultHistoryStore((state) =>
-    props.data.workflow_id && props.id 
-      ? state.getHistory(props.data.workflow_id, props.id) 
-      : []
-  );
-
-  const hasSessionHistory = sessionHistory.length > 0;
-
-  // Use session history if available, otherwise fall back to current result
-  const resultsToDisplay = useMemo(() => {
-    if (hasSessionHistory) {
-      return sessionHistory;
-    }
-    if (result !== undefined && result !== null) {
-      return [{ result, timestamp: Date.now(), status: "completed", jobId: null }];
-    }
-    return [];
-  }, [hasSessionHistory, sessionHistory, result]);
-
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
-  
-  // Get the name from node data properties
-  const outputName = (props.data.properties as Record<string, any>)?.name || "";
 
-  const handleOpenHistory = useCallback(() => {
-    setHistoryDialogOpen(true);
-  }, []);
-
-  const handleCloseHistory = useCallback(() => {
-    setHistoryDialogOpen(false);
-  }, []);
+  const memoizedOutputRenderer = useMemo(() => {
+    return result !== undefined ? (
+      <OutputRenderer value={result} showTextActions={false} />
+    ) : null;
+  }, [result]);
 
   const copyPayloadSource = useMemo(
     () => getCopySource(outputValue ?? result ?? null),
@@ -444,9 +415,8 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
           ? theme.vars.palette.glass.blur
           : "none"
       }}
-      className={`output-node nopan node-drag-handle ${
-        hasParent ? "hasParent" : ""
-      }`}
+      className={`output-node nopan node-drag-handle ${hasParent ? "hasParent" : ""
+        }`}
     >
       <div className={`output-node-content `}>
         <>
@@ -462,8 +432,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
             iconBaseColor={theme.vars.palette.secondary.main}
             showIcon={false}
             workflowId={props.data.workflow_id}
+            hideLogs={true}
           />
-          
+
           {/* Render properties with handles using NodeInputs - just like BaseNode does */}
           {nodeMetadata && (
             <NodeInputs
@@ -478,46 +449,11 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
               hasAdvancedFields={false}
               showAdvancedFields={false}
               basicFields={nodeMetadata.basic_fields || nodeMetadata.properties.map(p => p.name)}
-              onToggleAdvancedFields={() => {}}
+              onToggleAdvancedFields={() => { }}
             />
           )}
 
-          {/* History button - only shows on hover when there's history */}
-          {hasSessionHistory && (
-            <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="View History" placement="left">
-              <IconButton
-                size="small"
-                onClick={handleOpenHistory}
-                sx={{
-                  position: "absolute",
-                  top: 4,
-                  right: 8,
-                  zIndex: 10,
-                  width: 24,
-                  height: 24,
-                  padding: "4px",
-                  borderRadius: "4px",
-                  opacity: 0,
-                  transition: "opacity 0.2s ease",
-                  backgroundColor: "rgba(0, 0, 0, 0.6)",
-                  color: "#fff",
-                  ".output-node:hover &": {
-                    opacity: 1
-                  },
-                  "&:hover": {
-                    backgroundColor: "rgba(0, 0, 0, 0.85)"
-                  },
-                  "& svg": {
-                    fontSize: 14
-                  }
-                }}
-              >
-                <HistoryIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-
-          {resultsToDisplay.length === 0 && (
+          {result === null || result === undefined && (
             <Typography className="hint">
               Exposes data to App Mode
             </Typography>
@@ -530,80 +466,17 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         </>
 
         <div
-          className={`content ${
-            isScrollable ? "scrollable nowheel" : "noscroll"
-          }`}
+          className={`content ${isScrollable ? "scrollable nowheel" : "noscroll"
+            }`}
           style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
           tabIndex={0}
           onFocus={handleContentFocus}
           onBlur={handleContentBlur}
           onPointerDown={handleContentPointerDown}
         >
-          {/* Render results with dividers between history items */}
-          {resultsToDisplay.map((item, index) => {
-            const resultValue =
-              typeof item.result === "object" &&
-              item.result !== null &&
-              "output" in item.result &&
-              item.result.output !== undefined
-                ? item.result.output
-                : item.result;
-            
-            return (
-              <Box 
-                key={`result-${item.timestamp}-${index}`}
-                sx={{ 
-                  flex: index === 0 ? 1 : "0 0 auto",
-                  minHeight: 0,
-                  display: "flex",
-                  flexDirection: "column"
-                }}
-              >
-                {index > 0 && (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      py: 0.5,
-                      px: 1,
-                      borderTop: "1px solid",
-                      borderColor: "divider"
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: "0.65rem",
-                        color: "text.disabled",
-                        whiteSpace: "nowrap",
-                        lineHeight: 1
-                      }}
-                    >
-                      Run {resultsToDisplay.length - index}
-                    </Typography>
-                  </Box>
-                )}
-                <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-                  <OutputRenderer
-                    value={resultValue}
-                    showTextActions={false}
-                  />
-                </Box>
-              </Box>
-            );
-          })}
+          {memoizedOutputRenderer}
         </div>
       </div>
-
-      {/* History Dialog */}
-      <NodeHistoryPanel
-        workflowId={props.data.workflow_id}
-        nodeId={props.id}
-        nodeName={outputName || "Output"}
-        open={historyDialogOpen}
-        onClose={handleCloseHistory}
-      />
     </Container>
   );
 };
