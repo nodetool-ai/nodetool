@@ -33,7 +33,18 @@ export function CustomEdge({
   });
 
   const counter = data?.counter as number | undefined;
+  const dataTypeLabel = data?.dataTypeLabel as string | undefined;
   const showLabel = counter && counter > 1;
+
+  // Format the data type label for display with simple pluralization
+  const formatDataTypeLabel = (label: string | undefined, count: number): string => {
+    if (!label || label === "Any") return "items";
+    // Simple pluralization - add 's' for most types
+    const lowerLabel = label.toLowerCase();
+    return count === 1 ? lowerLabel : `${lowerLabel}s`;
+  };
+
+  const tooltipText = `${counter} ${formatDataTypeLabel(dataTypeLabel, counter || 0)} streamed`;
 
   return (
     <>
@@ -47,7 +58,7 @@ export function CustomEdge({
       {showLabel && (
         <EdgeLabelRenderer>
           <Tooltip
-            title="Number of items streamed through this connection"
+            title={tooltipText}
             placement="top"
             arrow
             enterDelay={300}
