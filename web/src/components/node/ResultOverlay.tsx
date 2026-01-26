@@ -70,20 +70,22 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
               top: 4,
               right: 4,
               zIndex: 10,
+              width: 24,
+              height: 24,
+              padding: "4px",
               opacity: 0,
               transition: "opacity 0.2s ease",
-              backgroundColor: theme.vars.palette.background.paper,
-              border: `1px solid ${theme.vars.palette.divider}`,
-              padding: "4px",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              color: "white",
               ".result-overlay:hover &": {
                 opacity: 1
               },
               "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover
+                backgroundColor: "rgba(0, 0, 0, 0.7)"
               }
             }}
           >
-            <HistoryIcon sx={{ fontSize: 16 }} />
+            <HistoryIcon sx={{ fontSize: 14 }} />
           </IconButton>
         </Tooltip>
       )}
