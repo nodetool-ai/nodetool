@@ -102,7 +102,7 @@ export const DeleteButton = memo(
       );
 
       const iconSize =
-        buttonSize === "small" ? 16 : buttonSize === "medium" ? 20 : 24;
+        buttonSize === "small" ? 18 : buttonSize === "medium" ? 20 : 24;
 
       const renderIcon = () => {
         if (iconVariant === "clear") {
@@ -133,7 +133,7 @@ export const DeleteButton = memo(
             disabled={disabled}
             size={buttonSize}
             sx={{
-              color: theme.vars.palette.grey[300],
+              color: "inherit",
               transition: "all 0.15s ease-in-out",
               "&:hover": {
                 color: theme.vars.palette.error.main,
