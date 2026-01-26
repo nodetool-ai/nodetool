@@ -300,22 +300,8 @@ export function useProcessedEdges({
         classes.push("message-sent");
       }
 
-      const edgeLabel = counter && counter > 1 ? `${counter}` : undefined;
       return {
         ...edge,
-        label: edgeLabel,
-        labelStyle: {
-          fill: "white",
-          fontWeight: 600,
-          fontSize: "10px"
-        },
-        labelBgStyle: {
-          fill: "rgba(0, 0, 0, 0.4)",
-          fillOpacity: 1,
-          rx: 10,
-          ry: 10
-        },
-        labelBgPadding: [6, 2] as [number, number],
         className: [edge.className, ...classes].filter(Boolean).join(" "),
         style: {
           ...edge.style,

@@ -65,6 +65,7 @@ interface ReactFlowWrapperProps {
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
+import CustomEdge from "../node_editor/CustomEdge";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -229,6 +230,13 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       default: PlaceholderNode
     }),
     [baseNodeTypes]
+  );
+
+  const edgeTypes = useMemo(
+    () => ({
+      default: CustomEdge
+    }),
+    []
   );
 
   const settings = useSettingsStore((state) => state.settings);
@@ -477,6 +485,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         nodes={nodes}
         edges={processedEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         snapToGrid={true}
         snapGrid={snapGrid}
         defaultViewport={storedViewport || undefined}
