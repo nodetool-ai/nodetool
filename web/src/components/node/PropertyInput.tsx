@@ -41,6 +41,7 @@ import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
+import ImageListProperty from "../properties/ImageListProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
@@ -154,6 +155,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return ColorProperty;
     case "image":
       return ImageProperty;
+    case "image_list":
+      return ImageListProperty;
     case "audio":
       return AudioProperty;
     case "video":
@@ -234,6 +237,8 @@ function handleListType(
         return ToolsListProperty;
       case "str":
         return StringListProperty;
+      case "image":
+        return ImageListProperty;
     }
   }
   return ListProperty;
