@@ -409,6 +409,18 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "ViewInAr"
   },
   {
+    value: "embedding_model",
+    label: "Embedding Model",
+    description:
+      "Reference to an embedding model for generating vector embeddings from text or images.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ViewInAr"
+  },
+  {
     value: "message",
     label: "Message",
     description:
