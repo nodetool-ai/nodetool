@@ -92,18 +92,26 @@ const TextElement: React.FC<{
   }
 
   // Calculate vertical offset based on verticalAlignment
+  // Note: Konva's Text component handles wrapping and vertical alignment, but we 
+  // provide an estimated y-offset for middle/bottom alignment. This is a simplified 
+  // approach since Konva doesn't expose computed text metrics directly.
   let yOffset = 0;
   if (props.verticalAlignment === "middle" || props.verticalAlignment === "bottom") {
-    // We need to estimate text height - this is a simplified approach
+    // Estimate text height using average character width (~0.5 of fontSize for most fonts)
+    // This approximation works reasonably well for proportional fonts
     const estimatedLineHeight = props.fontSize * (props.lineHeight || 1.2);
-    const lines = Math.ceil(displayText.length * props.fontSize * 0.5 / element.width) || 1;
-    const textHeight = estimatedLineHeight * lines;
+    const avgCharWidth = props.fontSize * 0.5;
+    const estimatedLines = Math.ceil(displayText.length * avgCharWidth / element.width) || 1;
+    const textHeight = estimatedLineHeight * estimatedLines;
     
     if (props.verticalAlignment === "middle") {
       yOffset = (element.height - textHeight) / 2;
     } else if (props.verticalAlignment === "bottom") {
       yOffset = element.height - textHeight;
     }
+    
+    // Ensure offset doesn't push text outside the element bounds
+    yOffset = Math.max(0, yOffset);
   }
 
   // Get text decoration style
@@ -113,7 +121,7 @@ const TextElement: React.FC<{
   return (
     <Text
       x={0}
-      y={Math.max(0, yOffset)}
+      y={yOffset}
       width={element.width}
       height={element.height}
       text={displayText}

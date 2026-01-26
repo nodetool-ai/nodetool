@@ -674,7 +674,12 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     let snappedX = x;
     let snappedY = y;
     
+    // Type for snap alignment sources
+    type SnapSource = "left" | "right" | "center" | "top" | "bottom";
+    
     // Get other elements (not the one being dragged)
+    // Note: This filter runs on every drag move event. For canvases with 
+    // many elements, consider caching the visible elements list.
     const otherElements = canvasData.elements.filter((el) => el.id !== elementId && el.visible);
     
     // Calculate edges and centers for the dragged element
@@ -700,7 +705,7 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     }
     
     // Check horizontal snapping (X axis)
-    let bestSnapX: { target: number; offset: number; source: string } | null = null;
+    let bestSnapX: { target: number; offset: number; source: SnapSource } | null = null;
     
     // Left edge alignment
     for (const edgeX of allEdgesX) {
@@ -733,7 +738,7 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     }
     
     // Check vertical snapping (Y axis)
-    let bestSnapY: { target: number; offset: number; source: string } | null = null;
+    let bestSnapY: { target: number; offset: number; source: SnapSource } | null = null;
     
     // Top edge alignment
     for (const edgeY of allEdgesY) {
