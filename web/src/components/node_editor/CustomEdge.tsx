@@ -75,7 +75,8 @@ export function CustomEdge({
                 borderRadius: "10px",
                 fontSize: "10px",
                 fontWeight: 600,
-                border: selected ? "1px solid #fff" : "none"
+                border: selected ? "1px solid #fff" : "none",
+                zIndex: 1000
               }}
               className="nodrag nopan"
             >
