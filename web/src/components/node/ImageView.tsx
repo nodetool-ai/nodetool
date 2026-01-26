@@ -112,7 +112,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         {isElectron && (
           <ToolbarIconButton
             icon={copied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
-            tooltip={copied ? "Copied!" : "Copy to clipboard (compatible with Photoshop)"}
+            tooltip={copied ? "Copied!" : "Copy to clipboard "}
             onClick={handleCopyToClipboard}
             size="small"
             nodrag={false}

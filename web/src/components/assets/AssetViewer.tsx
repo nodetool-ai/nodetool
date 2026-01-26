@@ -626,7 +626,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                 copied 
                   ? "Copied!" 
                   : currentAsset.content_type.startsWith("image/")
-                  ? "Copy Image (compatible with Photoshop)"
+                  ? "Copy Image"
                   : currentAsset.content_type.startsWith("video/")
                   ? "Copy Video Info"
                   : currentAsset.content_type.startsWith("audio/")
