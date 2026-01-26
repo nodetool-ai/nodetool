@@ -140,38 +140,40 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
 
   return (
     <>
-      {allOutputs.length > 1 || metadata?.supports_dynamic_outputs ? (
-        <ul className="multi-outputs">
-          {allOutputs.map((output) => (
-            <li key={output.name} css={{ position: "relative" }}>
-              <DynamicOutputItem
-                id={id}
-                output={output}
-                showLabel={true}
-                supportsDynamicOutputs={Boolean(
-                  metadata?.supports_dynamic_outputs
-                )}
-                isStreamingOutput={isStreamingOutput}
-                onStartEdit={onStartEdit}
-                onDelete={handleDeleteOutput}
-              />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        allOutputs.map((output) => (
-          <DynamicOutputItem
-            key={output.name}
-            id={id}
-            output={output}
-            showLabel={false}
-            supportsDynamicOutputs={Boolean(metadata?.supports_dynamic_outputs)}
-            isStreamingOutput={isStreamingOutput}
-            onStartEdit={onStartEdit}
-            onDelete={handleDeleteOutput}
-          />
-        ))
-      )}
+      <Box sx={{ mb: "1em" }}>
+        {allOutputs.length > 1 || metadata?.supports_dynamic_outputs ? (
+          <ul className="multi-outputs">
+            {allOutputs.map((output) => (
+              <li key={output.name} css={{ position: "relative" }}>
+                <DynamicOutputItem
+                  id={id}
+                  output={output}
+                  showLabel={true}
+                  supportsDynamicOutputs={Boolean(
+                    metadata?.supports_dynamic_outputs
+                  )}
+                  isStreamingOutput={isStreamingOutput}
+                  onStartEdit={onStartEdit}
+                  onDelete={handleDeleteOutput}
+                />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          allOutputs.map((output) => (
+            <DynamicOutputItem
+              key={output.name}
+              id={id}
+              output={output}
+              showLabel={false}
+              supportsDynamicOutputs={Boolean(metadata?.supports_dynamic_outputs)}
+              isStreamingOutput={isStreamingOutput}
+              onStartEdit={onStartEdit}
+              onDelete={handleDeleteOutput}
+            />
+          ))
+        )}
+      </Box>
 
       <Dialog
         open={showRenameDialog}
