@@ -1,27 +1,27 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useState, useRef, useMemo } from "react";
+import { memo, useCallback, useState, useMemo } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip, Button } from "@mui/material";
+import { IconButton, Tooltip, Typography, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import DescriptionIcon from "@mui/icons-material/Description";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import ImageDimensions from "../node/ImageDimensions";
 import { isElectron } from "../../utils/browser";
 
-interface ImageItem {
+interface TextItem {
   uri: string;
   type: string;
 }
 
 const styles = (theme: Theme) =>
   css({
-    ".image-list-property": {
+    ".text-list-property": {
       width: "100%",
       marginBottom: "8px"
     },
@@ -42,52 +42,50 @@ const styles = (theme: Theme) =>
         fontSize: "1.2rem"
       }
     },
-    ".image-grid": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
+    ".text-grid": {
+      display: "flex",
+      flexDirection: "column",
       gap: "8px",
       marginTop: "8px"
     },
-    ".image-item": {
+    ".text-item": {
       position: "relative",
       width: "100%",
-      paddingTop: "100%", // 1:1 aspect ratio
       backgroundColor: "rgba(0, 0, 0, 0.2)",
       borderRadius: "6px",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       transition: "all 0.2s ease",
+      padding: "8px 12px",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
       "&:hover": {
         borderColor: theme.vars.palette.grey[500],
         ".remove-button": {
           opacity: 1
-        },
-        ".image-dimensions": {
-          opacity: 1
         }
       }
     },
-    ".image-content": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
+    ".text-icon": {
+      color: theme.vars.palette.grey[400],
+      fontSize: "20px",
+      flexShrink: 0
+    },
+    ".text-content": {
+      flex: 1,
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden"
+      minWidth: 0
     },
-    ".image-content img": {
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-      cursor: "pointer"
+    ".text-filename": {
+      fontSize: "12px",
+      color: theme.vars.palette.grey[300],
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
     },
     ".remove-button": {
-      position: "absolute",
-      top: "2px",
-      right: "2px",
       opacity: 0,
       transition: "opacity 0.2s ease",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
@@ -95,7 +93,7 @@ const styles = (theme: Theme) =>
       padding: "2px",
       width: "20px",
       height: "20px",
-      zIndex: 2,
+      flexShrink: 0,
       "&:hover": {
         backgroundColor: theme.vars.palette.error.main,
         color: theme.vars.palette.common.white
@@ -139,79 +137,82 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[500],
       margin: "1em",
       lineHeight: "1.1em"
-    },
-    ".image-dimensions": {
-      opacity: 0,
-      transition: "opacity 0.2s ease"
     }
   });
 
-// Helper to get MIME type from file extension
-const getImageMimeType = (fileName: string): string => {
-  const ext = fileName.toLowerCase().split(".").pop();
-  const mimeTypes: Record<string, string> = {
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    gif: "image/gif",
-    bmp: "image/bmp",
-    webp: "image/webp",
-    svg: "image/svg+xml"
-  };
-  return mimeTypes[ext || ""] || "image/png";
+// Text file extensions and MIME types
+const TEXT_EXTENSIONS = [".txt", ".md", ".json", ".csv", ".xml", ".html", ".htm", ".yaml", ".yml", ".log", ".ini", ".cfg", ".conf"];
+const TEXT_MIME_TYPES = ["text/", "application/json", "application/xml", "application/yaml"];
+
+const isTextFile = (file: File): boolean => {
+  // Check by MIME type
+  if (TEXT_MIME_TYPES.some((type) => file.type.startsWith(type))) {
+    return true;
+  }
+  // Check by extension
+  const fileName = file.name.toLowerCase();
+  return TEXT_EXTENSIONS.some((ext) => fileName.endsWith(ext));
 };
 
-const ImageListProperty = (props: PropertyProps) => {
+// Helper to get MIME type from file extension
+const getTextMimeType = (fileName: string): string => {
+  const ext = fileName.toLowerCase().split(".").pop();
+  const mimeTypes: Record<string, string> = {
+    txt: "text/plain",
+    md: "text/markdown",
+    json: "application/json",
+    csv: "text/csv",
+    xml: "application/xml",
+    html: "text/html",
+    htm: "text/html",
+    yaml: "application/yaml",
+    yml: "application/yaml",
+    log: "text/plain",
+    ini: "text/plain",
+    cfg: "text/plain",
+    conf: "text/plain"
+  };
+  return mimeTypes[ext || ""] || "text/plain";
+};
+
+const TextListProperty = (props: PropertyProps) => {
   const theme = useTheme();
-  const id = `image-list-${props.property.name}-${props.propertyIndex}`;
+  const id = `text-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
   
-  // Convert value to array of ImageItem
-  const images: ImageItem[] = useMemo(
+  // Convert value to array of TextItem
+  const texts: TextItem[] = useMemo(
     () => (Array.isArray(props.value) ? props.value : []),
     [props.value]
   );
   
   const [isDragOver, setIsDragOver] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState<Record<string, { width: number; height: number }>>({});
-  const imageRefs = useRef<Record<string, HTMLImageElement>>({});
 
-  const handleAddImages = useCallback(
-    (newImages: ImageItem[]) => {
-      const updatedImages = [...images, ...newImages];
-      props.onChange(updatedImages);
+  const handleAddTexts = useCallback(
+    (newTexts: TextItem[]) => {
+      const updatedTexts = [...texts, ...newTexts];
+      props.onChange(updatedTexts);
     },
-    [images, props]
+    [texts, props]
   );
 
-  const handleRemoveImage = useCallback(
+  const handleRemoveText = useCallback(
     (index: number) => {
-      const updatedImages = images.filter((_, i) => i !== index);
-      // Clean up dimensions and refs for removed image
-      const removedImageUri = images[index]?.uri;
-      if (removedImageUri) {
-        setImageDimensions(prev => {
-          const next = { ...prev };
-          delete next[removedImageUri];
-          return next;
-        });
-        delete imageRefs.current[removedImageUri];
-      }
-      props.onChange(updatedImages);
+      const updatedTexts = texts.filter((_, i) => i !== index);
+      props.onChange(updatedTexts);
     },
-    [images, props]
+    [texts, props]
   );
 
-  const handleImageLoad = useCallback((uri: string) => {
-    const img = imageRefs.current[uri];
-    if (img) {
-      setImageDimensions(prev => ({
-        ...prev,
-        [uri]: {
-          width: img.naturalWidth,
-          height: img.naturalHeight
-        }
-      }));
+  // Extract filename from URI
+  const getFilename = useCallback((uri: string) => {
+    try {
+      const url = new URL(uri);
+      const pathname = url.pathname;
+      const filename = pathname.split("/").pop() || "text file";
+      return decodeURIComponent(filename);
+    } catch {
+      return "text file";
     }
   }, []);
 
@@ -222,9 +223,7 @@ const ImageListProperty = (props: PropertyProps) => {
       event.stopPropagation();
       setIsDragOver(false);
 
-      const files = Array.from(event.dataTransfer.files).filter((file) =>
-        file.type.startsWith("image/")
-      );
+      const files = Array.from(event.dataTransfer.files).filter(isTextFile);
 
       if (files.length === 0) {
         return;
@@ -233,7 +232,7 @@ const ImageListProperty = (props: PropertyProps) => {
       // Upload all files and collect their assets
       const uploadPromises = files.map(
         (file) =>
-          new Promise<ImageItem>((resolve, reject) => {
+          new Promise<TextItem>((resolve, reject) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
@@ -245,7 +244,7 @@ const ImageListProperty = (props: PropertyProps) => {
                 }
                 resolve({
                   uri,
-                  type: "image"
+                  type: "text"
                 });
               },
               onFailed: (error: string) => {
@@ -256,15 +255,13 @@ const ImageListProperty = (props: PropertyProps) => {
       );
 
       try {
-        const newImages = await Promise.all(uploadPromises);
-        handleAddImages(newImages);
+        const newTexts = await Promise.all(uploadPromises);
+        handleAddTexts(newTexts);
       } catch (error) {
-        console.error("Failed to upload images:", error);
-        // TODO: Show user-facing error notification
-        // Consider using useNotificationStore to display error to user
+        console.error("Failed to upload text files:", error);
       }
     },
-    [uploadAsset, handleAddImages]
+    [uploadAsset, handleAddTexts]
   );
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -284,9 +281,9 @@ const ImageListProperty = (props: PropertyProps) => {
 
     try {
       const result = await window.api.dialog.openFile({
-        title: "Select images",
+        title: "Select text files",
         filters: [
-          { name: "Images", extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"] }
+          { name: "Text Files", extensions: ["txt", "md", "json", "csv", "xml", "html", "htm", "yaml", "yml", "log", "ini", "cfg", "conf"] }
         ],
         multiSelections: true
       });
@@ -302,11 +299,11 @@ const ImageListProperty = (props: PropertyProps) => {
           const blob = await response.blob();
 
           const pathSegments = filePath.split(/[\\/]/);
-          const fileName = pathSegments[pathSegments.length - 1] || "image.png";
+          const fileName = pathSegments[pathSegments.length - 1] || "file.txt";
 
-          const file = new File([blob], fileName, { type: getImageMimeType(fileName) });
+          const file = new File([blob], fileName, { type: getTextMimeType(fileName) });
 
-          return new Promise<ImageItem>((resolve, reject) => {
+          return new Promise<TextItem>((resolve, reject) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
@@ -315,7 +312,7 @@ const ImageListProperty = (props: PropertyProps) => {
                   reject(new Error("Asset URL is missing"));
                   return;
                 }
-                resolve({ uri, type: "image" });
+                resolve({ uri, type: "text" });
               },
               onFailed: (error: string) => {
                 reject(new Error(error));
@@ -324,16 +321,16 @@ const ImageListProperty = (props: PropertyProps) => {
           });
         });
 
-        const newImages = await Promise.all(uploadPromises);
-        handleAddImages(newImages);
+        const newTexts = await Promise.all(uploadPromises);
+        handleAddTexts(newTexts);
       }
     } catch (error) {
       console.error("Error opening file picker:", error);
     }
-  }, [uploadAsset, handleAddImages]);
+  }, [uploadAsset, handleAddTexts]);
 
   return (
-    <div className="image-list-property" css={styles(theme)}>
+    <div className="text-list-property" css={styles(theme)}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
@@ -342,47 +339,35 @@ const ImageListProperty = (props: PropertyProps) => {
 
       {/* Native file picker for Electron */}
       {isElectron && (
-        <Tooltip title="Select images from your computer">
+        <Tooltip title="Select text files from your computer">
           <Button
             className="native-picker-button"
             variant="text"
             onClick={handleNativeFilePicker}
           >
             <FolderOpenIcon />
-            Select images
+            Select text files
           </Button>
         </Tooltip>
       )}
       
-      {/* Image Grid */}
-      {images.length > 0 && (
-        <div className="image-grid">
-          {images.map((image, index) => (
-            <div key={image.uri} className="image-item">
-              <div className="image-content">
-                <img
-                  ref={(el) => {
-                    if (el) {
-                      imageRefs.current[image.uri] = el;
-                    }
-                  }}
-                  src={image.uri}
-                  alt={`Image ${index + 1}`}
-                  draggable={false}
-                  onLoad={() => handleImageLoad(image.uri)}
-                />
-                {imageDimensions[image.uri] && (
-                  <ImageDimensions
-                    width={imageDimensions[image.uri].width}
-                    height={imageDimensions[image.uri].height}
-                  />
-                )}
+      {/* Text List */}
+      {texts.length > 0 && (
+        <div className="text-grid">
+          {texts.map((text, index) => (
+            <div key={text.uri} className="text-item">
+              <DescriptionIcon className="text-icon" />
+              <div className="text-content">
+                <Typography className="text-filename" title={getFilename(text.uri)}>
+                  {getFilename(text.uri)}
+                </Typography>
               </div>
-              <Tooltip title="Remove image">
+              <Tooltip title="Remove text file">
                 <IconButton
                   className="remove-button"
-                  onClick={() => handleRemoveImage(index)}
+                  onClick={() => handleRemoveText(index)}
                   size="small"
+                  aria-label="Remove text file"
                 >
                   <CloseIcon />
                 </IconButton>
@@ -399,10 +384,10 @@ const ImageListProperty = (props: PropertyProps) => {
         onDragLeave={handleDragLeave}
         onDrop={onDrop}
       >
-        <p>Drop images here</p>
+        <p>Drop text files here</p>
       </div>
     </div>
   );
 };
 
-export default memo(ImageListProperty, isEqual);
+export default memo(TextListProperty, isEqual);
