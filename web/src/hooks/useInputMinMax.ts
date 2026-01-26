@@ -18,7 +18,7 @@ interface UseInputMinMaxOptions {
  * 
  * Looks up min/max constraints from node properties or context, with
  * special handling for FloatInput and IntegerInput node types. Falls
- * back to provided property values or defaults (0-100).
+ * back to provided property values or defaults (0 for min, 99999 for max).
  * 
  * @param options - Configuration including node ID, property name, and optional bounds
  * @returns Object containing resolved min and max values
@@ -80,7 +80,7 @@ export const useInputMinMax = ({
       ? nodeMax
       : typeof propertyMax === "number"
         ? propertyMax
-        : 100;
+        : 99999;
 
   return { min, max };
 };
