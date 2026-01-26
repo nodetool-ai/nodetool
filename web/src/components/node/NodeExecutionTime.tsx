@@ -75,7 +75,7 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
           whiteSpace: "nowrap"
         }}
       >
-        <span>{isError ? "FAILED" : "COMPLETED"}</span>
+        {isError ?? <span>Failed</span>}
         <Box
           component="span"
           sx={{
