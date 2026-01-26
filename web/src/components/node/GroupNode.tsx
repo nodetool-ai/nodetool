@@ -164,10 +164,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     edges: state.edges
   }));
 
-  // const isSelected = useNodes((state) =>
-  //   state.getSelectedNodeIds().includes(props.id)
-  // );
-
   // RUN WORKFLOW
   const state = useWebsocketRunner((state) => state.state);
   const isWorkflowRunning = useWebsocketRunner(
@@ -237,38 +233,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
-  // const handleOpenNodeMenu = useCallback(
-  //   (e: React.MouseEvent) => {
-  //     e.stopPropagation();
-  //     e.preventDefault();
-  //     openNodeMenu({
-  //       x: getMousePosition().x,
-  //       y: getMousePosition().y
-  //     });
-  //   },
-  //   [openNodeMenu]
-  // );
-
-  // const handleDoubleClick = useCallback(
-  //   (e: React.MouseEvent, id: string) => {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-  //     const clickedElement = e.target as HTMLElement;
-  //     if (
-  //       clickedElement.classList.contains("node-header") ||
-  //       clickedElement.classList.contains("title-input")
-  //     ) {
-  //       // updateNodeData(id, { collapsed: !props.data.collapsed });
-  //     } else {
-  //       handleOpenNodeMenu(e);
-  //     }
-  //   },
-  //   [handleOpenNodeMenu]
-  // );
-
-  // const handleHeaderClick = () => {
-  //   updateNode(props.id, { selected: true });
-  // };
   const handleHeaderDoubleClick = (_e: React.MouseEvent) => {
     headerInputRef.current?.focus();
     headerInputRef.current?.select();

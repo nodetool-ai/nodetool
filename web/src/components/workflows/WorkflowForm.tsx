@@ -216,31 +216,6 @@ const styles = (theme: Theme) =>
         boxShadow: `0 4px 12px ${theme.vars.palette.primary.main}66`,
         transform: "translateY(-1px)"
       }
-    },
-    
-    // Thumbnail (commented out but keeping styles)
-    ".thumbnail-img": {
-      position: "relative",
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
-      borderRadius: "6px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundSize: "contain",
-      backgroundRepeat: "no-repeat",
-      backgroundPosition: "center",
-      width: "100%",
-      height: "64px",
-      userSelect: "none",
-      color: theme.vars.palette.grey[400],
-      padding: "0px 10px",
-      fontSize: theme.fontSizeSmall
-    },
-    ".thumbnail button": {
-      position: "absolute",
-      top: "1px",
-      right: "1px",
-      backgroundColor: `rgba(${theme.vars.palette.grey[700]} / 0.8)`
     }
   });
 
@@ -291,28 +266,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     });
     onClose();
   }, [saveWorkflow, localWorkflow, addNotification, onClose]);
-
-  // const deleteThumbnail = useCallback(
-  //   (event: React.MouseEvent<HTMLButtonElement>) => {
-  //     event.stopPropagation();
-  //     const updatedWorkflow = { ...workflow, thumbnail: "", thumbnail_url: "" };
-  //     setLocalWorkflow(updatedWorkflow);
-  //   },
-  //   [workflow, setLocalWorkflow]
-  // );
-
-  // const { onDrop, onDragOver } = useFileDrop({
-  //   uploadAsset: true,
-  //   onChangeAsset: (asset) => {
-  //     const updatedWorkflow = {
-  //       ...workflow,
-  //       thumbnail: asset.id,
-  //       thumbnail_url: asset.get_url
-  //     };
-  //     setLocalWorkflow(updatedWorkflow);
-  //   },
-  //   type: "image"
-  // });
 
   const handleTagChange = (_event: React.SyntheticEvent, newValue: (string | { inputValue: string; title: string })[]) => {
     // Handle both string values and objects from freeSolo createOption
