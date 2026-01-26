@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### UI/Frontend
+- **Theme Preset System** - Exciting new feature with 4 additional beautiful theme presets beyond light/dark modes
+  - Ocean Theme: Cool blue and teal colors inspired by ocean depths
+  - Forest Theme: Natural green and earthy tones inspired by forest landscapes
+  - Sunset Theme: Warm orange, pink and purple hues inspired by sunset skies
+  - Midnight Theme: Deep purple and blue tones inspired by night sky
+  - Theme selector in Settings > Editor & View > Appearance
+  - Theme preferences are automatically saved and persist across sessions
+  - ThemeSync component for seamless theme switching
+  - Updated theme toggle button to show current theme name
 - Node bypass feature to skip nodes in workflows without deleting them
 - Professional image editor with crop, rotate, flip, and draw tools
 - Professional color picker with harmony modes, gradient builder, swatches, and contrast checker
