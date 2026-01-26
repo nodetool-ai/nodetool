@@ -15,6 +15,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import ContextMenus from "../context_menus/ContextMenus";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode/PreviewNode";
+import { OutputNode } from "../node/OutputNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
@@ -225,6 +226,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       "nodetool.workflows.base_node.Group": GroupNode,
       "nodetool.workflows.base_node.Comment": CommentNode,
       "nodetool.workflows.base_node.Preview": PreviewNode,
+      "nodetool.workflows.base_node.Output": OutputNode,
+      "nodetool.output.Output": OutputNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
       "nodetool.control.Reroute": RerouteNode,
       default: PlaceholderNode

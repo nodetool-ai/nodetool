@@ -26,6 +26,7 @@ export interface NodeHeaderProps {
   iconBaseColor?: string;
   showIcon?: boolean;
   workflowId?: string;
+  hideLogs?: boolean;
   // Toggle buttons for result/inputs view
   showResultButton?: boolean;
   showInputsButton?: boolean;
@@ -44,6 +45,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showIcon = true,
   data,
   workflowId,
+  hideLogs = false,
   showResultButton = false,
   showInputsButton = false,
   onShowResults,
@@ -199,17 +201,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           ? backgroundColor
           : hexToRgba(tint, 0.5)
         : `linear-gradient(90deg, ${hexToRgba(tint, 0.2)}, ${hexToRgba(
-            tint,
-            0.15
-          )})`
+          tint,
+          0.15
+        )})`
     } as React.CSSProperties;
   }, [backgroundColor, selected]);
 
   return (
     <div
-      className={`node-drag-handle node-header ${
-        hasParent ? "has-parent" : ""
-      }`}
+      className={`node-drag-handle node-header ${hasParent ? "has-parent" : ""
+        }`}
       css={headerCss}
       onClick={handleHeaderClick}
       onContextMenu={handleHeaderContextMenu}
@@ -243,7 +244,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}
-        {logCount > 0 && (
+        {logCount > 0 && !hideLogs && (
           <Tooltip title={`${logCount} logs`} arrow>
             <IconButton
               size="small"
