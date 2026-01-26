@@ -8,14 +8,11 @@ import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import CheckIcon from "@mui/icons-material/Check";
 import { ImageComparer } from "../widgets";
-import { copyAssetToClipboard } from "../../utils/clipboardUtils";
-import { isElectron } from "../../utils/browser";
 import AssetViewer from "../assets/AssetViewer";
+import { CopyAssetButton } from "../common/CopyAssetButton";
 
 export type ImageSource = Uint8Array | string;
 
@@ -168,14 +165,15 @@ const styles = (theme: Theme, gap: number) =>
     },
     ".select-mode-toggle": {
       position: "absolute",
-      top: 8,
-      right: 8,
+      top: 2,
+      right: 4,
       zIndex: 50,
       backgroundColor: "rgba(0,0,0,0.6)",
       color: "#fff",
-      fontSize: 12,
+      fontSize: 11,
       textTransform: "none",
-      padding: "4px 12px",
+      padding: "2px 8px",
+      minWidth: "unset",
       "&:hover": {
         backgroundColor: "rgba(0,0,0,0.8)"
       }
@@ -218,9 +216,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   // Asset viewer state
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
-  
-  // Copy state
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   // Reset selection when images change
   useEffect(() => {
@@ -261,22 +256,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     setCompareDialogOpen(false);
     setCompareImages(null);
   }, []);
-
-  // Action handlers for tiles
-  const handleCopyImage = useCallback(async (index: number, event: React.MouseEvent) => {
-    event.stopPropagation();
-    const img = images[index];
-    const url = urlMapRef.current.get(img);
-    if (!url) { return; }
-
-    try {
-      await copyAssetToClipboard("image/png", url);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (error) {
-      console.error("Failed to copy image:", error);
-    }
-  }, [images]);
 
   const handleDownloadImage = useCallback((index: number, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -398,7 +377,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   }, []);
 
   return (
-    <div css={styles(theme as any, gap)} ref={containerRef}>
+    <div className="preview-image-grid" css={styles(theme as any, gap)} ref={containerRef}>
       {/* Selection mode toggle button */}
       {showSelectionFeatures && (
         <Button
@@ -460,17 +439,11 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
               {/* Action buttons on hover */}
               {showActions && !selectionMode && (
                 <div className="tile-actions">
-                  {isElectron && (
-                    <Tooltip title={copiedIndex === idx ? "Copied!" : "Copy"} placement="top">
-                      <IconButton
-                        className="tile-action-btn"
-                        size="small"
-                        onClick={(e) => handleCopyImage(idx, e)}
-                      >
-                        {copiedIndex === idx ? <CheckIcon /> : <ContentCopyIcon />}
-                      </IconButton>
-                    </Tooltip>
-                  )}
+                  <CopyAssetButton
+                    contentType="image/png"
+                    url={urlMapRef.current.get(img) || ""}
+                    className="tile-action-btn"
+                  />
                   <Tooltip title="Download" placement="top">
                     <IconButton
                       className="tile-action-btn"
@@ -480,7 +453,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                       <DownloadIcon />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Open in Viewer" placement="top">
+                  <Tooltip title="Open in Viewer (double-click)" placement="top">
                     <IconButton
                       className="tile-action-btn"
                       size="small"

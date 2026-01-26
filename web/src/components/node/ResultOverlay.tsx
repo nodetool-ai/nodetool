@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback } from "react";
 import { Box, IconButton, Typography, Divider, Tooltip } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
 import NodeHistoryPanel from "./NodeHistoryPanel";
@@ -26,7 +25,6 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
   workflowId,
   nodeName
 }) => {
-  const _theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   // Get session history for this node
@@ -69,24 +67,28 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
             sx={{
               position: "absolute",
               top: 4,
-              right: 12,
+              right: 8,
               zIndex: 10,
-              width: 32,
-              height: 32,
+              width: 24,
+              height: 24,
               padding: "4px",
+              borderRadius: "4px",
               opacity: 0,
               transition: "opacity 0.2s ease",
-              backgroundColor: "rgba(0, 0, 0, 0.3)",
-              color: "white",
+              backgroundColor: "rgba(0, 0, 0, 0.6)",
+              color: "#fff",
               ".result-overlay:hover &": {
                 opacity: 1
               },
               "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.8)"
+                backgroundColor: "rgba(0, 0, 0, 0.85)"
+              },
+              "& svg": {
+                fontSize: 14
               }
             }}
           >
-            <HistoryIcon sx={{ fontSize: 18 }} />
+            <HistoryIcon />
           </IconButton>
         </Tooltip>
       )}

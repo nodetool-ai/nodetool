@@ -156,10 +156,10 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   }, [tabulator]);
 
   const handleDeleteRowsClick = useCallback(() => {
-    if (tabulator?.getSelectedRows().length) {
+    if (selectedRows.length > 0) {
       handleDeleteRows();
     }
-  }, [tabulator, handleDeleteRows]);
+  }, [selectedRows, handleDeleteRows]);
 
   const handleToggleSelect = useCallback(() => {
     setShowSelect(!showSelect);
@@ -430,9 +430,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
           <Tooltip title="Delete selected rows">
             <IconButton
-              className={
-                tabulator?.getSelectedRows().length === 0 ? "disabled" : ""
-              }
+              className={selectedRows.length === 0 ? "disabled" : ""}
               onClick={handleDeleteRowsClick}
             >
               <DeleteIcon sx={{ fontSize: 12 }} />
@@ -442,9 +440,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           {isModalMode && (
             <Tooltip title="Duplicate selected rows">
               <IconButton
-                className={
-                  tabulator?.getSelectedRows().length === 0 ? "disabled" : ""
-                }
+                className={selectedRows.length === 0 ? "disabled" : ""}
                 onClick={handleDuplicateRows}
               >
                 <FileCopyIcon sx={{ fontSize: 12 }} />
