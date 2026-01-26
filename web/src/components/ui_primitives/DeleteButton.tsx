@@ -7,9 +7,9 @@
  * <DeleteButton onClick={handleDelete} tooltip="Delete item" />
  */
 
-import React, { memo, forwardRef, useCallback } from "react";
+import React, { memo, forwardRef, useCallback, ReactNode } from "react";
 import { IconButton, Tooltip } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import TrashIcon from "../../icons/trash.svg?react";
 import ClearIcon from "@mui/icons-material/Clear";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useTheme } from "@mui/material/styles";
@@ -25,10 +25,10 @@ export interface DeleteButtonProps {
    */
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   /**
-   * Tooltip text
+   * Tooltip text or element
    * @default "Delete"
    */
-  tooltip?: string;
+  tooltip?: ReactNode;
   /**
    * Tooltip placement
    * @default "bottom"
@@ -101,12 +101,18 @@ export const DeleteButton = memo(
         [onClick]
       );
 
-      const Icon =
-        iconVariant === "clear"
-          ? ClearIcon
-          : iconVariant === "outline"
-            ? DeleteOutlineIcon
-            : DeleteIcon;
+      const iconSize =
+        buttonSize === "small" ? 16 : buttonSize === "medium" ? 20 : 24;
+
+      const renderIcon = () => {
+        if (iconVariant === "clear") {
+          return <ClearIcon fontSize={buttonSize} />;
+        }
+        if (iconVariant === "outline") {
+          return <DeleteOutlineIcon fontSize={buttonSize} />;
+        }
+        return <TrashIcon width={iconSize} height={iconSize} />;
+      };
 
       return (
         <Tooltip
@@ -128,14 +134,16 @@ export const DeleteButton = memo(
             size={buttonSize}
             sx={{
               color: theme.vars.palette.grey[300],
+              transition: "all 0.15s ease-in-out",
               "&:hover": {
                 color: theme.vars.palette.error.main,
-                backgroundColor: "rgba(244, 67, 54, 0.08)"
+                backgroundColor: "rgba(244, 67, 54, 0.08)",
+                transform: "scale(1.1)"
               },
               ...sx
             }}
           >
-            <Icon fontSize={buttonSize} />
+            {renderIcon()}
           </IconButton>
         </Tooltip>
       );
