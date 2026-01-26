@@ -161,14 +161,39 @@ const getAudioMimeType = (fileName: string): string => {
   return mimeTypes[ext || ""] || "audio/mpeg";
 };
 
+// Helper to flatten potentially nested arrays of items (handles constants + lists)
+const flattenAudioItems = (items: unknown): AudioItem[] => {
+  if (!items) {
+    return [];
+  }
+  if (!Array.isArray(items)) {
+    // Single item - check if it has the right shape
+    if (typeof items === "object" && items !== null && "uri" in items) {
+      return [items as AudioItem];
+    }
+    return [];
+  }
+
+  const result: AudioItem[] = [];
+  for (const item of items) {
+    if (Array.isArray(item)) {
+      // Nested array - recursively flatten
+      result.push(...flattenAudioItems(item));
+    } else if (typeof item === "object" && item !== null && "uri" in item) {
+      result.push(item as AudioItem);
+    }
+  }
+  return result;
+};
+
 const AudioListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `audio-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
   
-  // Convert value to array of AudioItem
+  // Convert value to array of AudioItem, flattening nested arrays
   const audios: AudioItem[] = useMemo(
-    () => (Array.isArray(props.value) ? props.value : []),
+    () => flattenAudioItems(props.value),
     [props.value]
   );
   

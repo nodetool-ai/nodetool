@@ -163,14 +163,39 @@ const getImageMimeType = (fileName: string): string => {
   return mimeTypes[ext || ""] || "image/png";
 };
 
+// Helper to flatten potentially nested arrays of items (handles constants + lists)
+const flattenImageItems = (items: unknown): ImageItem[] => {
+  if (!items) {
+    return [];
+  }
+  if (!Array.isArray(items)) {
+    // Single item - check if it has the right shape
+    if (typeof items === "object" && items !== null && "uri" in items) {
+      return [items as ImageItem];
+    }
+    return [];
+  }
+
+  const result: ImageItem[] = [];
+  for (const item of items) {
+    if (Array.isArray(item)) {
+      // Nested array - recursively flatten
+      result.push(...flattenImageItems(item));
+    } else if (typeof item === "object" && item !== null && "uri" in item) {
+      result.push(item as ImageItem);
+    }
+  }
+  return result;
+};
+
 const ImageListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `image-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
   
-  // Convert value to array of ImageItem
+  // Convert value to array of ImageItem, flattening nested arrays
   const images: ImageItem[] = useMemo(
-    () => (Array.isArray(props.value) ? props.value : []),
+    () => flattenImageItems(props.value),
     [props.value]
   );
   

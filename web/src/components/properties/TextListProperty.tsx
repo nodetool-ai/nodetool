@@ -183,14 +183,39 @@ const getTextMimeType = (fileName: string): string => {
   return mimeTypes[ext || ""] || "text/plain";
 };
 
+// Helper to flatten potentially nested arrays of items (handles constants + lists)
+const flattenTextItems = (items: unknown): TextItem[] => {
+  if (!items) {
+    return [];
+  }
+  if (!Array.isArray(items)) {
+    // Single item - check if it has the right shape
+    if (typeof items === "object" && items !== null && "uri" in items) {
+      return [items as TextItem];
+    }
+    return [];
+  }
+
+  const result: TextItem[] = [];
+  for (const item of items) {
+    if (Array.isArray(item)) {
+      // Nested array - recursively flatten
+      result.push(...flattenTextItems(item));
+    } else if (typeof item === "object" && item !== null && "uri" in item) {
+      result.push(item as TextItem);
+    }
+  }
+  return result;
+};
+
 const TextListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `text-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
   
-  // Convert value to array of TextItem
+  // Convert value to array of TextItem, flattening nested arrays
   const texts: TextItem[] = useMemo(
-    () => (Array.isArray(props.value) ? props.value : []),
+    () => flattenTextItems(props.value),
     [props.value]
   );
   

@@ -154,14 +154,39 @@ const getVideoMimeType = (fileName: string): string => {
   return mimeTypes[ext || ""] || "video/mp4";
 };
 
+// Helper to flatten potentially nested arrays of items (handles constants + lists)
+const flattenVideoItems = (items: unknown): VideoItem[] => {
+  if (!items) {
+    return [];
+  }
+  if (!Array.isArray(items)) {
+    // Single item - check if it has the right shape
+    if (typeof items === "object" && items !== null && "uri" in items) {
+      return [items as VideoItem];
+    }
+    return [];
+  }
+
+  const result: VideoItem[] = [];
+  for (const item of items) {
+    if (Array.isArray(item)) {
+      // Nested array - recursively flatten
+      result.push(...flattenVideoItems(item));
+    } else if (typeof item === "object" && item !== null && "uri" in item) {
+      result.push(item as VideoItem);
+    }
+  }
+  return result;
+};
+
 const VideoListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `video-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
   
-  // Convert value to array of VideoItem
+  // Convert value to array of VideoItem, flattening nested arrays
   const videos: VideoItem[] = useMemo(
-    () => (Array.isArray(props.value) ? props.value : []),
+    () => flattenVideoItems(props.value),
     [props.value]
   );
   
