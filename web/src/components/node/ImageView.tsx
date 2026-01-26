@@ -51,6 +51,13 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     },
     "&:hover .image-dimensions": {
       opacity: 1
+    },
+    ".image-view-actions": {
+      opacity: 0,
+      transition: "opacity 0.2s ease"
+    },
+    "&:hover .image-view-actions": {
+      opacity: 1
     }
   });
   const handleCopyToClipboard = useCallback(async () => {
@@ -90,13 +97,16 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         onClose={() => setOpenViewer(false)}
       />
       <div
+        className="image-view-actions"
         style={{
           position: "absolute",
           top: 4,
-          right: 4,
+          right: 32, // Leave space for history button in parent ResultOverlay
           zIndex: 10,
           display: "flex",
-          gap: "4px"
+          gap: "4px",
+          opacity: 0,
+          transition: "opacity 0.2s ease"
         }}
       >
         {isElectron && (
@@ -107,6 +117,9 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
             size="small"
             nodrag={false}
             sx={{
+              width: 24,
+              height: 24,
+              padding: "4px",
               backgroundColor: "rgba(0, 0, 0, 0.5)",
               color: "white",
               "&:hover": {
