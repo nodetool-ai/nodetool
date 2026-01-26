@@ -42,6 +42,9 @@ import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
 import ImageListProperty from "../properties/ImageListProperty";
+import VideoListProperty from "../properties/VideoListProperty";
+import AudioListProperty from "../properties/AudioListProperty";
+import TextListProperty from "../properties/TextListProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
@@ -157,6 +160,12 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return ImageProperty;
     case "image_list":
       return ImageListProperty;
+    case "video_list":
+      return VideoListProperty;
+    case "audio_list":
+      return AudioListProperty;
+    case "text_list":
+      return TextListProperty;
     case "audio":
       return AudioProperty;
     case "video":
@@ -239,6 +248,12 @@ function handleListType(
         return StringListProperty;
       case "image":
         return ImageListProperty;
+      case "video":
+        return VideoListProperty;
+      case "audio":
+        return AudioListProperty;
+      case "text":
+        return TextListProperty;
     }
   }
   return ListProperty;
