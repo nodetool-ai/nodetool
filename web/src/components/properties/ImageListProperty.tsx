@@ -142,8 +142,8 @@ const ImageListProperty = (props: PropertyProps) => {
   );
   
   const [isDragOver, setIsDragOver] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState<Record<number, { width: number; height: number }>>({});
-  const imageRefs = useRef<Record<number, HTMLImageElement>>({});
+  const [imageDimensions, setImageDimensions] = useState<Record<string, { width: number; height: number }>>({});
+  const imageRefs = useRef<Record<string, HTMLImageElement>>({});
 
   const handleAddImages = useCallback(
     (newImages: ImageItem[]) => {
@@ -156,17 +156,27 @@ const ImageListProperty = (props: PropertyProps) => {
   const handleRemoveImage = useCallback(
     (index: number) => {
       const updatedImages = images.filter((_, i) => i !== index);
+      // Clean up dimensions and refs for removed image
+      const removedImageUri = images[index]?.uri;
+      if (removedImageUri) {
+        setImageDimensions(prev => {
+          const next = { ...prev };
+          delete next[removedImageUri];
+          return next;
+        });
+        delete imageRefs.current[removedImageUri];
+      }
       props.onChange(updatedImages);
     },
     [images, props]
   );
 
-  const handleImageLoad = useCallback((index: number) => {
-    const img = imageRefs.current[index];
+  const handleImageLoad = useCallback((uri: string) => {
+    const img = imageRefs.current[uri];
     if (img) {
       setImageDimensions(prev => ({
         ...prev,
-        [index]: {
+        [uri]: {
           width: img.naturalWidth,
           height: img.naturalHeight
         }
@@ -196,8 +206,14 @@ const ImageListProperty = (props: PropertyProps) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
+                // Validate asset URL before adding
+                const uri = asset.get_url;
+                if (!uri) {
+                  reject(new Error("Asset URL is missing"));
+                  return;
+                }
                 resolve({
-                  uri: asset.get_url || "",
+                  uri,
                   type: "image"
                 });
               },
@@ -213,6 +229,8 @@ const ImageListProperty = (props: PropertyProps) => {
         handleAddImages(newImages);
       } catch (error) {
         console.error("Failed to upload images:", error);
+        // TODO: Show user-facing error notification
+        // Consider using useNotificationStore to display error to user
       }
     },
     [uploadAsset, handleAddImages]
@@ -239,23 +257,23 @@ const ImageListProperty = (props: PropertyProps) => {
       {images.length > 0 && (
         <div className="image-grid">
           {images.map((image, index) => (
-            <div key={index} className="image-item">
+            <div key={image.uri} className="image-item">
               <div className="image-content">
                 <img
                   ref={(el) => {
                     if (el) {
-                      imageRefs.current[index] = el;
+                      imageRefs.current[image.uri] = el;
                     }
                   }}
                   src={image.uri}
                   alt={`Image ${index + 1}`}
                   draggable={false}
-                  onLoad={() => handleImageLoad(index)}
+                  onLoad={() => handleImageLoad(image.uri)}
                 />
-                {imageDimensions[index] && (
+                {imageDimensions[image.uri] && (
                   <ImageDimensions
-                    width={imageDimensions[index].width}
-                    height={imageDimensions[index].height}
+                    width={imageDimensions[image.uri].width}
+                    height={imageDimensions[image.uri].height}
                   />
                 )}
               </div>
