@@ -1637,6 +1637,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflows/{id}/app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workflow App
+         * @description Serve the HTML app for a workflow as a website.
+         *
+         *     Returns the stored html_app content as an HTML response that can be
+         *     rendered directly in a browser.
+         */
+        get: operations["get_workflow_app_api_workflows__id__app_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows/examples/{id}": {
         parameters: {
             query?: never;
@@ -6387,7 +6410,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "cerebras" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "zai" | "empty" | "mlx" | "fal_ai" | "fake" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "cerebras" | "groq" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "together" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "zai" | "mistral" | "empty" | "mlx" | "fal_ai" | "fake" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
         /**
          * ProviderAggregateResponse
          * @description Response model for provider-level aggregation.
@@ -7331,6 +7354,8 @@ export interface components {
             required_providers?: string[] | null;
             /** Required Models */
             required_models?: string[] | null;
+            /** Html App */
+            html_app?: string | null;
         };
         /**
          * WorkflowGenerateNameRequest
@@ -7396,6 +7421,8 @@ export interface components {
             run_mode?: string | null;
             /** Workspace Id */
             workspace_id?: string | null;
+            /** Html App */
+            html_app?: string | null;
         };
         /** WorkflowTool */
         WorkflowTool: {
@@ -10022,6 +10049,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workflow_app_api_workflows__id__app_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
                 };
             };
             /** @description Validation Error */
