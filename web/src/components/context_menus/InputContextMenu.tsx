@@ -376,7 +376,9 @@ const InputContextMenu: React.FC = () => {
       handleId,
       type,
       isEnumType,
-      setEdges
+      setEdges,
+      inputNodePath,
+      payload
     ]
   );
 
