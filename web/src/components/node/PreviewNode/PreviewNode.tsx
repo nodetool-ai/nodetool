@@ -98,7 +98,7 @@ const styles = (theme: Theme) =>
         top: 0,
         left: 0,
         margin: 0,
-        padding: 0,
+        padding: ".25em 0 0 .5em",
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {
