@@ -35,6 +35,7 @@ interface CanvasElementProps {
     attrs: { x: number; y: number; width: number; height: number; rotation: number }
   ) => void;
   onDragEnd: (id: string, x: number, y: number) => void;
+  onDragMove?: (id: string, x: number, y: number, width: number, height: number) => { x: number; y: number };
   snapToGrid: (value: number) => number;
 }
 
@@ -80,19 +81,50 @@ const TextElement: React.FC<{
   element: LayoutElement;
   props: TextProps;
 }> = memo(({ element, props }) => {
+  // Transform text based on textTransform setting
+  let displayText = props.content;
+  if (props.textTransform === "uppercase") {
+    displayText = displayText.toUpperCase();
+  } else if (props.textTransform === "lowercase") {
+    displayText = displayText.toLowerCase();
+  } else if (props.textTransform === "capitalize") {
+    displayText = displayText.replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  // Calculate vertical offset based on verticalAlignment
+  let yOffset = 0;
+  if (props.verticalAlignment === "middle" || props.verticalAlignment === "bottom") {
+    // We need to estimate text height - this is a simplified approach
+    const estimatedLineHeight = props.fontSize * (props.lineHeight || 1.2);
+    const lines = Math.ceil(displayText.length * props.fontSize * 0.5 / element.width) || 1;
+    const textHeight = estimatedLineHeight * lines;
+    
+    if (props.verticalAlignment === "middle") {
+      yOffset = (element.height - textHeight) / 2;
+    } else if (props.verticalAlignment === "bottom") {
+      yOffset = element.height - textHeight;
+    }
+  }
+
+  // Get text decoration style
+  const textDecoration = props.textDecoration === "underline" ? "underline" :
+                         props.textDecoration === "strikethrough" ? "line-through" : undefined;
+
   return (
     <Text
       x={0}
-      y={0}
+      y={Math.max(0, yOffset)}
       width={element.width}
       height={element.height}
-      text={props.content}
+      text={displayText}
       fontFamily={props.fontFamily}
       fontSize={props.fontSize}
       fontStyle={props.fontWeight === "bold" ? "bold" : "normal"}
       fill={props.color}
       align={props.alignment}
       lineHeight={props.lineHeight}
+      letterSpacing={props.letterSpacing || 0}
+      textDecoration={textDecoration}
       wrap="word"
       {...getShadowProps(props.shadow)}
     />
@@ -316,6 +348,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
   onSelect,
   onTransformEnd,
   onDragEnd,
+  onDragMove,
   snapToGrid
 }) => {
   const shapeRef = useRef<Konva.Group>(null);
@@ -335,6 +368,19 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
       }
     },
     [element.id, element.locked, onSelect]
+  );
+
+  const handleDragMove = useCallback(
+    (e: Konva.KonvaEventObject<DragEvent>) => {
+      if (onDragMove) {
+        const node = e.target;
+        const snapped = onDragMove(element.id, node.x(), node.y(), element.width, element.height);
+        // Apply snap position during drag
+        node.x(snapped.x);
+        node.y(snapped.y);
+      }
+    },
+    [element.id, element.width, element.height, onDragMove]
   );
 
   const handleDragEnd = useCallback(
@@ -443,6 +489,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       >

@@ -36,6 +36,8 @@ import AlignHorizontalRightIcon from "@mui/icons-material/AlignHorizontalRight";
 import AlignVerticalTopIcon from "@mui/icons-material/AlignVerticalTop";
 import AlignVerticalCenterIcon from "@mui/icons-material/AlignVerticalCenter";
 import AlignVerticalBottomIcon from "@mui/icons-material/AlignVerticalBottom";
+import ViewColumnIcon from "@mui/icons-material/ViewColumn";
+import TableRowsIcon from "@mui/icons-material/TableRows";
 import GridOnIcon from "@mui/icons-material/GridOn";
 import GridOffIcon from "@mui/icons-material/GridOff";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
@@ -69,6 +71,8 @@ interface CanvasToolbarProps {
   onAlignTop: () => void;
   onAlignMiddle: () => void;
   onAlignBottom: () => void;
+  onDistributeHorizontally: () => void;
+  onDistributeVertically: () => void;
   onToggleGrid: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -148,6 +152,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onAlignTop,
   onAlignMiddle,
   onAlignBottom,
+  onDistributeHorizontally,
+  onDistributeVertically,
   onToggleGrid,
   onZoomIn,
   onZoomOut,
@@ -370,6 +376,22 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         tooltip="Align bottom"
         onClick={onAlignBottom}
         disabled={!hasMultipleSelection}
+      />
+
+      <ToolbarDivider />
+
+      {/* Distribute */}
+      <ToolbarButton
+        icon={<ViewColumnIcon />}
+        tooltip="Distribute horizontally"
+        onClick={onDistributeHorizontally}
+        disabled={selectedCount < 3}
+      />
+      <ToolbarButton
+        icon={<TableRowsIcon />}
+        tooltip="Distribute vertically"
+        onClick={onDistributeVertically}
+        disabled={selectedCount < 3}
       />
 
       <ToolbarDivider />

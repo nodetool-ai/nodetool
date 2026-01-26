@@ -93,7 +93,11 @@ const createMockCanvasData = (): LayoutCanvasData => ({
         fontWeight: "normal",
         color: "#333333",
         alignment: "left",
-        lineHeight: 1.2
+        verticalAlignment: "top",
+        lineHeight: 1.2,
+        letterSpacing: 0,
+        textDecoration: "none",
+        textTransform: "none"
       }
     }
   ],

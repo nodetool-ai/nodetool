@@ -15,7 +15,8 @@ import {
   DEFAULT_ELLIPSE_PROPS,
   DEFAULT_LINE_PROPS,
   DEFAULT_GROUP_PROPS,
-  GridSettings
+  GridSettings,
+  SnapGuide
 } from "./types";
 
 // Generate unique ID
@@ -32,6 +33,11 @@ interface LayoutCanvasStoreState {
 
   // Grid settings
   gridSettings: GridSettings;
+
+  // Smart snap guides (shown during drag)
+  snapGuides: SnapGuide[];
+  snapEnabled: boolean;
+  snapThreshold: number;
 
   // Clipboard for copy/paste
   clipboard: LayoutElement[];
@@ -89,6 +95,12 @@ interface LayoutCanvasStoreState {
   setGridSettings: (settings: Partial<GridSettings>) => void;
   snapToGrid: (value: number) => number;
 
+  // Smart snap guides
+  setSnapEnabled: (enabled: boolean) => void;
+  setSnapGuides: (guides: SnapGuide[]) => void;
+  clearSnapGuides: () => void;
+  calculateSnapGuides: (elementId: string, x: number, y: number, width: number, height: number) => { x: number; y: number; guides: SnapGuide[] };
+
   // Copy/paste
   copyToClipboard: (ids: string[]) => void;
   pasteFromClipboard: (offsetX?: number, offsetY?: number) => LayoutElement[];
@@ -111,6 +123,9 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     size: 10,
     snap: true
   },
+  snapGuides: [],
+  snapEnabled: true,
+  snapThreshold: 5,
   clipboard: [],
   history: [DEFAULT_CANVAS_DATA],
   historyIndex: 0,
@@ -633,6 +648,151 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     const { gridSettings } = get();
     if (!gridSettings.snap) {return value;}
     return Math.round(value / gridSettings.size) * gridSettings.size;
+  },
+
+  // Smart snap guides
+  setSnapEnabled: (enabled) => {
+    set({ snapEnabled: enabled });
+  },
+
+  setSnapGuides: (guides) => {
+    set({ snapGuides: guides });
+  },
+
+  clearSnapGuides: () => {
+    set({ snapGuides: [] });
+  },
+
+  calculateSnapGuides: (elementId, x, y, width, height) => {
+    const { canvasData, snapEnabled, snapThreshold } = get();
+    
+    if (!snapEnabled) {
+      return { x, y, guides: [] };
+    }
+    
+    const guides: SnapGuide[] = [];
+    let snappedX = x;
+    let snappedY = y;
+    
+    // Get other elements (not the one being dragged)
+    const otherElements = canvasData.elements.filter((el) => el.id !== elementId && el.visible);
+    
+    // Calculate edges and centers for the dragged element
+    const draggedLeft = x;
+    const draggedRight = x + width;
+    const draggedTop = y;
+    const draggedBottom = y + height;
+    const draggedCenterX = x + width / 2;
+    const draggedCenterY = y + height / 2;
+    
+    // Also consider canvas edges
+    const allEdgesX = [0, canvasData.width];
+    const allEdgesY = [0, canvasData.height];
+    const allCentersX = [canvasData.width / 2];
+    const allCentersY = [canvasData.height / 2];
+    
+    // Collect edges and centers from other elements
+    for (const el of otherElements) {
+      allEdgesX.push(el.x, el.x + el.width);
+      allEdgesY.push(el.y, el.y + el.height);
+      allCentersX.push(el.x + el.width / 2);
+      allCentersY.push(el.y + el.height / 2);
+    }
+    
+    // Check horizontal snapping (X axis)
+    let bestSnapX: { target: number; offset: number; source: string } | null = null;
+    
+    // Left edge alignment
+    for (const edgeX of allEdgesX) {
+      const diff = edgeX - draggedLeft;
+      if (Math.abs(diff) <= snapThreshold) {
+        if (!bestSnapX || Math.abs(diff) < Math.abs(bestSnapX.offset)) {
+          bestSnapX = { target: edgeX, offset: diff, source: "left" };
+        }
+      }
+    }
+    
+    // Right edge alignment
+    for (const edgeX of allEdgesX) {
+      const diff = edgeX - draggedRight;
+      if (Math.abs(diff) <= snapThreshold) {
+        if (!bestSnapX || Math.abs(diff) < Math.abs(bestSnapX.offset)) {
+          bestSnapX = { target: edgeX - width, offset: diff, source: "right" };
+        }
+      }
+    }
+    
+    // Center alignment
+    for (const centerX of allCentersX) {
+      const diff = centerX - draggedCenterX;
+      if (Math.abs(diff) <= snapThreshold) {
+        if (!bestSnapX || Math.abs(diff) < Math.abs(bestSnapX.offset)) {
+          bestSnapX = { target: centerX - width / 2, offset: diff, source: "center" };
+        }
+      }
+    }
+    
+    // Check vertical snapping (Y axis)
+    let bestSnapY: { target: number; offset: number; source: string } | null = null;
+    
+    // Top edge alignment
+    for (const edgeY of allEdgesY) {
+      const diff = edgeY - draggedTop;
+      if (Math.abs(diff) <= snapThreshold) {
+        if (!bestSnapY || Math.abs(diff) < Math.abs(bestSnapY.offset)) {
+          bestSnapY = { target: edgeY, offset: diff, source: "top" };
+        }
+      }
+    }
+    
+    // Bottom edge alignment
+    for (const edgeY of allEdgesY) {
+      const diff = edgeY - draggedBottom;
+      if (Math.abs(diff) <= snapThreshold) {
+        if (!bestSnapY || Math.abs(diff) < Math.abs(bestSnapY.offset)) {
+          bestSnapY = { target: edgeY - height, offset: diff, source: "bottom" };
+        }
+      }
+    }
+    
+    // Center alignment
+    for (const centerY of allCentersY) {
+      const diff = centerY - draggedCenterY;
+      if (Math.abs(diff) <= snapThreshold) {
+        if (!bestSnapY || Math.abs(diff) < Math.abs(bestSnapY.offset)) {
+          bestSnapY = { target: centerY - height / 2, offset: diff, source: "center" };
+        }
+      }
+    }
+    
+    // Apply snapping
+    if (bestSnapX) {
+      snappedX = bestSnapX.target;
+      const guideX = bestSnapX.source === "left" ? snappedX : 
+                     bestSnapX.source === "right" ? snappedX + width :
+                     snappedX + width / 2;
+      guides.push({
+        type: "vertical",
+        position: guideX,
+        start: 0,
+        end: canvasData.height
+      });
+    }
+    
+    if (bestSnapY) {
+      snappedY = bestSnapY.target;
+      const guideY = bestSnapY.source === "top" ? snappedY :
+                     bestSnapY.source === "bottom" ? snappedY + height :
+                     snappedY + height / 2;
+      guides.push({
+        type: "horizontal",
+        position: guideY,
+        start: 0,
+        end: canvasData.width
+      });
+    }
+    
+    return { x: snappedX, y: snappedY, guides };
   },
 
   // Copy/paste

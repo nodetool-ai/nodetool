@@ -32,7 +32,8 @@ import {
   GroupProps,
   ExposedInput,
   ShadowEffect,
-  DEFAULT_SHADOW
+  DEFAULT_SHADOW,
+  AVAILABLE_FONTS
 } from "./types";
 import ColorPicker from "../inputs/ColorPicker";
 
@@ -188,14 +189,11 @@ const TextPropsEditor: React.FC<TextPropsEditorProps> = memo(({
           label="Font Family"
           onChange={(e) => onUpdate({ fontFamily: e.target.value })}
         >
-          <MenuItem value="Inter">Inter</MenuItem>
-          <MenuItem value="Arial">Arial</MenuItem>
-          <MenuItem value="Helvetica">Helvetica</MenuItem>
-          <MenuItem value="Times New Roman">Times New Roman</MenuItem>
-          <MenuItem value="Georgia">Georgia</MenuItem>
-          <MenuItem value="Verdana">Verdana</MenuItem>
-          <MenuItem value="Courier New">Courier New</MenuItem>
-          <MenuItem value="JetBrains Mono">JetBrains Mono</MenuItem>
+          {AVAILABLE_FONTS.map((font) => (
+            <MenuItem key={font} value={font} sx={{ fontFamily: font }}>
+              {font}
+            </MenuItem>
+          ))}
         </Select>
       </FormControl>
 
@@ -215,17 +213,15 @@ const TextPropsEditor: React.FC<TextPropsEditorProps> = memo(({
             label="Weight"
             onChange={(e) => onUpdate({ fontWeight: e.target.value as TextProps["fontWeight"] })}
           >
-            <MenuItem value="normal">Normal</MenuItem>
-            <MenuItem value="bold">Bold</MenuItem>
-            <MenuItem value="100">100</MenuItem>
-            <MenuItem value="200">200</MenuItem>
-            <MenuItem value="300">300</MenuItem>
-            <MenuItem value="400">400</MenuItem>
-            <MenuItem value="500">500</MenuItem>
-            <MenuItem value="600">600</MenuItem>
-            <MenuItem value="700">700</MenuItem>
-            <MenuItem value="800">800</MenuItem>
-            <MenuItem value="900">900</MenuItem>
+            <MenuItem value="100">Thin (100)</MenuItem>
+            <MenuItem value="200">Extra Light (200)</MenuItem>
+            <MenuItem value="300">Light (300)</MenuItem>
+            <MenuItem value="normal">Normal (400)</MenuItem>
+            <MenuItem value="500">Medium (500)</MenuItem>
+            <MenuItem value="600">Semi Bold (600)</MenuItem>
+            <MenuItem value="bold">Bold (700)</MenuItem>
+            <MenuItem value="800">Extra Bold (800)</MenuItem>
+            <MenuItem value="900">Black (900)</MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -241,27 +237,80 @@ const TextPropsEditor: React.FC<TextPropsEditorProps> = memo(({
         />
       </Box>
 
-      <FormControl fullWidth size="small" sx={{ mb: 1 }}>
-        <InputLabel>Alignment</InputLabel>
-        <Select
-          value={props.alignment}
-          label="Alignment"
-          onChange={(e) => onUpdate({ alignment: e.target.value as TextProps["alignment"] })}
-        >
-          <MenuItem value="left">Left</MenuItem>
-          <MenuItem value="center">Center</MenuItem>
-          <MenuItem value="right">Right</MenuItem>
-        </Select>
-      </FormControl>
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+          <InputLabel>Horizontal</InputLabel>
+          <Select
+            value={props.alignment}
+            label="Horizontal"
+            onChange={(e) => onUpdate({ alignment: e.target.value as TextProps["alignment"] })}
+          >
+            <MenuItem value="left">Left</MenuItem>
+            <MenuItem value="center">Center</MenuItem>
+            <MenuItem value="right">Right</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+          <InputLabel>Vertical</InputLabel>
+          <Select
+            value={props.verticalAlignment || "top"}
+            label="Vertical"
+            onChange={(e) => onUpdate({ verticalAlignment: e.target.value as TextProps["verticalAlignment"] })}
+          >
+            <MenuItem value="top">Top</MenuItem>
+            <MenuItem value="middle">Middle</MenuItem>
+            <MenuItem value="bottom">Bottom</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
 
-      <NumberField
-        label="Line Height"
-        value={props.lineHeight}
-        onChange={(val) => onUpdate({ lineHeight: val })}
-        min={0.5}
-        max={3}
-        step={0.1}
-      />
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <NumberField
+          label="Line Height"
+          value={props.lineHeight}
+          onChange={(val) => onUpdate({ lineHeight: val })}
+          min={0.5}
+          max={3}
+          step={0.1}
+        />
+        <NumberField
+          label="Letter Spacing"
+          value={props.letterSpacing || 0}
+          onChange={(val) => onUpdate({ letterSpacing: val })}
+          min={-5}
+          max={20}
+          step={0.5}
+          adornment="px"
+        />
+      </Box>
+
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+          <InputLabel>Decoration</InputLabel>
+          <Select
+            value={props.textDecoration || "none"}
+            label="Decoration"
+            onChange={(e) => onUpdate({ textDecoration: e.target.value as TextProps["textDecoration"] })}
+          >
+            <MenuItem value="none">None</MenuItem>
+            <MenuItem value="underline">Underline</MenuItem>
+            <MenuItem value="strikethrough">Strikethrough</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+          <InputLabel>Transform</InputLabel>
+          <Select
+            value={props.textTransform || "none"}
+            label="Transform"
+            onChange={(e) => onUpdate({ textTransform: e.target.value as TextProps["textTransform"] })}
+          >
+            <MenuItem value="none">None</MenuItem>
+            <MenuItem value="uppercase">UPPERCASE</MenuItem>
+            <MenuItem value="lowercase">lowercase</MenuItem>
+            <MenuItem value="capitalize">Capitalize</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
     </>
   );
 });

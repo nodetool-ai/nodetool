@@ -57,6 +57,34 @@ export type Fill =
 // Element Properties
 // =============================================================================
 
+// Available font families (including web-safe and Google fonts)
+export const AVAILABLE_FONTS = [
+  // System/Web-safe fonts
+  "Inter",
+  "Arial",
+  "Helvetica",
+  "Times New Roman",
+  "Georgia",
+  "Verdana",
+  "Courier New",
+  // Google Fonts (commonly used in design tools)
+  "Roboto",
+  "Open Sans",
+  "Lato",
+  "Montserrat",
+  "Poppins",
+  "Playfair Display",
+  "Merriweather",
+  "Source Sans Pro",
+  "Raleway",
+  "Nunito",
+  "Ubuntu",
+  "Oswald",
+  "JetBrains Mono",
+  "Fira Code",
+  "Source Code Pro"
+] as const;
+
 // Text element properties
 export interface TextProps {
   content: string;
@@ -65,7 +93,11 @@ export interface TextProps {
   fontWeight: "normal" | "bold" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900";
   color: string;
   alignment: "left" | "center" | "right";
+  verticalAlignment: "top" | "middle" | "bottom";
   lineHeight: number;
+  letterSpacing: number;
+  textDecoration: "none" | "underline" | "strikethrough";
+  textTransform: "none" | "uppercase" | "lowercase" | "capitalize";
   shadow?: ShadowEffect;
 }
 
@@ -179,6 +211,21 @@ export interface GridSettings {
   snap: boolean;
 }
 
+// Smart snap guide for alignment feedback
+export interface SnapGuide {
+  type: "horizontal" | "vertical";
+  position: number;
+  start: number;
+  end: number;
+}
+
+// Snap settings for smart guides
+export interface SnapSettings {
+  enabled: boolean;
+  threshold: number; // pixels to snap within
+  showGuides: boolean;
+}
+
 // Default values for new elements
 export const DEFAULT_TEXT_PROPS: TextProps = {
   content: "Text",
@@ -187,7 +234,11 @@ export const DEFAULT_TEXT_PROPS: TextProps = {
   fontWeight: "normal",
   color: "#000000",
   alignment: "left",
-  lineHeight: 1.2
+  verticalAlignment: "top",
+  lineHeight: 1.2,
+  letterSpacing: 0,
+  textDecoration: "none",
+  textTransform: "none"
 };
 
 export const DEFAULT_IMAGE_PROPS: ImageProps = {

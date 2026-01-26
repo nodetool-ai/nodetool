@@ -20,7 +20,8 @@ import {
   TextProps,
   ImageProps,
   RectProps,
-  GroupProps
+  GroupProps,
+  SnapGuide
 } from "./types";
 import { useLayoutCanvasStore } from "./LayoutCanvasStore";
 import CanvasElement from "./CanvasElement";
@@ -37,6 +38,34 @@ interface LayoutCanvasEditorProps {
   /** Enable Sketch file import/export */
   enableSketchSupport?: boolean;
 }
+
+// Snap guides component - shows alignment lines during drag
+const SnapGuidesLayer: React.FC<{
+  guides: SnapGuide[];
+}> = memo(({ guides }) => {
+  if (guides.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      {guides.map((guide, index) => (
+        <Line
+          key={`guide-${index}`}
+          points={
+            guide.type === "vertical"
+              ? [guide.position, guide.start, guide.position, guide.end]
+              : [guide.start, guide.position, guide.end, guide.position]
+          }
+          stroke="#ff00ff"
+          strokeWidth={1}
+          dash={[4, 4]}
+        />
+      ))}
+    </>
+  );
+});
+SnapGuidesLayer.displayName = "SnapGuidesLayer";
 
 // Grid lines component
 const GridLines: React.FC<{
@@ -132,7 +161,14 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     pasteFromClipboard,
     undo,
     redo,
-    findElement
+    findElement,
+    snapGuides,
+    snapEnabled,
+    calculateSnapGuides,
+    setSnapGuides,
+    clearSnapGuides,
+    distributeHorizontally,
+    distributeVertically
   } = useLayoutCanvasStore();
 
   // Initialize store with value
@@ -200,17 +236,29 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       id: string,
       attrs: { x: number; y: number; width: number; height: number; rotation: number }
     ) => {
+      clearSnapGuides();
       updateElement(id, attrs);
     },
-    [updateElement]
+    [updateElement, clearSnapGuides]
+  );
+
+  // Handle element drag move - for smart snap guides
+  const handleDragMove = useCallback(
+    (id: string, x: number, y: number, width: number, height: number) => {
+      const result = calculateSnapGuides(id, x, y, width, height);
+      setSnapGuides(result.guides);
+      return { x: result.x, y: result.y };
+    },
+    [calculateSnapGuides, setSnapGuides]
   );
 
   // Handle element drag end
   const handleDragEnd = useCallback(
     (id: string, x: number, y: number) => {
+      clearSnapGuides();
       updateElement(id, { x, y });
     },
-    [updateElement]
+    [updateElement, clearSnapGuides]
   );
 
   // Handle layer selection from panel
@@ -482,6 +530,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         onAlignTop={() => alignTop(selectedIds)}
         onAlignMiddle={() => alignMiddle(selectedIds)}
         onAlignBottom={() => alignBottom(selectedIds)}
+        onDistributeHorizontally={() => distributeHorizontally(selectedIds)}
+        onDistributeVertically={() => distributeVertically(selectedIds)}
         onToggleGrid={handleToggleGrid}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
@@ -571,10 +621,16 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
                     isSelected={selectedIds.includes(element.id)}
                     onSelect={handleSelect}
                     onTransformEnd={handleTransformEnd}
+                    onDragMove={handleDragMove}
                     onDragEnd={handleDragEnd}
                     snapToGrid={snapToGrid}
                   />
                 ))}
+              </Layer>
+
+              {/* Snap guides layer */}
+              <Layer>
+                <SnapGuidesLayer guides={snapGuides} />
               </Layer>
             </Stage>
           </Paper>
