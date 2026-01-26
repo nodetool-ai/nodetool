@@ -44,7 +44,7 @@ describe("IntegerProperty", () => {
     expect(document.querySelector(".range-container-wrapper")).toBeInTheDocument();
   });
 
-  it("should show slider with default min=0 and max=100 when min/max not provided", () => {
+  it("should show slider with default min=0 and max=99999 when min/max not provided", () => {
     const property = createMockProperty();
     renderWithTheme(
       <IntegerProperty

@@ -20,6 +20,11 @@ const IntegerProperty = (props: PropertyProps) => {
     propertyMax: props.property.max,
   });
 
+  // Hide slider for min/max properties on input nodes (they define the range, not use it)
+  const isInputNode = props.nodeType === "nodetool.input.IntegerInput" || props.nodeType === "nodetool.input.FloatInput";
+  const isMinMaxProperty = property.name === "min" || property.name === "max";
+  const showSlider = !(isInputNode && isMinMaxProperty);
+
   return (
     <>
       <NumberInput
@@ -37,6 +42,7 @@ const IntegerProperty = (props: PropertyProps) => {
         tabIndex={tabIndex}
         zoomAffectsDragging={true}
         changed={changed}
+        showSlider={showSlider}
         onChange={(_, newValue) => onChange(Number(newValue))}
         onChangeComplete={onChangeComplete}
       />

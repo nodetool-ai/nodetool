@@ -107,13 +107,14 @@ const InputContextMenu: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const reactFlowInstance = useReactFlow();
 
-  const { type, nodeId, handleId, menuPosition, closeContextMenu } =
+  const { type, nodeId, handleId, menuPosition, closeContextMenu, payload } =
     useContextMenuStore((state) => ({
       type: state.type,
       nodeId: state.nodeId,
       handleId: state.handleId,
       menuPosition: state.menuPosition,
-      closeContextMenu: state.closeContextMenu
+      closeContextMenu: state.closeContextMenu,
+      payload: state.payload
     }));
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
 
@@ -347,6 +348,22 @@ const InputContextMenu: React.FC = () => {
         }
       }
 
+      // For int/float handles, inherit min/max/default from the source property if available
+      const isNumericInput = inputNodePath === "nodetool.input.IntegerInput" || inputNodePath === "nodetool.input.FloatInput";
+      if (isNumericInput && payload) {
+        // Get min/max/default from payload (passed from connection handler)
+        const { connectMin, connectMax, connectDefault } = payload as { connectMin?: number | null; connectMax?: number | null; connectDefault?: unknown };
+        if (typeof connectMin === "number") {
+          newNode.data.properties.min = connectMin;
+        }
+        if (typeof connectMax === "number") {
+          newNode.data.properties.max = connectMax;
+        }
+        if (typeof connectDefault === "number") {
+          newNode.data.properties.value = connectDefault;
+        }
+      }
+
       addNode(newNode);
       const validEdges = isCollect
         ? edges
@@ -376,7 +393,9 @@ const InputContextMenu: React.FC = () => {
       handleId,
       type,
       isEnumType,
-      setEdges
+      setEdges,
+      inputNodePath,
+      payload
     ]
   );
 
