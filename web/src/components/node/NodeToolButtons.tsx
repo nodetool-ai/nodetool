@@ -251,10 +251,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
               {getShortcutTooltip("deleteSelected", undefined, "combo")}
             </span>
           }
-          sx={{
-            color: "inherit",
-            "& svg": { width: 18, height: 18 }
-          }}
         />
 
         <Tooltip
