@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useWorkflowAssetStore } from "../WorkflowAssetStore";
 import * as ApiClient from "../ApiClient";
 import { Asset } from "../ApiTypes";
@@ -25,21 +25,23 @@ describe("WorkflowAssetStore", () => {
       id: "asset1",
       user_id: "user1",
       workflow_id: "workflow1",
-      parent_id: null,
+      parent_id: "",
       name: "image.png",
       content_type: "image/png",
-      file_type: "image",
-      created_at: "2024-01-01T00:00:00Z"
+      created_at: "2024-01-01T00:00:00Z",
+      get_url: null,
+      thumb_url: null
     },
     {
       id: "asset2",
       user_id: "user1",
       workflow_id: "workflow1",
-      parent_id: null,
+      parent_id: "",
       name: "video.mp4",
       content_type: "video/mp4",
-      file_type: "video",
-      created_at: "2024-01-02T00:00:00Z"
+      created_at: "2024-01-02T00:00:00Z",
+      get_url: null,
+      thumb_url: null
     }
   ];
 
@@ -215,11 +217,12 @@ describe("WorkflowAssetStore", () => {
           id: "asset3",
           user_id: "user1",
           workflow_id: "workflow2",
-          parent_id: null,
+          parent_id: "",
           name: "document.pdf",
           content_type: "application/pdf",
-          file_type: "document",
-          created_at: "2024-01-03T00:00:00Z"
+          created_at: "2024-01-03T00:00:00Z",
+          get_url: null,
+          thumb_url: null
         }
       ];
 
