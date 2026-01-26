@@ -11,6 +11,9 @@ type ConnectionStore = {
   connectDirection: ConnectDirection;
   connectNodeId: string | null;
   connectHandleId: string | null;
+  connectMin: number | null;
+  connectMax: number | null;
+  connectDefault: unknown;
   startConnecting: (
     node: Node<NodeData>,
     handleId: string,
@@ -26,6 +29,9 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
   connectDirection: null,
   connectNodeId: null,
   connectHandleId: null,
+  connectMin: null,
+  connectMax: null,
+  connectDefault: undefined,
 
   /**
    * Handle the end event of a connection between two nodes.
@@ -37,7 +43,10 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
       connectType: null,
       connectDirection: null,
       connectNodeId: null,
-      connectHandleId: null
+      connectHandleId: null,
+      connectMin: null,
+      connectMax: null,
+      connectDefault: undefined
     });
   },
 
@@ -71,13 +80,22 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     if (handleType === "target") {
       const inputHandle = findInputHandle(node, handleId, metadata);
       const connectType = inputHandle?.type;
+      
+      // Get min/max/default from the property metadata if available
+      const property = metadata.properties.find(p => p.name === handleId);
+      const connectMin = property?.min ?? null;
+      const connectMax = property?.max ?? null;
+      const connectDefault = property?.default;
 
       set({
         connecting: true,
         connectType,
         connectNodeId: node.id,
         connectDirection: "target",
-        connectHandleId: handleId
+        connectHandleId: handleId,
+        connectMin,
+        connectMax,
+        connectDefault
       });
     }
   }
