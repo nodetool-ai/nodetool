@@ -268,11 +268,18 @@ const PropertyDropzone = ({
         const response = await fetch(dataUrl);
         const blob = await response.blob();
         
-        // Get filename with fallback
+        // Get filename with fallback that includes an extension
         const pathSegments = filePath.split(/[\\/]/);
-        const fileName = pathSegments[pathSegments.length - 1] || "unknown_file";
+        let fileName = pathSegments[pathSegments.length - 1];
         
-        const file = new File([blob], fileName, { type: blob.type || contentType });
+        if (!fileName) {
+          // If we can't get filename, create one based on content type
+          const ext = contentType.split("/")[1] || "bin";
+          fileName = `file.${ext}`;
+        }
+        
+        // Use contentType for consistency, not blob.type which may be incorrect
+        const file = new File([blob], fileName, { type: contentType });
 
         // Upload the file as an asset
         uploadAssetFn({

@@ -441,59 +441,42 @@ export function initializeIpcHandlers(): void {
       try {
         const buffer = await fs.readFile(filePath);
         const ext = path.extname(filePath).toLowerCase().replace(".", "");
-        // MIME type mapping for common file types
-        let mimeType = "application/octet-stream";
         
-        // Image types
-        if (
-          ["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "svg"].includes(
-            ext,
-          )
-        ) {
-          mimeType = `image/${ext === "svg" ? "svg+xml" : ext === "jpg" ? "jpeg" : ext}`;
-        }
-        // Audio types with correct MIME mappings
-        else if (ext === "mp3") {
-          mimeType = "audio/mpeg";
-        } else if (ext === "wav") {
-          mimeType = "audio/wav";
-        } else if (ext === "ogg") {
-          mimeType = "audio/ogg";
-        } else if (ext === "m4a") {
-          mimeType = "audio/mp4";
-        } else if (ext === "flac") {
-          mimeType = "audio/flac";
-        } else if (ext === "aac") {
-          mimeType = "audio/aac";
-        }
-        // Video types with correct MIME mappings
-        else if (ext === "mp4") {
-          mimeType = "video/mp4";
-        } else if (ext === "avi") {
-          mimeType = "video/x-msvideo";
-        } else if (ext === "mov") {
-          mimeType = "video/quicktime";
-        } else if (ext === "wmv") {
-          mimeType = "video/x-ms-wmv";
-        } else if (ext === "flv") {
-          mimeType = "video/x-flv";
-        } else if (ext === "webm") {
-          mimeType = "video/webm";
-        } else if (ext === "mkv") {
-          mimeType = "video/x-matroska";
-        }
-        // Document types
-        else if (ext === "pdf") {
-          mimeType = "application/pdf";
-        } else if (ext === "doc") {
-          mimeType = "application/msword";
-        } else if (ext === "docx") {
-          mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-        } else if (ext === "txt") {
-          mimeType = "text/plain";
-        } else if (ext === "html") {
-          mimeType = "text/html";
-        }
+        // MIME type lookup map for better maintainability
+        const mimeTypeMap: Record<string, string> = {
+          // Image types
+          png: "image/png",
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          gif: "image/gif",
+          webp: "image/webp",
+          bmp: "image/bmp",
+          ico: "image/x-icon",
+          svg: "image/svg+xml",
+          // Audio types
+          mp3: "audio/mpeg",
+          wav: "audio/wav",
+          ogg: "audio/ogg",
+          m4a: "audio/mp4",
+          flac: "audio/flac",
+          aac: "audio/aac",
+          // Video types
+          mp4: "video/mp4",
+          avi: "video/x-msvideo",
+          mov: "video/quicktime",
+          wmv: "video/x-ms-wmv",
+          flv: "video/x-flv",
+          webm: "video/webm",
+          mkv: "video/x-matroska",
+          // Document types
+          pdf: "application/pdf",
+          doc: "application/msword",
+          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          txt: "text/plain",
+          html: "text/html",
+        };
+        
+        const mimeType = mimeTypeMap[ext] || "application/octet-stream";
         
         return `data:${mimeType};base64,${buffer.toString("base64")}`;
       } catch (error) {
