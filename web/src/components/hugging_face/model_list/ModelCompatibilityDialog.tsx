@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -15,6 +14,7 @@ import {
   Stack
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Dialog } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import type {

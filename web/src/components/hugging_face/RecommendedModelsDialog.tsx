@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState } from "react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   Tooltip,
@@ -14,6 +13,7 @@ import {
   Box
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { Dialog } from "../ui_primitives";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import { UnifiedModel, ModelPack } from "../../stores/ApiTypes";

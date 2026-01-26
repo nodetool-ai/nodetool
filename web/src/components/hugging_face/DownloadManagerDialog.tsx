@@ -2,7 +2,6 @@
 import React, { memo } from "react";
 import { css } from "@emotion/react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -14,6 +13,7 @@ import {
   Divider
 } from "@mui/material";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
+import { Dialog } from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
