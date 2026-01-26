@@ -61,11 +61,22 @@ export const useFavoriteNodesStore = create<FavoriteNodesStore>()(
       },
 
       toggleFavorite: (nodeType: string) => {
-        if (get().isFavorite(nodeType)) {
-          get().removeFavorite(nodeType);
-        } else {
-          get().addFavorite(nodeType);
-        }
+        set((state) => {
+          const isFavorite = state.favorites.some((f) => f.nodeType === nodeType);
+          if (isFavorite) {
+            return {
+              favorites: state.favorites.filter((f) => f.nodeType !== nodeType)
+            };
+          } else {
+            const updated = [
+              { nodeType, timestamp: Date.now() },
+              ...state.favorites
+            ];
+            return {
+              favorites: updated.slice(0, MAX_FAVORITES)
+            };
+          }
+        });
       },
 
       clearFavorites: () => {

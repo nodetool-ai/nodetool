@@ -9,6 +9,7 @@ This guide helps AI agents understand the state management stores in NodeTool's 
 - [Hooks Guide](../hooks/AGENTS.md) - Hooks that access stores
 - [ServerState Guide](../serverState/AGENTS.md) - TanStack Query for server state
 - [Components Guide](../components/AGENTS.md) - Components using stores
+- **[Zustand Best Practices](./ZUSTAND_BEST_PRACTICES.md) - Comprehensive guide for writing Zustand stores**
 
 ---
 

@@ -44,7 +44,7 @@ const createInitialState = (): PanelState => ({
 
 export const useBottomPanelStore = create<ResizePanelState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       panel: createInitialState(),
 
       setSize: (newSize: number) =>
@@ -92,26 +92,28 @@ export const useBottomPanelStore = create<ResizePanelState>()(
         })),
 
       handleViewChange: (view: BottomPanelView) => {
-        const { panel } = get();
-        if (panel.activeView === view) {
-          if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
-            set((state: ResizePanelState) => ({
-              panel: {
-                ...state.panel,
-                panelSize: MIN_PANEL_SIZE,
-                isVisible: true
-              }
-            }));
+        set((state: ResizePanelState) => {
+          const { panel } = state;
+          if (panel.activeView === view) {
+            if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
+              return {
+                panel: {
+                  ...panel,
+                  panelSize: MIN_PANEL_SIZE,
+                  isVisible: true
+                }
+              };
+            } else {
+              return {
+                panel: { ...panel, isVisible: !panel.isVisible }
+              };
+            }
           } else {
-            set((state: ResizePanelState) => ({
-              panel: { ...state.panel, isVisible: !state.panel.isVisible }
-            }));
+            return {
+              panel: { ...panel, activeView: view, isVisible: true }
+            };
           }
-        } else {
-          set((state: ResizePanelState) => ({
-            panel: { ...state.panel, activeView: view, isVisible: true }
-          }));
-        }
+        });
       }
     }),
     {
