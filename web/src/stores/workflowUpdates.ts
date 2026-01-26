@@ -242,11 +242,20 @@ export const handleUpdate = (
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
     setOutputResult(workflow.id, update.node_id, update.value, true);
+    
+    // Add each streaming output to history for display in ResultOverlay
+    addToHistory(workflow.id, update.node_id, {
+      result: update.value,
+      timestamp: Date.now(),
+      jobId: runner.job_id,
+      status: "completed"
+    });
+    
     appendLog({
       workflowId: workflow.id,
       workflowName: workflow.name,
       nodeId: update.node_id,
-      nodeName: update.node_id, // We don't have node_name here, reusing node_id
+      nodeName: update.node_name,
       content: `Output: ${
         typeof update.value === "string"
           ? update.value
@@ -469,12 +478,17 @@ export const handleUpdate = (
         setResult(workflow.id, update.node_id, update.result);
 
         // Add to history (persists across runs)
-        addToHistory(workflow.id, update.node_id, {
-          result: update.result,
-          timestamp: Date.now(),
-          jobId: runner.job_id,
-          status: update.status
-        });
+        // Skip if we've already received streaming outputs via output_update
+        // (those are already added to history individually)
+        const existingOutputResult = useResultsStore.getState().getOutputResult(workflow.id, update.node_id);
+        if (!existingOutputResult) {
+          addToHistory(workflow.id, update.node_id, {
+            result: update.result,
+            timestamp: Date.now(),
+            jobId: runner.job_id,
+            status: update.status
+          });
+        }
       }
     }
 
