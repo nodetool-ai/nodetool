@@ -6,7 +6,6 @@ import { memo, useCallback, useState, DragEvent } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
-import PropertyLabel from "../node/PropertyLabel";
 import ColumnsManager from "../node/ColumnsManager";
 import DataframeEditorModal from "./DataframeEditorModal";
 import { Button, ButtonGroup, IconButton, Tooltip } from "@mui/material";
@@ -135,12 +134,12 @@ const styles = (theme: Theme) =>
 const DataframeProperty = ({
   value,
   onChange,
-  nodeType,
+  nodeType: _nodeType,
   property,
   propertyIndex
 }: PropertyProps) => {
   const theme = useTheme();
-  const id = `${property.name}-${propertyIndex}`;
+  const _id = `${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);

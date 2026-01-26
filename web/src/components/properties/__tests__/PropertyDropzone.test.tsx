@@ -59,7 +59,7 @@ describe("PropertyDropzone", () => {
     delete (window as any).api;
   });
 
-  it("should render URL button", () => {
+  it("should render dropzone", () => {
     renderWithTheme(
       <PropertyDropzone
         asset={undefined}
@@ -69,10 +69,10 @@ describe("PropertyDropzone", () => {
         props={mockProps as any}
       />
     );
-    expect(screen.getByText("URL")).toBeInTheDocument();
+    expect(screen.getByText("Drop image")).toBeInTheDocument();
   });
 
-  it("should not render FILE button when not in Electron", () => {
+  it("should not render native picker button when not in Electron", () => {
     mockIsElectron = false;
     renderWithTheme(
       <PropertyDropzone
@@ -83,10 +83,10 @@ describe("PropertyDropzone", () => {
         props={mockProps as any}
       />
     );
-    expect(screen.queryByText("FILE")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Select image/i)).not.toBeInTheDocument();
   });
 
-  it("should render FILE button when in Electron", () => {
+  it("should render native picker button when in Electron", () => {
     mockIsElectron = true;
     
     // Mock window.api
@@ -109,21 +109,8 @@ describe("PropertyDropzone", () => {
       />
     );
 
-    // FILE button should be visible in Electron
-    const fileButton = screen.getByText("FILE");
-    expect(fileButton).toBeInTheDocument();
-  });
-
-  it("should render dropzone", () => {
-    renderWithTheme(
-      <PropertyDropzone
-        asset={undefined}
-        uri={undefined}
-        onChange={mockOnChange}
-        contentType="image"
-        props={mockProps as any}
-      />
-    );
-    expect(screen.getByText("Drop image")).toBeInTheDocument();
+    // Native picker button should be visible in Electron
+    const pickerButton = screen.getByText(/Select image/i);
+    expect(pickerButton).toBeInTheDocument();
   });
 });

@@ -26,7 +26,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
   workflowId,
   nodeName
 }) => {
-  const theme = useTheme();
+  const _theme = useTheme();
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   // Get session history for this node
