@@ -44,7 +44,7 @@ const createInitialState = (): PanelState => ({
 
 export const useBottomPanelStore = create<ResizePanelState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       panel: createInitialState(),
 
       setSize: (newSize: number) =>
