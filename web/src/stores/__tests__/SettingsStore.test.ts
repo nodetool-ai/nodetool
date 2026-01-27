@@ -300,4 +300,39 @@ describe('SettingsStore', () => {
       expect(defaultAutosaveSettings.keepAutosaveVersionsDays).toBe(7);
     });
   });
+
+  describe('Audio Input Device Settings', () => {
+    test('default audio input device is empty string (system default)', () => {
+      const settings = useSettingsStore.getState().settings;
+      expect(settings.defaultAudioInputDeviceId).toBe('');
+    });
+
+    test('setDefaultAudioInputDeviceId updates device ID', () => {
+      useSettingsStore.getState().setDefaultAudioInputDeviceId('device-123');
+      const settings = useSettingsStore.getState().settings;
+      expect(settings.defaultAudioInputDeviceId).toBe('device-123');
+    });
+
+    test('setDefaultAudioInputDeviceId can set to empty string for system default', () => {
+      useSettingsStore.getState().setDefaultAudioInputDeviceId('device-123');
+      useSettingsStore.getState().setDefaultAudioInputDeviceId('');
+      const settings = useSettingsStore.getState().settings;
+      expect(settings.defaultAudioInputDeviceId).toBe('');
+    });
+
+    test('setDefaultAudioInputDeviceId preserves other settings', () => {
+      useSettingsStore.getState().setGridSnap(15);
+      useSettingsStore.getState().setDefaultAudioInputDeviceId('device-456');
+      const settings = useSettingsStore.getState().settings;
+      expect(settings.gridSnap).toBe(15);
+      expect(settings.defaultAudioInputDeviceId).toBe('device-456');
+    });
+
+    test('resetSettings restores default audio input device', () => {
+      useSettingsStore.getState().setDefaultAudioInputDeviceId('device-789');
+      useSettingsStore.getState().resetSettings();
+      const settings = useSettingsStore.getState().settings;
+      expect(settings.defaultAudioInputDeviceId).toBe(defaultSettings.defaultAudioInputDeviceId);
+    });
+  });
 });
