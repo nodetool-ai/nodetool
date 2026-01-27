@@ -6,7 +6,6 @@ import {
   Tabs,
   Tab,
   Box,
-  Dialog,
   DialogContent,
   Tooltip,
   Link
@@ -23,6 +22,7 @@ import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import { Dialog } from "../../ui_primitives";
 
 interface HelpItem {
   text: string;
@@ -241,35 +241,7 @@ const Help = ({
       open={open}
       onClose={handleClose}
       fullWidth
-      maxWidth="md"
-      sx={{
-        "& .MuiDialog-paper": {
-          width: "70vw",
-          minWidth: "600px",
-          maxWidth: "1000px",
-          height: "85vh",
-          margin: "auto",
-          borderRadius: (theme as any)?.rounded?.dialog ?? 2,
-          border: `1px solid ${theme.vars.palette.grey[700]}`,
-          backgroundColor:
-            (theme as any)?.palette?.glass?.backgroundDialogContent ??
-            "transparent"
-        }
-      }}
-      slotProps={{
-        backdrop: {
-          style: {
-            backdropFilter: theme.vars.palette.glass.blur,
-            backgroundColor: theme.vars.palette.glass.backgroundDialog
-          }
-        },
-        paper: {
-          style: {
-            borderRadius: theme.vars.rounded.dialog,
-            background: theme.vars.palette.glass.backgroundDialogContent
-          }
-        }
-      }}
+      maxWidth="lg"
     >
       <DialogContent sx={{ p: 0 }}>
         <div css={helpStyles(theme)}>
@@ -290,20 +262,20 @@ const Help = ({
                 <Tab label="DataTypes" id="help-tab-2" />
               </Tabs>
               <Tooltip title="Open Nodetool Documentation Website" placement="bottom"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-               >
-              <Link
-                href="https://docs.nodetool.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="docs-button"
+                enterDelay={TOOLTIP_ENTER_DELAY}
               >
-                <div className="docs-button-text">
-                  <span>Nodetool</span>
-                  <span>Docs</span>
-                </div>
-                <OpenInNewIcon />
-              </Link>
+                <Link
+                  href="https://docs.nodetool.ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="docs-button"
+                >
+                  <div className="docs-button-text">
+                    <span>Nodetool</span>
+                    <span>Docs</span>
+                  </div>
+                  <OpenInNewIcon />
+                </Link>
               </Tooltip>
             </div>
             <div className="content">

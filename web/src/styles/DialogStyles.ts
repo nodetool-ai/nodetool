@@ -6,14 +6,13 @@ const dialogStyles = (theme: Theme) =>
     "&": {
       position: "fixed",
       backgroundColor: "transparent",
-      width: "400px",
-      height: "300px",
-      maxHeight: "400px",
+      width: "100%",
+      height: "100%",
       transform: "translate(0, 0)"
     },
     "& .MuiPaper-root": {
       width: "100%",
-      maxWidth: "400px"
+      minWidth: "min(600px, 100vw - 32px)"
     },
     ".dialog-content": {
       padding: "0 .5em"

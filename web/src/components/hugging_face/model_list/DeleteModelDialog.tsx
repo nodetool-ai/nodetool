@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Button,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
@@ -10,6 +9,7 @@ import {
   Box,
   useTheme
 } from "@mui/material";
+import { Dialog } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client, authHeader } from "../../../stores/ApiClient";
 import {

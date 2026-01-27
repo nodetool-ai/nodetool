@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   Tooltip,
@@ -15,6 +14,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { Dialog } from "../ui_primitives";
 import ModelCard from "./model_card/ModelCard";
 import { shallow } from "zustand/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";

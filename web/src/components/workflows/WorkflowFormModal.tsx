@@ -1,6 +1,7 @@
-import { Dialog, DialogContent } from "@mui/material";
+import { DialogContent } from "@mui/material";
 import WorkflowForm from "./WorkflowForm";
 import { Workflow } from "../../stores/ApiTypes";
+import { Dialog } from "../ui_primitives";
 
 interface WorkflowFormModalProps {
   open: boolean;

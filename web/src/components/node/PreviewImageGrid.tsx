@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Button, IconButton, Checkbox, Tooltip, Dialog } from "@mui/material";
+import { Box, Button, IconButton, Checkbox, Tooltip } from "@mui/material";
 import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
@@ -12,7 +12,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
-import { CopyAssetButton } from "../common/CopyAssetButton";
+import { Dialog } from "../ui_primitives";
 
 export type ImageSource = Uint8Array | string;
 
