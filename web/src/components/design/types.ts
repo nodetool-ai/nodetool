@@ -248,17 +248,17 @@ export const DEFAULT_IMAGE_PROPS: ImageProps = {
 };
 
 export const DEFAULT_RECT_PROPS: RectProps = {
-  fillColor: "#cccccc",
-  borderColor: "#000000",
-  borderWidth: 0,
-  borderRadius: 0,
+  fillColor: "#4a90d9",
+  borderColor: "#2c5282",
+  borderWidth: 1,
+  borderRadius: 4,
   opacity: 1
 };
 
 export const DEFAULT_ELLIPSE_PROPS: EllipseProps = {
-  fillColor: "#cccccc",
-  borderColor: "#000000",
-  borderWidth: 0,
+  fillColor: "#48bb78",
+  borderColor: "#276749",
+  borderWidth: 1,
   opacity: 1
 };
 

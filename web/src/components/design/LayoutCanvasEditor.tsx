@@ -300,9 +300,15 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     [findElement, updateElement]
   );
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+  // Track if canvas is focused
+  const [isCanvasFocused, setIsCanvasFocused] = useState(false);
+
+  // Keyboard shortcuts - only handle when canvas area is focused
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      // Stop propagation to prevent node menu and other editor shortcuts
+      e.stopPropagation();
+
       // Ignore if typing in input
       if (
         e.target instanceof HTMLInputElement ||
@@ -312,6 +318,12 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       }
 
       const isCtrl = e.ctrlKey || e.metaKey;
+
+      // Prevent space key from triggering node menu
+      if (e.key === " " || e.key === "Space") {
+        e.preventDefault();
+        return;
+      }
 
       // Delete/Backspace - delete selected elements
       if (e.key === "Delete" || e.key === "Backspace") {
@@ -357,20 +369,62 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       if (e.key === "Escape") {
         clearSelection();
       }
-    };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    selectedIds,
-    deleteElements,
-    selectAll,
-    copyToClipboard,
-    pasteFromClipboard,
-    undo,
-    redo,
-    clearSelection
-  ]);
+      // Arrow keys for nudging selected elements
+      if (selectedIds.length > 0) {
+        const nudgeAmount = e.shiftKey ? 10 : 1;
+        let dx = 0;
+        let dy = 0;
+        
+        if (e.key === "ArrowLeft") {
+          dx = -nudgeAmount;
+        } else if (e.key === "ArrowRight") {
+          dx = nudgeAmount;
+        } else if (e.key === "ArrowUp") {
+          dy = -nudgeAmount;
+        } else if (e.key === "ArrowDown") {
+          dy = nudgeAmount;
+        }
+
+        if (dx !== 0 || dy !== 0) {
+          e.preventDefault();
+          selectedIds.forEach((id) => {
+            const element = findElement(id);
+            if (element && !element.locked) {
+              updateElement(id, { x: element.x + dx, y: element.y + dy });
+            }
+          });
+        }
+      }
+    },
+    [
+      selectedIds,
+      deleteElements,
+      selectAll,
+      copyToClipboard,
+      pasteFromClipboard,
+      undo,
+      redo,
+      clearSelection,
+      findElement,
+      updateElement
+    ]
+  );
+
+  // Mouse wheel zoom handler
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      // Prevent page scroll
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Zoom with Ctrl/Cmd + wheel
+      const delta = e.deltaY;
+      const zoomFactor = delta > 0 ? 0.9 : 1.1;
+      setZoom((z) => Math.min(Math.max(z * zoomFactor, 0.1), 4));
+    },
+    []
+  );
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
@@ -378,7 +432,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoom((z) => Math.max(z / 1.25, 0.25));
+    setZoom((z) => Math.max(z / 1.25, 0.1));
   }, []);
 
   const handleFitToScreen = useCallback(() => {
@@ -570,8 +624,13 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
           />
         </Box>
 
-        {/* Canvas area */}
+        {/* Canvas area - focusable for keyboard events */}
         <Box
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsCanvasFocused(true)}
+          onBlur={() => setIsCanvasFocused(false)}
+          onWheel={handleWheel}
           sx={{
             flexGrow: 1,
             display: "flex",
@@ -580,7 +639,13 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             backgroundColor:
               theme.palette.mode === "dark" ? "#1a1a1a" : "#f5f5f5",
             overflow: "auto",
-            p: 2
+            p: 2,
+            outline: isCanvasFocused ? `2px solid ${theme.palette.primary.main}` : "none",
+            outlineOffset: "-2px",
+            "&:focus": {
+              outline: `2px solid ${theme.palette.primary.main}`,
+              outlineOffset: "-2px"
+            }
           }}
         >
           <Paper
