@@ -71,7 +71,7 @@ const GlobalChat: React.FC = () => {
     connect().catch((err) => {
       console.error("Failed to connect GlobalChatStore:", err);
     });
-    
+
     return () => {
       try {
         disconnect();
@@ -444,16 +444,10 @@ const GlobalChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed &&
-          (error || (!connectionState.isConnected && status !== "streaming" && status !== "loading")) && (
+          (error &&
             <Alert
               className="global-chat-status-alert"
-              severity={
-                connectionState.isConnecting
-                  ? "info"
-                  : !connectionState.isConnected
-                    ? "warning"
-                    : "error"
-              }
+              severity="error"
               onClose={() => setAlertDismissed(true)}
               sx={{
                 position: "absolute",
@@ -466,11 +460,7 @@ const GlobalChat: React.FC = () => {
                 flexShrink: 0
               }}
             >
-              {connectionState.isConnecting
-                ? statusMessage || "Connecting to chat service..."
-                : !connectionState.isConnected
-                  ? "Connecting to chat service..."
-                  : error}
+              {error}
             </Alert>
           )}
 
