@@ -117,7 +117,7 @@ const Dashboard: React.FC = () => {
   const {
     loadingExampleId,
     handleCreateNewWorkflow,
-    handleWorkflowClick,
+    handleWorkflowClick: _handleWorkflowClick,
     handleExampleClick,
     handleViewAllTemplates
   } = useWorkflowActions();
@@ -142,7 +142,7 @@ const Dashboard: React.FC = () => {
     setSelectedModel(model);
   }, []);
 
-  const handleOrderChange = useCallback(
+  const _handleOrderChange = useCallback(
     (_: any, newOrder: any) => {
       if (newOrder !== null) {
         setWorkflowOrder(newOrder);

@@ -158,7 +158,9 @@ const isTextFile = (file: File): boolean => {
 
 // Helper to check if an asset is a text file by content_type
 const isTextAsset = (contentType: string | undefined): boolean => {
-  if (!contentType) return false;
+  if (!contentType) {
+    return false;
+  }
   return TEXT_MIME_TYPES.some((type) => contentType.startsWith(type));
 };
 

@@ -20,8 +20,7 @@ export function CustomEdge({
   style,
   markerEnd,
   data,
-  selected,
-  className
+  selected
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -53,7 +52,6 @@ export function CustomEdge({
         path={edgePath}
         style={style}
         markerEnd={markerEnd}
-        className={className}
       />
       {showLabel && (
         <EdgeLabelRenderer>
