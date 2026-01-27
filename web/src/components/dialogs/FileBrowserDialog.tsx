@@ -9,7 +9,6 @@ import React, {
   memo
 } from "react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -25,6 +24,7 @@ import {
   useTheme,
   Theme
 } from "@mui/material";
+import { Dialog } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,

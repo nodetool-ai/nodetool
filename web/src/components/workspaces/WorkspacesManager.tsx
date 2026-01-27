@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Dialog,
   DialogContent,
   DialogTitle,
   Typography,
@@ -37,6 +36,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import PanelHeadline from "../ui/PanelHeadline";
+import { Dialog } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -413,34 +413,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
         className="workspaces-manager-dialog"
         open={open}
         onClose={onClose}
-        slotProps={{
-          backdrop: {
-            style: {
-              backdropFilter: theme.vars.palette.glass.blur,
-              backgroundColor: theme.vars.palette.glass.backgroundDialog
-            }
-          },
-          paper: {
-            style: {
-              borderRadius: "16px",
-              background: theme.vars.palette.background.paper,
-              backdropFilter: `${theme.vars.palette.glass.blur} saturate(180%)`,
-              border: `1px solid ${theme.vars.palette.divider}`
-            }
-          }
-        }}
-        sx={{
-          "& .MuiDialog-paper": {
-            width: "600px",
-            maxWidth: "90vw",
-            maxHeight: "80vh",
-            margin: "auto",
-            borderRadius: "16px",
-            border: `1px solid ${theme.vars.palette.divider}`,
-            background: "transparent",
-            boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
-          }
-        }}
+        minWidth={600}
       >
         <DialogTitle className="dialog-title">
           <PanelHeadline
@@ -458,14 +431,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
             }
           />
         </DialogTitle>
-        <DialogContent
-          sx={{
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            padding: "0"
-          }}
-        >
+        <DialogContent>
           <div className="workspaces-manager">
             {isLoading ? (
               <Box
@@ -516,10 +482,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           }}
                         />
                         <IconButton
-                           size="small"
-                           onClick={handleUpdate.bind(null, workspace.id)}
-                           color="primary"
-                         >
+                          size="small"
+                          onClick={handleUpdate.bind(null, workspace.id)}
+                          color="primary"
+                        >
                           <CheckIcon />
                         </IconButton>
                         <IconButton size="small" onClick={handleCancelEdit}>
@@ -571,17 +537,17 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                         <ListItemSecondaryAction>
                           <Tooltip title="Edit">
                             <IconButton
-                               size="small"
-                               onClick={handleStartEdit.bind(null, workspace)}
-                             >
+                              size="small"
+                              onClick={handleStartEdit.bind(null, workspace)}
+                            >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Delete">
                             <IconButton
-                               size="small"
-                               onClick={handleDeleteWorkspace.bind(null, workspace.id)}
-                             >
+                              size="small"
+                              onClick={handleDeleteWorkspace.bind(null, workspace.id)}
+                            >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -669,7 +635,6 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                   startIcon={<AddIcon />}
                   onClick={handleAddWorkspace}
                   fullWidth
-                  variant="outlined"
                 >
                   Add Workspace
                 </Button>
