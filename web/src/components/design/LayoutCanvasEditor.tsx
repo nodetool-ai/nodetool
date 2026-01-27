@@ -300,22 +300,19 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     [findElement, updateElement]
   );
 
-  // Track if canvas is focused
-  const [isCanvasFocused, setIsCanvasFocused] = useState(false);
-
   // Keyboard shortcuts - only handle when canvas area is focused
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      // Stop propagation to prevent node menu and other editor shortcuts
-      e.stopPropagation();
-
-      // Ignore if typing in input
+      // Ignore if typing in input - must check before stopping propagation
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
       ) {
         return;
       }
+
+      // Stop propagation to prevent node menu and other editor shortcuts
+      e.stopPropagation();
 
       const isCtrl = e.ctrlKey || e.metaKey;
 
@@ -411,14 +408,18 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     ]
   );
 
-  // Mouse wheel zoom handler
+  // Mouse wheel zoom handler - requires Ctrl/Cmd modifier
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
-      // Prevent page scroll
+      // Only zoom when Ctrl/Cmd is pressed, allow normal scroll otherwise
+      if (!(e.ctrlKey || e.metaKey)) {
+        return;
+      }
+
+      // Prevent default browser zoom
       e.preventDefault();
       e.stopPropagation();
 
-      // Zoom with Ctrl/Cmd + wheel
       const delta = e.deltaY;
       const zoomFactor = delta > 0 ? 0.9 : 1.1;
       setZoom((z) => Math.min(Math.max(z * zoomFactor, 0.1), 4));
@@ -628,8 +629,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         <Box
           tabIndex={0}
           onKeyDown={handleKeyDown}
-          onFocus={() => setIsCanvasFocused(true)}
-          onBlur={() => setIsCanvasFocused(false)}
           onWheel={handleWheel}
           sx={{
             flexGrow: 1,
@@ -640,8 +639,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
               theme.palette.mode === "dark" ? "#1a1a1a" : "#f5f5f5",
             overflow: "auto",
             p: 2,
-            outline: isCanvasFocused ? `2px solid ${theme.palette.primary.main}` : "none",
-            outlineOffset: "-2px",
+            outline: "none",
             "&:focus": {
               outline: `2px solid ${theme.palette.primary.main}`,
               outlineOffset: "-2px"

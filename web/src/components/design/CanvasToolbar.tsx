@@ -478,7 +478,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       {/* Zoom controls */}
       <ToolbarButton
         icon={<ZoomOutIcon />}
-        tooltip="Zoom out (Mouse wheel)"
+        tooltip="Zoom out (Ctrl/Cmd + scroll)"
         onClick={onZoomOut}
         disabled={zoom <= 0.1}
       />
@@ -495,7 +495,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       </Box>
       <ToolbarButton
         icon={<ZoomInIcon />}
-        tooltip="Zoom in (Mouse wheel)"
+        tooltip="Zoom in (Ctrl/Cmd + scroll)"
         onClick={onZoomIn}
         disabled={zoom >= 4}
       />
