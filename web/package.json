@@ -71,12 +71,12 @@
     "papaparse": "^5.4.1",
     "plotly": "^1.0.6",
     "prismjs": "^1.30.0",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "react-draggable": "^4.4.6",
     "react-infinite-scroll-component": "^6.1.0",
     "react-intersection-observer": "^9.13.1",
-    "react-is": "18.2.0",
+    "react-is": "18.3.1",
     "react-konva": "^18.2.10",
     "react-markdown": "^9.0.1",
     "react-pdf": "^9.2.1",
@@ -140,7 +140,7 @@
     ]
   },
   "overrides": {
-    "react-is": "18.2.0"
+    "react-is": "18.3.1"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
