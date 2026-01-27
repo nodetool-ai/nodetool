@@ -117,13 +117,15 @@ describe("VibeCodingStore", () => {
         type: "message",
         role: "user",
         name: "",
-        content: [{ type: "text", text: "First" }]
+        content: [{ type: "text", text: "First" }],
+        created_at: new Date().toISOString()
       };
       const message2: Message = {
         type: "message",
         role: "assistant",
         name: "",
-        content: [{ type: "text", text: "Second" }]
+        content: [{ type: "text", text: "Second" }],
+        created_at: new Date().toISOString()
       };
 
       act(() => {
@@ -142,7 +144,8 @@ describe("VibeCodingStore", () => {
         type: "message",
         role: "assistant",
         name: "",
-        content: [{ type: "text", text: "Initial" }]
+        content: [{ type: "text", text: "Initial" }],
+        created_at: new Date().toISOString()
       };
 
       act(() => {
@@ -175,7 +178,8 @@ describe("VibeCodingStore", () => {
         type: "message",
         role: "user",
         name: "",
-        content: [{ type: "text", text: "Test" }]
+        content: [{ type: "text", text: "Test" }],
+        created_at: new Date().toISOString()
       };
 
       act(() => {

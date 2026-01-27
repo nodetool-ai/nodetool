@@ -179,6 +179,8 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
             ref={iframeRef}
             className="preview-frame"
             srcDoc={processedHtml}
+            // allow-same-origin is required for localStorage/sessionStorage and
+            // proper functioning of injected runtime config (API/WS URLs)
             sandbox="allow-scripts allow-forms allow-same-origin allow-modals"
             title="VibeCoding Preview"
           />

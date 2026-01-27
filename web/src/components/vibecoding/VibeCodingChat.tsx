@@ -233,7 +233,8 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         type: "message",
         name: "",
         role: "user",
-        content: [{ type: "text", text: template.prompt }]
+        content: [{ type: "text", text: template.prompt }],
+        created_at: new Date().toISOString()
       };
       sendMessage(message);
     },
