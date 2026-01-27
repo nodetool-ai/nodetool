@@ -37,26 +37,6 @@ import "./exportTools";
 // Export types for consumers
 export * from "./types";
 
-// Export state management utilities (for advanced use cases)
-export {
-  getCanvasStore,
-  getCanvasData,
-  getElements,
-  findElement,
-  getSelectedIds,
-  getSelectedElements,
-  initializeCanvas,
-  addElement,
-  updateElement,
-  deleteElements,
-  duplicateElements,
-  alignElements,
-  distributeElements,
-  tidyElements,
-  summarizeElement,
-  getCanvasSummary
-} from "./canvasState";
-
 /**
  * List of all registered canvas tools
  * 

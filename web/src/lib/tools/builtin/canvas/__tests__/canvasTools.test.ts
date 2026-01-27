@@ -142,6 +142,24 @@ describe("Canvas Creation Tools", () => {
       const state = useLayoutCanvasStore.getState();
       expect(state.canvasData.elements).toHaveLength(1);
     });
+
+    it("should reject invalid dimensions", async () => {
+      const result = await callTool("ui_canvas_create_rectangle", {
+        x: 0, y: 0, width: -10, height: 100
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain("positive");
+    });
+
+    it("should reject invalid opacity", async () => {
+      const result = await callTool("ui_canvas_create_rectangle", {
+        x: 0, y: 0, width: 100, height: 100, opacity: 2
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain("Opacity");
+    });
   });
 
   describe("ui_canvas_create_ellipse", () => {
@@ -217,6 +235,36 @@ describe("Canvas Creation Tools", () => {
 
       expect(result.ok).toBe(true);
       expect(result.element.type).toBe("line");
+    });
+  });
+
+  describe("ui_canvas_create_group", () => {
+    it("should group elements together", async () => {
+      resetStore();
+      const rect1 = await callTool("ui_canvas_create_rectangle", {
+        x: 0, y: 0, width: 50, height: 50
+      });
+      const rect2 = await callTool("ui_canvas_create_rectangle", {
+        x: 60, y: 0, width: 50, height: 50
+      });
+
+      const result = await callTool("ui_canvas_create_group", {
+        elementIds: [rect1.element.id, rect2.element.id],
+        name: "My Group"
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.element.type).toBe("group");
+      expect(result.element.name).toBe("My Group");
+      expect(result.groupedElements).toHaveLength(2);
+    });
+
+    it("should fail with empty element IDs", async () => {
+      const result = await callTool("ui_canvas_create_group", {
+        elementIds: []
+      });
+
+      expect(result.ok).toBe(false);
     });
   });
 });
@@ -371,6 +419,91 @@ describe("Canvas Manipulation Tools", () => {
       // Verify duplicated
       const state = useLayoutCanvasStore.getState();
       expect(state.canvasData.elements).toHaveLength(2);
+    });
+  });
+
+  describe("ui_canvas_set_text", () => {
+    it("should update text content", async () => {
+      resetStore();
+      const textResult = await callTool("ui_canvas_create_text", {
+        x: 0, y: 0, content: "Original"
+      });
+      const textId = textResult.element.id;
+
+      const result = await callTool("ui_canvas_set_text", {
+        elementId: textId,
+        content: "Updated text"
+      });
+
+      expect(result.ok).toBe(true);
+      
+      // Verify in store
+      const element = useLayoutCanvasStore.getState().findElement(textId);
+      expect((element?.properties as any).content).toBe("Updated text");
+    });
+
+    it("should fail for non-text elements", async () => {
+      const result = await callTool("ui_canvas_set_text", {
+        elementId: rectangleId,
+        content: "Text"
+      });
+
+      expect(result.ok).toBe(false);
+    });
+  });
+
+  describe("ui_canvas_set_image", () => {
+    it("should update image source", async () => {
+      resetStore();
+      const imgResult = await callTool("ui_canvas_create_image", {
+        x: 0, y: 0, width: 100, height: 100, source: "original.jpg"
+      });
+      const imgId = imgResult.element.id;
+
+      const result = await callTool("ui_canvas_set_image", {
+        elementId: imgId,
+        source: "updated.jpg"
+      });
+
+      expect(result.ok).toBe(true);
+    });
+
+    it("should fail for non-image elements", async () => {
+      const result = await callTool("ui_canvas_set_image", {
+        elementId: rectangleId,
+        source: "test.jpg"
+      });
+
+      expect(result.ok).toBe(false);
+    });
+  });
+
+  describe("ui_canvas_select", () => {
+    it("should select elements", async () => {
+      const result = await callTool("ui_canvas_select", {
+        elementIds: [rectangleId]
+      });
+
+      expect(result.ok).toBe(true);
+      expect(result.selectedIds).toContain(rectangleId);
+      
+      // Verify in store
+      const state = useLayoutCanvasStore.getState();
+      expect(state.selectedIds).toContain(rectangleId);
+    });
+
+    it("should clear selection with empty array", async () => {
+      // First select something
+      await callTool("ui_canvas_select", { elementIds: [rectangleId] });
+      
+      // Then clear
+      const result = await callTool("ui_canvas_select", { elementIds: [] });
+
+      expect(result.ok).toBe(true);
+      expect(result.message).toContain("cleared");
+      
+      const state = useLayoutCanvasStore.getState();
+      expect(state.selectedIds).toHaveLength(0);
     });
   });
 });

@@ -382,13 +382,18 @@ FrontendToolRegistry.register({
     const duplicated = store.duplicateElements(validIds);
     
     // Apply custom offset if different from default
+    // The duplicated array maintains the same order as validIds
     if (offsetX !== 20 || offsetY !== 20) {
-      for (const el of duplicated) {
-        const original = store.findElement(validIds[duplicated.indexOf(el)])!;
-        store.updateElement(el.id, {
-          x: original.x + offsetX,
-          y: original.y + offsetY
-        });
+      for (let i = 0; i < duplicated.length; i++) {
+        const el = duplicated[i];
+        const originalId = validIds[i];
+        const original = store.findElement(originalId);
+        if (original) {
+          store.updateElement(el.id, {
+            x: original.x + offsetX,
+            y: original.y + offsetY
+          });
+        }
       }
     }
     

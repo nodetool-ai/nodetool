@@ -39,6 +39,31 @@ const summarizeElement = (el: LayoutElement) => ({
   locked: el.locked
 });
 
+// Input validation helper
+const validateDimensions = (width: number, height: number): string | null => {
+  if (typeof width !== "number" || typeof height !== "number") {
+    return "Width and height must be numbers";
+  }
+  if (width <= 0 || height <= 0) {
+    return "Width and height must be positive numbers";
+  }
+  if (!Number.isFinite(width) || !Number.isFinite(height)) {
+    return "Width and height must be finite numbers";
+  }
+  return null;
+};
+
+const validateOpacity = (opacity: number | undefined): string | null => {
+  if (opacity === undefined) return null;
+  if (typeof opacity !== "number" || !Number.isFinite(opacity)) {
+    return "Opacity must be a finite number";
+  }
+  if (opacity < 0 || opacity > 1) {
+    return "Opacity must be between 0 and 1";
+  }
+  return null;
+};
+
 // =============================================================================
 // Artboard / Canvas Setup
 // =============================================================================
@@ -102,6 +127,12 @@ FrontendToolRegistry.register({
     required: ["x", "y", "width", "height"]
   },
   async execute({ x, y, width, height, name, fill, stroke, strokeWidth, borderRadius, opacity }): Promise<CreateElementResponse> {
+    // Validate inputs
+    const dimError = validateDimensions(width, height);
+    if (dimError) return { ok: false, error: dimError } as any;
+    const opacityError = validateOpacity(opacity);
+    if (opacityError) return { ok: false, error: opacityError } as any;
+    
     const store = getStore();
     const element = store.addElement("rectangle", x, y);
     
