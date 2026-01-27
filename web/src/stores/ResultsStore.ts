@@ -114,14 +114,13 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   planningUpdates: {},
   previews: {},
   clearEdges: (workflowId: string) => {
-    const edges = get().edges;
-    for (const key in edges) {
-      if (key.startsWith(workflowId)) {
-        delete edges[key];
-      }
-    }
-    // Force React Flow to re-render by creating a new object reference
-    set({ edges: { ...edges } });
+    set((state) => ({
+      edges: Object.fromEntries(
+        Object.entries(state.edges).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   /**
    * Set the planning update for a node.
@@ -252,104 +251,105 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * @param nodeId The id of the node.
    */
   deleteResult: (workflowId: string, nodeId: string) => {
-    const results = get().results;
     const key = hashKey(workflowId, nodeId);
-    delete results[key];
-    set({ results });
+    set((state) => {
+      const { [key]: removed, ...remainingResults } = state.results;
+      return { results: remainingResults };
+    });
   },
   /**
    * Clear the results for a workflow.
    * The results are removed from the results map.
    */
   clearResults: (workflowId: string) => {
-    const results = get().results;
-    for (const key in results) {
-      if (key.startsWith(workflowId)) {
-        delete results[key];
-      }
-    }
-    set({ results });
+    set((state) => ({
+      results: Object.fromEntries(
+        Object.entries(state.results).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   clearOutputResults: (workflowId: string) => {
-    const outputResults = get().outputResults;
-    for (const key in outputResults) {
-      if (key.startsWith(workflowId)) {
-        delete outputResults[key];
-      }
-    }
-    set({ outputResults });
+    set((state) => ({
+      outputResults: Object.fromEntries(
+        Object.entries(state.outputResults).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   /**
    * Clear the progress for a workflow.
    */
   clearProgress: (workflowId: string) => {
-    const progress = get().progress;
-    for (const key in progress) {
-      if (key.startsWith(workflowId)) {
-        delete progress[key];
-      }
-    }
-    set({ progress });
+    set((state) => ({
+      progress: Object.fromEntries(
+        Object.entries(state.progress).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   /**
    * Clear the previews for a workflow.
    */
   clearPreviews: (workflowId: string) => {
-    const previews = get().previews;
-    for (const key in previews) {
-      if (key.startsWith(workflowId)) {
-        delete previews[key];
-      }
-    }
-    set({ previews });
+    set((state) => ({
+      previews: Object.fromEntries(
+        Object.entries(state.previews).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   /**
    * Clear the tool calls for a workflow.
    */
   clearToolCalls: (workflowId: string) => {
-    const toolCalls = get().toolCalls;
-    for (const key in toolCalls) {
-      if (key.startsWith(workflowId)) {
-        delete toolCalls[key];
-      }
-    }
-    set({ toolCalls });
+    set((state) => ({
+      toolCalls: Object.fromEntries(
+        Object.entries(state.toolCalls).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   /**
    * Clear the tasks for a workflow.
    */
   clearTasks: (workflowId: string) => {
-    const tasks = get().tasks;
-    for (const key in tasks) {
-      if (key.startsWith(workflowId)) {
-        delete tasks[key];
-      }
-    }
-    set({ tasks });
+    set((state) => ({
+      tasks: Object.fromEntries(
+        Object.entries(state.tasks).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   /**
    * Clear the planning updates for a workflow.
    */
   clearPlanningUpdates: (workflowId: string) => {
-    const planningUpdates = get().planningUpdates;
-    for (const key in planningUpdates) {
-      if (key.startsWith(workflowId)) {
-        delete planningUpdates[key];
-      }
-    }
-    set({ planningUpdates });
+    set((state) => ({
+      planningUpdates: Object.fromEntries(
+        Object.entries(state.planningUpdates).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   /**
    * Clear the chunks for a workflow.
    */
   clearChunks: (workflowId: string) => {
-    const chunks = get().chunks;
-    for (const key in chunks) {
-      if (key.startsWith(workflowId)) {
-        delete chunks[key];
-      }
-    }
-    set({ chunks });
+    set((state) => ({
+      chunks: Object.fromEntries(
+        Object.entries(state.chunks).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   /**
    * Set the result for a node.

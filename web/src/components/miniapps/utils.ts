@@ -55,6 +55,15 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
       return "asr_model";
     case "nodetool.input.EmbeddingModelInput":
       return "embedding_model";
+    case "nodetool.input.ImageListInput":
+      return "image_list";
+    case "nodetool.input.VideoListInput":
+      return "video_list";
+    case "nodetool.input.AudioListInput":
+      return "audio_list";
+    case "nodetool.input.TextListInput":
+    case "nodetool.input.StringListInput":
+      return "text_list";
     default:
       return null;
   }

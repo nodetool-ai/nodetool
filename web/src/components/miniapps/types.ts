@@ -27,7 +27,11 @@ export type MiniAppInputKind =
   | "video_model"
   | "tts_model"
   | "asr_model"
-  | "embedding_model";
+  | "embedding_model"
+  | "image_list"
+  | "video_list"
+  | "audio_list"
+  | "text_list";
 
 export interface InputNodeData {
   name: string;

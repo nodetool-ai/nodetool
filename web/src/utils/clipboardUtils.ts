@@ -212,7 +212,7 @@ export function getClipboardSupportMessage(contentType: string): string {
 
   switch (type) {
     case "image":
-      return "Image can be pasted into Photoshop, GIMP, and other image editors";
+      return "Image can be pasted into any image editor";
     case "html":
       return "HTML content can be pasted into editors and browsers";
     case "text":

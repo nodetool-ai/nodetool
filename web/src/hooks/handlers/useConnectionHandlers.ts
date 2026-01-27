@@ -475,6 +475,8 @@ export default function useConnectionHandlers() {
           );
         }
         if (connectDirection === "target") {
+          // Get min/max/default from ConnectionStore before it gets reset
+          const { connectMin, connectMax, connectDefault } = useConnectionStore.getState();
           openContextMenu(
             "input-context-menu",
             connectNodeId || "",
@@ -482,7 +484,10 @@ export default function useConnectionHandlers() {
             event.clientY - 50,
             "react-flow__pane",
             connectType ?? undefined,
-            connectHandleId || ""
+            connectHandleId || "",
+            undefined,
+            undefined,
+            { connectMin, connectMax, connectDefault }  // Pass min/max/default through payload
           );
         }
       }

@@ -154,16 +154,16 @@ describe("DataframeProperty", () => {
   });
 
   describe("for non-constant DataFrame node", () => {
-    it("renders property label", () => {
+    it("renders the drop zone for CSV/Excel files", () => {
       render(<DataframeProperty {...defaultProps} />);
-      expect(screen.getByText("Dataframe")).toBeInTheDocument();
+      expect(screen.getByText("Drop CSV or Excel file")).toBeInTheDocument();
     });
 
-    it("does not render drop zone", () => {
+    it("renders Add Column button", () => {
       render(<DataframeProperty {...defaultProps} />);
       expect(
-        screen.queryByText("Drop CSV or Excel file")
-      ).not.toBeInTheDocument();
+        screen.getByRole("button", { name: /Add Column/i })
+      ).toBeInTheDocument();
     });
   });
 });

@@ -101,21 +101,71 @@ const getNodePathsForType = (
   return mapping[typeName] ?? null;
 };
 
+/**
+ * Maps element type to specialized list constant node paths.
+ * These are for list[T] types where we have a dedicated list constant node.
+ */
+const getListConstantPathForElementType = (
+  elementTypeName: string
+): { constantPath: string; inputPath: string; label: string } | null => {
+  const mapping: Record<string, { constantPath: string; inputPath: string; label: string }> = {
+    image: {
+      constantPath: "nodetool.constant.ImageList",
+      inputPath: "nodetool.input.ImageListInput",
+      label: "Image List"
+    },
+    video: {
+      constantPath: "nodetool.constant.VideoList",
+      inputPath: "nodetool.input.VideoListInput",
+      label: "Video List"
+    },
+    audio: {
+      constantPath: "nodetool.constant.AudioList",
+      inputPath: "nodetool.input.AudioListInput",
+      label: "Audio List"
+    },
+    text: {
+      constantPath: "nodetool.constant.TextList",
+      inputPath: "nodetool.input.TextListInput",
+      label: "Text List"
+    },
+    str: {
+      constantPath: "nodetool.constant.TextList",
+      inputPath: "nodetool.input.StringListInput",
+      label: "Text List"
+    }
+  };
+  return mapping[elementTypeName] ?? null;
+};
+
 
 const InputContextMenu: React.FC = () => {
   const theme = useTheme();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const reactFlowInstance = useReactFlow();
 
-  const { type, nodeId, handleId, menuPosition, closeContextMenu } =
+  const { type, nodeId, handleId, menuPosition, closeContextMenu, payload } =
     useContextMenuStore((state) => ({
       type: state.type,
       nodeId: state.nodeId,
       handleId: state.handleId,
       menuPosition: state.menuPosition,
-      closeContextMenu: state.closeContextMenu
+      closeContextMenu: state.closeContextMenu,
+      payload: state.payload
     }));
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+
+  // "collect" handle: allow connecting T -> list[T] and multiple connections
+  const isCollectHandleType = type ? isCollectType(type) : false;
+  const collectElementType = isCollectHandleType ? type?.type_args?.[0] : undefined;
+
+  // Check for specialized list constant nodes (e.g., ImageList, VideoList)
+  const specializedListPaths = useMemo(() => {
+    if (isCollectHandleType && collectElementType?.type) {
+      return getListConstantPathForElementType(collectElementType.type);
+    }
+    return null;
+  }, [isCollectHandleType, collectElementType?.type]);
 
   // Use explicit mapping for type -> node paths instead of labelForType
   const nodePaths = useMemo(
@@ -128,10 +178,14 @@ const InputContextMenu: React.FC = () => {
   const fallbackInputPath = `nodetool.input.${datatypeLabel}Input`;
   const fallbackConstantPath = `nodetool.constant.${datatypeLabel}`;
 
-  const inputNodePath = nodePaths?.inputPath ?? fallbackInputPath;
-  const constantNodePath = nodePaths?.constantPath ?? fallbackConstantPath;
+  // For list types with specialized nodes, use the specialized path; otherwise fall back to generic
+  const inputNodePath = specializedListPaths?.inputPath ?? nodePaths?.inputPath ?? fallbackInputPath;
+  const constantNodePath = specializedListPaths?.constantPath ?? nodePaths?.constantPath ?? fallbackConstantPath;
   const inputNodeMetadata = getMetadata(inputNodePath);
   const constantNodeMetadata = getMetadata(constantNodePath);
+
+  // Label for the specialized list type (e.g., "Image List")
+  const specializedListLabel = specializedListPaths?.label;
 
   // Check if this is an enum type (for prefilling Select nodes)
   const isEnumType = type?.type === "enum";
@@ -149,9 +203,6 @@ const InputContextMenu: React.FC = () => {
     setTargetHandle: state.setTargetHandle
   }));
 
-  // "collect" handle: allow connecting T -> list[T] and multiple connections
-  const isCollectHandleType = type ? isCollectType(type) : false;
-  const collectElementType = isCollectHandleType ? type?.type_args?.[0] : undefined;
   const collectElementDatatypeLabel = collectElementType
     ? labelForType(collectElementType.type || "").replaceAll(" ", "")
     : "";
@@ -160,6 +211,19 @@ const InputContextMenu: React.FC = () => {
     : "";
   const collectElementConstantNodeMetadata = collectElementConstantNodePath
     ? getMetadata(collectElementConstantNodePath)
+    : null;
+
+  // For list types, also get the single-element input node (e.g., ImageInput for list[image])
+  const collectElementNodePaths = useMemo(() => {
+    if (collectElementType?.type) {
+      return getNodePathsForType(collectElementType.type);
+    }
+    return null;
+  }, [collectElementType?.type]);
+  const collectElementInputNodePath = collectElementNodePaths?.inputPath ?? 
+    (collectElementDatatypeLabel ? `nodetool.input.${collectElementDatatypeLabel}Input` : "");
+  const collectElementInputNodeMetadata = collectElementInputNodePath
+    ? getMetadata(collectElementInputNodePath)
     : null;
   const handleOpenNodeMenu = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {
@@ -316,6 +380,67 @@ const InputContextMenu: React.FC = () => {
     [createCollectElementConstantNode, closeContextMenu]
   );
 
+  // Create single-element input node for list types (e.g., ImageInput for list[image])
+  const createCollectElementInputNode = useCallback(
+    (event: React.MouseEvent) => {
+      if (!collectElementInputNodeMetadata) {return;}
+      const newNode = createNode(
+        collectElementInputNodeMetadata,
+        reactFlowInstance.screenToFlowPosition({
+          x: event.clientX - 250,
+          y: event.clientY - 200
+        })
+      );
+      newNode.data.size = {
+        width: 200,
+        height: 200
+      };
+      if (handleId && newNode.data.properties.name !== undefined) {
+        newNode.data.properties.name = handleId;
+      }
+      addNode(newNode);
+
+      // For collect handles (list[T]), do not replace existing connections.
+      const validEdges = edges;
+      const newEdge = {
+        id: generateEdgeId(),
+        source: newNode.id,
+        target: nodeId || "",
+        sourceHandle: "output",
+        targetHandle: handleId,
+        type: "default",
+        // Use element type for edge styling when connecting T -> list[T]
+        className: Slugify(collectElementType?.type || type?.type || "")
+      };
+      setEdges([...validEdges, newEdge]);
+    },
+    [
+      collectElementInputNodeMetadata,
+      createNode,
+      reactFlowInstance,
+      addNode,
+      edges,
+      generateEdgeId,
+      nodeId,
+      handleId,
+      collectElementType?.type,
+      type?.type,
+      setEdges
+    ]
+  );
+
+  const handleCreateCollectElementInputNode = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        createCollectElementInputNode(event);
+      }
+      closeContextMenu();
+    },
+    [createCollectElementInputNode, closeContextMenu]
+  );
+
   const createInputNode = useCallback(
     (event: React.MouseEvent) => {
       if (!inputNodeMetadata) {return;}
@@ -344,6 +469,22 @@ const InputContextMenu: React.FC = () => {
           newNode.data.properties.options = type.values;
           // Default to first option
           newNode.data.properties.value = type.values[0];
+        }
+      }
+
+      // For int/float handles, inherit min/max/default from the source property if available
+      const isNumericInput = inputNodePath === "nodetool.input.IntegerInput" || inputNodePath === "nodetool.input.FloatInput";
+      if (isNumericInput && payload) {
+        // Get min/max/default from payload (passed from connection handler)
+        const { connectMin, connectMax, connectDefault } = payload as { connectMin?: number | null; connectMax?: number | null; connectDefault?: unknown };
+        if (typeof connectMin === "number") {
+          newNode.data.properties.min = connectMin;
+        }
+        if (typeof connectMax === "number") {
+          newNode.data.properties.max = connectMax;
+        }
+        if (typeof connectDefault === "number") {
+          newNode.data.properties.value = connectDefault;
         }
       }
 
@@ -376,7 +517,9 @@ const InputContextMenu: React.FC = () => {
       handleId,
       type,
       isEnumType,
-      setEdges
+      setEdges,
+      inputNodePath,
+      payload
     ]
   );
 
@@ -443,15 +586,23 @@ const InputContextMenu: React.FC = () => {
         {collectElementConstantNodeMetadata && (
           <ContextMenuItem
             onClick={handleCreateCollectElementConstantNode}
-            label={`Create ${labelForType(collectElementType?.type || "")} Constant Node`}
+            label={`Create ${labelForType(collectElementType?.type || "")} Constant`}
             addButtonClassName="create-collect-element-constant-node"
             IconComponent={<PushPinIcon />}
+          />
+        )}
+        {collectElementInputNodeMetadata && (
+          <ContextMenuItem
+            onClick={handleCreateCollectElementInputNode}
+            label={`Create ${labelForType(collectElementType?.type || "")} Input`}
+            addButtonClassName="create-collect-element-input-node"
+            IconComponent={<InputIcon />}
           />
         )}
         {constantNodeMetadata && (
           <ContextMenuItem
             onClick={handleCreateConstantNode}
-            label="Create Constant Node"
+            label={specializedListLabel ? `Create ${specializedListLabel}` : "Create Constant"}
             addButtonClassName="create-constant-node"
             IconComponent={<PushPinIcon />}
           />
@@ -459,7 +610,7 @@ const InputContextMenu: React.FC = () => {
         {inputNodeMetadata && (
           <ContextMenuItem
             onClick={handleCreateInputNode}
-            label="Create Input Node"
+            label={specializedListLabel ? `Create ${specializedListLabel} Input` : "Create Input"}
             addButtonClassName="create-input-node"
             IconComponent={<InputIcon />}
           />

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useState } from "react";
-import { Box, Typography, Paper, Stack, Dialog, DialogTitle, DialogContent } from "@mui/material";
+import { Box, Typography, Paper, Stack, Dialog, DialogTitle, DialogContent, Button } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -66,8 +66,8 @@ const UIPrimitivesButtonsDemo = () => {
       <Paper className="section" sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" className="section-title">DialogActionButtons</Typography>
         <Stack direction="row" spacing={2} mb={2}>
-          <button onClick={() => setShowDialog(true)}>Open Standard Dialog</button>
-          <button onClick={() => setShowDestructiveDialog(true)}>Open Destructive Dialog</button>
+          <Button variant="contained" onClick={() => setShowDialog(true)}>Open Standard Dialog</Button>
+          <Button variant="contained" onClick={() => setShowDestructiveDialog(true)}>Open Destructive Dialog</Button>
         </Stack>
         
         <Dialog open={showDialog} onClose={() => setShowDialog(false)}>
