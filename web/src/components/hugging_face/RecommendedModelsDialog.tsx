@@ -24,17 +24,6 @@ import useMetadataStore from "../../stores/MetadataStore";
 
 const styles = (theme: Theme) =>
   css({
-    ".MuiDialog-paper": {
-      height: "calc(100% - 200px)",
-      background: "transparent",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      boxShadow: theme.shadows[24]
-    },
-    ".MuiDialogContent-root": {
-      height: "calc(100% - 64px)",
-      display: "flex",
-      flexDirection: "column"
-    },
     ".recommended-models-grid": {
       flex: 1,
       overflow: "auto",
@@ -112,14 +101,6 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      slotProps={{
-        backdrop: {
-          sx: {
-            backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
-            backdropFilter: "blur(20px)"
-          }
-        }
-      }}
     >
       <DialogTitle style={{ marginBottom: 0 }}>
         Model Downloads
@@ -140,53 +121,58 @@ const RecommendedModelsDialog: React.FC<RecommendedModelsDialogProps> = ({
       </DialogTitle>
 
       <DialogContent sx={{ paddingBottom: "3em", display: "flex", flexDirection: "column" }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          sx={{
-            borderBottom: 1,
-            borderColor: "divider",
-            mb: 1,
-            "& .MuiTab-root": {
-              textTransform: "none",
-              fontWeight: 600
-            }
-          }}
-        >
-          <Tab
-            icon={<InventoryIcon />}
-            iconPosition="start"
-            label={`Model Packs${modelPacks.length > 0 ? ` (${modelPacks.length})` : ""}`}
-          />
-          <Tab
-            icon={<ViewListIcon />}
-            iconPosition="start"
-            label={`Individual Models (${recommendedModels.length})`}
-          />
-        </Tabs>
-
-        <TabPanel value={tabValue} index={0}>
-          {modelPacks.length === 0 ? (
-            <Box sx={{ color: "var(--palette-grey-400)", textAlign: "center", py: 4 }}>
-              No model packs available. Model packs group related models for easy one-click download.
-            </Box>
-          ) : (
-            modelPacks.map((pack) => (
-              <ModelPackCard
-                key={pack.id}
-                pack={pack}
-                onDownloadAll={handleDownloadAllFromPack}
+        {modelPacks.length > 0 ? (
+          <>
+            <Tabs
+              value={tabValue}
+              onChange={handleTabChange}
+              sx={{
+                borderBottom: 1,
+                borderColor: "divider",
+                mb: 1,
+                "& .MuiTab-root": {
+                  textTransform: "none",
+                  fontWeight: 600
+                }
+              }}
+            >
+              <Tab
+                icon={<InventoryIcon />}
+                iconPosition="start"
+                label={`Model Packs${modelPacks.length > 0 ? ` (${modelPacks.length})` : ""}`}
               />
-            ))
-          )}
-        </TabPanel>
+              <Tab
+                icon={<ViewListIcon />}
+                iconPosition="start"
+                label={`Individual Models (${recommendedModels.length})`}
+              />
+            </Tabs>
 
-        <TabPanel value={tabValue} index={1}>
-          <RecommendedModels
-            recommendedModels={recommendedModels}
-            startDownload={startDownload}
-          />
-        </TabPanel>
+            <TabPanel value={tabValue} index={0}>
+              {modelPacks.map((pack) => (
+                <ModelPackCard
+                  key={pack.id}
+                  pack={pack}
+                  onDownloadAll={handleDownloadAllFromPack}
+                />
+              ))}
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={1}>
+              <RecommendedModels
+                recommendedModels={recommendedModels}
+                startDownload={startDownload}
+              />
+            </TabPanel>
+          </>
+        ) : (
+          <Box sx={{ mt: 2, flex: 1, overflow: "auto" }}>
+            <RecommendedModels
+              recommendedModels={recommendedModels}
+              startDownload={startDownload}
+            />
+          </Box>
+        )}
       </DialogContent>
     </Dialog>
   );

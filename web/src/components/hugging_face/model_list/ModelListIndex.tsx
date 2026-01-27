@@ -5,6 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { VariableSizeList as VirtualList } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 
 import { useModels } from "./useModels";
 import ModelListHeader from "./ModelListHeader";
@@ -31,19 +32,21 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       height: "100%",
       position: "relative",
-      background: "transparent"
+      background: "transparent",
+      overflow: "hidden"
     },
     ".main": {
       display: "flex",
       flexDirection: "row",
       flexGrow: 1,
-      height: "100%",
-      overflow: "hidden"
+      overflow: "hidden",
+      minHeight: 0
     },
     ".sidebar": {
-      width: "240px",
-      minWidth: "240px",
-      maxWidth: "240px",
+      width: "300px",
+      minWidth: "300px",
+      maxWidth: "300px",
+      height: "100%",
       padding: "1em",
       overflowY: "auto",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
@@ -97,9 +100,8 @@ const styles = (theme: Theme) =>
       color: "var(--palette-primary-main)"
     },
     ".content": {
-      width: "80%",
-      height: "95%",
       flexGrow: 1,
+      height: "100%",
       overflow: "hidden",
       padding: "0 1em 4em 1em",
       position: "relative"
@@ -371,75 +373,79 @@ const ModelListIndex: React.FC = () => {
             </Typography>
           )}
           {flattenedList.length > 0 ? (
-            <VirtualList
-              className="model-list"
-              key={`${selectedModelType}-${flattenedList.length}`}
-              height={window.innerHeight - 200}
-              width="100%"
-              itemCount={flattenedList.length}
-              itemSize={getItemSize}
-              itemKey={(index) => {
-                const item = flattenedList[index];
-                return item.type === "header"
-                  ? `header-${item.modelType}`
-                  : `model-${item.model.id}`;
-              }}
-              onItemsRendered={handleItemsRendered}
-            >
-              {({ index, style }) => {
-                const item = flattenedList[index];
-                if (item.type === "header") {
-                  return (
-                    <Box style={style} sx={{ pt: 2, pb: 1 }}>
-                      <Typography variant="h2" fontSize="1.25em">
-                        {prettifyModelType(item.modelType)}
-                      </Typography>
-                    </Box>
-                  );
-                } else {
-                  const compatibility = getModelCompatibility(item.model);
-                  const cacheKey = getHfCacheKey(item.model);
-                  const isCacheableHf = canCheckHfCache(item.model);
-                  const isCheckingCache =
-                    isCacheableHf &&
-                    (cachePending[cacheKey] ||
-                      cacheStatuses[cacheKey] === undefined);
-                  const isDownloaded =
-                    item.model.type === "llama_model"
-                      ? !!item.model.downloaded
-                      : !!cacheStatuses[cacheKey];
-                  const displayModel = {
-                    ...item.model,
-                    downloaded: isDownloaded
-                  } as UnifiedModel & { downloaded: boolean };
-                  return (
-                    <Box style={style}>
-                      <ModelListItem
-                        model={displayModel}
-                        handleModelDelete={
-                          displayModel.downloaded
-                            ? handleDeleteClick
-                            : undefined
-                        }
-                        onDownload={
-                          !displayModel.downloaded
-                            ? () => handleStartDownload(item.model)
-                            : undefined
-                        }
-                        handleShowInExplorer={
-                          displayModel.downloaded
-                            ? handleShowInExplorer
-                            : undefined
-                        }
-                        showModelStats={true}
-                        compatibility={compatibility}
-                        isCheckingCache={isCheckingCache}
-                      />
-                    </Box>
-                  );
-                }
-              }}
-            </VirtualList>
+            <AutoSizer>
+              {({ height, width }) => (
+                <VirtualList
+                  className="model-list"
+                  key={`${selectedModelType}-${flattenedList.length}`}
+                  height={height}
+                  width={width}
+                  itemCount={flattenedList.length}
+                  itemSize={getItemSize}
+                  itemKey={(index) => {
+                    const item = flattenedList[index];
+                    return item.type === "header"
+                      ? `header-${item.modelType}`
+                      : `model-${item.model.id}`;
+                  }}
+                  onItemsRendered={handleItemsRendered}
+                >
+                  {({ index, style }) => {
+                    const item = flattenedList[index];
+                    if (item.type === "header") {
+                      return (
+                        <Box style={style} sx={{ pt: 2, pb: 1 }}>
+                          <Typography variant="h2" fontSize="1.25em">
+                            {prettifyModelType(item.modelType)}
+                          </Typography>
+                        </Box>
+                      );
+                    } else {
+                      const compatibility = getModelCompatibility(item.model);
+                      const cacheKey = getHfCacheKey(item.model);
+                      const isCacheableHf = canCheckHfCache(item.model);
+                      const isCheckingCache =
+                        isCacheableHf &&
+                        (cachePending[cacheKey] ||
+                          cacheStatuses[cacheKey] === undefined);
+                      const isDownloaded =
+                        item.model.type === "llama_model"
+                          ? !!item.model.downloaded
+                          : !!cacheStatuses[cacheKey];
+                      const displayModel = {
+                        ...item.model,
+                        downloaded: isDownloaded
+                      } as UnifiedModel & { downloaded: boolean };
+                      return (
+                        <Box style={style}>
+                          <ModelListItem
+                            model={displayModel}
+                            handleModelDelete={
+                              displayModel.downloaded
+                                ? handleDeleteClick
+                                : undefined
+                            }
+                            onDownload={
+                              !displayModel.downloaded
+                                ? () => handleStartDownload(item.model)
+                                : undefined
+                            }
+                            handleShowInExplorer={
+                              displayModel.downloaded
+                                ? handleShowInExplorer
+                                : undefined
+                            }
+                            showModelStats={true}
+                            compatibility={compatibility}
+                            isCheckingCache={isCheckingCache}
+                          />
+                        </Box>
+                      );
+                    }
+                  }}
+                </VirtualList>
+              )}
+            </AutoSizer>
           ) : (
             <Typography variant="body1" sx={{ mt: 2 }}>
               {modelSearchTerm
