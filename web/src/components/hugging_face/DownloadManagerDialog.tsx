@@ -33,24 +33,6 @@ import { isElectron } from "../../utils/browser";
 
 const styles = (theme: Theme) =>
   css({
-    ".MuiDialog-paper": {
-      width: "92%",
-      maxWidth: "920px",
-      margin: "auto",
-      borderRadius: (theme as any)?.rounded?.dialog ?? 6,
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      color: theme.vars.palette.text.primary,
-      boxShadow: theme.shadows[8]
-    },
-    ".MuiDialogTitle-root": {
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeBig,
-      fontWeight: 400,
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5em",
-      paddingRight: theme.spacing(7)
-    },
     ".download-actions": {
       padding: "8px 24px 16px",
       justifyContent: "space-between",
@@ -107,23 +89,8 @@ const DownloadManagerDialog: React.FC = () => {
       onClose={closeDialog}
       maxWidth="md"
       fullWidth
-      slotProps={{
-        backdrop: {
-          style: {
-            backdropFilter: theme.vars.palette.glass.blur,
-            backgroundColor: theme.vars.palette.glass.backgroundDialog
-          }
-        },
-        paper: {
-          style: {
-            borderRadius: theme.vars.rounded.dialog,
-            background: theme.vars.palette.glass.backgroundDialogContent
-          }
-        }
-      }}
     >
       <DialogTitle sx={{ color: "inherit", position: "relative" }}>
-        <DownloadingIcon sx={{ color: theme.vars.palette.primary.main }} />
         {hasActiveDownloads ? "Download Progress" : "Model Downloads"}
         <Tooltip title="Close">
           <IconButton
