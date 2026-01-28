@@ -104,6 +104,7 @@ import "./lib/tools/builtin/moveNode";
 import "./lib/tools/builtin/setNodeTitle";
 import "./lib/tools/builtin/graph";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
+import ThemeSync from "./components/themes/ThemeSync";
 
 (window as any).log = log;
 
@@ -344,6 +345,7 @@ const AppWrapper = () => {
         <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />
+          <ThemeSync />
           <MobileClassProvider>
             <MenuProvider>
               <WorkflowManagerProvider queryClient={queryClient}>

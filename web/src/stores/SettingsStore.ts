@@ -47,6 +47,7 @@ export interface Settings {
    */
   instantUpdate: boolean;
   autosave: AutosaveSettings;
+  themePreset: "light" | "dark" | "ocean" | "forest" | "sunset" | "midnight";
 }
 
 interface SettingsStore {
@@ -70,6 +71,7 @@ interface SettingsStore {
   setSoundNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
   updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
+  setThemePreset: (value: "light" | "dark" | "ocean" | "forest" | "sunset" | "midnight") => void;
 }
 
 export const defaultSettings: Settings = {
@@ -86,7 +88,8 @@ export const defaultSettings: Settings = {
   showWelcomeOnStartup: true,
   soundNotifications: true,
   instantUpdate: false,
-  autosave: { ...defaultAutosaveSettings }
+  autosave: { ...defaultAutosaveSettings },
+  themePreset: "dark"
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -208,6 +211,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             autosave: { ...state.settings.autosave, ...newSettings }
+          }
+        })),
+      setThemePreset: (value: "light" | "dark" | "ocean" | "forest" | "sunset" | "midnight") =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            themePreset: value
           }
         }))
     }),

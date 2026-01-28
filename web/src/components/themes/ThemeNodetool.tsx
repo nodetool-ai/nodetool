@@ -2,6 +2,10 @@ import { createTheme } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
+import { paletteOcean } from "./paletteOcean";
+import { paletteForest } from "./paletteForest";
+import { paletteSunset } from "./paletteSunset";
+import { paletteMidnight } from "./paletteMidnight";
 import { editorControlsComponents } from "./components/editorControls";
 
 import "@fontsource/inter";
@@ -28,6 +32,18 @@ const ThemeNodetool = createTheme({
     },
     dark: {
       palette: paletteDark
+    },
+    ocean: {
+      palette: paletteOcean
+    },
+    forest: {
+      palette: paletteForest
+    },
+    sunset: {
+      palette: paletteSunset
+    },
+    midnight: {
+      palette: paletteMidnight
     }
   },
   fontSizeGiant: "2rem",

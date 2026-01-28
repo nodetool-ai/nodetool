@@ -1,24 +1,29 @@
 import React from "react";
 import { StateIconButton } from "../ui_primitives";
 import { useColorScheme } from "@mui/material/styles";
-import { LightMode, DarkMode } from "@mui/icons-material";
+import { Palette } from "@mui/icons-material";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 export const ThemeToggle: React.FC = () => {
-  const { mode, setMode } = useColorScheme();
-
-  const toggleTheme = () => {
-    const newMode = mode === "dark" ? "light" : "dark";
-    setMode(newMode);
-  };
+  const { mode } = useColorScheme();
+  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
 
   // Don't render until we have the mode
-  if (!mode) {return null;}
+  if (!mode) {
+    return null;
+  }
+
+  // Capitalize first letter of mode for display
+  const modeDisplay = mode.charAt(0).toUpperCase() + mode.slice(1);
 
   return (
     <StateIconButton
-      icon={mode === "dark" ? <LightMode /> : <DarkMode />}
-      tooltip={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
-      onClick={toggleTheme}
+      icon={<Palette />}
+      tooltip={`Current theme: ${modeDisplay}`}
+      onClick={() => {
+        // Open settings to theme section (tab 1 = Editor & View)
+        setMenuOpen(true, 1);
+      }}
       size="small"
       color="default"
       sx={{
