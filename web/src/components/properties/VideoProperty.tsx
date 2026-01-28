@@ -1,7 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -9,7 +7,7 @@ import PropertyDropzone from "./PropertyDropzone";
 import isEqual from "lodash/isEqual";
 import { memo } from "react";
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     "& .property-label": {
       marginBottom: "5px"
@@ -19,9 +17,11 @@ const styles = (theme: Theme) =>
 const VideoProperty = (props: PropertyProps) => {
   const id = `video-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ video: props.value });
-  const theme = useTheme();
+  const showRecorder =
+    props.nodeType === "nodetool.input.VideoInput" ||
+    props.nodeType === "nodetool.constant.Video";
   return (
-    <div className="video-property" css={styles(theme)}>
+    <div className="video-property" css={styles()}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
@@ -35,6 +35,7 @@ const VideoProperty = (props: PropertyProps) => {
           onChange={props.onChange}
           contentType="video"
           props={props}
+          showRecorder={showRecorder}
         />
       )}
     </div>

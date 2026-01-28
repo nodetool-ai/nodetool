@@ -397,7 +397,7 @@ export class WebSocketManager {
 }
 
 // Usage
-const ws = new WebSocketManager('ws://localhost:8000/ws');
+const ws = new WebSocketManager('ws://localhost:7777/ws');
 
 ws.on('open', () => console.log('Connected'));
 ws.on('message', (msg) => console.log('Received:', msg));

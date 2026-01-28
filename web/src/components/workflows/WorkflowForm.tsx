@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import {
-  Box,
   FormControl,
   OutlinedInput,
   FormLabel,
@@ -10,16 +9,19 @@ import {
   Autocomplete,
   TextField,
   MenuItem,
-  FormHelperText
+  FormHelperText,
+  createFilterOptions
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import WorkspaceSelect from "../workspaces/WorkspaceSelect";
+import PanelHeadline from "../ui/PanelHeadline";
 
-const AVAILABLE_TAGS = [
+const DEFAULT_TAG_SUGGESTIONS = [
   "image",
   "audio",
   "video",
@@ -27,8 +29,7 @@ const AVAILABLE_TAGS = [
   "chat",
   "docs",
   "mail",
-  "rag",
-  "example"
+  "rag"
 ];
 
 const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"];
@@ -40,23 +41,6 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(3),
       minWidth: "420px",
       maxWidth: "500px"
-    },
-    
-    // Header styling
-    ".workflow-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(2),
-      marginBottom: theme.spacing(4),
-      paddingBottom: theme.spacing(2),
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-      "& h3": {
-        margin: 0,
-        fontSize: "1.25rem",
-        fontWeight: 600,
-        color: theme.vars.palette.grey[0],
-        letterSpacing: "-0.02em"
-      }
     },
     
     // Section grouping
@@ -97,14 +81,14 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900],
       borderRadius: "6px",
       transition: "all 0.2s ease",
-      "& fieldset": {
+      "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.grey[700],
         transition: "border-color 0.2s ease"
       },
-      "&:hover fieldset": {
+      "&:hover .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.grey[500]
       },
-      "&.Mui-focused fieldset": {
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
         borderColor: "var(--palette-primary-main)",
         borderWidth: "1px"
       }
@@ -232,40 +216,16 @@ const styles = (theme: Theme) =>
         boxShadow: `0 4px 12px ${theme.vars.palette.primary.main}66`,
         transform: "translateY(-1px)"
       }
-    },
-    
-    // Thumbnail (commented out but keeping styles)
-    ".thumbnail-img": {
-      position: "relative",
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
-      borderRadius: "6px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundSize: "contain",
-      backgroundRepeat: "no-repeat",
-      backgroundPosition: "center",
-      width: "100%",
-      height: "64px",
-      userSelect: "none",
-      color: theme.vars.palette.grey[400],
-      padding: "0px 10px",
-      fontSize: theme.fontSizeSmall
-    },
-    ".thumbnail button": {
-      position: "absolute",
-      top: "1px",
-      right: "1px",
-      backgroundColor: `rgba(${theme.vars.palette.grey[700]} / 0.8)`
     }
   });
 
 interface WorkflowFormProps {
   workflow: Workflow;
   onClose: () => void;
+  availableTags?: string[];
 }
 
-const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
+const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
   const [isCapturing, setIsCapturing] = useState(false);
   const { saveWorkflow } = useWorkflowManager((state) => ({
@@ -278,6 +238,12 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   useEffect(() => {
     setLocalWorkflow(workflow || ({} as Workflow));
   }, [workflow]);
+
+  // Merge default suggestions with available tags from existing workflows
+  const tagOptions = useMemo(() => {
+    const allTags = new Set([...DEFAULT_TAG_SUGGESTIONS, ...availableTags]);
+    return Array.from(allTags).sort();
+  }, [availableTags]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -301,33 +267,23 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     onClose();
   }, [saveWorkflow, localWorkflow, addNotification, onClose]);
 
-  // const deleteThumbnail = useCallback(
-  //   (event: React.MouseEvent<HTMLButtonElement>) => {
-  //     event.stopPropagation();
-  //     const updatedWorkflow = { ...workflow, thumbnail: "", thumbnail_url: "" };
-  //     setLocalWorkflow(updatedWorkflow);
-  //   },
-  //   [workflow, setLocalWorkflow]
-  // );
-
-  // const { onDrop, onDragOver } = useFileDrop({
-  //   uploadAsset: true,
-  //   onChangeAsset: (asset) => {
-  //     const updatedWorkflow = {
-  //       ...workflow,
-  //       thumbnail: asset.id,
-  //       thumbnail_url: asset.get_url
-  //     };
-  //     setLocalWorkflow(updatedWorkflow);
-  //   },
-  //   type: "image"
-  // });
-
-  const handleTagChange = (_event: React.SyntheticEvent, newTags: string[]) => {
+  const handleTagChange = (_event: React.SyntheticEvent, newValue: (string | { inputValue: string; title: string })[]) => {
+    // Handle both string values and objects from freeSolo createOption
+    const processedTags = newValue.map((item) => {
+      if (typeof item === "string") {
+        return item.trim().toLowerCase();
+      }
+      // Handle the createOption object format
+      return item.inputValue.trim().toLowerCase();
+    }).filter((tag) => tag.length > 0);
+    
+    // Remove duplicates
+    const uniqueTags = Array.from(new Set(processedTags));
+    
     const updatedWorkflow = {
       ...workflow,
       ...localWorkflow,
-      tags: newTags
+      tags: uniqueTags
     };
     setLocalWorkflow(updatedWorkflow);
   };
@@ -389,16 +345,22 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
     []
   );
 
+  const handleWorkspaceChange = useCallback(
+    (workspaceId: string | undefined) => {
+      setLocalWorkflow((prev: Workflow) => ({
+        ...prev,
+        workspace_id: workspaceId || null
+      }));
+    },
+    []
+  );
+
   return (
     <div css={styles(theme)} className="workflow-form">
-      <div className="workflow-header">
-        <Typography variant="h3">Workflow Settings</Typography>
-      </div>
+      <PanelHeadline title="Workflow Settings" />
 
       {/* Basic Information Section */}
       <div className="settings-section">
-        <Typography className="section-title">Basic Information</Typography>
-        
         <FormControl fullWidth>
           <FormLabel htmlFor="name">Name</FormLabel>
           <OutlinedInput
@@ -431,9 +393,42 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
           <Autocomplete
             className="tag-input"
             multiple
-            options={AVAILABLE_TAGS}
+            freeSolo
+            selectOnFocus
+            clearOnBlur
+            handleHomeEndKeys
+            options={tagOptions}
             value={localWorkflow.tags || []}
             onChange={handleTagChange}
+            filterOptions={(options, params) => {
+              const filter = createFilterOptions<string>();
+              const filtered = filter(options, params);
+              const { inputValue } = params;
+              // Suggest creating a new tag if it doesn't exist
+              const isExisting = options.some(
+                (option) => inputValue.toLowerCase() === option.toLowerCase()
+              );
+              if (inputValue !== "" && !isExisting) {
+                filtered.push(inputValue);
+              }
+              return filtered;
+            }}
+            getOptionLabel={(option) => {
+              if (typeof option === "string") {
+                return option;
+              }
+              return (option as { inputValue?: string }).inputValue || "";
+            }}
+            renderOption={(props, option) => {
+              const { key, ...rest } = props;
+              const optionStr = typeof option === "string" ? option : (option as { inputValue?: string }).inputValue || "";
+              const isNew = optionStr !== "" && !tagOptions.includes(optionStr);
+              return (
+                <li key={key} {...rest}>
+                  {isNew ? `Add "${optionStr}"` : optionStr}
+                </li>
+              );
+            }}
             slotProps={{
               popper: {
                 style: {
@@ -442,15 +437,21 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
               }
             }}
             renderInput={(params) => (
-              <TextField {...params} placeholder="Select tags..." />
+              <TextField {...params} placeholder="Type or select tags..." />
             )}
           />
+          <FormHelperText>
+            Select from suggestions or type custom tags (press Enter to add)
+          </FormHelperText>
         </FormControl>
       </div>
 
       {/* Execution Section */}
       <div className="settings-section">
         <Typography className="section-title">Execution</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+          Configure how this workflow runs and can be triggered
+        </Typography>
 
         <FormControl fullWidth>
           <FormLabel>Run Mode</FormLabel>
@@ -507,7 +508,16 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
       {/* Advanced Section */}
       <div className="settings-section">
         <Typography className="section-title">Advanced</Typography>
-        
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+          Advanced configuration for workspaces and API/tool usage
+        </Typography>
+
+        <WorkspaceSelect
+          value={localWorkflow.workspace_id ?? undefined}
+          onChange={handleWorkspaceChange}
+          helperText="Associate a workspace folder with this workflow for agent access"
+        />
+
         <FormControl fullWidth>
           <FormLabel htmlFor="tool_name">Tool Name</FormLabel>
           <OutlinedInput
@@ -538,4 +548,4 @@ const WorkflowForm = ({ workflow, onClose }: WorkflowFormProps) => {
   );
 };
 
-export default WorkflowForm;
+export default memo(WorkflowForm);

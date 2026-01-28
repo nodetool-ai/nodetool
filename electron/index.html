@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta
@@ -9,8 +9,9 @@
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       frame-src 'self' http://127.0.0.1:7777;
-      media-src 'self' mediadevices: *;
-      connect-src 'self' http://127.0.0.1:7777 mediadevices: *;
+      img-src 'self' data: blob: https:;
+      media-src 'self' blob: mediadevices: *;
+      connect-src 'self' http://127.0.0.1:7777 mediadevices: * blob: data:;
       child-src 'self' http://127.0.0.1:7777;
     "
     />

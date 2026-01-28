@@ -28,7 +28,7 @@ jest.mock("../../utils/errorHandling", () => ({
   )
 }));
 jest.mock("../BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000"
+  BASE_URL: "http://localhost:7777"
 }));
 
 import axios from "axios";
@@ -455,7 +455,7 @@ describe("AssetStore", () => {
 
   describe("loadFolderTree", () => {
     it("should load folder tree with default sorting", async () => {
-      const mockFolderTree = {
+      const _mockFolderTree = {
         folder1: {
           id: "folder1",
           name: "Folder 1",
@@ -477,7 +477,7 @@ describe("AssetStore", () => {
     });
 
     it("should load folder tree with custom sorting", async () => {
-      const mockFolderTree = {
+      const _mockFolderTree = {
         folder1: {
           id: "folder1",
           name: "Folder 1",
@@ -525,7 +525,7 @@ describe("AssetStore", () => {
   describe("utility functions", () => {
     describe("sort", () => {
       it("should sort assets by created_at in descending order", () => {
-        const assets = {
+        const _assets = {
           asset1: {
             id: "asset1",
             name: "asset1.jpg",

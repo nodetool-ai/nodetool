@@ -16,6 +16,63 @@ import {
 // Slightly higher value keeps the feel responsive without huge jumps.
 const UNBOUNDED_DRAG_SCALE = 0.25;
 
+/**
+ * Hook providing value calculation utilities for number input components.
+ * Memoizes step and decimal place calculations to prevent unnecessary recalculations.
+ * 
+ * @returns Object containing memoized calculation functions
+ * 
+ * @example
+ * ```typescript
+ * const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
+ * const step = calculateStep(0, 100, "float");
+ * ```
+ */
+
+/**
+ * Hook for handling mouse drag interactions on number input fields.
+ * Provides sophisticated drag-to-change functionality including:
+ * - Drag threshold detection to distinguish between clicks and drags
+ * - Speed control based on vertical mouse position (slowdown dead zone)
+ * - Shift key support for fine-grained adjustments
+ * - Step calculation based on input constraints
+ * - Value constraint application (min/max bounds)
+ * 
+ * The drag handling implements an "incremental dragging" pattern where the value
+ * is updated based on pixel movement rather than absolute position, providing
+ * a natural feel regardless of the value range.
+ * 
+ * @param props - Input configuration including min, max, step, onChange callbacks
+ * @param state - Current number input state
+ * @param setState - State setter for the number input
+ * @param inputIsFocused - Whether the input field has focus
+ * @param setInputIsFocused - Callback to set input focus state
+ * @param containerRef - Reference to the input container element
+ * @param dragStateRef - Mutable ref tracking drag state across renders
+ * @param setSpeedFactorState - Callback to update speed factor display for debugging
+ * @returns Object containing handleMouseMove and handleMouseUp callbacks
+ * 
+ * @example
+ * ```typescript
+ * const { handleMouseMove, handleMouseUp } = useDragHandling(
+ *   props,
+ *   state,
+ *   setState,
+ *   inputIsFocused,
+ *   setInputIsFocused,
+ *   containerRef,
+ *   dragStateRef,
+ *   setSpeedFactorState
+ * );
+ * ```
+ * 
+ * **Drag Behavior**:
+ * - Move mouse horizontally to change value
+ * - Move mouse vertically outside dead zone to slow down changes
+ * - Hold Shift for 10x finer control
+ * - Drag threshold (5px) prevents accidental drags
+ * - Release to commit changes and trigger onChangeComplete
+ */
 export const useValueCalculation = () => {
   const calculateStepCb = useCallback(calculateStep, []);
   const calculateDecimalPlacesCb = useCallback(calculateDecimalPlaces, []);
@@ -163,19 +220,25 @@ export const useDragHandling = (
 
   const handleMouseUp = useCallback(() => {
     if (dragStateRef.current.isDragging) {
+      const finalValue = dragStateRef.current.currentDragValue;
       dragStateRef.current.isDragging = false;
       // sync final value back to react state
       setState((prev) => ({
         ...prev,
         isDragging: false,
-        localValue: String(dragStateRef.current.currentDragValue)
+        localValue: String(finalValue)
       }));
 
       if (!dragStateRef.current.hasExceededDragThreshold) {
         setInputIsFocused(true);
+      } else {
+        // Call onChangeComplete when user finishes dragging (only if they actually dragged)
+        if (props.onChangeComplete) {
+          props.onChangeComplete(finalValue);
+        }
       }
     }
-  }, [setInputIsFocused, dragStateRef, setState]);
+  }, [setInputIsFocused, dragStateRef, setState, props]);
 
   return { handleMouseMove, handleMouseUp };
 };

@@ -4,11 +4,11 @@ import { IconButton, Paper, Tooltip, Typography, Popover, Box } from "@mui/mater
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeList, ListChildComponentProps } from "react-window";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { VariableSizeList, ListChildComponentProps } from "react-window";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DataObjectIcon from "@mui/icons-material/DataObject";
-import { CopyToClipboardButton } from "./CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 
 export type Severity = "info" | "warning" | "error";
 
@@ -27,6 +27,7 @@ export type LogsTableProps = {
   emptyText?: string;
   severities?: Severity[]; // when provided, only show these severities
   autoScroll?: boolean; // default true
+  showTimestampColumn?: boolean;
 };
 
 const SEVERITY_COLORS = (theme: Theme): Record<Severity, { bg: string; text: string; border: string }> => ({
@@ -68,7 +69,7 @@ const tableStyles = (theme: Theme) =>
 
     ".header": {
       display: "grid",
-      gridTemplateColumns: "72px 1fr 80px 60px",
+      gridTemplateColumns: "1fr 60px",
       gap: 8,
       alignItems: "center",
       height: 32,
@@ -84,7 +85,7 @@ const tableStyles = (theme: Theme) =>
 
     ".row": {
       display: "grid",
-      gridTemplateColumns: "72px 1fr 80px 60px",
+      gridTemplateColumns: "1fr 60px",
       gap: 8,
       alignItems: "center",
       height: 36,
@@ -93,11 +94,17 @@ const tableStyles = (theme: Theme) =>
       backgroundColor: "transparent",
       transition: "background-color 0.15s ease",
       cursor: "pointer",
+      borderLeft: "3px solid transparent",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       },
       "&:active": {
         backgroundColor: theme.vars.palette.action.selected
+      },
+      "&.expanded": {
+        alignItems: "flex-start",
+        paddingTop: 8,
+        paddingBottom: 8
       },
       // Hide copy button by default, show on hover
       "& .copy-btn": {
@@ -143,22 +150,17 @@ const tableStyles = (theme: Theme) =>
       gap: 4
     },
 
-    ".severity-badge": {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "2px 8px",
-      borderRadius: 4,
-      fontSize: "0.65rem",
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: "0.03em"
-    },
-
     ".content": {
       fontFamily: theme.fontFamily2,
       color: theme.vars.palette.grey[300],
       cursor: "default"
+    },
+
+    ".content.expanded": {
+      whiteSpace: "normal",
+      overflow: "visible",
+      textOverflow: "clip",
+      lineHeight: "1.35"
     },
 
     ".timestamp": {
@@ -211,11 +213,23 @@ const formatTime = (ts: number) => {
 };
 
 // Memoized row component for better performance
-const RowItem = memo(({ index, style, data }: ListChildComponentProps<LogRow[]>) => {
-  const r = data[index];
+type RowItemData = {
+  rows: LogRow[];
+  rowKeys: string[];
+  showTimestampColumn: boolean;
+  columns: string;
+  expandedKeys: Set<string>;
+  toggleExpand: (key: string, index: number) => void;
+};
+
+const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemData>) => {
+  const r = data.rows[index];
+  const rowKey = data.rowKeys[index];
   const theme = useTheme();
   const colors = SEVERITY_COLORS(theme)[r.severity];
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const timeTooltip = data.showTimestampColumn ? "" : formatTime(r.timestamp);
+  const isExpanded = data.expandedKeys.has(rowKey);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -231,31 +245,31 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<LogRow[]>)
   
   return (
     <div style={style}>
-      <div 
-        className={`row row-${r.severity}`}
+      <div
+        className={`row row-${r.severity}${isExpanded ? " expanded" : ""}`}
+        style={{
+          gridTemplateColumns: data.columns,
+          borderLeftColor: colors.text
+        }}
+        onClick={() => data.toggleExpand(rowKey, index)}
       >
-        <div className="cell">
-          <span 
-            className="severity-badge"
-            style={{ 
-              backgroundColor: colors.bg, 
-              color: colors.text,
-              border: `1px solid ${colors.border}`
-            }}
-          >
-            {r.severity}
-          </span>
-        </div>
-        <Tooltip title={r.content} placement="top-start" enterDelay={500}>
-          <div className="cell content">
+        <Tooltip
+          title={timeTooltip}
+          placement="top-start"
+          enterDelay={500}
+          disableHoverListener={data.showTimestampColumn}
+        >
+          <div className={`cell content${isExpanded ? " expanded" : ""}`}>
             {r.content}
           </div>
         </Tooltip>
-        <div className="cell timestamp">{formatTime(r.timestamp)}</div>
-        <div className="cell actions">
-          <CopyToClipboardButton
-            copyValue={r.content}
-            title="Copy log to clipboard"
+        {data.showTimestampColumn && (
+          <div className="cell timestamp">{formatTime(r.timestamp)}</div>
+        )}
+        <div className="cell actions" onClick={(e) => e.stopPropagation()}>
+          <CopyButton
+            value={r.content}
+            tooltip="Copy log to clipboard"
             tooltipPlacement="top"
             className="copy-btn"
             sx={{ padding: "2px" }}
@@ -315,18 +329,65 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   height,
   emptyText = "No logs to display",
   severities,
-  autoScroll = true
+  autoScroll = true,
+  showTimestampColumn = true
 }) => {
   const theme = useTheme();
   const styles = tableStyles(theme);
-  const listRef = useRef<FixedSizeList>(null);
+  const listRef = useRef<VariableSizeList>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const prevRowCountRef = useRef(rows.length);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const columns = showTimestampColumn ? "1fr 80px 60px" : "1fr 60px";
 
   const filteredRows = Array.isArray(severities) && severities.length > 0
     ? rows.filter((r) => severities.includes(r.severity))
     : rows;
+
+  const rowKeys = useMemo(
+    () =>
+      filteredRows.map((r, index) =>
+        `${r.timestamp}:${r.severity}:${r.content}:${index}`
+      ),
+    [filteredRows]
+  );
+
+  useEffect(() => {
+    setExpandedKeys(new Set());
+    listRef.current?.resetAfterIndex(0);
+  }, [rowKeys]);
+
+  const toggleExpand = useCallback((key: string, index: number) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+    listRef.current?.resetAfterIndex(index);
+  }, []);
+
+  const estimateRowHeight = useCallback(
+    (row: LogRow, listWidth: number, expanded: boolean) => {
+      if (!expanded) {
+        return rowHeight;
+      }
+      const padding = 24;
+      const actionsWidth = 60;
+      const contentWidth = Math.max(120, listWidth - padding - actionsWidth);
+      const avgCharWidth = 7;
+      const maxCharsPerLine = Math.max(10, Math.floor(contentWidth / avgCharWidth));
+      const lineHeight = 16;
+      const lines = Math.max(1, Math.ceil(row.content.length / maxCharsPerLine));
+      const extra = Math.max(0, (lines - 1) * lineHeight);
+      return rowHeight + extra + 8;
+    },
+    [rowHeight]
+  );
 
   // Auto-scroll to bottom when new logs arrive (if at bottom)
   useEffect(() => {
@@ -362,27 +423,48 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   }, [filteredRows.length]);
 
   const renderList = useCallback((listHeight: number, listWidth: number) => (
-    <FixedSizeList
+    <VariableSizeList
       ref={listRef}
       height={listHeight}
       width={listWidth}
       itemCount={filteredRows.length}
-      itemSize={rowHeight}
-      itemData={filteredRows}
+      itemSize={(index) =>
+        estimateRowHeight(
+          filteredRows[index],
+          listWidth,
+          expandedKeys.has(rowKeys[index])
+        )
+      }
+      itemData={{
+        rows: filteredRows,
+        rowKeys,
+        showTimestampColumn,
+        columns,
+        expandedKeys,
+        toggleExpand
+      }}
       onScroll={handleScroll}
       overscanCount={5}
     >
       {RowItem}
-    </FixedSizeList>
-  ), [filteredRows, rowHeight, handleScroll]);
+    </VariableSizeList>
+  ), [
+    filteredRows,
+    handleScroll,
+    showTimestampColumn,
+    columns,
+    expandedKeys,
+    rowKeys,
+    toggleExpand,
+    estimateRowHeight
+  ]);
 
   return (
     <div css={styles} style={height ? { height } : undefined}>
       <Paper variant="outlined" className="table">
-        <div className="header">
-          <span>Severity</span>
+        <div className="header" style={{ gridTemplateColumns: columns }}>
           <span>Message</span>
-          <span>Time</span>
+          {showTimestampColumn && <span>Time</span>}
           <span style={{ textAlign: "right" }}></span>
         </div>
         <div className="list-container">
@@ -414,4 +496,3 @@ export const LogsTable: React.FC<LogsTableProps> = ({
 };
 
 export default LogsTable;
-

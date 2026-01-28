@@ -4,117 +4,121 @@ title: "Getting Started"
 description: "Build your first AI workflow in 10 minutes."
 ---
 
-This guide walks you through running your first NodeTool workflow. No AI experience or coding required.
+Run your first NodeTool workflow. No AI experience or coding needed.
 
-> **What you'll do**:
-> - ✅ Run a complete AI workflow
-> - ✅ See results generate in real-time
-> - ✅ Learn multiple ways to run workflows
-> - ✅ Understand the visual workflow builder
+**You'll:**
+- Run a complete workflow
+- See results generate live
+- Try different ways to work
+- Understand the visual builder
 
-For a visual overview first, see the [Start Here guide](index.md#start-here).
+For a visual overview first, see [Start Here](index.md#start-here).
 
 ---
 
-## Before You Begin
+## Two Quick Definitions
 
-**Workflow**: A series of connected steps (nodes). Each node performs one operation and passes results to the next.
+**Workflow** - Connected steps (nodes) that do something useful. Each node does one thing and passes results forward.
 
-**AI Model**: A pre-trained program for a specific task (image generation, text analysis, etc.). You don't train them—select the appropriate model for your task.
+**AI Model** - Pre-trained program for a specific task (image generation, text analysis, etc.). You pick the right one for your task.
 
 ---
 
 ## Step 1 — Install NodeTool
 
-### Download and Install
+1. **Download** from [nodetool.ai](https://nodetool.ai) for macOS, Windows, or Linux
 
-1. **Download** from [nodetool.ai](https://nodetool.ai):
-   - **macOS** – Intel or Apple Silicon (M1/M2/M3)
-   - **Windows** – Windows 10 or later
-   - **Linux** – AppImage or Debian package
+2. **Run the installer** - Sets up Python and AI engines automatically
 
-2. **Run the installer** – sets up Python and AI engines automatically
+3. **Launch NodeTool** - Default install location works for most people
 
-3. **Launch NodeTool** – choose install location on first run (default works for most users)
+> Need help? See [Installation Guide](installation.md) for GPU requirements and troubleshooting.
 
-> See the [Installation Guide](installation.md) for GPU requirements and troubleshooting.
+![Dashboard Overview](assets/screenshots/dashboard-overview.png)
 
-### Install Your First AI Models
+### First Launch
 
-To run the example workflows:
+The **Getting Started Panel** walks you through:
+
+1. **Overview** - What NodeTool can do
+2. **First Workflow** - Run your first template
+3. **AI Models** - Install what you need
+4. **Tips** - Helpful shortcuts
+
+### Install AI Models
+
+For local workflows, install models:
 
 1. Open **Models**
-2. Install recommended starter models:
-   - **Flux** or **SDXL** – for image generation (requires 8-12 GB VRAM)
-   - **GPT-OSS** (optional) – for text generation
-3. Wait for downloads (~20 GB total)
+2. Install starter models:
+   - **Flux** or **SDXL** - Image generation (needs 8-12 GB VRAM)
+   - **GPT-OSS** - Text generation (optional)
+3. Wait for downloads (~20 GB)
 
-> **No GPU?** Skip local models and use cloud services (OpenAI, Replicate) by adding API keys in `Settings → Providers`. See [Hardware Requirements](installation.md#hardware-requirements-by-task).
+> **No GPU?** Skip local models. Use cloud services (OpenAI, Replicate) by adding API keys in Settings → Providers. See [Hardware Requirements](installation.md#hardware-requirements-by-task).
 
-✅ **Checkpoint**: NodeTool Dashboard with Templates and examples ready.
+✅ **You're ready** - Dashboard loaded with templates.
 
 ---
 
 ## Step 2 — Run Your First Workflow
 
-Run a pre-built template. Choose one:
+Pick one template to try:
 
-### Option A: Generate Movie Posters (Image Generation)
+### Option A: Generate Movie Posters
 
-1. **Find the template**: On the Dashboard, look for "Movie Posters" in the Templates panel and click it
-2. **Open in Editor**: Click **Open in Editor** to see the workflow canvas
-3. **Understand the pipeline**:
-   - **Input nodes** (left) – where you describe your movie
-   - **AI Strategy node** (middle) – plans the visual concept
-   - **Image Generator** (right) – creates the actual poster
-   - **Preview** – where your result appears
+1. **Find it**: Dashboard → Templates → "Movie Posters"
+2. **Open in Editor**: See the workflow canvas
+3. **How it works**:
+   - Input nodes (left) - Describe your movie
+   - AI Strategy node (middle) - Plans the visual
+   - Image Generator (right) - Creates the poster
+   - Preview - Shows your result
 
-4. **Customize your poster**: Click the input nodes and describe your movie:
+4. **Try it**: Click the input nodes and type:
    - **Title**: "Ocean Depths"
    - **Genre**: "Sci-Fi Thriller"
    - **Audience**: "Adults who love mystery"
 
-5. **Run it**: Click **Run** (bottom-right) or press <kbd>Ctrl/⌘ + Enter</kbd>
-6. **View results**: Poster generates step by step
+5. **Run**: Click **Run** (bottom-right) or press <kbd>Ctrl/⌘ + Enter</kbd>
+6. **Watch**: Poster generates step by step
 
-**Result**: Input → AI strategy → image generation → output.
+### Option B: Creative Story Ideas
 
-### Option B: Creative Story Ideas (Text Generation)
+![Creative Story Ideas Workflow](assets/screenshots/creative-story-workflow.png)
 
-1. **Find the template**: Look for "Creative Story Ideas" in Templates and open it
-2. **Understand the flow**:
-   - **Input nodes** – your creative parameters
-   - **AI Agent** – generates ideas based on inputs
-   - **Preview** – where ideas appear as they're created
+1. **Find it**: Dashboard → Templates → "Creative Story Ideas"
+2. **How it works**:
+   - Input nodes - Your parameters
+   - AI Agent - Generates ideas
+   - Preview - Shows results
 
-3. **Set your parameters**: Click the input nodes:
+3. **Try it**: Click the input nodes and type:
    - **Genre**: "Cyberpunk"
    - **Character**: "Rogue AI detective"
    - **Setting**: "Neon-lit underwater city"
 
-4. **Generate**: Click **Run** or press <kbd>Ctrl/⌘ + Enter</kbd>
-5. **View results**: Ideas stream in one at a time
+4. **Run**: Click **Run** or <kbd>Ctrl/⌘ + Enter</kbd>
+5. **Watch**: Ideas appear one at a time
 
-**Result**: Parameters → AI agent → generated ideas.
-
-✅ **Checkpoint**: First workflow complete. Results appear in the canvas.
+✅ **Done** - You ran your first workflow.
 
 ---
 
 ## Step 3 — Customize and Iterate
 
-1. **Save your workflow**: Press <kbd>Ctrl/⌘ + S</kbd>. Give it a descriptive name.
+1. **Save**: Press <kbd>Ctrl/⌘ + S</kbd> and name it
 
-2. **Modify inputs**: Change parameters and run again.
+2. **Change things**: Edit inputs and run again
    
-3. **Explore the canvas**:
+3. **Explore**:
    - Click nodes to see settings
-   - Hover over connections to see data flow
-   - Click Preview nodes to inspect intermediate results
+   - Hover connections to see data flow
+   - Click Preview nodes for intermediate results
 
-Workflows are reusable. Generate variations, refine parameters, save modifications.
+Workflows are reusable. Try variations. Refine. Save.
 
-✅ **Checkpoint**: You can customize and iterate on workflows.
+✅ **Done** - You can customize workflows.
 
 ---
 
@@ -123,53 +127,47 @@ Workflows are reusable. Generate variations, refine parameters, save modificatio
 Convert a workflow into a simplified interface:
 
 1. **Open your workflow** in the editor
+1. **Open your workflow** in the editor
 2. **Click Mini-App** (top-right)
-3. **View simplified interface**: Shows only inputs and outputs
+3. **See simplified view**: Only inputs and outputs, no graph
 
-Mini-Apps let others run workflows without seeing the underlying complexity.
+Mini-Apps hide complexity. Others can use your workflow without seeing how it works.
 
-✅ **Checkpoint**: Three ways to work: Visual Editor (full control), Chat (conversational), Mini-App (simplified interface).
-
----
-
-## Recap
-
-Completed:
-- ✅ Installed NodeTool and AI models
-- ✅ Ran a complete AI workflow
-- ✅ Understood nodes, connections, and data flow
-- ✅ Customized and iterated on workflows
-- ✅ Shared a workflow as a Mini-App
+✅ **Done** - You know three ways to work: Visual Editor (full control), Mini-App (simple interface).
 
 ---
 
-## What's Next
+## What You Learned
 
-### Learn More
-- **[Key Concepts](key-concepts.md)** – Deeper understanding of workflows and AI
-- **[User Interface Guide](user-interface.md)** – Master every tool and feature
-- **[Workflow Editor](workflow-editor.md)** – Build custom workflows from scratch
-- **[Tips & Tricks](tips-and-tricks.md)** – Power user techniques
-
-### Explore Examples
-- **[Workflow Gallery](workflows/)** – 19+ ready-to-use workflows
-- **[Workflow Patterns](cookbook.md)** – Common patterns and best practices
-- **[Node Library](node-packs.md)** – Discover all available nodes
-
-### Go Further
-- **[Models & Providers](models-and-providers.md)** – Set up more AI models
-- **[Asset Management](asset-management.md)** – Organize your files
-- **[Deployment Guide](deployment.md)** – Share workflows with the world
-
-### Debug & Troubleshoot
-- **[Workflow Debugging Guide](workflow-debugging.md)** – Debug workflows with Preview nodes and logs
-- **[Troubleshooting](troubleshooting.md)** – Solve common problems
-- **[Comparisons](comparisons.md)** – How NodeTool compares to other tools (includes migration guides)
+- Installed NodeTool and models
+- Ran a workflow
+- Understood nodes and connections
+- Customized inputs
+- Shared as a Mini-App
 
 ---
 
-## Need Help?
+## Next Steps
 
-- **[Glossary](glossary.md)** – Plain-English definitions of all terms
-- **[Discord Community](https://discord.gg/WmQTWZRcYE)** – Get help from other users
-- **[GitHub Issues](https://github.com/nodetool-ai/nodetool/issues)** – Report bugs or request features
+**Learn more:**
+- [Key Concepts](key-concepts.md) - How workflows really work
+- [User Interface](user-interface.md) - Every tool explained
+- [Workflow Editor](workflow-editor.md) - Build from scratch
+- [Tips & Tricks](tips-and-tricks.md) - Power user moves
+
+**Try examples:**
+- [Workflow Gallery](workflows/) - 19+ ready workflows
+- [Workflow Patterns](cookbook.md) - Common patterns
+- [Node Library](node-packs.md) - All available nodes
+
+**Go deeper:**
+- [Models & Providers](models-and-providers.md) - Set up more models
+- [Asset Management](asset-management.md) - Organize files
+- [Deployment](deployment.md) - Share with the world
+
+**Get help:**
+- [Workflow Debugging](workflow-debugging.md) - Fix problems
+- [Troubleshooting](troubleshooting.md) - Common issues
+- [Glossary](glossary.md) - Plain-English terms
+- [Discord](https://discord.gg/WmQTWZRcYE) - Ask the community
+- [GitHub Issues](https://github.com/nodetool-ai/nodetool/issues) - Report bugs

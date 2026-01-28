@@ -2,12 +2,12 @@ import { create } from "zustand";
 import type {
   ImageModel,
   LanguageModel,
+  EmbeddingModel,
   TTSModel,
   ASRModel,
   VideoModel
 } from "./ApiTypes";
 import Fuse from "fuse.js";
-import useRemoteSettingsStore from "./RemoteSettingStore";
 import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
 import { useSecrets } from "../hooks/useSecrets";
@@ -16,12 +16,22 @@ export type SidebarTab = "favorites" | "recent";
 
 export type EnabledProvidersMap = Record<string, boolean>;
 
-export type ModelSelectorModel =
+export interface ModelSelectorModel {
+  type: string;
+  provider: string;
+  id: string;
+  name: string;
+  path?: string | null;
+  supported_tasks?: string[];
+}
+
+export type ModelType =
   | LanguageModel
   | ImageModel
   | TTSModel
   | ASRModel
-  | VideoModel;
+  | VideoModel
+  | EmbeddingModel;
 
 export interface ModelMenuState<
   TModel extends ModelSelectorModel = LanguageModel
@@ -107,7 +117,6 @@ export const filterModelsList = <TModel extends ModelSelectorModel>(
   if (!selectedProvider) {
     // Filter by enabled providers: missing key means enabled (default true)
     // Only filter out if explicitly set to false
-    const beforeFilter = list.length;
     list = list.filter((m) => {
       const providerKey = String(m.provider || "");
       const isEnabled = enabledProviders?.[providerKey] !== false;
@@ -287,3 +296,8 @@ export const useHuggingFaceImageModelMenuStore =
   huggingFaceImageModelMenu.useStore;
 export const useHuggingFaceImageModelMenuData =
   huggingFaceImageModelMenu.useData;
+
+// Embedding models use EmbeddingModel type
+const embeddingModelMenu = createModelMenuSelector<EmbeddingModel>();
+export const useEmbeddingModelMenuStore = embeddingModelMenu.useStore;
+export const useEmbeddingModelMenuData = embeddingModelMenu.useData;

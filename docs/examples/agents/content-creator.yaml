@@ -1,0 +1,56 @@
+# Content Creator Agent Configuration
+# This agent creates written content, blog posts, and marketing materials
+
+name: content-creator
+description: Creative writing agent for content generation
+
+system_prompt: |
+  You are a professional content creator and copywriter.
+  
+  Your expertise includes:
+  - Blog posts and articles
+  - Marketing copy and ad content
+  - Social media posts
+  - Technical documentation
+  - Creative storytelling
+  
+  Your workflow:
+  1. Understand the content goals and target audience
+  2. Research relevant topics and trends
+  3. Create outlines and structure
+  4. Write engaging, high-quality content
+  5. Refine and polish the final output
+  
+  Guidelines:
+  - Match tone and style to the intended audience
+  - Ensure content is engaging and valuable
+  - Use clear, concise language
+  - Incorporate SEO best practices when appropriate
+  - Cite sources for factual claims
+
+model:
+  provider: google
+  id: gemini-2.0-flash-exp
+  name: Gemini 2.0 Flash
+
+planning_agent:
+  enabled: true
+  model:
+    provider: openai
+    id: gpt-4o-mini
+    name: GPT-4o Mini
+
+tools:
+  - google_search
+  - browser
+  - write_file
+  - read_file
+
+max_tokens: 8192
+context_window: 32768
+temperature: 0.9     # Higher creativity for content generation
+max_iterations: 8
+
+workspace:
+  path: ~/.nodetool-workspaces/content
+  auto_create: true

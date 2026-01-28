@@ -12,6 +12,11 @@ export type NotificationType =
   | "job"
   | "success";
 
+export interface NotificationAction {
+  label: string;
+  onClick: () => void | Promise<void>;
+}
+
 export interface Notification {
   id: string;
   type: NotificationType;
@@ -20,6 +25,7 @@ export interface Notification {
   timeout?: number;
   dismissable?: boolean;
   alert?: boolean;
+  action?: NotificationAction;
 }
 
 interface NotificationStore {

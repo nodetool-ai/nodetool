@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, ReactNode, useMemo } from "react";
+import React, { useState, useCallback, ReactNode, useMemo, memo } from "react";
 import {
   Typography,
   Accordion,
@@ -53,7 +53,7 @@ interface TabPanelProps {
   index: TabValue;
 }
 
-function TabPanel(props: TabPanelProps) {
+const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   const { children, value, index } = props;
   return (
     <div
@@ -66,7 +66,7 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box className="tab-content">{children}</Box>}
     </div>
   );
-}
+});
 
 const InlineModelDownload: React.FC<{
   model: UnifiedModel;
@@ -230,7 +230,8 @@ const Welcome = () => {
     ...section,
     originalContent: section.content
   }));
-  const { settings, updateSettings } = useSettingsStore();
+  const settings = useSettingsStore((state) => state.settings);
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
   const theme = useTheme();
   const [tabValue, setTabValue] = useState<TabValue>(TabValue.Overview);
 
@@ -921,4 +922,4 @@ const Welcome = () => {
   );
 };
 
-export default Welcome;
+export default memo(Welcome);

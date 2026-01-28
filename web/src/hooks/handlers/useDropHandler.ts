@@ -8,13 +8,26 @@ import useAuth from "../../stores/useAuth";
 import { useAddNodeFromAsset } from "./addNodeFromAsset";
 import { FileHandlerResult } from "./dropHandlerUtils";
 import { useNodes } from "../../contexts/NodeContext";
+import {
+  deserializeDragData,
+  hasExternalFiles,
+  extractFiles
+} from "../../lib/dragdrop";
+import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 
-// Node spacing when dropping multiple assets
+/** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
+/** Vertical spacing between nodes when dropping multiple assets */
 const MULTI_NODE_VERTICAL_SPACING = 250;
+/** Number of nodes per row when laying out multiple dropped assets */
 const NODES_PER_ROW = 2;
 
-// File type detection
+/**
+ * Detects the file type based on MIME type.
+ * 
+ * @param file - The file to analyze
+ * @returns Detected type: "png", "json", "csv", "document", or "unknown"
+ */
 function detectFileType(file: File): string {
   switch (file.type) {
     case "image/png":
@@ -36,6 +49,30 @@ function detectFileType(file: File): string {
   }
 }
 
+/**
+ * Hook for handling drop events on the ReactFlow canvas.
+ * 
+ * This hook manages dropping various content onto the workflow canvas:
+ * - External files (images, JSON, CSV, documents)
+ * - Assets from the asset browser
+ * - Nodes from the node menu
+ * 
+ * It handles file processing, node creation, and error notifications.
+ * 
+ * @returns Object containing onDrop and onDragOver handlers for the canvas
+ * 
+ * @example
+ * ```typescript
+ * const { onDrop, onDragOver } = useDropHandler();
+ * 
+ * return (
+ *   <ReactFlow
+ *     onDrop={onDrop}
+ *     onDragOver={onDragOver}
+ *   />
+ * );
+ * ```
+ */
 export const useDropHandler = () => {
   const { handlePngFile, handleJsonFile, handleCsvFile, handleGenericFile } =
     useFileHandlers();
@@ -50,6 +87,7 @@ export const useDropHandler = () => {
     (state) => state.addNotification
   );
   const addNodeFromAsset = useAddNodeFromAsset();
+  const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -61,53 +99,60 @@ export const useDropHandler = () => {
         y: event.clientY
       });
 
-      // Create nodes from node menu drop
-      const nodeJSON = event.dataTransfer.getData("create-node");
-      const node = nodeJSON ? (JSON.parse(nodeJSON) as NodeMetadata) : null;
-      if (node !== null) {
+      // Use unified deserialization
+      const dragData = deserializeDragData(event.dataTransfer);
+
+      // Handle create-node drop
+      if (dragData?.type === "create-node") {
+        const node = dragData.payload as NodeMetadata;
         const newNode = createNode(node, position);
         addNode(newNode);
+        // Track this node as recently used
+        addRecentNode(node.node_type);
         return;
       }
 
-      // Create nodes on asset drop
-      const assetJSON = event.dataTransfer.getData("asset");
-      const selectedAssetIdsJSON =
-        event.dataTransfer.getData("selectedAssetIds");
-      const asset = assetJSON ? (JSON.parse(assetJSON) as Asset) : null;
-      const selectedAssetIds = selectedAssetIdsJSON
-        ? (JSON.parse(selectedAssetIdsJSON) as string[])
-        : null;
+      // Handle asset drops on pane
+      if (targetIsPane && dragData) {
+        if (dragData.type === "assets-multiple") {
+          const selectedAssetIds = dragData.payload as string[];
+          // If multiple assets are selected, create nodes for all of them
+          if (selectedAssetIds.length > 1) {
+            selectedAssetIds.forEach((assetId, index) => {
+              // Offset each node to avoid overlap
+              const offsetX =
+                (index % NODES_PER_ROW) * MULTI_NODE_HORIZONTAL_SPACING;
+              const offsetY =
+                Math.floor(index / NODES_PER_ROW) * MULTI_NODE_VERTICAL_SPACING;
+              const nodePosition = {
+                x: position.x + offsetX,
+                y: position.y + offsetY
+              };
 
-      if (targetIsPane && (asset !== null || selectedAssetIds !== null)) {
-        // If multiple assets are selected, create nodes for all of them
-        if (selectedAssetIds && selectedAssetIds.length > 1) {
-          selectedAssetIds.forEach((assetId, index) => {
-            // Offset each node to avoid overlap
-            const offsetX =
-              (index % NODES_PER_ROW) * MULTI_NODE_HORIZONTAL_SPACING;
-            const offsetY =
-              Math.floor(index / NODES_PER_ROW) * MULTI_NODE_VERTICAL_SPACING;
-            const nodePosition = {
-              x: position.x + offsetX,
-              y: position.y + offsetY
-            };
-
-            getAsset(assetId).then((asset: Asset) => {
-              addNodeFromAsset(asset, nodePosition);
+              getAsset(assetId).then((asset: Asset) => {
+                addNodeFromAsset(asset, nodePosition);
+              });
             });
+            return;
+          } else if (selectedAssetIds.length === 1) {
+            // Single asset from multiple selection
+            getAsset(selectedAssetIds[0]).then((asset: Asset) => {
+              addNodeFromAsset(asset, position);
+            });
+            return;
+          }
+        } else if (dragData.type === "asset") {
+          const asset = dragData.payload as Asset;
+          getAsset(asset.id).then((fetchedAsset: Asset) => {
+            addNodeFromAsset(fetchedAsset, position);
           });
-        } else if (asset !== null) {
-          // Single asset drop (fallback)
-          getAsset(asset.id).then((asset: Asset) => {
-            addNodeFromAsset(asset, position);
-          });
+          return;
         }
       }
 
-      // Create nodes on file drop
-      const files = Array.from(event.dataTransfer?.files || []);
-      if (files.length > 0 && user) {
+      // Handle external file drops
+      if (hasExternalFiles(event.dataTransfer) && user) {
+        const files = extractFiles(event.dataTransfer);
         for (const file of files) {
           const fileType = detectFileType(file);
           let result: FileHandlerResult;
@@ -147,6 +192,7 @@ export const useDropHandler = () => {
       addNode,
       getAsset,
       addNodeFromAsset,
+      addRecentNode,
       handlePngFile,
       handleJsonFile,
       handleCsvFile,

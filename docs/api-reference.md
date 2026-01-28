@@ -82,7 +82,7 @@ NodeTool can run entirely without the UI—perfect for automation, CI/CD pipelin
 
 ```bash
 # Run a workflow and get results (non-streaming)
-curl -X POST "http://localhost:8000/api/workflows/YOUR_WORKFLOW_ID/run" \
+curl -X POST "http://localhost:7777/api/workflows/YOUR_WORKFLOW_ID/run" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -99,7 +99,7 @@ Response:
   "output": {
     "image": {
       "type": "image",
-      "uri": "http://localhost:8000/storage/assets/abc123.png"
+      "uri": "http://localhost:7777/storage/assets/abc123.png"
     },
     "caption": "Generated image of a cyberpunk cityscape..."
   }
@@ -112,7 +112,7 @@ For long-running workflows, use streaming to get real-time progress updates:
 
 ```bash
 # Stream workflow execution (SSE)
-curl -X POST "http://localhost:8000/workflows/YOUR_WORKFLOW_ID/run/stream" \
+curl -X POST "http://localhost:7777/workflows/YOUR_WORKFLOW_ID/run/stream" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Accept: text/event-stream" \
@@ -144,7 +144,7 @@ NodeTool exposes OpenAI-compatible endpoints, so you can use standard OpenAI cli
 
 ```bash
 # Simple chat completion
-curl -X POST "http://localhost:8000/v1/chat/completions" \
+curl -X POST "http://localhost:7777/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -184,7 +184,7 @@ Response:
 
 ```bash
 # Streaming chat (prints tokens as they arrive)
-curl -X POST "http://localhost:8000/v1/chat/completions" \
+curl -X POST "http://localhost:7777/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -212,7 +212,7 @@ data: [DONE]
 ### List Available Models
 
 ```bash
-curl "http://localhost:8000/v1/models" \
+curl "http://localhost:7777/v1/models" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -233,11 +233,11 @@ Response:
 
 ```bash
 # List all workflows (Editor API)
-curl "http://localhost:8000/api/workflows" \
+curl "http://localhost:7777/api/workflows" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # List workflows on a deployed worker
-curl "http://your-worker:8000/workflows" \
+curl "http://your-worker:7777/workflows" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -245,7 +245,7 @@ curl "http://your-worker:8000/workflows" \
 
 ```bash
 # Check if server is running (no auth required)
-curl "http://localhost:8000/health"
+curl "http://localhost:7777/health"
 ```
 
 Response:
@@ -277,7 +277,7 @@ echo '{"workflow_id": "abc123", "params": {"prompt": "test"}}' | nodetool run --
 import requests
 
 # Configuration
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:7777"
 TOKEN = "your_token_here"
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
@@ -343,7 +343,7 @@ for chunk in client.chat.completions.create(
 ### JavaScript/Node.js Example
 
 ```javascript
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = 'http://localhost:7777';
 const TOKEN = 'your_token_here';
 
 // Run a workflow

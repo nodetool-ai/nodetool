@@ -1,9 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import {
-  Select,
-  MenuItem,
   Button,
   Popover,
   DialogTitle,
@@ -18,9 +15,10 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
-import { memo, useState, useRef, useEffect, useMemo } from "react";
+import { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
 import dialogStyles from "../../styles/DialogStyles";
 import isEqual from "lodash/isEqual";
+import { NodeSelect, NodeMenuItem } from "../editor_ui";
 
 const FolderProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
@@ -62,7 +60,7 @@ const FolderProperty = (props: PropertyProps) => {
     }
   }, [anchorEl]);
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = useCallback(() => {
     setAnchorEl(null);
     createFolder(selectValue || "", folderName).then(() => {
       addNotification({
@@ -71,7 +69,32 @@ const FolderProperty = (props: PropertyProps) => {
       });
       refetch();
     });
-  };
+  }, [createFolder, selectValue, folderName, addNotification, refetch]);
+
+  const handleOpenMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleCloseMenu = useCallback(() => {
+    setAnchorEl(null);
+  }, []);
+
+  const handleFolderNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFolderName(e.target.value);
+  }, []);
+
+  const handleFolderKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleCreateFolder();
+    }
+  }, [handleCreateFolder]);
+
+  const handleFolderSelect = useCallback((
+    event: React.ChangeEvent<HTMLInputElement> | (Event & { target: { value: unknown; name: string; } })
+  ) => {
+    props.onChange({ type: "folder", asset_id: event.target.value as string });
+  }, [props]);
+
   const theme = useTheme();
   return (
     <>
@@ -83,36 +106,21 @@ const FolderProperty = (props: PropertyProps) => {
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
       <div style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
-        <Select
+        <NodeSelect
           id={id}
           labelId={id}
           name=""
           value={selectValue}
-          variant="standard"
-          onChange={(e) =>
-            props.onChange({ type: "folder", asset_id: e.target.value })
-          }
-          className="mui-select nodrag"
-          disableUnderline={true}
-          MenuProps={{
-            anchorOrigin: {
-              vertical: "bottom",
-              horizontal: "left"
-            },
-            transformOrigin: {
-              vertical: "top",
-              horizontal: "left"
-            }
-          }}
+          onChange={handleFolderSelect}
         >
           {data?.assets.map((folder) => (
-            <MenuItem key={folder.id} value={folder.id}>
+            <NodeMenuItem key={folder.id} value={folder.id}>
               {folder.name}
-            </MenuItem>
+            </NodeMenuItem>
           ))}
-        </Select>
+        </NodeSelect>
         <Button
-          onClick={(e) => setAnchorEl(e.currentTarget)}
+          onClick={handleOpenMenu}
           sx={{
             border: "none",
             padding: "0",
@@ -127,7 +135,7 @@ const FolderProperty = (props: PropertyProps) => {
         className="dialog"
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}
-        onClose={() => setAnchorEl(null)}
+        onClose={handleCloseMenu}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
@@ -142,16 +150,12 @@ const FolderProperty = (props: PropertyProps) => {
             autoFocus
             spellCheck={false}
             autoComplete="off"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleCreateFolder();
-              }
-            }}
-            onChange={(e) => setFolderName(e.target.value)}
+            onKeyDown={handleFolderKeyDown}
+            onChange={handleFolderNameChange}
           />
         </DialogContent>
         <DialogActions className="dialog-actions">
-          <Button className="button-cancel" onClick={() => setAnchorEl(null)}>
+          <Button className="button-cancel" onClick={handleCloseMenu}>
             Cancel
           </Button>
           <Button className="button-confirm" onClick={handleCreateFolder}>

@@ -4,7 +4,7 @@ import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
-import { Slugify } from "../../utils/TypeHandler";
+import { Slugify, isCollectType } from "../../utils/TypeHandler";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import isEqual from "lodash/isEqual";
@@ -51,7 +51,9 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   const metaKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Meta")
   );
-  const { connectType, connectDirection, connectNodeId } = useConnectionStore();
+  const connectType = useConnectionStore((state) => state.connectType);
+  const connectDirection = useConnectionStore((state) => state.connectDirection);
+  const connectNodeId = useConnectionStore((state) => state.connectNodeId);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const classConnectable = useMemo(() => {
     return connectType &&
@@ -61,6 +63,11 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
       ? "is-connectable"
       : "not-connectable";
   }, [connectDirection, connectNodeId, connectType, id, property.type]);
+
+  // Check if this is a "collect" handle (list[T] that can accept multiple connections)
+  const isCollectHandle = useMemo(() => {
+    return isCollectType(property.type);
+  }, [property.type]);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent) => {
@@ -91,13 +98,14 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             paramName={property.name}
             className={classConnectable}
             handlePosition="left"
+            isCollectInput={isCollectHandle}
           >
             <Handle
               type="target"
               id={property.name}
               position={Position.Left}
               isConnectable={true}
-              className={`${Slugify(property.type.type)} ${classConnectable}`}
+              className={`${Slugify(property.type.type)} ${classConnectable}${isCollectHandle ? " collect-handle" : ""}`}
               onContextMenu={handleContextMenu}
             />
           </HandleTooltip>

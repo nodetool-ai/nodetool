@@ -18,6 +18,29 @@ interface IndexResponseData {
   error?: string | null;
 }
 
+/**
+ * Custom hook for handling drag-and-drop file operations on collections.
+ * 
+ * Manages file indexing when files are dropped onto a collection, tracking
+ * progress and errors for each file processed. Uses React Query for cache
+ * invalidation after file operations.
+ * 
+ * @returns Object containing drag state, progress tracking, and event handlers
+ * 
+ * @example
+ * ```typescript
+ * const { dragOverCollection, indexProgress, handleDrop } = useCollectionDragAndDrop();
+ * 
+ * return (
+ *   <div
+ *     onDragOver={(e) => handleDragOver(e, "my-collection")}
+ *     onDrop={handleDrop("my-collection")}
+ *   >
+ *     Drop files here
+ *   </div>
+ * );
+ * ```
+ */
 export const useCollectionDragAndDrop = () => {
   const queryClient = useQueryClient();
   const [dragOverCollection, setDragOverCollection] = useState<string | null>(

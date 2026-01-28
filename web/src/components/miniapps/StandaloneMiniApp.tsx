@@ -28,7 +28,7 @@ import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
 const StandaloneMiniApp: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [_submitError, setSubmitError] = useState<string | null>(null);
   const { workflowId } = useParams<{ workflowId?: string }>();
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
@@ -89,7 +89,7 @@ const StandaloneMiniApp: React.FC = () => {
     setSubmitError(null);
   }, [workflowId]);
 
-  const handleSubmit = useCallback(async () => {
+  const _handleSubmit = useCallback(async () => {
     if (!workflow) {
       return;
     }
@@ -144,7 +144,7 @@ const StandaloneMiniApp: React.FC = () => {
     workflowNodes
   ]);
 
-  const isSubmitDisabled =
+  const _isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
   const activeNodeStore = useWorkflowManager((state) =>
@@ -225,8 +225,6 @@ const StandaloneMiniApp: React.FC = () => {
                 inputDefinitions={inputDefinitions}
                 inputValues={inputValues}
                 onInputChange={updateInputValue}
-                isSubmitDisabled={isSubmitDisabled}
-                onSubmit={handleSubmit}
                 onError={setSubmitError}
               />
               <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>

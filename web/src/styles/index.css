@@ -126,14 +126,14 @@ img::selection {
   -ms-user-select: none;
   appearance: none;
   -webkit-appearance: none;
-  background-color: #fff;
+  background-color: var(--palette-grey-0);
   background-image: none;
-  border: 1px solid #fff;
+  border: 1px solid var(--palette-grey-0);
   -webkit-border-radius: 4px;
   border-radius: 4px;
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
-  color: #000;
+  color: var(--palette-grey-1000);
   cursor: pointer;
   font-family: var(--fontFamily1), "Roboto", arial, sans-serif;
   font-size: 14px;
@@ -152,7 +152,7 @@ img::selection {
   width: auto;
   max-width: 400px;
   min-width: min-content;
-  border-color: #8e918f;
+  border-color: var(--palette-grey-500);
 }
 
 .gsi-material-button .gsi-material-button-icon {
@@ -200,12 +200,12 @@ img::selection {
 
 .gsi-material-button:disabled {
   cursor: default;
-  background-color: #fff;
-  border-color: #8e918f1f;
+  background-color: var(--palette-grey-0);
+  border-color: var(--palette-grey-800);
 }
 
 .gsi-material-button:disabled .gsi-material-button-state {
-  background-color: #fff;
+  background-color: var(--palette-grey-0);
 }
 
 .gsi-material-button:disabled .gsi-material-button-contents {
@@ -218,7 +218,7 @@ img::selection {
 
 .gsi-material-button:not(:disabled):active .gsi-material-button-state,
 .gsi-material-button:not(:disabled):focus .gsi-material-button-state {
-  background-color: white;
+  background-color: var(--palette-grey-0);
   opacity: 12%;
 }
 
@@ -230,7 +230,7 @@ img::selection {
 }
 
 .gsi-material-button:not(:disabled):hover .gsi-material-button-state {
-  background-color: white;
+  background-color: var(--palette-grey-0);
   opacity: 8%;
 }
 

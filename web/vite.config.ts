@@ -18,6 +18,12 @@ export default defineConfig(async ({ mode }) => {
       target: "http://localhost:7777",
       ws: true,
       changeOrigin: true
+    },
+    "/storage": {
+      target: "http://localhost:7777",
+      changeOrigin: true,
+      secure: false,
+      rewrite: (path) => path.replace(/^\/storage/, "/api/storage")
     }
   };
 
@@ -46,7 +52,15 @@ export default defineConfig(async ({ mode }) => {
         : {
             rollupOptions: {
               output: {
-                manualChunks: undefined
+                manualChunks: {
+                  'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+                  'vendor-mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+                  'vendor-plotly': ['react-plotly.js'],
+                  'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
+                  'vendor-editor': ['@monaco-editor/react', 'lexical'],
+                  'vendor-pdf': ['react-pdf'],
+                  'vendor-waveform': ['wavesurfer.js'],
+                }
               }
             }
           })

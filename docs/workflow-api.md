@@ -17,7 +17,7 @@ the canonical endpoint matrix and auth requirements. When `AUTH_PROVIDER` is `st
 ## Loading Workflows
 
 ```javascript
-const response = await fetch("http://localhost:8000/api/workflows/");
+const response = await fetch("http://localhost:7777/api/workflows/");
 const workflows = await response.json();
 ```
 
@@ -26,7 +26,7 @@ const workflows = await response.json();
 ### HTTP API
 
 ```bash
-curl -X POST "http://localhost:8000/api/workflows/<workflow_id>/run" \
+curl -X POST "http://localhost:7777/api/workflows/<workflow_id>/run" \
 -H "Authorization: Bearer YOUR_TOKEN" \
 -H "Content-Type: application/json" \
 -d '{
@@ -38,7 +38,7 @@ curl -X POST "http://localhost:8000/api/workflows/<workflow_id>/run" \
 
 ```javascript
 const response = await fetch(
-  "http://localhost:8000/api/workflows/<workflow_id>/run",
+  "http://localhost:7777/api/workflows/<workflow_id>/run",
   {
     method: "POST",
     headers: {
@@ -71,7 +71,7 @@ Updates include:
 
 ```javascript
 const response = await fetch(
-  "http://localhost:8000/api/workflows/<workflow_id>/run?stream=true",
+  "http://localhost:7777/api/workflows/<workflow_id>/run?stream=true",
   {
     method: "POST",
     headers: {
@@ -129,7 +129,7 @@ The WebSocket API uses a binary protocol for efficiency and allows cancelling jo
 [`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a full client implementation.
 
 ```javascript
-const socket = new WebSocket("ws://localhost:8000/predict");
+const socket = new WebSocket("ws://localhost:7777/predict");
 
 const request = {
   type: "run_job_request",
@@ -169,7 +169,7 @@ socket.send(msgpack.encode({ command: "get_status" }));
 
 ## API Demo
 
-- Download the [HTML file](../api-demo.html)
+- Download the [HTML file](../../api-demo.html)
 - Open it in a browser locally.
 - Select the endpoint (local or `api.nodetool.ai` for alpha users).
 - Enter an API token from the NodeTool settings dialog.

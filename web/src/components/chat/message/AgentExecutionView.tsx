@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -347,13 +347,17 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
 
+  const handleToggleExpanded = useCallback(() => {
+    setExpanded(!expanded);
+  }, [expanded]);
+
   if (!toolCalls || toolCalls.length === 0) {return null;}
 
   return (
     <div className="tool-calls-container">
       <div 
         className="tool-calls-header"
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleToggleExpanded}
       >
         <div className="tool-calls-title">
           <KeyboardArrowDownIcon 
@@ -440,10 +444,8 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
   messages
 }) => {
   const theme = useTheme();
-  
-  const agentExecutionId = useMemo(() => {
-    return messages.find(m => m.agent_execution_id)?.agent_execution_id;
-  }, [messages]);
+
+  const agentExecutionId = messages?.find(m => m.agent_execution_id)?.agent_execution_id;
 
   const toolCallsByStep = useGlobalChatStore((state) =>
     agentExecutionId ? state.agentExecutionToolCalls[agentExecutionId] : undefined
@@ -455,6 +457,10 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
       stepResults: new Map(),
       status: "planning"
     };
+
+    if (!messages || messages.length === 0) {
+      return result;
+    }
 
     const seenPlanningPhases = new Set<string>();
     const seenTasks = new Map<string, number>();
@@ -648,21 +654,35 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
   return (
     <li className="chat-message-list-item execution-event">
       <div className="agent-execution-container" css={styles(theme)}>
-        {execution.timeline
-          .filter((item) => {
-            // If we have a task, only show the task. Logs and planning are noisy.
-            const hasTask = execution.timeline.some((i) => i.type === "task");
-            if (hasTask) {
-              return item.type === "task";
-            }
-            // If no task yet, show planning updates (so the user knows it's working)
-            // but still skip logs which are usually too technical/noisy.
-            return item.type === "planning";
-          })
-          .map(renderTimelineItem)}
+        {execution.timeline.length > 0 ? (
+          execution.timeline
+            .filter((item) => {
+              const hasTask = execution.timeline.some((i) => i.type === "task");
+              if (hasTask) {
+                return item.type === "task";
+              }
+              return item.type === "planning";
+            })
+            .map(renderTimelineItem)
+        ) : (
+          <div style={{ 
+            padding: "0.75rem 1rem", 
+            color: theme.vars.palette.text.secondary, 
+            fontSize: "0.8rem",
+            backgroundColor: "rgba(255,255,255,0.05)",
+            borderRadius: "8px",
+            marginBottom: "0.5rem"
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>Agent Task</div>
+            <div>Processing...</div>
+            <div style={{ fontSize: "0.7rem", opacity: 0.6, marginTop: "0.25rem" }}>
+              {messages.length} message{messages.length !== 1 ? "s" : ""} received
+            </div>
+          </div>
+        )}
       </div>
     </li>
   );
 };
 
-export default AgentExecutionView;
+export default memo(AgentExecutionView);

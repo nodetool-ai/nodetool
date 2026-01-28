@@ -8,6 +8,7 @@ import { getPythonPath, getProcessEnv, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
+import { getTorchIndexUrl } from "./torchPlatformCache";
 
 /**
  * Python environment manager for the Electron shell.
@@ -111,7 +112,9 @@ function convertToPep440Version(npmVersion: string): string {
 /**
  * Update the Python environment packages using wheel-based package index
  */
-async function updateCondaEnvironment(packages: string[]): Promise<void> {
+async function updateCondaEnvironment(
+  packages: string[]
+): Promise<void> {
   try {
     emitBootMessage(`Updating python packages...`);
 
@@ -155,23 +158,26 @@ async function updateCondaEnvironment(packages: string[]): Promise<void> {
 
     const allPackages = [...corePackages, ...additionalPackages];
 
+    // Get the torch platform index URL (e.g., cu128 for CUDA 12.8)
+    const torchIndexUrl = getTorchIndexUrl();
+
     const installCommand: string[] = [
       uvExecutable,
       "pip",
       "install",
       "--extra-index-url",
       PACKAGE_INDEX_URL,
+      // Add PyTorch index URL for the detected GPU platform
+      ...(torchIndexUrl ? ["--extra-index-url", torchIndexUrl] : []),
       "--index-strategy",
       "unsafe-best-match",
       "--system",
       ...allPackages,
     ];
 
-    if (process.platform !== "darwin") {
-      installCommand.push("--extra-index-url");
-      installCommand.push("https://download.pytorch.org/whl/cu129");
+    if (torchIndexUrl) {
+      logMessage(`Using torch index URL: ${torchIndexUrl}`);
     }
-
     logMessage(`Running command: ${installCommand.join(" ")}`);
     await runCommand(installCommand);
 

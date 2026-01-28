@@ -1,7 +1,9 @@
 import React, { forwardRef } from "react";
-import { Button, Typography, Tooltip } from "@mui/material";
+import { Button, Typography, Tooltip, SxProps, Theme } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useEditorScope } from "../../editor_ui";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -11,21 +13,25 @@ interface ModelSelectButtonProps {
   active?: boolean;
   className?: string;
   tooltipTitle?: React.ReactNode;
+  sx?: SxProps<Theme>;
 }
 
 const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
-  (
-    {
-      label,
-      secondaryLabel,
-      subLabel,
-      onClick,
-      active,
-      className,
-      tooltipTitle
-    },
+  ({
+    label,
+    secondaryLabel,
+    subLabel,
+    onClick,
+    active,
+    className,
+    tooltipTitle,
+    sx, // Add sx prop
+  },
     ref
   ) => {
+    const theme = useTheme();
+    const scope = useEditorScope();
+
     return (
       <Tooltip
         title={
@@ -41,7 +47,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
                 <Typography
                   variant="caption"
                   sx={{
-                    color: "var(--palette-grey-400)",
+                    color: "text.secondary",
                     fontSize: "var(--fontSizeSmaller)"
                   }}
                   display="block"
@@ -52,19 +58,26 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             </div>
           )
         }
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        enterDelay={TOOLTIP_ENTER_DELAY * 2}
+        enterNextDelay={TOOLTIP_ENTER_DELAY * 2}
+        slotProps={{
+          tooltip: {
+            sx: {
+              maxWidth: "350px !important"
+            }
+          }
+        }}
       >
         <Button
           ref={ref}
-          className={`select-model-button ${className || ""} ${
-            active ? "active" : ""
-          }`}
+          className={`select-model-button ${className || ""} ${active ? "active" : ""
+            }`}
           sx={{
-            fontSize: "var(--fontSizeTinyer)",
-            border: active
-              ? "1px solid var(--palette-divider)"
-              : "1px solid var(--palette-warning-main)",
-            borderRadius: "4px",
+            border: "1px solid var(--palette-divider)",
+            backgroundColor: active
+              ? "var(--palette-action-selected)"
+              : "var(--palette-background-paper)",
+            borderRadius: "var(--rounded-buttonSmall, 4px)",
             color: "var(--palette-text-primary)",
             textTransform: "none",
             display: "inline-flex",
@@ -73,55 +86,68 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
             lineHeight: 1.2,
             minHeight: "28px",
             height: "auto",
-            padding: "4px 8px !important",
+            padding: "4px 8px",
             width: "100%",
-            backgroundColor: "var(--palette-background-default)",
+            transition: "all 0.2s ease-in-out",
             "&:hover": {
               backgroundColor: "var(--palette-action-hover)",
-              borderColor: "var(--palette-primary-main)"
-            }
+              borderColor: "var(--palette-text-secondary)"
+            },
+            ...sx
           }}
           onClick={onClick}
           size="small"
         >
           <div
+            className="model-select-button-label"
             style={{
               textAlign: "left",
               flexGrow: 1,
               overflow: "hidden",
-              marginRight: "4px"
+              marginRight: "4px",
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: "6px"
             }}
           >
             <Typography
+              className="model-select-button-label-text"
               component="div"
               variant="body2"
               sx={{
-                color: active
-                  ? "var(--palette-text-primary)"
-                  : "var(--palette-text-secondary)",
-                lineHeight: 1.2,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
+                color: "inherit",
+                fontSize:
+                  scope === "inspector"
+                    ? theme.typography.body2.fontSize
+                    : theme.fontSizeSmall,
+                lineHeight: "1.2em",
+                whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "normal"
+                fontWeight: active ? 500 : 400,
+                flexShrink: 1,
+                minWidth: 0
               }}
             >
               {label}
             </Typography>
             {secondaryLabel && (
               <Typography
+                className="model-select-button-label-text-secondary"
                 component="div"
                 variant="body2"
                 sx={{
-                  color: "var(--palette-grey-400)",
-                  lineHeight: 1.2,
-                  display: "block",
-                  fontSize: "0.75em",
+                  color: "inherit",
+                  opacity: 0.6,
+                  lineHeight: "1.2em",
+                  fontSize:
+                    scope === "inspector"
+                      ? theme.fontSizeSmall
+                      : theme.fontSizeTiny,
+                  fontWeight: "normal",
                   whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis"
+                  flexShrink: 0
                 }}
               >
                 {secondaryLabel}
@@ -130,12 +156,12 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
           </div>
           <ExpandMoreIcon
             sx={{
-              fontSize: 10,
-              color: "var(--palette-grey-500)",
+              fontSize: 14, // Slightly larger
+              color: "inherit",
+              opacity: 0.7,
               flexShrink: 0,
               ml: 0,
-              mr: "-5px",
-              opacity: 0.7
+              mr: "-4px"
             }}
           />
         </Button>

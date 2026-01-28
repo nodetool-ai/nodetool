@@ -39,6 +39,7 @@ export interface OpenNodeMenuParams {
   connectDirection?: ConnectDirection;
   searchTerm?: string;
   selectedPath?: string[];
+  centerOnScreen?: boolean;
 }
 
 export type NodeMenuStore = {
@@ -105,6 +106,13 @@ export type NodeMenuStore = {
   >;
   // Guard to prevent immediate close right after open
   closeBlockUntil: number;
+
+  // Keyboard navigation for search results
+  selectedIndex: number;
+  setSelectedIndex: (index: number) => void;
+  moveSelectionUp: () => void;
+  moveSelectionDown: () => void;
+  getSelectedNode: () => NodeMetadata | null;
 };
 
 type NodeMenuStoreOptions = {
@@ -199,7 +207,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         // Don't clear hoveredNode here as it causes extra re-renders
         const currentTerm = get().searchTerm;
         if (currentTerm !== term) {
-          set({ searchTerm: term });
+          // Reset keyboard selection when search term changes
+          set({ searchTerm: term, selectedIndex: -1 });
         }
         // Run debounced search with the provided term
         scheduleSearch(term);
@@ -292,12 +301,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
        * @param searchId - Optional ID to cancel outdated searches
        */
       performSearch: (term: string, searchId?: number) => {
-        console.debug("[NodeMenuStore] performSearch", {
-          term,
-          searchId,
-          isMenuOpen: get().isMenuOpen,
-          selectedPath: get().selectedPath
-        });
         // Check against the local pendingSearchId to detect stale requests
         // Note: searchId comes from scheduleSearch which uses pendingSearchId
         if (searchId !== undefined && searchId !== pendingSearchId) {
@@ -396,10 +399,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         set({ highlightedNamespaces: [...newHighlightedNamespaces] });
       },
       closeNodeMenu: () => {
-        console.debug("[NodeMenuStore] closeNodeMenu executing", {
-          isOpen: get().isMenuOpen
-        });
-        console.trace("[NodeMenuStore] closeNodeMenu trace");
         if (get().isMenuOpen) {
           if (get().dragToCreate) {
             set({ dragToCreate: false });
@@ -419,12 +418,12 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             selectedInputType: "",
             selectedOutputType: "",
             showDocumentation: false,
-            selectedNodeType: null
+            selectedNodeType: null,
+            selectedIndex: -1
           });
         }
       },
       openNodeMenu: (params: OpenNodeMenuParams) => {
-        console.debug("[NodeMenuStore] openNodeMenu called", params);
         set({ clickPosition: { x: params.x, y: params.y } });
         const { menuWidth, menuHeight } = get();
 
@@ -445,9 +444,19 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const actualMenuHeight =
           menuHeight && menuHeight > 0 ? menuHeight : FALLBACK_MENU_HEIGHT;
 
-        // 1. Start with the desired visual position at the mouse cursor
-        let visualX = params.x;
-        let visualY = params.y - CURSOR_ANCHOR_OFFSET_Y;
+        // Calculate position based on whether we should center on screen
+        let visualX: number;
+        let visualY: number;
+
+        if (params.centerOnScreen) {
+          // Center the menu on the screen
+          visualX = (window.innerWidth - actualMenuWidth) / 2;
+          visualY = (window.innerHeight - actualMenuHeight) / 2;
+        } else {
+          // Start with the desired visual position at the mouse cursor
+          visualX = params.x;
+          visualY = params.y - CURSOR_ANCHOR_OFFSET_Y;
+        }
 
         // 2. Check if the menu overflows the window edges and adjust
         // Adjust X if it overflows the right edge
@@ -504,11 +513,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           menuHeight: 900
         });
 
-        // debug: after state set
-        setTimeout(() => {
-          console.debug("[NodeMenuStore] openNodeMenu state", get().isMenuOpen);
-        }, 0);
-
         // Perform search when opening if needed
         if (shouldSearchOnOpen) {
           const term = params.searchTerm || "";
@@ -516,7 +520,31 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         }
       },
       isLoading: false,
-      searchResultsCache: {}
+      searchResultsCache: {},
+
+      // Keyboard navigation for search results
+      selectedIndex: -1,
+      setSelectedIndex: (index: number) => set({ selectedIndex: index }),
+      moveSelectionUp: () => {
+        const { selectedIndex, groupedSearchResults } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (allNodes.length === 0) { return; }
+        const newIndex = selectedIndex <= 0 ? allNodes.length - 1 : selectedIndex - 1;
+        set({ selectedIndex: newIndex });
+      },
+      moveSelectionDown: () => {
+        const { selectedIndex, groupedSearchResults } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (allNodes.length === 0) { return; }
+        const newIndex = selectedIndex >= allNodes.length - 1 ? 0 : selectedIndex + 1;
+        set({ selectedIndex: newIndex });
+      },
+      getSelectedNode: () => {
+        const { selectedIndex, groupedSearchResults } = get();
+        const allNodes = groupedSearchResults.flatMap((g) => g.nodes);
+        if (selectedIndex < 0 || selectedIndex >= allNodes.length) { return null; }
+        return allNodes[selectedIndex];
+      }
     };
   });
 

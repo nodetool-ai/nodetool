@@ -1,27 +1,38 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useContext, useEffect, useState } from "react";
-import { useTheme } from "@mui/material/styles";
+import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
 import ChatView from "../chat/containers/ChatView";
-import { DEFAULT_MODEL } from "../../config/constants";
+
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { LanguageModel, Message, Workflow, NodeMetadata } from "../../stores/ApiTypes";
+import {
+  LanguageModel,
+  Message
+} from "../../stores/ApiTypes";
 import { NewChatButton } from "../chat/thread/NewChatButton";
-import { IconButton, Tooltip, Switch, FormControlLabel, Box, Button, Popover } from "@mui/material";
+import {
+  IconButton,
+  Tooltip,
+  Switch,
+  FormControlLabel,
+  Box,
+  Button,
+  Popover
+} from "@mui/material";
 import ListIcon from "@mui/icons-material/List";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AddIcon from "@mui/icons-material/Add";
 import ThreadList from "../chat/thread/ThreadList";
 import type { ThreadInfo } from "../chat/thread";
-import { useNodes, NodeContext } from "../../contexts/NodeContext";
+import { useNodes } from "../../contexts/NodeContext";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { useWorkflowGraphUpdater } from "../../hooks/useWorkflowGraphUpdater";
-import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import SvgFileIcon from "../SvgFileIcon";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
+import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
+import PanelHeadline from "../ui/PanelHeadline";
 
 const containerStyles = css({
   flex: 1,
@@ -30,7 +41,7 @@ const containerStyles = css({
   width: "100%",
   height: "100%",
   overflow: "hidden",
-  marginRight: "1em",
+  padding: "0 1em",
   ".chat-view": {
     height: "calc(100% - 45px)"
   },
@@ -58,27 +69,24 @@ const containerStyles = css({
  * currently active workflow and with help mode enabled by default.
  */
 const WorkflowAssistantChat: React.FC = () => {
-  const theme = useTheme();
-  const {
-    status,
-    sendMessage,
-    progress,
-    statusMessage,
-    error,
-    stopGeneration,
-    getCurrentMessagesSync,
-    createNewThread,
-    currentThreadId,
-    threads,
-    switchThread,
-    deleteThread,
-    messageCache,
-    currentRunningToolCallId,
-    currentToolMessage
-  } = useGlobalChatStore();
+  const status = useGlobalChatStore((state) => state.status);
+  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const error = useGlobalChatStore((state) => state.error);
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const threads = useGlobalChatStore((state) => state.threads);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
+  const messageCache = useGlobalChatStore((state) => state.messageCache);
+  const currentRunningToolCallId = useGlobalChatStore((state) => state.currentRunningToolCallId);
+  const currentToolMessage = useGlobalChatStore((state) => state.currentToolMessage);
+  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
+  const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
 
-  // Get the node store from context
-  const nodeStore = useContext(NodeContext);
   const {
     currentWorkflowId,
     getWorkflow,
@@ -166,22 +174,12 @@ const WorkflowAssistantChat: React.FC = () => {
   // Get messages from store
   const messages = getCurrentMessagesSync();
 
-  const tryParseModel = (model: string) => {
-    try {
-      return JSON.parse(model);
-    } catch (error) {
-      return DEFAULT_MODEL;
-    }
-  };
 
   // Local UI state (model & toggles)
-  const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
-    const saved = localStorage.getItem("selectedModel");
-    return saved ? tryParseModel(saved) : DEFAULT_MODEL;
-  });
 
   // Popover state for thread list
-  const [threadListAnchorEl, setThreadListAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [threadListAnchorEl, setThreadListAnchorEl] =
+    useState<HTMLButtonElement | null>(null);
   const isThreadListOpen = Boolean(threadListAnchorEl);
 
   // Chat mode toggle state (help mode vs workflow chat mode)
@@ -189,7 +187,9 @@ const WorkflowAssistantChat: React.FC = () => {
 
   // Check if workflow has message input nodes
   const hasMessageInput = (() => {
-    if (!nodes || nodes.length === 0) {return false;}
+    if (!nodes || nodes.length === 0) {
+      return false;
+    }
     return nodes.some((node: any) => {
       const nodeType = node.data?.type || node.type;
       const nodeName = node.data?.name || node.name;
@@ -201,7 +201,7 @@ const WorkflowAssistantChat: React.FC = () => {
   })();
 
   const { models: approvedModels } = useLanguageModelsByProvider({
-    allowedProviders: ["OpenAI", "MiniMax", "Anthropic"]
+    allowedProviders: ["OpenAI", "MiniMax", "Anthropic", "Google", "Gemini"]
   });
 
   useEffect(() => {
@@ -226,7 +226,12 @@ const WorkflowAssistantChat: React.FC = () => {
         }
       }
     }
-  }, [approvedModels, selectedModel.id, selectedModel.provider]);
+  }, [approvedModels, selectedModel.id, selectedModel.provider, setSelectedModel]);
+
+  // Get visible UI tool names for the assistant
+  const uiTools = useMemo(() => {
+    return FrontendToolRegistry.getManifest().map((t) => t.name);
+  }, []);
 
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
@@ -248,9 +253,12 @@ const WorkflowAssistantChat: React.FC = () => {
     [switchThread]
   );
 
-  const handleOpenThreadList = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    setThreadListAnchorEl(event.currentTarget);
-  }, []);
+  const handleOpenThreadList = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      setThreadListAnchorEl(event.currentTarget);
+    },
+    []
+  );
 
   const handleCloseThreadList = useCallback(() => {
     setThreadListAnchorEl(null);
@@ -267,7 +275,9 @@ const WorkflowAssistantChat: React.FC = () => {
 
   const getThreadPreview = useCallback(
     (threadId: string) => {
-      if (!threads) {return "Loading...";}
+      if (!threads) {
+        return "Loading...";
+      }
       const thread = threads[threadId];
       if (!thread) {
         return "Empty conversation";
@@ -292,9 +302,9 @@ const WorkflowAssistantChat: React.FC = () => {
           typeof firstUserMessage.content === "string"
             ? firstUserMessage.content
             : Array.isArray(firstUserMessage.content) &&
-              firstUserMessage.content[0]?.type === "text"
-            ? (firstUserMessage.content[0] as any).text
-            : "[Media message]";
+                firstUserMessage.content[0]?.type === "text"
+              ? (firstUserMessage.content[0] as any).text
+              : "[Media message]";
         return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
       }
 
@@ -303,10 +313,9 @@ const WorkflowAssistantChat: React.FC = () => {
     [threads, messageCache]
   );
 
-  // Ensure chat connection while assistant chat is visible (with nodeStore)
-  useEnsureChatConnected({ nodeStore: nodeStore || null });
+  // Connection is now handled automatically by GlobalWebSocketManager
 
-  // Ensure a thread exists after connection
+  // Ensure a thread exists
   useEffect(() => {
     if (!currentThreadId && status === "connected") {
       createNewThread()
@@ -369,7 +378,9 @@ const WorkflowAssistantChat: React.FC = () => {
 
   // Map status to ChatView compatible status
   const getChatViewStatus = () => {
-    if (status === "stopping") {return "loading";}
+    if (status === "stopping") {
+      return "loading";
+    }
     return status;
   };
 
@@ -449,6 +460,7 @@ const WorkflowAssistantChat: React.FC = () => {
 
   return (
     <div className="workflow-assistant-chat" css={containerStyles}>
+      <PanelHeadline title={isHelpMode ? "Operator" : "Workflow Chat"} />
       <div
         style={{
           display: "flex",
@@ -486,7 +498,13 @@ const WorkflowAssistantChat: React.FC = () => {
           />
           <Tooltip
             title={
-              <div style={{ fontSize: "0.9em", lineHeight: 1.5, maxWidth: "350px" }}>
+              <div
+                style={{
+                  fontSize: "0.9em",
+                  lineHeight: 1.5,
+                  maxWidth: "350px"
+                }}
+              >
                 <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
                   {isHelpMode ? "Help Mode" : "Workflow Chat Mode"}
                 </div>
@@ -502,8 +520,14 @@ const WorkflowAssistantChat: React.FC = () => {
                     <div style={{ marginTop: "8px", fontWeight: "bold" }}>
                       To use Workflow Chat:
                     </div>
-                    <div>1. Set workflow <strong>run_mode</strong> to &quot;chat&quot; in settings</div>
-                    <div>2. Add a <strong>MessageInput</strong> or <strong>MessageListInput</strong> node</div>
+                    <div>
+                      1. Set workflow <strong>run_mode</strong> to
+                      &quot;chat&quot; in settings
+                    </div>
+                    <div>
+                      2. Add a <strong>MessageInput</strong> or{" "}
+                      <strong>MessageListInput</strong> node
+                    </div>
                     <div>3. The node will receive:</div>
                     <div style={{ marginLeft: "16px" }}>
                       • <code>message</code>: Current message object
@@ -575,15 +599,17 @@ const WorkflowAssistantChat: React.FC = () => {
         <div
           className="error-message"
           style={{
-            position: "absolute",
-            top: "140px",
+            position: "fixed",
+            top: "60px",
             left: "50%",
-            width: "100%",
-            height: "fit-content",
-            minWidth: "200px",
-            minHeight: "30px",
-            transform: "translate(-50%, -50%)",
-            zIndex: 99
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            backgroundColor: "var(--palette-error-dark)",
+            color: "#fff",
+            padding: "8px 16px",
+            borderRadius: "4px",
+            maxWidth: "90%",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
           }}
         >
           {error}
@@ -597,7 +623,7 @@ const WorkflowAssistantChat: React.FC = () => {
         sendMessage={handleSendMessage}
         progressMessage={statusMessage}
         model={selectedModel}
-        selectedTools={[]}
+        selectedTools={uiTools}
         selectedCollections={[]}
         onModelChange={setSelectedModel}
         helpMode={isHelpMode}
@@ -605,16 +631,26 @@ const WorkflowAssistantChat: React.FC = () => {
         onStop={stopGeneration}
         onNewChat={handleNewChat}
         noMessagesPlaceholder={<AssistantWelcome />}
-        allowedProviders={["OpenAI", "MiniMax", "Anthropic"]}
+        allowedProviders={[
+          "OpenAI",
+          "MiniMax",
+          "Anthropic",
+          "Google",
+          "Gemini"
+        ]}
         runningToolCallId={currentRunningToolCallId}
         runningToolMessage={currentToolMessage}
-        graph={isHelpMode ? {
-          nodes: nodes.map(reactFlowNodeToGraphNode),
-          edges: edges.map(reactFlowEdgeToGraphEdge)
-        } : undefined}
+        graph={
+          isHelpMode
+            ? {
+                nodes: nodes.map(reactFlowNodeToGraphNode),
+                edges: edges.map(reactFlowEdgeToGraphEdge)
+              }
+            : undefined
+        }
       />
     </div>
   );
 };
 
-export default WorkflowAssistantChat;
+export default memo(WorkflowAssistantChat);

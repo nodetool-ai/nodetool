@@ -1,6 +1,5 @@
 import log from "loglevel";
 import type { Chunk } from "../stores/ApiTypes";
-import { BASE_URL } from "../stores/BASE_URL";
 import { authHeader } from "../stores/ApiClient";
 import { client } from "../stores/ApiClient";
 
@@ -170,7 +169,7 @@ const resolveDownloadUri = (uri: string): string => {
 
 const chunkToOutput = (chunk: Chunk) => {
   if (typeof window !== "undefined") {
-    console.log("[createAssetFile] chunkToOutput", {
+    log.debug("[createAssetFile] chunkToOutput", {
       type: chunk.content_type,
       hasContent: typeof chunk.content !== "undefined",
       contentLength:

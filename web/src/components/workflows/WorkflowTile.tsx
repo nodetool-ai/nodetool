@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
-import { Box, Button, Tooltip, Typography } from "@mui/material";
+import React, { memo, useCallback } from "react";
+import { Box, Tooltip, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
 import { truncateString } from "../../utils/truncateString";
-import DeleteButton from "../buttons/DeleteButton";
+import { DeleteButton, EditorButton } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
@@ -37,10 +37,22 @@ export const WorkflowTile = ({
 }: WorkflowTileProps) => {
   const settings = useSettingsStore((state) => state.settings);
 
+  const handleDoubleClick = useCallback(() => {
+    onDoubleClickWorkflow(workflow);
+  }, [onDoubleClickWorkflow, workflow]);
+
+  const handleClick = useCallback(() => {
+    onSelect(workflow);
+  }, [onSelect, workflow]);
+
+  const handleOpenClick = useCallback(() => {
+    onClickOpen(workflow);
+  }, [onClickOpen, workflow]);
+
   return (
     <Box
-      onDoubleClick={() => onDoubleClickWorkflow(workflow)}
-      onClick={() => onSelect(workflow)}
+      onDoubleClick={handleDoubleClick}
+      onClick={handleClick}
       className={`workflow grid${isSelected ? " selected" : ""}`}
       sx={{ display: "flex", flexDirection: "column" }}
     >
@@ -74,14 +86,14 @@ export const WorkflowTile = ({
       </Typography>
 
       <div className="actions">
-        <Button
-          size="small"
+        <EditorButton
           className="open-button"
           color="primary"
-          onClick={() => onClickOpen(workflow)}
+          onClick={handleOpenClick}
+          density="compact"
         >
           Open
-        </Button>
+        </EditorButton>
         {workflowCategory === "user" && (
           <>
             <Tooltip
@@ -89,16 +101,16 @@ export const WorkflowTile = ({
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
-              <Button
-                size="small"
+              <EditorButton
                 color="primary"
                 onClick={(event) => onDuplicateWorkflow(event, workflow)}
+                density="compact"
               >
                 Duplicate
-              </Button>
+              </EditorButton>
             </Tooltip>
 
-            <DeleteButton<Workflow> item={workflow} onClick={onDelete} />
+            <DeleteButton onClick={(e) => onDelete(e, workflow)} />
           </>
         )}
       </div>

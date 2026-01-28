@@ -10,7 +10,6 @@ import {
   DialogActions,
   Button,
   MenuItem,
-  Typography,
   IconButton
 } from "@mui/material";
 import { Add } from "@mui/icons-material";
@@ -20,6 +19,7 @@ import isEqual from "lodash/isEqual";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { validateIdentifierName } from "../../utils/identifierValidation";
 
 interface NodePropertyFormProps {
   id: string;
@@ -46,9 +46,18 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   const [newOutputType, setNewOutputType] = useState("string");
   const [showInputDialog, setShowInputDialog] = useState(false);
   const [newInputName, setNewInputName] = useState("");
+  const [inputNameError, setInputNameError] = useState<string | undefined>();
+  const [outputNameError, setOutputNameError] = useState<string | undefined>();
+
   const onSubmitAdd = useCallback(() => {
     const name = newOutputName.trim();
-    if (!name) {return;}
+    const validation = validateIdentifierName(name);
+    
+    if (!validation.isValid) {
+      setOutputNameError(validation.error);
+      return;
+    }
+    
     handleAddOutput(name, {
       type: newOutputType,
       type_args: [],
@@ -56,8 +65,40 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     });
     setNewOutputName("");
     setNewOutputType("string");
+    setOutputNameError(undefined);
     setShowOutputDialog(false);
   }, [newOutputName, newOutputType, handleAddOutput]);
+
+  const handleShowInputDialog = useCallback(() => {
+    setShowInputDialog(true);
+  }, []);
+
+  const handleHideInputDialog = useCallback(() => {
+    setShowInputDialog(false);
+  }, []);
+
+  const handleShowOutputDialog = useCallback(() => {
+    setShowOutputDialog(true);
+  }, []);
+
+  const handleHideOutputDialog = useCallback(() => {
+    setShowOutputDialog(false);
+  }, []);
+
+  const handleAddInputProperty = useCallback(() => {
+    const name = newInputName.trim();
+    const validation = validateIdentifierName(name);
+    
+    if (!validation.isValid) {
+      setInputNameError(validation.error);
+      return;
+    }
+    
+    onAddProperty(name);
+    setNewInputName("");
+    setInputNameError(undefined);
+    setShowInputDialog(false);
+  }, [newInputName, onAddProperty]);
 
   // Dynamic property creation is handled by dropping a connection onto the node
 
@@ -82,7 +123,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           })}
         >
           <Tooltip title="Add input">
-            <IconButton size="small" onClick={() => setShowInputDialog(true)}>
+            <IconButton size="small" onClick={handleShowInputDialog}>
               <Add fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -111,7 +152,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               >
                 <Box
                   component="button"
-                  onClick={() => setShowOutputDialog(true)}
+                  onClick={handleShowOutputDialog}
                   css={css({
                     display: "inline-flex",
                     alignItems: "center",
@@ -164,7 +205,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               <Tooltip title="Add output">
                 <IconButton
                   size="small"
-                  onClick={() => setShowOutputDialog(true)}
+                  onClick={handleShowOutputDialog}
                 >
                   <Add fontSize="small" />
                 </IconButton>
@@ -174,7 +215,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
 
           <Dialog
             open={showOutputDialog}
-            onClose={() => setShowOutputDialog(false)}
+            onClose={handleHideOutputDialog}
             maxWidth="xs"
             fullWidth
           >
@@ -186,10 +227,19 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                   label="Name"
                   size="small"
                   value={newOutputName}
-                  onChange={(e) => setNewOutputName(e.target.value)}
+                  onChange={(e) => {
+                    setNewOutputName(e.target.value);
+                    if (outputNameError) {
+                      setOutputNameError(undefined);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {onSubmitAdd();}
                   }}
+                  error={!!outputNameError}
+                  helperText={
+                    outputNameError || "Cannot start with a number"
+                  }
                   sx={{ flex: 1 }}
                 />
                 <TextField
@@ -215,7 +265,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             </DialogContent>
             <DialogActions>
               <Button
-                onClick={() => setShowOutputDialog(false)}
+                onClick={handleHideOutputDialog}
                 variant="text"
                 size="small"
               >
@@ -231,7 +281,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
 
       <Dialog
         open={showInputDialog}
-        onClose={() => setShowInputDialog(false)}
+        onClose={handleHideInputDialog}
         maxWidth="xs"
         fullWidth
         sx={{
@@ -249,36 +299,44 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               label="Name"
               size="small"
               value={newInputName}
-              onChange={(e) => setNewInputName(e.target.value)}
+              onChange={(e) => {
+                setNewInputName(e.target.value);
+                if (inputNameError) {
+                  setInputNameError(undefined);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   const name = newInputName.trim();
-                  if (!name) {return;}
+                  const validation = validateIdentifierName(name);
+                  
+                  if (!validation.isValid) {
+                    setInputNameError(validation.error);
+                    return;
+                  }
+                  
                   onAddProperty(name);
                   setNewInputName("");
+                  setInputNameError(undefined);
                   setShowInputDialog(false);
                 }
               }}
+              error={!!inputNameError}
+              helperText={inputNameError || "Cannot start with a number"}
               sx={{ flex: 1 }}
             />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => setShowInputDialog(false)}
+            onClick={handleHideInputDialog}
             variant="text"
             size="small"
           >
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              const name = newInputName.trim();
-              if (!name) {return;}
-              onAddProperty(name);
-              setNewInputName("");
-              setShowInputDialog(false);
-            }}
+            onClick={handleAddInputProperty}
             variant="contained"
             size="small"
           >

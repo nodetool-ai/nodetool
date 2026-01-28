@@ -14,7 +14,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client, authHeader } from "../../../stores/ApiClient";
 import {
   isFileExplorerAvailable,
-  openHuggingfacePath,
   openOllamaPath,
   openInExplorer
 } from "../../../utils/fileExplorer";
@@ -47,7 +46,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       const { error } = await client.DELETE("/api/models/huggingface", {
         params: { query: { repo_id: repoId } }
       });
-      if (error) {throw error;}
+      if (error) { throw error; }
       addNotification({
         type: "success",
         content: `Deleted model ${repoId}`,
@@ -68,7 +67,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     setDeletingModels((prev) => new Set(prev).add(modelName));
     try {
       const response = await fetch(
-        `${BASE_URL}/api/models/ollama_model?model_name=${encodeURIComponent(
+        `${BASE_URL}/api/models/ollama?model_name=${encodeURIComponent(
           modelName
         )}`,
         {
@@ -100,10 +99,10 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   });
 
   const handleShowInExplorer = async (modelId: string) => {
-    if (!modelId) {return;}
+    if (!modelId) { return; }
 
     const model = allModels?.find((m) => m.id === modelId);
-    if (!model) {return;}
+    if (!model) { return; }
 
     const isOllama = model?.type === "llama_model";
 

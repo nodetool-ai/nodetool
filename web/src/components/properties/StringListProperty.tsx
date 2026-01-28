@@ -1,8 +1,9 @@
 import { memo, useCallback } from "react";
-import { Autocomplete, TextField, Chip, Box, useTheme } from "@mui/material";
+import { Autocomplete, Chip, Box, useTheme } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
+import { NodeTextField } from "../ui_primitives";
 
 const StringListProperty = (props: PropertyProps) => {
   const theme = useTheme();
@@ -89,12 +90,10 @@ const StringListProperty = (props: PropertyProps) => {
           ))
         }
         renderInput={(params) => (
-          <TextField
+          <NodeTextField
             {...params}
-            variant="outlined"
-            size="small"
-            placeholder={strings.length === 0 ? "Enter values..." : ""}
             fullWidth
+            placeholder={strings.length === 0 ? "Enter values..." : ""}
             sx={{
               "& .MuiInputBase-input": {
                 padding: "2px 4px !important",

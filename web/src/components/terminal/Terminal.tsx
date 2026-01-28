@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, memo } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
-import { Box, Alert, Button } from "@mui/material";
+import { Box, Alert } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { TERMINAL_URL } from "../../stores/BASE_URL";
@@ -88,7 +89,7 @@ export const Terminal: React.FC = () => {
     dims?: { cols: number; rows: number } | null,
     prev?: { cols: number; rows: number } | null
   ) => {
-    console.log("[Terminal] resize", label, { dims, prev });
+    log.debug("[Terminal] resize", label, { dims, prev });
   };
   const [status, setStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
   const [error, setError] = useState<string | null>(null);
@@ -402,7 +403,7 @@ export const Terminal: React.FC = () => {
     };
   }, [isTerminalReady, sendMessage]);
 
-  const handleReconnect = () => {
+  const handleReconnect = useCallback(() => {
     // Force re-render to trigger reconnection
     setIsTerminalReady(false);
     setTimeout(() => {
@@ -410,7 +411,7 @@ export const Terminal: React.FC = () => {
         setIsTerminalReady(true);
       }
     }, 100);
-  };
+  }, []);
 
   return (
     <Box css={styles(theme)} className="terminal-container">
@@ -423,9 +424,9 @@ export const Terminal: React.FC = () => {
           {isAutoScroll ? "auto-scroll ON" : "auto-scroll OFF"}
         </span>
         {status === "disconnected" && (
-          <Button size="small" variant="outlined" onClick={handleReconnect}>
+          <EditorButton variant="outlined" onClick={handleReconnect} density="compact">
             Reconnect
-          </Button>
+          </EditorButton>
         )}
       </div>
       {error && (
@@ -438,4 +439,4 @@ export const Terminal: React.FC = () => {
   );
 };
 
-export default Terminal;
+export default memo(Terminal);

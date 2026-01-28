@@ -4,7 +4,7 @@
  * with the connection validation system end-to-end.
  */
 
-import { Node, Edge } from "@xyflow/react";
+import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import {

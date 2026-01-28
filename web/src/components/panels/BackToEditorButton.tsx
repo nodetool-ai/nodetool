@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, forwardRef } from "react";
+import React, { memo, forwardRef, useCallback } from "react";
 import { Button, Tooltip } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -74,6 +74,10 @@ const BackToEditorButton = forwardRef<
     (workflow) => workflow.id === currentWorkflowId
   )?.name;
 
+  const handleNavigate = useCallback(() => {
+    navigate(`/editor/${currentWorkflowId || ""}`);
+  }, [navigate, currentWorkflowId]);
+
   const buttonTitle =
     title ||
     (workflowName ? (
@@ -90,7 +94,7 @@ const BackToEditorButton = forwardRef<
       <Button
         ref={ref}
         className="nav-button back-to-editor"
-        onClick={() => navigate(`/editor/${currentWorkflowId || ""}`)}
+        onClick={handleNavigate}
         css={styles(theme)}
         {...props}
       >

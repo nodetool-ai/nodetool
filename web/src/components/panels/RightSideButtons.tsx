@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useState } from "react";
+import React, { memo, useCallback } from "react";
 import { Box, Button, Tooltip, Typography } from "@mui/material";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
@@ -37,7 +37,14 @@ const styles = (theme: Theme) =>
 
 const RightSideButtons: React.FC = () => {
   const theme = useTheme();
-  const { helpOpen, handleCloseHelp, handleOpenHelp } = useAppHeaderStore();
+  const helpOpen = useAppHeaderStore((state) => state.helpOpen);
+  const handleCloseHelp = useAppHeaderStore((state) => state.handleCloseHelp);
+  const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
+
+  const handleHelpClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    handleOpenHelp();
+  }, [handleOpenHelp]);
 
   return (
     <Box className="buttons-right" css={styles(theme)}>
@@ -59,10 +66,7 @@ const RightSideButtons: React.FC = () => {
       >
         <Button
           className="command-icon"
-          onClick={(e) => {
-            e.preventDefault();
-            handleOpenHelp();
-          }}
+          onClick={handleHelpClick}
           tabIndex={-1}
         >
           <QuestionMarkIcon />

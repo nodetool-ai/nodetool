@@ -10,8 +10,76 @@
  */
 import log from "loglevel";
 
+/**
+ * Chunk deduplication cache to prevent duplicate chunks from being processed
+ * multiple times due to duplicate WebSocket handlers or message routing.
+ * Tracks last processed chunk per thread with a short TTL for cleanup.
+ */
+const chunkDeduplicationCache = new Map<
+  string, // threadId
+  { content: string; timestamp: number; messageLength: number }
+>();
+const CHUNK_DEDUP_TTL_MS = 100; // Short TTL - chunks should arrive in quick succession
+
+/**
+ * Check if a chunk is a duplicate of the last processed chunk for a thread.
+ * Also cleans up stale cache entries.
+ */
+function isChunkDuplicate(
+  threadId: string,
+  chunkContent: string,
+  currentMessageLength: number
+): boolean {
+  const now = Date.now();
+  const cached = chunkDeduplicationCache.get(threadId);
+
+  // Clean up stale entry
+  if (cached && now - cached.timestamp > CHUNK_DEDUP_TTL_MS) {
+    chunkDeduplicationCache.delete(threadId);
+    return false;
+  }
+
+  // Check for duplicate: same content AND same message length (position)
+  if (
+    cached &&
+    cached.content === chunkContent &&
+    cached.messageLength === currentMessageLength
+  ) {
+    log.debug(
+      `Chunk dedup: Skipping duplicate chunk for thread ${threadId}: "${chunkContent.substring(0, 50)}..."`
+    );
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Record a processed chunk in the deduplication cache.
+ */
+function recordProcessedChunk(
+  threadId: string,
+  chunkContent: string,
+  newMessageLength: number
+): void {
+  chunkDeduplicationCache.set(threadId, {
+    content: chunkContent,
+    timestamp: Date.now(),
+    messageLength: newMessageLength
+  });
+}
+
+/**
+ * Clear the deduplication cache for a thread (e.g., when streaming ends).
+ */
+function clearChunkCache(threadId: string): void {
+  chunkDeduplicationCache.delete(threadId);
+}
+
 import {
   Chunk,
+  EdgeUpdate,
+  ErrorMessage,
   JobUpdate,
   Message,
   MessageContent,
@@ -30,6 +98,9 @@ import {
   FrontendToolState
 } from "../../lib/tools/frontendTools";
 import type { GlobalChatState, StepToolCall } from "../../stores/GlobalChatStore";
+import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import useResultsStore from "../../stores/ResultsStore";
+import useStatusStore from "../../stores/StatusStore";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -62,6 +133,7 @@ export type MsgpackData =
   | Prediction
   | NodeProgress
   | NodeUpdate
+  | EdgeUpdate
   | Message
   | ToolCallUpdate
   | TaskUpdate
@@ -71,7 +143,8 @@ export type MsgpackData =
   | WorkflowCreatedUpdate
   | GenerationStoppedUpdate
   | ToolCallMessage
-  | ToolResultMessage;
+  | ToolResultMessage
+  | ErrorMessage;
 
 export interface ToolResultMessage {
   type: "tool_result";
@@ -86,7 +159,8 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   else if (type === "audio") {mimeType = "audio/mp3";}
   else if (type === "video") {mimeType = "video/mp4";}
 
-  const dataUri = URL.createObjectURL(new Blob([data], { type: mimeType }));
+  const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  const dataUri = URL.createObjectURL(new Blob([arrayBuffer], { type: mimeType }));
 
   if (type === "image") {
     return {
@@ -133,6 +207,32 @@ const updateThreadTimestamp = (
   }
 });
 
+const generateTitleFromFirstUserMessage = (
+  threadId: string,
+  state: GlobalChatState
+): string | null => {
+  const thread = state.threads[threadId];
+  if (!thread) { return null; }
+  if (thread.title) { return null; }
+
+  const messages = state.messageCache[threadId] || [];
+  const firstUserMessage = messages.find((msg) => msg.role === "user");
+  if (!firstUserMessage) { return null; }
+
+  let contentText = "";
+  if (typeof firstUserMessage.content === "string") {
+    contentText = firstUserMessage.content;
+  } else if (Array.isArray(firstUserMessage.content)) {
+    const firstText = (firstUserMessage.content as any[]).find(
+      (c: any) => c?.type === "text" && typeof c.text === "string"
+    );
+    contentText = firstText?.text || "";
+  }
+
+  const titleBase = contentText || "New conversation";
+  return titleBase.substring(0, 50) + (titleBase.length > 50 ? "..." : "");
+};
+
 const applyJobUpdate = (
   state: GlobalChatState,
   update: JobUpdate
@@ -146,7 +246,7 @@ const applyJobUpdate = (
       }
     };
   }
-  if (update.status === "failed") {
+  if (update.status === "failed" || update.status === "error") {
     return {
       update: {
         status: "error",
@@ -159,10 +259,49 @@ const applyJobUpdate = (
   return noopUpdate;
 };
 
+const applyEdgeUpdate = (
+  state: GlobalChatState,
+  update: EdgeUpdate
+): ReducerResult => {
+  const workflowId =
+    (update as any).workflow_id ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+  if (workflowId) {
+    useResultsStore
+      .getState()
+      .setEdge(
+        workflowId, 
+        update.edge_id, 
+        update.status, 
+        update.counter ?? undefined
+      );
+  }
+  return noopUpdate;
+};
+
 const applyNodeUpdate = (
   state: GlobalChatState,
   update: NodeUpdate
 ): ReducerResult => {
+  const workflowId =
+    (update as any).workflow_id ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+
+  if (workflowId) {
+    // Sync with ResultsStore
+    // If running, we might want to clear previous error or result?
+    // For now, allow multiple updates.
+    
+    // Sync status 
+    useStatusStore
+      .getState()
+      .setStatus(workflowId, update.node_id, update.status);
+
+    if (update.result) {
+      useResultsStore
+        .getState()
+        .setResult(workflowId, update.node_id, update.result);
+    }
+  }
+
   if (update.status === "completed") {
     return {
       update: {
@@ -177,25 +316,60 @@ const applyNodeUpdate = (
 
 const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   const threadId = state.currentThreadId;
-  if (!threadId) {return noopUpdate;}
+  if (!threadId) {
+    log.warn("applyChunk: No currentThreadId, dropping chunk");
+    return noopUpdate;
+  }
 
   const thread = state.threads[threadId];
-  if (!thread) {return noopUpdate;}
+  if (!thread) {
+    log.warn(`applyChunk: Thread ${threadId} not found, dropping chunk`);
+    return noopUpdate;
+  }
 
   const messages = state.messageCache[threadId] || [];
   const lastMessage = messages[messages.length - 1];
+
+  // Get current message length for deduplication check
+  const currentMessageLength =
+    lastMessage && lastMessage.role === "assistant"
+      ? String(lastMessage.content || "").length
+      : 0;
+
+  // Check for duplicate chunk (can happen with multiple WebSocket handlers)
+  if (isChunkDuplicate(threadId, chunk.content, currentMessageLength)) {
+    // Still update status if this is the final chunk
+    if (chunk.done) {
+      clearChunkCache(threadId);
+      return {
+        update: {
+          status: "connected",
+          currentPlanningUpdate: null,
+          currentTaskUpdate: null,
+          currentTaskUpdateThreadId: null,
+          currentLogUpdate: null
+        }
+      };
+    }
+    return noopUpdate;
+  }
+
   let updatedMessages: Message[];
+  let newMessageLength: number;
 
   if (lastMessage && lastMessage.role === "assistant") {
+    const newContent = (lastMessage.content || "") + chunk.content;
+    newMessageLength = newContent.length;
     const updatedMessage: Message = {
       ...lastMessage,
-      content: (lastMessage.content || "") + chunk.content
+      content: newContent
     };
     updatedMessages = [...messages.slice(0, -1), updatedMessage];
   } else {
     const localStreamId = `local-stream-${Date.now()}-${Math.random()
       .toString(16)
       .slice(2)}`;
+    newMessageLength = chunk.content.length;
     const message: Message = {
       id: localStreamId,
       role: "assistant",
@@ -204,6 +378,9 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
     };
     updatedMessages = [...messages, message];
   }
+
+  // Record this chunk as processed for deduplication
+  recordProcessedChunk(threadId, chunk.content, newMessageLength);
 
   const baseUpdate: Partial<GlobalChatState> = {
     status: chunk.done ? "connected" : "streaming",
@@ -219,12 +396,26 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
     return { update: baseUpdate };
   }
 
+  // Clear deduplication cache when streaming ends
+  clearChunkCache(threadId);
+
   const postAction = (get: ChatStateGetter) => {
-    const { selectedModel, summarizeThread } = get();
+    const { selectedModel, summarizeThread, updateThreadTitle } = get();
     const messagesAfterUpdate = get().messageCache[threadId] || [];
     if (messagesAfterUpdate.length === 2) {
       log.debug("Triggering thread summarization for thread:", threadId);
     }
+
+    const assistantMessages = messagesAfterUpdate.filter(
+      (msg) => msg.role === "assistant"
+    );
+    if (assistantMessages.length === 1 && !get().threads[threadId]?.title) {
+      const newTitle = generateTitleFromFirstUserMessage(threadId, get());
+      if (newTitle) {
+        updateThreadTitle(threadId, newTitle);
+      }
+    }
+
     if (selectedModel.provider && selectedModel.id) {
       summarizeThread(
         threadId,
@@ -256,6 +447,19 @@ const applyOutputUpdate = (
 
   const thread = state.threads[threadId];
   if (!thread) {return noopUpdate;}
+
+  const workflowId =
+    (update as any).workflow_id ?? state.threadWorkflowId[threadId];
+  if (workflowId) {
+    useResultsStore
+      .getState()
+      .setOutputResult(
+        workflowId,
+        update.node_id,
+        update.value,
+        true // append
+      );
+  }
 
   if (update.output_type === "string") {
     const messages = state.messageCache[threadId] || [];
@@ -541,42 +745,58 @@ const applyAssistantMessage = (
 
   const streamPlaceholderIndex = findStreamPlaceholderIndex();
 
+  const isNewAssistantMessage = streamPlaceholderIndex < 0 &&
+    (messages.length === 0 || messages[messages.length - 1]?.role !== "assistant");
+
+  const updatedMessages = (() => {
+    if (streamPlaceholderIndex >= 0) {
+      const existing = messages[streamPlaceholderIndex];
+      const replacement: Message = {
+        ...existing,
+        ...msg,
+        content: msg.content ?? existing.content
+      };
+      return [
+        ...messages.slice(0, streamPlaceholderIndex),
+        replacement,
+        ...messages.slice(streamPlaceholderIndex + 1)
+      ];
+    }
+
+    const currentLast = messages[messages.length - 1];
+    if (currentLast?.role === "assistant") {
+      const currentLastNormalized = normalizeTextForComparison(
+        extractTextContent(currentLast)
+      );
+      if (currentLastNormalized && currentLastNormalized === incomingNormalized) {
+        return messages;
+      }
+    }
+
+    return [...messages, msg];
+  })();
+
+  const postAction = isNewAssistantMessage ? (get: ChatStateGetter) => {
+    const { updateThreadTitle } = get();
+    if (!get().threads[threadId]?.title) {
+      const newTitle = generateTitleFromFirstUserMessage(threadId, get());
+      if (newTitle) {
+        updateThreadTitle(threadId, newTitle);
+      }
+    }
+  } : undefined;
+
   return {
     update: {
       messageCache: {
         ...state.messageCache,
-        [threadId]: (() => {
-          if (streamPlaceholderIndex >= 0) {
-            const existing = messages[streamPlaceholderIndex];
-            const replacement: Message = {
-              ...existing,
-              ...msg,
-              content: msg.content ?? existing.content
-            };
-            return [
-              ...messages.slice(0, streamPlaceholderIndex),
-              replacement,
-              ...messages.slice(streamPlaceholderIndex + 1)
-            ];
-          }
-
-          const currentLast = messages[messages.length - 1];
-          if (currentLast?.role === "assistant") {
-            const currentLastNormalized = normalizeTextForComparison(
-              extractTextContent(currentLast)
-            );
-            if (currentLastNormalized && currentLastNormalized === incomingNormalized) {
-              return messages;
-            }
-          }
-
-          return [...messages, msg];
-        })()
+        [threadId]: updatedMessages
       },
       threads: state.threads[threadId]
         ? updateThreadTimestamp(threadId, state.threads)
         : state.threads
-    }
+    },
+    postAction
   };
 };
 
@@ -613,15 +833,31 @@ const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
 };
 
 const applyNodeProgress = (
-  _state: GlobalChatState,
+  state: GlobalChatState,
   progress: NodeProgress
-): ReducerResult => ({
-  update: {
-    status: "loading",
-    progress: { current: progress.progress, total: progress.total },
-    statusMessage: null
+): ReducerResult => {
+  const workflowId =
+    (progress as any).workflow_id ??
+    state.threadWorkflowId[state.currentThreadId ?? ""];
+  if (workflowId) {
+    useResultsStore
+      .getState()
+      .setProgress(
+        workflowId,
+        progress.node_id,
+        progress.progress,
+        progress.total
+      );
   }
-});
+
+  return {
+    update: {
+      status: "loading",
+      progress: { current: progress.progress, total: progress.total },
+      statusMessage: null
+    }
+  };
+};
 
 const applyGenerationStopped = (): ReducerResult => ({
   update: {
@@ -649,6 +885,7 @@ export async function handleChatWebSocketMessage(
   get: ChatStateGetter
 ) {
   const currentState = get();
+  // console.log("handleChatWebSocketMessage:", data);
 
   if (currentState.status === "stopping") {
     if (!["generation_stopped", "error", "job_update"].includes(data.type)) {
@@ -672,11 +909,33 @@ export async function handleChatWebSocketMessage(
   };
 
   if (data.type === "job_update") {
-    applyReducer(applyJobUpdate, data as JobUpdate);
+    console.log("Job update received:", data);
+    const jobUpdate = data as JobUpdate;
+    // Clear timeout on terminal job states
+    if (jobUpdate.status === "completed" || jobUpdate.status === "failed" || jobUpdate.status === "cancelled") {
+      const timeoutId = get().sendMessageTimeoutId;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        set({ sendMessageTimeoutId: null });
+      }
+    }
+    applyReducer(applyJobUpdate, jobUpdate);
   } else if (data.type === "node_update") {
     applyReducer(applyNodeUpdate, data as NodeUpdate);
+  } else if (data.type === "edge_update") {
+    applyReducer(applyEdgeUpdate, data as EdgeUpdate);
   } else if (data.type === "chunk") {
-    applyReducer(applyChunk, data as Chunk);
+    const chunk = data as Chunk;
+    if (chunk.done) {
+      log.info("Received final chunk (done=true), clearing timeout");
+      // Clear the safety timeout when generation completes
+      const timeoutId = get().sendMessageTimeoutId;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        set({ sendMessageTimeoutId: null });
+      }
+    }
+    applyReducer(applyChunk, chunk);
   } else if (data.type === "output_update") {
     applyReducer(applyOutputUpdate, data as OutputUpdate);
   } else if (data.type === "tool_call_update") {
@@ -698,14 +957,18 @@ export async function handleChatWebSocketMessage(
 
     if (!FrontendToolRegistry.has(name)) {
       log.warn(`Unknown tool: ${name}`);
-      currentState.wsManager?.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id,
-        ok: false,
-        error: `Unsupported tool: ${name}`,
-        result: { error: `Unsupported tool: ${name}` }
-      });
+      try {
+        await globalWebSocketManager.send({
+          type: "tool_result",
+          tool_call_id,
+          thread_id,
+          ok: false,
+          error: `Unsupported tool: ${name}`,
+          result: { error: `Unsupported tool: ${name}` }
+        });
+      } catch (error) {
+        log.error("Failed to send tool_result for unknown tool:", error);
+      }
       return;
     }
 
@@ -745,41 +1008,62 @@ export async function handleChatWebSocketMessage(
       );
 
       const elapsedMs = Date.now() - startTime;
-      currentState.wsManager?.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id,
-        ok: true,
-        result,
-        elapsed_ms: elapsedMs
-      });
+      try {
+        await globalWebSocketManager.send({
+          type: "tool_result",
+          tool_call_id,
+          thread_id,
+          ok: true,
+          result,
+          elapsed_ms: elapsedMs
+        });
+      } catch (error) {
+        log.error("Failed to send tool_result:", error);
+      }
     } catch (error) {
       const elapsedMs = Date.now() - startTime;
       const message =
         error instanceof Error ? error.message : "Unknown error";
       log.error(`Tool execution failed for ${name}:`, error);
-      currentState.wsManager?.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id,
-        ok: false,
-        error: message,
-        result: { error: message },
-        elapsed_ms: elapsedMs
-      });
+      try {
+        await globalWebSocketManager.send({
+          type: "tool_result",
+          tool_call_id,
+          thread_id,
+          ok: false,
+          error: message,
+          result: { error: message },
+          elapsed_ms: elapsedMs
+        });
+      } catch (sendError) {
+        log.error("Failed to send tool_result after error:", sendError);
+      }
     }
   } else if (data.type === "generation_stopped") {
+    // Clear the safety timeout when generation is stopped
+    const timeoutId = get().sendMessageTimeoutId;
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      set({ sendMessageTimeoutId: null });
+    }
     applyReducer(
       (_state) => applyGenerationStopped(),
       data as GenerationStoppedUpdate
     );
     const stoppedData = data as GenerationStoppedUpdate;
     log.info("Generation stopped:", stoppedData.message);
-  } else if ((data as any).type === "error") {
-    const errorData = data as any;
+  } else if (data.type === "error") {
+    const errorData = data as ErrorMessage;
+    console.log("Error message received:", errorData);
+    // Clear the safety timeout on error
+    const timeoutId = get().sendMessageTimeoutId;
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      set({ sendMessageTimeoutId: null });
+    }
     applyReducer(
       (_state) => applyError(errorData.message),
-      errorData as { message?: string }
+      errorData
     );
   }
 }

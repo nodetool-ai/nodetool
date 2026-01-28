@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { Typography, Box, Button } from "@mui/material";
+import { Typography, Box } from "@mui/material";
+import { EditorButton } from "./ui_primitives";
 import { ThemeContext } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -94,14 +95,14 @@ class SearchErrorBoundary extends React.Component<
             Something went wrong with the search functionality. Please try
             again.
           </Typography>
-          <Button
+          <EditorButton
             variant="contained"
             onClick={this.handleRetry}
             className="retry-button"
-            size="small"
+            density="normal"
           >
             Try Again
-          </Button>
+          </EditorButton>
         </Box>
       );
     }

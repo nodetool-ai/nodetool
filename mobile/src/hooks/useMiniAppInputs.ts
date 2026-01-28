@@ -68,7 +68,7 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow | null) => {
     inputDefinitions.forEach((def) => {
         const key = def.data.name;
         // Only set if not already set (preserve user input during re-renders if any)
-        if (inputValues[key] !== undefined) return;
+        if (inputValues[key] !== undefined) {return;}
 
         if (def.data.value !== undefined) {
             initialValues[key] = def.data.value;

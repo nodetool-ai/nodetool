@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Chunk } from "../../stores/ApiTypes";
 import {
   base64ToUint8Array,
@@ -244,10 +244,10 @@ export const useRealtimeAudioPlayback = ({
       });
     }
     return () => {
-      // Cleanup: dequeue on unmount
+      // Cleanup: dequeue on unmount or when dependencies change
       audioQueue.dequeue(instanceId);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [audioQueue, internalStart, internalStop, wantsToPlay]);
 
   const stream = streamDestRef.current ? streamDestRef.current.stream : null;
 

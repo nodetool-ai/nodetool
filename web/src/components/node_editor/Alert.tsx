@@ -1,17 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import React, { useEffect, useState, useRef, createRef } from "react";
-import { Alert as MUIAlert, AlertColor } from "@mui/material";
+import { Alert as MUIAlert, AlertColor, Button } from "@mui/material";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
 import {
   useNotificationStore,
   Notification
 } from "../../stores/NotificationStore";
-import { useClipboard } from "../../hooks/browser/useClipboard";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 
 const TRANSITION_DURATION = 300; // Duration for fade in/out animations
 const DEFAULT_NOTIFICATION_TIMEOUT = 3000; // Default time before notification auto-closes
@@ -31,7 +29,7 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   return typeMap[type] || "info";
 };
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     position: "fixed",
     top: "60px",
@@ -60,6 +58,9 @@ const styles = (theme: Theme) =>
       opacity: 0.8,
       top: "13px",
       right: "30px"
+    },
+    ".copy-button.has-action": {
+      right: "120px" // Move further left when action button is present
     },
     li: {
       listStyleType: "none",
@@ -96,14 +97,13 @@ const Alert: React.FC = () => {
     lastDisplayedTimestamp: state.lastDisplayedTimestamp,
     updateLastDisplayedTimestamp: state.updateLastDisplayedTimestamp
   }));
-  const { writeClipboard } = useClipboard();
-  const theme = useTheme();
+  const _theme = useTheme();
   const [visibleNotifications, setVisibleNotifications] = useState<
     Notification[]
   >([]);
 
   const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
-  const [show, setShow] = useState<Record<string, boolean>>({});
+  const [_show, setShow] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const lastDisplayedDate = new Date(lastDisplayedTimestamp || 0);
@@ -182,21 +182,11 @@ const Alert: React.FC = () => {
     }, TRANSITION_DURATION);
   };
 
-  const initiateExitTransition = (id: string) => {
-    setShow((s) => ({ ...s, [id]: false }));
-    setTimeout(() => {
-      removeNotification(id);
-      setVisibleNotifications((prev) =>
-        prev.filter((notification) => notification.id !== id)
-      );
-    }, TRANSITION_DURATION);
-  };
-
   // const handleCopy = async (content: string) => {
   //   await writeClipboard(content, true);
   // };
   return (
-    <TransitionGroup component="ul" css={styles(theme)} className="alert-list">
+    <TransitionGroup component="ul" css={styles()} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
         if (!nodeRefs.current[notification.id]) {
           nodeRefs.current[notification.id] = createRef<HTMLLIElement>();
@@ -221,14 +211,28 @@ const Alert: React.FC = () => {
                     ? () => handleClose(notification.id)
                     : undefined
                 }
+                action={
+                  notification.action ? (
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={async () => {
+                        await notification.action?.onClick();
+                        handleClose(notification.id);
+                      }}
+                    >
+                      {notification.action.label}
+                    </Button>
+                  ) : undefined
+                }
               >
                 {notification.content}
               </MUIAlert>
               {(notification.dismissable || notification.type === "error") && (
-                <CopyToClipboardButton
-                  copyValue={notification.content}
-                  className="copy-button"
-                  title="Copy to clipboard"
+                <CopyButton
+                  value={notification.content}
+                  className={`copy-button ${notification.action ? "has-action" : ""}`}
+                  tooltip="Copy to clipboard"
                 />
               )}
             </li>

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { keyframes } from "@emotion/react";
 
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { useCallback, useMemo, useState, useEffect, memo } from "react";
 import {
   Typography,
   Box,
@@ -127,7 +127,7 @@ const moveRight = keyframes`
 export const DownloadProgress: React.FC<{
   name: string;
   minimal?: boolean;
-}> = ({ name, minimal }) => {
+}> = memo(({ name, minimal }) => {
   const downloads = useModelDownloadStore((state) => state.downloads);
   const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const removeDownload = useModelDownloadStore((state) => state.removeDownload);
@@ -516,7 +516,7 @@ export const DownloadProgress: React.FC<{
           </Box>
           <Tooltip title="Stop the current download. You can restart it later.">
             <Button
-              onClick={() => cancelDownload(name)}
+              onClick={cancelDownload.bind(null, name)}
               variant="contained"
               style={{
                 color: theme.vars.palette.primary.contrastText,
@@ -532,4 +532,8 @@ export const DownloadProgress: React.FC<{
       )}
     </Box>
   );
-};
+});
+
+DownloadProgress.displayName = "DownloadProgress";
+
+export default DownloadProgress;

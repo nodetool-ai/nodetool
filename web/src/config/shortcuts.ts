@@ -128,11 +128,11 @@ export const getShortcutTooltip = (
   };
 
   // Helper to render combo as <kbd> elements
-  const renderSeries = (comboStr: string): React.ReactNode[] => {
+  const renderSeries = (comboStr: string, prefix = ""): React.ReactNode[] => {
     const parts = comboStr.split(" + ");
     return parts.flatMap((part, idx) => {
       const nodes: React.ReactNode[] = [
-        React.createElement("kbd", { key: `k-${idx}` }, humanizeKey(part))
+        React.createElement("kbd", { key: `${prefix}k-${idx}` }, humanizeKey(part))
       ];
       if (idx < parts.length - 1) {nodes.push("+");}
       return nodes;
@@ -142,7 +142,9 @@ export const getShortcutTooltip = (
   const showBoth = os === "both";
 
   const keyChildren: React.ReactNode[] = showBoth
-    ? [...renderSeries(winCombo), " / ", ...renderSeries(macCombo)]
+    ? winCombo === macCombo
+      ? renderSeries(winCombo)
+      : [...renderSeries(winCombo, "win-"), " / ", ...renderSeries(macCombo, "mac-")]
     : renderSeries(os === "mac" ? macCombo : winCombo);
 
   if (mode === "combo") {
@@ -349,6 +351,121 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Nudge selected nodes down",
     registerCombo: true
   },
+  {
+    title: "Bypass Node",
+    slug: "bypassNode",
+    keyCombo: ["B"],
+    category: "editor",
+    description: "Toggle bypass on selected nodes",
+    registerCombo: true
+  },
+  {
+    title: "Select Connected (All)",
+    slug: "selectConnectedAll",
+    keyCombo: ["Shift", "C"],
+    category: "editor",
+    description: "Select all nodes connected to selected nodes (inputs and outputs)",
+    registerCombo: true
+  },
+  {
+    title: "Select Connected (Inputs)",
+    slug: "selectConnectedInputs",
+    keyCombo: ["Shift", "I"],
+    category: "editor",
+    description: "Select all nodes that connect into selected nodes",
+    registerCombo: true
+  },
+  {
+    title: "Select Connected (Outputs)",
+    keyCombo: ["Shift", "O"],
+    category: "editor",
+    description: "Select all nodes that receive output from selected nodes",
+    registerCombo: true,
+    slug: "selectConnectedOutputs"
+  },
+  // ---------- ALIGNMENT & DISTRIBUTION ---------------------------------------
+  {
+    title: "Align Left",
+    slug: "alignLeft",
+    keyCombo: ["Shift", "ArrowLeft"],
+    category: "editor",
+    description: "Align selected nodes to the left edge",
+    registerCombo: true
+  },
+  {
+    title: "Align Center",
+    slug: "alignCenter",
+    keyCombo: ["Shift", "H"],
+    category: "editor",
+    description: "Align selected nodes to their center",
+    registerCombo: true
+  },
+  {
+    title: "Align Right",
+    slug: "alignRight",
+    keyCombo: ["Shift", "ArrowRight"],
+    category: "editor",
+    description: "Align selected nodes to the right edge",
+    registerCombo: true
+  },
+  {
+    title: "Align Top",
+    slug: "alignTop",
+    keyCombo: ["Shift", "ArrowUp"],
+    category: "editor",
+    description: "Align selected nodes to the top edge",
+    registerCombo: true
+  },
+  {
+    title: "Align Middle",
+    slug: "alignMiddle",
+    keyCombo: ["Shift", "V"],
+    category: "editor",
+    description: "Align selected nodes to their vertical center",
+    registerCombo: true
+  },
+  {
+    title: "Align Bottom",
+    slug: "alignBottom",
+    keyCombo: ["Shift", "ArrowDown"],
+    category: "editor",
+    description: "Align selected nodes to the bottom edge",
+    registerCombo: true
+  },
+  {
+    title: "Distribute Horizontally",
+    slug: "distributeHorizontal",
+    keyCombo: ["Shift", "D"],
+    category: "editor",
+    description: "Distribute selected nodes evenly horizontally",
+    registerCombo: true
+  },
+  // {
+  //   title: "Distribute Vertically",
+  //   slug: "distributeVertical",
+  //   keyCombo: ["Control", "Shift", "D"],
+  //   category: "editor",
+  //   description: "Distribute selected nodes evenly vertically",
+  //   registerCombo: true
+  // },
+  {
+    title: "Delete Selected",
+    slug: "deleteSelected",
+    keyCombo: ["Delete"],
+    keyComboMac: ["Backspace"],
+    category: "editor",
+    description: "Delete all selected nodes",
+    registerCombo: true,
+    altKeyCombos: [["Backspace"]]
+  },
+  {
+    title: "Node Info",
+    slug: "nodeInfo",
+    keyCombo: ["Control", "I"],
+    category: "editor",
+    description: "Show/hide node information panel",
+    registerCombo: true
+  },
 
   // ---------- PANEL -------------------------------------------------------
   {
@@ -389,6 +506,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     keyCombo: ["I"],
     category: "panel",
     description: "Show or hide Inspector panel",
+    registerCombo: true
+  },
+  {
+    title: "Workflow Settings",
+    slug: "toggleWorkflowSettings",
+    keyCombo: ["W"],
+    category: "panel",
+    description: "Show or hide Workflow Settings panel",
     registerCombo: true
   },
   {
@@ -492,7 +617,140 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "workflow" as const,
     description: `Activate workflow tab ${n}`,
     registerCombo: true
-  }))
+  })),
+
+  // ---------- FIND IN WORKFLOW ---------------------------------------------
+  {
+    title: "Find in Workflow",
+    slug: "findInWorkflow",
+    keyCombo: ["Control", "F"],
+    category: "editor" as const,
+    description: "Find and navigate to nodes in the current workflow",
+    registerCombo: true
+  },
+  {
+    title: "Reset Zoom",
+    slug: "resetZoom",
+    keyCombo: ["Control", "0"],
+    category: "editor" as const,
+    description: "Reset zoom to 50%",
+    registerCombo: true
+  },
+  {
+    title: "Zoom In",
+    slug: "zoomIn",
+    keyCombo: ["Control", "="],
+    category: "editor" as const,
+    description: "Increase zoom level by 20%",
+    registerCombo: true
+  },
+  {
+    title: "Zoom Out",
+    slug: "zoomOut",
+    keyCombo: ["Control", "-"],
+    category: "editor" as const,
+    description: "Decrease zoom level by 20%",
+    registerCombo: true
+  },
+  {
+    title: "Zoom to 50%",
+    slug: "zoom50",
+    keyCombo: ["Control", "5", "0"],
+    category: "editor" as const,
+    description: "Set zoom to 50%",
+    registerCombo: true
+  },
+  {
+    title: "Zoom to 100%",
+    slug: "zoom100",
+    keyCombo: ["Control", "1", "0", "0"],
+    category: "editor" as const,
+    description: "Set zoom to 100%",
+    registerCombo: true
+  },
+  {
+    title: "Zoom to 200%",
+    slug: "zoom200",
+    keyCombo: ["Control", "2", "0", "0"],
+    category: "editor" as const,
+    description: "Set zoom to 200%",
+    registerCombo: true
+  },
+
+  // ---------- NODE NAVIGATION ---------------------------------------------
+  {
+    title: "Navigate Next Node",
+    slug: "navigateNextNode",
+    keyCombo: ["Tab"],
+    category: "editor" as const,
+    description: "Navigate focus to next node in the canvas",
+    registerCombo: true
+  },
+  {
+    title: "Navigate Previous Node",
+    slug: "navigatePrevNode",
+    keyCombo: ["Shift", "Tab"],
+    category: "editor" as const,
+    description: "Navigate focus to previous node in the canvas",
+    registerCombo: true
+  },
+  {
+    title: "Select Focused Node",
+    slug: "selectFocusedNode",
+    keyCombo: ["Enter"],
+    category: "editor" as const,
+    description: "Select the currently focused node",
+    registerCombo: true
+  },
+  {
+    title: "Exit Navigation Mode",
+    slug: "exitNavigationMode",
+    keyCombo: ["Escape"],
+    category: "editor" as const,
+    description: "Exit keyboard navigation mode",
+    registerCombo: true
+  },
+  {
+    title: "Focus Node Above",
+    slug: "focusNodeUp",
+    keyCombo: ["Alt", "ArrowUp"],
+    category: "editor" as const,
+    description: "Move focus to the nearest node above current",
+    registerCombo: true
+  },
+  {
+    title: "Focus Node Below",
+    slug: "focusNodeDown",
+    keyCombo: ["Alt", "ArrowDown"],
+    category: "editor" as const,
+    description: "Move focus to the nearest node below current",
+    registerCombo: true
+  },
+  {
+    title: "Focus Node Left",
+    slug: "focusNodeLeft",
+    keyCombo: ["Alt", "ArrowLeft"],
+    category: "editor" as const,
+    description: "Move focus to the nearest node to the left",
+    registerCombo: true
+  },
+  {
+    title: "Focus Node Right",
+    slug: "focusNodeRight",
+    keyCombo: ["Alt", "ArrowRight"],
+    category: "editor" as const,
+    description: "Move focus to the nearest node to the right",
+    registerCombo: true
+  },
+  {
+    title: "Go Back",
+    slug: "goBack",
+    keyCombo: ["Alt", "ArrowLeft"],
+    altKeyCombos: [["Control", "ArrowLeft"]],
+    category: "editor" as const,
+    description: "Go back to previously focused node",
+    registerCombo: true
+  }
 ] as Shortcut[];
 
 /**

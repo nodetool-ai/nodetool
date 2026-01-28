@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
 import {
   CircularProgress,
   List,
@@ -110,7 +110,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     onLoading
   ]);
 
-  const toggleFolder = (assetId: string) => {
+  const handleToggleFolder = useCallback((assetId: string) => {
     setClosedFolders((prev) => {
       if (prev.includes(assetId)) {
         return prev.filter((id) => id !== assetId);
@@ -118,7 +118,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         return [...prev, assetId];
       }
     });
-  };
+  }, []);
 
   const getFileIcon = (contentType: string) => {
     switch (contentType) {
@@ -161,8 +161,8 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     }
   };
 
-  const renderAssetTree = (nodes: AssetTreeNode[], depth = 0) => {
-    const sortedNodes = [...nodes].sort((a, b) => {
+  const sortNodes = useCallback((nodes: AssetTreeNode[]): AssetTreeNode[] => {
+    return [...nodes].sort((a, b) => {
       if (a.content_type === "folder" && b.content_type !== "folder") {
         return -1;
       }
@@ -171,6 +171,12 @@ const AssetTree: React.FC<AssetTreeProps> = ({
       }
       return a.name.localeCompare(b.name);
     });
+  }, []);
+
+  const sortedAssetTree = useMemo(() => sortNodes(assetTree), [assetTree, sortNodes]);
+
+  const renderAssetTree = (nodes: AssetTreeNode[], depth = 0) => {
+    const sortedNodes = sortNodes(nodes);
 
     return (
       <List
@@ -182,9 +188,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         {sortedNodes.map((node) => (
           <React.Fragment key={node.id}>
             <ListItemButton
-              onClick={() =>
-                node.content_type === "folder" && toggleFolder(node.id)
-              }
+              onClick={handleToggleFolder.bind(null, node.id)}
               style={{ paddingLeft: `${depth * 16}px` }}
             >
               <ListItemIcon
@@ -237,11 +241,11 @@ const AssetTree: React.FC<AssetTreeProps> = ({
 
   return assetTree.length > 0 ? (
     <Box className="asset-tree" css={styles(theme)}>
-      {renderAssetTree(assetTree)}
+      {renderAssetTree(sortedAssetTree)}
     </Box>
   ) : (
     <Typography variant="body1">No assets found</Typography>
   );
 };
 
-export default AssetTree;
+export default memo(AssetTree);

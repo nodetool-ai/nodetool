@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // store
@@ -19,6 +19,7 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
+import BypassGroupButton from "./BypassGroupButton";
 import { Tooltip } from "@mui/material";
 // constants
 const MIN_WIDTH = 200;
@@ -94,55 +95,18 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         fontWeight: 300
       }
     },
-    // run stop button
+    // action buttons container
     ".action-buttons": {
-      marginRight: ".5em",
+      marginRight: "0.5em",
       display: "flex",
       justifyContent: "flex-end",
       alignItems: "center",
       width: "auto",
-      height: "2em",
-      gap: ".5em"
-    },
-    ".action-buttons button": {
-      padding: 0,
-      margin: 0,
-      minWidth: "unset",
-      minHeight: "unset",
-      color: "white",
-      opacity: 0.6,
-      transition: "all 0.2s ease",
-      position: "relative",
-      overflow: "hidden"
-    },
-    ".action-buttons button.running": {
-      opacity: 1,
-      "&::after": {
-        content: '""',
-        position: "absolute",
-        inset: "0",
-        borderRadius: "inherit",
-        padding: "2px",
-        background: `conic-gradient(from 0deg, transparent 50%, ${theme.vars.palette.primary.main} 95%, ${theme.vars.palette.primary.main})`,
-        WebkitMask:
-          "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-        WebkitMaskComposite: "destination-out",
-        maskComposite: "exclude",
-        animation: "spin 2.5s linear infinite",
-        pointerEvents: "none",
-        zIndex: 1
+      height: "32px",
+      gap: "6px",
+      ".color-picker": {
+        marginRight: "2px"
       }
-    },
-    "@keyframes spin": {
-      "0%": { transform: "rotate(0deg)" },
-      "25%": { transform: "rotate(85deg)" },
-      "50%": { transform: "rotate(180deg)" },
-      "75%": { transform: "rotate(280deg)" },
-      "100%": { transform: "rotate(360deg)" }
-    },
-    ".action-buttons button:hover": {
-      opacity: 1,
-      background: "transparent"
     },
     // help text
     ".help-text": {
@@ -187,19 +151,18 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
-  const { workflow, updateNodeData, updateNode } = useNodes((state) => ({
-    updateNodeData: state.updateNodeData,
-    updateNode: state.updateNode,
-    workflow: state.workflow
-  }));
+  const { workflow, updateNodeData, updateNode, setBypass } = useNodes(
+    (state) => ({
+      updateNodeData: state.updateNodeData,
+      updateNode: state.updateNode,
+      workflow: state.workflow,
+      setBypass: state.setBypass
+    })
+  );
   const { nodes, edges } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges
   }));
-
-  // const isSelected = useNodes((state) =>
-  //   state.getSelectedNodeIds().includes(props.id)
-  // );
 
   // RUN WORKFLOW
   const state = useWebsocketRunner((state) => state.state);
@@ -222,6 +185,28 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
     run({}, workflow, groupNodes, groupEdges);
   }, [nodes, edges, run, workflow, props.id]);
+
+  // Get child nodes of this group
+  const childNodes = useMemo(() => {
+    return nodes.filter((node) => node.parentId === props.id);
+  }, [nodes, props.id]);
+
+  // Check if some child nodes are bypassed (at least 1)
+  const someChildrenBypassed = useMemo(() => {
+    if (childNodes.length === 0) {
+      return false;
+    }
+    const bypassedCount = childNodes.filter((n) => n.data.bypassed).length;
+    return bypassedCount >= 1;
+  }, [childNodes]);
+
+  // Toggle bypass on all child nodes
+  const toggleBypassChildren = useCallback(() => {
+    const shouldBypass = !someChildrenBypassed;
+    childNodes.forEach((node) => {
+      setBypass(node.id, shouldBypass);
+    });
+  }, [childNodes, someChildrenBypassed, setBypass]);
 
   const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
@@ -248,39 +233,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
-  // const handleOpenNodeMenu = useCallback(
-  //   (e: React.MouseEvent) => {
-  //     e.stopPropagation();
-  //     e.preventDefault();
-  //     openNodeMenu({
-  //       x: getMousePosition().x,
-  //       y: getMousePosition().y
-  //     });
-  //   },
-  //   [openNodeMenu]
-  // );
-
-  // const handleDoubleClick = useCallback(
-  //   (e: React.MouseEvent, id: string) => {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-  //     const clickedElement = e.target as HTMLElement;
-  //     if (
-  //       clickedElement.classList.contains("node-header") ||
-  //       clickedElement.classList.contains("title-input")
-  //     ) {
-  //       // updateNodeData(id, { collapsed: !props.data.collapsed });
-  //     } else {
-  //       handleOpenNodeMenu(e);
-  //     }
-  //   },
-  //   [handleOpenNodeMenu]
-  // );
-
-  // const handleHeaderClick = () => {
-  //   updateNode(props.id, { selected: true });
-  // };
-  const handleHeaderDoubleClick = (e: React.MouseEvent) => {
+  const handleHeaderDoubleClick = (_e: React.MouseEvent) => {
     headerInputRef.current?.focus();
     headerInputRef.current?.select();
     // e.preventDefault();
@@ -386,10 +339,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </div>
           <div className="action-buttons">
             <ColorPicker
-              buttonSize={20}
+              buttonSize={24}
               color={color || null}
               onColorChange={handleColorChange}
             />
+            {childNodes.length > 0 && (
+              <BypassGroupButton
+                isBypassed={someChildrenBypassed}
+                onClick={toggleBypassChildren}
+              />
+            )}
             <RunGroupButton
               isWorkflowRunning={isWorkflowRunning}
               state={state}

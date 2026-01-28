@@ -18,6 +18,7 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>) {
     a.id === b.id &&
     a.type === b.type &&
     a.data.collapsed === b.data.collapsed &&
+    a.data.bypassed === b.data.bypassed &&
     shallow(a.data.properties, b.data.properties) &&
     a.position.x === b.position.x &&
     a.position.y === b.position.y
@@ -25,18 +26,21 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>) {
 }
 
 export function customEquality(
-  previous: PartializedNodeStore,
-  current: PartializedNodeStore
+  previous: PartializedNodeStore | undefined,
+  current: PartializedNodeStore | undefined
 ): boolean {
   /*
   customEquality:
   - results in a history item being created if the return value is false
   - omits some fields to prevent unnecessary history items being created
   */
-  if (previous.nodes.length !== current.nodes.length) {
+  if (!previous || !current) {
     return false;
   }
-  if (previous.edges.length !== current.edges.length) {
+  if (!previous.nodes || !current.nodes || previous.nodes.length !== current.nodes.length) {
+    return false;
+  }
+  if (!previous.edges || !current.edges || previous.edges.length !== current.edges.length) {
     return false;
   }
 

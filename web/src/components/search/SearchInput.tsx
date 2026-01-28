@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
     },
     ".search-icon": {
       position: "absolute",
-      left: "0.8em",
+      left: "0.4em",
       top: "50%",
       transform: "translateY(-50%)",
       color: theme.vars.palette.text.disabled,
@@ -103,6 +103,9 @@ const styles = (theme: Theme) =>
 interface SearchInputProps {
   onSearchChange: (value: string) => void;
   onPressEscape?: () => void;
+  onPressArrowDown?: () => void;
+  onPressArrowUp?: () => void;
+  onPressEnter?: () => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   placeholder?: string;
@@ -110,12 +113,15 @@ interface SearchInputProps {
   maxWidth?: string;
   searchTerm?: string;
   searchResults?: NodeMetadata[];
-  width?: number;
+  width?: number | string;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
   onSearchChange,
   onPressEscape,
+  onPressArrowDown,
+  onPressArrowUp,
+  onPressEnter,
   focusSearchInput = true,
   focusOnTyping = false,
   placeholder = "Search...",
@@ -178,7 +184,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         (focusOnTyping &&
           !document.activeElement?.classList.contains("search-input"));
 
-      if (!shouldHandleEvent) {return;}
+      if (!shouldHandleEvent) { return; }
 
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
@@ -194,8 +200,27 @@ const SearchInput: React.FC<SearchInputProps> = ({
         return;
       }
 
+      // Keyboard navigation for search results
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        onPressArrowDown?.();
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        onPressArrowUp?.();
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        onPressEnter?.();
+        return;
+      }
+
       if (focusOnTyping) {
-        if (isControlOrMetaPressed) {return;}
+        if (isControlOrMetaPressed) { return; }
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
           if (document.activeElement !== inputRef.current) {
             event.preventDefault();
@@ -213,6 +238,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
     focusOnTyping,
     isControlOrMetaPressed,
     onPressEscape,
+    onPressArrowDown,
+    onPressArrowUp,
+    onPressEnter,
     debouncedSetSearchTerm,
     clearSearch,
     searchResults
@@ -226,7 +254,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     <div
       className="search-input-container"
       css={styles(theme)}
-      style={{ maxWidth: maxWidth, width: `${width}px` }}
+      style={{ maxWidth: maxWidth, width: typeof width === 'number' ? `${width}px` : width }}
     >
       <SearchIcon className="search-icon" />
       <input
@@ -261,9 +289,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
         }
       >
         <button
-          className={`clear-search-btn ${
-            localSearchTerm.trim() === "" ? "disabled" : ""
-          }`}
+          className={`clear-search-btn ${localSearchTerm.trim() === "" ? "disabled" : ""
+            }`}
           tabIndex={-1}
           aria-label="Clear search"
           onClick={clearSearch}

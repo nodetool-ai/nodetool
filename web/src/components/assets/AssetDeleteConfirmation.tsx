@@ -4,10 +4,8 @@ import { css } from "@emotion/react";
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
-  Button,
   CircularProgress,
   List,
   ListItem,
@@ -16,6 +14,7 @@ import {
   Typography
 } from "@mui/material";
 import { InsertDriveFile } from "@mui/icons-material";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";
 import { useAssets } from "../../serverState/useAssets";
@@ -25,6 +24,7 @@ import { useAuth } from "../../stores/useAuth";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { DialogActionButtons } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -67,6 +67,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const user = useAuth((state) => state.user);
   const theme = useTheme();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!dialogOpen) {return;} // Only process when dialog is actually open
@@ -107,6 +108,14 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     countAssetTypes();
   }, [dialogOpen, selectedAssets, user]);
 
+  const handleClose = useCallback(() => {
+    // Blur focused element to prevent aria-hidden focus warning
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setDialogOpen(false);
+  }, [setDialogOpen]);
+
   const handleTotalAssetsCalculated = useCallback((assetCount: number) => {
     setTotalAssets(assetCount);
   }, []);
@@ -120,7 +129,13 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       } else if (typeof response === "object" && response !== null) {
         log.info("Deleted asset IDs:", (response as any).deleted_asset_ids);
       }
+      // Blur focused element to prevent aria-hidden focus warning
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       setDialogOpen(false);
+      // Invalidate all asset queries (including workflow-specific ones)
+      await queryClient.invalidateQueries({ queryKey: ["assets"] });
       await refetchAssetsAndFolders();
     } catch (error) {
       if (error instanceof Error) {
@@ -129,7 +144,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [mutation, assets, setDialogOpen, refetchAssetsAndFolders, setIsLoading]);
+  }, [mutation, assets, setDialogOpen, refetchAssetsAndFolders, queryClient]);
 
   const getDialogTitle = () => {
     if (isAssetTreeLoading && folderCount > 0) {
@@ -156,7 +171,8 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       css={styles(theme)}
       className="asset-delete-confirmation"
       open={dialogOpen}
-      onClose={() => setDialogOpen(false)}
+      onClose={handleClose}
+      disableRestoreFocus
     >
       <DialogTitle sx={{ color: theme.vars.palette.warning.main }}>
         {getDialogTitle()}
@@ -201,18 +217,15 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
           </>
         )}
       </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setDialogOpen(false)} disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button
-          onClick={executeDeletion}
-          disabled={isLoading || isAssetTreeLoading || showRootFolderWarning}
-          color="error"
-        >
-          {isLoading ? <CircularProgress size={24} /> : "Delete"}
-        </Button>
-      </DialogActions>
+      <DialogActionButtons
+        onConfirm={executeDeletion}
+        onCancel={handleClose}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isLoading={isLoading}
+        confirmDisabled={isAssetTreeLoading || showRootFolderWarning}
+        destructive={true}
+      />
     </Dialog>
   );
 };

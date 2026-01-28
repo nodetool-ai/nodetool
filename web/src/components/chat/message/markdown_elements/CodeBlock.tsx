@@ -8,7 +8,7 @@ import {
   oneLight
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
-import { CopyToClipboardButton } from "../../../common/CopyToClipboardButton";
+import { CopyButton } from "../../../ui_primitives/CopyButton";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 
 interface CodeBlockProps {
@@ -34,6 +34,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   className,
   children,
   _isFromPre,
+  onInsert,
   ...props
 }) => {
   const _theme = useTheme();
@@ -41,11 +42,11 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   const match = /language-(\w+)/.exec(className || "");
   const isDarkMode = useIsDarkMode();
   const handleInsert = useCallback(() => {
-    if (typeof props.onInsert === "function") {
+    if (typeof onInsert === "function") {
       const language = match ? match[1] : undefined;
-      props.onInsert(codeContent, language);
+      onInsert(codeContent, language);
     }
-  }, [props, codeContent, match]);
+  }, [onInsert, codeContent, match]);
 
   let renderAsBlock = false;
 
@@ -79,7 +80,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
         <div className="code-block-header">
           <span className="code-block-language">{match ? match[1] : ""}</span>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {typeof props.onInsert === "function" && (
+            {typeof onInsert === "function" && (
               <button
                 className="button"
                 onClick={handleInsert}
@@ -97,7 +98,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
                 Insert into editor
               </button>
             )}
-            <CopyToClipboardButton copyValue={codeContent} />
+            <CopyButton value={codeContent} />
           </div>
         </div>
         <SyntaxHighlighter

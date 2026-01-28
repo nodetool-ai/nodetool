@@ -1,0 +1,24 @@
+# Minimal Agent Configuration
+# Simple agent with minimal required fields
+
+name: minimal-agent
+description: Basic agent configuration example
+
+system_prompt: |
+  You are a helpful AI assistant.
+  
+  Answer questions clearly and concisely.
+  Use available tools when needed to accomplish tasks.
+
+model:
+  provider: openai
+  id: gpt-4o-mini
+
+planning_agent:
+  enabled: true
+
+tools:
+  - write_file
+  - read_file
+
+max_tokens: 4096

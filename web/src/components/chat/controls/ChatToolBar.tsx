@@ -29,9 +29,9 @@ const styles = (theme: Theme) =>
     border: `1px solid ${theme.vars.palette.grey[700]}80`,
     boxShadow: `0 4px 24px -4px ${theme.vars.palette.grey[900]}4d, 
                 inset 0 1px 0 ${theme.vars.palette.grey[600]}40`,
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    transition: "border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     position: "relative",
-    overflow: "hidden",
+    overflow: "visible",
 
     "&::before": {
       content: '""',
@@ -60,10 +60,10 @@ const styles = (theme: Theme) =>
       gap: "4px",
       padding: "2px 4px",
       borderRadius: "8px",
-      transition: "all 0.2s ease",
-      
+      transition: "background-color 0.2s ease",
+
       "&:hover": {
-        background: `${theme.vars.palette.grey[700]}30`
+        backgroundColor: `${theme.vars.palette.grey[700]}30`
       }
     },
 
@@ -71,7 +71,13 @@ const styles = (theme: Theme) =>
       background: `${theme.vars.palette.grey[800]}50`,
       padding: "4px 8px",
       borderRadius: "8px",
-      border: `1px solid ${theme.vars.palette.grey[700]}40`
+      border: `1px solid ${theme.vars.palette.grey[700]}40`,
+      transition: "background-color 0.2s ease, border-color 0.2s ease",
+
+      "&:hover": {
+        backgroundColor: `${theme.vars.palette.grey[700]}40`,
+        borderColor: `${theme.vars.palette.grey[600]}60`
+      }
     },
 
     // Divider styling
@@ -90,68 +96,6 @@ const styles = (theme: Theme) =>
     ".toolbar-spacer": {
       flex: 1,
       minWidth: "8px"
-    },
-
-    // Button styling enhancements
-    "& .MuiButton-root, & .MuiIconButton-root": {
-      padding: "6px 10px",
-      margin: "0",
-      borderRadius: "8px",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-      border: `1px solid transparent`,
-      
-      "&:hover": {
-        background: `${theme.vars.palette.grey[600]}40`,
-        border: `1px solid ${theme.vars.palette.grey[600]}60`,
-        transform: "translateY(-1px)"
-      },
-      
-      "&:active": {
-        transform: "translateY(0)"
-      },
-
-      "&.active, &.Mui-selected": {
-        background: `linear-gradient(135deg, 
-          ${theme.vars.palette.primary.dark}30 0%, 
-          ${theme.vars.palette.primary.main}20 100%)`,
-        border: `1px solid ${theme.vars.palette.primary.main}60`,
-        boxShadow: `0 0 12px ${theme.vars.palette.primary.main}25`
-      }
-    },
-
-    // IconButton specific
-    "& .MuiIconButton-root": {
-      padding: "6px",
-      
-      "&.active": {
-        color: theme.vars.palette.primary.main,
-        background: `${theme.vars.palette.primary.main}15`,
-        border: `1px solid ${theme.vars.palette.primary.main}40`
-      }
-    },
-
-    // Model select enhancements
-    "& .model-select-button, & .language-model-select": {
-      background: `${theme.vars.palette.grey[800]}60`,
-      border: `1px solid ${theme.vars.palette.grey[700]}50`,
-      
-      "&:hover": {
-        background: `${theme.vars.palette.grey[700]}60`,
-        border: `1px solid ${theme.vars.palette.grey[600]}70`
-      }
-    },
-
-    // Chip styling for counts
-    "& .MuiChip-root": {
-      height: "20px",
-      fontSize: "0.7rem",
-      fontWeight: 600,
-      background: `linear-gradient(135deg, 
-        ${theme.vars.palette.primary.main}90 0%, 
-        ${theme.vars.palette.primary.dark} 100%)`,
-      color: theme.vars.palette.grey[100],
-      border: "none",
-      boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}30`
     }
   });
 
@@ -165,6 +109,7 @@ interface ChatToolBarProps {
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
   allowedProviders?: string[];
+  embedded?: boolean;
 }
 
 const ChatToolBar: React.FC<ChatToolBarProps> = ({
@@ -176,7 +121,8 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   onAgentModeToggle,
   selectedCollections,
   onCollectionsChange,
-  allowedProviders
+  allowedProviders,
+  embedded = false
 }) => {
   const theme = useTheme();
 
@@ -185,10 +131,26 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   const hasAgentSection = onAgentModeToggle;
 
   return (
-    <div className="chat-tool-bar" css={styles(theme)}>
+    <div className={`chat-tool-bar ${embedded ? "embedded" : ""}`} css={[styles(theme), embedded && css({
+      background: "transparent",
+      backdropFilter: "none",
+      border: "none",
+      boxShadow: "none",
+      padding: "0",
+      minHeight: "auto",
+      width: "auto",
+      flex: 1,
+      "&:hover": {
+        border: "none",
+        boxShadow: "none"
+      },
+      "&::before": {
+        display: "none"
+      }
+    })]}>
       {/* Model Selection Group */}
       {hasModelSection && (
-        <Box className="toolbar-group toolbar-group-primary">
+        <Box className={`toolbar-group ${!embedded ? "toolbar-group-primary" : ""}`}>
           <LanguageModelSelect
             onChange={(model) => onModelChange(model)}
             value={selectedModel?.id || ""}
@@ -220,7 +182,7 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
       )}
 
       {/* Spacer to push agent toggle to the right */}
-      <div className="toolbar-spacer" />
+      {!embedded && <div className="toolbar-spacer" />}
 
       {/* Agent Mode Toggle */}
       {hasAgentSection && (

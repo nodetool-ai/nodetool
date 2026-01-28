@@ -15,15 +15,17 @@ import MenuItem from "@mui/material/MenuItem";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import useDynamicOutput from "../../hooks/nodes/useDynamicOutput";
+import { validateIdentifierName } from "../../utils/identifierValidation";
 
 import isEqual from "lodash/isEqual";
 
 export interface NodeOutputsProps {
   id: string;
   outputs: OutputSlot[];
+  isStreamingOutput?: boolean;
 }
 
-export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
+export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreamingOutput }) => {
   const node = useNodes((state) => state.findNode(id));
   const nodeType = node?.type || "";
   const metadata = useMetadataStore((state) =>
@@ -40,6 +42,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
   const [renameValue, setRenameValue] = useState("");
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameType, setRenameType] = useState("string");
+  const [renameError, setRenameError] = useState<string | undefined>();
 
   type OutputItem = Property & { isDynamic?: boolean };
 
@@ -82,6 +85,12 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
   const onSubmitEdit = useCallback(() => {
     const newName = renameValue.trim();
     if (!newName || renameTarget === null) {return;}
+    
+    const validation = validateIdentifierName(newName);
+    if (!validation.isValid) {
+      setRenameError(validation.error);
+      return;
+    }
 
     const currentDynamic: Record<string, any> = {
       ...(node?.data?.dynamic_outputs || {})
@@ -99,6 +108,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
 
     setRenameTarget(null);
     setRenameValue("");
+    setRenameError(undefined);
     setShowRenameDialog(false);
   }, [
     renameValue,
@@ -109,42 +119,65 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
     id
   ]);
 
+  const handleCloseDialog = useCallback(() => {
+    setShowRenameDialog(false);
+  }, []);
+
+  const handleValueChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setRenameValue(e.target.value);
+    if (renameError) {
+      setRenameError(undefined);
+    }
+  }, [renameError]);
+
+  const handleTypeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setRenameType(e.target.value);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {onSubmitEdit();}
+  }, [onSubmitEdit]);
+
   return (
     <>
-      {allOutputs.length > 1 || metadata?.supports_dynamic_outputs ? (
-        <ul className="multi-outputs">
-          {allOutputs.map((output) => (
-            <li key={output.name} css={{ position: "relative" }}>
-              <DynamicOutputItem
-                id={id}
-                output={output}
-                showLabel={true}
-                supportsDynamicOutputs={Boolean(
-                  metadata?.supports_dynamic_outputs
-                )}
-                onStartEdit={onStartEdit}
-                onDelete={handleDeleteOutput}
-              />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        allOutputs.map((output) => (
-          <DynamicOutputItem
-            key={output.name}
-            id={id}
-            output={output}
-            showLabel={false}
-            supportsDynamicOutputs={Boolean(metadata?.supports_dynamic_outputs)}
-            onStartEdit={onStartEdit}
-            onDelete={handleDeleteOutput}
-          />
-        ))
-      )}
+      <Box sx={{ mb: "1em" }}>
+        {allOutputs.length > 1 || metadata?.supports_dynamic_outputs ? (
+          <ul className="multi-outputs">
+            {allOutputs.map((output) => (
+              <li key={output.name} css={{ position: "relative" }}>
+                <DynamicOutputItem
+                  id={id}
+                  output={output}
+                  showLabel={true}
+                  supportsDynamicOutputs={Boolean(
+                    metadata?.supports_dynamic_outputs
+                  )}
+                  isStreamingOutput={isStreamingOutput}
+                  onStartEdit={onStartEdit}
+                  onDelete={handleDeleteOutput}
+                />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          allOutputs.map((output) => (
+            <DynamicOutputItem
+              key={output.name}
+              id={id}
+              output={output}
+              showLabel={false}
+              supportsDynamicOutputs={Boolean(metadata?.supports_dynamic_outputs)}
+              isStreamingOutput={isStreamingOutput}
+              onStartEdit={onStartEdit}
+              onDelete={handleDeleteOutput}
+            />
+          ))
+        )}
+      </Box>
 
       <Dialog
         open={showRenameDialog}
-        onClose={() => setShowRenameDialog(false)}
+        onClose={handleCloseDialog}
         maxWidth="xs"
         fullWidth
       >
@@ -156,10 +189,10 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
               label="Name"
               size="small"
               value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {onSubmitEdit();}
-              }}
+              onChange={handleValueChange}
+              onKeyDown={handleKeyDown}
+              error={!!renameError}
+              helperText={renameError || "Cannot start with a number"}
               sx={{ flex: 1 }}
             />
             <TextField
@@ -167,7 +200,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
               label="Type"
               size="small"
               value={renameType}
-              onChange={(e) => setRenameType(e.target.value)}
+              onChange={handleTypeChange}
               sx={{ width: 160 }}
             >
               {[
@@ -185,7 +218,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs }) => {
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => setShowRenameDialog(false)}
+            onClick={handleCloseDialog}
             variant="text"
             size="small"
           >

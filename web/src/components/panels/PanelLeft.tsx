@@ -3,51 +3,47 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Drawer,
   IconButton,
   Tooltip,
   Box,
   Button,
   useMediaQuery,
-  Typography
+  Divider
 } from "@mui/material";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
-import { memo, useCallback, useState, useEffect } from "react";
+import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
+
 import { IconForType } from "../../config/data_types";
 import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
-import { useLocation } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import ContextMenus from "../context_menus/ContextMenus";
+import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
+import PanelHeadline from "../ui/PanelHeadline";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
-import PanelResizeButton from "./PanelResizeButton";
-import { Fullscreen } from "@mui/icons-material";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { getShortcutTooltip } from "../../config/shortcuts";
-import { useRunningJobs } from "../../hooks/useRunningJobs";
-import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
-import {
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  CircularProgress
-} from "@mui/material";
-import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import { useWorkflowRunnerState } from "../../hooks/useWorkflowRunnerState";
-import { Job } from "../../stores/ApiTypes";
-import { useWorkflow } from "../../serverState/useWorkflow";
-import { queryClient } from "../../queryClient";
+import DatasetIcon from "@mui/icons-material/Dataset";
 
-const PANEL_WIDTH_COLLAPSED = "52px";
+import { Fullscreen } from "@mui/icons-material";
+import { getShortcutTooltip } from "../../config/shortcuts";
+// Models, Workspaces, and Collections (modals)
+import ModelsManager from "../hugging_face/ModelsManager";
+import WorkspacesManager from "../workspaces/WorkspacesManager";
+import CollectionsManager from "../collections/CollectionsManager";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import { useModelManagerStore } from "../../stores/ModelManagerStore";
+import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
+import { useCollectionsManagerStore } from "../../stores/CollectionsManagerStore";
+import { getIsElectronDetails } from "../../utils/browser";
+import { isProduction } from "../../stores/ApiClient";
+
+const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 56;
 
@@ -62,107 +58,66 @@ const styles = (
       : HEADER_HEIGHT
     : 0;
   return css({
-    position: "absolute",
-    left: "0",
-    ".panel-container": {
-      flexShrink: 0,
-      position: "absolute",
-      backgroundColor: "transparent"
-    },
-    ".panel-left": {
-      border: "none",
-      direction: "ltr",
-      position: "absolute",
-      overflow: "hidden",
-      width: "100%",
-      padding: "0",
-      top: `${headerHeight}px`,
-      height: `calc(100vh - ${headerHeight}px)`,
-      backgroundColor: theme.vars.palette.background.paper,
+    // Main container - fixed to left edge of viewport
+    position: "fixed",
+    left: 0,
+    top: `${headerHeight}px`,
+    height: `calc(100vh - ${headerHeight}px)`,
+    display: "flex",
+    flexDirection: "row",
+    zIndex: 1100,
+
+    // Drawer content area (appears right of toolbar)
+    ".drawer-content": {
+      height: "100%",
+      backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      borderTop: `1px solid ${theme.vars.palette.divider}`
+      boxShadow: "4px 0 8px rgba(0, 0, 0, 0.05)",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column"
     },
-    ".panel-button": {
+
+    // Resize handle on right edge of drawer
+    ".panel-resize-handle": {
+      width: "6px",
       position: "absolute",
-      zIndex: 1200,
-      left: "unset",
-      right: "unset",
-      width: "36px",
-      height: `calc(100vh - ${headerHeight}px)`,
+      right: 0,
+      top: 0,
+      height: "100%",
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
-      top: `${headerHeight}px`,
-      cursor: "e-resize",
-      transition: "background-color 0.3s ease",
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        width: "4px",
-        height: "24px",
-        borderRadius: "2px",
-        backgroundColor: theme.vars.palette.grey[600],
-        opacity: 0.5
-      },
-
-      "& svg": {
-        fontSize: "0.8em !important",
-        opacity: 0,
-        marginLeft: "1px",
-        transition: "all 0.5s ease"
-      },
+      cursor: "ew-resize",
+      zIndex: 10,
+      transition: "background-color 0.2s ease",
 
       "&:hover": {
-        backgroundColor: `${theme.vars.palette.action.hover}55`,
-        "&::before": {
-          opacity: 0.8
-        },
-        "& svg": {
-          opacity: 1,
-          fontSize: "1em !important"
-        }
+        backgroundColor: theme.vars.palette.primary.main
       }
     },
-    ".panel-tabs ": {
-      minHeight: "2em"
-    },
-    ".panel-tabs button:hover:not(.Mui-selected)": {
-      color: theme.vars.palette.grey[700],
-      "[data-mui-color-scheme='dark'] &": {
-        color: theme.vars.palette.grey[100]
-      }
-    },
-    ".messages": {
-      overflowY: "auto"
-    },
+
+    // Fixed toolbar on the left edge
     ".vertical-toolbar": {
-      width: "50px",
+      width: `${TOOLBAR_WIDTH}px`,
+      flexShrink: 0,
       display: "flex",
       flexDirection: "column",
       gap: 6,
-      backgroundColor: "transparent",
-      // Ensure custom SVG icons (IconForType) are sized like MUI icons
-      "& .icon-container": {
-        width: "18px",
-        height: "18px"
-      },
-      // Give a little extra top spacing to the very first icon button
-      "& .MuiIconButton-root:first-of-type, & .MuiButton-root:first-of-type": {
-        marginTop: "8px"
-      },
+      backgroundColor: theme.vars.palette.background.default,
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      paddingTop: "8px",
+
       "& .MuiIconButton-root, .MuiButton-root": {
-        padding: "12px",
+        padding: "10px",
         borderRadius: "8px",
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         willChange: "transform, box-shadow",
         backgroundColor: "transparent",
-        // Make icons smaller within toolbar buttons
+        // Match IconForType "small" size (20px)
         "& svg": {
-          fontSize: "1.125rem",
+          fontSize: "1.25rem",
           "[data-mui-color-scheme='dark'] &": {
             color: theme.vars.palette.grey[100]
           }
@@ -200,124 +155,15 @@ const styles = (
         }
       }
     },
-    ".quick-actions-group": {
+
+    // Inner content wrapper
+    ".panel-inner-content": {
       display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 8,
-      padding: "14px 10px",
-      marginTop: "8px",
-      borderRadius: "20px",
-      backgroundColor: "rgba(255, 255, 255, 0.4)",
-      border: "1px solid rgba(0, 0, 0, 0.05)",
-      boxShadow:
-        "0 4px 16px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.5)",
-      backdropFilter: "blur(16px)",
-      WebkitBackdropFilter: "blur(16px)",
-
-      "[data-mui-color-scheme='dark'] &": {
-        backgroundColor: "rgba(10, 12, 18, 0.3)",
-        border: "1px solid rgba(255, 255, 255, 0.06)",
-        boxShadow:
-          "0 8px 32px rgba(0, 0, 0, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.03)"
-      }
+      flex: 1,
+      height: "100%",
+      overflow: "hidden"
     },
-    ".quick-actions-group .quick-add-button": {
-      width: "42px",
-      height: "42px",
-      borderRadius: "14px",
-      padding: "0",
-      position: "relative",
-      overflow: "hidden",
-      background: "var(--quick-gradient, rgba(255, 255, 255, 0.4))",
-      border: "1px solid rgba(0, 0, 0, 0.06)",
-      boxShadow: "var(--quick-shadow, 0 2px 8px rgba(0, 0, 0, 0.06))",
-      color: theme.vars.palette.grey[800],
 
-      transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      backdropFilter: "blur(8px)",
-      WebkitBackdropFilter: "blur(8px)",
-
-      "[data-mui-color-scheme='dark'] &": {
-        background: "var(--quick-gradient, rgba(255, 255, 255, 0.03))",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "var(--quick-shadow, 0 2px 8px rgba(0, 0, 0, 0.16))",
-        color: theme.vars.palette.grey[100]
-      },
-
-      "& svg": {
-        fontSize: "1.4rem",
-        color: `var(--quick-icon-color, ${theme.vars.palette.grey[800]})`,
-        position: "relative",
-        zIndex: 1,
-        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
-        transition: "transform 0.3s ease",
-
-        "[data-mui-color-scheme='dark'] &": {
-          color: "var(--quick-icon-color, #fff)"
-        }
-      },
-
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        inset: 0,
-        borderRadius: "inherit",
-        background:
-          "linear-gradient(180deg, rgba(255,255,255,0.16), transparent 60%)",
-        opacity: 0.6,
-        pointerEvents: "none",
-        mixBlendMode: "overlay"
-      },
-
-      "&::after": {
-        content: '""',
-        position: "absolute",
-        inset: 0,
-        borderRadius: "inherit",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)",
-        pointerEvents: "none",
-        opacity: 0.8
-      },
-
-      "&:hover": {
-        transform: "translateY(-3px) scale(1.05)",
-        background: "var(--quick-hover-gradient, rgba(255, 255, 255, 0.08))",
-        boxShadow:
-          "var(--quick-shadow-hover, 0 12px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.15))",
-        borderColor: "rgba(255,255,255,0.25)",
-        zIndex: 10,
-        "& svg": {
-          transform: "scale(1.1)"
-        }
-      },
-
-      "&:active": {
-        transform: "scale(0.96) translateY(0)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
-      },
-
-      "&.active": {
-        borderColor: `${theme.vars.palette.primary.main}`,
-        boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}40, var(--quick-shadow)`,
-        "& svg": {
-          color: "var(--palette-text-primary)"
-        }
-      }
-    },
-    ".quick-actions-divider": {
-      width: "24px",
-      height: "1px",
-      margin: "4px auto",
-      background: theme.vars.palette.grey[300],
-      opacity: 0.6,
-      "[data-mui-color-scheme='dark'] &": {
-        background: theme.vars.palette.grey[800]
-      }
-    },
     ".help-chat": {
       "& .MuiButton-root": {
         whiteSpace: "normal",
@@ -339,169 +185,8 @@ const styles = (
           color: "var(--palette-primary-main)"
         }
       }
-    },
-    ".panel-content": {
-      display: "flex",
-      flex: 1,
-      height: "100%",
-      border: "0"
     }
   });
-};
-
-/**
- * Format elapsed time since job started
- */
-const formatElapsedTime = (startedAt: string | null | undefined): string => {
-  if (!startedAt) {return "Not started";}
-  const start = new Date(startedAt).getTime();
-  // Validate the date - getTime() returns NaN for invalid dates
-  if (isNaN(start)) {return "Invalid date";}
-  const now = Date.now();
-  const elapsed = Math.floor((now - start) / 1000);
-  // Handle negative elapsed time (future dates)
-  if (elapsed < 0) {return "0s";}
-
-  if (elapsed < 60) {return `${elapsed}s`;}
-  if (elapsed < 3600) {return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;}
-  const hours = Math.floor(elapsed / 3600);
-  const minutes = Math.floor((elapsed % 3600) / 60);
-  return `${hours}h ${minutes}m`;
-};
-
-/**
- * Component to display a single job item with workflow name and runner state detection
- */
-const JobItem = ({ job }: { job: Job }) => {
-  const navigate = useNavigate();
-  const runnerState = useWorkflowRunnerState(job.workflow_id);
-  const { data: workflow } = useWorkflow(job.workflow_id);
-  const [elapsedTime, setElapsedTime] = useState(
-    formatElapsedTime(job.started_at)
-  );
-
-  // Update elapsed time every second while job is running
-  useEffect(() => {
-    if (job.status !== "running" && job.status !== "queued") {return;}
-
-    const interval = setInterval(() => {
-      setElapsedTime(formatElapsedTime(job.started_at));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [job.started_at, job.status]);
-
-  // Refresh jobs list when runner state changes from running to idle/error/cancelled
-  useEffect(() => {
-    if (
-      runnerState === "idle" ||
-      runnerState === "error" ||
-      runnerState === "cancelled"
-    ) {
-      // Invalidate all jobs queries to refresh the list
-      // queryKey: ["jobs"] matches any query whose key starts with "jobs"
-      // This includes ["jobs", "running", userId] used in useRunningJobs
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-    }
-  }, [runnerState]);
-
-  const handleClick = () => {
-    navigate(`/editor/${job.workflow_id}`);
-  };
-
-  const getStatusIcon = () => {
-    if (job.error) {
-      return <ErrorOutlineIcon color="error" />;
-    }
-    switch (job.status) {
-      case "running":
-        return <CircularProgress size={24} />;
-      case "queued":
-      case "starting":
-        return <HourglassEmptyIcon color="action" />;
-      default:
-        return <PlayArrowIcon color="action" />;
-    }
-  };
-
-  const workflowName = workflow?.name || "Loading...";
-  const statusText =
-    job.status === "running"
-      ? `Running • ${elapsedTime}`
-      : job.status === "queued"
-        ? "Queued"
-        : job.status === "starting"
-          ? "Starting..."
-          : job.status;
-
-  return (
-    <ListItem
-      onClick={handleClick}
-      sx={{
-        cursor: "pointer",
-        borderRadius: 1,
-        mb: 0.5,
-        "&:hover": {
-          backgroundColor: "action.hover"
-        }
-      }}
-    >
-      <ListItemIcon sx={{ minWidth: 40 }}>{getStatusIcon()}</ListItemIcon>
-      <ListItemText
-        primary={
-          <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
-            {workflowName}
-          </Typography>
-        }
-        secondary={
-          <Box component="span" sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
-            <Typography variant="caption" color="text.secondary">
-              {statusText}
-            </Typography>
-            {job.error && (
-              <Typography variant="caption" color="error" noWrap>
-                {job.error}
-              </Typography>
-            )}
-          </Box>
-        }
-      />
-    </ListItem>
-  );
-};
-
-const RunningJobsList = () => {
-  const { data: jobs, isLoading, error } = useRunningJobs();
-
-  if (isLoading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-        <CircularProgress size={24} />
-      </Box>
-    );
-  }
-  if (error) {
-    return (
-      <Box sx={{ p: 2, color: "error.main" }}>
-        <Typography variant="body2">Error loading jobs</Typography>
-      </Box>
-    );
-  }
-  if (!jobs?.length) {
-    return (
-      <Box sx={{ p: 5, color: "text.secondary" }}>
-        <Typography variant="body2">No running jobs</Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <List sx={{ px: 1 }}>
-      {jobs.map((job) => (
-        <JobItem key={job.id} job={job} />
-      ))}
-    </List>
-  );
 };
 
 const VerticalToolbar = memo(function VerticalToolbar({
@@ -515,8 +200,36 @@ const VerticalToolbar = memo(function VerticalToolbar({
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
+  // Modal states for Collections, Models, and Workspaces
+  const isCollectionsOpen = useCollectionsManagerStore((state) => state.isOpen);
+  const setCollectionsOpen = useCollectionsManagerStore((state) => state.setIsOpen);
+  const isModelsOpen = useModelManagerStore((state) => state.isOpen);
+  const setModelsOpen = useModelManagerStore((state) => state.setIsOpen);
+  const isWorkspacesOpen = useWorkspaceManagerStore((state) => state.isOpen);
+  const setWorkspacesOpen = useWorkspaceManagerStore((state) => state.setIsOpen);
+
+  // Conditional visibility for Models/Workspaces
+  const showModelsWorkspaces = getIsElectronDetails().isElectron || !isProduction;
+
+  const handleCollectionsClick = useCallback(() => {
+    setCollectionsOpen(true);
+  }, [setCollectionsOpen]);
+
+  const handleModelsClick = useCallback(() => {
+    setModelsOpen(true);
+  }, [setModelsOpen]);
+
+  const handleWorkspacesClick = useCallback(() => {
+    setWorkspacesOpen(true);
+  }, [setWorkspacesOpen]);
+
+  const handlePanelToggleClick = useCallback(() => {
+    handlePanelToggle();
+  }, [handlePanelToggle]);
+
   return (
     <div className="vertical-toolbar">
+      {/* Drawer views section - My Stuff */}
       <Tooltip
         title={
           <div className="tooltip-span">
@@ -549,37 +262,73 @@ const VerticalToolbar = memo(function VerticalToolbar({
           onClick={() => onViewChange("assets")}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
-          <IconForType iconName="asset" showTooltip={false} />
+          <IconForType iconName="asset" showTooltip={false} iconSize="small" />
         </IconButton>
       </Tooltip>
+
+
+      {/* Divider between drawer views and external actions */}
+      <Divider sx={{ my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" }} />
+
+      {/* External section - modals */}
       <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Jobs</div>
-            <div className="tooltip-key">
-              <kbd>3</kbd>
-            </div>
-          </div>
-        }
+        title="Collections"
         placement="right-start"
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("jobs")}
-          className={activeView === "jobs" && panelVisible ? "active" : ""}
+          onClick={handleCollectionsClick}
         >
-          <WorkHistoryIcon />
+          <DatasetIcon />
         </IconButton>
       </Tooltip>
+
+      {showModelsWorkspaces && (
+        <>
+          <Tooltip
+            title="Model Manager"
+            placement="right-start"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <IconButton
+              tabIndex={-1}
+              onClick={handleModelsClick}
+            >
+              <IconForType iconName="model" showTooltip={false} iconSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title="Workspaces Manager"
+            placement="right-start"
+            enterDelay={TOOLTIP_ENTER_DELAY}
+          >
+            <IconButton
+              tabIndex={-1}
+              onClick={handleWorkspacesClick}
+            >
+              <FolderOpenIcon />
+            </IconButton>
+          </Tooltip>
+        </>
+      )}
 
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
-        <IconButton tabIndex={-1} onClick={handlePanelToggle}>
+        <IconButton tabIndex={-1} onClick={handlePanelToggleClick}>
           <CodeIcon />
         </IconButton>
       </Tooltip>
+
+      {/* Modals for Collections, Models and Workspaces */}
+      <CollectionsManager open={isCollectionsOpen} onClose={() => setCollectionsOpen(false)} />
+      {showModelsWorkspaces && (
+        <>
+          <ModelsManager open={isModelsOpen} onClose={() => setModelsOpen(false)} />
+          <WorkspacesManager open={isWorkspacesOpen} onClose={() => setWorkspacesOpen(false)} />
+        </>
+      )}
     </div>
   );
 });
@@ -594,59 +343,55 @@ const PanelContent = memo(function PanelContent({
   const navigate = useNavigate();
   const path = useLocation().pathname;
 
+  const handleFullscreenClick = useCallback(() => {
+    navigate("/assets");
+    handlePanelToggle("assets");
+  }, [navigate, handlePanelToggle]);
+
   return (
     <>
       {activeView === "assets" && (
         <Box
           className="assets-container"
-          sx={{ width: "100%", height: "100%", margin: "0 20px" }}
+          sx={{ width: "100%", height: "100%", margin: "0 1em" }}
         >
-          <Tooltip title="Fullscreen" placement="right-start">
-            <Button
-              className={`${path === "/assets" ? "active" : ""}`}
-              onClick={() => {
-                navigate("/assets");
-                handlePanelToggle("assets");
-              }}
-              tabIndex={-1}
-              style={{
-                float: "right",
-                margin: "15px 0 0 0"
-              }}
-            >
-              <Fullscreen />
-            </Button>
-          </Tooltip>
-          <h3>Assets</h3>
+          <PanelHeadline
+            title="Assets"
+            actions={
+              <Tooltip title="Fullscreen" placement="right-start">
+                <Button
+                  className={`${path === "/assets" ? "active" : ""}`}
+                  onClick={handleFullscreenClick}
+                  tabIndex={-1}
+                  size="small"
+                >
+                  <Fullscreen />
+                </Button>
+              </Tooltip>
+            }
+          />
           <AssetGrid maxItemSize={5} />
         </Box>
       )}
       {activeView === "workflowGrid" && (
         <Box
+          className="workflow-grid-container"
           sx={{
             width: "100%",
             height: "100%",
-            overflow: "auto",
-            margin: "10px 0"
+            margin: "0 1em",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column"
           }}
         >
-          <h3 style={{ paddingLeft: "1em" }}>Workflows</h3>
-          <WorkflowList />
+          <PanelHeadline title="Workflows" />
+          <Box sx={{ flex: 1, overflow: "auto" }}>
+            <WorkflowList />
+          </Box>
         </Box>
       )}
-      {activeView === "jobs" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "auto",
-            margin: "10px 0"
-          }}
-        >
-          <h3 style={{ paddingLeft: "1em" }}>Running Jobs</h3>
-          <RunningJobsList />
-        </Box>
-      )}
+
     </>
   );
 });
@@ -673,7 +418,7 @@ const PanelLeft: React.FC = () => {
 
   useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
   useCombo(["2"], () => handlePanelToggle("assets"), false);
-  useCombo(["3"], () => handlePanelToggle("jobs"), false);
+
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";
@@ -685,77 +430,50 @@ const PanelLeft: React.FC = () => {
     [handlePanelToggle]
   );
 
-  // Calculate header height for inline styles
-  const headerHeight = hasHeader
-    ? isMobile
-      ? HEADER_HEIGHT_MOBILE
-      : HEADER_HEIGHT
-    : 0;
+
 
   return (
-    <div
-      css={styles(theme, hasHeader, isMobile)}
-      className={`panel-container ${isVisible ? "panel-visible" : ""}`}
-      style={{ width: isVisible ? `${panelSize}px` : "60px" }}
-    >
-      <PanelResizeButton
-        side="left"
-        isVisible={isVisible}
-        panelSize={panelSize}
-        onMouseDown={handleMouseDown}
-      />
-      <Drawer
-        PaperProps={{
-          ref: panelRef,
-          className: `panel panel-left ${isDragging ? "dragging" : ""}`,
-          style: {
-            backdropFilter: isVisible ? "blur(12px)" : "none",
-            backgroundColor: isVisible ? undefined : "transparent",
-            border: "none",
-            borderRight: isVisible
-              ? `1px solid ${theme.vars.palette.divider}`
-              : "none",
-            boxShadow: isVisible ? "0 2px 16px rgba(0, 0, 0, 0.1)" : "none",
-            borderTopRightRadius: 0,
-            borderBottomRightRadius: 0,
-            width: isVisible
-              ? `${
-                  isMobile
-                    ? Math.min(panelSize, Math.floor(window.innerWidth * 0.75))
-                    : Math.max(panelSize, 300)
-                }px`
-              : PANEL_WIDTH_COLLAPSED,
-            minWidth: isVisible ? "300px" : PANEL_WIDTH_COLLAPSED,
-            maxWidth: isMobile ? "75vw" : "none",
-            // Match the panel height to avoid any gap beneath the drawer
-            height: isMobile
-              ? `calc(100dvh - ${headerHeight}px)`
-              : `calc(100vh - ${headerHeight}px)`,
-            contain: isMobile ? "layout style" : "none",
-            boxSizing: "border-box",
-            overflow: "hidden" // Prevent panel content from overflowing
-          }
-        }}
-        variant="persistent"
-        anchor="left"
-        open={true}
-      >
-        <div className="panel-content">
-          <ContextMenuProvider>
-            <VerticalToolbar
-              activeView={activeView}
-              onViewChange={onViewChange}
-              handlePanelToggle={() => handlePanelToggle(activeView)}
+    <div css={styles(theme, hasHeader, isMobile)} className="panel-left-container">
+      {/* Fixed toolbar - always on the left edge */}
+      <ContextMenuProvider>
+        <ContextMenus />
+        <VerticalToolbar
+          activeView={activeView}
+          onViewChange={onViewChange}
+          handlePanelToggle={() => handlePanelToggle(activeView)}
+        />
+
+        {/* Drawer content - appears right of toolbar when visible */}
+        {isVisible && (
+          <div
+            ref={panelRef}
+            className={`drawer-content ${isDragging ? "dragging" : ""}`}
+            style={{
+              width: `${isMobile
+                ? Math.min(panelSize - TOOLBAR_WIDTH, Math.floor(window.innerWidth * 0.75) - TOOLBAR_WIDTH)
+                : Math.max(panelSize - TOOLBAR_WIDTH, 250)
+                }px`,
+              minWidth: "250px",
+              maxWidth: isMobile ? `calc(75vw - ${TOOLBAR_WIDTH}px)` : "none"
+            }}
+          >
+            {/* Resize handle on right edge */}
+            <div
+              className="panel-resize-handle"
+              onMouseDown={handleMouseDown}
+              role="slider"
+              aria-label="Resize panel"
+              tabIndex={-1}
             />
-            {isVisible && (
+            <div className="panel-inner-content">
               <PanelContent
                 activeView={activeView}
                 handlePanelToggle={handlePanelToggle}
               />
-            )}
-          </ContextMenuProvider>
-        </div>
-      </Drawer>
+            </div>
+          </div>
+        )}
+      </ContextMenuProvider>
     </div>
   );
 };

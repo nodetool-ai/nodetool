@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import { useCombo } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
@@ -8,6 +9,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { useDragHandling } from "../../hooks/useNumberInput";
 import DisplayValue from "./DisplayValue";
 import SpeedDisplay from "./SpeedDisplay";
+import { numberInputStyles } from "./numberInputStyles";
 
 // Drag-tuning constants
 export const DRAG_THRESHOLD = 10; // px before drag counts (to prevent accidental dragging when clicking to set value)
@@ -27,6 +29,11 @@ export interface InputProps {
   max?: number;
   value: number;
   onChange: (event: any, value: number) => void;
+  /**
+   * Called when the user finishes changing the value (on mouseup for drag, on blur for text input).
+   * Useful for triggering actions only when the user has committed their change.
+   */
+  onChangeComplete?: (value: number) => void;
   id: string;
   size?: "small" | "medium";
   color?: "primary" | "secondary";
@@ -36,6 +43,10 @@ export interface InputProps {
   tabIndex?: number;
   zoomAffectsDragging?: boolean;
   showSlider?: boolean;
+  /**
+   * Whether the value differs from the default. Shows a visual indicator when true.
+   */
+  changed?: boolean;
 }
 
 export interface NumberInputState {
@@ -151,6 +162,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
         }));
 
         props.onChange(null, finalValue);
+        // Call onChangeComplete when user finishes editing via text input
+        if (props.onChangeComplete) {
+          props.onChangeComplete(finalValue);
+        }
       } else {
         setState((prevState) => ({
           ...prevState,
@@ -253,7 +268,9 @@ const NumberInput: React.FC<InputProps> = (props) => {
   }, [props.value, inputIsFocused, state.isDragging]);
 
   useEffect(() => {
-    if (!state.isDragging) {return;}
+    if (!state.isDragging) {
+      return;
+    }
 
     // Capture the current handler references once. Using local constants keeps the
     // effect dependency array minimal and prevents re-running this effect on every
@@ -288,9 +305,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
   return (
     <div
       ref={containerRef}
+      css={numberInputStyles(theme)}
       className={`number-input ${props.inputType} ${
         inputIsFocused ? "focused" : ""
-      }`}
+      } ${props.changed ? "changed" : ""}`}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
       onBlur={handleContainerBlur}
@@ -351,6 +369,7 @@ export default memo(NumberInput, (prevProps, nextProps) => {
     prevProps.max === nextProps.max &&
     prevProps.inputType === nextProps.inputType &&
     prevProps.hideLabel === nextProps.hideLabel &&
-    prevProps.showSlider === nextProps.showSlider
+    prevProps.showSlider === nextProps.showSlider &&
+    prevProps.changed === nextProps.changed
   );
 });

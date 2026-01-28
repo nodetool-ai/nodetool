@@ -1,74 +1,73 @@
-import { describe, it, expect } from "@jest/globals";
 import { isModelDownloaded } from "../modelDownloadCheck";
-import type { UnifiedModel } from "../../stores/ApiTypes";
 
-describe("isModelDownloaded", () => {
-  it("returns true when model id exists in downloaded set", () => {
-    const downloadedIds = new Set(["model-1"]);
-    const model = {
-      id: "model-1",
-      repo_id: "test/model-1",
-      name: "Test Model",
-      provider: "local",
-      type: "language_model"
-    } as unknown as UnifiedModel;
+// Helper type for test models - a partial model object that matches what the function accepts
+type TestModel = {
+  id?: string;
+  repo_id?: string;
+  path?: string;
+  allow_patterns?: string[];
+};
 
-    expect(isModelDownloaded(model, downloadedIds)).toBe(true);
-  });
+describe("modelDownloadCheck", () => {
+  describe("isModelDownloaded", () => {
+    const downloadedModelIds = new Set<string>([
+      "model-a",
+      "model-b",
+      "user/repo-c",
+    ]);
 
-  it("checks repo_id for models without local id", () => {
-    const downloadedIds = new Set(["test/model-2"]);
+    it("should return true when repo_id is in downloaded models", () => {
+      const model: TestModel = { id: "model-a", repo_id: "model-a" };
+      const result = isModelDownloaded(model, downloadedModelIds);
+      expect(result).toBe(true);
+    });
 
-    expect(
-      isModelDownloaded({ repo_id: "test/model-2" }, downloadedIds)
-    ).toBe(true);
-  });
+    it("should return false when repo_id is not in downloaded models", () => {
+      const model: TestModel = { id: "model-x", repo_id: "model-x" };
+      const result = isModelDownloaded(model, downloadedModelIds);
+      expect(result).toBe(false);
+    });
 
-  it("falls back to false when path downloads are not matched", () => {
-    const downloadedIds = new Set(["test/model-3"]);
-    const model = {
-      repo_id: "test/model-3",
-      path: "/models/model-3.bin",
-      name: "Model With Path",
-      provider: "local",
-      type: "language_model"
-    } as unknown as UnifiedModel;
+    it("should return true when id matches downloaded model", () => {
+      const model: TestModel = { id: "model-b", repo_id: "different-id" };
+      const result = isModelDownloaded(model, downloadedModelIds);
+      expect(result).toBe(true);
+    });
 
-    const huggingFaceModels: UnifiedModel[] = [
-      {
-        id: "test/model-3",
-        name: "Model With Path",
-        provider: "huggingface",
-        type: "language_model"
-      } as unknown as UnifiedModel
-    ];
+    it("should return false when no match found", () => {
+      const model: TestModel = { id: "unknown-model" };
+      const result = isModelDownloaded(model, downloadedModelIds);
+      expect(result).toBe(false);
+    });
 
-    expect(isModelDownloaded(model, downloadedIds, huggingFaceModels)).toBe(
-      false
-    );
-  });
+    it("should handle model with path but return false (not fully implemented)", () => {
+      const model: TestModel = { repo_id: "model-a", path: "some/path" };
+      const result = isModelDownloaded(model, downloadedModelIds);
+      expect(result).toBe(false);
+    });
 
-  it("treats allow_patterns models like id-only checks", () => {
-    const downloadedIds = new Set(["test/model-4"]);
+    it("should handle model with allow_patterns", () => {
+      const model: TestModel = { repo_id: "model-a", allow_patterns: ["*.safetensors"] };
+      const result = isModelDownloaded(model, downloadedModelIds);
+      expect(result).toBe(true);
+    });
 
-    expect(
-      isModelDownloaded(
-        { repo_id: "test/model-4", allow_patterns: ["*.gguf"] },
-        downloadedIds
-      )
-    ).toBe(true);
-  });
+    it("should return false for model with allow_patterns not in downloaded set", () => {
+      const model: TestModel = { repo_id: "unknown-model", allow_patterns: ["*.safetensors"] };
+      const result = isModelDownloaded(model, downloadedModelIds);
+      expect(result).toBe(false);
+    });
 
-  it("returns false when model is not present in downloads", () => {
-    const downloadedIds = new Set<string>();
-    const model = {
-      id: "missing-model",
-      repo_id: "test/missing-model",
-      name: "Missing Model",
-      provider: "local",
-      type: "language_model"
-    } as unknown as UnifiedModel;
+    it("should handle empty downloadedModelIds set", () => {
+      const model: TestModel = { id: "model-a" };
+      const result = isModelDownloaded(model, new Set());
+      expect(result).toBe(false);
+    });
 
-    expect(isModelDownloaded(model, downloadedIds)).toBe(false);
+    it("should handle model with undefined id and repo_id", () => {
+      const model: TestModel = { path: "some/path" };
+      const result = isModelDownloaded(model, downloadedModelIds);
+      expect(result).toBe(false);
+    });
   });
 });

@@ -57,6 +57,7 @@ const IMAGE_TYPES = new Set([
   "hf.controlnet_flux",
   "hf.ip_adapter",
   "hf.lora",
+  "hf.lora_flux",
   "hf.vae",
   "hf.unet",
   "hf.clip",

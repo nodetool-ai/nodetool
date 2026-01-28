@@ -210,6 +210,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
           iconType="image"
           iconBaseColor={theme.vars.palette.primary.main}
           showIcon={false}
+          workflowId={props.data.workflow_id}
         />
 
         <div className="content">

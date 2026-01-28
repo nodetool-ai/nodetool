@@ -46,7 +46,12 @@ import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
 import assert from "assert";
-import { checkForPackageUpdates } from "./packageManager";
+import {
+  checkForPackageUpdates,
+  installExpectedPackages,
+  checkExpectedPackageVersions,
+} from "./packageManager";
+import { checkAndUpdateCondaPackages } from "./condaPackageChecker";
 import { IpcChannels } from "./types.d";
 import { readSettings, updateSetting } from "./settings";
 
@@ -110,7 +115,52 @@ async function notifyPackageUpdates(): Promise<void> {
   } catch (error: any) {
     logMessage(
       `Failed to notify package updates: ${error.message ?? String(error)}`,
-      "warn"
+      "warn",
+    );
+  }
+}
+
+/**
+ * Check and install expected package versions on startup
+ */
+async function checkAndInstallExpectedPackages(): Promise<void> {
+  try {
+    logMessage("=== Starting Expected Package Version Check ===");
+
+    const packagesNeedingUpdate = await checkExpectedPackageVersions();
+
+    if (packagesNeedingUpdate.length === 0) {
+      logMessage("All expected packages are at correct versions");
+      return;
+    }
+
+    logMessage(
+      `Found ${packagesNeedingUpdate.length} package(s) needing update: ${packagesNeedingUpdate.map((p) => p.packageName).join(", ")}`,
+    );
+
+    emitBootMessage(`Updating ${packagesNeedingUpdate.length} package(s)...`);
+
+    const result = await installExpectedPackages();
+
+    if (result.success) {
+      logMessage(
+        `Successfully updated ${result.packagesUpdated} of ${result.packagesChecked} expected packages`,
+      );
+    } else {
+      logMessage(
+        `Failed to update ${result.failures.length} of ${result.packagesChecked} expected packages`,
+        "warn",
+      );
+      for (const failure of result.failures) {
+        logMessage(`  - ${failure.packageName}: ${failure.error}`, "warn");
+      }
+    }
+
+    logMessage("=== Expected Package Version Check Complete ===");
+  } catch (error: any) {
+    logMessage(
+      `Failed to check/install expected packages: ${error.message ?? String(error)}`,
+      "warn",
     );
   }
 }
@@ -174,11 +224,11 @@ async function initialize(): Promise<void> {
     logMessage("=== Starting Application Initialization ===");
 
     // Skip heavy initialization in test mode
-    if (process.env.NODE_ENV === 'test') {
+    if (process.env.NODE_ENV === "test") {
       logMessage("Running in test mode, skipping Python/server initialization");
       assert(mainWindow, "MainWindow is not initialized");
       // Load a simple page for testing
-      mainWindow.loadURL('data:text/html,<html><body>Test Mode</body></html>');
+      mainWindow.loadURL("data:text/html,<html><body>Test Mode</body></html>");
       logMessage("=== Application Initialization Complete (Test Mode) ===");
       return;
     }
@@ -207,13 +257,28 @@ async function initialize(): Promise<void> {
     logMessage("About to check Python environment...");
     const hasEnvironment = await checkPythonEnvironment();
     logMessage(
-      `Python environment check complete, hasEnvironment: ${hasEnvironment}`
+      `Python environment check complete, hasEnvironment: ${hasEnvironment}`,
     );
 
     assert(mainWindow, "MainWindow is not initialized");
 
     if (hasEnvironment) {
-      logMessage("Environment exists, starting backend server");
+      logMessage(
+        "Environment exists, determining if package checks are needed",
+      );
+
+      // Check if any pip packages need update - only then check/update conda packages
+      // This optimization prevents slow conda checks on every startup
+      const pipUpdatesNeeded = await checkExpectedPackageVersions();
+
+      if (pipUpdatesNeeded.length > 0) {
+        logMessage("Pip updates detected, checking for conda package updates");
+        await checkAndUpdateCondaPackages();
+      } else {
+        logMessage("No pip updates needed, skipping conda package check");
+      }
+
+      logMessage("Starting backend server");
       await initializeBackendServer();
       logMessage("initializeBackendServer() completed");
       logMessage("Loading web app...");
@@ -231,6 +296,9 @@ async function initialize(): Promise<void> {
 
     void notifyPackageUpdates();
 
+    // Check and install expected package versions
+    void checkAndInstallExpectedPackages();
+
     // Request notification permissions
     if (process.platform === "darwin") {
       logMessage("Setting activation policy for macOS (regular)");
@@ -246,12 +314,15 @@ async function initialize(): Promise<void> {
     if (serverState.status === "error") {
       logMessage(
         "Backend failed to start; staying on splash screen for recovery actions",
-        "warn"
+        "warn",
       );
       return;
     }
 
-    dialog.showErrorBox("Initialization Error", `Failed to initialize: ${message}`);
+    dialog.showErrorBox(
+      "Initialization Error",
+      `Failed to initialize: ${message}`,
+    );
     app.quit();
   }
 }
@@ -270,20 +341,19 @@ async function checkMediaPermissions(): Promise<void> {
 
       if (microphoneStatus !== "granted") {
         logMessage(
-          `Microphone not granted, current status: ${microphoneStatus}`
+          `Microphone not granted, current status: ${microphoneStatus}`,
         );
 
         if (process.platform === "darwin") {
           logMessage("Requesting microphone access on macOS");
-          const granted = await systemPreferences.askForMediaAccess(
-            "microphone"
-          );
+          const granted =
+            await systemPreferences.askForMediaAccess("microphone");
           logMessage(`Microphone permission request result: ${granted}`);
 
           if (!granted) {
             logMessage("Opening system preferences for microphone access");
             shell.openExternal(
-              "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+              "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
             );
           }
         } else if (process.platform === "win32") {
@@ -296,12 +366,12 @@ async function checkMediaPermissions(): Promise<void> {
     } catch (error) {
       logMessage(
         `Error handling microphone permissions: ${(error as Error).message}`,
-        "error"
+        "error",
       );
     }
   } else {
     logMessage(
-      `Platform ${process.platform} does not require explicit microphone permissions`
+      `Platform ${process.platform} does not require explicit microphone permissions`,
     );
   }
 }
@@ -310,9 +380,9 @@ let isInitialized = false;
 
 app.on("ready", async () => {
   await initializeIpcHandlers();
-  
+
   // Skip media permissions check in test mode
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV !== "test") {
     await checkMediaPermissions();
   }
 
@@ -322,13 +392,13 @@ app.on("ready", async () => {
     mainWindow?.focus();
     if (!isInitialized) {
       isInitialized = true;
-      
+
       // Skip menu/tray creation in test mode
-      if (process.env.NODE_ENV !== 'test') {
+      if (process.env.NODE_ENV !== "test") {
         await buildMenu();
         await createTray();
       }
-      
+
       await initialize();
     }
   });
@@ -379,7 +449,8 @@ app.on("window-all-closed", async () => {
     type: "question",
     title: "Close NodeTool",
     message: "What would you like to do?",
-    detail: "NodeTool can continue running in the background to keep services available.",
+    detail:
+      "NodeTool can continue running in the background to keep services available.",
     buttons: ["Quit", "Keep Running in Background"],
     defaultId: 1,
     cancelId: 1,
@@ -425,7 +496,7 @@ process.on(
     if (shouldForceQuit(reason)) {
       forceQuit(`Unhandled Promise Rejection: ${message}`);
     }
-  }
+  },
 );
 
 app.on("will-quit", () => {

@@ -6,16 +6,104 @@ import {
 } from "../components/node_menu/typeFilterUtils";
 import { formatNodeDocumentation } from "../stores/formatNodeDocumentation";
 import { fuseOptions, ExtendedFuseOptions } from "../stores/fuseOptions";
+import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
 
 export type SearchResultGroup = {
   title: string;
   nodes: NodeMetadata[];
 };
 
+// Global prefix tree instance for fast prefix searches
+// Cache is keyed by the metadata array to enable proper reuse
+let globalPrefixTree: PrefixTreeSearch | null = null;
+let globalPrefixTreeNodesHash: string = "";
+
+/**
+ * Initialize or update the global prefix tree with node metadata
+ * Uses a hash of node types to detect when re-indexing is needed
+ */
+function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
+  // Create a hash of the nodes to detect changes
+  const nodesHash = nodes.map(n => n.node_type).sort().join(",");
+  
+  // Check if we need to rebuild the tree
+  if (!globalPrefixTree || globalPrefixTreeNodesHash !== nodesHash) {
+    const searchFields: SearchField[] = [
+      { field: "title", weight: 1.0 },
+      { field: "namespace", weight: 0.8 },
+      { field: "description", weight: 0.4 },
+    ];
+    globalPrefixTree = new PrefixTreeSearch(searchFields);
+    globalPrefixTree.indexNodes(nodes);
+    globalPrefixTreeNodesHash = nodesHash;
+  }
+  return globalPrefixTree;
+}
+
+/**
+ * Determine if a query is suitable for prefix tree search
+ * Prefix tree is best for simple prefix queries
+ */
+function shouldUsePrefixTree(term: string): boolean {
+  // Use prefix tree for simple queries (no special search syntax)
+  // Avoid for very short queries (< 2 chars) or complex patterns
+  if (term.length < 2) {return false;}
+  
+  // Don't use prefix tree if the query has multiple words (better for fuzzy)
+  const words = term.trim().split(/\s+/);
+  if (words.length > 2) {return false;}
+  
+  return true;
+}
+
 export function performGroupedSearch(
   entries: any[],
   term: string
 ): SearchResultGroup[] {
+  // Extract node metadata from entries
+  const nodes: NodeMetadata[] = entries.map((e) => e.metadata);
+  
+  // Try prefix tree search first for suitable queries
+  if (shouldUsePrefixTree(term)) {
+    const prefixTree = ensurePrefixTree(nodes);
+    const prefixResults = prefixTree.search(term, { maxResults: 100 });
+    
+    // If we got good results from prefix tree, use them
+    if (prefixResults.length > 0) {
+      // Group results by match type
+      const titleMatches: NodeMetadata[] = [];
+      const namespaceMatches: NodeMetadata[] = [];
+      const descriptionMatches: NodeMetadata[] = [];
+      
+      prefixResults.forEach((result) => {
+        if (result.matchedField === "title") {
+          titleMatches.push(result.node);
+        } else if (result.matchedField === "namespace") {
+          namespaceMatches.push(result.node);
+        } else if (result.matchedField === "description") {
+          descriptionMatches.push(result.node);
+        }
+      });
+      
+      const groups: SearchResultGroup[] = [];
+      if (titleMatches.length > 0) {
+        groups.push({ title: "Name", nodes: titleMatches });
+      }
+      if (namespaceMatches.length > 0) {
+        groups.push({ title: "Namespace + Tags", nodes: namespaceMatches });
+      }
+      if (descriptionMatches.length > 0) {
+        groups.push({ title: "Description", nodes: descriptionMatches });
+      }
+      
+      // Return prefix tree results if we found anything
+      if (groups.length > 0) {
+        return groups;
+      }
+    }
+  }
+  
+  // Fall back to Fuse.js for complex searches or when prefix tree didn't find results
   const titleFuse = new Fuse(entries, {
     ...fuseOptions,
     threshold: 0.2,
@@ -52,65 +140,85 @@ export function performGroupedSearch(
     useExtendedSearch: true
   } as ExtendedFuseOptions<any>);
 
-  const titleResults = titleFuse.search(term).map((result) => ({
-    ...result.item.metadata,
-    searchInfo: {
-      score: result.score,
-      matches: result.matches
+  // Collect all results with their scores for ranking
+  const allResults: Array<{ node: any; score: number; source: string }> = [];
+
+  // Title matches (highest priority - score boost)
+  titleFuse.search(term).forEach((result) => {
+    allResults.push({
+      node: {
+        ...result.item.metadata,
+        searchInfo: {
+          score: result.score,
+          matches: result.matches
+        }
+      },
+      score: (result.score || 0) * 0.5, // Boost title matches
+      source: "title"
+    });
+  });
+
+  // Namespace + Tags matches
+  titleTagsFuse.search(term).forEach((result) => {
+    // Skip if already in results
+    if (allResults.some((r) => r.node.node_type === result.item.metadata.node_type)) {
+      return;
     }
-  }));
+    allResults.push({
+      node: {
+        ...result.item.metadata,
+        searchInfo: {
+          score: result.score,
+          matches: result.matches
+        }
+      },
+      score: (result.score || 0) * 0.7, // Slight boost for namespace/tags
+      source: "namespace"
+    });
+  });
 
-  const titleTagsResults = titleTagsFuse
-    .search(term)
-    .filter(
-      (result) =>
-        !titleResults.some(
-          (r) => r.node_type === result.item.metadata.node_type
-        )
-    )
-    .map((result) => ({
-      ...result.item.metadata,
-      searchInfo: {
-        score: result.score,
-        matches: result.matches
-      }
-    }));
-
+  // Description matches
   const termNoSpaces = term.replace(/\s+/g, "");
-  const results = new Map<string, any>();
+  const descResults = new Map<string, any>();
   [
     ...descriptionFuse.search(term),
     ...descriptionFuse.search(termNoSpaces)
   ].forEach((result) => {
     const nodeType = result.item.metadata.node_type;
-    if (!results.has(nodeType)) {
-      results.set(nodeType, result);
+    if (!descResults.has(nodeType)) {
+      descResults.set(nodeType, result);
     }
   });
 
-  const descriptionResults = Array.from(results.values())
-    .filter(
-      (result) =>
-        !titleResults.some(
-          (r) => r.node_type === result.item.metadata.node_type
-        ) &&
-        !titleTagsResults.some(
-          (r) => r.node_type === result.item.metadata.node_type
-        )
-    )
-    .map((result) => ({
-      ...result.item.metadata,
-      searchInfo: {
-        score: result.score,
-        matches: result.matches
-      }
-    }));
+  Array.from(descResults.values()).forEach((result) => {
+    // Skip if already in results
+    if (allResults.some((r) => r.node.node_type === result.item.metadata.node_type)) {
+      return;
+    }
+    allResults.push({
+      node: {
+        ...result.item.metadata,
+        searchInfo: {
+          score: result.score,
+          matches: result.matches
+        }
+      },
+      score: result.score || 0,
+      source: "description"
+    });
+  });
 
-  return [
-    { title: "Name", nodes: titleResults },
-    { title: "Namespace + Tags", nodes: titleTagsResults },
-    { title: "Description", nodes: descriptionResults }
-  ].filter((group) => group.nodes.length > 0);
+  // Sort by score (lower is better in Fuse.js)
+  allResults.sort((a, b) => a.score - b.score);
+
+  // Return as a single flat group for display
+  const rankedNodes = allResults.map((r) => r.node);
+  
+  if (rankedNodes.length === 0) {
+    return [];
+  }
+
+  return [{ title: "Results", nodes: rankedNodes }];
 }
 
 export function computeSearchResults(

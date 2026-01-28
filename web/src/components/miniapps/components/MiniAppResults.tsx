@@ -1,23 +1,74 @@
-import React, { useState, useCallback } from "react";
-import { Typography, IconButton, Tooltip } from "@mui/material";
+import React, { useState, useCallback, useMemo } from "react";
+import { Typography, IconButton, Tooltip, CircularProgress } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import OutputRenderer from "../../node/OutputRenderer";
 import { MiniAppResult } from "../types";
+import { Workflow } from "../../../stores/ApiTypes";
 
 interface MiniAppResultsProps {
   results: MiniAppResult[];
+  isRunning?: boolean;
   onClear?: () => void;
+  workflow?: Workflow;
 }
 
 const MiniAppResults: React.FC<MiniAppResultsProps> = ({
   results,
-  onClear
+  isRunning = false,
+  onClear,
+  workflow
 }) => {
-  const hasResults = results.length > 0;
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Get set of bypassed node IDs and preview node IDs for filtering results
+  const excludedNodeIds = useMemo(() => {
+    if (!workflow?.graph?.nodes) {
+      return new Set<string>();
+    }
+    return new Set(
+      workflow.graph.nodes
+        .filter((node: any) => 
+          // Exclude bypassed nodes
+          node.ui_properties?.bypassed ||
+          // Exclude PreviewNode - they shouldn't show in app mode
+          node.type === "nodetool.workflows.base_node.Preview"
+        )
+        .map((node) => node.id)
+    );
+  }, [workflow]);
+
+  // Filter out results from bypassed and preview nodes
+  const filteredResults = useMemo(() => {
+    return results.filter((result) => !excludedNodeIds.has(result.nodeId));
+  }, [results, excludedNodeIds]);
+
+  const hasResults = filteredResults.length > 0;
+
+  // Check for output nodes and their bypass status (exclude preview nodes)
+  const outputNodeStatus = useMemo(() => {
+    if (!workflow?.graph?.nodes) {
+      return { totalOutputs: 0, activeOutputs: 0, allBypassed: false };
+    }
+
+    // Only count actual output nodes, not preview nodes
+    const outputNodes = workflow.graph.nodes.filter(
+      (node) => node.type?.includes(".output.")
+    );
+    const activeOutputNodes = outputNodes.filter(
+      (node: any) => !node.ui_properties?.bypassed
+    );
+
+    return {
+      totalOutputs: outputNodes.length,
+      activeOutputs: activeOutputNodes.length,
+      allBypassed: outputNodes.length > 0 && activeOutputNodes.length === 0
+    };
+  }, [workflow]);
 
   const handleCopy = useCallback(
     async (result: MiniAppResult) => {
@@ -51,34 +102,57 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
     []
   );
 
+  const handleCopyResult = useCallback(
+    (result: MiniAppResult) => () => {
+      handleCopy(result);
+    },
+    [handleCopy]
+  );
+
   return (
-    <section className="results-shell glass-card">
-      <div className="results-heading">
-        {hasResults && (
-          <>
-            <Typography variant="body2" color="text.secondary">
-              {results.length} {results.length === 1 ? "result" : "results"}
-            </Typography>
-            {onClear && (
-              <Tooltip title="Clear results">
-                <IconButton
-                  size="small"
-                  onClick={onClear}
-                  aria-label="Clear results"
-                  sx={{ ml: "auto" }}
-                >
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-          </>
-        )}
-      </div>
+    <section className="results-shell application-card">
+      {/* Clear button - shown only when there are results */}
+      {hasResults && onClear && (
+        <Tooltip title={`Clear ${filteredResults.length} result${filteredResults.length > 1 ? "s" : ""}`}>
+          <IconButton
+            size="small"
+            onClick={onClear}
+            aria-label="Clear results"
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              zIndex: 10,
+              backgroundColor: "background.paper",
+              boxShadow: 1,
+              "&:hover": {
+                backgroundColor: "action.hover"
+              }
+            }}
+          >
+            <ClearIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
 
       {hasResults ? (
         <div className="results-list">
-          {results.map((result) => (
+          {filteredResults.map((result) => (
             <div className="result-card" key={result.id}>
+              {result.outputName && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{
+                    display: "block",
+                    fontWeight: 500,
+                    opacity: 0.7,
+                    mb: 0.5
+                  }}
+                >
+                  {result.outputName}
+                </Typography>
+              )}
               <div className="result-card-body">
                 <OutputRenderer value={result.value} showTextActions={false} />
                 <Tooltip
@@ -86,7 +160,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
                 >
                   <IconButton
                     size="small"
-                    onClick={() => handleCopy(result)}
+                    onClick={handleCopyResult(result)}
                     aria-label="Copy result"
                     className="result-card-copy-button"
                     sx={{
@@ -113,13 +187,51 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
         </div>
       ) : (
         <div className="result-placeholder">
-          <Typography
-            className="empty-eyebrow"
-            variant="overline"
-            color="text.secondary"
-          >
-            No results
-          </Typography>
+          {isRunning ? (
+            <CircularProgress size={40} />
+          ) : outputNodeStatus.totalOutputs === 0 ? (
+            <>
+              <InfoOutlinedIcon className="result-placeholder-icon" />
+              <Typography variant="h6" className="result-placeholder-title">
+                No output nodes
+              </Typography>
+              <Typography
+                variant="body2"
+                className="result-placeholder-subtitle"
+              >
+                This workflow has no output nodes. The workflow can still run
+                and perform actions, but results won&apos;t be displayed here.
+              </Typography>
+            </>
+          ) : outputNodeStatus.allBypassed ? (
+            <>
+              <InfoOutlinedIcon className="result-placeholder-icon" />
+              <Typography variant="h6" className="result-placeholder-title">
+                All outputs bypassed
+              </Typography>
+              <Typography
+                variant="body2"
+                className="result-placeholder-subtitle"
+              >
+                All output nodes in this workflow are currently bypassed. The
+                workflow can still run, but no results will be displayed.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <PlayCircleOutlineIcon className="result-placeholder-icon" />
+              <Typography variant="h6" className="result-placeholder-title">
+                Ready to run
+              </Typography>
+              <Typography
+                variant="body2"
+                className="result-placeholder-subtitle"
+              >
+                Configure your inputs on the left and click &quot;Run Workflow&quot; to
+                see results here.
+              </Typography>
+            </>
+          )}
         </div>
       )}
     </section>

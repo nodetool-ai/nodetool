@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   CardContent,
   Typography,
@@ -10,7 +10,6 @@ import {
 import { getShortModelName, formatBytes } from "../../../utils/modelFormatting";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import ReadmeDialog from "../ReadmeDialog";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 
@@ -35,6 +34,10 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
     const isOllama = model.type?.toLowerCase().includes("llama_model") ?? false;
 
     const theme = useTheme();
+
+    const handleOpenReadme = useCallback(() => {
+      setReadmeDialogOpen(true);
+    }, [setReadmeDialogOpen]);
 
     return (
       <CardContent sx={{ flexGrow: 1 }}>
@@ -107,7 +110,7 @@ const ModelCardContent = React.memo<ModelCardContentProps>(
           <Box>
             <Button
               className="readme-toggle-button"
-              onClick={() => setReadmeDialogOpen(true)}
+              onClick={handleOpenReadme}
             >
               <Typography>README</Typography>
             </Button>

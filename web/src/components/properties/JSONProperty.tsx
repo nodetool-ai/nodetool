@@ -1,3 +1,5 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import { memo, useCallback, useState } from "react";
 import Editor from "react-simple-code-editor";
 import { PropertyProps } from "../node/PropertyInput";
@@ -7,7 +9,7 @@ import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import { IconButton, Tooltip } from "@mui/material";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 import TextEditorModal from "./TextEditorModal";
 
 const JSONProperty = (props: PropertyProps) => {
@@ -78,7 +80,59 @@ const JSONProperty = (props: PropertyProps) => {
   );
 
   return (
-    <div className="json-property">
+    <div
+      className="json-property"
+      css={css({
+        ".property-row": {
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px"
+        },
+        ".value-container": {
+          width: "100%",
+          position: "relative"
+        },
+        ".json-action-buttons": {
+          position: "absolute",
+          right: 0,
+          top: "-3px",
+          opacity: 0.8,
+          zIndex: 10
+        },
+        ".json-action-buttons .MuiIconButton-root": {
+          margin: "0 0 0 5px",
+          padding: 0
+        },
+        ".json-action-buttons .MuiIconButton-root svg": {
+          fontSize: "0.75rem"
+        },
+        ".editor": {
+          fontFamily: "monospace",
+          fontSize: "var(--fontSizeSmaller)",
+          lineHeight: "1.25em",
+          minHeight: "100px",
+          maxHeight: "200px",
+          overflow: "auto !important"
+        },
+        ".editor textarea": {
+          resize: "none",
+          padding: "4px 8px 0 8px",
+          lineHeight: "18px",
+          boxSizing: "content-box"
+        },
+        ".editor:focus-within": {
+          borderColor: "var(--palette-grey-400) !important"
+        },
+        ".editor-wrapper": {
+          minHeight: "100px",
+          maxHeight: "200px",
+          overflow: "hidden",
+          backgroundColor: "var(--palette-grey-600)",
+          border: "1px solid var(--palette-grey-500)",
+          borderRadius: "4px"
+        }
+      })}
+    >
       <div
         className="property-row"
         onMouseEnter={() => setIsHovered(true)}
@@ -96,7 +150,7 @@ const JSONProperty = (props: PropertyProps) => {
                 <OpenInFullIcon />
               </IconButton>
             </Tooltip>
-            <CopyToClipboardButton copyValue={value} size="small" />
+            <CopyButton value={value} buttonSize="small" />
           </div>
         )}
         <div

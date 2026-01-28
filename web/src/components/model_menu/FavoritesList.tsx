@@ -1,21 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   List,
   ListItemButton,
   ListItemText,
   ListItemIcon,
-  Tooltip,
   ListSubheader,
   Box
 } from "@mui/material";
 import FavoriteStar from "./FavoriteStar";
 import type { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { toTitleCase, isHuggingFaceLocalProvider } from "../../utils/providerDisplay";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useTheme } from "@mui/material/styles";
 
 const listStyles = css({
@@ -28,7 +25,7 @@ export interface FavoritesListProps<TModel extends ModelSelectorModel> {
   onSelect: (m: TModel) => void;
 }
 
-const requiredSecretForProvider = (provider?: string): string | null => {
+const _requiredSecretForProvider = (provider?: string): string | null => {
   const p = (provider || "").toLowerCase();
   if (p.includes("openai")) {return "OPENAI_API_KEY";}
   if (p.includes("anthropic")) {return "ANTHROPIC_API_KEY";}
@@ -44,7 +41,13 @@ function FavoritesList<TModel extends ModelSelectorModel>({
 }: FavoritesListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const theme = useTheme();
-  // const secrets = useRemoteSettingsStore((s) => s.secrets);
+
+  const handleItemClick = useCallback(
+    (model: TModel) => () => {
+      onSelect(model);
+    },
+    [onSelect]
+  );
 
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
@@ -98,7 +101,7 @@ function FavoritesList<TModel extends ModelSelectorModel>({
             className={`model-menu__favorite-item ${
               available ? "" : "is-unavailable"
             } ${fav ? "is-favorite" : ""}`}
-            onClick={() => available && onSelect(m)}
+            onClick={handleItemClick(m)}
             disabled={!available}
           >
             <ListItemIcon sx={{ minWidth: 30 }}>

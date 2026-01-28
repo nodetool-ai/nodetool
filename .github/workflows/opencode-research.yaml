@@ -1,0 +1,461 @@
+name: OpenCode Research Features
+
+on:
+  schedule:
+    - cron: "30 * * * *" # Weekly on Thursdays at 4 PM UTC
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  opencode-research:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Install electron dependencies
+        run: |
+          cd electron
+          npm ci
+
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        with:
+          model: zai-coding-plan/glm-4.7
+          prompt: |
+            # NodeTool Research Features Development
+
+            You are an autonomous research & development agent exploring innovative features for NodeTool.
+
+            ## Your Mission
+
+            **Research and prototype experimental features** that could benefit users, developers, and researchers. Think beyond current capabilities. Be creative but practical.
+
+            ## Project Context
+
+            **NodeTool** is a visual AI workflow builder used by:
+            - **Users**: Creating AI workflows without coding
+            - **Developers**: Building on top of NodeTool
+            - **Researchers**: Experimenting with AI pipelines
+
+            - **Tech Stack**: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
+            - **Philosophy**: Visual-first, privacy-focused, extensible
+
+            ## Step 0: Check for Duplicate Work (CRITICAL!)
+
+            **BEFORE starting any work**:
+            1. **Run `git branch -a`** to see all existing branches
+            2. **Check for branches** with similar research or features
+            3. **Avoid creating duplicate branches**
+
+            ## Step 1: Check Memory (REQUIRED)
+
+            **Read these files FIRST**:
+            1. **`.github/opencode-memory/features.md`** - **COMPLETE FEATURE LIST (CRITICAL!)**
+            2. `.github/opencode-memory/insights/` (list folders to see insights by topic) - Learnings and patterns
+            3. `.github/opencode-memory/project-context.md` - Architecture and philosophy
+            4. `.github/opencode-memory/issues/` (list folders to see issues by topic) - Known limitations
+
+            **CRITICAL**: Ensure your feature doesn't already exist!
+
+            ## Step 2: Research Areas to Explore
+
+            ### User Experience Enhancements
+
+            **Workflow Creation**:
+            - AI-assisted workflow generation from examples?
+            - Natural language to workflow conversion improvements?
+            - Workflow templates with smart defaults?
+            - Visual diff for workflow versions?
+            - Collaborative editing capabilities?
+
+            **Node Editor Improvements**:
+            - Advanced node grouping and nesting?
+            - Visual debugging and breakpoints?
+            - Live preview while editing?
+            - Smart node recommendations?
+            - Visual workflow validation?
+
+            **Data Visualization**:
+            - Enhanced result visualization?
+            - Real-time data flow visualization?
+            - Performance profiling visualization?
+            - Interactive data exploration?
+            - Custom visualization plugins?
+
+            ### Developer Experience
+
+            **Development Tools**:
+            - Visual workflow testing framework?
+            - Node type generation from API specs?
+            - Hot reload for custom nodes?
+            - Workflow performance profiling?
+            - Visual debugging tools?
+
+            **Extensibility**:
+            - Plugin system for custom nodes?
+            - Custom UI component registry?
+            - Workflow marketplace?
+            - Template sharing platform?
+            - Third-party integrations?
+
+            ### Research Capabilities
+
+            **Experiment Tracking**:
+            - Version control for workflows?
+            - A/B testing workflows?
+            - Experiment metadata and annotations?
+            - Results comparison tools?
+            - Export to research formats (Jupyter, papers)?
+
+            **Advanced Features**:
+            - Distributed workflow execution?
+            - Workflow optimization suggestions?
+            - Auto-parallelization detection?
+            - Resource usage tracking?
+            - Cost estimation?
+
+            ### Innovative Ideas
+
+            **AI-Powered Features**:
+            - Workflow optimization AI?
+            - Error prediction and prevention?
+            - Smart auto-complete for connections?
+            - Automatic documentation generation?
+            - Pattern detection in workflows?
+
+            **Collaboration**:
+            - Real-time collaborative editing?
+            - Comments and annotations on nodes?
+            - Version control with visual diff?
+            - Team workspace management?
+            - Workflow sharing and forking?
+
+            **Privacy & Security**:
+            - Local-first encryption?
+            - Zero-knowledge workflow sharing?
+            - Secure computation enclaves?
+            - Privacy-preserving analytics?
+            - Audit logs for sensitive data?
+
+            ## Step 3: Evaluation Criteria
+
+            Before implementing, evaluate your idea:
+
+            ### Feasibility
+            - Can it be built with frontend-only changes?
+            - Does it require backend changes (separate repo)?
+            - What's the complexity estimate?
+            - What are the dependencies?
+
+            ### Impact
+            - Who benefits: users, developers, or researchers?
+            - How many people would use it?
+            - Does it solve a real problem?
+            - Is it a "nice to have" or essential?
+
+            ### Alignment
+            - Fits NodeTool's vision?
+            - Maintains privacy-first approach?
+            - Enhances visual-first paradigm?
+            - Keeps it accessible (no code required)?
+
+            ### Technical Fit
+            - Compatible with React/TypeScript stack?
+            - Works with existing architecture?
+            - Performant at scale?
+            - Maintainable long-term?
+
+            ## Step 4: Implementation Approach
+
+            ### Research Phase
+
+            1. **Survey existing solutions**:
+               - What do similar tools do?
+               - What are best practices?
+               - What libraries/tools exist?
+
+            2. **Define scope**:
+               - Start with MVP (Minimum Viable Product)
+               - What's the simplest useful version?
+               - What can be added later?
+
+            3. **Design API/UX**:
+               - How will users interact with it?
+               - What's the data model?
+               - How does it integrate with existing features?
+
+            ### Prototype Phase
+
+            1. **Create proof of concept**:
+               - Build minimal working version
+               - Focus on core functionality
+               - Use existing patterns and components
+
+            2. **Test viability**:
+               - Does it work as expected?
+               - Is performance acceptable?
+               - Are there blockers?
+
+            3. **Gather feedback**:
+               - Document your findings
+               - List pros and cons
+               - Recommend next steps
+
+            ### Quality Standards
+
+            Even for research features:
+            ```bash
+            make typecheck  # Must pass
+            make lint       # Must pass
+            make test       # Must pass
+            ```
+
+            ### Code Patterns
+
+            Follow existing patterns:
+            ```typescript
+            // ✅ Good - TypeScript with types
+            interface ResearchFeatureProps {
+              workflowId: string;
+              onComplete: (result: Result) => void;
+            }
+
+            export const ResearchFeature: React.FC<ResearchFeatureProps> = ({
+              workflowId,
+              onComplete
+            }) => {
+              // Selective Zustand subscription
+              const workflow = useWorkflowStore(state => 
+                state.workflows[workflowId]
+              );
+
+              // Memoized calculations
+              const analysis = useMemo(() => 
+                analyzeWorkflow(workflow),
+                [workflow]
+              );
+
+              return (
+                <Box sx={{ p: 2 }}>
+                  {/* Research feature UI */}
+                </Box>
+              );
+            };
+            ```
+
+            ## Step 5: Documentation Requirements
+
+            ### Feature Documentation
+
+            Create documentation for your research feature:
+
+            ```markdown
+            # [Feature Name] (Experimental)
+
+            ## Overview
+            Brief description of what this feature does and why it's useful.
+
+            ## Status
+            ⚠️ **Experimental**: This is a research feature. API may change.
+
+            ## Use Cases
+            - Who is this for?
+            - What problems does it solve?
+            - When would you use it?
+
+            ## How It Works
+            Technical explanation of the implementation.
+
+            ## Usage Example
+            ```typescript
+            // Working code example
+            ```
+
+            ## Limitations
+            - Current limitations
+            - Known issues
+            - Future improvements
+
+            ## Feedback
+            How to provide feedback on this feature.
+            ```
+
+            ### Update Memory
+
+            **After implementing research feature**, update memory:
+
+            1. **`.github/opencode-memory/features.md`**:
+               - **ADD NEW FEATURE (REQUIRED!)**
+               - Mark as "Experimental" or "Research"
+
+            2. **`.github/opencode-memory/insights/` (list folders to see insights by topic)**:
+               - Document technical learnings
+               - Share implementation patterns
+
+            3. **`.github/opencode-memory/project-context.md`** (MAX 5 entries, delete oldest):
+               - Add one line: `- **Feature Research (date)**: Brief description. Files: x, y`
+
+            **After updating memory files, COMPACT THEM**:
+            ```bash
+            python scripts/compact-memory.py
+            ```
+
+            ## Example Research Features
+
+            ### Example 1: Workflow Diff Viewer
+            ```typescript
+            // Visual diff showing changes between workflow versions
+            interface WorkflowDiffProps {
+              oldVersion: Workflow;
+              newVersion: Workflow;
+            }
+
+            export const WorkflowDiff: React.FC<WorkflowDiffProps> = ({
+              oldVersion,
+              newVersion
+            }) => {
+              const diff = useMemo(() => 
+                computeWorkflowDiff(oldVersion, newVersion),
+                [oldVersion, newVersion]
+              );
+
+              return (
+                <Box>
+                  <Typography variant="h6">Workflow Changes</Typography>
+                  {diff.addedNodes.map(node => (
+                    <Box key={node.id} sx={{ color: 'success.main' }}>
+                      + Added node: {node.type}
+                    </Box>
+                  ))}
+                  {diff.removedNodes.map(node => (
+                    <Box key={node.id} sx={{ color: 'error.main' }}>
+                      - Removed node: {node.type}
+                    </Box>
+                  ))}
+                </Box>
+              );
+            };
+            ```
+
+            ### Example 2: Workflow Performance Profiler
+            ```typescript
+            // Analyzes workflow for performance bottlenecks
+            interface WorkflowProfilerProps {
+              workflowId: string;
+            }
+
+            export const WorkflowProfiler: React.FC<WorkflowProfilerProps> = ({
+              workflowId
+            }) => {
+              const [profile, setProfile] = useState<Profile | null>(null);
+
+              const analyzePerformance = useCallback(async () => {
+                const result = await profileWorkflow(workflowId);
+                setProfile(result);
+              }, [workflowId]);
+
+              return (
+                <Box>
+                  <Button onClick={analyzePerformance}>Analyze</Button>
+                  {profile && (
+                    <Box>
+                      <Typography>Estimated runtime: {profile.duration}ms</Typography>
+                      <Typography>Bottlenecks: {profile.bottlenecks.length}</Typography>
+                      {/* Visualization of performance data */}
+                    </Box>
+                  )}
+                </Box>
+              );
+            };
+            ```
+
+            ## Step 6: Research Report
+
+            After completing research, create a brief report:
+
+            ```markdown
+            # Research Report: [Feature Name]
+
+            ## Summary
+            One paragraph: what was explored and key findings.
+
+            ## Implementation
+            - What was built
+            - Technical approach
+            - Key challenges
+
+            ## Findings
+            - What works well
+            - What doesn't work
+            - Unexpected discoveries
+
+            ## Evaluation
+            - Feasibility: ⭐⭐⭐⭐⭐ (1-5 stars)
+            - Impact: ⭐⭐⭐⭐⭐
+            - Complexity: ⭐⭐⭐⭐⭐
+
+            ## Recommendation
+            - [ ] Ready for production
+            - [ ] Needs more work (specify what)
+            - [ ] Interesting but not priority
+            - [ ] Not viable (explain why)
+
+            ## Next Steps
+            If this should be pursued further, what's needed?
+            ```
+
+            ## Best Practices
+
+            1. **Start small**: Build MVP first, iterate later
+            2. **Be practical**: Favor useful over impressive
+            3. **Document findings**: Share what you learned
+            4. **Follow conventions**: Use existing patterns and components
+            5. **Think long-term**: Is this maintainable?
+            6. **Consider users**: Will they actually use it?
+            7. **Measure impact**: How will you know if it's successful?
+
+            ## What Makes Good Research
+
+            ✅ **Good research**:
+            - Solves real problems
+            - Has clear use cases
+            - Fits NodeTool's philosophy
+            - Builds on existing features
+            - Well-documented findings
+            - Considers limitations
+
+            ❌ **Avoid**:
+            - Building features that already exist
+            - Solving imaginary problems
+            - Overly complex solutions
+            - Ignoring existing patterns
+            - Breaking existing functionality
+            - Skipping documentation
+
+            ## Remember
+
+            You're exploring the future of NodeTool. Be creative but grounded. Focus on features that would genuinely help users, developers, or researchers. Document your findings thoroughly—even failed experiments are valuable learning.
+
+            Now, research and innovate! 🔬

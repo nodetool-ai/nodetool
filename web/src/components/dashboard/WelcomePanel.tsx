@@ -20,64 +20,6 @@ import { overviewContents, Section } from "../content/Welcome/OverviewContent";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { UnifiedModel } from "../../stores/ApiTypes";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { DownloadProgress } from "../hugging_face/DownloadProgress";
-import DownloadIcon from "@mui/icons-material/Download";
-
-const InlineModelDownload: React.FC<{
-  model: UnifiedModel;
-  label?: React.ReactNode;
-  isDefault?: boolean;
-  tooltip?: string;
-}> = ({ model, label, isDefault, tooltip }) => {
-  const { startDownload, downloads } = useModelDownloadStore((state) => ({
-    startDownload: state.startDownload,
-    downloads: state.downloads
-  }));
-  const downloadKey = model.repo_id || model.id;
-  const inProgress = downloads[downloadKey]?.status === "running" || downloads[downloadKey]?.status === "progress" || downloads[downloadKey]?.status === "start" || downloads[downloadKey]?.status === "pending";
-  if (inProgress) {
-    return (
-      <Box
-        component="span"
-        sx={{ ml: 1, display: "inline-flex", verticalAlign: "middle" }}
-        className="inline-download-progress"
-      >
-        <DownloadProgress name={downloadKey} minimal />
-      </Box>
-    );
-  }
-  const button = (
-    <Button
-      size="small"
-      variant={isDefault ? "contained" : "outlined"}
-      color={isDefault ? "primary" : "inherit"}
-      startIcon={<DownloadIcon fontSize="small" />}
-      aria-label={`Download ${model.repo_id || model.id}`}
-      sx={{ ml: 1, verticalAlign: "middle" }}
-      className={`model-download-button ${isDefault ? "default-model" : ""}`}
-      onClick={() =>
-        startDownload(
-          model.repo_id || "",
-          model.type || "hf.model",
-          model.path ?? null,
-          model.allow_patterns ?? null,
-          model.ignore_patterns ?? null
-        )
-      }
-    >
-      {label ?? "Download"}
-    </Button>
-  );
-  return tooltip ? (
-    <Tooltip title={tooltip} arrow>
-      <span>{button}</span>
-    </Tooltip>
-  ) : (
-    button
-  );
-};
 
 const extractText = (node: ReactNode): string => {
   if (typeof node === "string") {return node;}
@@ -182,23 +124,30 @@ const panelStyles = (theme: any) =>
 
 const WelcomePanel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  
-  const sections: Section[] = [
-    ...overviewContents
-  ].map((section) => ({
-    ...section,
-    originalContent: section.content
-  }));
-  const { settings, updateSettings } = useSettingsStore();
+
+  const sections: Section[] = useMemo(() =>
+    overviewContents.map((section) => ({
+      ...section,
+      originalContent: section.content
+    })),
+    []
+  );
+  const settings = useSettingsStore((state) => state.settings);
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
   const theme = useTheme();
 
-  const handleToggleWelcomeOnStartup = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    updateSettings({ showWelcomeOnStartup: event.target.checked });
-  };
+  const handleToggleWelcomeOnStartup = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      updateSettings({ showWelcomeOnStartup: event.target.checked });
+    },
+    [updateSettings]
+  );
 
-  const highlightText = (text: string, term: string) => {
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  const highlightText = useCallback((text: string, term: string) => {
     if (!term) {return text;}
     const parts = text.split(new RegExp(`(${term})`, "gi"));
     return parts.map((part, index) =>
@@ -210,7 +159,7 @@ const WelcomePanel: React.FC = () => {
         part
       )
     );
-  };
+  }, []);
 
   const performSearch = useCallback(
     (searchTerm: string) => {
@@ -254,7 +203,7 @@ const WelcomePanel: React.FC = () => {
     [performSearch, searchTerm]
   );
 
-  const renderContent = (content: ReactNode): ReactNode => {
+  const renderContent = useCallback((content: ReactNode): ReactNode => {
     if (typeof content === "string") {
       return highlightText(content, searchTerm);
     }
@@ -275,7 +224,7 @@ const WelcomePanel: React.FC = () => {
       ));
     }
     return content;
-  };
+  }, [highlightText, searchTerm]);
 
   return (
     <Box css={panelStyles(theme)} className="welcome-panel-container">
@@ -331,7 +280,7 @@ const WelcomePanel: React.FC = () => {
                 </Typography>
                 <Button
                   size="small"
-                  onClick={() => setSearchTerm("")}
+                  onClick={handleClearSearch}
                   sx={{ mt: 1 }}
                 >
                   Clear search
@@ -366,4 +315,4 @@ const WelcomePanel: React.FC = () => {
   );
 };
 
-export default WelcomePanel;
+export default React.memo(WelcomePanel);

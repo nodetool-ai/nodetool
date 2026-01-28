@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import isEqual from "lodash/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import log from "loglevel";
@@ -17,9 +17,13 @@ import {
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import DownloadIcon from "@mui/icons-material/Download";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
+import WorkspaceSelect from "./WorkspaceSelect";
+import PanelHeadline from "../ui/PanelHeadline";
 
 // Types
 export interface TreeViewItem {
@@ -38,29 +42,63 @@ const workspaceTreeStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    padding: "16px",
+    padding: "12px",
     overflow: "hidden",
+    gap: "12px",
 
     ".workspace-header": {
-      marginBottom: "16px",
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center"
+      alignItems: "center",
+      paddingBottom: "4px",
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+    },
+
+    ".workspace-header h6": {
+      fontSize: "0.85rem",
+      fontWeight: 600,
+      letterSpacing: "0.02em",
+      textTransform: "uppercase",
+      color: theme.vars.palette.text.secondary
+    },
+
+    ".workspace-selector": {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px"
+    },
+
+    ".settings-button": {
+      color: theme.vars.palette.grey[400],
+      transition: "color 0.2s ease",
+      "&:hover": {
+        color: theme.vars.palette.primary.main
+      }
     },
 
     ".file-tree-container": {
       flex: 1,
       overflowY: "auto",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: "4px",
+      borderRadius: "6px",
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900]
     },
 
     ".tree-actions": {
       display: "flex",
-      gap: "8px",
-      marginBottom: "8px"
+      gap: "8px"
+    },
+
+    ".open-folder-button": {
+      textTransform: "none",
+      fontSize: "0.75rem",
+      borderColor: theme.vars.palette.grey[600],
+      color: theme.vars.palette.text.secondary,
+      "&:hover": {
+        borderColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.primary.main
+      }
     }
   });
 
@@ -87,9 +125,9 @@ const treeViewStyles = (theme: Theme) => ({
     fontSize: "0.875rem"
   },
   ".MuiTreeItem-content:has(.MuiTreeItem-iconContainer svg) .MuiTreeItem-label":
-    {
-      fontWeight: 600
-    },
+  {
+    fontWeight: 600
+  },
   ".folder-item .MuiTreeItem-label": {
     color: theme.vars.palette.info.light
   },
@@ -137,14 +175,14 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => {
 };
 
 const fetchWorkspaceFiles = async (
-  workspaceId: string,
+  workflowId: string,
   path: string = "."
 ): Promise<TreeViewItem[]> => {
   const { data, error } = await client.GET(
-    "/api/files/workspaces/{workspace_id}/list",
+    "/api/workspaces/workflow/{workflow_id}/files",
     {
       params: {
-        path: { workspace_id: workspaceId },
+        path: { workflow_id: workflowId },
         query: { path }
       }
     }
@@ -157,16 +195,17 @@ const fetchWorkspaceFiles = async (
   return data.map((file: FileInfo) => fileToTreeItem(file));
 };
 
+
 // Helper function to find item in tree
 const findItemInTree = (
   items: TreeViewItem[],
   id: string
 ): TreeViewItem | undefined => {
   for (const item of items) {
-    if (item.id === id) {return item;}
+    if (item.id === id) { return item; }
     if (item.children) {
       const found = findItemInTree(item.children, id);
-      if (found) {return found;}
+      if (found) { return found; }
     }
   }
   return undefined;
@@ -206,41 +245,94 @@ const WorkspaceTree: React.FC = () => {
   const theme = useTheme();
   const [files, setFiles] = useState<TreeViewItem[]>([]);
   const [selectedFilePath, setSelectedFilePath] = useState<string>("");
-
-  const { getCurrentWorkflow } = useWorkflowManager((state) => ({
-    getCurrentWorkflow: state.getCurrentWorkflow
+  const [filesWorkspaceId, setFilesWorkspaceId] = useState<string | undefined>();
+  const previousWorkflowId = useRef<string | null | undefined>(undefined);
+  const {
+    currentWorkflowId,
+    openWorkflows,
+    getCurrentWorkflow,
+    updateWorkflow,
+    saveWorkflow
+  } = useWorkflowManager((state) => ({
+    currentWorkflowId: state.currentWorkflowId,
+    openWorkflows: state.openWorkflows,
+    getCurrentWorkflow: state.getCurrentWorkflow,
+    updateWorkflow: state.updateWorkflow,
+    saveWorkflow: state.saveWorkflow
   }));
 
+  const { setIsOpen: setWorkspaceManagerOpen } = useWorkspaceManagerStore();
+
   const currentWorkflow = getCurrentWorkflow();
-  const workspaceId = currentWorkflow?.id;
+  const currentWorkflowMeta = openWorkflows.find(
+    (workflow) => workflow.id === currentWorkflowId
+  );
+  const workflowId = currentWorkflowId ?? currentWorkflow?.id;
+  const workspaceId = currentWorkflowMeta?.workspace_id ?? currentWorkflow?.workspace_id;
 
   const {
     data: initialFiles,
     isLoading: isLoadingFiles,
     refetch: refetchFiles
   } = useQuery({
-    queryKey: ["workspace-files", workspaceId],
-    queryFn: () => fetchWorkspaceFiles(workspaceId!),
-    enabled: Boolean(workspaceId)
+    queryKey: ["workflow-workspace-files", workflowId, filesWorkspaceId],
+    queryFn: () => fetchWorkspaceFiles(workflowId!),
+    enabled: Boolean(workflowId && filesWorkspaceId)
   });
 
-  // Update files when data loads
-  if (initialFiles && !isEqual(initialFiles, files)) {
-    setFiles(initialFiles);
-  }
+  // Query for workspace is no longer needed since we use WorkspaceSelect
+
+  const handleWorkspaceChange = useCallback(
+    async (newWorkspaceId: string | undefined) => {
+      if (!currentWorkflow) { return; }
+      const updatedWorkflow = {
+        ...currentWorkflow,
+        workspace_id: newWorkspaceId
+      };
+      updateWorkflow(updatedWorkflow);
+      try {
+        await saveWorkflow(updatedWorkflow);
+        setFilesWorkspaceId(newWorkspaceId);
+      } catch (error) {
+        log.error("Failed to save workspace change:", error);
+      }
+    },
+    [currentWorkflow, updateWorkflow, saveWorkflow]
+  );
+
+  useEffect(() => {
+    if (initialFiles && !isEqual(initialFiles, files)) {
+      setFiles(initialFiles);
+    }
+  }, [files, initialFiles]);
+
+  useEffect(() => {
+    setSelectedFilePath("");
+    setFiles([]);
+  }, [filesWorkspaceId, workflowId]);
+
+  useEffect(() => {
+    if (workflowId !== previousWorkflowId.current) {
+      previousWorkflowId.current = workflowId;
+      setFilesWorkspaceId(workspaceId ?? undefined);
+      return;
+    }
+    if (filesWorkspaceId === undefined && workspaceId) {
+      setFilesWorkspaceId(workspaceId);
+    }
+  }, [filesWorkspaceId, workflowId, workspaceId]);
 
   const handleItemClick = useCallback(
     async (event: React.MouseEvent, itemId: string) => {
-      if (!workspaceId) {return;}
+      if (!workflowId) { return; }
 
       setSelectedFilePath(itemId);
       try {
         const targetItem = findItemInTree(files, itemId);
         if (shouldLoadChildren(targetItem)) {
-          // Use itemId as the relative path
           const relativePath = itemId || ".";
 
-          const children = await fetchWorkspaceFiles(workspaceId, relativePath);
+          const children = await fetchWorkspaceFiles(workflowId, relativePath);
           setFiles((currentFiles) =>
             updateTreeWithChildren(currentFiles, itemId, children)
           );
@@ -252,32 +344,41 @@ const WorkspaceTree: React.FC = () => {
         );
       }
     },
-    [files, workspaceId]
+    [files, workflowId]
   );
 
-  const handleDownload = useCallback(async () => {
-    if (!selectedFilePath || !workspaceId) {return;}
+  const handleItemDoubleClick = useCallback(
+    async (event: React.MouseEvent, itemId: string) => {
+      // Open file or folder via Electron API
+      if (window.api?.shell?.openPath) {
+        await window.api.shell.openPath(itemId);
+      }
+    },
+    []
+  );
 
-    try {
-      const url = `/api/files/workspaces/${workspaceId}/download/${selectedFilePath}`;
-      window.open(url, "_blank");
-    } catch (error) {
-      log.error("Failed to download file:", error);
+  const handleOpenInFolder = useCallback(async () => {
+    if (!selectedFilePath) { return; }
+
+    if (window.api?.shell?.showItemInFolder) {
+      await window.api.shell.showItemInFolder(selectedFilePath);
     }
-  }, [selectedFilePath, workspaceId]);
+  }, [selectedFilePath]);
 
   const handleRefresh = useCallback(() => {
     refetchFiles();
   }, [refetchFiles]);
 
-  if (!workspaceId) {
+  const handleManageWorkspace = useCallback(() => {
+    setWorkspaceManagerOpen(true);
+  }, [setWorkspaceManagerOpen]);
+
+  if (!workflowId) {
     return (
       <Box css={workspaceTreeStyles(theme)}>
-        <Typography variant="h6" className="workspace-header">
-          Workspace Explorer
-        </Typography>
+        <PanelHeadline title="Workspace Explorer" />
         <Typography color="text.secondary">
-          No workspace available. Run a workflow to create a workspace.
+          No workflow selected. Open a workflow to access its workspace files.
         </Typography>
       </Box>
     );
@@ -285,13 +386,30 @@ const WorkspaceTree: React.FC = () => {
 
   return (
     <Box css={workspaceTreeStyles(theme)}>
-      <div className="workspace-header">
-        <Typography variant="h6">
-          Workspace Explorer
-        </Typography>
-        <Tooltip title="Refresh">
-          <IconButton onClick={handleRefresh} size="small">
-            <RefreshIcon />
+      <PanelHeadline
+        title="Workspace Explorer"
+        actions={
+          <Tooltip title="Refresh">
+            <IconButton onClick={handleRefresh} size="small">
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        }
+      />
+
+      {/* Workspace Selection */}
+      <div className="workspace-selector">
+        <WorkspaceSelect
+          value={workspaceId ?? undefined}
+          onChange={handleWorkspaceChange}
+        />
+        <Tooltip title="Manage Workspaces">
+          <IconButton
+            className="settings-button"
+            size="small"
+            onClick={handleManageWorkspace}
+          >
+            <SettingsIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </div>
@@ -299,29 +417,66 @@ const WorkspaceTree: React.FC = () => {
       {selectedFilePath && !selectedFilePath.includes("/loading") && (
         <div className="tree-actions">
           <Button
+            className="open-folder-button"
             size="small"
             variant="outlined"
-            startIcon={<DownloadIcon />}
-            onClick={handleDownload}
+            startIcon={<FolderOpenIcon />}
+            onClick={handleOpenInFolder}
           >
-            Download
+            Open in Folder
           </Button>
         </div>
       )}
 
       <div className="file-tree-container">
-        {isLoadingFiles ? (
+        {!workspaceId ? (
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", py: 3 }}>
+            <Typography color="text.secondary" sx={{ mb: 1 }}>
+              No workspace selected
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Select a workspace from the dropdown above to browse files
+            </Typography>
+          </Box>
+        ) : isLoadingFiles ? (
           <Typography>Loading files...</Typography>
         ) : files.length > 0 ? (
-          <RichTreeView
-            onItemClick={handleItemClick}
-            items={files}
-            aria-label="workspace file browser"
-            selectedItems={selectedFilePath}
-            sx={treeViewStyles(theme)}
-          />
+          <div
+            onDoubleClick={(e) => {
+              // Find the closest tree item element to get the item ID
+              const target = e.target as HTMLElement;
+              const treeItem = target.closest('[data-testid="tree-item"]') as HTMLElement;
+              if (treeItem) {
+                const itemId = treeItem.getAttribute('data-itemid');
+                if (itemId) {
+                  handleItemDoubleClick(e, itemId);
+                }
+              }
+            }}
+          >
+            <RichTreeView
+              onItemClick={handleItemClick}
+              items={files}
+              aria-label="workspace file browser"
+              selectedItems={selectedFilePath}
+              sx={treeViewStyles(theme)}
+              slotProps={{
+                item: ({ itemId }) => ({
+                  'data-testid': 'tree-item',
+                  'data-itemid': itemId
+                } as any)
+              }}
+            />
+          </div>
         ) : (
-          <Typography color="text.secondary">No files in workspace</Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", py: 3 }}>
+            <Typography color="text.secondary" sx={{ mb: 1 }}>
+              No files in this workspace
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Add files to your workspace folder to browse them here
+            </Typography>
+          </Box>
         )}
       </div>
     </Box>

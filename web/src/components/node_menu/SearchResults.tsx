@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import {
   Box,
   List,
@@ -13,14 +13,14 @@ interface SearchResultsProps {
   handleCreateNode: (node: NodeMetadata) => void;
 }
 
-const SearchResults: React.FC<SearchResultsProps> = ({
+const SearchResults = memo(({
   results,
   handleCreateNode
-}) => {
-  const renderNode = (node: NodeMetadata) => {
+}: SearchResultsProps) => {
+  const renderNode = useCallback((node: NodeMetadata) => {
     const words = node.node_type?.split(".");
     return (
-      <ListItemButton key={node.title} onClick={() => handleCreateNode(node)}>
+      <ListItemButton key={node.title} onClick={handleCreateNode.bind(null, node)}>
         {words.map((word, idx) => (
           <Box key={idx} sx={{ display: "flex" }}>
             <ListItemText sx={{ ml: 2 }}>
@@ -33,13 +33,15 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         ))}
       </ListItemButton>
     );
-  };
+  }, [handleCreateNode]);
 
   return (
     <List sx={{ overflowY: "scroll", maxHeight: "55vh" }}>
       {results.map(renderNode)}
     </List>
   );
-};
+});
+
+SearchResults.displayName = "SearchResults";
 
 export default SearchResults;

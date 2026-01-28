@@ -2196,3 +2196,196 @@ body::before {
   height: 0;
 }
 
+/* Provider Carousel Styles */
+.boot-panel-installing {
+  max-width: 800px;
+}
+
+.provider-carousel-container {
+  margin-top: 32px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  text-align: center;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.provider-carousel-header {
+  margin-bottom: 20px;
+}
+
+.provider-carousel-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c_text_primary);
+}
+
+.provider-carousel-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--c_text_secondary);
+}
+
+/* Carousel */
+.provider-carousel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.provider-carousel-nav {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--c_text_primary);
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.provider-carousel-nav:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.provider-carousel-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.provider-carousel-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+  animation: cardSlide 0.3s ease-out;
+  min-height: 160px;
+}
+
+@keyframes cardSlide {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.provider-carousel-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.provider-carousel-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--c_text_primary);
+}
+
+.provider-carousel-description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--c_text_secondary);
+  max-width: 400px;
+}
+
+.provider-carousel-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.provider-carousel-tag {
+  font-size: 10px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: var(--c_text_tertiary);
+}
+
+.provider-carousel-link {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: var(--c_text_secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.provider-carousel-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--c_text_primary);
+}
+
+/* Carousel Dots */
+.provider-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.provider-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.provider-carousel-dot:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.provider-carousel-dot.active {
+  background: var(--c_text_primary);
+  width: 20px;
+  border-radius: 4px;
+}
+

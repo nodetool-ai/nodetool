@@ -1,20 +1,19 @@
 import { Dialog, DialogContent } from "@mui/material";
 import WorkflowForm from "./WorkflowForm";
-import { useCallback } from "react";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
-import { useNotificationStore } from "../../stores/NotificationStore";
 
 interface WorkflowFormModalProps {
   open: boolean;
   onClose: () => void;
   workflow: Workflow;
+  availableTags?: string[];
 }
 
 const WorkflowFormModal = ({
   open,
   onClose,
-  workflow
+  workflow,
+  availableTags
 }: WorkflowFormModalProps) => {
   return (
     <Dialog
@@ -25,7 +24,7 @@ const WorkflowFormModal = ({
       fullWidth
     >
       <DialogContent sx={{ bgcolor: "background.paper", p: 0 }}>
-        <WorkflowForm onClose={onClose} workflow={workflow} />
+        <WorkflowForm onClose={onClose} workflow={workflow} availableTags={availableTags} />
       </DialogContent>
     </Dialog>
   );

@@ -93,7 +93,7 @@ const LogViewer: React.FC = () => {
         .sort((a, b) => a - b)
         .map((i) => filteredLogs[i])
         .join("\n");
-      window.api.clipboardWriteText(selectedLogsText);
+      window.api.clipboard.writeText(selectedLogsText);
       setCopied(true);
       const timer = setTimeout(() => setCopied(false), 1500);
       return () => clearTimeout(timer);
@@ -112,7 +112,7 @@ const LogViewer: React.FC = () => {
 
   const handleCopyLogs = useCallback(() => {
     const logText = filteredLogs.join("\n");
-    window.api.clipboardWriteText(logText);
+    window.api.clipboard.writeText(logText);
     setAllCopied(true);
     setTimeout(() => setAllCopied(false), 2000);
   }, [filteredLogs]);
