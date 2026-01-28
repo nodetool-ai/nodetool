@@ -211,44 +211,46 @@ const MiniAppPage: React.FC = () => {
         className="mini-app-page"
         sx={{
           marginLeft: `${leftOffset}px`,
-          width: `calc(100% - ${leftOffset}px)`,
-          transition: "margin-left 0.2s ease-out, width 0.2s ease-out"
+          width: "auto", // Allow auto width to fill available space
+          minHeight: "100vh",
+          transition: "margin-left 0.2s ease-out"
         }}
       >
-        {/* Loading State */}
-        {isLoading && (
-          <Box display="flex" justifyContent="center" py={8}>
-            <CircularProgress />
-          </Box>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <Box py={4}>
-            <Typography color="error">{error.message}</Typography>
-          </Box>
-        )}
-
         {workflow && (
-          <>
-            {/* Side Panel */}
-            <MiniAppSidePanel
-              workflow={workflow}
-              isRunning={runnerState === "running"}
-            />
+          <MiniAppSidePanel
+            workflow={workflow}
+            isRunning={runnerState === "running"}
+          />
+        )}
 
-            {/* Custom HTML App */}
-            {hasCustomApp && (
-              <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
-                <VibeCodingPreview
-                  html={workflow.html_app!}
-                  workflowId={workflow.id}
-                />
+        {/* Custom HTML App - Full Width */}
+        {hasCustomApp && workflow && (
+          <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
+            <VibeCodingPreview
+              html={workflow.html_app!}
+              workflowId={workflow.id}
+            />
+          </Box>
+        )}
+
+        {/* Default UI - Centered Container */}
+        {!hasCustomApp && (
+          <div className="layout-container">
+            {/* Loading State */}
+            {isLoading && (
+              <Box display="flex" justifyContent="center" py={8}>
+                <CircularProgress />
               </Box>
             )}
 
-            {/* Default UI - Only shown when no custom app */}
-            {!hasCustomApp && (
+            {/* Error State */}
+            {error && (
+              <Box py={4}>
+                <Typography color="error">{error.message}</Typography>
+              </Box>
+            )}
+
+            {workflow && (
               <>
                 {/* Header Section */}
                 <div className="page-header">
@@ -268,7 +270,7 @@ const MiniAppPage: React.FC = () => {
                     <Box className="status-bar-progress" sx={{ width: "100%" }}>
                       <LinearProgress
                         variant="determinate"
-                        value={(progress.current * 100.0) / progress.total}
+                        value={progress.total > 0 ? (progress.current * 100.0) / progress.total : 0}
                         sx={{ height: 6, borderRadius: 3 }}
                       />
                     </Box>
@@ -357,7 +359,7 @@ const MiniAppPage: React.FC = () => {
                 </form>
               </>
             )}
-          </>
+          </div>
         )}
       </Box>
     </NodeContext.Provider>

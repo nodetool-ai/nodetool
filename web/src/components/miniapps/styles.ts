@@ -12,22 +12,29 @@ export const createStyles = (theme: Theme) => {
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    padding: theme.spacing(3, 4),
-    paddingTop: "70px",
-    paddingBottom: theme.spacing(6),
-    paddingLeft: theme.spacing(2),
-    gap: theme.spacing(2.5),
-    overflow: "auto",
     width: "100%",
-    maxWidth: "1400px",
-    marginLeft: "auto",
-    marginRight: theme.spacing(8),
+    overflowY: "auto",
+    overflowX: "hidden",
 
-    [theme.breakpoints.down("md")]: {
-      padding: theme.spacing(2, 2.5),
-      paddingTop: "65px",
-      paddingBottom: theme.spacing(4),
-      paddingLeft: theme.spacing(1.5)
+    ".layout-container": {
+      width: "100%",
+      maxWidth: "1600px",
+      margin: "0 auto",
+      padding: theme.spacing(3, 4),
+      paddingTop: "70px",
+      paddingBottom: theme.spacing(6),
+      paddingRight: theme.spacing(8), // Make room for the side panel toggle
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(2.5),
+      flex: 1,
+
+      [theme.breakpoints.down("md")]: {
+        padding: theme.spacing(2, 2.5),
+        paddingTop: "65px",
+        paddingBottom: theme.spacing(4),
+        paddingRight: theme.spacing(2.5) // Reset right padding on smaller screens
+      }
     },
 
     ".application-card": {
