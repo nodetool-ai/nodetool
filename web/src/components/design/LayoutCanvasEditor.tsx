@@ -914,7 +914,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       e.stopPropagation();
 
       const delta = e.deltaY;
-      const zoomFactor = delta > 0 ? 0.95 : 1.05;
+      const zoomFactor = delta > 0 ? 0.75 : 1.25;
       setZoom((z) => Math.min(Math.max(z * zoomFactor, 0.1), 4));
     },
     []
