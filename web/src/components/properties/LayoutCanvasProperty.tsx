@@ -10,11 +10,11 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  IconButton,
-  Typography
+  Typography,
+ 
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
+import { CloseButton } from "../ui_primitives";
 import EditIcon from "@mui/icons-material/Edit";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
@@ -189,11 +189,19 @@ const LayoutCanvasProperty: React.FC<PropertyProps> = (props) => {
         onClose={handleCloseEditor}
         maxWidth={false}
         fullWidth
-        PaperProps={{
-          sx: {
-            width: "90vw",
-            height: "85vh",
-            maxWidth: "none"
+        slotProps={{
+          root: {
+            sx: {
+              backgroundColor: theme.vars.palette.background.default,
+            }
+          },
+          paper: {
+            sx: {
+              backgroundColor: theme.vars.palette.background.default,
+              width: "100vw",
+              height: "100vh",
+              maxWidth: "none"
+            }
           }
         }}
       >
@@ -203,21 +211,17 @@ const LayoutCanvasProperty: React.FC<PropertyProps> = (props) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            py: 0.5,
+            py: 0,
             px: 2,
-            minHeight: 40
           }}
         >
-          <Typography variant="subtitle2" component="span" sx={{ fontWeight: 600 }}>Layout Canvas Editor</Typography>
-          <IconButton
-            size="small"
+          <Typography variant="subtitle2" component="span" sx={{px: 2, fontWeight: 400 }}>Layout Editor</Typography>
+          <CloseButton
             onClick={handleCloseEditor}
-            aria-label="Close editor"
-            sx={{ p: 0.5 }}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
+            tooltip="Close"
+            className="button close"
+            nodrag={false}
+          />
         </DialogTitle>
         <DialogContent
           sx={{

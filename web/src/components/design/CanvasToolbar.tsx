@@ -295,11 +295,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       sx={{
         display: "flex",
         alignItems: "center",
+        justifyContent: "center",
         gap: 0,
         px: 1,
         py: 0,
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
-        backgroundColor: theme.vars.palette.background.paper, // Darker background for toolbar
+        backgroundColor: theme.vars.palette.background.paper,
         minHeight: 40,
         height: 40
       }}

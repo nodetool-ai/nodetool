@@ -906,20 +906,15 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     ]
   );
 
-  // Mouse wheel zoom handler - requires Ctrl/Cmd modifier
+  // Mouse wheel zoom handler
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
-      // Only zoom when Ctrl/Cmd is pressed, allow normal scroll otherwise
-      if (!(e.ctrlKey || e.metaKey)) {
-        return;
-      }
-
-      // Prevent default browser zoom
+      // Prevent default browser zoom/scroll
       e.preventDefault();
       e.stopPropagation();
 
       const delta = e.deltaY;
-      const zoomFactor = delta > 0 ? 0.9 : 1.1;
+      const zoomFactor = delta > 0 ? 0.95 : 1.05;
       setZoom((z) => Math.min(Math.max(z * zoomFactor, 0.1), 4));
     },
     []

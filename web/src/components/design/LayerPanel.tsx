@@ -54,17 +54,18 @@ interface LayerPanelProps {
 
 // Get icon for element type
 const getElementIcon = (type: string): React.ReactNode => {
+  const iconSx = { fontSize: 14 };
   switch (type) {
     case "text":
-      return <TextFieldsIcon fontSize="small" />;
+      return <TextFieldsIcon sx={iconSx} />;
     case "image":
-      return <ImageIcon fontSize="small" />;
+      return <ImageIcon sx={iconSx} />;
     case "rectangle":
-      return <RectangleIcon fontSize="small" />;
+      return <RectangleIcon sx={iconSx} />;
     case "group":
-      return <FolderIcon fontSize="small" />;
+      return <FolderIcon sx={iconSx} />;
     default:
-      return <RectangleIcon fontSize="small" />;
+      return <RectangleIcon sx={iconSx} />;
   }
 };
 
@@ -258,9 +259,15 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
             opacity: element.visible ? 1 : 0.6,
             pl: 1 + depth * 1.5,
             position: "relative",
-            backgroundColor: isGroup ? `${theme.vars.palette.action.selected}08` : "transparent",
+            backgroundColor: isGroup ? "rgba(128, 128, 128, 0.05)" : "transparent",
+            "&:hover": {
+              backgroundColor: "rgba(128, 128, 128, 0.12)"
+            },
             "&.Mui-selected": {
-              backgroundColor: `${theme.vars.palette.primary.main}18`
+              backgroundColor: "rgba(100, 150, 255, 0.15)"
+            },
+            "&.Mui-selected:hover": {
+              backgroundColor: "rgba(100, 150, 255, 0.20)"
             },
             "&.Mui-selected:after": {
               content: '""',
@@ -297,16 +304,16 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
                 sx={{ p: 0.25, color: theme.vars.palette.text.secondary }}
               >
                 {isCollapsed ? (
-                  <ChevronRightIcon fontSize="small" />
+                  <ChevronRightIcon sx={{ fontSize: 14 }} />
                 ) : (
-                  <ExpandMoreIcon fontSize="small" />
+                  <ExpandMoreIcon sx={{ fontSize: 14 }} />
                 )}
               </IconButton>
             )}
           </Box>
           
           {/* Element icon */}
-          <ListItemIcon sx={{ minWidth: 28 }}>
+          <ListItemIcon sx={{ minWidth: 22 }}>
             {getElementIcon(element.type)}
           </ListItemIcon>
           
@@ -318,11 +325,11 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
                 : element.name
             }
             primaryTypographyProps={{
-              variant: "body2",
+              variant: "caption",
               noWrap: true,
               sx: {
                 textDecoration: element.locked ? "line-through" : "none",
-                fontWeight: isGroup ? 600 : 400
+                fontWeight: isGroup ? 500 : 300
               }
             }}
           />
@@ -339,11 +346,11 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
                 sx={{ p: 0.5 }}
               >
                 {visibilityState === "mixed" ? (
-                  <VisibilityOutlinedIcon fontSize="small" />
+                  <VisibilityOutlinedIcon sx={{ fontSize: 14 }} />
                 ) : visibilityState === "on" ? (
-                  <VisibilityIcon fontSize="small" />
+                  <VisibilityIcon sx={{ fontSize: 14 }} />
                 ) : (
-                  <VisibilityOffIcon fontSize="small" />
+                  <VisibilityOffIcon sx={{ fontSize: 14 }} />
                 )}
               </IconButton>
             </Tooltip>
@@ -357,11 +364,11 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
                 sx={{ p: 0.5 }}
               >
                 {lockState === "mixed" ? (
-                  <LockOutlinedIcon fontSize="small" />
+                  <LockOutlinedIcon sx={{ fontSize: 14 }} />
                 ) : lockState === "on" ? (
-                  <LockIcon fontSize="small" />
+                  <LockIcon sx={{ fontSize: 14 }} />
                 ) : (
-                  <LockOpenIcon fontSize="small" />
+                  <LockOpenIcon sx={{ fontSize: 14 }} />
                 )}
               </IconButton>
             </Tooltip>
