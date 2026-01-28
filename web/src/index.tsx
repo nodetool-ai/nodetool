@@ -94,6 +94,9 @@ const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
+const WysiwygEditorPage = React.lazy(
+  () => import("./components/wysiwyg_editor/WysiwygEditorPage")
+);
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
@@ -292,6 +295,10 @@ function getRoutes() {
     routes.push({
       path: "/layouttest",
       element: <LayoutTest />
+    });
+    routes.push({
+      path: "/wysiwyg",
+      element: <WysiwygEditorPage />
     });
   }
 
