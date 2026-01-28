@@ -73,6 +73,7 @@ interface LayerItemProps {
   visibilityState: "on" | "off" | "mixed";
   lockState: "on" | "off" | "mixed";
   dragOverPosition: "before" | "after" | "inside" | null;
+  showDropHint: boolean;
   onSelect: (id: string, addToSelection: boolean) => void;
   onToggleVisibility: (id: string) => void;
   onToggleLock: (id: string) => void;
@@ -95,6 +96,7 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
   visibilityState,
   lockState,
   dragOverPosition,
+  showDropHint,
   onSelect,
   onToggleVisibility,
   onToggleLock,
@@ -126,10 +128,17 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
       onDragEnd={onDragEnd}
       sx={{
         opacity: isDragging ? 0.5 : 1,
-        backgroundColor: dragOverPosition === "inside" ? theme.vars.palette.action.hover : "transparent",
+        backgroundColor: dragOverPosition === "inside"
+          ? `${theme.vars.palette.primary.main}14`
+          : isGroup
+            ? `${theme.vars.palette.action.selected}0d`
+            : "transparent",
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
         borderTop: dragOverPosition === "before" ? `2px solid ${theme.vars.palette.primary.main}` : "none",
         borderBottomColor: dragOverPosition === "after" ? theme.vars.palette.primary.main : theme.vars.palette.divider,
+        boxShadow: dragOverPosition === "inside"
+          ? `inset 0 0 0 1px ${theme.vars.palette.primary.main}`
+          : "none",
         "&:last-child": {
           borderBottom: "none"
         }
@@ -167,6 +176,16 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
           }
         }}
       >
+        {depth > 0 && (
+          <Box
+            sx={{
+              width: depth * 10,
+              alignSelf: "stretch",
+              borderLeft: `1px solid ${theme.vars.palette.divider}`,
+              mr: 0.5
+            }}
+          />
+        )}
         <Box sx={{ width: 20, display: "flex", alignItems: "center" }}>
           {isGroup && (
             <IconButton
@@ -217,6 +236,22 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
             }
           }}
         />
+        {showDropHint && (
+          <Box
+            sx={{
+              px: 0.75,
+              py: 0.25,
+              borderRadius: 1,
+              backgroundColor: `${theme.vars.palette.primary.main}22`,
+              color: theme.vars.palette.primary.main,
+              fontSize: 11,
+              fontWeight: 600,
+              mr: 0.5
+            }}
+          >
+            Drop inside
+          </Box>
+        )}
         <Box sx={{ display: "flex", gap: 0.5 }}>
           <Tooltip title={visibilityState === "on" ? "Hide" : "Show"}>
             <IconButton
@@ -286,6 +321,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     mouseY: number;
     targetId: string;
   } | null>(null);
+  const hoverExpandTimeoutRef = React.useRef<number | null>(null);
 
   const elementById = React.useMemo(
     () => new Map(elements.map((el) => [el.id, el])),
@@ -385,20 +421,30 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     (element: LayoutElement, e: React.DragEvent) => {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const ratio = (e.clientY - rect.top) / rect.height;
-      const isGroup = element.type === "group";
-      if (isGroup && ratio > 0.3 && ratio < 0.7) {
+      if (element.type !== "group") {
+        return ratio < 0.5 ? "before" : "after";
+      }
+      if (ratio > 0.2 && ratio < 0.8) {
         return "inside";
       }
-      return ratio < 0.5 ? "before" : "after";
+      return ratio < 0.2 ? "before" : "after";
     },
     []
   );
+
+  const clearHoverExpand = useCallback(() => {
+    if (hoverExpandTimeoutRef.current !== null) {
+      window.clearTimeout(hoverExpandTimeoutRef.current);
+      hoverExpandTimeoutRef.current = null;
+    }
+  }, []);
 
   const handleDragStart = useCallback((id: string, e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);
     setDraggingId(id);
-  }, []);
+    clearHoverExpand();
+  }, [clearHoverExpand]);
 
   const handleDragOver = useCallback(
     (id: string, e: React.DragEvent) => {
@@ -409,8 +455,24 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
       }
       const position = getDropPosition(target, e);
       setDragOver({ targetId: id, position });
+      if (
+        target.type === "group" &&
+        position === "inside" &&
+        collapsedIds.has(target.id)
+      ) {
+        clearHoverExpand();
+        hoverExpandTimeoutRef.current = window.setTimeout(() => {
+          setCollapsedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(target.id);
+            return next;
+          });
+        }, 350);
+      } else {
+        clearHoverExpand();
+      }
     },
-    [elementById, getDropPosition]
+    [clearHoverExpand, collapsedIds, elementById, getDropPosition]
   );
 
   const handleDrop = useCallback(
@@ -430,8 +492,9 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
       onMoveLayer(dragId, id, finalPosition);
       setDragOver(null);
       setDraggingId(null);
+      clearHoverExpand();
     },
-    [draggingId, elementById, getDropPosition, onMoveLayer]
+    [clearHoverExpand, draggingId, elementById, getDropPosition, onMoveLayer]
   );
 
   const handleDropOnRoot = useCallback(
@@ -444,14 +507,16 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
       onMoveLayer(dragId, null, "root");
       setDragOver(null);
       setDraggingId(null);
+      clearHoverExpand();
     },
-    [draggingId, onMoveLayer]
+    [clearHoverExpand, draggingId, onMoveLayer]
   );
 
   const handleDragEnd = useCallback(() => {
     setDraggingId(null);
     setDragOver(null);
-  }, []);
+    clearHoverExpand();
+  }, [clearHoverExpand]);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, id: string) => {
@@ -504,6 +569,11 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
             lockState={lockState}
             dragOverPosition={
               dragOver?.targetId === child.id ? dragOver.position : null
+            }
+            showDropHint={
+              dragOver?.targetId === child.id &&
+              dragOver.position === "inside" &&
+              isGroup
             }
             onSelect={onSelect}
             onToggleVisibility={onToggleVisibility}
