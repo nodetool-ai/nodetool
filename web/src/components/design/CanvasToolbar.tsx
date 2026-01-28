@@ -291,6 +291,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
   return (
     <Box
+      className="canvas-toolbar"
       sx={{
         display: "flex",
         alignItems: "center",

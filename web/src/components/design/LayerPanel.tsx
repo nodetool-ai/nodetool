@@ -105,6 +105,7 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
 
   return (
     <ListItem
+      className="layer-item"
       disablePadding
       draggable
       onDragStart={handleDragStart}
@@ -240,6 +241,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
 
   return (
     <Box
+      className="layer-panel"
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -248,6 +250,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
       }}
     >
       <Box
+        className="layer-panel-header"
         sx={{
           px: 1.5,
           py: 1,
@@ -260,6 +263,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         </Typography>
       </Box>
       <Box
+        className="layer-panel-content"
         sx={{
           flexGrow: 1,
           overflow: "auto"
@@ -267,6 +271,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
       >
         {sortedElements.length === 0 ? (
           <Box
+            className="layer-panel-empty"
             sx={{
               p: 2,
               textAlign: "center",
@@ -279,7 +284,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
             </Typography>
           </Box>
         ) : (
-          <List disablePadding>
+          <List className="layer-list" disablePadding>
             {sortedElements.map((element, index) => (
               <LayerItem
                 key={element.id}

@@ -158,6 +158,24 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
 
   // Set entire canvas data
   setCanvasData: (data) => {
+    const current = get().canvasData;
+    // Skip update if data is the same object or has the same content
+    // This prevents update loops when syncing with parent components
+    if (current === data) {
+      return;
+    }
+    // Compare content for objects with same structure but different references
+    if (
+      current.width === data.width &&
+      current.height === data.height &&
+      current.backgroundColor === data.backgroundColor &&
+      current.backgroundImage === data.backgroundImage &&
+      current.elements.length === data.elements.length &&
+      current.exposedInputs.length === data.exposedInputs.length &&
+      current.elements.every((el, i) => el.id === data.elements[i]?.id)
+    ) {
+      return;
+    }
     // Ensure type field is always present for backend compatibility
     set({ canvasData: { ...data, type: "layout_canvas" as const } });
     get().saveToHistory();

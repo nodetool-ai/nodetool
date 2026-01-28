@@ -747,6 +747,7 @@ const ElementProperties: React.FC<ElementPropertiesProps> = ({
   if (!element) {
     return (
       <Box
+        className="element-properties"
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -755,6 +756,7 @@ const ElementProperties: React.FC<ElementPropertiesProps> = ({
         }}
       >
         <Box
+          className="element-properties-header"
           sx={{
             px: 1.5,
             py: 1,
@@ -767,6 +769,7 @@ const ElementProperties: React.FC<ElementPropertiesProps> = ({
           </Typography>
         </Box>
         <Box
+          className="element-properties-empty"
           sx={{
             p: 2,
             textAlign: "center",
@@ -784,6 +787,7 @@ const ElementProperties: React.FC<ElementPropertiesProps> = ({
 
   return (
     <Box
+      className="element-properties"
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -792,6 +796,7 @@ const ElementProperties: React.FC<ElementPropertiesProps> = ({
       }}
     >
       <Box
+        className="element-properties-header"
         sx={{
           px: 1.5,
           py: 1,
@@ -804,6 +809,7 @@ const ElementProperties: React.FC<ElementPropertiesProps> = ({
         </Typography>
       </Box>
       <Box
+        className="element-properties-content"
         sx={{
           flexGrow: 1,
           overflow: "auto",

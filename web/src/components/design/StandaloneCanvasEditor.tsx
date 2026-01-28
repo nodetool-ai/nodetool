@@ -28,6 +28,7 @@ const StandaloneCanvasEditor: React.FC = () => {
 
   return (
     <Box
+      className="standalone-canvas-editor"
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -39,6 +40,7 @@ const StandaloneCanvasEditor: React.FC = () => {
     >
       {/* Header */}
       <Box
+        className="standalone-canvas-header"
         sx={{
           display: "flex",
           alignItems: "center",
@@ -52,7 +54,7 @@ const StandaloneCanvasEditor: React.FC = () => {
         <Typography variant="h6" component="h1">
           Canvas Editor
         </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box className="standalone-canvas-header-controls" sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <Typography variant="body2" color="text.secondary">
             {canvasData.width} × {canvasData.height}px | {canvasData.elements.length} elements
           </Typography>
@@ -70,7 +72,7 @@ const StandaloneCanvasEditor: React.FC = () => {
       </Box>
 
       {/* Editor */}
-      <Box sx={{ flexGrow: 1, overflow: "hidden" }}>
+      <Box className="standalone-canvas-body" sx={{ flexGrow: 1, overflow: "hidden" }}>
         <LayoutCanvasEditor
           value={canvasData}
           onChange={handleChange}

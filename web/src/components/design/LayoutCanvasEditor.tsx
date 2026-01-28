@@ -285,13 +285,14 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   // Handle adding elements
   const handleAddElement = useCallback(
     (type: ElementType) => {
-      // Add element at center of visible canvas
-      const centerX = (stageSize.width / 2 - 50) / zoom;
-      const centerY = (stageSize.height / 2 - 50) / zoom;
+      // Add element at center of CANVAS (not container viewport)
+      // This ensures elements are visible when canvas is centered in viewport
+      const centerX = canvasData.width / 2 - 50;
+      const centerY = canvasData.height / 2 - 50;
       const newElement = addElement(type, centerX, centerY);
       setSelection([newElement.id]);
     },
-    [addElement, setSelection, stageSize, zoom]
+    [addElement, setSelection, canvasData.width, canvasData.height]
   );
 
   // Handle updating element properties
@@ -611,6 +612,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   return (
     <Box
       ref={containerRef}
+      className="layout-canvas-editor"
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -661,6 +663,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
       {/* Main content area */}
       <Box
+        className="layout-canvas-content"
         sx={{
           display: "flex",
           flexGrow: 1,
@@ -669,6 +672,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       >
         {/* Layer panel */}
         <Box
+          className="layout-canvas-layer-panel-container"
           sx={{
             width: 200,
             flexShrink: 0,
@@ -687,6 +691,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
         {/* Canvas area - focusable for keyboard events */}
         <Box
+          className="layout-canvas-viewport"
           tabIndex={0}
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
@@ -713,6 +718,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
           }}
         >
           <Paper
+            className="layout-canvas-stage-wrapper"
             elevation={3}
             sx={{
               overflow: "hidden",
@@ -771,6 +777,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
         {/* Properties panel */}
         <Box
+          className="layout-canvas-properties-container"
           sx={{
             width: 250,
             flexShrink: 0
