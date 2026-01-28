@@ -4,7 +4,8 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Tooltip } from "@mui/material";
+import { Tooltip, IconButton } from "@mui/material";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
 import AssetViewer from "../assets/AssetViewer";
@@ -126,6 +127,26 @@ const PropertyDropzone = ({
         transition: "opacity 0.2s ease"
       },
       "&:hover .image-dimensions": {
+        opacity: 1
+      },
+      ".replace-button": {
+        position: "absolute",
+        top: "4px",
+        right: "4px",
+        opacity: 0,
+        transition: "opacity 0.2s ease",
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        color: theme.vars.palette.grey[100],
+        padding: "4px",
+        width: "28px",
+        height: "28px",
+        zIndex: 10,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.primary.main,
+          color: theme.vars.palette.common.white
+        }
+      },
+      ".dropzone:hover .replace-button": {
         opacity: 1
       }
     });
@@ -441,25 +462,43 @@ const PropertyDropzone = ({
       />
 
       <div className="drop-container">
-        <Tooltip title="Click to select a file or drag and drop">
-          <div
-            className={`dropzone ${uri ? "dropped" : ""} ${isDragOver ? "drag-over" : ""
-              }`}
-            style={{
-              borderWidth: uri === "" ? "1px" : "0px"
-            }}
-            onClick={handleDropzoneClick}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            {uri || contentType.split("/")[0] === "audio" ? (
-              renderViewer
-            ) : (
+        <div
+          className={`dropzone ${uri ? "dropped" : ""} ${isDragOver ? "drag-over" : ""
+            }`}
+          style={{
+            borderWidth: uri === "" ? "1px" : "0px",
+            cursor: uri ? "default" : "pointer"
+          }}
+          onClick={uri ? undefined : handleDropzoneClick}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {uri || contentType.split("/")[0] === "audio" ? (
+            <>
+              {renderViewer}
+              {/* Replace button - appears on hover when asset is present */}
+              {uri && (
+                <Tooltip title="Replace file">
+                  <IconButton
+                    className="replace-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDropzoneClick();
+                    }}
+                    size="small"
+                  >
+                    <FolderOpenIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </>
+          ) : (
+            <Tooltip title="Click to select a file or drag and drop">
               <p className="prop-drop centered uppercase">Click or drop {contentType}</p>
-            )}
-          </div>
-        </Tooltip>
+            </Tooltip>
+          )}
+        </div>
         {contentType.split("/")[0] === "audio" && showRecorder && (
           <WaveRecorder onChange={onChangeAsset} />
         )}
