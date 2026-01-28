@@ -123,6 +123,12 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   const stageRef = useRef<Konva.Stage>(null);
   const [zoom, setZoom] = useState(1);
   const [stageSize, setStageSize] = useState({ width: width, height: height });
+  
+  // Pan state
+  const [isPanning, setIsPanning] = useState(false);
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
 
   // Use the layout canvas store
   const {
@@ -133,6 +139,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     historyIndex,
     history,
     setCanvasData,
+    setCanvasSize,
     addElement,
     updateElement,
     deleteElements,
@@ -316,9 +323,12 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
       const isCtrl = e.ctrlKey || e.metaKey;
 
-      // Prevent space key from triggering node menu
+      // Space key for pan mode
       if (e.key === " " || e.key === "Space") {
         e.preventDefault();
+        if (!isSpacePressed) {
+          setIsSpacePressed(true);
+        }
         return;
       }
 
@@ -404,8 +414,55 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       redo,
       clearSelection,
       findElement,
-      updateElement
+      updateElement,
+      isSpacePressed
     ]
+  );
+
+  // Key up handler for space key pan mode
+  const handleKeyUp = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === " " || e.key === "Space") {
+        setIsSpacePressed(false);
+        setIsPanning(false);
+      }
+    },
+    []
+  );
+
+  // Mouse down handler for panning (middle mouse or space+left click)
+  const handleCanvasMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      // Middle mouse button (button 1) or space + left click
+      if (e.button === 1 || (e.button === 0 && isSpacePressed)) {
+        e.preventDefault();
+        setIsPanning(true);
+        setPanStart({ x: e.clientX - stagePosition.x, y: e.clientY - stagePosition.y });
+      }
+    },
+    [isSpacePressed, stagePosition]
+  );
+
+  // Mouse move handler for panning
+  const handleCanvasMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (isPanning) {
+        const newX = e.clientX - panStart.x;
+        const newY = e.clientY - panStart.y;
+        setStagePosition({ x: newX, y: newY });
+      }
+    },
+    [isPanning, panStart]
+  );
+
+  // Mouse up handler for panning
+  const handleCanvasMouseUp = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button === 1 || (e.button === 0 && isPanning)) {
+        setIsPanning(false);
+      }
+    },
+    [isPanning]
   );
 
   // Mouse wheel zoom handler - requires Ctrl/Cmd modifier
@@ -571,6 +628,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         clipboardCount={clipboard.length}
         gridSettings={gridSettings}
         zoom={zoom}
+        canvasWidth={canvasData.width}
+        canvasHeight={canvasData.height}
         onAddElement={handleAddElement}
         onUndo={undo}
         onRedo={redo}
@@ -597,6 +656,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         onExport={handleExport}
         onImportSketch={enableSketchSupport ? handleImportSketch : undefined}
         onExportSketch={enableSketchSupport ? handleExportSketch : undefined}
+        onCanvasSizeChange={setCanvasSize}
       />
 
       {/* Main content area */}
@@ -629,7 +689,12 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         <Box
           tabIndex={0}
           onKeyDown={handleKeyDown}
+          onKeyUp={handleKeyUp}
           onWheel={handleWheel}
+          onMouseDown={handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseUp={handleCanvasMouseUp}
+          onMouseLeave={handleCanvasMouseUp}
           sx={{
             flexGrow: 1,
             display: "flex",
@@ -637,9 +702,10 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             alignItems: "center",
             backgroundColor:
               theme.palette.mode === "dark" ? "#1a1a1a" : "#f5f5f5",
-            overflow: "auto",
+            overflow: "hidden",
             p: 2,
             outline: "none",
+            cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : "default",
             "&:focus": {
               outline: `2px solid ${theme.palette.primary.main}`,
               outlineOffset: "-2px"
@@ -650,8 +716,9 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             elevation={3}
             sx={{
               overflow: "hidden",
-              transform: `scale(${zoom})`,
-              transformOrigin: "center center"
+              transform: `translate(${stagePosition.x}px, ${stagePosition.y}px) scale(${zoom})`,
+              transformOrigin: "center center",
+              transition: isPanning ? "none" : "transform 0.1s ease-out"
             }}
           >
             <Stage

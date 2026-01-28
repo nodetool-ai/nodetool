@@ -3,6 +3,7 @@
  */
 
 export { default as LayoutCanvasEditor } from "./LayoutCanvasEditor";
+export { default as StandaloneCanvasEditor } from "./StandaloneCanvasEditor";
 export { default as CanvasElement } from "./CanvasElement";
 export { default as CanvasToolbar } from "./CanvasToolbar";
 export { default as LayerPanel } from "./LayerPanel";

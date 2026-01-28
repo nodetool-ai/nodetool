@@ -8,7 +8,7 @@ import type { } from "./window";
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState, useMemo } from "react";
 import ReactDOM from "react-dom/client";
 
 import {
@@ -94,6 +94,9 @@ const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
+const StandaloneCanvasEditor = React.lazy(
+  () => import("./components/design/StandaloneCanvasEditor")
+);
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
@@ -104,6 +107,7 @@ import "./lib/tools/builtin/moveNode";
 import "./lib/tools/builtin/setNodeTitle";
 import "./lib/tools/builtin/graph";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
+import { useJobReconnection } from "./hooks/useJobReconnection";
 
 (window as any).log = log;
 
@@ -295,6 +299,14 @@ function getRoutes() {
     });
   }
 
+  // Add the standalone canvas editor (available in development)
+  if (isLocalhost) {
+    routes.push({
+      path: "/canvas",
+      element: <StandaloneCanvasEditor />
+    });
+  }
+
   routes.forEach((route) => {
     route.ErrorBoundary = ErrorBoundary;
   });
@@ -323,10 +335,34 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
+/**
+ * Component to handle job reconnection on app load
+ */
+const JobReconnectionManager = () => {
+  useJobReconnection();
+  return null;
+};
+
+// Standalone routes that don't need backend metadata
+const STANDALONE_ROUTES = ["/canvas", "/layouttest"];
+
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
+  
+  // Check if current path is a standalone route that doesn't need metadata
+  // This is checked once on mount since we're not using SPA navigation to these routes
+  const isStandaloneRoute = useMemo(() => 
+    STANDALONE_ROUTES.some(route => window.location.pathname.startsWith(route)),
+    [] // Empty deps - only check on mount since standalone routes don't use SPA navigation
+  );
 
   useEffect(() => {
+    // Skip metadata loading for standalone routes
+    if (isStandaloneRoute) {
+      setStatus("success");
+      return;
+    }
+    
     // Existing effect for loading metadata
     loadMetadata()
       .then((data) => {
@@ -336,7 +372,7 @@ const AppWrapper = () => {
         console.error("Failed to load metadata:", error);
         setStatus("error"); // Ensure status is set to error on promise rejection
       });
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [isStandaloneRoute]);
 
   return (
     <React.StrictMode>
@@ -377,6 +413,7 @@ const AppWrapper = () => {
                   {/* Render RouterProvider only when metadata is successfully loaded */}
                   {status !== "pending" && status !== "error" && (
                     <>
+                      <JobReconnectionManager />
                       <Suspense
                         fallback={
                           <div

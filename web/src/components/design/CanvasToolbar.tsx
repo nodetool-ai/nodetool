@@ -2,7 +2,7 @@
  * CanvasToolbar - Toolbar for the layout canvas editor
  */
 
-import React, { useCallback, memo, useRef } from "react";
+import React, { useCallback, memo, useRef, useState } from "react";
 import {
   Box,
   IconButton,
@@ -11,7 +11,11 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Typography,
+  TextField,
+  Button,
+  Popover
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
@@ -47,7 +51,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import { ElementType, GridSettings } from "./types";
+import AspectRatioIcon from "@mui/icons-material/AspectRatio";
+import { ElementType, GridSettings, CANVAS_PRESETS, CanvasPreset } from "./types";
 
 interface CanvasToolbarProps {
   selectedCount: number;
@@ -56,6 +61,8 @@ interface CanvasToolbarProps {
   clipboardCount: number;
   gridSettings: GridSettings;
   zoom: number;
+  canvasWidth: number;
+  canvasHeight: number;
   onAddElement: (type: ElementType) => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -82,6 +89,7 @@ interface CanvasToolbarProps {
   onExport: () => void;
   onImportSketch?: (file: File) => void;
   onExportSketch?: () => void;
+  onCanvasSizeChange?: (width: number, height: number) => void;
 }
 
 // Toolbar button component
@@ -90,13 +98,15 @@ interface ToolbarButtonProps {
   tooltip: string;
   onClick: (event: React.MouseEvent<HTMLElement>) => void;
   disabled?: boolean;
+  ariaLabel?: string;
 }
 
 const ToolbarButton: React.FC<ToolbarButtonProps> = memo(({
   icon,
   tooltip,
   onClick,
-  disabled = false
+  disabled = false,
+  ariaLabel
 }) => {
   return (
     <Tooltip title={tooltip}>
@@ -105,6 +115,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(({
           size="small"
           onClick={onClick}
           disabled={disabled}
+          aria-label={ariaLabel || tooltip}
           sx={{ p: 0.75 }}
         >
           {icon}
@@ -138,6 +149,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   clipboardCount,
   gridSettings,
   zoom,
+  canvasWidth,
+  canvasHeight,
   onAddElement,
   onUndo,
   onRedo,
@@ -163,10 +176,14 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onFitToScreen,
   onExport,
   onImportSketch,
-  onExportSketch
+  onExportSketch,
+  onCanvasSizeChange
 }) => {
   const theme = useTheme();
   const [addMenuAnchor, setAddMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const [sizeMenuAnchor, setSizeMenuAnchor] = useState<null | HTMLElement>(null);
+  const [customWidth, setCustomWidth] = useState(canvasWidth.toString());
+  const [customHeight, setCustomHeight] = useState(canvasHeight.toString());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenAddMenu = useCallback(
@@ -187,6 +204,43 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     },
     [onAddElement, handleCloseAddMenu]
   );
+
+  // Canvas size menu handlers
+  const handleOpenSizeMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      setCustomWidth(canvasWidth.toString());
+      setCustomHeight(canvasHeight.toString());
+      setSizeMenuAnchor(event.currentTarget);
+    },
+    [canvasWidth, canvasHeight]
+  );
+
+  const handleCloseSizeMenu = useCallback(() => {
+    setSizeMenuAnchor(null);
+  }, []);
+
+  const handlePresetSelect = useCallback(
+    (preset: CanvasPreset) => {
+      if (onCanvasSizeChange) {
+        onCanvasSizeChange(preset.width, preset.height);
+      }
+      handleCloseSizeMenu();
+    },
+    [onCanvasSizeChange, handleCloseSizeMenu]
+  );
+
+  const handleCustomSizeApply = useCallback(() => {
+    const w = parseInt(customWidth, 10);
+    const h = parseInt(customHeight, 10);
+    // Validate: must be positive numbers between 1 and 10000
+    if (!isNaN(w) && !isNaN(h) && w >= 1 && h >= 1 && onCanvasSizeChange) {
+      onCanvasSizeChange(
+        Math.max(1, Math.min(w, 10000)),
+        Math.max(1, Math.min(h, 10000))
+      );
+    }
+    handleCloseSizeMenu();
+  }, [customWidth, customHeight, onCanvasSizeChange, handleCloseSizeMenu]);
 
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -470,6 +524,127 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
           tooltip="Export as Sketch file (.sketch)"
           onClick={onExportSketch}
         />
+      )}
+
+      {/* Canvas size */}
+      {onCanvasSizeChange && (
+        <>
+          <ToolbarDivider />
+          <ToolbarButton
+            icon={<AspectRatioIcon />}
+            tooltip={`Canvas size: ${canvasWidth} × ${canvasHeight}`}
+            onClick={handleOpenSizeMenu}
+          />
+          <Popover
+            open={Boolean(sizeMenuAnchor)}
+            anchorEl={sizeMenuAnchor}
+            onClose={handleCloseSizeMenu}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "left"
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "left"
+            }}
+          >
+            <Box sx={{ p: 2, width: 280 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Canvas Size
+              </Typography>
+              
+              {/* Custom size input */}
+              <Box sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center" }}>
+                <TextField
+                  size="small"
+                  label="Width"
+                  type="number"
+                  value={customWidth}
+                  onChange={(e) => setCustomWidth(e.target.value)}
+                  sx={{ width: 90 }}
+                  inputProps={{ min: 1, max: 10000 }}
+                />
+                <Typography variant="body2" color="text.secondary">×</Typography>
+                <TextField
+                  size="small"
+                  label="Height"
+                  type="number"
+                  value={customHeight}
+                  onChange={(e) => setCustomHeight(e.target.value)}
+                  sx={{ width: 90 }}
+                  inputProps={{ min: 1, max: 10000 }}
+                />
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={handleCustomSizeApply}
+                >
+                  Apply
+                </Button>
+              </Box>
+
+              {/* Presets by category */}
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                Presets
+              </Typography>
+              <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
+                {/* Screen sizes */}
+                <Typography variant="caption" sx={{ fontWeight: "bold", display: "block", mt: 1, mb: 0.5 }}>
+                  Screen
+                </Typography>
+                {CANVAS_PRESETS.filter(p => p.category === "screen").map((preset) => (
+                  <MenuItem
+                    key={preset.name}
+                    onClick={() => handlePresetSelect(preset)}
+                    dense
+                    selected={preset.width === canvasWidth && preset.height === canvasHeight}
+                  >
+                    <ListItemText 
+                      primary={preset.name} 
+                      secondary={`${preset.width} × ${preset.height}`}
+                    />
+                  </MenuItem>
+                ))}
+                
+                {/* Social media */}
+                <Typography variant="caption" sx={{ fontWeight: "bold", display: "block", mt: 1, mb: 0.5 }}>
+                  Social Media
+                </Typography>
+                {CANVAS_PRESETS.filter(p => p.category === "social").map((preset) => (
+                  <MenuItem
+                    key={preset.name}
+                    onClick={() => handlePresetSelect(preset)}
+                    dense
+                    selected={preset.width === canvasWidth && preset.height === canvasHeight}
+                  >
+                    <ListItemText 
+                      primary={preset.name} 
+                      secondary={`${preset.width} × ${preset.height}`}
+                    />
+                  </MenuItem>
+                ))}
+                
+                {/* Print */}
+                <Typography variant="caption" sx={{ fontWeight: "bold", display: "block", mt: 1, mb: 0.5 }}>
+                  Print
+                </Typography>
+                {CANVAS_PRESETS.filter(p => p.category === "print").map((preset) => (
+                  <MenuItem
+                    key={preset.name}
+                    onClick={() => handlePresetSelect(preset)}
+                    dense
+                    selected={preset.width === canvasWidth && preset.height === canvasHeight}
+                  >
+                    <ListItemText 
+                      primary={preset.name} 
+                      secondary={`${preset.width} × ${preset.height}`}
+                    />
+                  </MenuItem>
+                ))}
+              </Box>
+            </Box>
+          </Popover>
+        </>
       )}
 
       {/* Spacer */}

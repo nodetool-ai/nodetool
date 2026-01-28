@@ -291,3 +291,36 @@ export const DEFAULT_CANVAS_DATA: LayoutCanvasData = {
   elements: [],
   exposedInputs: []
 };
+
+// Preset canvas sizes for common use cases
+export interface CanvasPreset {
+  name: string;
+  width: number;
+  height: number;
+  category: "screen" | "social" | "print" | "custom";
+}
+
+export const CANVAS_PRESETS: CanvasPreset[] = [
+  // Screen sizes
+  { name: "Desktop HD", width: 1920, height: 1080, category: "screen" },
+  { name: "Desktop", width: 1440, height: 900, category: "screen" },
+  { name: "Laptop", width: 1366, height: 768, category: "screen" },
+  { name: "Tablet", width: 1024, height: 768, category: "screen" },
+  { name: "Mobile", width: 375, height: 812, category: "screen" },
+  { name: "Mobile Landscape", width: 812, height: 375, category: "screen" },
+  
+  // Social media
+  { name: "Instagram Post", width: 1080, height: 1080, category: "social" },
+  { name: "Instagram Story", width: 1080, height: 1920, category: "social" },
+  { name: "Facebook Post", width: 1200, height: 630, category: "social" },
+  { name: "Twitter Post", width: 1200, height: 675, category: "social" },
+  { name: "LinkedIn Post", width: 1200, height: 627, category: "social" },
+  { name: "YouTube Thumbnail", width: 1280, height: 720, category: "social" },
+  
+  // Print (at 72 DPI for screen preview)
+  { name: "A4 Portrait", width: 595, height: 842, category: "print" },
+  { name: "A4 Landscape", width: 842, height: 595, category: "print" },
+  { name: "Letter Portrait", width: 612, height: 792, category: "print" },
+  { name: "Letter Landscape", width: 792, height: 612, category: "print" },
+  { name: "Business Card", width: 252, height: 144, category: "print" }
+];
