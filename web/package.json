@@ -73,6 +73,7 @@
     "openapi-fetch": "^0.14.0",
     "openapi-typescript": "^7.8.0",
     "papaparse": "^5.4.1",
+    "pixi.js": "^8.15.0",
     "plotly": "^1.0.6",
     "prismjs": "^1.30.0",
     "react": "18.3.1",
