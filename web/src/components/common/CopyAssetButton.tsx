@@ -26,6 +26,51 @@ import log from "loglevel";
 const FEEDBACK_TIMEOUT = 2000;
 
 /**
+ * Make a URL absolute if it's relative.
+ * Required for fetch() and clipboard operations to work correctly.
+ */
+function makeAbsoluteUrl(url: string): string {
+  if (!url) {
+    return url;
+  }
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:") || url.startsWith("data:")) {
+    return url;
+  }
+  return `${window.location.origin}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
+/**
+ * Check if content type is an image type.
+ * Handles both "image" and "image/*" formats.
+ */
+function isImageType(contentType: string): boolean {
+  return contentType === "image" || contentType.startsWith("image/");
+}
+
+/**
+ * Check if content type is a video type.
+ * Handles both "video" and "video/*" formats.
+ */
+function isVideoType(contentType: string): boolean {
+  return contentType === "video" || contentType.startsWith("video/");
+}
+
+/**
+ * Check if content type is an audio type.
+ * Handles both "audio" and "audio/*" formats.
+ */
+function isAudioType(contentType: string): boolean {
+  return contentType === "audio" || contentType.startsWith("audio/");
+}
+
+/**
+ * Check if content type is a text type.
+ */
+function isTextType(contentType: string): boolean {
+  return contentType.startsWith("text/") || contentType.includes("json") || contentType.includes("xml");
+}
+
+/**
  * Browser-based fallback for copying assets to clipboard.
  * Uses the Clipboard API available in modern browsers.
  */
@@ -34,10 +79,13 @@ async function copyAssetToClipboardBrowser(
   url: string,
   assetName?: string
 ): Promise<void> {
+  // Make URL absolute for fetch to work
+  const absoluteUrl = makeAbsoluteUrl(url);
+  
   // For images, use the Clipboard API with ClipboardItem
-  if (contentType.startsWith("image/")) {
+  if (isImageType(contentType)) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(absoluteUrl);
       const blob = await response.blob();
       
       // Convert to PNG for better compatibility (some browsers only support PNG)
@@ -53,38 +101,38 @@ async function copyAssetToClipboardBrowser(
     } catch (error) {
       log.warn("Browser clipboard image write failed, falling back to URL copy:", error);
       // Fall back to copying the URL as text
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(absoluteUrl);
       log.info("Image URL copied to clipboard as text (fallback)");
       return;
     }
   }
 
   // For text-based content
-  if (contentType.startsWith("text/") || contentType.includes("json") || contentType.includes("xml")) {
+  if (isTextType(contentType)) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(absoluteUrl);
       const text = await response.text();
       await navigator.clipboard.writeText(text);
       log.info("Text content copied to clipboard via browser API");
       return;
     } catch {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(absoluteUrl);
       log.info("URL copied to clipboard as text (fallback)");
       return;
     }
   }
 
   // For video/audio, copy URL with metadata
-  if (contentType.startsWith("video/") || contentType.startsWith("audio/")) {
-    const mediaType = contentType.startsWith("video/") ? "Video" : "Audio";
-    const textContent = assetName ? `${mediaType}: ${assetName}\nURL: ${url}` : url;
+  if (isVideoType(contentType) || isAudioType(contentType)) {
+    const mediaType = isVideoType(contentType) ? "Video" : "Audio";
+    const textContent = assetName ? `${mediaType}: ${assetName}\nURL: ${absoluteUrl}` : absoluteUrl;
     await navigator.clipboard.writeText(textContent);
     log.info("Media info copied to clipboard via browser API");
     return;
   }
 
   // Default: copy URL as text
-  await navigator.clipboard.writeText(url);
+  await navigator.clipboard.writeText(absoluteUrl);
   log.info("URL copied to clipboard as text");
 }
 
@@ -276,15 +324,13 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
 
     // Generate tooltip based on content type
     const getDefaultTooltip = () => {
-      if (contentType.startsWith("image/")) {
-        return showCompatibilityInfo 
-          ? "Copy to clipboard (paste into any image editor)" 
-          : "Copy to clipboard";
+      if (isImageType(contentType)) {
+        return "Copy image (paste into any image editor)";
       }
-      if (contentType.startsWith("video/")) {
+      if (isVideoType(contentType)) {
         return "Copy video info";
       }
-      if (contentType.startsWith("audio/")) {
+      if (isAudioType(contentType)) {
         return "Copy audio info";
       }
       return "Copy to clipboard";

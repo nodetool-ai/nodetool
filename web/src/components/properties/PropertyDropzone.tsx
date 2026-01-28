@@ -16,6 +16,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { CopyAssetButton } from "../common/CopyAssetButton";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -110,12 +111,11 @@ const PropertyDropzone = ({
         color: theme.vars.palette.grey[500]
       },
       ".dropzone img": {
+        width: "100%",
         height: "auto",
-        maxWidth: "100%",
-        maxHeight: "300px",
-        margin: "0 auto",
+        maxHeight: "200px",
+        objectFit: "contain",
         display: "block",
-        width: "auto !important",
         borderRadius: "4px"
       },
       ".prop-drop": {
@@ -129,25 +129,29 @@ const PropertyDropzone = ({
       "&:hover .image-dimensions": {
         opacity: 1
       },
-      ".replace-button": {
+      ".asset-actions": {
         position: "absolute",
         top: "4px",
         right: "4px",
+        display: "flex",
+        gap: "4px",
         opacity: 0,
         transition: "opacity 0.2s ease",
+        zIndex: 10
+      },
+      ".dropzone:hover .asset-actions": {
+        opacity: 1
+      },
+      ".asset-action-button": {
         backgroundColor: "rgba(0, 0, 0, 0.7)",
         color: theme.vars.palette.grey[100],
         padding: "4px",
         width: "28px",
         height: "28px",
-        zIndex: 10,
         "&:hover": {
           backgroundColor: theme.vars.palette.primary.main,
           color: theme.vars.palette.common.white
         }
-      },
-      ".dropzone:hover .replace-button": {
-        opacity: 1
       }
     });
 
@@ -351,7 +355,6 @@ const PropertyDropzone = ({
                 ref={imageRef}
                 src={asset?.get_url || uri || ""}
                 alt={asset?.name || ""}
-                style={{ width: "100%", height: "auto" }}
                 onLoad={handleImageLoad}
                 onDoubleClick={handleDoubleClick}
                 draggable={false}
@@ -477,20 +480,35 @@ const PropertyDropzone = ({
           {uri || contentType.split("/")[0] === "audio" ? (
             <>
               {renderViewer}
-              {/* Replace button - appears on hover when asset is present */}
+              {/* Action buttons - appear on hover when asset is present */}
               {uri && (
-                <Tooltip title="Replace file">
-                  <IconButton
-                    className="replace-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDropzoneClick();
+                <div className="asset-actions">
+                  <CopyAssetButton
+                    contentType={contentType}
+                    url={uri}
+                    className="asset-action-button"
+                    sx={{
+                      backgroundColor: "rgba(0, 0, 0, 0.7)",
+                      width: "28px",
+                      height: "28px",
+                      "&:hover": {
+                        backgroundColor: "rgba(0, 0, 0, 0.85)"
+                      }
                     }}
-                    size="small"
-                  >
-                    <FolderOpenIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                  />
+                  <Tooltip title="Replace file">
+                    <IconButton
+                      className="asset-action-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDropzoneClick();
+                      }}
+                      size="small"
+                    >
+                      <FolderOpenIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </div>
               )}
             </>
           ) : (
