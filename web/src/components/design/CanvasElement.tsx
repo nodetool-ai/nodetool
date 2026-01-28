@@ -29,6 +29,8 @@ import {
 interface CanvasElementProps {
   element: LayoutElement;
   isSelected: boolean;
+  effectiveVisible?: boolean;
+  effectiveLocked?: boolean;
   onSelect: (id: string, event: Konva.KonvaEventObject<MouseEvent>) => void;
   onDragStart?: (id: string, event: Konva.KonvaEventObject<DragEvent>) => void;
   onTransformEnd: (
@@ -354,6 +356,8 @@ GroupElement.displayName = "GroupElement";
 const CanvasElement: React.FC<CanvasElementProps> = ({
   element,
   isSelected,
+  effectiveVisible,
+  effectiveLocked,
   onSelect,
   onDragStart,
   onTransformEnd,
@@ -363,6 +367,8 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
 }) => {
   const shapeRef = useRef<Konva.Group>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
+  const isVisible = effectiveVisible ?? element.visible;
+  const isLocked = effectiveLocked ?? element.locked;
 
   useEffect(() => {
     if (isSelected && transformerRef.current && shapeRef.current) {
@@ -373,11 +379,11 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
 
   const handleClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (!element.locked) {
+      if (!isLocked) {
         onSelect(element.id, e);
       }
     },
-    [element.id, element.locked, onSelect]
+    [element.id, isLocked, onSelect]
   );
 
   const handleDragMove = useCallback(
@@ -441,7 +447,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
     onTransformEnd(element.id, attrs);
   }, [element.id, onTransformEnd, snapToGrid]);
 
-  if (!element.visible) {
+  if (!isVisible) {
     return null;
   }
 
@@ -505,7 +511,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
         width={element.width}
         height={element.height}
         rotation={element.rotation}
-        draggable={!element.locked}
+        draggable={!isLocked}
         onClick={handleClick}
         onTap={handleClick}
         onDragStart={handleDragStart}
@@ -515,7 +521,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
       >
         {renderContent()}
       </Group>
-      {isSelected && !element.locked && (
+      {isSelected && !isLocked && (
         <Transformer
           ref={transformerRef}
           boundBoxFunc={(oldBox, newBox) => {

@@ -10,9 +10,8 @@ import React, {
   memo,
   useState
 } from "react";
-import { Box, Paper } from "@mui/material";
+import { Box } from "@mui/material";
 import { useTheme, alpha } from "@mui/material/styles";
-import { Stage, Layer, Rect, Line } from "react-konva";
 import Konva from "konva";
 import {
   LayoutCanvasData,
@@ -21,14 +20,58 @@ import {
   ImageProps,
   RectProps,
   GroupProps,
-  SnapGuide
+  SnapGuide,
+  LayoutElement
 } from "./types";
 import { useLayoutCanvasStore } from "./LayoutCanvasStore";
-import CanvasElement from "./CanvasElement";
 import CanvasToolbar from "./CanvasToolbar";
 import LayerPanel from "./LayerPanel";
 import ElementProperties from "./ElementProperties";
 import { readSketchFile, downloadSketchFile, convertFromSketch, convertToSketch } from "./sketch";
+import CanvasScene from "./CanvasScene";
+
+interface CanvasOverlaysProps {
+  element: LayoutElement | null;
+  exposedInputs: LayoutCanvasData["exposedInputs"];
+  onUpdateElement: (id: string, updates: Partial<LayoutElement>) => void;
+  onUpdateProperties: (id: string, properties: Partial<TextProps | ImageProps | RectProps | GroupProps>) => void;
+  onAddExposedInput: (input: LayoutCanvasData["exposedInputs"][number]) => void;
+  onRemoveExposedInput: (elementId: string, property: string) => void;
+  onAlign: (type: "left" | "center" | "right" | "top" | "middle" | "bottom") => void;
+}
+
+const CanvasOverlays: React.FC<CanvasOverlaysProps> = memo(
+  ({
+    element,
+    exposedInputs,
+    onUpdateElement,
+    onUpdateProperties,
+    onAddExposedInput,
+    onRemoveExposedInput,
+    onAlign
+  }) => {
+    return (
+      <Box
+        className="layout-canvas-properties-container"
+        sx={{
+          width: 280,
+          flexShrink: 0
+        }}
+      >
+        <ElementProperties
+          element={element}
+          exposedInputs={exposedInputs}
+          onUpdateElement={onUpdateElement}
+          onUpdateProperties={onUpdateProperties}
+          onAddExposedInput={onAddExposedInput}
+          onRemoveExposedInput={onRemoveExposedInput}
+          onAlign={onAlign}
+        />
+      </Box>
+    );
+  }
+);
+CanvasOverlays.displayName = "CanvasOverlays";
 
 interface LayoutCanvasEditorProps {
   value: LayoutCanvasData;
@@ -37,98 +80,156 @@ interface LayoutCanvasEditorProps {
   height?: number;
   /** Enable Sketch file import/export */
   enableSketchSupport?: boolean;
+  /** Enable perf harness dataset generation and overlay */
+  perfMode?: boolean;
+  perfDatasetSize?: 1000 | 5000 | 10000;
 }
 
-// Snap guides component - shows alignment lines during drag
-const SnapGuidesLayer: React.FC<{
-  guides: SnapGuide[];
-}> = memo(({ guides }) => {
-  if (guides.length === 0) {
-    return null;
-  }
+interface PerfMetricsSnapshot {
+  average: number;
+  p95: number;
+  frameTime: number;
+  elementCount: number;
+  snapTime: number | null;
+}
 
-  return (
-    <>
-      {guides.map((guide, index) => (
-        <Line
-          key={`guide-${index}`}
-          points={
-            guide.type === "vertical"
-              ? [guide.position, guide.start, guide.position, guide.end]
-              : [guide.start, guide.position, guide.end, guide.position]
-          }
-          stroke="#ff00ff"
-          strokeWidth={1}
-          dash={[4, 4]}
-        />
-      ))}
-    </>
-  );
-});
-SnapGuidesLayer.displayName = "SnapGuidesLayer";
+const PERFORMANCE_WINDOW = 120;
 
-// Grid lines component
-const GridLines: React.FC<{
-  width: number;
-  height: number;
-  gridSize: number;
-  enabled: boolean;
-}> = memo(({ width, height, gridSize, enabled }) => {
-  const theme = useTheme();
+const createPerfDataset = (count: number, width: number, height: number): LayoutCanvasData => {
+  const elements = Array.from({ length: count }, (_, index) => {
+    const cols = Math.max(1, Math.round(Math.sqrt(count)));
+    const size = 24;
+    const gap = 8;
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const x = (col * (size + gap)) % Math.max(width - size, size);
+    const y = (row * (size + gap)) % Math.max(height - size, size);
+    return {
+      id: `perf-${index}`,
+      type: "rectangle" as const,
+      x,
+      y,
+      width: size,
+      height: size,
+      rotation: 0,
+      zIndex: index,
+      visible: true,
+      locked: false,
+      name: `Perf ${index + 1}`,
+      properties: {
+        fillColor: index % 2 === 0 ? "#4a90d9" : "#48bb78",
+        borderColor: "#2c5282",
+        borderWidth: 1,
+        borderRadius: 2,
+        opacity: 1
+      }
+    };
+  });
 
-  if (!enabled) {
-    return null;
-  }
+  return {
+    type: "layout_canvas",
+    width,
+    height,
+    backgroundColor: "#ffffff",
+    elements,
+    exposedInputs: []
+  };
+};
 
-  const lines: React.ReactNode[] = [];
-  const strokeColor = theme.palette.mode === "dark" ? "#333" : "#e0e0e0";
+const usePerfMetrics = (
+  enabled: boolean,
+  elementCount: number,
+  snapTime: number | null
+): PerfMetricsSnapshot => {
+  const frameTimesRef = useRef<number[]>([]);
+  const lastFrameRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const [snapshot, setSnapshot] = useState<PerfMetricsSnapshot>({
+    average: 0,
+    p95: 0,
+    frameTime: 0,
+    elementCount: 0,
+    snapTime: null
+  });
 
-  // Vertical lines
-  for (let x = 0; x <= width; x += gridSize) {
-    lines.push(
-      <Line
-        key={`v-${x}`}
-        points={[x, 0, x, height]}
-        stroke={strokeColor}
-        strokeWidth={x % (gridSize * 5) === 0 ? 0.5 : 0.25}
-      />
-    );
-  }
+  useEffect(() => {
+    if (!enabled) {
+      return undefined;
+    }
 
-  // Horizontal lines
-  for (let y = 0; y <= height; y += gridSize) {
-    lines.push(
-      <Line
-        key={`h-${y}`}
-        points={[0, y, width, y]}
-        stroke={strokeColor}
-        strokeWidth={y % (gridSize * 5) === 0 ? 0.5 : 0.25}
-      />
-    );
-  }
+    const loop = (timestamp: number) => {
+      if (lastFrameRef.current != null) {
+        const delta = timestamp - lastFrameRef.current;
+        frameTimesRef.current.push(delta);
+        if (frameTimesRef.current.length > PERFORMANCE_WINDOW) {
+          frameTimesRef.current.shift();
+        }
+        if (frameTimesRef.current.length > 0) {
+          const sorted = [...frameTimesRef.current].sort((a, b) => a - b);
+          const total = frameTimesRef.current.reduce((sum, value) => sum + value, 0);
+          const average = total / frameTimesRef.current.length;
+          const p95Index = Math.max(0, Math.floor(sorted.length * 0.95) - 1);
+          const p95 = sorted[p95Index];
+          setSnapshot((prev) => ({
+            ...prev,
+            average,
+            p95,
+            frameTime: delta
+          }));
+        }
+      }
+      lastFrameRef.current = timestamp;
+      rafRef.current = requestAnimationFrame(loop);
+    };
 
-  return <>{lines}</>;
-});
-GridLines.displayName = "GridLines";
+    rafRef.current = requestAnimationFrame(loop);
+
+    return () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    setSnapshot((prev) => ({
+      ...prev,
+      elementCount,
+      snapTime
+    }));
+  }, [elementCount, enabled, snapTime]);
+
+  return snapshot;
+};
+
 
 const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   value,
   onChange,
   width = 800,
   height = 600,
-  enableSketchSupport = true
+  enableSketchSupport = true,
+  perfMode = false,
+  perfDatasetSize = 1000
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const [zoom, setZoom] = useState(1);
-  const [stageSize, setStageSize] = useState({ width: width, height: height });
+  const [, setStageSize] = useState({ width: width, height: height });
+  const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([]);
+  const [snapTime, setSnapTime] = useState<number | null>(null);
   
   // Pan state
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+  const isPanningRef = useRef(false);
+  const isSpacePressedRef = useRef(false);
 
   // Selection rect state
   const [isSelecting, setIsSelecting] = useState(false);
@@ -141,64 +242,93 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   } | null>(null);
 
   // Use the layout canvas store
-  const {
-    canvasData,
-    selectedIds,
-    gridSettings,
-    clipboard,
-    historyIndex,
-    history,
-    setCanvasData,
-    setCanvasSize,
-    addElement,
-    updateElement,
-    deleteElements,
-    setSelection,
-    addToSelection,
-    clearSelection,
-    selectAll,
-    bringToFront,
-    sendToBack,
-    bringForward,
-    sendBackward,
-    toggleVisibility,
-    toggleLock,
-    setAllVisibility,
-    setAllLock,
-    moveElement,
-    groupElements,
-    ungroupElements,
-    flattenElements,
-    alignLeft,
-    alignCenter,
-    alignRight,
-    alignTop,
-    alignMiddle,
-    alignBottom,
-    addExposedInput,
-    removeExposedInput,
-    setGridSettings,
-    snapToGrid,
-    copyToClipboard,
-    pasteFromClipboard,
-    undo,
-    redo,
-    findElement,
-    snapGuides,
-    // snapEnabled is available for future feature toggles
-    snapEnabled: _snapEnabled,
-    calculateSnapGuides,
-    setSnapGuides,
-    clearSnapGuides,
-    distributeHorizontally,
-    distributeVertically,
-    tidyElements
-  } = useLayoutCanvasStore();
+  const canvasData = useLayoutCanvasStore((state) => state.canvasData);
+  const selectedIds = useLayoutCanvasStore((state) => state.selectedIds);
+  const gridSettings = useLayoutCanvasStore((state) => state.gridSettings);
+  const clipboard = useLayoutCanvasStore((state) => state.clipboard);
+  const historyIndex = useLayoutCanvasStore((state) => state.historyIndex);
+  const history = useLayoutCanvasStore((state) => state.history);
+  const setCanvasData = useLayoutCanvasStore((state) => state.setCanvasData);
+  const setCanvasSize = useLayoutCanvasStore((state) => state.setCanvasSize);
+  const addElement = useLayoutCanvasStore((state) => state.addElement);
+  const updateElement = useLayoutCanvasStore((state) => state.updateElement);
+  const updateElements = useLayoutCanvasStore((state) => state.updateElements);
+  const deleteElements = useLayoutCanvasStore((state) => state.deleteElements);
+  const setSelection = useLayoutCanvasStore((state) => state.setSelection);
+  const addToSelection = useLayoutCanvasStore((state) => state.addToSelection);
+  const clearSelection = useLayoutCanvasStore((state) => state.clearSelection);
+  const selectAll = useLayoutCanvasStore((state) => state.selectAll);
+  const bringToFront = useLayoutCanvasStore((state) => state.bringToFront);
+  const sendToBack = useLayoutCanvasStore((state) => state.sendToBack);
+  const bringForward = useLayoutCanvasStore((state) => state.bringForward);
+  const sendBackward = useLayoutCanvasStore((state) => state.sendBackward);
+  const toggleVisibility = useLayoutCanvasStore((state) => state.toggleVisibility);
+  const toggleLock = useLayoutCanvasStore((state) => state.toggleLock);
+  const setAllVisibility = useLayoutCanvasStore((state) => state.setAllVisibility);
+  const setAllLock = useLayoutCanvasStore((state) => state.setAllLock);
+  const moveElement = useLayoutCanvasStore((state) => state.moveElement);
+  const groupElements = useLayoutCanvasStore((state) => state.groupElements);
+  const ungroupElements = useLayoutCanvasStore((state) => state.ungroupElements);
+  const flattenElements = useLayoutCanvasStore((state) => state.flattenElements);
+  const alignLeft = useLayoutCanvasStore((state) => state.alignLeft);
+  const alignCenter = useLayoutCanvasStore((state) => state.alignCenter);
+  const alignRight = useLayoutCanvasStore((state) => state.alignRight);
+  const alignTop = useLayoutCanvasStore((state) => state.alignTop);
+  const alignMiddle = useLayoutCanvasStore((state) => state.alignMiddle);
+  const alignBottom = useLayoutCanvasStore((state) => state.alignBottom);
+  const addExposedInput = useLayoutCanvasStore((state) => state.addExposedInput);
+  const removeExposedInput = useLayoutCanvasStore((state) => state.removeExposedInput);
+  const setGridSettings = useLayoutCanvasStore((state) => state.setGridSettings);
+  const snapToGrid = useLayoutCanvasStore((state) => state.snapToGrid);
+  const copyToClipboard = useLayoutCanvasStore((state) => state.copyToClipboard);
+  const pasteFromClipboard = useLayoutCanvasStore((state) => state.pasteFromClipboard);
+  const undo = useLayoutCanvasStore((state) => state.undo);
+  const redo = useLayoutCanvasStore((state) => state.redo);
+  const findElement = useLayoutCanvasStore((state) => state.findElement);
+  const calculateSnapGuides = useLayoutCanvasStore((state) => state.calculateSnapGuides);
+  const distributeHorizontally = useLayoutCanvasStore((state) => state.distributeHorizontally);
+  const distributeVertically = useLayoutCanvasStore((state) => state.distributeVertically);
+  const tidyElements = useLayoutCanvasStore((state) => state.tidyElements);
+  const perfMetrics = usePerfMetrics(perfMode, canvasData.elements.length, snapTime);
 
   const elementById = React.useMemo(
     () => new Map(canvasData.elements.map((el) => [el.id, el])),
     [canvasData.elements]
   );
+
+  const effectiveVisibleById = React.useMemo(() => {
+    const map = new Map<string, boolean>();
+    canvasData.elements.forEach((element) => {
+      let current: LayoutElement | undefined = element;
+      let visible = true;
+      while (current) {
+        if (!current.visible) {
+          visible = false;
+          break;
+        }
+        current = current.parentId ? elementById.get(current.parentId) : undefined;
+      }
+      map.set(element.id, visible);
+    });
+    return map;
+  }, [canvasData.elements, elementById]);
+
+  const effectiveLockedById = React.useMemo(() => {
+    const map = new Map<string, boolean>();
+    canvasData.elements.forEach((element) => {
+      let current: LayoutElement | undefined = element;
+      let locked = false;
+      while (current) {
+        if (current.locked) {
+          locked = true;
+          break;
+        }
+        current = current.parentId ? elementById.get(current.parentId) : undefined;
+      }
+      map.set(element.id, locked);
+    });
+    return map;
+  }, [canvasData.elements, elementById]);
 
   const childrenByParent = React.useMemo(() => {
     const map = new Map<string, string[]>();
@@ -233,16 +363,17 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       if (!group) {
         return;
       }
-      updateElement(groupId, { x: group.x + dx, y: group.y + dy });
       const descendants = getDescendantIds(groupId);
+      const updates = [{ id: groupId, x: group.x + dx, y: group.y + dy }];
       descendants.forEach((childId) => {
         const child = findElement(childId);
         if (child) {
-          updateElement(childId, { x: child.x + dx, y: child.y + dy });
+          updates.push({ id: childId, x: child.x + dx, y: child.y + dy });
         }
       });
+      updateElements(updates);
     },
-    [findElement, getDescendantIds, updateElement]
+    [findElement, getDescendantIds, updateElements]
   );
 
   const transformGroupWithChildren = useCallback(
@@ -263,10 +394,10 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       const sin = Math.sin((rotationDelta * Math.PI) / 180);
 
       const descendants = getDescendantIds(groupId);
-      descendants.forEach((childId) => {
+      const updates = descendants.flatMap((childId) => {
         const child = findElement(childId);
         if (!child) {
-          return;
+          return [];
         }
         const childCenterX = child.x + child.width / 2;
         const childCenterY = child.y + child.height / 2;
@@ -278,58 +409,27 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         const newHeight = Math.max(10, child.height * scaleY);
         const newCenterX = centerX + rotatedX;
         const newCenterY = centerY + rotatedY;
-        updateElement(childId, {
-          x: newCenterX - newWidth / 2,
-          y: newCenterY - newHeight / 2,
-          width: newWidth,
-          height: newHeight,
-          rotation: child.rotation + rotationDelta
-        });
+        return [
+          {
+            id: childId,
+            x: newCenterX - newWidth / 2,
+            y: newCenterY - newHeight / 2,
+            width: newWidth,
+            height: newHeight,
+            rotation: child.rotation + rotationDelta
+          }
+        ];
       });
 
-      updateElement(groupId, attrs);
+      updateElements([...updates, { id: groupId, ...attrs }]);
     },
-    [findElement, getDescendantIds, updateElement]
-  );
-
-  const getEffectiveVisibility = useCallback(
-    (elementId: string) => {
-      let current = elementById.get(elementId);
-      while (current) {
-        if (!current.visible) {
-          return false;
-        }
-        current = current.parentId ? elementById.get(current.parentId) : undefined;
-      }
-      return true;
-    },
-    [elementById]
-  );
-
-  const getEffectiveLock = useCallback(
-    (elementId: string) => {
-      let current = elementById.get(elementId);
-      while (current) {
-        if (current.locked) {
-          return true;
-        }
-        current = current.parentId ? elementById.get(current.parentId) : undefined;
-      }
-      return false;
-    },
-    [elementById]
+    [findElement, getDescendantIds, updateElements]
   );
 
   const sortedElements = React.useMemo(
     () =>
-      [...canvasData.elements]
-        .sort((a, b) => a.zIndex - b.zIndex)
-        .map((element) => ({
-          ...element,
-          visible: getEffectiveVisibility(element.id),
-          locked: getEffectiveLock(element.id)
-        })),
-    [canvasData.elements, getEffectiveVisibility, getEffectiveLock]
+      [...canvasData.elements].sort((a, b) => a.zIndex - b.zIndex),
+    [canvasData.elements]
   );
 
   // Handle alignment from properties panel
@@ -350,20 +450,27 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
   // Initialize store with value
   useEffect(() => {
+    if (perfMode) {
+      setCanvasData(createPerfDataset(perfDatasetSize, width, height));
+      return;
+    }
     if (value) {
       setCanvasData(value);
     }
-  }, [value, setCanvasData]);
+  }, [perfDatasetSize, perfMode, setCanvasData, value, width, height]);
 
   // Sync store changes back to onChange
   useEffect(() => {
+    if (perfMode) {
+      return undefined;
+    }
     const unsubscribe = useLayoutCanvasStore.subscribe((state) => {
       if (state.canvasData !== value) {
         onChange(state.canvasData);
       }
     });
     return () => unsubscribe();
-  }, [onChange, value]);
+  }, [onChange, perfMode, value]);
 
   // Handle container resize
   useEffect(() => {
@@ -382,6 +489,12 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (perfMode) {
+      setSnapTime(null);
+    }
+  }, [perfMode]);
 
   // Handle element selection
   const handleSelect = useCallback(
@@ -420,7 +533,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       id: string,
       attrs: { x: number; y: number; width: number; height: number; rotation: number }
     ) => {
-      clearSnapGuides();
+      setSnapGuides([]);
       const element = findElement(id);
       if (element?.type === "group") {
         transformGroupWithChildren(id, attrs);
@@ -428,13 +541,18 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       }
       updateElement(id, attrs);
     },
-    [clearSnapGuides, findElement, transformGroupWithChildren, updateElement]
+    [findElement, transformGroupWithChildren, updateElement]
   );
 
   // Handle element drag move - for smart snap guides
   const handleDragMove = useCallback(
     (id: string, x: number, y: number, width: number, height: number) => {
       const result = calculateSnapGuides(id, x, y, width, height);
+      if (perfMode) {
+        const entries = performance.getEntriesByName("calculateSnapGuides");
+        const lastEntry = entries[entries.length - 1];
+        setSnapTime(lastEntry ? lastEntry.duration : null);
+      }
       setSnapGuides(result.guides);
       const selectionDrag = selectionDragRef.current;
       if (selectionDrag && selectionDrag.startPositions.has(id)) {
@@ -456,7 +574,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       }
       return { x: result.x, y: result.y };
     },
-    [calculateSnapGuides, setSnapGuides]
+    [calculateSnapGuides, perfMode]
   );
 
   const handleDragStart = useCallback(
@@ -486,7 +604,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   // Handle element drag end
   const handleDragEnd = useCallback(
     (id: string, x: number, y: number) => {
-      clearSnapGuides();
+      setSnapGuides([]);
       const selectionDrag = selectionDragRef.current;
       if (selectionDrag && selectionDrag.startPositions.has(id)) {
         const start = selectionDrag.startPositions.get(id);
@@ -502,6 +620,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             getDescendantIds(groupId).forEach((childId) => descendantIds.add(childId));
           });
 
+          const updates: Array<{ id: string } & Partial<LayoutElement>> = [];
           selected.forEach((elementId) => {
             if (descendantIds.has(elementId)) {
               return;
@@ -511,11 +630,19 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
               return;
             }
             if (element.type === "group" && (deltaX !== 0 || deltaY !== 0)) {
-              moveGroupWithChildren(elementId, deltaX, deltaY);
+              const descendants = getDescendantIds(elementId);
+              updates.push({ id: elementId, x: element.x + deltaX, y: element.y + deltaY });
+              descendants.forEach((childId) => {
+                const child = findElement(childId);
+                if (child) {
+                  updates.push({ id: childId, x: child.x + deltaX, y: child.y + deltaY });
+                }
+              });
             } else {
-              updateElement(elementId, { x: element.x + deltaX, y: element.y + deltaY });
+              updates.push({ id: elementId, x: element.x + deltaX, y: element.y + deltaY });
             }
           });
+          updateElements(updates);
           selectionDragRef.current = null;
           return;
         }
@@ -535,7 +662,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       }
       selectionDragRef.current = null;
     },
-    [clearSnapGuides, findElement, getDescendantIds, moveGroupWithChildren, updateElement]
+    [findElement, getDescendantIds, moveGroupWithChildren, updateElement, updateElements]
   );
 
   // Handle layer selection from panel
@@ -595,7 +722,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       // Space key for pan mode
       if (e.key === " " || e.key === "Space") {
         e.preventDefault();
-        if (!isSpacePressed) {
+        if (!isSpacePressedRef.current) {
+          isSpacePressedRef.current = true;
           setIsSpacePressed(true);
         }
         return;
@@ -701,56 +829,53 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       findElement,
       getDescendantIds,
       moveGroupWithChildren,
-      updateElement,
-      isSpacePressed
+      updateElement
     ]
   );
 
   // Key up handler for space key pan mode
-  const handleKeyUp = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === " " || e.key === "Space") {
-        setIsSpacePressed(false);
-        setIsPanning(false);
-      }
-    },
-    []
-  );
+  const handleKeyUp = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === " " || e.key === "Space") {
+      isSpacePressedRef.current = false;
+      isPanningRef.current = false;
+      setIsSpacePressed(false);
+      setIsPanning(false);
+    }
+  }, []);
 
   // Mouse down handler for panning (middle mouse or space+left click)
   const handleCanvasMouseDown = useCallback(
     (e: React.MouseEvent) => {
       // Middle mouse button (button 1) or space + left click
-      if (e.button === 1 || (e.button === 0 && isSpacePressed)) {
+      if (e.button === 1 || (e.button === 0 && isSpacePressedRef.current)) {
         e.preventDefault();
+        isPanningRef.current = true;
         setIsPanning(true);
         setPanStart({ x: e.clientX - stagePosition.x, y: e.clientY - stagePosition.y });
       }
     },
-    [isSpacePressed, stagePosition]
+    [stagePosition]
   );
 
   // Mouse move handler for panning
   const handleCanvasMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (isPanning) {
+      if (isPanningRef.current) {
         const newX = e.clientX - panStart.x;
         const newY = e.clientY - panStart.y;
         setStagePosition({ x: newX, y: newY });
       }
     },
-    [isPanning, panStart]
+    [panStart]
   );
 
   // Mouse up handler for panning
-  const handleCanvasMouseUp = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.button === 1 || (e.button === 0 && isPanning)) {
-        setIsPanning(false);
-      }
-    },
-    [isPanning]
-  );
+  const handleCanvasMouseUp = useCallback((e: React.MouseEvent) => {
+    if (e.button === 1 || (e.button === 0 && isPanningRef.current)) {
+      isPanningRef.current = false;
+      setIsPanning(false);
+    }
+  }, []);
 
   const getCanvasPointerPosition = useCallback(() => {
     const stage = stageRef.current;
@@ -813,7 +938,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
   const handleStageMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (e.evt.button !== 0 || isSpacePressed || isPanning) {
+      if (e.evt.button !== 0 || isSpacePressedRef.current || isPanningRef.current) {
         return;
       }
 
@@ -835,7 +960,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       setSelectionStart(start);
       setSelectionRect({ x: start.x, y: start.y, width: 0, height: 0 });
     },
-    [getCanvasPointerPosition, isPanning, isSpacePressed]
+    [getCanvasPointerPosition]
   );
 
   const handleStageMouseMove = useCallback(() => {
@@ -870,7 +995,11 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       const isSubtractive = e.evt.altKey;
 
       const hits = sortedElements
-        .filter((element) => element.visible && !element.locked)
+        .filter(
+          (element) =>
+            (effectiveVisibleById.get(element.id) ?? false) &&
+            !(effectiveLockedById.get(element.id) ?? false)
+        )
         .filter((element) => {
           return isContainedMode
             ? doesRectContain(rect, element)
@@ -1056,7 +1185,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         width: "100%",
         height: "100%",
         backgroundColor: theme.vars.palette.background.default,
-        overflow: "hidden"
+        overflow: "hidden",
+        position: "relative"
       }}
     >
       {/* Toolbar */}
@@ -1159,104 +1289,74 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             }
           }}
         >
-          <Paper
-            className="layout-canvas-stage-wrapper"
-            elevation={3}
-            sx={{
-              overflow: "hidden",
-              transform: `translate(${stagePosition.x}px, ${stagePosition.y}px) scale(${zoom})`,
-              transformOrigin: "center center",
-              transition: isPanning ? "none" : "transform 0.1s ease-out"
-            }}
-          >
-            <Stage
-              ref={stageRef}
-              width={canvasData.width}
-              height={canvasData.height}
-              onMouseDown={handleStageMouseDown}
-              onMouseMove={handleStageMouseMove}
-              onMouseUp={handleStageMouseUp}
-              onClick={handleStageClick}
-              onTap={handleStageClick}
-            >
-              {/* Background layer */}
-              <Layer>
-                <Rect
-                  x={0}
-                  y={0}
-                  width={canvasData.width}
-                  height={canvasData.height}
-                  fill={canvasData.backgroundColor}
-                  name="canvas-background"
-                />
-                <GridLines
-                  width={canvasData.width}
-                  height={canvasData.height}
-                  gridSize={gridSettings.size}
-                  enabled={gridSettings.enabled}
-                />
-              </Layer>
-
-              {/* Elements layer */}
-              <Layer>
-                {sortedElements.map((element) => (
-                  <CanvasElement
-                    key={element.id}
-                    element={element}
-                    isSelected={selectedIds.includes(element.id)}
-                    onSelect={handleSelect}
-                    onDragStart={handleDragStart}
-                    onTransformEnd={handleTransformEnd}
-                    onDragMove={handleDragMove}
-                    onDragEnd={handleDragEnd}
-                    snapToGrid={snapToGrid}
-                  />
-                ))}
-              </Layer>
-
-              {/* Selection rect layer */}
-              <Layer listening={false}>
-                {selectionRect && (
-                  <Rect
-                    x={selectionRect.x}
-                    y={selectionRect.y}
-                    width={selectionRect.width}
-                    height={selectionRect.height}
-                    stroke={selectionStroke}
-                    fill={selectionFill}
-                    strokeWidth={1}
-                    dash={[4, 4]}
-                  />
-                )}
-              </Layer>
-
-              {/* Snap guides layer */}
-              <Layer>
-                <SnapGuidesLayer guides={snapGuides} />
-              </Layer>
-            </Stage>
-          </Paper>
+          <CanvasScene
+            canvasData={canvasData}
+            gridSettings={gridSettings}
+            snapGuides={snapGuides}
+            sortedElements={sortedElements}
+            selectedIds={selectedIds}
+            effectiveVisibleById={effectiveVisibleById}
+            effectiveLockedById={effectiveLockedById}
+            selectionRect={selectionRect}
+            selectionStroke={selectionStroke}
+            selectionFill={selectionFill}
+            stageRef={stageRef}
+            stagePosition={stagePosition}
+            zoom={zoom}
+            isPanning={isPanning}
+            onSelect={handleSelect}
+            onDragStart={handleDragStart}
+            onTransformEnd={handleTransformEnd}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
+            snapToGrid={snapToGrid}
+            onStageMouseDown={handleStageMouseDown}
+            onStageMouseMove={handleStageMouseMove}
+            onStageMouseUp={handleStageMouseUp}
+            onStageClick={handleStageClick}
+          />
         </Box>
 
         {/* Properties panel */}
+        <CanvasOverlays
+          element={selectedElement || null}
+          exposedInputs={canvasData.exposedInputs}
+          onUpdateElement={updateElement}
+          onUpdateProperties={handleUpdateProperties}
+          onAddExposedInput={addExposedInput}
+          onRemoveExposedInput={removeExposedInput}
+          onAlign={handlePropertyAlign}
+        />
+      </Box>
+      {perfMode && (
         <Box
-          className="layout-canvas-properties-container"
+          className="layout-canvas-perf-overlay"
           sx={{
-            width: 280,
-            flexShrink: 0
+            position: "absolute",
+            top: 12,
+            right: 12,
+            zIndex: 10,
+            backgroundColor: alpha(theme.palette.background.paper, 0.9),
+            border: `1px solid ${theme.vars.palette.divider}`,
+            borderRadius: 1,
+            px: 1.5,
+            py: 1,
+            fontSize: 12,
+            fontFamily: theme.typography.fontFamily,
+            color: theme.palette.text.primary,
+            display: "flex",
+            flexDirection: "column",
+            gap: 0.5,
+            pointerEvents: "none"
           }}
         >
-          <ElementProperties
-            element={selectedElement || null}
-            exposedInputs={canvasData.exposedInputs}
-            onUpdateElement={updateElement}
-            onUpdateProperties={handleUpdateProperties}
-            onAddExposedInput={addExposedInput}
-            onRemoveExposedInput={removeExposedInput}
-            onAlign={handlePropertyAlign}
-          />
+          <Box>Frame: {perfMetrics.frameTime.toFixed(2)}ms</Box>
+          <Box>Avg: {perfMetrics.average.toFixed(2)}ms</Box>
+          <Box>P95: {perfMetrics.p95.toFixed(2)}ms</Box>
+          <Box>Elements: {perfMetrics.elementCount}</Box>
+          <Box>Snap: {perfMetrics.snapTime ? `${perfMetrics.snapTime.toFixed(2)}ms` : "--"}</Box>
         </Box>
-      </Box>
+      )}
     </Box>
   );
 };
