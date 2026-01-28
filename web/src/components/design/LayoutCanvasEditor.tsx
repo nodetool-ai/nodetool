@@ -908,7 +908,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
   // Mouse wheel zoom handler
   const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+    (e: WheelEvent) => {
       // Prevent default browser zoom/scroll
       e.preventDefault();
       e.stopPropagation();
@@ -919,6 +919,21 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     },
     []
   );
+
+  // Attach non-passive wheel listener to container
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {return;}
+
+    // We need to use a non-passive listener to be able to preventDefault()
+    // React's onWheel is passive by default in some cases or doesn't allow preventDefault
+    // if the browser treats it as passive.
+    container.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, [handleWheel]);
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
@@ -1134,7 +1149,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
           tabIndex={0}
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
-          onWheel={handleWheel}
+          // onWheel removed - attached via useEffect ref
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleCanvasMouseMove}
           onMouseUp={handleCanvasMouseUp}
@@ -1163,7 +1178,9 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
               transform: `translate(${stagePosition.x}px, ${stagePosition.y}px) scale(${zoom})`,
               transformOrigin: "center center",
               transition: isPanning ? "none" : "transform 0.1s ease-out",
-              boxShadow: "0 0 20px rgba(0,0,0,0.3)"
+              borderRadius: 0,
+              border: "none",
+              boxShadow: "0 0 12px rgba(0,0,0,0.07)"
             }}
           >
             <Stage
