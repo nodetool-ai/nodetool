@@ -162,6 +162,7 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
           opacity: element.visible ? 1 : 0.6,
           pl: 1 + depth * 1.5,
           position: "relative",
+          backgroundColor: isGroup ? `${theme.vars.palette.action.selected}0d` : "transparent",
           "&.Mui-selected": {
             backgroundColor: `${theme.vars.palette.primary.main}1a`
           },
@@ -176,6 +177,41 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
           }
         }}
       >
+        {dragOverPosition === "before" && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 2,
+              backgroundColor: theme.vars.palette.primary.main
+            }}
+          />
+        )}
+        {dragOverPosition === "after" && (
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 2,
+              backgroundColor: theme.vars.palette.primary.main
+            }}
+          />
+        )}
+        {dragOverPosition === "inside" && (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 2,
+              borderRadius: 1,
+              border: `1px dashed ${theme.vars.palette.primary.main}`,
+              pointerEvents: "none"
+            }}
+          />
+        )}
         {depth > 0 && (
           <Box
             sx={{
@@ -424,7 +460,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
       if (element.type !== "group") {
         return ratio < 0.5 ? "before" : "after";
       }
-      if (ratio > 0.2 && ratio < 0.8) {
+      if (ratio > 0.15 && ratio < 0.85) {
         return "inside";
       }
       return ratio < 0.2 ? "before" : "after";
@@ -517,6 +553,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     setDragOver(null);
     clearHoverExpand();
   }, [clearHoverExpand]);
+
+  const dragOverRoot = Boolean(draggingId) && dragOver === null;
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, id: string) => {
@@ -667,7 +705,12 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
           flexGrow: 1,
           overflow: "auto"
         }}
-        onDragOver={(e) => e.preventDefault()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (dragOver !== null) {
+            setDragOver(null);
+          }
+        }}
         onDrop={handleDropOnRoot}
       >
         {elements.length === 0 ? (
@@ -686,6 +729,21 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
           </Box>
         ) : (
           <List className="layer-list" disablePadding>
+            {dragOverRoot && (
+              <Box
+                sx={{
+                  px: 1,
+                  py: 0.5,
+                  color: theme.vars.palette.primary.main,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em"
+                }}
+              >
+                Drop at root
+              </Box>
+            )}
             {renderItems("__root__", 0)}
           </List>
         )}
