@@ -96,6 +96,9 @@ const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
+const StandaloneCanvasEditor = React.lazy(
+  () => import("./components/design/StandaloneCanvasEditor")
+);
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
@@ -305,6 +308,14 @@ function getRoutes() {
     });
   }
 
+  // Add the standalone canvas editor (available in development)
+  if (isLocalhost) {
+    routes.push({
+      path: "/canvas",
+      element: <StandaloneCanvasEditor />
+    });
+  }
+
   routes.forEach((route) => {
     route.ErrorBoundary = ErrorBoundary;
   });
@@ -343,8 +354,20 @@ const JobReconnectionManager = () => {
 
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
+  
+  // Check if current path is a standalone route that doesn't need metadata
+  const standaloneRoutes = ["/canvas", "/layouttest"];
+  const isStandaloneRoute = standaloneRoutes.some(route => 
+    window.location.pathname.startsWith(route)
+  );
 
   useEffect(() => {
+    // Skip metadata loading for standalone routes
+    if (isStandaloneRoute) {
+      setStatus("success");
+      return;
+    }
+    
     // Existing effect for loading metadata
     loadMetadata()
       .then((data) => {
@@ -354,7 +377,7 @@ const AppWrapper = () => {
         console.error("Failed to load metadata:", error);
         setStatus("error"); // Ensure status is set to error on promise rejection
       });
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [isStandaloneRoute]); // Include isStandaloneRoute in dependencies
 
   return (
     <React.StrictMode>
