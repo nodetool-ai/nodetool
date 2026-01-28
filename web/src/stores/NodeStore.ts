@@ -379,13 +379,24 @@ export const createNodeStore = (
           setEdgeUpdateSuccessful: (value: boolean): void =>
             set({ edgeUpdateSuccessful: value }),
           onNodesChange: (changes: NodeChange<Node<NodeData>>[]): void => {
-            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver, selection)
-            const isOnlyInternalChanges = changes.every(
+            // Check if any dimension change is a user resize (has setAttributes set)
+            // This indicates the user intentionally resized the node via NodeResizeControl
+            const hasUserResize = changes.some(
               (change) =>
-                change.type === "dimensions" ||
-                change.type === "select" ||
-                (change.type === "position" && change.dragging === false)
+                change.type === "dimensions" &&
+                "setAttributes" in change &&
+                change.setAttributes
             );
+
+            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver, selection)
+            const isOnlyInternalChanges =
+              !hasUserResize &&
+              changes.every(
+                (change) =>
+                  change.type === "dimensions" ||
+                  change.type === "select" ||
+                  (change.type === "position" && change.dragging === false)
+              );
 
             const nodes = applyNodeChanges(changes, get().nodes);
             set({ nodes });
