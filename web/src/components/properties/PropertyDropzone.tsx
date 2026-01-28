@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useMemo, useState, useRef } from "react";
+import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Button, Tooltip } from "@mui/material";
+import { Tooltip } from "@mui/material";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
 import AssetViewer from "../assets/AssetViewer";
@@ -15,7 +15,6 @@ import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -48,6 +47,7 @@ const PropertyDropzone = ({
   const [openViewer, setOpenViewer] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
 
   const styles = (theme: Theme) =>
@@ -60,19 +60,6 @@ const PropertyDropzone = ({
         flexDirection: "column",
         alignItems: "normal",
         gap: "0"
-      },
-      ".native-picker-button": {
-        color: theme.vars.palette.grey[500],
-        backgroundColor: "transparent",
-        minWidth: "unset",
-        transition: "all 0.2s ease",
-        "&:hover": {
-          color: theme.vars.palette.primary.main,
-          backgroundColor: theme.vars.palette.action.hover
-        },
-        "& svg": {
-          fontSize: "1.2rem"
-        }
       },
       ".dropzone": {
         position: "relative",
@@ -192,6 +179,52 @@ const PropertyDropzone = ({
 
   const { uploadAsset: uploadAssetFn } = useAssetUpload();
 
+  // Get accept attribute for file input based on content type
+  const getAcceptAttribute = useCallback(() => {
+    const type = contentType.split("/")[0];
+    switch (type) {
+      case "image":
+        return "image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg";
+      case "audio":
+        return "audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac";
+      case "video":
+        return "video/*,.mp4,.avi,.mov,.wmv,.flv,.webm,.mkv";
+      case "document":
+        return ".pdf,.doc,.docx,.txt,.html";
+      default:
+        return "*/*";
+    }
+  }, [contentType]);
+
+  // Handle files from browser file input
+  const handleBrowserFilePicker = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  // Handle file input change (browser fallback)
+  const handleFileInputChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) {
+      return;
+    }
+
+    const file = files[0];
+    uploadAssetFn({
+      file,
+      onCompleted: (asset) => {
+        onChange({ uri: asset.get_url || "", type: contentType });
+      },
+      onFailed: (error) => {
+        console.error("Failed to upload asset:", error);
+      }
+    });
+
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [contentType, onChange, uploadAssetFn]);
+
   const handleNativeFilePicker = useCallback(async () => {
     if (!window.api?.dialog?.openFile) {
       return;
@@ -271,6 +304,15 @@ const PropertyDropzone = ({
       console.error("Error opening file picker:", error);
     }
   }, [contentType, onChange, uploadAssetFn]);
+
+  // Handle dropzone click - use native dialog in Electron, file input in browser
+  const handleDropzoneClick = useCallback(() => {
+    if (isElectron && window.api?.dialog?.openFile) {
+      handleNativeFilePicker();
+    } else {
+      handleBrowserFilePicker();
+    }
+  }, [handleNativeFilePicker, handleBrowserFilePicker]);
 
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
@@ -389,36 +431,35 @@ const PropertyDropzone = ({
 
   return (
     <div css={styles(theme)}>
-      {isElectron && (
-        <Tooltip title="Open file picker to select a file from your computer">
-          <Button
-            className="native-picker-button"
-            variant="text"
-            onClick={handleNativeFilePicker}
-          >
-            <FolderOpenIcon />
-            Select {contentType}
-          </Button>
-        </Tooltip>
-      )}
+      {/* Hidden file input for browser fallback */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        hidden
+        accept={getAcceptAttribute()}
+        onChange={handleFileInputChange}
+      />
 
       <div className="drop-container">
-        <div
-          className={`dropzone ${uri ? "dropped" : ""} ${isDragOver ? "drag-over" : ""
-            }`}
-          style={{
-            borderWidth: uri === "" ? "1px" : "0px"
-          }}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          {uri || contentType.split("/")[0] === "audio" ? (
-            renderViewer
-          ) : (
-            <p className="prop-drop centered uppercase">Drop {contentType}</p>
-          )}
-        </div>
+        <Tooltip title="Click to select a file or drag and drop">
+          <div
+            className={`dropzone ${uri ? "dropped" : ""} ${isDragOver ? "drag-over" : ""
+              }`}
+            style={{
+              borderWidth: uri === "" ? "1px" : "0px"
+            }}
+            onClick={handleDropzoneClick}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {uri || contentType.split("/")[0] === "audio" ? (
+              renderViewer
+            ) : (
+              <p className="prop-drop centered uppercase">Click or drop {contentType}</p>
+            )}
+          </div>
+        </Tooltip>
         {contentType.split("/")[0] === "audio" && showRecorder && (
           <WaveRecorder onChange={onChangeAsset} />
         )}
