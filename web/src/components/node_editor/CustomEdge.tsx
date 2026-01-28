@@ -20,8 +20,7 @@ export function CustomEdge({
   style,
   markerEnd,
   data,
-  selected,
-  className
+  selected
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -38,7 +37,9 @@ export function CustomEdge({
 
   // Format the data type label for display with simple pluralization
   const formatDataTypeLabel = (label: string | undefined, count: number): string => {
-    if (!label || label === "Any") {return "items";}
+    if (!label || label === "Any") {
+      return "items";
+    }
     // Simple pluralization - add 's' for most types
     const lowerLabel = label.toLowerCase();
     return count === 1 ? lowerLabel : `${lowerLabel}s`;
@@ -53,7 +54,6 @@ export function CustomEdge({
         path={edgePath}
         style={style}
         markerEnd={markerEnd}
-        className={className}
       />
       {showLabel && (
         <EdgeLabelRenderer>

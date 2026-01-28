@@ -1114,7 +1114,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
           sx={{
             width: 240,
             flexShrink: 0,
-            borderRight: `1px solid ${theme.vars.palette.divider}`
+            borderRight: `1px solid ${theme.vars.palette.divider}`,
+            backgroundColor: theme.vars.palette.background.paper
           }}
         >
           <LayerPanel
@@ -1149,14 +1150,13 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             justifyContent: "center",
             alignItems: "center",
             backgroundColor:
-              theme.palette.mode === "dark" ? "#1a1a1a" : "#f5f5f5",
+              theme.palette.mode === "dark" ? "#2C2C2C" : "#f5f5f5",
             overflow: "hidden",
-            p: 2,
+            p: 0,
             outline: "none",
             cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : "default",
             "&:focus": {
-              outline: `2px solid ${theme.palette.primary.main}`,
-              outlineOffset: "-2px"
+              outline: "none"
             }
           }}
         >
@@ -1167,7 +1167,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
               overflow: "hidden",
               transform: `translate(${stagePosition.x}px, ${stagePosition.y}px) scale(${zoom})`,
               transformOrigin: "center center",
-              transition: isPanning ? "none" : "transform 0.1s ease-out"
+              transition: isPanning ? "none" : "transform 0.1s ease-out",
+              boxShadow: "0 0 20px rgba(0,0,0,0.3)"
             }}
           >
             <Stage
@@ -1243,8 +1244,10 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         <Box
           className="layout-canvas-properties-container"
           sx={{
-            width: 280,
-            flexShrink: 0
+            width: 300,
+            flexShrink: 0,
+            borderLeft: `1px solid ${theme.vars.palette.divider}`,
+            backgroundColor: theme.vars.palette.background.paper
           }}
         >
           <ElementProperties

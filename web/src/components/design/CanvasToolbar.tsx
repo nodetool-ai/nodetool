@@ -295,12 +295,13 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       sx={{
         display: "flex",
         alignItems: "center",
-        gap: 0.5,
+        gap: 0,
         px: 1,
-        py: 0.5,
+        py: 0,
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
-        backgroundColor: theme.vars.palette.background.paper,
-        minHeight: 40
+        backgroundColor: theme.vars.palette.background.paper, // Darker background for toolbar
+        minHeight: 40,
+        height: 40
       }}
     >
       {/* Add element */}
@@ -419,46 +420,6 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         icon={<FlipToBackIcon />}
         tooltip="Send to back"
         onClick={onSendToBack}
-        disabled={!hasSelection}
-      />
-
-      <ToolbarDivider />
-
-      {/* Alignment - works with single element (aligns to canvas) or multiple */}
-      <ToolbarButton
-        icon={<AlignHorizontalLeftIcon />}
-        tooltip="Align left (⌥+click = to canvas)"
-        onClick={handleAlignLeft}
-        disabled={!hasSelection}
-      />
-      <ToolbarButton
-        icon={<AlignHorizontalCenterIcon />}
-        tooltip="Align center (⌥+click = to canvas)"
-        onClick={handleAlignCenter}
-        disabled={!hasSelection}
-      />
-      <ToolbarButton
-        icon={<AlignHorizontalRightIcon />}
-        tooltip="Align right (⌥+click = to canvas)"
-        onClick={handleAlignRight}
-        disabled={!hasSelection}
-      />
-      <ToolbarButton
-        icon={<AlignVerticalTopIcon />}
-        tooltip="Align top (⌥+click = to canvas)"
-        onClick={handleAlignTop}
-        disabled={!hasSelection}
-      />
-      <ToolbarButton
-        icon={<AlignVerticalCenterIcon />}
-        tooltip="Align center (⌥+click = to canvas)"
-        onClick={handleAlignMiddle}
-        disabled={!hasSelection}
-      />
-      <ToolbarButton
-        icon={<AlignVerticalBottomIcon />}
-        tooltip="Align bottom (⌥+click = to canvas)"
-        onClick={handleAlignBottom}
         disabled={!hasSelection}
       />
 

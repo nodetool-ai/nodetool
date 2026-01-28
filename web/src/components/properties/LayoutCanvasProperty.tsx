@@ -204,16 +204,19 @@ const LayoutCanvasProperty: React.FC<PropertyProps> = (props) => {
             alignItems: "center",
             justifyContent: "space-between",
             borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            py: 1
+            py: 0.5,
+            px: 2,
+            minHeight: 40
           }}
         >
-          <Typography variant="h6" component="span">Layout Canvas Editor</Typography>
+          <Typography variant="subtitle2" component="span" sx={{ fontWeight: 600 }}>Layout Canvas Editor</Typography>
           <IconButton
             size="small"
             onClick={handleCloseEditor}
             aria-label="Close editor"
+            sx={{ p: 0.5 }}
           >
-            <CloseIcon />
+            <CloseIcon fontSize="small" />
           </IconButton>
         </DialogTitle>
         <DialogContent
