@@ -11,7 +11,7 @@ import React, {
   useState
 } from "react";
 import { Box, Paper } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, alpha } from "@mui/material/styles";
 import { Stage, Layer, Rect, Line } from "react-konva";
 import Konva from "konva";
 import {
@@ -130,6 +130,16 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
 
+  // Selection rect state
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
+  const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const didDragSelectRef = useRef(false);
+  const selectionDragRef = useRef<{
+    activeId: string;
+    startPositions: Map<string, { x: number; y: number }>;
+  } | null>(null);
+
   // Use the layout canvas store
   const {
     canvasData,
@@ -151,9 +161,14 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     sendToBack,
     bringForward,
     sendBackward,
-    reorderElements,
     toggleVisibility,
     toggleLock,
+    setAllVisibility,
+    setAllLock,
+    moveElement,
+    groupElements,
+    ungroupElements,
+    flattenElements,
     alignLeft,
     alignCenter,
     alignRight,
@@ -179,6 +194,159 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     distributeVertically,
     tidyElements
   } = useLayoutCanvasStore();
+
+  const elementById = React.useMemo(
+    () => new Map(canvasData.elements.map((el) => [el.id, el])),
+    [canvasData.elements]
+  );
+
+  const childrenByParent = React.useMemo(() => {
+    const map = new Map<string, string[]>();
+    canvasData.elements.forEach((element) => {
+      const parentKey = element.parentId ?? "__root__";
+      const list = map.get(parentKey) ?? [];
+      list.push(element.id);
+      map.set(parentKey, list);
+    });
+    return map;
+  }, [canvasData.elements]);
+
+  const getDescendantIds = useCallback(
+    (parentId: string): string[] => {
+      const result: string[] = [];
+      const walk = (id: string) => {
+        const children = childrenByParent.get(id) ?? [];
+        children.forEach((childId) => {
+          result.push(childId);
+          walk(childId);
+        });
+      };
+      walk(parentId);
+      return result;
+    },
+    [childrenByParent]
+  );
+
+  const moveGroupWithChildren = useCallback(
+    (groupId: string, dx: number, dy: number) => {
+      const group = findElement(groupId);
+      if (!group) {
+        return;
+      }
+      updateElement(groupId, { x: group.x + dx, y: group.y + dy });
+      const descendants = getDescendantIds(groupId);
+      descendants.forEach((childId) => {
+        const child = findElement(childId);
+        if (child) {
+          updateElement(childId, { x: child.x + dx, y: child.y + dy });
+        }
+      });
+    },
+    [findElement, getDescendantIds, updateElement]
+  );
+
+  const transformGroupWithChildren = useCallback(
+    (
+      groupId: string,
+      attrs: { x: number; y: number; width: number; height: number; rotation: number }
+    ) => {
+      const group = findElement(groupId);
+      if (!group) {
+        return;
+      }
+      const scaleX = attrs.width / group.width;
+      const scaleY = attrs.height / group.height;
+      const rotationDelta = attrs.rotation - group.rotation;
+      const centerX = group.x + group.width / 2;
+      const centerY = group.y + group.height / 2;
+      const cos = Math.cos((rotationDelta * Math.PI) / 180);
+      const sin = Math.sin((rotationDelta * Math.PI) / 180);
+
+      const descendants = getDescendantIds(groupId);
+      descendants.forEach((childId) => {
+        const child = findElement(childId);
+        if (!child) {
+          return;
+        }
+        const childCenterX = child.x + child.width / 2;
+        const childCenterY = child.y + child.height / 2;
+        const relX = (childCenterX - centerX) * scaleX;
+        const relY = (childCenterY - centerY) * scaleY;
+        const rotatedX = relX * cos - relY * sin;
+        const rotatedY = relX * sin + relY * cos;
+        const newWidth = Math.max(10, child.width * scaleX);
+        const newHeight = Math.max(10, child.height * scaleY);
+        const newCenterX = centerX + rotatedX;
+        const newCenterY = centerY + rotatedY;
+        updateElement(childId, {
+          x: newCenterX - newWidth / 2,
+          y: newCenterY - newHeight / 2,
+          width: newWidth,
+          height: newHeight,
+          rotation: child.rotation + rotationDelta
+        });
+      });
+
+      updateElement(groupId, attrs);
+    },
+    [findElement, getDescendantIds, updateElement]
+  );
+
+  const getEffectiveVisibility = useCallback(
+    (elementId: string) => {
+      let current = elementById.get(elementId);
+      while (current) {
+        if (!current.visible) {
+          return false;
+        }
+        current = current.parentId ? elementById.get(current.parentId) : undefined;
+      }
+      return true;
+    },
+    [elementById]
+  );
+
+  const getEffectiveLock = useCallback(
+    (elementId: string) => {
+      let current = elementById.get(elementId);
+      while (current) {
+        if (current.locked) {
+          return true;
+        }
+        current = current.parentId ? elementById.get(current.parentId) : undefined;
+      }
+      return false;
+    },
+    [elementById]
+  );
+
+  const sortedElements = React.useMemo(
+    () =>
+      [...canvasData.elements]
+        .sort((a, b) => a.zIndex - b.zIndex)
+        .map((element) => ({
+          ...element,
+          visible: getEffectiveVisibility(element.id),
+          locked: getEffectiveLock(element.id)
+        })),
+    [canvasData.elements, getEffectiveVisibility, getEffectiveLock]
+  );
+
+  // Handle alignment from properties panel
+  const handlePropertyAlign = useCallback((type: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
+    // Align to canvas since ElementProperties is typically for single selection context
+    // or explicit "align object" actions
+    const toCanvas = true;
+    
+    switch (type) {
+      case 'left': alignLeft(selectedIds, toCanvas); break;
+      case 'center': alignCenter(selectedIds, toCanvas); break;
+      case 'right': alignRight(selectedIds, toCanvas); break;
+      case 'top': alignTop(selectedIds, toCanvas); break;
+      case 'middle': alignMiddle(selectedIds, toCanvas); break;
+      case 'bottom': alignBottom(selectedIds, toCanvas); break;
+    }
+  }, [selectedIds, alignLeft, alignCenter, alignRight, alignTop, alignMiddle, alignBottom]);
 
   // Initialize store with value
   useEffect(() => {
@@ -232,7 +400,14 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   const handleStageClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
       // Only deselect if clicking on empty area
-      if (e.target === e.target.getStage()) {
+      if (
+        e.target === e.target.getStage() ||
+        e.target?.name() === "canvas-background"
+      ) {
+        if (didDragSelectRef.current) {
+          didDragSelectRef.current = false;
+          return;
+        }
         clearSelection();
       }
     },
@@ -246,9 +421,14 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       attrs: { x: number; y: number; width: number; height: number; rotation: number }
     ) => {
       clearSnapGuides();
+      const element = findElement(id);
+      if (element?.type === "group") {
+        transformGroupWithChildren(id, attrs);
+        return;
+      }
       updateElement(id, attrs);
     },
-    [updateElement, clearSnapGuides]
+    [clearSnapGuides, findElement, transformGroupWithChildren, updateElement]
   );
 
   // Handle element drag move - for smart snap guides
@@ -256,18 +436,106 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     (id: string, x: number, y: number, width: number, height: number) => {
       const result = calculateSnapGuides(id, x, y, width, height);
       setSnapGuides(result.guides);
+      const selectionDrag = selectionDragRef.current;
+      if (selectionDrag && selectionDrag.startPositions.has(id)) {
+        const start = selectionDrag.startPositions.get(id);
+        if (start) {
+          const deltaX = result.x - start.x;
+          const deltaY = result.y - start.y;
+          const stage = stageRef.current;
+          if (stage) {
+            selectionDrag.startPositions.forEach((pos, elementId) => {
+              const node = stage.findOne<Konva.Node>(`#${elementId}`);
+              if (node) {
+                node.x(pos.x + deltaX);
+                node.y(pos.y + deltaY);
+              }
+            });
+          }
+        }
+      }
       return { x: result.x, y: result.y };
     },
     [calculateSnapGuides, setSnapGuides]
+  );
+
+  const handleDragStart = useCallback(
+    (id: string) => {
+      const isAlreadySelected = selectedIds.includes(id);
+      const selected = isAlreadySelected ? selectedIds : [id];
+      if (!isAlreadySelected) {
+        setSelection([id]);
+      }
+
+      const startPositions = new Map<string, { x: number; y: number }>();
+      selected.forEach((selectedId) => {
+        const element = findElement(selectedId);
+        if (element) {
+          startPositions.set(selectedId, { x: element.x, y: element.y });
+        }
+      });
+
+      selectionDragRef.current = {
+        activeId: id,
+        startPositions
+      };
+    },
+    [findElement, selectedIds, setSelection]
   );
 
   // Handle element drag end
   const handleDragEnd = useCallback(
     (id: string, x: number, y: number) => {
       clearSnapGuides();
-      updateElement(id, { x, y });
+      const selectionDrag = selectionDragRef.current;
+      if (selectionDrag && selectionDrag.startPositions.has(id)) {
+        const start = selectionDrag.startPositions.get(id);
+        if (start) {
+          const deltaX = x - start.x;
+          const deltaY = y - start.y;
+          const selected = Array.from(selectionDrag.startPositions.keys());
+          const selectedGroups = selected.filter(
+            (selectedId) => findElement(selectedId)?.type === "group"
+          );
+          const descendantIds = new Set<string>();
+          selectedGroups.forEach((groupId) => {
+            getDescendantIds(groupId).forEach((childId) => descendantIds.add(childId));
+          });
+
+          selected.forEach((elementId) => {
+            if (descendantIds.has(elementId)) {
+              return;
+            }
+            const element = findElement(elementId);
+            if (!element) {
+              return;
+            }
+            if (element.type === "group" && (deltaX !== 0 || deltaY !== 0)) {
+              moveGroupWithChildren(elementId, deltaX, deltaY);
+            } else {
+              updateElement(elementId, { x: element.x + deltaX, y: element.y + deltaY });
+            }
+          });
+          selectionDragRef.current = null;
+          return;
+        }
+      }
+
+      const element = findElement(id);
+      if (!element) {
+        selectionDragRef.current = null;
+        return;
+      }
+      const dx = x - element.x;
+      const dy = y - element.y;
+      if (element.type === "group" && (dx !== 0 || dy !== 0)) {
+        moveGroupWithChildren(id, dx, dy);
+      } else {
+        updateElement(id, { x, y });
+      }
+      selectionDragRef.current = null;
     },
-    [updateElement, clearSnapGuides]
+    [clearSnapGuides, findElement, getDescendantIds, moveGroupWithChildren, updateElement]
   );
 
   // Handle layer selection from panel
@@ -396,9 +664,25 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
         if (dx !== 0 || dy !== 0) {
           e.preventDefault();
+          const selectedGroups = selectedIds.filter(
+            (selectedId) => findElement(selectedId)?.type === "group"
+          );
+          const descendantIds = new Set<string>();
+          selectedGroups.forEach((groupId) => {
+            getDescendantIds(groupId).forEach((childId) => descendantIds.add(childId));
+          });
+
           selectedIds.forEach((id) => {
+            if (descendantIds.has(id)) {
+              return;
+            }
             const element = findElement(id);
-            if (element && !element.locked) {
+            if (!element || element.locked) {
+              return;
+            }
+            if (element.type === "group") {
+              moveGroupWithChildren(id, dx, dy);
+            } else {
               updateElement(id, { x: element.x + dx, y: element.y + dy });
             }
           });
@@ -415,6 +699,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       redo,
       clearSelection,
       findElement,
+      getDescendantIds,
+      moveGroupWithChildren,
       updateElement,
       isSpacePressed
     ]
@@ -464,6 +750,159 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       }
     },
     [isPanning]
+  );
+
+  const getCanvasPointerPosition = useCallback(() => {
+    const stage = stageRef.current;
+    if (!stage) {
+      return null;
+    }
+    const position = stage.getPointerPosition();
+    if (!position) {
+      return null;
+    }
+    return {
+      x: position.x / zoom,
+      y: position.y / zoom
+    };
+  }, [zoom]);
+
+  const normalizeSelectionRect = useCallback(
+    (start: { x: number; y: number }, end: { x: number; y: number }) => {
+      const x = Math.min(start.x, end.x);
+      const y = Math.min(start.y, end.y);
+      return {
+        x,
+        y,
+        width: Math.abs(start.x - end.x),
+        height: Math.abs(start.y - end.y)
+      };
+    },
+    []
+  );
+
+  const doesRectIntersect = useCallback(
+    (
+      rect: { x: number; y: number; width: number; height: number },
+      element: { x: number; y: number; width: number; height: number }
+    ) => {
+      return !(
+        rect.x + rect.width < element.x ||
+        rect.x > element.x + element.width ||
+        rect.y + rect.height < element.y ||
+        rect.y > element.y + element.height
+      );
+    },
+    []
+  );
+
+  const doesRectContain = useCallback(
+    (
+      rect: { x: number; y: number; width: number; height: number },
+      element: { x: number; y: number; width: number; height: number }
+    ) => {
+      return (
+        rect.x <= element.x &&
+        rect.y <= element.y &&
+        rect.x + rect.width >= element.x + element.width &&
+        rect.y + rect.height >= element.y + element.height
+      );
+    },
+    []
+  );
+
+  const handleStageMouseDown = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (e.evt.button !== 0 || isSpacePressed || isPanning) {
+        return;
+      }
+
+      const stage = e.target.getStage();
+      const isBackground =
+        e.target === stage || e.target?.name() === "canvas-background";
+
+      if (!isBackground) {
+        return;
+      }
+
+      const start = getCanvasPointerPosition();
+      if (!start) {
+        return;
+      }
+
+      didDragSelectRef.current = false;
+      setIsSelecting(true);
+      setSelectionStart(start);
+      setSelectionRect({ x: start.x, y: start.y, width: 0, height: 0 });
+    },
+    [getCanvasPointerPosition, isPanning, isSpacePressed]
+  );
+
+  const handleStageMouseMove = useCallback(() => {
+    if (!isSelecting || !selectionStart) {
+      return;
+    }
+    const point = getCanvasPointerPosition();
+    if (!point) {
+      return;
+    }
+
+    const nextRect = normalizeSelectionRect(selectionStart, point);
+    setSelectionRect(nextRect);
+
+    const dragDistance =
+      Math.abs(point.x - selectionStart.x) + Math.abs(point.y - selectionStart.y);
+    if (dragDistance > 3) {
+      didDragSelectRef.current = true;
+    }
+  }, [getCanvasPointerPosition, isSelecting, normalizeSelectionRect, selectionStart]);
+
+  const handleStageMouseUp = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!isSelecting || !selectionStart) {
+        return;
+      }
+
+      const end = getCanvasPointerPosition() ?? selectionStart;
+      const rect = normalizeSelectionRect(selectionStart, end);
+      const isContainedMode = e.evt.ctrlKey || e.evt.metaKey;
+      const isAdditive = e.evt.shiftKey;
+      const isSubtractive = e.evt.altKey;
+
+      const hits = sortedElements
+        .filter((element) => element.visible && !element.locked)
+        .filter((element) => {
+          return isContainedMode
+            ? doesRectContain(rect, element)
+            : doesRectIntersect(rect, element);
+        })
+        .map((element) => element.id);
+
+      if (isSubtractive) {
+        const nextSelection = selectedIds.filter((id) => !hits.includes(id));
+        setSelection(nextSelection);
+      } else if (isAdditive) {
+        const nextSelection = Array.from(new Set([...selectedIds, ...hits]));
+        setSelection(nextSelection);
+      } else {
+        setSelection(hits);
+      }
+
+      setIsSelecting(false);
+      setSelectionStart(null);
+      setSelectionRect(null);
+    },
+    [
+      doesRectContain,
+      doesRectIntersect,
+      getCanvasPointerPosition,
+      isSelecting,
+      normalizeSelectionRect,
+      selectedIds,
+      selectionStart,
+      setSelection,
+      sortedElements
+    ]
   );
 
   // Mouse wheel zoom handler - requires Ctrl/Cmd modifier
@@ -604,10 +1043,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   const selectedElement =
     selectedIds.length === 1 ? findElement(selectedIds[0]) : null;
 
-  // Sort elements by zIndex for rendering
-  const sortedElements = [...canvasData.elements].sort(
-    (a, b) => a.zIndex - b.zIndex
-  );
+  const selectionStroke = theme.palette.primary.main;
+  const selectionFill = alpha(theme.palette.primary.main, 0.15);
 
   return (
     <Box
@@ -674,7 +1111,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         <Box
           className="layout-canvas-layer-panel-container"
           sx={{
-            width: 200,
+            width: 240,
             flexShrink: 0,
             borderRight: `1px solid ${theme.vars.palette.divider}`
           }}
@@ -685,7 +1122,12 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             onSelect={handleLayerSelect}
             onToggleVisibility={toggleVisibility}
             onToggleLock={toggleLock}
-            onReorder={reorderElements}
+            onMoveLayer={moveElement}
+            onSetAllVisibility={setAllVisibility}
+            onSetAllLock={setAllLock}
+            onGroup={groupElements}
+            onUngroup={ungroupElements}
+            onFlatten={flattenElements}
           />
         </Box>
 
@@ -731,6 +1173,9 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
               ref={stageRef}
               width={canvasData.width}
               height={canvasData.height}
+              onMouseDown={handleStageMouseDown}
+              onMouseMove={handleStageMouseMove}
+              onMouseUp={handleStageMouseUp}
               onClick={handleStageClick}
               onTap={handleStageClick}
             >
@@ -742,6 +1187,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
                   width={canvasData.width}
                   height={canvasData.height}
                   fill={canvasData.backgroundColor}
+                  name="canvas-background"
                 />
                 <GridLines
                   width={canvasData.width}
@@ -759,12 +1205,29 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
                     element={element}
                     isSelected={selectedIds.includes(element.id)}
                     onSelect={handleSelect}
+                    onDragStart={handleDragStart}
                     onTransformEnd={handleTransformEnd}
                     onDragMove={handleDragMove}
                     onDragEnd={handleDragEnd}
                     snapToGrid={snapToGrid}
                   />
                 ))}
+              </Layer>
+
+              {/* Selection rect layer */}
+              <Layer listening={false}>
+                {selectionRect && (
+                  <Rect
+                    x={selectionRect.x}
+                    y={selectionRect.y}
+                    width={selectionRect.width}
+                    height={selectionRect.height}
+                    stroke={selectionStroke}
+                    fill={selectionFill}
+                    strokeWidth={1}
+                    dash={[4, 4]}
+                  />
+                )}
               </Layer>
 
               {/* Snap guides layer */}
@@ -779,7 +1242,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         <Box
           className="layout-canvas-properties-container"
           sx={{
-            width: 250,
+            width: 280,
             flexShrink: 0
           }}
         >
@@ -790,6 +1253,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             onUpdateProperties={handleUpdateProperties}
             onAddExposedInput={addExposedInput}
             onRemoveExposedInput={removeExposedInput}
+            onAlign={handlePropertyAlign}
           />
         </Box>
       </Box>

@@ -26,6 +26,7 @@ const generateId = (): string => {
 
 // Helper type for position updates
 type PositionUpdate = { id: string; x?: number; y?: number };
+type DropPosition = "before" | "after" | "inside" | "root";
 
 // Helper function to apply position updates to elements
 const applyPositionUpdates = (
@@ -41,6 +42,94 @@ const applyPositionUpdates = (
       ...(pos.y !== undefined && { y: pos.y })
     };
   });
+};
+
+const ROOT_PARENT_ID = "__root__";
+
+const buildChildrenMap = (elements: LayoutElement[]) => {
+  const map = new Map<string, LayoutElement[]>();
+  elements.forEach((element) => {
+    const parentKey = element.parentId ?? ROOT_PARENT_ID;
+    const list = map.get(parentKey) ?? [];
+    list.push(element);
+    map.set(parentKey, list);
+  });
+  return map;
+};
+
+const getDescendantIds = (elements: LayoutElement[], parentId: string): string[] => {
+  const childrenMap = buildChildrenMap(elements);
+  const result: string[] = [];
+
+  const walk = (id: string) => {
+    const children = childrenMap.get(id) ?? [];
+    children.forEach((child) => {
+      result.push(child.id);
+      walk(child.id);
+    });
+  };
+
+  walk(parentId);
+  return result;
+};
+
+const isDescendantOf = (
+  element: LayoutElement,
+  ancestorId: string,
+  elementById: Map<string, LayoutElement>
+) => {
+  let currentParent = element.parentId;
+  while (currentParent) {
+    if (currentParent === ancestorId) {
+      return true;
+    }
+    currentParent = elementById.get(currentParent)?.parentId;
+  }
+  return false;
+};
+
+const getPanelOrder = (elements: LayoutElement[]) => {
+  const childrenMap = buildChildrenMap(elements);
+
+  const walk = (parentKey: string): LayoutElement[] => {
+    const children = [...(childrenMap.get(parentKey) ?? [])].sort(
+      (a, b) => b.zIndex - a.zIndex
+    );
+    const result: LayoutElement[] = [];
+    children.forEach((child) => {
+      result.push(child);
+      result.push(...walk(child.id));
+    });
+    return result;
+  };
+
+  return walk(ROOT_PARENT_ID);
+};
+
+const normalizeZIndex = (elements: LayoutElement[]) => {
+  const ordered = getPanelOrder(elements);
+  const orderedById = new Map<string, LayoutElement>();
+  ordered.forEach((el, index) => {
+    orderedById.set(el.id, {
+      ...el,
+      zIndex: ordered.length - 1 - index
+    });
+  });
+  return elements.map((el) => orderedById.get(el.id) ?? el);
+};
+
+const getBoundsForIds = (elements: LayoutElement[], ids: string[]) => {
+  const targets = elements.filter((el) => ids.includes(el.id));
+  const minX = Math.min(...targets.map((el) => el.x));
+  const minY = Math.min(...targets.map((el) => el.y));
+  const maxX = Math.max(...targets.map((el) => el.x + el.width));
+  const maxY = Math.max(...targets.map((el) => el.y + el.height));
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(10, maxX - minX),
+    height: Math.max(10, maxY - minY)
+  };
 };
 
 interface LayoutCanvasStoreState {
@@ -111,6 +200,15 @@ interface LayoutCanvasStoreState {
   // Visibility & lock
   toggleVisibility: (id: string) => void;
   toggleLock: (id: string) => void;
+  setAllVisibility: (visible: boolean) => void;
+  setAllLock: (locked: boolean) => void;
+
+  // Hierarchy
+  moveElement: (id: string, targetId: string | null, position: DropPosition) => void;
+  setElements: (elements: LayoutElement[]) => void;
+  groupElements: (ids: string[]) => void;
+  ungroupElements: (ids: string[]) => void;
+  flattenElements: (ids: string[]) => void;
 
   // Exposed inputs
   addExposedInput: (input: ExposedInput) => void;
@@ -284,23 +382,39 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
 
   // Delete elements
   deleteElements: (ids) => {
+    const { canvasData } = get();
+    const idsWithDescendants = new Set<string>();
+    ids.forEach((id) => {
+      idsWithDescendants.add(id);
+      getDescendantIds(canvasData.elements, id).forEach((descId) =>
+        idsWithDescendants.add(descId)
+      );
+    });
     set((state) => ({
       canvasData: {
         ...state.canvasData,
-        elements: state.canvasData.elements.filter((el) => !ids.includes(el.id)),
+        elements: state.canvasData.elements.filter((el) => !idsWithDescendants.has(el.id)),
         exposedInputs: state.canvasData.exposedInputs.filter(
-          (ei) => !ids.includes(ei.elementId)
+          (ei) => !idsWithDescendants.has(ei.elementId)
         )
       },
-      selectedIds: state.selectedIds.filter((id) => !ids.includes(id))
+      selectedIds: state.selectedIds.filter((id) => !idsWithDescendants.has(id))
     }));
     get().saveToHistory();
   },
 
   // Duplicate elements
   duplicateElements: (ids) => {
-    const elements = get().canvasData.elements.filter((el) => ids.includes(el.id));
-    const maxZIndex = Math.max(0, ...get().canvasData.elements.map((el) => el.zIndex));
+    const { canvasData } = get();
+    const idsWithDescendants = new Set<string>();
+    ids.forEach((id) => {
+      idsWithDescendants.add(id);
+      getDescendantIds(canvasData.elements, id).forEach((descId) =>
+        idsWithDescendants.add(descId)
+      );
+    });
+    const elements = canvasData.elements.filter((el) => idsWithDescendants.has(el.id));
+    const maxZIndex = Math.max(0, ...canvasData.elements.map((el) => el.zIndex));
     
     const newElements = elements.map((el, idx) => ({
       ...el,
@@ -308,7 +422,8 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
       x: el.x + 20,
       y: el.y + 20,
       zIndex: maxZIndex + idx + 1,
-      name: `${el.name} copy`
+      name: `${el.name} copy`,
+      parentId: el.parentId
     }));
 
     set((state) => ({
@@ -748,11 +863,17 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
 
   // Visibility & lock
   toggleVisibility: (id) => {
+    const { canvasData } = get();
+    const element = canvasData.elements.find((el) => el.id === id);
+    if (!element) {return;}
+    const newVisible = !element.visible;
+    const descendantIds = getDescendantIds(canvasData.elements, id);
+    const idsToUpdate = new Set([id, ...descendantIds]);
     set((state) => ({
       canvasData: {
         ...state.canvasData,
         elements: state.canvasData.elements.map((el) =>
-          el.id === id ? { ...el, visible: !el.visible } : el
+          idsToUpdate.has(el.id) ? { ...el, visible: newVisible } : el
         )
       }
     }));
@@ -760,14 +881,294 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
   },
 
   toggleLock: (id) => {
+    const { canvasData } = get();
+    const element = canvasData.elements.find((el) => el.id === id);
+    if (!element) {return;}
+    const newLocked = !element.locked;
+    const descendantIds = getDescendantIds(canvasData.elements, id);
+    const idsToUpdate = new Set([id, ...descendantIds]);
     set((state) => ({
       canvasData: {
         ...state.canvasData,
         elements: state.canvasData.elements.map((el) =>
-          el.id === id ? { ...el, locked: !el.locked } : el
+          idsToUpdate.has(el.id) ? { ...el, locked: newLocked } : el
         )
       }
     }));
+    get().saveToHistory();
+  },
+
+  setAllVisibility: (visible) => {
+    set((state) => ({
+      canvasData: {
+        ...state.canvasData,
+        elements: state.canvasData.elements.map((el) => ({ ...el, visible }))
+      }
+    }));
+    get().saveToHistory();
+  },
+
+  setAllLock: (locked) => {
+    set((state) => ({
+      canvasData: {
+        ...state.canvasData,
+        elements: state.canvasData.elements.map((el) => ({ ...el, locked }))
+      }
+    }));
+    get().saveToHistory();
+  },
+
+  moveElement: (id, targetId, position) => {
+    set((state) => {
+      const elements = [...state.canvasData.elements];
+      const elementById = new Map(elements.map((el) => [el.id, el]));
+      const dragged = elementById.get(id);
+      if (!dragged) {
+        return state;
+      }
+
+      if (targetId && targetId === id) {
+        return state;
+      }
+
+      const descendantIds = getDescendantIds(elements, id);
+      if (targetId && descendantIds.includes(targetId)) {
+        return state;
+      }
+
+      const dragBlockIds = new Set([id, ...descendantIds]);
+      const panelOrder = getPanelOrder(elements);
+      const dragBlock = panelOrder.filter((el) => dragBlockIds.has(el.id));
+      const remaining = panelOrder.filter((el) => !dragBlockIds.has(el.id));
+
+      const targetIndex = targetId
+        ? remaining.findIndex((el) => el.id === targetId)
+        : remaining.length;
+      const safeTargetIndex = targetIndex === -1 ? remaining.length : targetIndex;
+      let insertIndex = safeTargetIndex;
+
+      if (targetId) {
+        const target = elementById.get(targetId);
+        if (!target) {
+          insertIndex = remaining.length;
+        } else if (position === "inside") {
+          insertIndex = safeTargetIndex + 1;
+        } else if (position === "after") {
+          let lastIndex = safeTargetIndex;
+          for (let idx = safeTargetIndex + 1; idx < remaining.length; idx += 1) {
+            if (isDescendantOf(remaining[idx], targetId, elementById)) {
+              lastIndex = idx;
+            } else {
+              break;
+            }
+          }
+          insertIndex = lastIndex + 1;
+        }
+      }
+
+      const newOrder = [
+        ...remaining.slice(0, insertIndex),
+        ...dragBlock,
+        ...remaining.slice(insertIndex)
+      ];
+
+      let newParentId: string | undefined;
+      if (position === "inside" && targetId) {
+        newParentId = targetId;
+      } else if (targetId) {
+        newParentId = elementById.get(targetId)?.parentId;
+      }
+
+      if (position === "root" || !targetId) {
+        newParentId = undefined;
+      }
+
+      const orderLength = newOrder.length;
+      const updatedById = new Map<string, LayoutElement>();
+      newOrder.forEach((el, index) => {
+        const base = elementById.get(el.id) ?? el;
+        const updated: LayoutElement = {
+          ...base,
+          zIndex: orderLength - 1 - index
+        };
+        if (el.id === id) {
+          updated.parentId = newParentId;
+        }
+        updatedById.set(el.id, updated);
+      });
+
+      return {
+        canvasData: {
+          ...state.canvasData,
+          elements: elements.map((el) => updatedById.get(el.id) ?? el)
+        }
+      };
+    });
+    get().saveToHistory();
+  },
+
+  setElements: (elements) => {
+    set((state) => ({
+      canvasData: {
+        ...state.canvasData,
+        elements
+      }
+    }));
+    get().saveToHistory();
+  },
+
+  groupElements: (ids) => {
+    set((state) => {
+      if (ids.length < 2) {
+        return state;
+      }
+      const elements = [...state.canvasData.elements];
+      const elementById = new Map(elements.map((el) => [el.id, el]));
+      const selectedIds = ids.filter((id) => elementById.has(id));
+      if (selectedIds.length < 2) {
+        return state;
+      }
+
+      const topLevelIds = selectedIds.filter((id) => {
+        const element = elementById.get(id);
+        if (!element) {
+          return false;
+        }
+        return !selectedIds.some((otherId) => {
+          if (otherId === id) {
+            return false;
+          }
+          const other = elementById.get(otherId);
+          return other ? isDescendantOf(element, otherId, elementById) : false;
+        });
+      });
+
+      const idsToInclude = new Set<string>();
+      topLevelIds.forEach((id) => {
+        idsToInclude.add(id);
+        getDescendantIds(elements, id).forEach((descId) => idsToInclude.add(descId));
+      });
+
+      const bounds = getBoundsForIds(elements, Array.from(idsToInclude));
+      const parentIds = new Set(topLevelIds.map((id) => elementById.get(id)?.parentId ?? null));
+      const groupParentId = parentIds.size === 1 ? Array.from(parentIds)[0] ?? undefined : undefined;
+
+      const maxZIndex = Math.max(0, ...elements.map((el) => el.zIndex));
+      const groupId = generateId();
+      const groupElement: LayoutElement = {
+        id: groupId,
+        type: "group",
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        rotation: 0,
+        zIndex: maxZIndex + 1,
+        visible: true,
+        locked: false,
+        name: `Group ${state.canvasData.elements.length + 1}`,
+        properties: { ...DEFAULT_GROUP_PROPS },
+        parentId: groupParentId
+      };
+
+      const updatedElements = elements.map((el) =>
+        topLevelIds.includes(el.id) ? { ...el, parentId: groupId } : el
+      );
+
+      return {
+        canvasData: {
+          ...state.canvasData,
+          elements: normalizeZIndex([...updatedElements, groupElement])
+        },
+        selectedIds: [groupId]
+      };
+    });
+    get().saveToHistory();
+  },
+
+  ungroupElements: (ids) => {
+    set((state) => {
+      const elements = [...state.canvasData.elements];
+      const elementById = new Map(elements.map((el) => [el.id, el]));
+      const groupIds = ids.filter((id) => elementById.get(id)?.type === "group");
+      if (groupIds.length === 0) {
+        return state;
+      }
+
+      const updated = elements
+        .filter((el) => !groupIds.includes(el.id))
+        .map((el) => {
+          const parentGroup = groupIds.find((groupId) => el.parentId === groupId);
+          if (!parentGroup) {
+            return el;
+          }
+          const group = elementById.get(parentGroup);
+          return {
+            ...el,
+            parentId: group?.parentId
+          };
+        });
+
+      return {
+        canvasData: {
+          ...state.canvasData,
+          elements: normalizeZIndex(updated)
+        },
+        selectedIds: state.selectedIds.filter((id) => !groupIds.includes(id))
+      };
+    });
+    get().saveToHistory();
+  },
+
+  flattenElements: (ids) => {
+    set((state) => {
+      const elements = [...state.canvasData.elements];
+      const elementById = new Map(elements.map((el) => [el.id, el]));
+      const groupIds = ids.filter((id) => elementById.get(id)?.type === "group");
+      if (groupIds.length === 0) {
+        return state;
+      }
+
+      const groupsToRemove = new Set<string>();
+      const childReparent = new Map<string, string | undefined>();
+
+      groupIds.forEach((groupId) => {
+        const group = elementById.get(groupId);
+        if (!group) {
+          return;
+        }
+        groupsToRemove.add(groupId);
+        const descendants = getDescendantIds(elements, groupId);
+        descendants.forEach((descId) => {
+          const desc = elementById.get(descId);
+          if (desc?.type === "group") {
+            groupsToRemove.add(descId);
+          } else {
+            childReparent.set(descId, group.parentId);
+          }
+        });
+      });
+
+      const updated = elements
+        .filter((el) => !groupsToRemove.has(el.id))
+        .map((el) => {
+          if (!childReparent.has(el.id)) {
+            return el;
+          }
+          return {
+            ...el,
+            parentId: childReparent.get(el.id)
+          };
+        });
+
+      return {
+        canvasData: {
+          ...state.canvasData,
+          elements: normalizeZIndex(updated)
+        },
+        selectedIds: state.selectedIds.filter((id) => !groupsToRemove.has(id))
+      };
+    });
     get().saveToHistory();
   },
 

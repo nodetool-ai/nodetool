@@ -12,18 +12,25 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Tooltip
+  Tooltip,
+  Menu,
+  MenuItem,
+  Divider
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ImageIcon from "@mui/icons-material/Image";
 import RectangleIcon from "@mui/icons-material/Rectangle";
 import FolderIcon from "@mui/icons-material/Folder";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { LayoutElement } from "./types";
 
 interface LayerPanelProps {
@@ -32,7 +39,12 @@ interface LayerPanelProps {
   onSelect: (id: string, addToSelection: boolean) => void;
   onToggleVisibility: (id: string) => void;
   onToggleLock: (id: string) => void;
-  onReorder: (fromIndex: number, toIndex: number) => void;
+  onMoveLayer: (id: string, targetId: string | null, position: "before" | "after" | "inside" | "root") => void;
+  onSetAllVisibility: (visible: boolean) => void;
+  onSetAllLock: (locked: boolean) => void;
+  onGroup: (ids: string[]) => void;
+  onUngroup: (ids: string[]) => void;
+  onFlatten: (ids: string[]) => void;
 }
 
 // Get icon for element type
@@ -54,29 +66,45 @@ const getElementIcon = (type: string): React.ReactNode => {
 interface LayerItemProps {
   element: LayoutElement;
   isSelected: boolean;
-  index: number;
+  depth: number;
+  isGroup: boolean;
+  isCollapsed: boolean;
+  descendantCount: number;
+  visibilityState: "on" | "off" | "mixed";
+  lockState: "on" | "off" | "mixed";
+  dragOverPosition: "before" | "after" | "inside" | null;
   onSelect: (id: string, addToSelection: boolean) => void;
   onToggleVisibility: (id: string) => void;
   onToggleLock: (id: string) => void;
-  onDragStart: (index: number) => void;
-  onDragOver: (index: number) => void;
+  onToggleCollapse: (id: string) => void;
+  onDragStart: (id: string, e: React.DragEvent) => void;
+  onDragOver: (id: string, e: React.DragEvent) => void;
+  onDrop: (id: string, e: React.DragEvent) => void;
   onDragEnd: () => void;
+  onContextMenu: (event: React.MouseEvent, id: string) => void;
   isDragging: boolean;
-  isDragOver: boolean;
 }
 
 const LayerItem: React.FC<LayerItemProps> = memo(({
   element,
   isSelected,
-  index,
+  depth,
+  isGroup,
+  isCollapsed,
+  descendantCount,
+  visibilityState,
+  lockState,
+  dragOverPosition,
   onSelect,
   onToggleVisibility,
   onToggleLock,
+  onToggleCollapse,
   onDragStart,
   onDragOver,
+  onDrop,
   onDragEnd,
-  isDragging,
-  isDragOver
+  onContextMenu,
+  isDragging
 }) => {
   const theme = useTheme();
 
@@ -87,34 +115,21 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
     [element.id, onSelect]
   );
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent) => {
-      e.dataTransfer.effectAllowed = "move";
-      onDragStart(index);
-    },
-    [index, onDragStart]
-  );
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      onDragOver(index);
-    },
-    [index, onDragOver]
-  );
-
   return (
     <ListItem
       className="layer-item"
       disablePadding
       draggable
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
+      onDragStart={(e) => onDragStart(element.id, e)}
+      onDragOver={(e) => onDragOver(element.id, e)}
+      onDrop={(e) => onDrop(element.id, e)}
       onDragEnd={onDragEnd}
       sx={{
         opacity: isDragging ? 0.5 : 1,
-        backgroundColor: isDragOver ? theme.vars.palette.action.hover : "transparent",
+        backgroundColor: dragOverPosition === "inside" ? theme.vars.palette.action.hover : "transparent",
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
+        borderTop: dragOverPosition === "before" ? `2px solid ${theme.vars.palette.primary.main}` : "none",
+        borderBottomColor: dragOverPosition === "after" ? theme.vars.palette.primary.main : theme.vars.palette.divider,
         "&:last-child": {
           borderBottom: "none"
         }
@@ -123,13 +138,53 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
       <ListItemButton
         selected={isSelected}
         onClick={handleClick}
+        onDoubleClick={(e) => {
+          if (!isGroup) {
+            return;
+          }
+          e.stopPropagation();
+          onToggleCollapse(element.id);
+        }}
+        onContextMenu={(event) => onContextMenu(event, element.id)}
         sx={{
           py: 0.5,
           px: 1,
-          minHeight: 36,
-          opacity: element.visible ? 1 : 0.5
+          minHeight: 30,
+          opacity: element.visible ? 1 : 0.6,
+          pl: 1 + depth * 1.5,
+          position: "relative",
+          "&.Mui-selected": {
+            backgroundColor: `${theme.vars.palette.primary.main}1a`
+          },
+          "&.Mui-selected:after": {
+            content: '""',
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 2,
+            backgroundColor: theme.vars.palette.primary.main
+          }
         }}
       >
+        <Box sx={{ width: 20, display: "flex", alignItems: "center" }}>
+          {isGroup && (
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleCollapse(element.id);
+              }}
+              sx={{ p: 0.25, color: theme.vars.palette.text.secondary }}
+            >
+              {isCollapsed ? (
+                <ChevronRightIcon fontSize="small" />
+              ) : (
+                <ExpandMoreIcon fontSize="small" />
+              )}
+            </IconButton>
+          )}
+        </Box>
         <Box
           sx={{
             display: "flex",
@@ -148,17 +203,22 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
           {getElementIcon(element.type)}
         </ListItemIcon>
         <ListItemText
-          primary={element.name}
+          primary={
+            isGroup && descendantCount > 0
+              ? `${element.name} (${descendantCount})`
+              : element.name
+          }
           primaryTypographyProps={{
             variant: "body2",
             noWrap: true,
             sx: {
-              textDecoration: element.locked ? "line-through" : "none"
+              textDecoration: element.locked ? "line-through" : "none",
+              fontWeight: isGroup ? 600 : 400
             }
           }}
         />
         <Box sx={{ display: "flex", gap: 0.5 }}>
-          <Tooltip title={element.visible ? "Hide" : "Show"}>
+          <Tooltip title={visibilityState === "on" ? "Hide" : "Show"}>
             <IconButton
               size="small"
               onClick={(e) => {
@@ -167,14 +227,16 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
               }}
               sx={{ p: 0.5 }}
             >
-              {element.visible ? (
+              {visibilityState === "mixed" ? (
+                <VisibilityOutlinedIcon fontSize="small" />
+              ) : visibilityState === "on" ? (
                 <VisibilityIcon fontSize="small" />
               ) : (
                 <VisibilityOffIcon fontSize="small" />
               )}
             </IconButton>
           </Tooltip>
-          <Tooltip title={element.locked ? "Unlock" : "Lock"}>
+          <Tooltip title={lockState === "on" ? "Unlock" : "Lock"}>
             <IconButton
               size="small"
               onClick={(e) => {
@@ -183,7 +245,9 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
               }}
               sx={{ p: 0.5 }}
             >
-              {element.locked ? (
+              {lockState === "mixed" ? (
+                <LockOutlinedIcon fontSize="small" />
+              ) : lockState === "on" ? (
                 <LockIcon fontSize="small" />
               ) : (
                 <LockOpenIcon fontSize="small" />
@@ -203,41 +267,281 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   onSelect,
   onToggleVisibility,
   onToggleLock,
-  onReorder
+  onMoveLayer,
+  onSetAllVisibility,
+  onSetAllLock,
+  onGroup,
+  onUngroup,
+  onFlatten
 }) => {
   const theme = useTheme();
-  const [dragIndex, setDragIndex] = React.useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [dragOver, setDragOver] = React.useState<{
+    targetId: string;
+    position: "before" | "after" | "inside";
+  } | null>(null);
+  const [collapsedIds, setCollapsedIds] = React.useState<Set<string>>(new Set());
+  const [contextMenu, setContextMenu] = React.useState<{
+    mouseX: number;
+    mouseY: number;
+    targetId: string;
+  } | null>(null);
 
-  // Sort elements by zIndex in reverse order (top layer first)
-  const sortedElements = React.useMemo(
-    () => [...elements].sort((a, b) => b.zIndex - a.zIndex),
+  const elementById = React.useMemo(
+    () => new Map(elements.map((el) => [el.id, el])),
     [elements]
   );
 
-  const handleDragStart = useCallback((index: number) => {
-    setDragIndex(index);
+  const childrenByParent = React.useMemo(() => {
+    const map = new Map<string, LayoutElement[]>();
+    elements.forEach((element) => {
+      const parentKey = element.parentId ?? "__root__";
+      const list = map.get(parentKey) ?? [];
+      list.push(element);
+      map.set(parentKey, list);
+    });
+    return map;
+  }, [elements]);
+
+  const getSortedChildren = useCallback(
+    (parentId: string) =>
+      [...(childrenByParent.get(parentId) ?? [])].sort(
+        (a, b) => b.zIndex - a.zIndex
+      ),
+    [childrenByParent]
+  );
+
+  const getDescendantIds = useCallback(
+    (parentId: string): string[] => {
+      const result: string[] = [];
+      const walk = (id: string) => {
+        const children = childrenByParent.get(id) ?? [];
+        children.forEach((child) => {
+          result.push(child.id);
+          walk(child.id);
+        });
+      };
+      walk(parentId);
+      return result;
+    },
+    [childrenByParent]
+  );
+
+  const getEffectiveState = useCallback(
+    (elementId: string) => {
+      let current = elementById.get(elementId);
+      let visible = true;
+      let locked = false;
+      while (current) {
+        if (!current.visible) {
+          visible = false;
+        }
+        if (current.locked) {
+          locked = true;
+        }
+        current = current.parentId ? elementById.get(current.parentId) : undefined;
+      }
+      return { visible, locked };
+    },
+    [elementById]
+  );
+
+  const getGroupState = useCallback(
+    (elementId: string): {
+      visibilityState: "on" | "off" | "mixed";
+      lockState: "on" | "off" | "mixed";
+      descendantCount: number;
+    } => {
+      const descendants = getDescendantIds(elementId);
+      const idsToCheck = [elementId, ...descendants];
+      const visibleValues = idsToCheck.map((id) => elementById.get(id)?.visible);
+      const lockValues = idsToCheck.map((id) => elementById.get(id)?.locked);
+      const allVisible = visibleValues.every((v) => v === true);
+      const allHidden = visibleValues.every((v) => v === false);
+      const allLocked = lockValues.every((v) => v === true);
+      const allUnlocked = lockValues.every((v) => v === false);
+      return {
+        visibilityState: allVisible ? "on" : allHidden ? "off" : "mixed",
+        lockState: allLocked ? "on" : allUnlocked ? "off" : "mixed",
+        descendantCount: descendants.length
+      };
+    },
+    [elementById, getDescendantIds]
+  );
+
+  const handleToggleCollapse = useCallback((id: string) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   }, []);
 
-  const handleDragOver = useCallback((index: number) => {
-    setDragOverIndex(index);
+  const getDropPosition = useCallback(
+    (element: LayoutElement, e: React.DragEvent) => {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const ratio = (e.clientY - rect.top) / rect.height;
+      const isGroup = element.type === "group";
+      if (isGroup && ratio > 0.3 && ratio < 0.7) {
+        return "inside";
+      }
+      return ratio < 0.5 ? "before" : "after";
+    },
+    []
+  );
+
+  const handleDragStart = useCallback((id: string, e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+    setDraggingId(id);
   }, []);
+
+  const handleDragOver = useCallback(
+    (id: string, e: React.DragEvent) => {
+      e.preventDefault();
+      const target = elementById.get(id);
+      if (!target) {
+        return;
+      }
+      const position = getDropPosition(target, e);
+      setDragOver({ targetId: id, position });
+    },
+    [elementById, getDropPosition]
+  );
+
+  const handleDrop = useCallback(
+    (id: string, e: React.DragEvent) => {
+      e.preventDefault();
+      const dragId = draggingId ?? e.dataTransfer.getData("text/plain");
+      if (!dragId) {
+        return;
+      }
+      const target = elementById.get(id);
+      if (!target) {
+        return;
+      }
+      const position = getDropPosition(target, e);
+      const isGroup = target.type === "group";
+      const finalPosition = position === "inside" && !isGroup ? "after" : position;
+      onMoveLayer(dragId, id, finalPosition);
+      setDragOver(null);
+      setDraggingId(null);
+    },
+    [draggingId, elementById, getDropPosition, onMoveLayer]
+  );
+
+  const handleDropOnRoot = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const dragId = draggingId ?? e.dataTransfer.getData("text/plain");
+      if (!dragId) {
+        return;
+      }
+      onMoveLayer(dragId, null, "root");
+      setDragOver(null);
+      setDraggingId(null);
+    },
+    [draggingId, onMoveLayer]
+  );
 
   const handleDragEnd = useCallback(() => {
-    if (dragIndex !== null && dragOverIndex !== null && dragIndex !== dragOverIndex) {
-      // Convert visual indices back to zIndex-based indices
-      const fromElement = sortedElements[dragIndex];
-      const toElement = sortedElements[dragOverIndex];
-      
-      // Find actual indices in original array
-      const fromIdx = elements.findIndex((el) => el.id === fromElement.id);
-      const toIdx = elements.findIndex((el) => el.id === toElement.id);
-      
-      onReorder(fromIdx, toIdx);
-    }
-    setDragIndex(null);
-    setDragOverIndex(null);
-  }, [dragIndex, dragOverIndex, elements, sortedElements, onReorder]);
+    setDraggingId(null);
+    setDragOver(null);
+  }, []);
+
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent, id: string) => {
+      event.preventDefault();
+      if (!selectedIds.includes(id)) {
+        onSelect(id, false);
+      }
+      setContextMenu({
+        mouseX: event.clientX - 2,
+        mouseY: event.clientY - 4,
+        targetId: id
+      });
+    },
+    [onSelect, selectedIds]
+  );
+
+  const handleCloseMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const menuSelection = contextMenu
+    ? selectedIds.includes(contextMenu.targetId)
+      ? selectedIds
+      : [contextMenu.targetId]
+    : [];
+  const hasGroupInSelection = menuSelection.some(
+    (id) => elementById.get(id)?.type === "group"
+  );
+  const canGroup = menuSelection.length > 1;
+
+  const renderItems = useCallback(
+    (parentId: string, depth: number): React.ReactNode[] => {
+      const items: React.ReactNode[] = [];
+      const children = getSortedChildren(parentId);
+      children.forEach((child) => {
+        const isGroup = child.type === "group";
+        const isCollapsed = collapsedIds.has(child.id);
+        const { visibilityState, lockState, descendantCount } = getGroupState(child.id);
+        const effective = getEffectiveState(child.id);
+        items.push(
+          <LayerItem
+            key={child.id}
+            element={{ ...child, visible: effective.visible, locked: effective.locked }}
+            isSelected={selectedIds.includes(child.id)}
+            depth={depth}
+            isGroup={isGroup}
+            isCollapsed={isCollapsed}
+            descendantCount={descendantCount}
+            visibilityState={visibilityState}
+            lockState={lockState}
+            dragOverPosition={
+              dragOver?.targetId === child.id ? dragOver.position : null
+            }
+            onSelect={onSelect}
+            onToggleVisibility={onToggleVisibility}
+            onToggleLock={onToggleLock}
+            onToggleCollapse={handleToggleCollapse}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onDragEnd={handleDragEnd}
+            onContextMenu={handleContextMenu}
+            isDragging={draggingId === child.id}
+          />
+        );
+        if (isGroup && !isCollapsed) {
+          items.push(...renderItems(child.id, depth + 1));
+        }
+      });
+      return items;
+    },
+    [
+      collapsedIds,
+      dragOver,
+      draggingId,
+      getEffectiveState,
+      getGroupState,
+      getSortedChildren,
+      handleDragEnd,
+      handleDragOver,
+      handleDragStart,
+      handleDrop,
+      handleContextMenu,
+      handleToggleCollapse,
+      onSelect,
+      onToggleLock,
+      onToggleVisibility,
+      selectedIds
+    ]
+  );
 
   return (
     <Box
@@ -253,7 +557,10 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         className="layer-panel-header"
         sx={{
           px: 1.5,
-          py: 1,
+          py: 0.75,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
           backgroundColor: theme.vars.palette.background.paper
         }}
@@ -261,6 +568,28 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         <Typography variant="subtitle2" fontWeight={600}>
           Layers
         </Typography>
+        <Box sx={{ display: "flex", gap: 0.5 }}>
+          <Tooltip title="Show all">
+            <IconButton size="small" onClick={() => onSetAllVisibility(true)}>
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Hide all">
+            <IconButton size="small" onClick={() => onSetAllVisibility(false)}>
+              <VisibilityOffIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Lock all">
+            <IconButton size="small" onClick={() => onSetAllLock(true)}>
+              <LockIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Unlock all">
+            <IconButton size="small" onClick={() => onSetAllLock(false)}>
+              <LockOpenIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
       <Box
         className="layer-panel-content"
@@ -268,8 +597,10 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
           flexGrow: 1,
           overflow: "auto"
         }}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDropOnRoot}
       >
-        {sortedElements.length === 0 ? (
+        {elements.length === 0 ? (
           <Box
             className="layer-panel-empty"
             sx={{
@@ -285,25 +616,79 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
           </Box>
         ) : (
           <List className="layer-list" disablePadding>
-            {sortedElements.map((element, index) => (
-              <LayerItem
-                key={element.id}
-                element={element}
-                isSelected={selectedIds.includes(element.id)}
-                index={index}
-                onSelect={onSelect}
-                onToggleVisibility={onToggleVisibility}
-                onToggleLock={onToggleLock}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragEnd={handleDragEnd}
-                isDragging={dragIndex === index}
-                isDragOver={dragOverIndex === index}
-              />
-            ))}
+            {renderItems("__root__", 0)}
           </List>
         )}
       </Box>
+      <Menu
+        open={Boolean(contextMenu)}
+        onClose={handleCloseMenu}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenu ? { top: contextMenu.mouseY, left: contextMenu.mouseX } : undefined
+        }
+      >
+        <MenuItem
+          onClick={() => {
+            onGroup(menuSelection);
+            handleCloseMenu();
+          }}
+          disabled={!canGroup}
+        >
+          Group
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            onUngroup(menuSelection);
+            handleCloseMenu();
+          }}
+          disabled={!hasGroupInSelection}
+        >
+          Ungroup
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            onFlatten(menuSelection);
+            handleCloseMenu();
+          }}
+          disabled={!hasGroupInSelection}
+        >
+          Flatten
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={() => {
+            onSetAllVisibility(true);
+            handleCloseMenu();
+          }}
+        >
+          Show all
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            onSetAllVisibility(false);
+            handleCloseMenu();
+          }}
+        >
+          Hide all
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            onSetAllLock(true);
+            handleCloseMenu();
+          }}
+        >
+          Lock all
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            onSetAllLock(false);
+            handleCloseMenu();
+          }}
+        >
+          Unlock all
+        </MenuItem>
+      </Menu>
     </Box>
   );
 };

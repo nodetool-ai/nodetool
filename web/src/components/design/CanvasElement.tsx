@@ -30,6 +30,7 @@ interface CanvasElementProps {
   element: LayoutElement;
   isSelected: boolean;
   onSelect: (id: string, event: Konva.KonvaEventObject<MouseEvent>) => void;
+  onDragStart?: (id: string, event: Konva.KonvaEventObject<DragEvent>) => void;
   onTransformEnd: (
     id: string,
     attrs: { x: number; y: number; width: number; height: number; rotation: number }
@@ -354,6 +355,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
   element,
   isSelected,
   onSelect,
+  onDragStart,
   onTransformEnd,
   onDragEnd,
   onDragMove,
@@ -389,6 +391,15 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
       }
     },
     [element.id, element.width, element.height, onDragMove]
+  );
+
+  const handleDragStart = useCallback(
+    (e: Konva.KonvaEventObject<DragEvent>) => {
+      if (onDragStart) {
+        onDragStart(element.id, e);
+      }
+    },
+    [element.id, onDragStart]
   );
 
   const handleDragEnd = useCallback(
@@ -497,6 +508,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
+        onDragStart={handleDragStart}
         onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}

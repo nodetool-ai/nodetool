@@ -164,6 +164,7 @@ export interface LayoutElement {
   locked: boolean;
   name: string;
   properties: ElementProps;
+  parentId?: string;
   children?: LayoutElement[]; // for groups
 }
 
