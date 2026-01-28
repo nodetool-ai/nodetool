@@ -1,0 +1,499 @@
+name: OpenCode Performance Monitor
+
+on:
+  schedule:
+    - cron: "20 * * * *" 
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  opencode-performance:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Install electron dependencies
+        run: |
+          cd electron
+          npm ci
+
+      - name: Analyze bundle size
+        run: |
+          cd web
+          npm run build
+          npx vite-bundle-visualizer --open=false --json=bundle-stats.json || true
+
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        with:
+          model: zai-coding-plan/glm-4.7
+          prompt: |
+            # NodeTool Performance Monitoring
+
+            You are an autonomous performance optimization agent for NodeTool, a visual AI workflow builder.
+
+            ## Your Mission
+
+            **Identify and fix performance bottlenecks** in the codebase. Focus on user-facing performance: load times, render performance, and memory usage.
+
+            ## Project Context
+
+            **NodeTool** is a React/TypeScript visual AI workflow builder with complex node-based UI.
+            - **Tech Stack**: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
+            - **Performance Critical**: Node editor with 100+ nodes, asset management with 1000+ files
+
+            ## Step 0: Check for Duplicate Work (CRITICAL!)
+
+            **BEFORE starting any work**:
+            1. **Run `git branch -a`** to see all existing branches
+            2. **Check for branches** with performance optimizations
+            3. **Avoid creating duplicate branches** for the same optimizations
+
+            ## Step 1: Check Memory (REQUIRED)
+
+            **Read these files FIRST**:
+            1. **`.github/opencode-memory/features.md`** - Understand what features exist
+            2. `.github/opencode-memory/insights/` (list folders to see insights by topic) - **Existing performance optimizations**
+            3. `.github/opencode-memory/issues/` (list folders to see issues by topic) - Known performance problems
+            4. `.github/opencode-memory/project-context.md` - Architecture
+
+            ## Step 2: Performance Audit Areas
+
+            ### React Performance Issues
+
+            **Unnecessary Re-renders**:
+            - Components re-rendering without state changes?
+            - Inefficient Zustand subscriptions?
+            - Missing `React.memo` on expensive components?
+            - Missing `useCallback` on functions passed to children?
+            - Missing `useMemo` on expensive calculations?
+
+            **Check patterns**:
+            ```bash
+            # Find components subscribing to entire store
+            grep -r "useNodeStore()" --include="*.tsx" web/src
+
+            # Find components not using selective subscriptions
+            grep -r "const store = use.*Store()" --include="*.tsx" web/src
+
+            # Find large components that might benefit from React.memo
+            find web/src/components -name "*.tsx" -exec wc -l {} \; | sort -rn | head -20
+            ```
+
+            **Inefficient patterns**:
+            ```typescript
+            // ❌ Bad - subscribes to entire store
+            const store = useNodeStore();
+            const node = store.nodes[nodeId];
+
+            // ✅ Good - selective subscription
+            const node = useNodeStore(state => state.nodes[nodeId]);
+
+            // ❌ Bad - creates new function on every render
+            <Button onClick={() => handleClick(id)} />
+
+            // ✅ Good - memoized callback
+            const onClick = useCallback(() => handleClick(id), [id]);
+            <Button onClick={onClick} />
+
+            // ❌ Bad - expensive calculation on every render
+            const sorted = nodes.sort((a, b) => a.x - b.x);
+
+            // ✅ Good - memoized calculation
+            const sorted = useMemo(() => 
+              nodes.sort((a, b) => a.x - b.x),
+              [nodes]
+            );
+            ```
+
+            ### List Rendering Performance
+
+            **Large lists without virtualization**:
+            - Asset grids with 100+ items
+            - Node lists with many nodes
+            - Search results with many matches
+
+            **Check for missing virtualization**:
+            ```bash
+            # Find components rendering large lists
+            grep -r "\.map(" --include="*.tsx" web/src/components | grep -v "virtualizer"
+
+            # Check if TanStack Virtual is being used
+            grep -r "useVirtualizer\|@tanstack/react-virtual" web/src
+            ```
+
+            **Virtualization pattern**:
+            ```typescript
+            // ✅ Good - virtualized list
+            import { useVirtualizer } from '@tanstack/react-virtual';
+
+            const virtualizer = useVirtualizer({
+              count: items.length,
+              getScrollElement: () => parentRef.current,
+              estimateSize: () => 50,
+            });
+
+            return (
+              <div ref={parentRef} style={{ height: '400px', overflow: 'auto' }}>
+                <div style={{ height: `${virtualizer.getTotalSize()}px` }}>
+                  {virtualizer.getVirtualItems().map(virtualRow => (
+                    <div key={virtualRow.index}>
+                      {items[virtualRow.index]}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+            ```
+
+            ### Bundle Size Issues
+
+            Check `web/bundle-stats.json` generated in previous step for:
+            - Large dependencies that could be code-split
+            - Unused dependencies
+            - Duplicate dependencies
+            - Heavy libraries with lighter alternatives
+
+            **Common bundle bloat**:
+            ```bash
+            # Check for moment.js (should use date-fns instead)
+            grep -r "moment" --include="package.json" web/
+
+            # Check for lodash (should use individual imports)
+            grep -r "import.*from 'lodash'" --include="*.ts" --include="*.tsx" web/src
+
+            # Check bundle size
+            cd web && npm run build && du -sh dist/
+            ```
+
+            **Optimization patterns**:
+            ```typescript
+            // ❌ Bad - imports entire lodash
+            import _ from 'lodash';
+
+            // ✅ Good - imports specific function
+            import debounce from 'lodash/debounce';
+
+            // ❌ Bad - eager loading large component
+            import HeavyChart from './HeavyChart';
+
+            // ✅ Good - lazy loading
+            const HeavyChart = React.lazy(() => import('./HeavyChart'));
+            <Suspense fallback={<Loading />}>
+              <HeavyChart />
+            </Suspense>
+            ```
+
+            ### Memory Leaks
+
+            **Check for common leak patterns**:
+            ```bash
+            # Find useEffect without cleanup
+            grep -A5 "useEffect" web/src/**/*.tsx | grep -B5 "addEventListener" | grep -v "removeEventListener"
+
+            # Find setTimeout/setInterval without cleanup
+            grep -A5 "useEffect" web/src/**/*.tsx | grep -B5 "setTimeout\|setInterval" | grep -v "clearTimeout\|clearInterval"
+
+            # Find subscriptions without unsubscribe
+            grep -A5 "useEffect" web/src/**/*.tsx | grep -B5 "subscribe" | grep -v "unsubscribe"
+            ```
+
+            **Memory leak patterns**:
+            ```typescript
+            // ❌ Bad - event listener not cleaned up
+            useEffect(() => {
+              window.addEventListener('resize', handleResize);
+            }, []);
+
+            // ✅ Good - cleanup function
+            useEffect(() => {
+              window.addEventListener('resize', handleResize);
+              return () => window.removeEventListener('resize', handleResize);
+            }, []);
+
+            // ❌ Bad - timer not cleaned up
+            useEffect(() => {
+              const timer = setInterval(() => refresh(), 1000);
+            }, []);
+
+            // ✅ Good - cleanup function
+            useEffect(() => {
+              const timer = setInterval(() => refresh(), 1000);
+              return () => clearInterval(timer);
+            }, []);
+            ```
+
+            ### Heavy Computations
+
+            **Check for expensive operations in render**:
+            ```bash
+            # Find filter/map/sort in render
+            grep -r "\.filter(.*\.map(\|\.sort(" --include="*.tsx" web/src/components
+
+            # Find JSON operations in render
+            grep -r "JSON\.parse\|JSON\.stringify" --include="*.tsx" web/src/components
+            ```
+
+            **Optimize heavy operations**:
+            ```typescript
+            // ❌ Bad - expensive operations on every render
+            const filtered = items.filter(i => i.active).map(i => i.name);
+            const parsed = JSON.parse(data);
+
+            // ✅ Good - memoized
+            const filtered = useMemo(() => 
+              items.filter(i => i.active).map(i => i.name),
+              [items]
+            );
+            const parsed = useMemo(() => JSON.parse(data), [data]);
+            ```
+
+            ## Step 3: Performance Optimization Strategies
+
+            ### React Optimization Techniques
+
+            1. **Use selective Zustand subscriptions**:
+            ```typescript
+            // Select only what you need
+            const nodeName = useNodeStore(state => state.nodes[id]?.name);
+            ```
+
+            2. **Memoize expensive components**:
+            ```typescript
+            export const ExpensiveComponent = React.memo(({ data }) => {
+              // expensive rendering logic
+            });
+            ```
+
+            3. **Use useCallback for function props**:
+            ```typescript
+            const handleClick = useCallback(() => {
+              doSomething(id);
+            }, [id]);
+            ```
+
+            4. **Use useMemo for expensive calculations**:
+            ```typescript
+            const sortedData = useMemo(() => 
+              data.sort((a, b) => a.value - b.value),
+              [data]
+            );
+            ```
+
+            5. **Virtualize long lists**:
+            ```typescript
+            import { useVirtualizer } from '@tanstack/react-virtual';
+            // Use virtualizer for lists with 50+ items
+            ```
+
+            6. **Lazy load heavy components**:
+            ```typescript
+            const Chart = React.lazy(() => import('./Chart'));
+            ```
+
+            ### Bundle Optimization
+
+            1. **Code splitting**:
+            ```typescript
+            // Split routes
+            const Dashboard = React.lazy(() => import('./Dashboard'));
+            const Editor = React.lazy(() => import('./Editor'));
+            ```
+
+            2. **Tree shaking**:
+            ```typescript
+            // Use named imports
+            import { debounce } from 'lodash-es';
+            ```
+
+            3. **Dynamic imports**:
+            ```typescript
+            // Load on demand
+            const module = await import('./heavy-module');
+            ```
+
+            ### Memory Optimization
+
+            1. **Clean up effects**:
+            ```typescript
+            useEffect(() => {
+              const subscription = observable.subscribe();
+              return () => subscription.unsubscribe();
+            }, []);
+            ```
+
+            2. **Avoid memory leaks**:
+            ```typescript
+            // Always cleanup timers, listeners, subscriptions
+            return () => {
+              clearInterval(timer);
+              window.removeEventListener('resize', handler);
+              subscription.unsubscribe();
+            };
+            ```
+
+            ## Step 4: Measure Performance Impact
+
+            ### Before Making Changes
+
+            Document baseline performance:
+            ```typescript
+            // Measure render time
+            console.time('component-render');
+            // ... component logic
+            console.timeEnd('component-render');
+
+            // Measure bundle size
+            // Check dist/ folder size before optimization
+            ```
+
+            ### After Making Changes
+
+            Verify improvement:
+            ```bash
+            # Build and check bundle size
+            cd web && npm run build
+            du -sh dist/
+
+            # Run tests to ensure no breakage
+            npm test
+
+            # Test in browser
+            npm start
+            # Use React DevTools Profiler to measure re-renders
+            ```
+
+            ## Step 5: Update Memory
+
+            **After performance optimizations**, update memory files:
+
+            1. **`.github/opencode-memory/insights/` (list folders to see insights by topic)**:
+               - **Document optimization techniques used**
+               - Note performance improvements measured
+               - Add patterns that work well
+
+            2. **`.github/opencode-memory/issues/` (list folders to see issues by topic)**:
+               - Document performance bottlenecks found and fixed
+
+            3. **`.github/opencode-memory/project-context.md`** (MAX 5 entries, delete oldest):
+               - Add one line for performance improvements: `- **Perf Fix (date)**: Brief description. Files: x, y`
+
+            **After updating memory files, COMPACT THEM**:
+            ```bash
+            python scripts/compact-memory.py
+            ```
+            Commit the compacted files with your changes.
+
+            ## Performance Optimization Examples
+
+            ### Example 1: Reduce Re-renders
+            ```typescript
+            // ❌ BEFORE: Component re-renders on any store change
+            const MyComponent = () => {
+              const store = useNodeStore();
+              return <div>{store.nodes[nodeId].name}</div>;
+            };
+
+            // ✅ AFTER: Only re-renders when this node's name changes
+            const MyComponent = () => {
+              const nodeName = useNodeStore(state => state.nodes[nodeId]?.name);
+              return <div>{nodeName}</div>;
+            };
+            ```
+
+            ### Example 2: Virtualize List
+            ```typescript
+            // ❌ BEFORE: Renders all 1000 items (slow)
+            {assets.map(asset => <AssetCard key={asset.id} asset={asset} />)}
+
+            // ✅ AFTER: Renders only visible items (fast)
+            import { useVirtualizer } from '@tanstack/react-virtual';
+
+            const virtualizer = useVirtualizer({
+              count: assets.length,
+              getScrollElement: () => parentRef.current,
+              estimateSize: () => 200,
+            });
+
+            {virtualizer.getVirtualItems().map(virtualRow => (
+              <AssetCard key={assets[virtualRow.index].id} 
+                         asset={assets[virtualRow.index]} />
+            ))}
+            ```
+
+            ### Example 3: Lazy Load Component
+            ```typescript
+            // ❌ BEFORE: Loads 500KB chart library upfront
+            import { Chart } from 'heavy-chart-library';
+
+            // ✅ AFTER: Loads only when needed
+            const Chart = React.lazy(() => import('heavy-chart-library').then(m => ({ default: m.Chart })));
+
+            <Suspense fallback={<LoadingSpinner />}>
+              {showChart && <Chart data={data} />}
+            </Suspense>
+            ```
+
+            ## Performance Testing
+
+            After optimizations:
+
+            1. **Run quality checks**:
+            ```bash
+            make typecheck lint test
+            ```
+
+            2. **Test manually**:
+               - Load editor with 100+ nodes
+               - Scroll through asset library
+               - Test all optimized features
+
+            3. **Measure improvement**:
+               - Use React DevTools Profiler
+               - Check bundle size
+               - Measure load times
+
+            ## Best Practices
+
+            1. **Measure first**: Identify real bottlenecks before optimizing
+            2. **Focus on user impact**: Optimize what users actually experience
+            3. **Don't over-optimize**: Premature optimization is evil
+            4. **Test thoroughly**: Performance fixes can break functionality
+            5. **Document changes**: Explain what was slow and how you fixed it
+            6. **Verify improvement**: Measure before and after
+
+            ## If Performance Is Good
+
+            If no significant performance issues found:
+            1. Document good performance in memory
+            2. Optionally add performance monitoring
+            3. Optionally add performance tests
+            4. Don't make unnecessary optimizations
+
+            ## Remember
+
+            Good performance means happy users. Focus on user-facing performance: fast load times, smooth interactions, responsive UI. Measure, optimize, verify.
+
+            Now, make NodeTool faster! ⚡

@@ -3,7 +3,7 @@ import React from "react";
 import { CardActions, Box, Typography, Tooltip, Button } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import DeleteButton from "../../buttons/DeleteButton";
+import { DeleteButton } from "../../ui_primitives";
 import { Check } from "@mui/icons-material";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useTheme } from "@mui/material/styles";

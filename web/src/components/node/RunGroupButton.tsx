@@ -1,7 +1,40 @@
 /** @jsxImportSource @emotion/react */
-import { Button, CircularProgress, Tooltip } from "@mui/material";
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { IconButton, CircularProgress, Tooltip } from "@mui/material";
 import { PlayArrow } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useCallback } from "react";
+
+const styles = (theme: Theme, _isRunning: boolean) =>
+  css({
+    "&.run-button": {
+      width: 28,
+      height: 28,
+      padding: 0,
+      borderRadius: "50%",
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.common.black,
+      transition: "all 0.15s ease",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.primary.light,
+        borderColor: theme.vars.palette.primary.light
+      },
+      "&.disabled": {
+        opacity: 0.7,
+        cursor: "not-allowed"
+      },
+      "& svg": {
+        fontSize: 18
+      },
+      "& .MuiCircularProgress-root": {
+        width: "16px !important",
+        height: "16px !important",
+        color: theme.vars.palette.common.black
+      }
+    }
+  });
 
 interface RunGroupButtonProps {
   isWorkflowRunning: boolean;
@@ -14,6 +47,15 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
   state,
   onClick
 }) => {
+  const theme = useTheme();
+  const isRunning = state === "running";
+
+  const handleClick = useCallback(() => {
+    if (!isWorkflowRunning) {
+      onClick();
+    }
+  }, [isWorkflowRunning, onClick]);
+
   return (
     <Tooltip
       title={
@@ -29,48 +71,21 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
               gap: "0.1em"
             }}
           >
-            <span style={{ fontSize: "1.2em", color: "white" }}>Run Group</span>
-            {/* <span style={{ fontSize: ".9em", color: "white" }}>
-            CTRL+Enter
-          </span> */}
+            <span style={{ fontSize: "1.1em", color: "white" }}>Run Group</span>
           </div>
         )
       }
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
-      <Button
-        size="large"
+      <IconButton
+        size="small"
         tabIndex={-1}
-        className={`action-button run-stop-button run-workflow ${
-          isWorkflowRunning ? "disabled" : ""
-        }`}
-        onClick={() => !isWorkflowRunning && onClick()}
+        css={styles(theme, isRunning)}
+        className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
+        onClick={handleClick}
       >
-        {state === "connecting" || state === "connected" ? (
-          <>
-            <span
-              style={{
-                fontSize: "var(--fontSizeTiny)",
-                color: "var(--palette-text-secondary)",
-                margin: "0 .5em",
-                position: "absolute",
-                bottom: "35px",
-                right: "-5px"
-              }}
-              className={`run-status ${
-                state === "connecting" ? "connecting-status" : ""
-              }`}
-            >
-              {state === "connecting" ? "Connecting..." : ""}
-            </span>
-            <PlayArrow />
-          </>
-        ) : state === "running" ? (
-          <CircularProgress />
-        ) : (
-          <PlayArrow />
-        )}
-      </Button>
+        {isRunning ? <CircularProgress /> : <PlayArrow />}
+      </IconButton>
     </Tooltip>
   );
 };

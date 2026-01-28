@@ -11,13 +11,14 @@ import {
   Button,
   Fab
 } from "@mui/material";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useCallback } from "react";
 import CollectionForm from "./CollectionForm";
 import AddIcon from "@mui/icons-material/Add";
 import CollectionHeader from "./CollectionHeader";
 import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
 import { useCollectionStore } from "../../stores/CollectionStore";
+import { DialogActionButtons } from "../ui_primitives";
 
 const CollectionList = () => {
   const {
@@ -44,9 +45,21 @@ const CollectionList = () => {
     fetchCollections();
   }, [fetchCollections]);
 
-  const handleDeleteClick = (collectionName: string) => {
+  const handleDeleteClick = useCallback((collectionName: string) => {
     setDeleteTarget(collectionName);
-  };
+  }, [setDeleteTarget]);
+
+  const handleShowForm = useCallback(() => {
+    setShowForm(true);
+  }, [setShowForm]);
+
+  const handleHideForm = useCallback(() => {
+    setShowForm(false);
+  }, [setShowForm]);
+
+  const handleClearIndexErrors = useCallback(() => {
+    setIndexErrors([]);
+  }, [setIndexErrors]);
 
   const totalCount = collections?.collections.length || 0;
 
@@ -73,7 +86,7 @@ const CollectionList = () => {
             </Box>
             <Fab
               variant="extended"
-              onClick={() => setShowForm(true)}
+              onClick={handleShowForm}
               aria-label="Create Collection"
               sx={{
                 position: "relative",
@@ -188,7 +201,7 @@ const CollectionList = () => {
           )}
         </>
       )}
-      {showForm && <CollectionForm onClose={() => setShowForm(false)} />}
+      {showForm && <CollectionForm onClose={handleHideForm} />}
 
       <Dialog open={Boolean(deleteTarget)} onClose={cancelDelete}>
         <DialogTitle>Confirm Deletion</DialogTitle>
@@ -196,16 +209,17 @@ const CollectionList = () => {
           Are you sure you want to delete the collection &quot;{deleteTarget}
           &quot;?
         </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelDelete}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
+        <DialogActionButtons
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+          confirmText="Delete"
+          cancelText="Cancel"
+          destructive={true}
+        />
       </Dialog>
 
       {indexErrors.length > 0 && (
-        <Dialog open={true} onClose={() => setIndexErrors([])}>
+        <Dialog open={true} onClose={handleClearIndexErrors}>
           <DialogTitle>Indexing Report</DialogTitle>
           <DialogContent>
             <Typography variant="body1" sx={{ mb: 2 }}>
@@ -220,7 +234,7 @@ const CollectionList = () => {
             </List>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setIndexErrors([])}>Close</Button>
+            <Button onClick={handleClearIndexErrors}>Close</Button>
           </DialogActions>
         </Dialog>
       )}

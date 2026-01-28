@@ -16,9 +16,11 @@ import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 import type { Node } from "@xyflow/react";
 import type { NodeData } from "../../stores/NodeData";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
+import PanelHeadline from "../ui/PanelHeadline";
 
 type ExplorerEntry = {
   node: Node<NodeData>;
@@ -126,7 +128,6 @@ const styles = (theme: Theme) =>
 
 const NodeExplorer: React.FC = () => {
   const theme = useTheme();
-  const explorerStyles = styles(theme);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const { nodes, setSelectedNodes } = useNodes((state) => ({
     nodes: state.nodes,
@@ -227,26 +228,70 @@ const NodeExplorer: React.FC = () => {
     [nodes, setSelectedNodes, setActiveView, setPanelVisible]
   );
 
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, nodeId: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openContextMenu(
+        "node-context-menu",
+        nodeId,
+        event.clientX,
+        event.clientY,
+        "node-list"
+      );
+    },
+    [openContextMenu]
+  );
+
+  const handleFilterChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setFilter(event.target.value);
+  }, []);
+
+  const handleNodeClick = useCallback(
+    (nodeId: string) => {
+      handleNodeFocus(nodeId);
+    },
+    [handleNodeFocus]
+  );
+
+  const handleNodeClickWrapper = useCallback(
+    (entryNodeId: string) => () => {
+      handleNodeClick(entryNodeId);
+    },
+    [handleNodeClick]
+  );
+
+  const handleEditButtonClick = useCallback(
+    (nodeId: string) => () => {
+      handleNodeEdit(nodeId);
+    },
+    [handleNodeEdit]
+  );
+
   return (
-    <Box className="node-explorer" css={explorerStyles}>
-      <div className="explorer-header">
-        <Typography variant="h5">Node Explorer</Typography>
-        <Chip
-          size="small"
-          label={
-            filter.trim().length === 0
-              ? `${nodes.length}`
-              : `${entries.length} / ${nodes.length}`
-          }
-        />
-      </div>
+    <Box className="node-explorer" css={styles(theme)}>
+      <PanelHeadline
+        title="Node Explorer"
+        actions={
+          <Chip
+            size="small"
+            label={
+              filter.trim().length === 0
+                ? `${nodes.length}`
+                : `${entries.length} / ${nodes.length}`
+            }
+          />
+        }
+      />
       <TextField
         className="filter-input"
         size="medium"
         placeholder="Filter by name, type, or node id"
         label=""
         value={filter}
-        onChange={(event) => setFilter(event.target.value)}
+        onChange={handleFilterChange}
         variant="outlined"
         sx={{
           "& .MuiInputBase-root": {
@@ -271,11 +316,9 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={() => handleNodeFocus(entry.node.id)}
+                onClick={handleNodeClickWrapper(entry.node.id)}
                 onContextMenu={(event) => {
-                  //TODO: open node context menu
-                  event.preventDefault();
-                  event.stopPropagation();
+                  handleNodeContextMenu(event, entry.node.id);
                 }}
               >
                 <div className="node-text">
@@ -293,10 +336,7 @@ const NodeExplorer: React.FC = () => {
                 className="node-edit-button"
                 size="small"
                 aria-label="Edit node"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleNodeEdit(entry.node.id);
-                }}
+                onClick={handleEditButtonClick(entry.node.id)}
               >
                 <NorthEastIcon fontSize="small" />
               </Button>

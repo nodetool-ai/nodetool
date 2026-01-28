@@ -9,7 +9,9 @@ import {
   Text,
   Image as KonvaImage,
   Group,
-  Transformer
+  Transformer,
+  Ellipse,
+  Line
 } from "react-konva";
 import Konva from "konva";
 import {
@@ -17,19 +19,62 @@ import {
   TextProps,
   ImageProps,
   RectProps,
-  GroupProps
+  EllipseProps,
+  LineProps,
+  GroupProps,
+  ShadowEffect,
+  Fill
 } from "./types";
 
 interface CanvasElementProps {
   element: LayoutElement;
   isSelected: boolean;
   onSelect: (id: string, event: Konva.KonvaEventObject<MouseEvent>) => void;
+  onDragStart?: (id: string, event: Konva.KonvaEventObject<DragEvent>) => void;
   onTransformEnd: (
     id: string,
     attrs: { x: number; y: number; width: number; height: number; rotation: number }
   ) => void;
   onDragEnd: (id: string, x: number, y: number) => void;
+  onDragMove?: (id: string, x: number, y: number, width: number, height: number) => { x: number; y: number };
   snapToGrid: (value: number) => number;
+}
+
+/**
+ * Convert shadow effect to Konva shadow props
+ */
+function getShadowProps(shadow?: ShadowEffect) {
+  if (!shadow?.enabled) {
+    return {};
+  }
+  return {
+    shadowColor: shadow.color,
+    shadowBlur: shadow.blur,
+    shadowOffsetX: shadow.offsetX,
+    shadowOffsetY: shadow.offsetY,
+    shadowEnabled: true
+  };
+}
+
+/**
+ * Get fill color or gradient from Fill type
+ */
+function getFillFromFill(fill?: Fill, fallbackColor?: string): string | CanvasGradient | undefined {
+  if (!fill) {
+    return fallbackColor;
+  }
+  
+  if (fill.type === "solid") {
+    return fill.color;
+  }
+  
+  // For gradients, return the first color as fallback
+  // Full gradient support would require Konva's fillLinearGradientColorStops
+  if (fill.stops.length > 0) {
+    return fill.stops[0].color;
+  }
+  
+  return fallbackColor;
 }
 
 // Text Element Component
@@ -37,20 +82,60 @@ const TextElement: React.FC<{
   element: LayoutElement;
   props: TextProps;
 }> = memo(({ element, props }) => {
+  // Transform text based on textTransform setting
+  let displayText = props.content;
+  if (props.textTransform === "uppercase") {
+    displayText = displayText.toUpperCase();
+  } else if (props.textTransform === "lowercase") {
+    displayText = displayText.toLowerCase();
+  } else if (props.textTransform === "capitalize") {
+    displayText = displayText.replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  // Calculate vertical offset based on verticalAlignment
+  // Note: Konva's Text component handles wrapping and vertical alignment, but we 
+  // provide an estimated y-offset for middle/bottom alignment. This is a simplified 
+  // approach since Konva doesn't expose computed text metrics directly.
+  let yOffset = 0;
+  if (props.verticalAlignment === "middle" || props.verticalAlignment === "bottom") {
+    // Estimate text height using average character width (~0.5 of fontSize for most fonts)
+    // This approximation works reasonably well for proportional fonts
+    const estimatedLineHeight = props.fontSize * (props.lineHeight || 1.2);
+    const avgCharWidth = props.fontSize * 0.5;
+    const estimatedLines = Math.ceil(displayText.length * avgCharWidth / element.width) || 1;
+    const textHeight = estimatedLineHeight * estimatedLines;
+    
+    if (props.verticalAlignment === "middle") {
+      yOffset = (element.height - textHeight) / 2;
+    } else if (props.verticalAlignment === "bottom") {
+      yOffset = element.height - textHeight;
+    }
+    
+    // Ensure offset doesn't push text outside the element bounds
+    yOffset = Math.max(0, yOffset);
+  }
+
+  // Get text decoration style
+  const textDecoration = props.textDecoration === "underline" ? "underline" :
+                         props.textDecoration === "strikethrough" ? "line-through" : undefined;
+
   return (
     <Text
       x={0}
-      y={0}
+      y={yOffset}
       width={element.width}
       height={element.height}
-      text={props.content}
+      text={displayText}
       fontFamily={props.fontFamily}
       fontSize={props.fontSize}
       fontStyle={props.fontWeight === "bold" ? "bold" : "normal"}
       fill={props.color}
       align={props.alignment}
       lineHeight={props.lineHeight}
+      letterSpacing={props.letterSpacing || 0}
+      textDecoration={textDecoration}
       wrap="word"
+      {...getShadowProps(props.shadow)}
     />
   );
 });
@@ -61,21 +146,101 @@ const RectElement: React.FC<{
   element: LayoutElement;
   props: RectProps;
 }> = memo(({ element, props }) => {
+  const fillColor = getFillFromFill(props.fill, props.fillColor);
+  
   return (
     <Rect
       x={0}
       y={0}
       width={element.width}
       height={element.height}
-      fill={props.fillColor}
+      fill={fillColor as string}
       stroke={props.borderWidth > 0 ? props.borderColor : undefined}
       strokeWidth={props.borderWidth}
       cornerRadius={props.borderRadius}
       opacity={props.opacity}
+      {...getShadowProps(props.shadow)}
     />
   );
 });
 RectElement.displayName = "RectElement";
+
+// Ellipse Element Component (new)
+const EllipseElement: React.FC<{
+  element: LayoutElement;
+  props: EllipseProps;
+}> = memo(({ element, props }) => {
+  const fillColor = getFillFromFill(props.fill, props.fillColor);
+  
+  return (
+    <Ellipse
+      x={element.width / 2}
+      y={element.height / 2}
+      radiusX={element.width / 2}
+      radiusY={element.height / 2}
+      fill={fillColor as string}
+      stroke={props.borderWidth > 0 ? props.borderColor : undefined}
+      strokeWidth={props.borderWidth}
+      opacity={props.opacity}
+      {...getShadowProps(props.shadow)}
+    />
+  );
+});
+EllipseElement.displayName = "EllipseElement";
+
+// Line Element Component (new)
+const LineElement: React.FC<{
+  element: LayoutElement;
+  props: LineProps;
+}> = memo(({ element, props }) => {
+  // Draw a horizontal line from left to right of the bounding box
+  const points = [0, element.height / 2, element.width, element.height / 2];
+  
+  // Calculate arrow points if enabled
+  const arrowSize = Math.min(props.strokeWidth * 4, 12);
+  
+  return (
+    <>
+      <Line
+        points={points}
+        stroke={props.strokeColor}
+        strokeWidth={props.strokeWidth}
+        opacity={props.opacity}
+        lineCap="round"
+        lineJoin="round"
+      />
+      {props.startArrow && (
+        <Line
+          points={[
+            arrowSize, element.height / 2 - arrowSize / 2,
+            0, element.height / 2,
+            arrowSize, element.height / 2 + arrowSize / 2
+          ]}
+          stroke={props.strokeColor}
+          strokeWidth={props.strokeWidth}
+          opacity={props.opacity}
+          lineCap="round"
+          lineJoin="round"
+        />
+      )}
+      {props.endArrow && (
+        <Line
+          points={[
+            element.width - arrowSize, element.height / 2 - arrowSize / 2,
+            element.width, element.height / 2,
+            element.width - arrowSize, element.height / 2 + arrowSize / 2
+          ]}
+          stroke={props.strokeColor}
+          strokeWidth={props.strokeWidth}
+          opacity={props.opacity}
+          lineCap="round"
+          lineJoin="round"
+        />
+      )}
+    </>
+  );
+});
+LineElement.displayName = "LineElement";
 
 // Image Element Component
 const ImageElement: React.FC<{
@@ -190,8 +355,10 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
   element,
   isSelected,
   onSelect,
+  onDragStart,
   onTransformEnd,
   onDragEnd,
+  onDragMove,
   snapToGrid
 }) => {
   const shapeRef = useRef<Konva.Group>(null);
@@ -211,6 +378,28 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
       }
     },
     [element.id, element.locked, onSelect]
+  );
+
+  const handleDragMove = useCallback(
+    (e: Konva.KonvaEventObject<DragEvent>) => {
+      if (onDragMove) {
+        const node = e.target;
+        const snapped = onDragMove(element.id, node.x(), node.y(), element.width, element.height);
+        // Apply snap position during drag
+        node.x(snapped.x);
+        node.y(snapped.y);
+      }
+    },
+    [element.id, element.width, element.height, onDragMove]
+  );
+
+  const handleDragStart = useCallback(
+    (e: Konva.KonvaEventObject<DragEvent>) => {
+      if (onDragStart) {
+        onDragStart(element.id, e);
+      }
+    },
+    [element.id, onDragStart]
   );
 
   const handleDragEnd = useCallback(
@@ -273,6 +462,20 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
             props={element.properties as RectProps}
           />
         );
+      case "ellipse":
+        return (
+          <EllipseElement
+            element={element}
+            props={element.properties as EllipseProps}
+          />
+        );
+      case "line":
+        return (
+          <LineElement
+            element={element}
+            props={element.properties as LineProps}
+          />
+        );
       case "image":
         return (
           <ImageElement
@@ -305,6 +508,8 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       >

@@ -2,6 +2,7 @@ import { components } from "../api";
 
 export type Node = components["schemas"]["Node-Input"];
 export type Edge = components["schemas"]["Edge"];
+export type Graph = components["schemas"]["Graph-Input"];
 export type Asset = Omit<components["schemas"]["Asset"], "size"> & {
   size?: number | null; // File size in bytes - added for size sorting
 };
@@ -27,6 +28,7 @@ export type DataframeRef = components["schemas"]["DataframeRef"];
 export type ColumnDef = components["schemas"]["ColumnDef"];
 export type AudioRef = components["schemas"]["AudioRef"];
 export type VideoRef = components["schemas"]["VideoRef"];
+export type Model3DRef = components["schemas"]["Model3DRef"];
 export type NPArray = components["schemas"]["NPArray"];
 export type TextRef = components["schemas"]["TextRef"];
 export type WorkflowRef = components["schemas"]["WorkflowRef"];
@@ -36,6 +38,30 @@ export type WorkflowList = components["schemas"]["WorkflowList"];
 export type WorkflowTool = components["schemas"]["WorkflowTool"];
 export type WorkflowToolList = components["schemas"]["WorkflowToolList"];
 export type WorkflowRequest = components["schemas"]["WorkflowRequest"];
+
+// Workflow version types using API schema types
+export interface WorkflowVersion {
+  id: string;
+  workflow_id: string;
+  version: number;
+  created_at: string;
+  name?: string;
+  description?: string;
+  is_pinned?: boolean;
+  save_type?: "manual" | "autosave" | "checkpoint" | "restore";
+  graph: Graph;
+}
+
+export interface WorkflowVersionList {
+  versions: WorkflowVersion[];
+  next: string | null;
+}
+
+export interface CreateWorkflowVersionRequest {
+  name?: string;
+  description?: string;
+}
+
 export type Property = components["schemas"]["Property"];
 export type OutputSlot = components["schemas"]["OutputSlot"];
 export type BaseNodeMetadata = components["schemas"]["NodeMetadata"];
@@ -80,6 +106,7 @@ export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type LanguageModel = components["schemas"]["LanguageModel"];
+export type EmbeddingModel = components["schemas"]["EmbeddingModel"];
 export type ImageModel = components["schemas"]["ImageModel"];
 export type TTSModel = components["schemas"]["TTSModel"];
 export type ASRModel = components["schemas"]["ASRModel"];
@@ -107,8 +134,8 @@ export type MessageContent =
   | MessageAudioContent
   | MessageDocumentContent;
 export type RepoPath = components["schemas"]["RepoPath"];
-export type FileInfo = components["schemas"]["FileInfo"];
-export type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
+export type FileInfo = components["schemas"]["nodetool__api__file__FileInfo"];
+export type WorkspaceFileInfo = components["schemas"]["nodetool__api__workspace__FileInfo"];
 export type CollectionResponse = components["schemas"]["CollectionResponse"];
 export type CollectionList = components["schemas"]["CollectionList"];
 export type CollectionCreate = components["schemas"]["CollectionCreate"];
@@ -130,6 +157,7 @@ export type ThreadList = components["schemas"]["ThreadList"];
 export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
 export type Notification = components["schemas"]["Notification"];
 export type LogUpdate = components["schemas"]["LogUpdate"];
+export type ErrorMessage = components["schemas"]["Error"];
 export type SecretResponse = components["schemas"]["SecretResponse"];
 export type JobResponse = components["schemas"]["JobResponse"];
 export type JobListResponse = components["schemas"]["JobListResponse"];
@@ -141,3 +169,9 @@ export type Job = JobResponse;
 
 // Model Pack - curated bundle of models that work together
 export type ModelPack = components["schemas"]["ModelPack"];
+
+// Workspace types - for managing workspace folders
+export type WorkspaceResponse = components["schemas"]["WorkspaceResponse"];
+export type WorkspaceListResponse = components["schemas"]["WorkspaceListResponse"];
+export type WorkspaceCreateRequest = components["schemas"]["WorkspaceCreateRequest"];
+export type WorkspaceUpdateRequest = components["schemas"]["WorkspaceUpdateRequest"];

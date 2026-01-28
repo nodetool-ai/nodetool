@@ -14,7 +14,7 @@ export const integerEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  editorParams: any
+  _editorParams: any
 ) => {
   const editor = document.createElement("input");
   editor.setAttribute("type", "text");
@@ -49,7 +49,7 @@ export const floatEditor: Editor = (
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  editorParams: any
+  _editorParams: any
 ) => {
   const editor = document.createElement("input");
   editor.setAttribute("type", "text");
@@ -79,12 +79,14 @@ export const floatEditor: Editor = (
   return editor;
 };
 
+const datePickerRoots = new Map<HTMLElement, { root: import("react-dom/client").Root }>();
+
 export const datetimeEditor: Editor = (
   cell: CellComponent,
   onRendered: EmptyCallback,
   success: ValueBooleanCallback,
   cancel: ValueVoidCallback,
-  editorParams: any
+  _editorParams: any
 ) => {
   const editor = document.createElement("div");
   editor.style.width = "100%";
@@ -101,12 +103,21 @@ export const datetimeEditor: Editor = (
 
   onRendered(() => {
     const root = createRoot(editor);
+    datePickerRoots.set(editor, { root });
     root.render(
       <CustomDatePicker
         value={cell.getValue() as string}
         onChange={handleDateChange}
       />
     );
+
+    return () => {
+      const entry = datePickerRoots.get(editor);
+      if (entry) {
+        entry.root.unmount();
+        datePickerRoots.delete(editor);
+      }
+    };
   });
 
   editor.addEventListener("blur", () => cancel(null));

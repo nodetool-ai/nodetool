@@ -1,12 +1,12 @@
 import { renderHook, act } from "@testing-library/react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useEditorActions } from "../useEditorActions";
 
 function setup() {
   const undo = jest.fn();
   const redo = jest.fn();
   const format = jest.fn();
-  const find = jest.fn((term: string) => ({
+  const find = jest.fn((_term: string) => ({
     totalMatches: 3,
     currentMatch: 1
   }));

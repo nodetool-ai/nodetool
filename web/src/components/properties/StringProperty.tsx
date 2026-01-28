@@ -1,12 +1,17 @@
-import { useState, useCallback, memo } from "react";
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import isEqual from "lodash/isEqual";
-import { TextField, IconButton, Tooltip } from "@mui/material";
+import { IconButton, Tooltip, Typography } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { NodeTextField, editorClassNames, cn } from "../editor_ui";
+
+const STRING_INPUT_NODE_TYPE = "nodetool.input.StringInput";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -38,7 +43,8 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isDynamicProperty
+  isDynamicProperty,
+  changed
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -46,20 +52,70 @@ const StringProperty = ({
   const [isHovered, setIsHovered] = useState(false);
   // const focusHandler = useFocusPan(nodeId);
   // const handleFocus = isInspector ? () => {} : focusHandler;
-  const isConnected = useNodes(
+  const { isConnected, stringInputConfig } = useNodes(
     useCallback(
-      (state) =>
-        state.edges.some(
+      (state) => {
+        const connected = state.edges.some(
           (edge) =>
             edge.target === nodeId && edge.targetHandle === property.name
-        ),
-      [nodeId, property.name]
+        );
+
+        if (nodeType !== STRING_INPUT_NODE_TYPE || property.name !== "value") {
+          return { isConnected: connected, stringInputConfig: null };
+        }
+
+        const node = state.findNode(nodeId);
+        const props = (node?.data as any)?.properties ?? {};
+        const maxLengthRaw = props?.max_length;
+        const maxLength =
+          typeof maxLengthRaw === "number" && Number.isFinite(maxLengthRaw)
+            ? Math.max(0, Math.floor(maxLengthRaw))
+            : 0;
+        const lineMode =
+          props?.line_mode === "multiline" || props?.multiline === true
+            ? "multiline"
+            : "single_line";
+
+        return {
+          isConnected: connected,
+          stringInputConfig: { maxLength, lineMode } as const
+        };
+      },
+      [nodeId, nodeType, property.name]
     )
   );
 
   const showTextEditor = !isConnected;
   const isConstant = nodeType.startsWith("nodetool.constant.");
   const codeLanguage = determineCodeLanguage(nodeType);
+  const isStringInputValue =
+    nodeType === STRING_INPUT_NODE_TYPE && property.name === "value";
+  const maxLength = isStringInputValue ? (stringInputConfig?.maxLength ?? 0) : 0;
+  const multiline =
+    isStringInputValue
+      ? (stringInputConfig?.lineMode ?? "single_line") === "multiline"
+      : true;
+
+  const externalValue = typeof value === "string" ? value : "";
+  const [draftValue, setDraftValue] = useState<string>(externalValue);
+  const lastExternalValueRef = useRef<string>(externalValue);
+
+  // Keep local draft in sync with store updates only when the user hasn't diverged.
+  // This prevents trimming (stored value) from overwriting an over-limit draft on blur.
+  useEffect(() => {
+    if (!isStringInputValue) {
+      return;
+    }
+
+    const prevExternal = lastExternalValueRef.current;
+    if (externalValue !== prevExternal && draftValue === prevExternal) {
+      setDraftValue(externalValue);
+    }
+    lastExternalValueRef.current = externalValue;
+  }, [draftValue, externalValue, isStringInputValue]);
+
+  const exceedsMaxLength =
+    isStringInputValue && maxLength > 0 && draftValue.length > maxLength;
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
@@ -74,7 +130,37 @@ const StringProperty = ({
 
   if (showTextEditor) {
     return (
-      <div className={`string-property ${isConstant ? "constant-node" : ""}`}>
+      <div
+        className={`string-property ${isConstant ? "constant-node" : ""}`}
+        css={css({
+          ".property-row": {
+            width: "100%",
+            display: "flex",
+            flexDirection: "column"
+          },
+          ".property-row > .property-label": {
+            order: 1
+          },
+          ".value-container": {
+            width: "100%",
+            order: 2
+          },
+          ".string-action-buttons": {
+            position: "absolute",
+            right: 0,
+            top: "-3px",
+            opacity: 0.8,
+            zIndex: 10
+          },
+          ".string-action-buttons .MuiIconButton-root": {
+            margin: "0 0 0 5px",
+            padding: 0
+          },
+          ".string-action-buttons .MuiIconButton-root svg": {
+            fontSize: "0.75rem"
+          }
+        })}
+      >
         <div
           className="property-row"
           onMouseEnter={() => setIsHovered(true)}
@@ -93,7 +179,7 @@ const StringProperty = ({
                   <OpenInFullIcon />
                 </IconButton>
               </Tooltip>
-              <CopyToClipboardButton copyValue={value} size="small" />
+              <CopyButton value={value} buttonSize="small" />
             </div>
           )}
           <div
@@ -101,22 +187,33 @@ const StringProperty = ({
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <TextField
-              className={`string-value-input nodrag ${
-                isFocused ? "nowheel" : ""
-              }`}
-              slotProps={{
-                input: {
-                  className: "nodrag"
-                },
-                htmlInput: {
-                  className: "nodrag"
-                }
-              }}
-              value={value || ""}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                onChange(e.target.value)
+            <NodeTextField
+              className={cn(
+                "string-value-input",
+                isFocused && editorClassNames.nowheel
+              )}
+              sx={
+                isConstant
+                  ? {
+                    "& .MuiInputBase-inputMultiline": {
+                      // Constant nodes intentionally allow larger editing surface.
+                      maxHeight: "300px"
+                    }
+                  }
+                  : undefined
               }
+              value={isStringInputValue ? draftValue : (typeof value === "string" ? value : "")}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const raw = e.target.value ?? "";
+                if (isStringInputValue) {
+                  setDraftValue(raw);
+                  onChange(
+                    maxLength === 0 ? raw : raw.slice(0, Math.max(0, maxLength))
+                  );
+                  return;
+                }
+                onChange(raw);
+              }}
               onFocus={(e) => {
                 e.preventDefault();
                 setIsFocused(true);
@@ -131,25 +228,54 @@ const StringProperty = ({
                 e.stopPropagation();
               }}
               tabIndex={tabIndex}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              multiline
-              minRows={1}
-              maxRows={isConstant ? 20 : 2}
-              fullWidth
-              size="small"
-              variant="outlined"
+              multiline={multiline}
+              minRows={multiline ? (isStringInputValue ? 4 : 1) : 1}
+              maxRows={
+                isConstant ? 20 : multiline ? (isStringInputValue ? 12 : 2) : 1
+              }
+              slotProps={{
+                // Intentionally do NOT set html maxLength for StringInput:
+                // allow typing beyond limit, but only propagate up to maxLength.
+                htmlInput: undefined
+              }}
               autoFocus={false}
+              changed={changed}
             />
+            {isStringInputValue && maxLength > 0 && (
+              <Tooltip
+                title={
+                  exceedsMaxLength
+                    ? `${draftValue.length - maxLength} characters over the limit; extra characters will not be sent.`
+                    : "Max length. Extra characters will not be sent."
+                }
+                placement="bottom"
+              >
+                <Typography
+                  variant="caption"
+                  color={exceedsMaxLength ? "warning.main" : "text.secondary"}
+                  sx={{ display: "block", marginTop: 0.5, width: "fit-content" }}
+                >
+                  {draftValue.length}/{maxLength}
+                </Typography>
+              </Tooltip>
+            )}
           </div>
         </div>
         {isExpanded && (
           <TextEditorModal
-            value={value || ""}
+            value={isStringInputValue ? draftValue : (typeof value === "string" ? value : "")}
             language={codeLanguage}
-            onChange={onChange}
+            onChange={(next) => {
+              if (!isStringInputValue) {
+                onChange(next);
+                return;
+              }
+              const raw = typeof next === "string" ? next : "";
+              setDraftValue(raw);
+              onChange(
+                maxLength === 0 ? raw : raw.slice(0, Math.max(0, maxLength))
+              );
+            }}
             onClose={toggleExpand}
             propertyName={property.name}
             propertyDescription={property.description || ""}
@@ -160,7 +286,16 @@ const StringProperty = ({
   }
 
   return (
-    <div className={`string-property ${isConstant ? "constant-node" : ""}`}>
+    <div
+      className={`string-property ${isConstant ? "constant-node" : ""}`}
+      css={css({
+        ".property-row": {
+          width: "100%",
+          display: "flex",
+          flexDirection: "column"
+        }
+      })}
+    >
       <div
         className="property-row"
         onMouseEnter={() => setIsHovered(true)}

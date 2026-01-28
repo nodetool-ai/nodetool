@@ -196,7 +196,7 @@ Error: CUDA out of memory
 → Use a smaller model, reduce batch size, or close other GPU applications
 
 ```
-Error: Connection refused on localhost:8000
+Error: Connection refused on localhost:7777
 ```
 → NodeTool server isn't running, or firewall is blocking
 

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useEffect, useState, useRef } from "react";
+import { memo, useState, useRef } from "react";
 import {
   Box,
   CircularProgress,
@@ -11,10 +11,8 @@ import {
   Button,
   TextField
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 //css
 import "../../styles/base.css";
 import "../../styles/nodes.css";
@@ -31,18 +29,22 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import isEqual from "lodash/isEqual";
 import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
+import { useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
-import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
-import { WORKER_URL } from "../../stores/BASE_URL";
 import { useTheme } from "@mui/material/styles";
-import allNodeStyles from "../../node_styles/node-styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
 import CommandMenu from "../menus/CommandMenu";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
+import { EditorUiProvider } from "../editor_ui";
+import type React from "react";
+import FindInWorkflowDialog from "./FindInWorkflowDialog";
+import SelectionActionToolbar from "./SelectionActionToolbar";
+import NodeInfoPanel from "./NodeInfoPanel";
+import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 declare global {
   interface Window {
@@ -57,16 +59,9 @@ interface NodeEditorProps {
 
 const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
-  const navigate = useNavigate();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
-  const { missingModelFiles, missingModelRepos, clearMissingModels } = useNodes(
-    (state) => ({
-      missingModelFiles: state.missingModelFiles,
-      missingModelRepos: state.missingModelRepos,
-      clearMissingModels: state.clearMissingModels
-    })
-  );
+  const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -78,13 +73,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     handleSaveExampleCancel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
-  // WorkflowRunner connection management
-  const { state } = useWebsocketRunner((state) => ({
-    state: state.state
-  }));
-
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
+  const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
@@ -93,6 +84,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active) {
         setCommandMenuOpen(true);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Node Info Panel (Ctrl+I / Meta+I)
+  const nodeInfoCombo = isMac() ? ["meta", "i"] : ["control", "i"];
+  useCombo(
+    nodeInfoCombo,
+    () => {
+      if (active && selectedNodes.length > 0) {
+        toggleInspectedNode(selectedNodes[0].id);
       }
     },
     true,
@@ -132,61 +136,73 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           onClose={closeDocumentation}
         />
       )}
-      <Box
-        ref={reactFlowWrapperRef}
-        css={allNodeStyles(theme)}
-        className="node-editor"
-        style={{ backgroundColor: theme.vars.palette.c_editor_bg_color }}
-      >
-        {isUploading && (
-          <div className="loading-overlay">
-            <CircularProgress /> Uploading assets...
-          </div>
-        )}
-        <ReactFlowWrapper workflowId={workflowId} active={active} />
-        {active && (
-          <>
-            <RunAsAppFab workflowId={workflowId} />
-            <NodeMenu focusSearchInput={true} />
-            <CommandMenu
-              open={commandMenuOpen}
-              setOpen={setCommandMenuOpen}
-              undo={() => nodeHistory.undo()}
-              redo={() => nodeHistory.redo()}
-              reactFlowWrapper={reactFlowWrapperRef}
-            />
-            <Modal
-              open={showShortcuts}
-              onClose={(event, reason) => {
-                if (reason === "backdropClick") {
-                  setShowShortcuts(false);
-                }
-              }}
-              closeAfterTransition
-            >
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: "250px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: "80vw",
-                  maxWidth: "1400px",
-                  padding: 4,
-                  backgroundColor: theme.vars.palette.grey[800],
-                  boxShadow: 24,
-                  borderRadius: 2,
-                  border: 0,
-                  outline: 0,
-                  overflow: "hidden"
+      <EditorUiProvider scope="node">
+        <Box
+          ref={reactFlowWrapperRef}
+          className="node-editor"
+          style={
+            {
+              backgroundColor: theme.vars.palette.c_editor_bg_color,
+              // Used by structural CSS / node components (e.g. `nodes.base.css`, `BaseNode.tsx`)
+              // Keep it defined even if ThemeNodetool changes.
+              ["--rounded-node" as any]: theme.rounded?.node ?? "8px"
+            } as React.CSSProperties
+          }
+        >
+          {isUploading && (
+            <div className="loading-overlay">
+              <CircularProgress /> Uploading assets...
+            </div>
+          )}
+          <ReactFlowWrapper workflowId={workflowId} active={active} />
+          {active && (
+            <>
+              <SelectionActionToolbar
+                visible={selectedNodes.length >= 2}
+              />
+              <NodeInfoPanel />
+              <NodeMenu focusSearchInput={true} />
+              <CommandMenu
+                open={commandMenuOpen}
+                setOpen={setCommandMenuOpen}
+                undo={() => nodeHistory.undo()}
+                redo={() => nodeHistory.redo()}
+                reactFlowWrapper={reactFlowWrapperRef}
+              />
+              <FindInWorkflowDialog workflowId={workflowId} />
+              <Modal
+                open={showShortcuts}
+                onClose={(event, reason) => {
+                  if (reason === "backdropClick") {
+                    setShowShortcuts(false);
+                  }
                 }}
+                closeAfterTransition
               >
-                <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
-              </Box>
-            </Modal>
-          </>
-        )}
-      </Box>
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "250px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    width: "80vw",
+                    maxWidth: "1400px",
+                    padding: 4,
+                    backgroundColor: theme.vars.palette.grey[800],
+                    boxShadow: 24,
+                    borderRadius: 2,
+                    border: 0,
+                    outline: 0,
+                    overflow: "hidden"
+                  }}
+                >
+                  <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+                </Box>
+              </Modal>
+            </>
+          )}
+        </Box>
+      </EditorUiProvider>
 
       {/* Package Name Dialog */}
       <Dialog

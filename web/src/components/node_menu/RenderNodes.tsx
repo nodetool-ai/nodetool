@@ -6,25 +6,21 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import NodeItem from "./NodeItem";
-import {
-  Typography,
-  Tooltip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
-} from "@mui/material";
+import SearchResultItem from "./SearchResultItem";
+import SearchResultsPanel from "./SearchResultsPanel";
+import { Typography } from "@mui/material";
 import isEqual from "lodash/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
-import { useTheme } from "@mui/material/styles";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useCreateNode } from "../../hooks/useCreateNode";
-import { SearchResultGroup } from "../../utils/nodeSearch";
+import { serializeDragData } from "../../lib/dragdrop";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
   showCheckboxes?: boolean;
   selectedNodeTypes?: string[];
   onToggleSelection?: (nodeType: string) => void;
+  showFavoriteButton?: boolean;
 }
 
 const groupNodes = (nodes: NodeMetadata[]) => {
@@ -43,121 +39,78 @@ const getServiceFromNamespace = (namespace: string): string => {
   return parts[0];
 };
 
-const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
-  title
-}) {
-  const theme = useTheme();
-  const tooltips: Record<string, string> = {
-    Name: "Exact matches in node names",
-    Namespace: "Matches in node namespaces and tags",
-    Description: "Matches found in node descriptions. Better results on top."
-  };
-
-  return (
-    <Tooltip title={tooltips[title] || ""} placement="bottom" enterDelay={200}>
-      <Typography
-        variant="h6"
-        component="div"
-        sx={{
-          color: "var(--palette-primary-main)",
-          fontSize: "0.9em",
-          padding: "0.5em 0 0"
-        }}
-      >
-        {title}
-      </Typography>
-    </Tooltip>
-  );
-});
-
 const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
   showCheckboxes = false,
   selectedNodeTypes = [],
-  onToggleSelection
+  onToggleSelection,
+  showFavoriteButton = true
 }) => {
-  const theme = useTheme();
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
       setDragToCreate: state.setDragToCreate,
       groupedSearchResults: state.groupedSearchResults,
       searchTerm: state.searchTerm
     }));
+  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
+  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   const handleCreateNode = useCreateNode();
   const handleDragStart = useCallback(
     (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
       setDragToCreate(true);
-      event.dataTransfer.setData("create-node", JSON.stringify(node));
+      // Use unified drag serialization
+      serializeDragData(
+        { type: "create-node", payload: node },
+        event.dataTransfer
+      );
       event.dataTransfer.effectAllowed = "move";
+
+      // Update global drag state
+      setActiveDrag({ type: "create-node", payload: node });
     },
-    [setDragToCreate]
+    [setDragToCreate, setActiveDrag]
   );
+
+  const handleDragEnd = useCallback(() => {
+    clearDrag();
+  }, [clearDrag]);
 
   const { selectedPath } = useNodeMenuStore((state) => ({
     selectedPath: state.selectedPath.join(".")
   }));
 
-  const renderGroup = useCallback(
-    (group: SearchResultGroup) => {
-      const groupedNodes = groupNodes(group.nodes);
+  const searchNodes = useMemo(() => {
+    if (searchTerm && groupedSearchResults.length > 0) {
+      return groupedSearchResults.flatMap((group) => group.nodes);
+    }
+    return null;
+  }, [searchTerm, groupedSearchResults]);
 
-      return (
-        <Accordion key={group.title} defaultExpanded={true} disableGutters>
-          <AccordionSummary
-            expandIcon={
-              <ExpandMoreIcon sx={{ color: "var(--palette-grey-500)" }} />
-            }
-          >
-            <GroupTitle title={group.title} />
-          </AccordionSummary>
-          <AccordionDetails sx={{ padding: "0 0 1em 0" }}>
-            {Object.entries(groupedNodes).map(
-              ([namespace, nodesInNamespace]) => (
-                <div key={namespace}>
-                  <Typography
-                    variant="h5"
-                    component="div"
-                    className="namespace-text"
-                  >
-                    {selectedPath.length > 0
-                      ? namespace.replaceAll(selectedPath + ".", "")
-                      : namespace}
-                  </Typography>
-                  {nodesInNamespace.map((node) => (
-                    <div key={node.node_type}>
-                      <NodeItem
-                        key={node.node_type}
-                        node={node}
-                        onDragStart={handleDragStart(node)}
-                        onClick={() => handleCreateNode(node)}
-                        showCheckbox={showCheckboxes}
-                        isSelected={selectedNodeTypes.includes(node.node_type)}
-                        onToggleSelection={onToggleSelection}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )
-            )}
-          </AccordionDetails>
-        </Accordion>
-      );
+  const handleNodeClick = useCallback(
+    (node: NodeMetadata) => () => {
+      handleCreateNode(node);
     },
-    [
-      selectedPath,
-      handleDragStart,
-      showCheckboxes,
-      selectedNodeTypes,
-      onToggleSelection,
-      handleCreateNode
-    ]
+    [handleCreateNode]
   );
 
   const elements = useMemo(() => {
-    // If we're searching, use the grouped results
-    if (searchTerm) {
-      return groupedSearchResults.map(renderGroup);
+    // If we're searching, render flat ranked results with SearchResultItem
+    if (searchTerm && groupedSearchResults.length > 0) {
+      // Flatten all results from groups (now just one "Results" group)
+      const allSearchNodes = groupedSearchResults.flatMap(
+        (group) => group.nodes
+      );
+
+      return allSearchNodes.map((node) => (
+        <SearchResultItem
+          key={node.node_type}
+          node={node}
+          onDragStart={handleDragStart(node)}
+          onDragEnd={handleDragEnd}
+          onClick={handleNodeClick(node)}
+        />
+      ));
     }
 
     // Otherwise use the original namespace-based grouping
@@ -204,16 +157,17 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
           >
             {textForNamespaceHeader}
           </Typography>,
-          ...nodesInNamespace.map((node) => (
+            ...nodesInNamespace.map((node) => (
             <div key={node.node_type}>
               <NodeItem
                 key={node.node_type}
                 node={node}
                 onDragStart={handleDragStart(node)}
-                onClick={() => handleCreateNode(node)}
+                onClick={handleNodeClick(node)}
                 showCheckbox={showCheckboxes}
                 isSelected={selectedNodeTypes.includes(node.node_type)}
                 onToggleSelection={onToggleSelection}
+                showFavoriteButton={showFavoriteButton}
               />
             </div>
           ))
@@ -225,20 +179,26 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     searchTerm,
     nodes,
     groupedSearchResults,
-    renderGroup,
     selectedPath,
     handleDragStart,
-    handleCreateNode,
-    // added to fix linting error:
+    handleDragEnd,
+    handleNodeClick,
     showCheckboxes,
     onToggleSelection,
-    selectedNodeTypes
+    selectedNodeTypes,
+    showFavoriteButton
   ]);
 
+  const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};
+
   return (
-    <div className="nodes">
+    <div className="nodes" style={style}>
       {nodes.length > 0 ? (
-        elements
+        searchNodes ? (
+          <SearchResultsPanel searchNodes={searchNodes} />
+        ) : (
+          elements
+        )
       ) : (
         <div className="no-selection">
           <div className="explanation">

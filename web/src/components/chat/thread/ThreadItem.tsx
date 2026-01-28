@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Typography } from "@mui/material";
 import { relativeTime } from "../../../utils/formatDateAndTime";
 import { ThreadItemProps } from "../types/thread.types";
-import DeleteButton from "../../buttons/DeleteButton";
+import { DeleteButton } from "../../ui_primitives";
 
 export const ThreadItem: React.FC<ThreadItemProps> = ({
   threadId: _threadId,

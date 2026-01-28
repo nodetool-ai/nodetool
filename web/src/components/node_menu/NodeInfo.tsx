@@ -11,8 +11,8 @@ import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
-import { highlightText as highlightTextUtil } from "../../utils/highlightText";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
+import { HighlightText } from "../ui_primitives/HighlightText";
 import isEqual from "lodash/isEqual";
 
 interface NodeInfoProps {
@@ -64,32 +64,37 @@ const nodeInfoStyles = (theme: Theme) =>
       backgroundColor: "error.main"
     },
     ".node-description": {
-      fontWeight: "400",
-      fontSize: theme.fontSizeNormal,
+      fontWeight: 400,
+      fontSize: "0.95rem",
       color: theme.vars.palette.text.primary,
-      // wordBreak: "break-word",
       whiteSpace: "pre-wrap",
-      marginBottom: "0.5em",
+      marginBottom: "1em",
+      lineHeight: "1.6",
       display: "block",
       "& span": {
         display: "inline-block",
         position: "static",
         height: "auto",
         maxHeight: "none",
-        lineHeight: "1.2em"
+        lineHeight: "1.6em"
       }
     },
     ".node-tags span": {
-      fontWeight: "600",
-      fontSize: theme.fontSizeTiny,
-      color: theme.vars.palette.grey[1000],
-      backgroundColor: theme.vars.palette.grey[500],
-      borderRadius: "0.5em",
-      padding: "0.2em 0.5em",
+      fontWeight: 500,
+      fontSize: "0.75rem",
+      color: theme.vars.palette.text.secondary,
+      backgroundColor: theme.vars.palette.action.hover,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: "4px",
+      padding: "4px 8px",
       textTransform: "uppercase",
       display: "inline-block",
       cursor: "pointer",
-      marginRight: ".5em"
+      marginRight: ".5em",
+      transition: "background-color 0.2s ease",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.selected
+      }
     },
     ".node-usecases h4": {
       fontSize: theme.fontSizeSmaller,
@@ -122,8 +127,11 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".inputs-outputs h4": {
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
-      lineHeight: "2em"
+      fontSize: "0.85rem",
+      lineHeight: "2em",
+      color: theme.vars.palette.text.secondary,
+      textTransform: "uppercase",
+      letterSpacing: "0.5px"
     },
     ".inputs, .outputs": {
       display: "flex",
@@ -216,22 +224,10 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     [setSearchTerm]
   );
 
-  const { data: formattedDoc } = useQuery({
-    queryKey: ["formattedDoc", nodeMetadata.namespace, nodeMetadata.title],
-    queryFn: async () => {
-      return formatNodeDocumentation(
-        nodeMetadata?.description || "",
-        searchTerm,
-        nodeMetadata.searchInfo
-      );
-    }
-  });
   const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag, index) => (
       <span
-        onClick={() => {
-          handleTagClick(tag.trim());
-        }}
+        onClick={handleTagClick.bind(null, tag.trim())}
         key={index}
         className="tag"
       >
@@ -239,13 +235,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       </span>
     ));
   };
-
-  const descHtml = highlightTextUtil(
-    description.description,
-    "description",
-    searchTerm,
-    nodeMetadata.searchInfo
-  ).html;
 
   const theme = useTheme();
   return (
@@ -266,10 +255,10 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </div>
       <div className="node-description">
-        <span
-          dangerouslySetInnerHTML={{
-            __html: descHtml
-          }}
+        <HighlightText 
+          text={description.description} 
+          query={searchTerm} 
+          matchStyle="primary"
         />
       </div>
       <Typography className="node-tags">
@@ -279,10 +268,11 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         {description.useCases.raw && (
           <>
             <h4>Use cases</h4>
-            <div
-              dangerouslySetInnerHTML={{
-                __html: description.useCases.html
-              }}
+            <HighlightText 
+              text={description.useCases.raw} 
+              query={searchTerm} 
+              matchStyle="primary"
+              isBulletList={true}
             />
           </>
         )}
@@ -300,7 +290,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )
       ) : null}
 
-      <Divider />
+      <Divider sx={{ opacity: 0.5, margin: "1em 0" }} />
 
       {showConnections && (
         <div className="inputs-outputs">

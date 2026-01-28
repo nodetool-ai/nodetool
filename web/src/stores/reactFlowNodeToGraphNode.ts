@@ -1,7 +1,7 @@
 import { Node } from "@xyflow/react";
 import { Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
-import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./NodeStore";
+import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 
 export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const ui_properties: NodeUIProperties = {
@@ -12,8 +12,18 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     height: undefined,
     title: node.data.title,
     color: node.data.color,
-    selectable: true
+    selectable: true,
+    bypassed: node.data.bypassed || false
   };
+
+  // Persist explicit vertical resize (NodeResizeControl writes to node.style.height)
+  if (
+    node.style &&
+    "height" in node.style &&
+    typeof (node.style as any).height === "number"
+  ) {
+    ui_properties.height = (node.style as any).height;
+  }
 
   if (node.type === "nodetool.group.Loop") {
     ui_properties.selectable = false;

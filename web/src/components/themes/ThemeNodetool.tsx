@@ -2,6 +2,7 @@ import { createTheme } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
+import { editorControlsComponents } from "./components/editorControls";
 
 import "@fontsource/inter";
 import "@fontsource/inter/200.css";
@@ -44,6 +45,19 @@ const ThemeNodetool = createTheme({
     node: "8px",
     buttonSmall: "4px",
     buttonLarge: "6px"
+  },
+  // Minimal editor-specific values. Keep this small; expand only when needed.
+  // Applied only behind editor marker classes to avoid cross-screen leakage.
+  editor: {
+    heightNode: "28px",
+    heightInspector: "32px",
+    padXNode: "8px",
+    padYNode: "4px",
+    padXInspector: "10px",
+    padYInspector: "6px",
+    controlRadius: "6px",
+    menuRadius: "8px",
+    menuShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
   },
   typography: {
     fontFamily: "'Inter', sans-serif",
@@ -226,7 +240,8 @@ const ThemeNodetool = createTheme({
           color: "rgba(10, 12, 16, 0.95)"
         })
       }
-    }
+    },
+    ...editorControlsComponents
   }
 });
 

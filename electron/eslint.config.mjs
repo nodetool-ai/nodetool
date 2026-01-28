@@ -62,6 +62,13 @@ export default [
     },
   },
   {
+    // Allow require() in test files for jest.isolateModules()
+    files: ["**/__tests__/**/*.ts", "**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
     files: ["**/*.cjs"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",

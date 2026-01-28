@@ -171,7 +171,7 @@ export class WebSocketManager {
   }
 
   private setupEventHandlers(): void {
-    if (!this.ws) return;
+    if (!this.ws) {return;}
 
     this.ws.onopen = () => this.handleOpen();
     this.ws.onmessage = (event) => this.handleMessage(event);
@@ -416,7 +416,7 @@ export class WebSocketManager {
   }
 
   private processMessageQueue(): void {
-    if (this.messageQueue.length === 0) return;
+    if (this.messageQueue.length === 0) {return;}
 
     console.log(`Processing ${this.messageQueue.length} queued messages`);
     const queue = [...this.messageQueue];

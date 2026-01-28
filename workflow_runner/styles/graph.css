@@ -1,0 +1,163 @@
+/* Workflow Graph Styles */
+.graph-section {
+  padding: 1rem;
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-color);
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.workflow-graph-container {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.graph-header svg {
+  opacity: 0.6;
+}
+
+.graph-svg {
+  flex: 1;
+  display: block;
+}
+
+.graph-edge {
+  transition: stroke var(--transition-fast);
+}
+
+.graph-node {
+  cursor: default;
+  transition: opacity 0.3s ease;
+}
+
+.graph-node:hover {
+  opacity: 0.8;
+}
+
+.graph-node.input rect {
+  stroke: var(--c-link);
+  fill: rgba(147, 197, 253, 0.1);
+}
+
+.graph-node.output rect {
+  stroke: var(--success);
+  fill: rgba(80, 250, 123, 0.1);
+}
+
+.graph-node.process rect {
+  stroke: var(--c-output);
+  fill: rgba(73, 63, 77, 0.3);
+}
+
+.graph-node text {
+  font-family: 'Inter', sans-serif;
+  pointer-events: none;
+}
+
+.graph-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.legend-dot.input {
+  background: var(--c-link);
+  border: 1px solid var(--c-link);
+}
+
+.legend-dot.process {
+  background: var(--c-output);
+  border: 1px solid var(--c-output);
+}
+
+.legend-dot.output {
+  background: var(--success);
+  border: 1px solid var(--success);
+}
+
+/* Simple fade-in for nodes - no transform that conflicts with translate */
+.graph-node rect {
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+/* Node status during execution */
+.graph-node.running rect {
+  stroke: var(--c-link);
+  fill: rgba(147, 197, 253, 0.2);
+}
+
+.graph-node.completed rect {
+  stroke: var(--success);
+  fill: rgba(80, 250, 123, 0.15);
+}
+
+.graph-node.error rect {
+  stroke: var(--error);
+  fill: rgba(255, 85, 85, 0.15);
+}
+
+/* Active edge animation */
+.graph-edge.active {
+  stroke: var(--c-link);
+  stroke-width: 2;
+  animation: edgePulse 1s ease-in-out infinite;
+}
+
+@keyframes edgePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Responsive graph */
+@media (max-width: 992px) {
+  .graph-section {
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .graph-section {
+    min-height: 150px;
+    padding: 0.75rem;
+  }
+
+  .graph-legend {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+}

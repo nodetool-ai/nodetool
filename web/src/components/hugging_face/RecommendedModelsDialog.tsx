@@ -62,7 +62,7 @@ interface TabPanelProps {
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
+const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
   return (
     <div
@@ -74,7 +74,7 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
     </div>
   );
-}
+});
 
 interface RecommendedModelsDialogProps {
   open: boolean;

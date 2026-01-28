@@ -9,10 +9,13 @@ import React, {
   useId,
   useState
 } from "react";
+import ReactDOM from "react-dom";
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
 import { Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { selectStyles, portalOptionsStyles } from "./selectStyles";
 
 interface Option {
   value: any;
@@ -28,6 +31,10 @@ interface SelectProps {
   label?: string;
   tabIndex?: number;
   fuseOptions?: IFuseOptions<Option>;
+  /**
+   * Value differs from default — shows visual indicator (right border)
+   */
+  changed?: boolean;
 }
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -56,8 +63,10 @@ const Select: React.FC<SelectProps> = ({
   placeholder,
   label,
   tabIndex,
-  fuseOptions
+  fuseOptions,
+  changed
 }) => {
+  const theme = useTheme();
   const selectRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLUListElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +75,13 @@ const Select: React.FC<SelectProps> = ({
   const id = useId();
 
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    openUpward: boolean;
+  } | null>(null);
+
   const toggleDropdown = useCallback(() => {
     if (activeSelect === id) {
       close();
@@ -88,36 +104,46 @@ const Select: React.FC<SelectProps> = ({
   );
 
   const updateDropdownPosition = useCallback(() => {
-    if (!selectRef.current || !optionsRef.current || activeSelect !== id)
-      {return;}
+    if (!selectRef.current || activeSelect !== id) {
+      setDropdownPosition(null);
+      return;
+    }
 
     const selectRect = selectRef.current.getBoundingClientRect();
-    const optionsHeight = optionsRef.current.offsetHeight;
+    const estimatedOptionsHeight = 300; // maxHeight from styles
     const windowHeight = window.innerHeight;
     const spaceBelow = windowHeight - selectRect.bottom;
+    const openUpward = spaceBelow < estimatedOptionsHeight && selectRect.top > estimatedOptionsHeight;
 
-    if (spaceBelow < optionsHeight && selectRect.top > optionsHeight) {
-      optionsRef.current.style.bottom = "100%";
-      optionsRef.current.style.top = "auto";
-    } else {
-      optionsRef.current.style.top = "100%";
-      optionsRef.current.style.bottom = "auto";
-    }
+    setDropdownPosition({
+      top: openUpward ? selectRect.top : selectRect.bottom + 4,
+      left: selectRect.left,
+      width: Math.max(selectRect.width, 200),
+      openUpward
+    });
   }, [activeSelect, id]);
 
   useEffect(() => {
-    updateDropdownPosition();
-    window.addEventListener("resize", updateDropdownPosition);
-    return () => window.removeEventListener("resize", updateDropdownPosition);
-  }, [updateDropdownPosition]);
+    if (activeSelect === id) {
+      updateDropdownPosition();
+      window.addEventListener("resize", updateDropdownPosition);
+      window.addEventListener("scroll", updateDropdownPosition, true);
+      return () => {
+        window.removeEventListener("resize", updateDropdownPosition);
+        window.removeEventListener("scroll", updateDropdownPosition, true);
+      };
+    } else {
+      setDropdownPosition(null);
+    }
+  }, [activeSelect, id, updateDropdownPosition]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        selectRef.current &&
-        !selectRef.current.contains(event.target as Node) &&
-        activeSelect === id
-      ) {
+      const target = event.target as Node;
+      const isInsideSelect = selectRef.current?.contains(target);
+      const isInsideDropdown = optionsRef.current?.contains(target);
+      
+      if (activeSelect === id && !isInsideSelect && !isInsideDropdown) {
         close();
       }
     };
@@ -197,8 +223,16 @@ const Select: React.FC<SelectProps> = ({
     setHighlightedIndex(-1);
   }, [searchQuery]);
 
+  // Memoize styles to avoid recalculation on each render
+  const styles = useMemo(() => selectStyles(theme), [theme]);
+
+  // Changed state styling for select-header
+  const changedStyle = changed
+    ? { borderRight: `2px solid ${theme.vars.palette.primary.main}` }
+    : undefined;
+
   return (
-    <div className="select-container">
+    <div className="select-container" css={styles}>
       <Tooltip placement="top" enterDelay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
         <div
           ref={selectRef}
@@ -214,6 +248,7 @@ const Select: React.FC<SelectProps> = ({
               onClick={toggleDropdown}
               tabIndex={tabIndex}
               role="button"
+              style={changedStyle}
             >
               <span className="select-header-text">
                 {selectedOption
@@ -226,36 +261,50 @@ const Select: React.FC<SelectProps> = ({
             </div>
           )}
           {activeSelect === id && (
-            <>
-              <input
-                ref={searchInputRef}
-                type="text"
-                className="search-input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                onClick={(e) => e.stopPropagation()}
-              />
-              <ul ref={optionsRef} className="options-list nowheel">
-                {(searchQuery
-                  ? fuse.search(searchQuery).map(({ item }) => item)
-                  : options
-                ).map((option, index) => (
-                  <li
-                    key={option.value}
-                    className={`option ${
-                      option.value === value ? "selected" : ""
-                    } ${index === highlightedIndex ? "highlighted" : ""}`}
-                    onClick={() => handleOptionClick(option.value)}
-                  >
-                    {option.label}
-                  </li>
-                ))}
-              </ul>
-            </>
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              onClick={(e) => e.stopPropagation()}
+            />
           )}
         </div>
       </Tooltip>
+      {activeSelect === id && dropdownPosition && ReactDOM.createPortal(
+        <ul
+          ref={optionsRef}
+          className="options-list nowheel"
+          css={portalOptionsStyles(theme)}
+          style={{
+            position: "fixed",
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+            ...(dropdownPosition.openUpward
+              ? { bottom: window.innerHeight - dropdownPosition.top + 4 }
+              : { top: dropdownPosition.top })
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {(searchQuery
+            ? fuse.search(searchQuery).map(({ item }) => item)
+            : options
+          ).map((option, index) => (
+            <li
+              key={option.value}
+              className={`option ${
+                option.value === value ? "selected" : ""
+              } ${index === highlightedIndex ? "highlighted" : ""}`}
+              onClick={() => handleOptionClick(option.value)}
+            >
+              {option.label}
+            </li>
+          ))}
+        </ul>,
+        document.body
+      )}
     </div>
   );
 };

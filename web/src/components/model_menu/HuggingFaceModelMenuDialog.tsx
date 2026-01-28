@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel, UnifiedModel } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelMenuStore } from "../../stores/ModelMenuStore";
@@ -12,6 +12,7 @@ export interface HuggingFaceModelMenuDialogProps {
   onModelChange?: (model: ImageModel) => void;
   task?: "text_to_image" | "image_to_image";
   modelType?: string;
+  anchorEl?: HTMLElement | null;
 }
 
 type EndpointSuffix = "image/text-to-image" | "image/image-to-image" | null;
@@ -28,12 +29,13 @@ const mapTaskToEndpoint = (
   return null;
 };
 
-export default function HuggingFaceModelMenuDialog({
+function HuggingFaceModelMenuDialog({
   open,
   onClose,
   onModelChange,
   task,
-  modelType
+  modelType,
+  anchorEl
 }: HuggingFaceModelMenuDialogProps) {
   const modelData = useHuggingFaceImageModelsByProvider({ task, modelType });
 
@@ -85,8 +87,8 @@ export default function HuggingFaceModelMenuDialog({
       const bIsRecommended = recommendedModelIds.has(b.id || "");
 
       // Recommended models come first
-      if (aIsRecommended && !bIsRecommended) {return -1;}
-      if (!aIsRecommended && bIsRecommended) {return 1;}
+      if (aIsRecommended && !bIsRecommended) { return -1; }
+      if (!aIsRecommended && bIsRecommended) { return 1; }
 
       // Within same category, sort alphabetically by name
       return (a.name || "").localeCompare(b.name || "");
@@ -101,6 +103,7 @@ export default function HuggingFaceModelMenuDialog({
   return (
     <ModelMenuDialogBase<ImageModel>
       open={open}
+      anchorEl={anchorEl}
       onClose={onClose}
       modelData={sortedModelData}
       onModelChange={onModelChange}
@@ -110,5 +113,7 @@ export default function HuggingFaceModelMenuDialog({
     />
   );
 }
+
+export default memo(HuggingFaceModelMenuDialog);
 
 

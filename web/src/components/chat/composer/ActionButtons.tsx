@@ -9,16 +9,8 @@ import { StopGenerationButton } from "./StopGenerationButton";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface ActionButtonsProps {
-  status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  isLoading: boolean;
+  isStreaming: boolean;
   onSend: () => void;
   onStop?: () => void;
   onNewChat?: () => void;
@@ -41,15 +33,15 @@ const styles = (_theme: Theme) =>
   });
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
-  status,
+  isLoading,
+  isStreaming,
   onSend,
   onStop,
   isDisabled,
   hasContent
 }) => {
   // Show stop button ONLY when generation is actively running
-  const showStopButton =
-    (status === "loading" || status === "streaming") && onStop;
+  const showStopButton = (isLoading || isStreaming) && onStop;
   const theme = useTheme();
 
   return (

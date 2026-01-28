@@ -4,6 +4,12 @@ import useContextMenu from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import {
+  serializeDragData,
+  deserializeDragData,
+  createAssetDragImage
+} from "../../lib/dragdrop";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 
 export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
@@ -24,6 +30,8 @@ export const useAssetActions = (asset: Asset) => {
   );
 
   const { mutation: updateAssetMutation } = useAssetUpdate();
+  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
+  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   const handleClick = useCallback(
     (
@@ -62,33 +70,58 @@ export const useAssetActions = (asset: Asset) => {
         setSelectedAssetIds(assetIds);
       }
 
-      e.dataTransfer.setData("selectedAssetIds", JSON.stringify(assetIds));
+      // Use unified drag serialization
+      if (assetIds.length === 1) {
+        serializeDragData(
+          {
+            type: "asset",
+            payload: asset,
+            metadata: { sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      } else {
+        serializeDragData(
+          {
+            type: "assets-multiple",
+            payload: assetIds,
+            metadata: { count: assetIds.length, sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      }
+
+      // Also set legacy single asset key for components that only check "asset"
+      // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
-      const dragImage = document.createElement("div");
-      dragImage.textContent = assetIds.length.toString();
-      dragImage.style.cssText = `
-      position: absolute;
-      top: -99999px;
-      background-color: #222;
-      color: #999;
-      border: 3px solid #333;
-      border-radius: 4px;
-      height: 40px;
-      width: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: bold;
-    `;
+      // Create and set drag image using the unified utility
+      // Try to get other selected assets from store for preview
+      const allSelectedAssets =
+        useAssetGridStore.getState().selectedAssets || [];
+      const dragImage = createAssetDragImage(
+        asset,
+        assetIds.length,
+        allSelectedAssets
+      );
 
       document.body.appendChild(dragImage);
-      e.dataTransfer.setDragImage(dragImage, 25, 30);
+      e.dataTransfer.setDragImage(dragImage, 10, 10);
       setTimeout(() => document.body.removeChild(dragImage), 0);
+
+      // Update global drag state
+      setActiveDrag({
+        type: "assets-multiple",
+        payload: assetIds,
+        metadata: { count: assetIds.length, sourceId: asset.id }
+      });
     },
-    [selectedAssetIds, setSelectedAssetIds, asset]
+    [selectedAssetIds, setSelectedAssetIds, asset, setActiveDrag]
   );
+
+  const handleDragEnd = useCallback(() => {
+    clearDrag();
+  }, [clearDrag]);
 
   const handleDragOver = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
@@ -118,18 +151,32 @@ export const useAssetActions = (asset: Asset) => {
   const handleDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
-      const assetData = event.dataTransfer.getData("selectedAssetIds");
       setIsDragHovered(false);
+
+      // Use unified deserialization
+      const dragData = deserializeDragData(event.dataTransfer);
+      if (!dragData) {
+        log.error("Failed to deserialize drag data");
+        return;
+      }
+
       try {
-        const selectedAssetIds = JSON.parse(assetData);
-        if (asset.content_type === "folder") {
+        let assetIdsToMove: string[] = [];
+
+        if (dragData.type === "assets-multiple") {
+          assetIdsToMove = dragData.payload as string[];
+        } else if (dragData.type === "asset") {
+          assetIdsToMove = [(dragData.payload as Asset).id];
+        }
+
+        if (asset.content_type === "folder" && assetIdsToMove.length > 0) {
           await updateAssetMutation.mutateAsync(
-            selectedAssetIds.map((id: string) => ({ id, parent_id: asset.id }))
+            assetIdsToMove.map((id: string) => ({ id, parent_id: asset.id }))
           );
           setMoveToFolderDialogOpen(false);
         }
       } catch (_error) {
-        log.error("Invalid JSON string:", assetData);
+        log.error("Failed to process drop:", _error);
       }
     },
     [
@@ -187,6 +234,7 @@ export const useAssetActions = (asset: Asset) => {
     handleClick,
     handleDoubleClick,
     handleDrag,
+    handleDragEnd,
     handleDragOver,
     handleDragEnter,
     handleDragLeave,

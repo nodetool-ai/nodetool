@@ -15,6 +15,57 @@ The `nodetool` CLI manages local development workflows, servers, deployments, an
 
 ## Core Runtime Commands
 
+### `nodetool agent`
+
+Runs an autonomous AI agent from start to finish using a YAML configuration file. Agents use the planning agent architecture to break down tasks, execute them iteratively, and achieve goals through tool usage.
+
+**Arguments:**
+
+- `--config FILE` (required) — Path to agent YAML configuration file.
+- `--prompt TEXT` — Inline prompt for the agent to execute.
+- `--prompt-file FILE` — Load prompt from a text file.
+- `--interactive` / `-i` — Start interactive session with the agent.
+
+**Options:**
+
+- `--workspace DIR` — Override workspace directory from config.
+- `--max-iterations N` — Override maximum planning iterations from config.
+- `--output FILE` — Save agent output to file.
+- `--jsonl` — Output in JSONL format for automation.
+- `--verbose` / `-v` — Enable DEBUG-level logging.
+
+**Examples:**
+
+```bash
+# Run agent with inline prompt
+nodetool agent --config research-agent.yaml --prompt "Research AI trends"
+
+# Run agent with prompt from file
+nodetool agent --config code-assistant.yaml --prompt-file task.txt
+
+# Interactive mode for multi-turn conversations
+nodetool agent --config content-creator.yaml --interactive
+
+# Save output to file
+nodetool agent --config agent.yaml --prompt "Task" --output result.txt
+
+# JSONL output for automation
+nodetool agent --config agent.yaml --prompt "Task" --jsonl
+```
+
+**Agent Configuration:**
+
+Agents are configured via YAML files that specify:
+
+- **System prompt**: Instructions defining agent behavior
+- **Model**: Primary AI model (provider and model ID)
+- **Planning agent**: Always enabled, coordinates task execution
+- **Tools**: Available capabilities (search, code execution, file operations)
+- **Parameters**: Token limits, temperature, iteration limits
+- **Workspace**: Sandboxed directory for file operations
+
+See [Agent CLI Documentation](agent-cli.md) for complete configuration reference and [examples/agents/](examples/agents/) for sample configurations.
+
 ### `nodetool serve`
 
 Runs the FastAPI backend server for the NodeTool platform. This serves the REST API, WebSocket endpoints, and optionally static assets or app bundles.
@@ -22,7 +73,7 @@ Runs the FastAPI backend server for the NodeTool platform. This serves the REST 
 **Options:**
 
 - `--host` (default `127.0.0.1`) — bind address (use `0.0.0.0` for all interfaces).
-- `--port` (default `8000`) — listen port.
+- `--port` (default `7777`) — listen port.
 - `--static-folder` — path to folder containing static web assets (e.g., compiled React UI).
 - `--force-fp16` — force FP16 precision for ComfyUI integrations if available (GPU optimization).
 - `--reload` — enable auto-reload on file changes (development only).
@@ -37,7 +88,7 @@ Runs the FastAPI backend server for the NodeTool platform. This serves the REST 
 nodetool serve --reload --verbose
 
 # Production server with static assets
-nodetool serve --production --static-folder ./web/dist --host 0.0.0.0 --port 8000
+nodetool serve --production --static-folder ./web/dist --host 0.0.0.0 --port 7777
 
 # Development with remote auth
 nodetool serve --remote-auth --verbose
@@ -85,7 +136,7 @@ Starts a deployable worker process with OpenAI-compatible endpoints. This is use
 **Options:**
 
 - `--host` (default `0.0.0.0`) — bind address (listen on all interfaces for deployments).
-- `--port` (default `8000`) — listen port.
+- `--port` (default `7777`) — listen port.
 - `--remote-auth` — require Supabase-backed authentication.
 - `--default-model` (default `gpt-oss:20b`) — fallback model when client doesn't specify one.
 - `--provider` (default `ollama`) — provider for the default model (e.g., `openai`, `anthropic`, `ollama`).
@@ -106,7 +157,7 @@ nodetool worker --default-model gpt-4 --provider openai --tools google_search,br
 nodetool worker --workflow workflow1.json --workflow workflow2.json --host 0.0.0.0 --port 8080
 
 # Deployable worker with auth
-nodetool worker --remote-auth --host 0.0.0.0 --port 8000
+nodetool worker --remote-auth --host 0.0.0.0 --port 7777
 ```
 
 ## Chat Client
@@ -380,7 +431,7 @@ Download a HuggingFace model for local use or via a remote server.
 
 ```bash
 nodetool admin download-hf --repo-id meta-llama/Llama-2-7b-hf
-nodetool admin download-hf --repo-id mistralai/Mistral-7B --server-url http://remote.server:8000
+nodetool admin download-hf --repo-id mistralai/Mistral-7B --server-url http://remote.server:7777
 ```
 
 #### `nodetool admin download-ollama`
@@ -396,7 +447,7 @@ Pre-pull an Ollama model blob locally or via remote server.
 
 ```bash
 nodetool admin download-ollama --model-name llama2
-nodetool admin download-ollama --model-name mistral:latest --server-url http://remote.server:8000
+nodetool admin download-ollama --model-name mistral:latest --server-url http://remote.server:7777
 ```
 
 #### `nodetool admin scan-cache`
@@ -411,7 +462,7 @@ Inspect cache directories and display usage statistics.
 
 ```bash
 nodetool admin scan-cache
-nodetool admin scan-cache --server-url http://remote.server:8000
+nodetool admin scan-cache --server-url http://remote.server:7777
 ```
 
 #### `nodetool admin delete-hf`
@@ -443,7 +494,7 @@ Report aggregate cache sizes for HuggingFace and Ollama models.
 
 ```bash
 nodetool admin cache-size
-nodetool admin cache-size --server-url http://remote.server:8000
+nodetool admin cache-size --server-url http://remote.server:7777
 ```
 
 ### `nodetool deploy`
@@ -735,12 +786,12 @@ Push a local workflow to a remote NodeTool server.
 **Options:**
 
 - `--id` (required) — workflow ID to sync.
-- `--server-url` (required) — remote server base URL (e.g., `http://localhost:8000`).
+- `--server-url` (required) — remote server base URL (e.g., `http://localhost:7777`).
 
 **Examples:**
 
 ```bash
-nodetool sync workflow --id workflow_abc123 --server-url http://remote.server:8000
+nodetool sync workflow --id workflow_abc123 --server-url http://remote.server:7777
 nodetool sync workflow --id workflow_abc123 --server-url https://api.example.com
 ```
 

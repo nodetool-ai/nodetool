@@ -4,7 +4,7 @@ title: "NodeTool Workflow Cookbook"
 has_children: true
 ---
 
-*A comprehensive guide for building AI workflows with NodeTool*
+*A guide for building AI workflows with NodeTool*
 
 **Version:** 1.0 **Target Audience:** AI Agents, Developers, and Workflow Designers **Purpose:** Learn workflow
 patterns, understand streaming architecture, and build production-ready AI workflows

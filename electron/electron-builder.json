@@ -10,7 +10,8 @@
         "assets/**/*",
         "dist-electron/main.js",
         "dist-electron/**/*",
-        "dist-web/**/*"
+        "dist-web/**/*",
+        "app-update.yml"
     ],
     "extraResources": [
         {
@@ -18,8 +19,12 @@
             "to": "web"
         },
         {
-            "from": "../conda-lock.yml",
+            "from": "resources/environment.lock.yml",
             "to": "environment.lock.yml"
+        },
+        {
+            "from": "resources/environment-osx-64.yml",
+            "to": "environment-osx-64.lock.yml"
         },
         {
             "from": "resources/environment-osx-arm64.yml",

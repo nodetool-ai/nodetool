@@ -162,6 +162,9 @@ Workflow editor components:
 - `WorkflowCreator.tsx`: Component for creating workflows
 - `ConnectionLine.tsx`: Custom connection line renderer
 - `NotificationsList.tsx`: Notifications component
+- `SelectionActionToolbar.tsx`: Floating toolbar for batch node operations (align, distribute, group, delete)
+- `NodeInfoPanel.tsx`: Contextual panel showing selected node details (type, connections, execution status)
+- `ViewportStatusIndicator.tsx`: Real-time zoom percentage with zoom presets dropdown (25%-200%)
 
 ## Node Menu Components (`/node_menu`)
 

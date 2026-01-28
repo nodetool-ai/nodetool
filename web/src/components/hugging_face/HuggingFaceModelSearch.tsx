@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   TextField,
   Typography,
@@ -73,7 +73,8 @@ const HuggingFaceModelSearch: React.FC = () => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const { startDownload, openDialog } = useModelDownloadStore();
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const openDialog = useModelDownloadStore((state) => state.openDialog);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["huggingface-models", searchQuery],
@@ -87,6 +88,10 @@ const HuggingFaceModelSearch: React.FC = () => {
       openDialog();
     }
   };
+
+  const handleModelSelect = useCallback((modelId: string) => {
+    setSelectedModel(modelId);
+  }, []);
 
   return (
     <div css={styles(theme)}>
@@ -122,7 +127,7 @@ const HuggingFaceModelSearch: React.FC = () => {
             >
               <Card
                 className="model-card"
-                onClick={() => setSelectedModel(model.id)}
+                onClick={() => handleModelSelect(model.id)}
                 variant={selectedModel === model.id ? "outlined" : "elevation"}
               >
                 <CardContent className="card-content">

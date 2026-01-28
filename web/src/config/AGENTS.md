@@ -623,11 +623,11 @@ Use environment variables for deployment-specific config:
 
 ```typescript
 // ✅ Good - environment-aware
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:7777';
 export const DEBUG = import.meta.env.DEV;
 
 // ❌ Bad - hardcoded
-export const API_URL = 'http://localhost:8000';
+export const API_URL = 'http://localhost:7777';
 ```
 
 ### 4. Immutability

@@ -7,7 +7,6 @@ import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
-import { isMac } from "../../utils/platform";
 
 interface TabsBarProps {
   workflows: WorkflowAttributes[];

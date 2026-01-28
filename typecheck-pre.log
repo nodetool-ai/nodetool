@@ -1,0 +1,18 @@
+Type checking web package...
+cd web && npm run typecheck
+
+> nodetool@0.6.2-rc.27 typecheck
+> tsc --noEmit
+
+Type checking electron package...
+cd electron && npm run typecheck
+
+> nodetool-electron@0.6.2-rc.27 typecheck
+> tsc --noEmit
+
+Type checking mobile package...
+cd mobile && npm run typecheck
+
+> nodetool-mobile@0.6.2-rc.27 typecheck
+> tsc --noEmit
+

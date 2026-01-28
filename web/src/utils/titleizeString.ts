@@ -1,4 +1,5 @@
-export const titleizeString = (str: string): string => {
+export const titleizeString = (str: string | undefined | null): string => {
+  if (!str) {return "";}
   return str
     .toLowerCase()
     .split(/[ _]+/)

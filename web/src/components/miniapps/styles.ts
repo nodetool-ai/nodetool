@@ -12,20 +12,77 @@ export const createStyles = (theme: Theme) => {
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    padding: theme.spacing(12, 18, 4),
-    paddingTop: "60px",
-    gap: theme.spacing(3),
-    overflow: "hidden",
+    padding: theme.spacing(3, 4),
+    paddingTop: "70px",
+    paddingBottom: theme.spacing(6),
+    paddingLeft: theme.spacing(2),
+    gap: theme.spacing(2.5),
+    overflow: "auto",
     width: "100%",
+    maxWidth: "1400px",
+    marginLeft: "auto",
+    marginRight: theme.spacing(8),
 
-    ".glass-card": {
+    [theme.breakpoints.down("md")]: {
+      padding: theme.spacing(2, 2.5),
+      paddingTop: "65px",
+      paddingBottom: theme.spacing(4),
+      paddingLeft: theme.spacing(1.5)
+    },
+
+    ".application-card": {
       position: "relative",
       borderRadius: doubledRadius,
-      backdropFilter: "blur(12px)",
-      backgroundColor: `color-mix(in srgb, ${theme.vars.palette.background.paper}, transparent 60%)`,
-      boxShadow: theme.shadows[4],
-      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.paper,
       overflow: "hidden"
+    },
+
+    // Header section
+    ".page-header": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(0.5),
+      paddingRight: theme.spacing(5),
+      marginBottom: theme.spacing(1)
+    },
+
+    ".workflow-description": {
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.text.secondary,
+      maxWidth: "800px"
+    },
+
+    // Status bar
+    ".status-bar": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(2),
+      padding: theme.spacing(1.5, 2),
+      borderRadius: doubledRadius,
+      backgroundColor: `color-mix(in srgb, ${theme.vars.palette.primary.main}, transparent 92%)`,
+      border: `1px solid ${theme.vars.palette.primary.main}25`,
+
+      [theme.breakpoints.down("sm")]: {
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: theme.spacing(1)
+      }
+    },
+
+    ".status-bar-text": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1),
+      flex: 1
+    },
+
+    ".status-bar-progress": {
+      flex: 1,
+      maxWidth: "400px",
+
+      [theme.breakpoints.down("sm")]: {
+        maxWidth: "none"
+      }
     },
 
     ".hero": {
@@ -140,15 +197,20 @@ export const createStyles = (theme: Theme) => {
 
     ".content-grid": {
       display: "grid",
-      gap: theme.spacing(3),
+      gap: theme.spacing(2.5),
       alignItems: "stretch",
       gridTemplateColumns: "minmax(0, 1fr)",
       minHeight: 0,
       position: "relative",
       zIndex: 1,
+      flex: 1,
+
+      [theme.breakpoints.up("md")]: {
+        gridTemplateColumns: "minmax(280px, 320px) minmax(0, 1fr)"
+      },
 
       [theme.breakpoints.up("lg")]: {
-        gridTemplateColumns: "minmax(0, 1fr) minmax(0, 2.25fr)"
+        gridTemplateColumns: "minmax(300px, 360px) minmax(0, 1fr)"
       },
 
       [theme.breakpoints.down("sm")]: {
@@ -159,33 +221,18 @@ export const createStyles = (theme: Theme) => {
     ".results-shell": {
       display: "flex",
       flexDirection: "column",
-      padding: theme.spacing(3),
-      minHeight: 420,
-      height: "100%",
-      gap: theme.spacing(2),
+      padding: theme.spacing(2),
+      paddingBottom: theme.spacing(4),
+      minHeight: "400px",
+      height: "90%",
+      gap: theme.spacing(1.5),
       overflow: "hidden",
 
       [theme.breakpoints.down("sm")]: {
-        padding: theme.spacing(2),
-        minHeight: 320
+        padding: theme.spacing(1.5),
+        paddingBottom: theme.spacing(3),
+        minHeight: "300px"
       }
-    },
-
-    ".results-heading": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: theme.spacing(1),
-
-      [theme.breakpoints.down("sm")]: {
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: theme.spacing(0.5)
-      }
-    },
-
-    ".results-title": {
-      fontWeight: 600
     },
 
     ".results-list": {
@@ -266,27 +313,67 @@ export const createStyles = (theme: Theme) => {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      gap: theme.spacing(1.5),
+      gap: theme.spacing(2),
       textAlign: "center",
       borderRadius: doubledRadius,
       color: theme.vars.palette.text.secondary,
       padding: theme.spacing(6),
-      background: "transparent",
+      background: `linear-gradient(135deg, 
+        ${theme.vars.palette.background.paper}00 0%, 
+        ${theme.vars.palette.primary.main}08 50%,
+        ${theme.vars.palette.background.paper}00 100%)`,
+      minHeight: "300px",
 
       [theme.breakpoints.down("sm")]: {
-        padding: theme.spacing(4)
+        padding: theme.spacing(4),
+        minHeight: "200px"
+      }
+    },
+
+    ".result-placeholder-icon": {
+      fontSize: "4rem",
+      opacity: 0.4,
+      marginBottom: theme.spacing(1)
+    },
+
+    ".result-placeholder-title": {
+      fontWeight: 600,
+      color: theme.vars.palette.text.primary
+    },
+
+    ".result-placeholder-subtitle": {
+      maxWidth: "320px",
+      lineHeight: 1.5
+    },
+
+    ".inputs-column": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(2),
+      position: "sticky",
+      top: theme.spacing(2),
+      maxHeight: "calc(100vh - 200px)",
+      marginBottom: theme.spacing(4),
+      alignSelf: "start",
+
+      [theme.breakpoints.down("md")]: {
+        position: "static",
+        maxHeight: "none"
       }
     },
 
     ".inputs-card": {
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(2.5),
-      padding: theme.spacing(3),
+      gap: theme.spacing(2),
+      padding: theme.spacing(2.5),
+      flex: "1 1 auto",
+      minHeight: 0,
+      overflow: "auto",
 
       [theme.breakpoints.down("sm")]: {
         padding: theme.spacing(2),
-        gap: theme.spacing(2)
+        gap: theme.spacing(1.5)
       }
     },
 
@@ -336,20 +423,14 @@ export const createStyles = (theme: Theme) => {
 
     ".composer-actions": {
       display: "flex",
-      justifyContent: "flex-end",
-      gap: theme.spacing(2),
-      alignItems: "center",
-
-      [theme.breakpoints.down("sm")]: {
-        flexDirection: "column",
-        alignItems: "stretch",
-        gap: theme.spacing(1.5)
-      }
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: theme.spacing(1)
     },
 
     ".generate-button": {
       padding: theme.spacing(1.25, 2.5),
-      fontWeight: 600,
+      fontWeight: 500,
 
       [theme.breakpoints.down("sm")]: {
         width: "100%"

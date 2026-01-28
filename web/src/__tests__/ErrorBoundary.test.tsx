@@ -21,10 +21,10 @@ jest.mock("@mui/material", () => ({
   )
 }));
 
-// Mock CopyToClipboardButton
-jest.mock("../components/common/CopyToClipboardButton", () => ({
-  CopyToClipboardButton: ({ copyValue }: { copyValue: string }) => (
-    <button data-testid="copy-button">Copy: {copyValue.substring(0, 20)}</button>
+// Mock CopyButton primitive
+jest.mock("../components/ui_primitives", () => ({
+  CopyButton: ({ value }: { value: string }) => (
+    <button data-testid="copy-button">Copy: {String(value).substring(0, 20)}</button>
   )
 }));
 
@@ -162,7 +162,7 @@ describe("ErrorBoundary", () => {
     expect(logo).toHaveAttribute("src", "/logo192.png");
   });
 
-  it("renders CopyToClipboardButton with stack trace", () => {
+  it("renders CopyButton with stack trace", () => {
     const testError = new Error("Test error");
     testError.stack = "Error: Test error\n  at TestComponent\n  at line 42";
     mockUseRouteError.mockReturnValue(testError);

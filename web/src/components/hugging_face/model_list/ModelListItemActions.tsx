@@ -1,7 +1,7 @@
-import React from "react";
+import React, { memo } from "react";
 import { Button, Tooltip, Chip, CircularProgress, Box } from "@mui/material";
 import { Check } from "@mui/icons-material";
-import DeleteButton from "../../buttons/DeleteButton";
+import { DeleteButton } from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 
 import {
@@ -125,3 +125,5 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
     </div>
   );
 };
+
+export default memo(ModelListItemActions);

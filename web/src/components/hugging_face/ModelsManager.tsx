@@ -6,13 +6,13 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Typography,
   Tooltip
 } from "@mui/material";
 import React from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import PanelHeadline from "../ui/PanelHeadline";
 
 const styles = (theme: Theme) =>
   css({
@@ -131,16 +131,20 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
       }}
     >
       <DialogTitle className="dialog-title">
-        <Typography>Model Manager</Typography>
-        <Tooltip title="Close">
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            className="close-button"
-          >
-            <CloseIcon />
-          </IconButton>
-        </Tooltip>
+        <PanelHeadline
+          title="Model Manager"
+          actions={
+            <Tooltip title="Close">
+              <IconButton
+                aria-label="close"
+                onClick={onClose}
+                className="close-button"
+              >
+                <CloseIcon />
+              </IconButton>
+            </Tooltip>
+          }
+        />
       </DialogTitle>
       <DialogContent
         sx={{

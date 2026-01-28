@@ -4,10 +4,10 @@ import { css } from "@emotion/react";
 import React from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
-import { ButtonGroup, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";
-import DeleteButton from "../buttons/DeleteButton";
+import { DeleteButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -116,6 +116,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
   const {
     isDragHovered,
     handleDrag,
+    handleDragEnd,
     handleDragOver,
     handleDragEnter,
     handleDragLeave,
@@ -141,6 +142,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
       }}
       // onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
+      onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -153,14 +155,11 @@ const FolderItem: React.FC<FolderItemProps> = ({
       {isParent && <NorthWest className="parent-icon" />}
       <Typography className="folder-name">{folder.name}</Typography>
       {showDeleteButton && (
-        <ButtonGroup className="asset-item-actions" size="small">
-          <DeleteButton<Asset>
-            className="asset-delete"
-            item={folder}
-            component="span"
-            onClick={() => handleDelete()}
-          />
-        </ButtonGroup>
+        <DeleteButton
+          className="asset-delete"
+          onClick={handleDelete}
+          buttonSize="small"
+        />
       )}
     </div>
   );

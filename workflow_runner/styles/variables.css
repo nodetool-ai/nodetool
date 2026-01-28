@@ -1,14 +1,89 @@
-/* Color variables */
+/* CSS Variables - NodeTool Theme */
 :root {
-    --bg-color: #1a1a1a;
-    --text-color: #e0e0e0;
-    --text-gray-color: #a2a2a2;
-    --selection-color: #76e5b992;
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a25;
+  --bg-card: rgba(26, 26, 37, 0.8);
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --accent-primary: #6366f1;
+  --accent-secondary: #8b5cf6;
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  --accent-glow: 0 0 40px rgba(99, 102, 241, 0.4);
+  --success: #50FA7B;
+  --error: #FF5555;
+  --warning: #FFB86C;
+  --selection-color: rgba(99, 102, 241, 0.3);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.2);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-    --primary-color: #76e5b8;
-    --secondary-color: #2a2a2a;
-    --border-color: #333;
-    --button-bg-color: #494949;
-    --input-bg: #3e3e3e;
-    --warning-color: #ffcc00;
+/* NodeTool Theme Colors */
+:root {
+  --c-black: #020202;
+  --c-bg-comment: #0F1115;
+  --c-brightest: #FCFCFC;
+  --c-white: #FCFCFC;
+  --c-background: #424854;
+  --c-node-menu: #232323;
+  --c-selection: #8EACA777;
+  --c-input: #374f4f;
+  --c-output: #493f4d;
+  --c-attention: #E35BFF;
+  --c-delete: #FF2222;
+  --c-debug: #FF3355;
+  --c-job: #223399;
+  --c-node: #029486;
+  --c-folder: #d6ae67;
+  --c-progress: #556611;
+  --c-link: #93C5FD;
+  --c-link-visited: #A5B4FC;
+  --c-scroll-bg: transparent;
+  --c-scroll-hover: #585858;
+  --c-scroll-thumb: #535353;
+  --c-node-bg: #1E1E1E;
+  --c-node-bg-group: #252525;
+  --c-node-header-bg: #161616;
+  --c-node-header-bg-group: #2A2A2A;
+  --c-bg-loop: #2563EB22;
+  --c-bg-group: #A1A4AD30;
+  --c-editor-bg-color: #232323;
+  --c-editor-grid-color: #353535;
+  --c-editor-axis-color: #2A2A2A;
+  --c-selection-rect: #cdcdcd33;
+  --c-provider-api: #93C5FD;
+  --c-provider-local: #86EFAC;
+  --c-provider-hf: #C4B5FD;
+  --c-app-header: #111111;
+  --c-tabs-header: #1E1E1E;
+
+  --provider-api: #93C5FD;
+  --provider-local: #86EFAC;
+  --provider-hf: #C4B5FD;
+
+  --Paper-default: #1a1a1a;
+  --Paper-paper: #1a1a1a;
+  --Paper-overlay: #222222;
+
+  --glass-blur: blur(16px) saturate(180%);
+  --glass-backgroundDialog: rgba(0, 0, 0, 0.2);
+  --glass-backgroundDialogContent: rgba(0, 0, 0, 0.6);
+
+  --rounded-dialog: 12px;
+  --rounded-node: 8px;
+  --rounded-buttonSmall: 6px;
+  --rounded-buttonLarge: 8px;
 }

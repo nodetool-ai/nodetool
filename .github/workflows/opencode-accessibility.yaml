@@ -1,0 +1,500 @@
+name: OpenCode Accessibility Audit
+
+on:
+  schedule:
+    - cron: "0 12 * * *" # Weekly on Tuesdays at noon UTC
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  opencode-accessibility:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        with:
+          model: zai-coding-plan/glm-4.7
+          prompt: |
+            # NodeTool Accessibility Audit
+
+            You are an autonomous accessibility agent improving NodeTool for all users, including those with disabilities.
+
+            ## Your Mission
+
+            **Audit and improve accessibility** across the UI. Ensure NodeTool is usable by people with visual, motor, auditory, and cognitive disabilities.
+
+            ## Project Context
+
+            **NodeTool** is a React/TypeScript visual AI workflow builder with complex node-based interface.
+            - **Tech Stack**: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
+            - **Accessibility Standards**: WCAG 2.1 Level AA compliance
+
+            ## Step 0: Check for Duplicate Work (CRITICAL!)
+
+            **BEFORE starting any work**:
+            1. **Run `git branch -a`** to see all existing branches
+            2. **Check for branches** with accessibility improvements
+            3. **Avoid creating duplicate branches**
+
+            ## Step 1: Check Memory (REQUIRED)
+
+            **Read these files FIRST**:
+            1. **`.github/opencode-memory/features.md`** - Understand UI features
+            2. `.github/opencode-memory/issues/` (list folders to see issues by topic) - Known a11y issues
+            3. `.github/opencode-memory/insights/` (list folders to see insights by topic) - A11y learnings
+            4. `.github/opencode-memory/project-context.md` - Architecture
+
+            ## Step 2: Accessibility Audit Areas
+
+            ### Keyboard Navigation
+            - All interactive elements keyboard accessible?
+            - Tab order logical and intuitive?
+            - Focus indicators visible?
+            - Keyboard shortcuts documented?
+            - No keyboard traps?
+
+            ### Screen Reader Support
+            - Semantic HTML elements used?
+            - ARIA labels present where needed?
+            - ARIA roles appropriate?
+            - Dynamic content updates announced?
+            - Images have alt text?
+
+            ### Visual Accessibility
+            - Color contrast meets WCAG AA (4.5:1)?
+            - Information not conveyed by color alone?
+            - Text resizable up to 200%?
+            - Focus indicators visible?
+            - Animations can be disabled?
+
+            ### Interactive Elements
+            - Buttons clearly labeled?
+            - Form inputs have labels?
+            - Error messages clear and helpful?
+            - Links descriptive (not "click here")?
+            - Tooltips accessible?
+
+            ### Complex UI Components
+            - Node editor keyboard navigable?
+            - Drag-and-drop has keyboard alternative?
+            - Modals properly trap focus?
+            - Dropdown menus accessible?
+            - Data tables properly structured?
+
+            ## Step 3: Accessibility Scanning
+
+            ### Check for Common Issues
+
+            **Missing ARIA labels**:
+            ```bash
+            # Find interactive elements without labels
+            grep -r "<button\|<IconButton" --include="*.tsx" web/src | grep -v "aria-label\|aria-labelledby"
+            
+            # Find images without alt text
+            grep -r "<img" --include="*.tsx" web/src | grep -v "alt="
+            
+            # Find form inputs without labels
+            grep -r "<input\|<TextField" --include="*.tsx" web/src | grep -v "label\|aria-label"
+            ```
+
+            **Semantic HTML**:
+            ```bash
+            # Find divs used as buttons (should be <button>)
+            grep -r "onClick=" --include="*.tsx" web/src | grep "<div\|<span" | head -20
+            
+            # Find heading structure issues
+            grep -r "<h[1-6]" --include="*.tsx" web/src
+            ```
+
+            **Keyboard navigation**:
+            ```bash
+            # Find elements that might trap focus
+            grep -r "onKeyDown\|onKeyPress" --include="*.tsx" web/src
+            
+            # Find custom keyboard handlers
+            grep -r "e\.preventDefault()\|e\.stopPropagation()" --include="*.tsx" web/src
+            ```
+
+            ## Step 4: Fix Accessibility Issues
+
+            ### Keyboard Navigation Fixes
+
+            **Add keyboard support**:
+            ```typescript
+            // ❌ Bad - div as button, not keyboard accessible
+            <div onClick={handleClick}>Click me</div>
+
+            // ✅ Good - proper button element
+            <button onClick={handleClick}>Click me</button>
+
+            // ✅ Good - div with keyboard support
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={handleClick}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleClick();
+                }
+              }}
+            >
+              Click me
+            </div>
+            ```
+
+            **Focus management**:
+            ```typescript
+            // ✅ Good - visible focus indicator
+            <Button
+              sx={{
+                '&:focus-visible': {
+                  outline: '2px solid',
+                  outlineColor: 'primary.main',
+                  outlineOffset: '2px'
+                }
+              }}
+            >
+              Save
+            </Button>
+
+            // ✅ Good - focus trap in modal
+            import { FocusTrap } from '@mui/material';
+
+            <Modal open={open}>
+              <FocusTrap>
+                <Box>
+                  {/* Modal content */}
+                </Box>
+              </FocusTrap>
+            </Modal>
+            ```
+
+            ### Screen Reader Fixes
+
+            **Add ARIA labels**:
+            ```typescript
+            // ❌ Bad - no accessible name
+            <IconButton onClick={handleDelete}>
+              <DeleteIcon />
+            </IconButton>
+
+            // ✅ Good - aria-label
+            <IconButton 
+              onClick={handleDelete}
+              aria-label="Delete workflow"
+            >
+              <DeleteIcon />
+            </IconButton>
+
+            // ❌ Bad - no alt text
+            <img src={asset.url} />
+
+            // ✅ Good - descriptive alt text
+            <img src={asset.url} alt={asset.name || 'Workflow asset'} />
+
+            // ❌ Bad - generic link text
+            <Link href="/docs">Click here</Link>
+
+            // ✅ Good - descriptive link text
+            <Link href="/docs">View documentation</Link>
+            ```
+
+            **Semantic HTML**:
+            ```typescript
+            // ❌ Bad - divs for everything
+            <div className="header">
+              <div className="title">NodeTool</div>
+            </div>
+
+            // ✅ Good - semantic elements
+            <header>
+              <h1>NodeTool</h1>
+            </header>
+
+            // ❌ Bad - div as list
+            <div>
+              <div>Item 1</div>
+              <div>Item 2</div>
+            </div>
+
+            // ✅ Good - proper list
+            <ul>
+              <li>Item 1</li>
+              <li>Item 2</li>
+            </ul>
+            ```
+
+            **Dynamic content updates**:
+            ```typescript
+            // ✅ Good - announce updates to screen readers
+            <div 
+              role="status" 
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {statusMessage}
+            </div>
+
+            // ✅ Good - announce errors
+            <div
+              role="alert"
+              aria-live="assertive"
+            >
+              {errorMessage}
+            </div>
+            ```
+
+            ### Visual Accessibility Fixes
+
+            **Color contrast**:
+            ```typescript
+            // ❌ Bad - poor contrast (2:1)
+            <Typography sx={{ color: '#999', backgroundColor: '#ccc' }}>
+              Text
+            </Typography>
+
+            // ✅ Good - sufficient contrast (4.5:1+)
+            <Typography sx={{ color: 'text.primary', backgroundColor: 'background.paper' }}>
+              Text
+            </Typography>
+
+            // ✅ Good - use theme colors (guaranteed contrast)
+            <Box sx={{ 
+              color: 'primary.contrastText',
+              bgcolor: 'primary.main' 
+            }}>
+              Text
+            </Box>
+            ```
+
+            **Text sizing**:
+            ```typescript
+            // ✅ Good - relative units
+            <Typography sx={{ fontSize: '1rem' }}>Text</Typography>
+
+            // ❌ Bad - fixed pixel sizes
+            <Typography sx={{ fontSize: '14px' }}>Text</Typography>
+            ```
+
+            **Motion preferences**:
+            ```typescript
+            // ✅ Good - respect prefers-reduced-motion
+            <Box
+              sx={{
+                transition: 'all 0.3s',
+                '@media (prefers-reduced-motion: reduce)': {
+                  transition: 'none'
+                }
+              }}
+            >
+              Content
+            </Box>
+            ```
+
+            ### Form Accessibility
+
+            **Form labels**:
+            ```typescript
+            // ❌ Bad - no label
+            <TextField
+              placeholder="Enter name"
+              value={name}
+              onChange={handleChange}
+            />
+
+            // ✅ Good - visible label
+            <TextField
+              label="Workflow Name"
+              value={name}
+              onChange={handleChange}
+              required
+              helperText="Give your workflow a descriptive name"
+            />
+
+            // ✅ Good - associated label
+            <Box>
+              <label htmlFor="workflow-name">Workflow Name</label>
+              <input id="workflow-name" value={name} onChange={handleChange} />
+            </Box>
+            ```
+
+            **Error handling**:
+            ```typescript
+            // ✅ Good - accessible error messages
+            <TextField
+              label="Email"
+              value={email}
+              onChange={handleChange}
+              error={!!error}
+              helperText={error}
+              aria-describedby={error ? 'email-error' : undefined}
+              aria-invalid={!!error}
+            />
+            {error && (
+              <FormHelperText id="email-error" error>
+                {error}
+              </FormHelperText>
+            )}
+            ```
+
+            ### Complex Component Accessibility
+
+            **ReactFlow node editor**:
+            ```typescript
+            // ✅ Good - keyboard navigation for nodes
+            const CustomNode = ({ data }: NodeProps) => {
+              return (
+                <Box
+                  tabIndex={0}
+                  role="article"
+                  aria-label={`${data.type} node: ${data.name}`}
+                  onKeyDown={(e) => {
+                    // Add keyboard shortcuts for node operations
+                    if (e.key === 'Delete') handleDelete();
+                    if (e.key === 'c' && e.ctrlKey) handleCopy();
+                  }}
+                >
+                  {/* Node content */}
+                </Box>
+              );
+            };
+            ```
+
+            **Dropdown menus**:
+            ```typescript
+            // ✅ Good - accessible dropdown
+            import { Menu, MenuItem } from '@mui/material';
+
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleClose}
+              aria-labelledby="menu-button"
+            >
+              <MenuItem onClick={handleOption1}>Option 1</MenuItem>
+              <MenuItem onClick={handleOption2}>Option 2</MenuItem>
+            </Menu>
+            ```
+
+            ## Step 5: Testing Accessibility
+
+            ### Manual Testing
+
+            1. **Keyboard navigation**:
+               - Tab through all interactive elements
+               - Ensure focus is visible
+               - Test all keyboard shortcuts
+               - Verify no keyboard traps
+
+            2. **Screen reader** (if available):
+               - Test with NVDA (Windows) or VoiceOver (Mac)
+               - Ensure all content is announced
+               - Verify button/link labels make sense
+               - Test form inputs and errors
+
+            3. **Visual testing**:
+               - Zoom to 200% and verify layout
+               - Test with Windows High Contrast mode
+               - Verify color contrast with DevTools
+               - Test with reduced motion settings
+
+            ### Automated Testing
+
+            ```bash
+            # Add accessibility tests to existing test suite
+            cd web
+            npm test
+
+            # Run type check and lint
+            npm run typecheck
+            npm run lint
+            ```
+
+            ## Step 6: Update Memory
+
+            **After accessibility improvements**, update memory files:
+
+            1. **`.github/opencode-memory/issues/` (list folders to see issues by topic)**:
+               - Document a11y issues found and fixed
+
+            2. **`.github/opencode-memory/insights/` (list folders to see insights by topic)**:
+               - Share accessibility patterns that work
+               - Document a11y best practices
+
+            3. **`.github/opencode-memory/project-context.md`** (MAX 5 entries, delete oldest):
+               - Add one line for accessibility improvements: `- **A11y Fix (date)**: Brief description. Files: x, y`
+
+            **After updating memory files, COMPACT THEM**:
+            ```bash
+            python scripts/compact-memory.py
+            ```
+            Commit the compacted files.
+
+            ## Accessibility Best Practices
+
+            1. **Use semantic HTML**: `<button>`, `<nav>`, `<main>`, `<header>`, etc.
+            2. **Provide text alternatives**: Alt text, ARIA labels, tooltips
+            3. **Ensure keyboard access**: All features work with keyboard only
+            4. **Maintain focus visibility**: Clear focus indicators
+            5. **Use sufficient contrast**: 4.5:1 for normal text, 3:1 for large text
+            6. **Support screen readers**: ARIA roles, labels, and live regions
+            7. **Make forms accessible**: Labels, error messages, validation
+            8. **Respect user preferences**: Reduced motion, high contrast, font size
+
+            ## Priority Guidelines
+
+            **Fix immediately**:
+            - Keyboard traps
+            - Missing form labels
+            - Insufficient color contrast
+            - Missing alt text on critical images
+
+            **Fix soon**:
+            - Incorrect ARIA usage
+            - Non-semantic HTML
+            - Missing focus indicators
+            - Inaccessible custom components
+
+            **Fix when convenient**:
+            - Suboptimal but functional patterns
+            - Minor contrast issues
+            - Nice-to-have keyboard shortcuts
+
+            ## If Accessibility Is Good
+
+            If no critical issues found:
+            1. Document good a11y in memory
+            2. Optionally add a11y tests
+            3. Optionally improve existing patterns
+            4. Don't make unnecessary changes
+
+            ## Remember
+
+            Accessibility isn't a feature—it's a right. Every improvement makes NodeTool usable by more people. Better accessibility often improves UX for everyone.
+
+            Now, make NodeTool accessible to all! ♿

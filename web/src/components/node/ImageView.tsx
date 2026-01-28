@@ -1,10 +1,14 @@
-import React, { useMemo, useRef, useCallback, useState } from "react";
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+
+import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
 import { Typography, IconButton, Tooltip } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import CheckIcon from "@mui/icons-material/Check";
+import DownloadIcon from "@mui/icons-material/Download";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
-import { isElectron } from "../../utils/browser";
 import { createImageUrl } from "../../utils/imageUtils";
+import ImageDimensions from "./ImageDimensions";
+import { CopyAssetButton } from "../common/CopyAssetButton";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -12,8 +16,9 @@ interface ImageViewProps {
 
 const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const [openViewer, setOpenViewer] = React.useState(false);
-  const [copied, setCopied] = useState(false);
   const blobUrlRef = useRef<string | null>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const imageUrl = useMemo(() => {
     const result = createImageUrl(source, blobUrlRef.current);
@@ -21,30 +26,52 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     return result.url || undefined;
   }, [source]);
 
-  const handleCopyToClipboard = useCallback(async () => {
-    if (!imageUrl) {return;}
-
-    try {
-      // Fetch image as blob to avoid CORS issues with canvas
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      
-      // Convert blob to data URL
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
+  const handleImageLoad = useCallback(() => {
+    if (imageRef.current) {
+      setImageDimensions({
+        width: imageRef.current.naturalWidth,
+        height: imageRef.current.naturalHeight
       });
-
-      await window.api.clipboardWriteImage(dataUrl);
-
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error("Failed to copy image to clipboard:", error);
     }
+  }, []);
+
+  useEffect(() => {
+    setImageDimensions(null);
   }, [imageUrl]);
+
+
+
+  const styles = css({
+    ".image-dimensions": {
+      opacity: 0,
+      transition: "opacity 0.2s ease"
+    },
+    "&:hover .image-dimensions": {
+      opacity: 1
+    },
+    ".image-view-actions": {
+      opacity: 0,
+      transition: "opacity 0.2s ease"
+    },
+    "&:hover .image-view-actions": {
+      opacity: 1
+    }
+  });
+
+  const handleDownload = useCallback(() => {
+    if (!imageUrl) { return; }
+
+    const link = document.createElement("a");
+    link.href = imageUrl;
+    link.download = `image-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [imageUrl]);
+
+  const handleOpenInViewer = useCallback(() => {
+    setOpenViewer(true);
+  }, []);
 
   if (!imageUrl) {
     return <Typography>No Image found</Typography>;
@@ -52,17 +79,16 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
 
   return (
     <div
+     css={styles}
       className="image-output"
       style={{
         position: "relative",
         display: "flex",
         justifyContent: "center",
-        alignItems: "flex-start",
+        alignItems: "center",
         width: "100%",
-        maxWidth: "100%",
-        height: "auto",
-        minHeight: "80px",
-        aspectRatio: "auto"
+        height: "100%",
+        minHeight: "80px"
       }}
     >
       <AssetViewer
@@ -71,40 +97,89 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         open={openViewer}
         onClose={() => setOpenViewer(false)}
       />
-      {isElectron && (
-        <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
+      <div
+        className="image-view-actions"
+        style={{
+          position: "absolute",
+          top: 4,
+          right: 40, // Leave space for history button in parent ResultOverlay
+          zIndex: 10,
+          display: "flex",
+          gap: "4px",
+          opacity: 0,
+          transition: "opacity 0.2s ease"
+        }}
+      >
+        <CopyAssetButton
+          contentType="image/png"
+          url={imageUrl}
+        />
+        <Tooltip title="Download" placement="top">
           <IconButton
-            onClick={handleCopyToClipboard}
             size="small"
+            onClick={handleDownload}
             sx={{
-              position: "absolute",
-              top: 4,
-              right: 4,
-              zIndex: 10,
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              color: "white",
+              width: 24,
+              height: 24,
+              padding: "4px",
+              backgroundColor: "rgba(0, 0, 0, 0.6)",
+              color: "#fff",
+              borderRadius: "4px",
               "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.7)"
+                backgroundColor: "rgba(0, 0, 0, 0.85)"
+              },
+              "& svg": {
+                fontSize: 14
               }
             }}
           >
-            {copied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+            <DownloadIcon />
           </IconButton>
         </Tooltip>
-      )}
+        <Tooltip title="Open in Viewer (double-click)" placement="top">
+          <IconButton
+            size="small"
+            onClick={handleOpenInViewer}
+            sx={{
+              width: 24,
+              height: 24,
+              padding: "4px",
+              backgroundColor: "rgba(0, 0, 0, 0.6)",
+              color: "#fff",
+              borderRadius: "4px",
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.85)"
+              },
+              "& svg": {
+                fontSize: 14
+              }
+            }}
+          >
+            <OpenInNewIcon />
+          </IconButton>
+        </Tooltip>
+      </div>
       <img
+        ref={imageRef}
         src={imageUrl}
         alt=""
+        onLoad={handleImageLoad}
         style={{
           width: "100%",
-          height: "auto",
-          maxHeight: "400px",
+          height: "100%",
           objectFit: "contain",
           borderRadius: "4px",
           cursor: "pointer"
         }}
         onDoubleClick={() => setOpenViewer(true)}
+        draggable={false}
       />
+      {imageDimensions && (
+        <ImageDimensions
+          width={imageDimensions.width}
+          height={imageDimensions.height}
+        />
+      )}
     </div>
   );
 };

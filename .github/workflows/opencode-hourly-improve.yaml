@@ -1,0 +1,313 @@
+name: Hourly OpenCode Improve
+
+on:
+  schedule:
+    - cron: "30 */6 * * *" # Every 6 hours
+
+jobs:
+  opencode:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches to enable merging and conflict resolution
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Install electron dependencies
+        run: |
+          cd electron
+          npm ci
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        with:
+          model: zai-coding-plan/glm-4.7
+          prompt: |
+            # NodeTool Code Quality Improvement (Scheduled Workflow)
+
+            You are an autonomous agent improving code quality in NodeTool, a visual AI workflow builder.
+
+            ## Your Mission
+
+            **Scan the codebase for bad practices, technical debt, or code quality issues.** If you find something worth fixing, submit a focused, high-quality PR.
+
+            ## Project Context
+
+            **NodeTool** is a React/TypeScript visual AI workflow builder.
+            - **Tech Stack**: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7, TanStack Query
+            - **Packages**: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
+            - **Backend**: Separate Python repository (not in this codebase)
+
+            ## Step 0: Check for Duplicate Work (CRITICAL!)
+
+            **BEFORE starting any work**:
+            1. **Run `git branch -a`** to see all existing branches
+            2. **Check for branches** with similar improvements or fixes
+            3. **Avoid creating duplicate branches** for the same issues
+            4. If a branch exists for similar work:
+               - Review what's already done
+               - Consider if you should continue that work
+               - Don't duplicate efforts
+
+            ## Step 1: Check Memory (REQUIRED)
+
+            **Read these files and folders FIRST** to avoid redundant work:
+            1. **`.github/opencode-memory/features.md`** - Complete feature list
+            2. **`.github/opencode-memory/issues/`** - List folders to see known issues by topic
+               - Check relevant topic folders (e.g., `issues/typescript/`, `issues/testing/`)
+               - Read specific issue files if your problem matches
+            3. `.github/opencode-memory/project-context.md` - Recent changes
+
+            **Example**: If fixing a TypeScript issue, list `issues/typescript/` first to see if it's documented.
+
+            **Check if this issue has been addressed before!**
+
+            ## Step 2: Scan for Issues
+
+            ### What to Look For
+
+            **Code Quality Issues**:
+            - TypeScript `any` types that should be explicit
+            - Missing type annotations
+            - Unused imports or variables
+            - Dead code or commented-out code blocks
+            - Inconsistent naming conventions
+            - Complex functions that need refactoring
+
+            **React Anti-Patterns**:
+            - Components re-rendering unnecessarily
+            - Missing `useCallback` on functions passed to children
+            - Improper hook dependencies
+            - Inefficient Zustand subscriptions:
+              ```typescript
+              // ❌ Bad - subscribes to entire store
+              const store = useNodeStore();
+
+              // ✅ Good - selective subscription
+              const node = useNodeStore(state => state.nodes[nodeId]);
+              ```
+            - Direct state mutations
+
+            **Performance Issues**:
+            - Large lists without virtualization
+            - Missing `useMemo` for expensive calculations
+            - Unnecessary effect dependencies
+            - Heavy computations in render
+
+            **Testing Gaps**:
+            - Critical functionality without tests
+            - Tests using implementation details
+            - Tests not following React Testing Library best practices
+            - Missing error case testing
+
+            **Security Concerns**:
+            - Potential XSS vulnerabilities
+            - Unsanitized user input
+            - Insecure randomness
+            - Exposed secrets or credentials
+
+            **Accessibility Issues**:
+            - Missing ARIA labels
+            - Poor keyboard navigation
+            - Insufficient color contrast
+            - Missing alt text on images
+
+            **Style Inconsistencies**:
+            - Hardcoded colors/spacing instead of theme values
+            - Inconsistent MUI component usage
+            - Mixed styling approaches
+
+            ## Step 3: Make Focused Improvements
+
+            ### Guidelines
+
+            1. **One Issue at a Time**: Submit focused PRs, not massive refactors
+            2. **High Impact First**: Prioritize bugs, security, performance over style
+            3. **Be Conservative**: Don't refactor working code unless there's clear benefit
+            4. **Follow Patterns**: Match existing code style and patterns
+            5. **Preserve Behavior**: Don't break existing functionality
+
+            ### Code Quality Standards
+
+            **TypeScript**:
+            ```typescript
+            // ✅ Good
+            interface NodeData {
+              id: string;
+              type: string;
+            }
+            const updateNode = (data: NodeData): void => { };
+
+            // ❌ Bad
+            const updateNode = (data: any) => { };
+            ```
+
+            **React Performance**:
+            ```typescript
+            // ✅ Good - selective subscription
+            const node = useNodeStore(state => state.nodes[id]);
+
+            // ✅ Good - memoized callback
+            const handleClick = useCallback(() => {
+              doSomething(id);
+            }, [id]);
+
+            // ✅ Good - expensive calculation only
+            const sorted = useMemo(() =>
+              items.sort((a, b) => a.value - b.value),
+              [items]
+            );
+            ```
+
+            **MUI Theming**:
+            ```typescript
+            // ✅ Good
+            <Box sx={{ p: 2, bgcolor: 'primary.main' }}>
+
+            // ❌ Bad
+            <Box style={{ padding: '16px', backgroundColor: '#1976d2' }}>
+            ```
+
+            **Testing**:
+            ```typescript
+            // ✅ Good - test behavior
+            await user.click(screen.getByRole('button', { name: /save/i }));
+            expect(mockSave).toHaveBeenCalled();
+
+            // ❌ Bad - test implementation
+            expect(component.state.count).toBe(1);
+            ```
+
+            ### Mandatory Quality Checks
+
+            **ALL PRs must pass:**
+            ```bash
+            make typecheck  # Exit code 0 required
+            make lint       # Exit code 0 required
+            make test       # Exit code 0 required
+            ```
+
+            Use `make lint-fix` to auto-fix many issues.
+
+            ## Step 4: Update Memory
+
+            **After fixing issues**, add a new file to the appropriate issues folder:
+
+            1. **`.github/opencode-memory/issues/<topic>/`** - Create a new file:
+               - Use kebab-case naming: `your-issue-title.md`
+               - Choose the right topic folder (typescript, testing, etc.)
+               - Format:
+               ```markdown
+               # Issue Title
+
+               **Problem**: One sentence describing the issue
+
+               **Solution**: One sentence or brief code snippet
+
+               **Files**: List affected files
+
+               **Date**: YYYY-MM-DD
+               ```
+
+            2. **`.github/opencode-memory/project-context.md`** - ONLY for significant fixes (MAX 5 entries, delete oldest):
+               ```markdown
+               - **Fix Title (YYYY-MM-DD)**: One sentence. Files: affected-file.tsx
+               ```
+
+            **Keep it minimal** - Only write truly important information.
+
+            ## Common Improvement Areas
+
+            ### TypeScript Strict Mode Violations
+            ```typescript
+            // Find and fix
+            grep -r "any" web/src --include="*.ts" --include="*.tsx"
+
+            // Replace with proper types
+            ```
+
+            ### Unnecessary Re-renders
+            ```typescript
+            // Look for components that use entire stores
+            // Replace with selective subscriptions
+            ```
+
+            ### Missing Tests
+            ```typescript
+            // Find critical files without tests
+            // Add test files following existing patterns
+            ```
+
+            ### Hardcoded Theme Values
+            ```typescript
+            // Search for hardcoded colors
+            grep -r "#[0-9a-fA-F]\{6\}" web/src --include="*.tsx"
+
+            // Replace with theme values
+            ```
+
+            ## Reference Documentation
+
+            - **Main docs**: `/AGENTS.md` - Complete project guide
+            - **Coding patterns**: `/.github/copilot-instructions.md` - Examples
+            - **Testing guide**: `/web/TESTING.md`
+            - **Component guide**: `/web/src/components/AGENTS.md`
+            - **Store patterns**: `/web/src/stores/AGENTS.md`
+
+            ## Best Practices for Autonomous Work
+
+            1. **Check memory first**: Don't repeat solved problems
+            2. **Be surgical**: Small, focused changes
+            3. **Test thoroughly**: Validate improvements don't break things
+            4. **Document solutions**: Update memory files
+            5. **Follow conventions**: Match existing code style
+            6. **Prioritize impact**: Bugs > Performance > Style
+
+            ## Scanning Strategy
+
+            1. **Run existing checks**: `make typecheck lint test` - fix any failures
+            2. **Use grep/find**: Search for anti-patterns
+            3. **Review recent changes**: `git log --oneline -20`
+            4. **Check high-traffic files**: Components used frequently
+            5. **Look at test coverage**: Areas without tests
+
+            ## What NOT to Fix
+
+            ❌ **Don't change**:
+            - Working code without clear benefit
+            - Stylistic preferences (unless documented in AGENTS.md)
+            - External dependencies (unless security issue)
+            - Code in `node_modules`
+            - Generated files or build artifacts
+
+            ✅ **Do change**:
+            - Type safety violations
+            - Performance bottlenecks
+            - Security vulnerabilities
+            - Accessibility issues
+            - Test gaps for critical features
+            - Documented anti-patterns
+
+            ## Remember
+
+            You're working autonomously. Be conservative. When in doubt, don't change it. Focus on clear improvements with measurable benefits. Check memory to avoid redundant work!
+
+            Now, scan for issues and make NodeTool better! 🔧

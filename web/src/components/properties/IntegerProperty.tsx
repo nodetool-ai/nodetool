@@ -2,25 +2,34 @@ import { memo } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
-import PropertyLabel from "../node/PropertyLabel";
+import { useInputMinMax } from "../../hooks/useInputMinMax";
 
 const IntegerProperty = (props: PropertyProps) => {
-  const id = `slider-${props.property.name}-${props.propertyIndex}`;
-  const name = props.property.name.replaceAll("_", " ");
-  const description = props.property.description || "No description available";
+  const { property, nodeId, value: propValue, hideLabel, tabIndex, changed, onChange, onChangeComplete } = props;
+  const id = `slider-${property.name}-${props.propertyIndex}`;
+  const name = property.name.replaceAll("_", " ");
+  const description = property.description || "No description available";
 
-  const value = Number.isInteger(props.value) ? props.value : 0;
+  const value = Number.isInteger(propValue) ? propValue : 0;
 
-  const min =
-    typeof props.property.min === "number" ? props.property.min : undefined;
-  const max =
-    typeof props.property.max === "number" ? props.property.max : undefined;
+  const { min, max } = useInputMinMax({
+    nodeType: props.nodeType,
+    nodeId: props.nodeId,
+    propertyName: props.property.name,
+    propertyMin: props.property.min,
+    propertyMax: props.property.max,
+  });
+
+  // Hide slider for min/max properties on input nodes (they define the range, not use it)
+  const isInputNode = props.nodeType === "nodetool.input.IntegerInput" || props.nodeType === "nodetool.input.FloatInput";
+  const isMinMaxProperty = property.name === "min" || property.name === "max";
+  const showSlider = !(isInputNode && isMinMaxProperty);
 
   return (
     <>
       <NumberInput
         id={id}
-        nodeId={props.nodeId}
+        nodeId={nodeId}
         name={name}
         description={description}
         value={value}
@@ -29,10 +38,13 @@ const IntegerProperty = (props: PropertyProps) => {
         size="small"
         color="secondary"
         inputType="int"
-        hideLabel={props.hideLabel}
-        tabIndex={props.tabIndex}
+        hideLabel={hideLabel}
+        tabIndex={tabIndex}
         zoomAffectsDragging={true}
-        onChange={(_, value) => props.onChange(Number(value))}
+        changed={changed}
+        showSlider={showSlider}
+        onChange={(_, newValue) => onChange(Number(newValue))}
+        onChangeComplete={onChangeComplete}
       />
     </>
   );

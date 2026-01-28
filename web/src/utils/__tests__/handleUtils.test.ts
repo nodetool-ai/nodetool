@@ -6,8 +6,6 @@ import {
   getAllInputHandles,
   hasOutputHandle,
   hasInputHandle,
-  OutputHandle,
-  InputHandle
 } from "../handleUtils";
 import { NodeData } from "../../stores/NodeData";
 import {

@@ -3,7 +3,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import WarningIcon from "@mui/icons-material/Warning";
 import LoginIcon from "@mui/icons-material/Login";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, memo } from "react";
 import {
   Button,
   TextField,
@@ -76,13 +76,13 @@ const RemoteSettings = () => {
     settingsByGroup: storeSettingsByGroup,
     settings
   } = useRemoteSettingsStore();
-  const { addNotification } = useNotificationStore();
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   // HuggingFace OAuth state
   const [hfOAuthLoading, setHfOAuthLoading] = useState(false);
-  
+
   // Google OAuth state
-  const [googleOAuthLoading, setGoogleOAuthLoading] = useState(false);
+  // const [googleOAuthLoading, setGoogleOAuthLoading] = useState(false);
 
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
@@ -114,6 +114,7 @@ const RemoteSettings = () => {
   const isConnected = !!((hfTokenData as any)?.tokens && (hfTokenData as any).tokens.length > 0);
 
   // Poll for Google OAuth completion
+  /*
   const { data: googleTokenData, isError: isGoogleTokenError } = useQuery({
     queryKey: ["google-oauth-token"],
     queryFn: async () => {
@@ -132,8 +133,9 @@ const RemoteSettings = () => {
     },
     retry: true
   });
+  */
 
-  const isGoogleConnected = !!((googleTokenData as any)?.tokens && (googleTokenData as any).tokens.length > 0);
+  // const isGoogleConnected = !!((googleTokenData as any)?.tokens && (googleTokenData as any).tokens.length > 0);
 
   // Handle OAuth completion side effects
   useEffect(() => {
@@ -157,6 +159,7 @@ const RemoteSettings = () => {
   }, [hfOAuthLoading, isConnected, isHfTokenError, addNotification]);
 
   // Handle Google OAuth completion side effects
+  /*
   useEffect(() => {
     if (googleOAuthLoading) {
       if (isGoogleConnected) {
@@ -176,6 +179,7 @@ const RemoteSettings = () => {
       }
     }
   }, [googleOAuthLoading, isGoogleConnected, isGoogleTokenError, addNotification]);
+  */
 
   const [settingValues, setSettingValues] = useState<Record<string, string>>(
     {}
@@ -203,7 +207,7 @@ const RemoteSettings = () => {
     }
 
     // Otherwise compute from data
-    if (!data || !Array.isArray(data)) {return new Map<string, SettingWithValue[]>();}
+    if (!data || !Array.isArray(data)) { return new Map<string, SettingWithValue[]>(); }
 
     const groups = new Map<string, SettingWithValue[]>();
     data.forEach((setting: SettingWithValue) => {
@@ -265,10 +269,9 @@ const RemoteSettings = () => {
 
       const authUrl = data.auth_url;
 
-      if (isElectron && window.require) {
-        // Electron environment
-        const { shell } = window.require("electron").shell;
-        shell.openExternal(authUrl);
+      if (isElectron && window.api?.shell?.openExternal) {
+        // Electron environment via IPC
+        await window.api.shell.openExternal(authUrl);
       } else {
         // Web environment - open in new window/tab
         window.open(authUrl, "_blank", "width=600,height=700");
@@ -284,6 +287,7 @@ const RemoteSettings = () => {
     }
   }, [addNotification]);
 
+  /*
   const handleGoogleOAuth = useCallback(async () => {
     setGoogleOAuthLoading(true);
 
@@ -298,7 +302,7 @@ const RemoteSettings = () => {
 
       if (isElectron && window.require) {
         // Electron environment
-        const { shell } = window.require("electron").shell;
+        const { shell } = window.require("electron");
         shell.openExternal(authUrl);
       } else {
         // Web environment - open in new window/tab
@@ -314,6 +318,7 @@ const RemoteSettings = () => {
       });
     }
   }, [addNotification]);
+  */
 
   const handleSave = useCallback(() => {
     const settings: Record<string, string> = {};
@@ -402,13 +407,14 @@ const RemoteSettings = () => {
                     {isConnected
                       ? "Connected to HuggingFace"
                       : hfOAuthLoading
-                      ? "Connecting..."
-                      : "Connect with HuggingFace"}
+                        ? "Connecting..."
+                        : "Connect with HuggingFace"}
                   </Button>
                 </div>
               </div>
 
               {/* Google OAuth Section */}
+              {/* Google OAuth Section - Hidden for now
               <div className="settings-section">
                 <Typography
                   variant="h2"
@@ -442,6 +448,7 @@ const RemoteSettings = () => {
                   </Button>
                 </div>
               </div>
+              */}
 
               {/* Render settings grouped by their group field */}
               {Array.from(displayedSettingsByGroup.entries()).map(
@@ -456,67 +463,67 @@ const RemoteSettings = () => {
                     {groupSettings
                       .filter((setting) => !setting.is_secret)
                       .map((setting) => (
-                      <div
-                        key={setting.env_var}
-                        className="settings-item large"
-                      >
-                        {setting.enum && setting.enum.length > 0 ? (
-                          <FormControl variant="standard" fullWidth>
-                            <InputLabel
-                              id={`${setting.env_var.toLowerCase()}-label`}
-                            >
-                              {setting.env_var.replace(/_/g, " ")}
-                            </InputLabel>
-                            <Select
-                              labelId={`${setting.env_var.toLowerCase()}-label`}
-                              id={`${setting.env_var.toLowerCase()}-select`}
+                        <div
+                          key={setting.env_var}
+                          className="settings-item large"
+                        >
+                          {setting.enum && setting.enum.length > 0 ? (
+                            <FormControl variant="standard" fullWidth>
+                              <InputLabel
+                                id={`${setting.env_var.toLowerCase()}-label`}
+                              >
+                                {setting.env_var.replace(/_/g, " ")}
+                              </InputLabel>
+                              <Select
+                                labelId={`${setting.env_var.toLowerCase()}-label`}
+                                id={`${setting.env_var.toLowerCase()}-select`}
+                                value={settingValues[setting.env_var] || ""}
+                                onChange={(e) =>
+                                  handleChange(setting.env_var, e.target.value)
+                                }
+                                onKeyDown={(e) => e.stopPropagation()}
+                              >
+                                {setting.enum.map((option: string) => (
+                                  <MenuItem key={option} value={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          ) : (
+                            <TextField
+                              type={setting.is_secret ? "password" : "text"}
+                              autoComplete="off"
+                              id={`${setting.env_var.toLowerCase()}-input`}
+                              label={setting.env_var.replace(/_/g, " ")}
                               value={settingValues[setting.env_var] || ""}
                               onChange={(e) =>
                                 handleChange(setting.env_var, e.target.value)
                               }
+                              variant="standard"
                               onKeyDown={(e) => e.stopPropagation()}
-                            >
-                              {setting.enum.map((option: string) => (
-                                <MenuItem key={option} value={option}>
-                                  {option}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        ) : (
-                          <TextField
-                            type={setting.is_secret ? "password" : "text"}
-                            autoComplete="off"
-                            id={`${setting.env_var.toLowerCase()}-input`}
-                            label={setting.env_var.replace(/_/g, " ")}
-                            value={settingValues[setting.env_var] || ""}
-                            onChange={(e) =>
-                              handleChange(setting.env_var, e.target.value)
-                            }
-                            variant="standard"
-                            onKeyDown={(e) => e.stopPropagation()}
-                          />
-                        )}
-                        {setting.description && (
-                          <Typography className="description">
-                            {setting.description}
-                          </Typography>
-                        )}
-                        {SETTING_LINKS[setting.env_var] && (
-                          <div style={{ marginTop: "0.5em" }}>
-                            <ExternalLink
-                              href={SETTING_LINKS[setting.env_var]}
-                              tooltipText={
-                                SETTING_TOOLTIPS[setting.env_var] || ""
-                              }
-                            >
-                              {SETTING_BUTTON_TITLES[setting.env_var] ||
-                                "GET YOUR API KEY"}
-                            </ExternalLink>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                            />
+                          )}
+                          {setting.description && (
+                            <Typography className="description">
+                              {setting.description}
+                            </Typography>
+                          )}
+                          {SETTING_LINKS[setting.env_var] && (
+                            <div style={{ marginTop: "0.5em" }}>
+                              <ExternalLink
+                                href={SETTING_LINKS[setting.env_var]}
+                                tooltipText={
+                                  SETTING_TOOLTIPS[setting.env_var] || ""
+                                }
+                              >
+                                {SETTING_BUTTON_TITLES[setting.env_var] ||
+                                  "GET YOUR API KEY"}
+                              </ExternalLink>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                   </div>
                 )
               )}
@@ -545,4 +552,4 @@ const RemoteSettings = () => {
   );
 };
 
-export default RemoteSettings;
+export default memo(RemoteSettings);

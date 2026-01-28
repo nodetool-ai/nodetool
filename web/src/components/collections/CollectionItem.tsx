@@ -93,7 +93,7 @@ const CollectionItem = ({
   onDragLeave,
   deleteMutation
 }: CollectionItemProps) => {
-  const { addNotification } = useNotificationStore();
+  const addNotification = useNotificationStore((state) => state.addNotification);
   const queryClient = useQueryClient();
   const [isEditingWorkflow, setIsEditingWorkflow] = useState(false);
 

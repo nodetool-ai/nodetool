@@ -1,16 +1,21 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, useRef } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Button, TextField, Tooltip } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
+import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
 import AssetViewer from "../assets/AssetViewer";
 import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
+import VideoRecorder from "../video/VideoRecorder";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
+import { isElectron } from "../../utils/browser";
+import { useAssetUpload } from "../../serverState/useAssetUpload";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -40,8 +45,9 @@ const PropertyDropzone = ({
     type: contentType as "image" | "audio" | "video" | "all"
   });
 
-  const [showUrlInput, setShowUrlInput] = useState(false);
   const [openViewer, setOpenViewer] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
 
   const styles = (theme: Theme) =>
@@ -55,55 +61,36 @@ const PropertyDropzone = ({
         alignItems: "normal",
         gap: "0"
       },
-      ".toggle-url-button": {
-        position: "absolute",
-        top: "-15px",
-        right: "0",
-        zIndex: 2,
+      ".native-picker-button": {
         color: theme.vars.palette.grey[500],
         backgroundColor: "transparent",
-        fontSize: "10px",
-        fontWeight: 600,
-        lineHeight: "1",
-        height: "auto",
         minWidth: "unset",
-        margin: "0",
-        padding: "2px 4px",
-        borderRadius: "4px",
         transition: "all 0.2s ease",
         "&:hover": {
           color: theme.vars.palette.primary.main,
           backgroundColor: theme.vars.palette.action.hover
+        },
+        "& svg": {
+          fontSize: "1.2rem"
         }
       },
-      ".url-input": {
-        height: "1em",
-        width: "calc(100% - 24px)",
-        maxWidth: "120px",
-        zIndex: 1,
-        bottom: "0em",
-        borderRadius: "0",
-        backgroundColor: theme.vars.palette.grey[600],
-        margin: "0 0 .5em 0",
-        padding: ".2em .5em .1em .5em"
-      },
-      ".url-input input": {
-        margin: 0,
-        maxWidth: "230px",
-        fontFamily: theme.fontFamily1,
-        fontSize: theme.fontSizeTiny,
-        padding: "0"
-      },
-      ".url-input fieldset": {
-        border: "0"
-      },
       ".dropzone": {
+        position: "relative",
         minHeight: "30px",
-        width: showUrlInput ? "100%" : "100%",
+        width: "100%",
         border: "0",
         maxWidth: "none",
         textAlign: "left",
         transition: "all 0.2s ease",
+        outline: `1px dashed ${theme.vars.palette.grey[600]}`,
+        margin: "5px 0",
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        borderRadius: "6px",
+
+        "&:hover": {
+          outline: `1px dashed ${theme.vars.palette.grey[400]}`,
+          backgroundColor: "rgba(0, 0, 0, 0.3)"
+        },
         "&.drag-over": {
           backgroundColor: theme.vars.palette.grey[600],
           outline: `2px dashed ${theme.vars.palette.grey[100]}`,
@@ -113,14 +100,46 @@ const PropertyDropzone = ({
       ".dropzone.dropped": {
         width: "100%",
         border: "0",
-        maxWidth: "none"
+        maxWidth: "none",
+        outline: `1px solid ${theme.vars.palette.grey[700]}`,
+        backgroundColor: "transparent",
+        padding: "4px"
       },
       ".dropzone p": {
         textAlign: "left"
       },
+      ".dropzone p.centered": {
+        margin: "auto",
+        textAlign: "left",
+        padding: "1em",
+        minWidth: "60px",
+        minHeight: "14px",
+        lineHeight: "1.1em",
+        fontFamily: theme.fontFamily2,
+        textTransform: "uppercase",
+        letterSpacing: "1px",
+        fontSize: "10px",
+        color: theme.vars.palette.grey[500]
+      },
+      ".dropzone img": {
+        height: "auto",
+        maxWidth: "100%",
+        maxHeight: "300px",
+        margin: "0 auto",
+        display: "block",
+        width: "auto !important",
+        borderRadius: "4px"
+      },
       ".prop-drop": {
         fontSize: theme.fontSizeTiny,
         lineHeight: "1.1em"
+      },
+      ".image-dimensions": {
+        opacity: 0,
+        transition: "opacity 0.2s ease"
+      },
+      "&:hover .image-dimensions": {
+        opacity: 1
       }
     });
 
@@ -146,6 +165,113 @@ const PropertyDropzone = ({
     [onDrop]
   );
 
+  const handleImageLoad = useCallback(() => {
+    if (imageRef.current) {
+      setImageDimensions({
+        width: imageRef.current.naturalWidth,
+        height: imageRef.current.naturalHeight
+      });
+    }
+  }, []);
+
+  const handleDoubleClick = useCallback(() => {
+    setOpenViewer(true);
+  }, []);
+
+  const handleCloseViewer = useCallback(() => {
+    setOpenViewer(false);
+  }, []);
+
+  const _handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ uri: e.target.value, type: contentType });
+  }, [onChange, contentType]);
+
+  const handleVolumeChange = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
+    e.currentTarget.volume = 1;
+  }, []);
+
+  const { uploadAsset: uploadAssetFn } = useAssetUpload();
+
+  const handleNativeFilePicker = useCallback(async () => {
+    if (!window.api?.dialog?.openFile) {
+      return;
+    }
+
+    try {
+      // Get appropriate file filters based on content type
+      const getFilters = () => {
+        const type = contentType.split("/")[0];
+        switch (type) {
+          case "image":
+            return [
+              { name: "Images", extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"] }
+            ];
+          case "audio":
+            return [
+              { name: "Audio", extensions: ["mp3", "wav", "ogg", "m4a", "flac", "aac"] }
+            ];
+          case "video":
+            return [
+              { name: "Video", extensions: ["mp4", "avi", "mov", "wmv", "flv", "webm", "mkv"] }
+            ];
+          case "document":
+            return [
+              { name: "Documents", extensions: ["pdf", "doc", "docx", "txt", "html"] }
+            ];
+          default:
+            return undefined;
+        }
+      };
+
+      const result = await window.api.dialog.openFile({
+        title: `Select ${contentType.split("/")[0]}`,
+        filters: getFilters()
+      });
+
+      if (!result.canceled && result.filePaths.length > 0) {
+        const filePath = result.filePaths[0];
+
+        // Read the file as data URL using Electron's IPC
+        const dataUrl = await window.api.clipboard?.readFileAsDataURL(filePath);
+
+        if (!dataUrl) {
+          console.error("Failed to read file");
+          return;
+        }
+
+        // Convert data URL to Blob
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+
+        // Get filename with fallback that includes an extension
+        const pathSegments = filePath.split(/[\\/]/);
+        let fileName = pathSegments[pathSegments.length - 1];
+
+        if (!fileName) {
+          // If we can't get filename, create one based on content type
+          const ext = contentType.split("/")[1] || "bin";
+          fileName = `file.${ext}`;
+        }
+
+        // Use contentType for consistency, not blob.type which may be incorrect
+        const file = new File([blob], fileName, { type: contentType });
+
+        // Upload the file as an asset
+        uploadAssetFn({
+          file,
+          onCompleted: (asset) => {
+            onChange({ uri: asset.get_url || "", type: contentType });
+          },
+          onFailed: (error) => {
+            console.error("Failed to upload asset:", error);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error opening file picker:", error);
+    }
+  }, [contentType, onChange, uploadAssetFn]);
+
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
       case "image":
@@ -155,14 +281,25 @@ const PropertyDropzone = ({
               contentType={contentType + "/*"}
               url={uri}
               open={openViewer}
-              onClose={() => setOpenViewer(false)}
+              onClose={handleCloseViewer}
             />
-            <img
-              src={asset?.get_url || uri || ""}
-              alt=""
-              style={{ width: "100%", height: "auto" }}
-              onDoubleClick={() => setOpenViewer(true)}
-            />
+            <div style={{ position: "relative" }}>
+              <img
+                ref={imageRef}
+                src={asset?.get_url || uri || ""}
+                alt={asset?.name || ""}
+                style={{ width: "100%", height: "auto" }}
+                onLoad={handleImageLoad}
+                onDoubleClick={handleDoubleClick}
+                draggable={false}
+              />
+              {imageDimensions && (
+                <ImageDimensions
+                  width={imageDimensions.width}
+                  height={imageDimensions.height}
+                />
+              )}
+            </div>
           </>
         );
       case "audio":
@@ -175,11 +312,11 @@ const PropertyDropzone = ({
                   asset={asset ? asset : undefined}
                   url={uri ? uri : undefined}
                   open={openViewer}
-                  onClose={() => setOpenViewer(false)}
+                  onClose={handleCloseViewer}
                 />
                 <audio
                   style={{ width: "100%", height: "20px" }}
-                  onVolumeChange={(e) => (e.currentTarget.volume = 1)}
+                  onVolumeChange={handleVolumeChange}
                   src={uri as string}
                 >
                   Your browser does not support the audio element.
@@ -202,7 +339,7 @@ const PropertyDropzone = ({
                   asset={asset ? asset : undefined}
                   url={uri ? uri : undefined}
                   open={openViewer}
-                  onClose={() => setOpenViewer(false)}
+                  onClose={handleCloseViewer}
                 />
                 <video
                   style={{ width: "100%", height: "auto" }}
@@ -219,7 +356,6 @@ const PropertyDropzone = ({
           </>
         );
       case "document": {
-        // Check file extension
         const fileExtension = uri?.toLowerCase().split(".").pop();
 
         if (fileExtension === "pdf") {
@@ -249,45 +385,27 @@ const PropertyDropzone = ({
       default:
         return null;
     }
-  }, [contentType, uri, openViewer, asset, id, filename]);
+  }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, handleDoubleClick, handleCloseViewer, imageDimensions, handleVolumeChange]);
 
   return (
     <div css={styles(theme)}>
-      <div className="drop-container">
-        {showUrlInput && (
-          <TextField
-            className="url-input nowheel nodrag"
-            value={uri || ""}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            onChange={(e) =>
-              onChange({ uri: e.target.value, type: contentType })
-            }
-            placeholder={`Enter ${contentType.split("/")[0]} URL`}
-          />
-        )}
-
-        <Tooltip
-          title={showUrlInput ? "Hide URL input" : "Show input to enter a URL"}
-        >
+      {isElectron && (
+        <Tooltip title="Open file picker to select a file from your computer">
           <Button
-            className="toggle-url-button"
+            className="native-picker-button"
             variant="text"
-            style={{
-              opacity: showUrlInput ? 0.8 : 1
-            }}
-            onClick={() => setShowUrlInput(!showUrlInput)}
+            onClick={handleNativeFilePicker}
           >
-            {showUrlInput ? "X" : "URL"}
+            <FolderOpenIcon />
+            Select {contentType}
           </Button>
         </Tooltip>
+      )}
 
+      <div className="drop-container">
         <div
-          className={`dropzone ${uri ? "dropped" : ""} ${
-            isDragOver ? "drag-over" : ""
-          }`}
+          className={`dropzone ${uri ? "dropped" : ""} ${isDragOver ? "drag-over" : ""
+            }`}
           style={{
             borderWidth: uri === "" ? "1px" : "0px"
           }}
@@ -303,6 +421,9 @@ const PropertyDropzone = ({
         </div>
         {contentType.split("/")[0] === "audio" && showRecorder && (
           <WaveRecorder onChange={onChangeAsset} />
+        )}
+        {contentType.split("/")[0] === "video" && showRecorder && (
+          <VideoRecorder onChange={onChangeAsset} />
         )}
       </div>
     </div>

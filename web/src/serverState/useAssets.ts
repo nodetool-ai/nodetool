@@ -7,7 +7,6 @@ import useAuth from "../stores/useAuth";
 import { useAssetGridStore } from "../stores/AssetGridStore";
 import { SIZE_FILTERS } from "../utils/formatUtils";
 
-type SortOrder = "name" | "date" | "size";
 type FilterOptions = {
   searchTerm: string;
   contentType?: string | null;
@@ -25,7 +24,7 @@ type AssetUpdate = {
   duration?: number;
 };
 
-export const useAssets = (initialFolderId: string | null = null) => {
+export const useAssets = (_initialFolderId: string | null = null) => {
   const setCurrentFolderId = useAssetGridStore(
     (state) => state.setCurrentFolderId
   );

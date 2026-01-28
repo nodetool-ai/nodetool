@@ -168,6 +168,7 @@ const TabHeader = ({
             type="text"
             defaultValue={workflow.name}
             autoFocus
+            onFocus={(e) => e.target.select()}
             onBlur={(e) => onNameChange(workflow.id, e.target.value)}
             onKeyDown={handleKeyDown}
             onClick={(e) => e.stopPropagation()}

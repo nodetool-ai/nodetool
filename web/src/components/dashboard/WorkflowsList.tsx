@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import {
   Box,
@@ -15,6 +15,7 @@ import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import AddIcon from "@mui/icons-material/Add";
+import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
 
 interface WorkflowsListProps {
   sortedWorkflows: Workflow[];
@@ -141,6 +142,11 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   handleWorkflowClick
 }) => {
   const theme = useTheme();
+
+  const onWorkflowClick = useCallback((workflow: Workflow) => {
+    handleWorkflowClick(workflow);
+  }, [handleWorkflowClick]);
+
   return (
     <div className="workflows-list" css={styles(theme)}>
       <Box className="header-controls">
@@ -161,7 +167,13 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <ToggleButton value="name">Name</ToggleButton>
             <ToggleButton value="updated_at">Date</ToggleButton>
           </ToggleButtonGroup>
-          <Tooltip title="Create New Workflow">
+          <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          placement="top"
+          title="Create New Workflow"
+          arrow
+          >
             <Button
               className="create-button"
               startIcon={<AddIcon />}
@@ -181,7 +193,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <Box
               key={workflow.id}
               className="workflow-item"
-              onClick={() => handleWorkflowClick(workflow)}
+              onClick={onWorkflowClick.bind(null, workflow)}
             >
               <Box
                 className="workflow-thumbnail"
@@ -210,4 +222,4 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   );
 };
 
-export default WorkflowsList;
+export default memo(WorkflowsList);

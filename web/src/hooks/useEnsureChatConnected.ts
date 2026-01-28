@@ -1,42 +1,35 @@
 import { useEffect } from "react";
-import useGlobalChatStore from "../stores/GlobalChatStore";
-import type { NodeStore } from "../stores/NodeStore";
 
 type UseEnsureChatConnectedOptions = {
-  nodeStore?: NodeStore | null;
   autoConnect?: boolean;
   disconnectOnUnmount?: boolean;
 };
 
+/**
+ * Hook to ensure the GlobalWebSocketManager connection is active.
+ *
+ * NOTE: The GlobalWebSocketManager now handles connection automatically,
+ * so this hook is largely a no-op. It's kept for compatibility.
+ */
 export function useEnsureChatConnected(
-  options: UseEnsureChatConnectedOptions = {}
+  _options: UseEnsureChatConnectedOptions = {}
 ) {
-  const {
-    nodeStore = null,
-    autoConnect = true,
-    disconnectOnUnmount = false
-  } = options;
-  const { status, connect, disconnect } = useGlobalChatStore();
+  const { autoConnect = true, disconnectOnUnmount = false } = _options;
 
-  // Effect 1: ensure connection when needed
   useEffect(() => {
-    if (!autoConnect) {return;}
-
-    if (status === "disconnected" || status === "failed") {
-      connect().catch((error) => {
-        console.error("Failed to connect to global chat:", error);
-      });
+    if (!autoConnect) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, nodeStore, autoConnect]);
 
-  // Effect 2: disconnect strictly on unmount if requested
-  useEffect(() => {
+    // Connection is handled automatically by GlobalWebSocketManager
+    // Just log for debugging
+    console.log("useEnsureChatConnected: WebSocketManager handles connection automatically");
+
     return () => {
       if (disconnectOnUnmount) {
-        disconnect();
+        // WebSocketManager doesn't have a disconnect method in the new architecture
+        // The connection is managed by the singleton and kept alive
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disconnectOnUnmount]);
+  }, [autoConnect, disconnectOnUnmount]);
 }

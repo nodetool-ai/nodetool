@@ -7,7 +7,6 @@ import React, {
   useRef,
   useEffect
 } from "react";
-import Plot from "react-plotly.js";
 
 import {
   Asset,
@@ -16,12 +15,10 @@ import {
   Message,
   NPArray,
   TaskPlan,
-  PlotlyConfig,
   Task,
   CalendarEvent
 } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
-import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 import { Container, List, ListItem, ListItemText } from "@mui/material";
@@ -33,6 +30,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "lodash/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
+import Model3DViewer from "../asset_viewer/Model3DViewer";
 import {
   typeFor,
   renderSVGDocument,
@@ -51,7 +49,8 @@ import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
-// import left for future reuse of audio stream component when needed
+import PlotlyRenderer from "./output/PlotlyRenderer";
+import DataframeRenderer from "./output/DataframeRenderer";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -293,6 +292,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const [openAsset, setLocalOpenAsset] = useState<Asset | null>(null);
+  const [openModel3D, setOpenModel3D] = useState<{
+    url: string;
+    contentType?: string;
+  } | null>(null);
   const { scrollRef, handleMouseDown } = useDraggableScroll();
 
   const type = useMemo(() => typeFor(value), [value]);
@@ -311,27 +314,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     [computedViewer.assets, setOpenAsset]
   );
 
+  const handleModel3DClick = useCallback((url: string, contentType?: string) => () => {
+    setOpenModel3D({ url, contentType });
+  }, []);
+
   const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
   const renderContent = useMemo(() => {
-    let config: PlotlyConfig | undefined;
     switch (type) {
       case "plotly_config":
-        config = value as PlotlyConfig;
-        return (
-          <div
-            className="render-content"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <Plot
-              data={config.config.data as Plotly.Data[]}
-              layout={config.config.layout as Partial<Plotly.Layout>}
-              config={config.config.config as Partial<Plotly.Config>}
-              frames={config.config.frames as Plotly.Frame[] | undefined}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </div>
-        );
+        return <PlotlyRenderer config={value} />;
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
       case "image":
@@ -344,7 +336,19 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             />
           ));
         } else {
-          return <ImageView source={value?.uri ? value?.uri : value?.data} />;
+          let imageSource: string | Uint8Array;
+          if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
+            imageSource = value.uri;
+          } else if (value?.data instanceof Uint8Array) {
+            imageSource = value.data;
+          } else if (Array.isArray(value?.data)) {
+            imageSource = new Uint8Array(value.data);
+          } else if (typeof value?.data === "string") {
+            imageSource = value.data;
+          } else {
+            imageSource = "";
+          }
+          return <ImageView source={imageSource} />;
         }
       case "audio": {
         // Handle different audio data formats
@@ -389,8 +393,35 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             style={{ width: "100%", height: "100%" }}
           />
         );
+      case "model_3d": {
+        const url: string =
+          (value && typeof value === "object" && typeof value.uri === "string"
+            ? value.uri
+            : "") || "";
+
+        if (!url) {
+          return <JSONRenderer value={value} showActions={showTextActions} />;
+        }
+
+        const format =
+          value && typeof value === "object" && typeof (value as any).format === "string"
+            ? ((value as any).format as string)
+            : undefined;
+        const contentType =
+          format === "gltf" ? "model/gltf+json" : "model/gltf-binary";
+
+        return (
+          <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
+            <Model3DViewer
+              url={url}
+              compact={true}
+              onClick={handleModel3DClick(url, contentType)}
+            />
+          </div>
+        );
+      }
       case "dataframe":
-        return <DataTable dataframe={value as DataframeRef} editable={false} />;
+        return <DataframeRenderer dataframe={value as DataframeRef} />;
       case "np_array":
         return (
           <div className="tensor nodrag">
@@ -549,8 +580,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   {chunks.map((c) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
-                        `chunk:${(c as any)?.content_type ?? ""}:${
-                          (c as any)?.done ? 1 : 0
+                        `chunk:${(c as any)?.content_type ?? ""}:${(c as any)?.done ? 1 : 0
                         }:${hashStringBounded(
                           typeof (c as any)?.content === "string"
                             ? (c as any).content
@@ -614,7 +644,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 description: ""
               }))
             };
-            return <DataTable dataframe={df} editable={false} />;
+            return <DataframeRenderer dataframe={df} />;
           }
         }
 
@@ -684,15 +714,24 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     videoRef,
     handleMouseDown,
     scrollRef,
-    showTextActions
+    showTextActions,
+    handleModel3DClick
   ]);
+
+  const handleCloseAsset = useCallback(() => {
+    setLocalOpenAsset(null);
+  }, []);
+
+  const handleCloseModel3D = useCallback(() => {
+    setOpenModel3D(null);
+  }, []);
 
   if (!shouldRender) {
     return null;
   }
 
   return (
-    <div className="nodrag" style={{ height: "100%", width: "100%" }}>
+    <div style={{ height: "100%", width: "100%" }}>
       {openAsset && (
         <AssetViewer
           asset={openAsset}
@@ -700,7 +739,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             computedViewer.assets.length ? computedViewer.assets : undefined
           }
           open={openAsset !== null}
-          onClose={() => setLocalOpenAsset(null)}
+          onClose={handleCloseAsset}
+        />
+      )}
+      {openModel3D && (
+        <AssetViewer
+          url={openModel3D.url}
+          contentType={openModel3D.contentType}
+          open={true}
+          onClose={handleCloseModel3D}
         />
       )}
       {renderContent}

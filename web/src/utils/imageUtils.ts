@@ -65,7 +65,8 @@ export const createImageUrl = (
     if (
       data.startsWith("data:") ||
       data.startsWith("blob:") ||
-      data.startsWith("http")
+      data.startsWith("http") ||
+      data.startsWith("/")
     ) {
       return { url: data, blobUrl: null };
     }

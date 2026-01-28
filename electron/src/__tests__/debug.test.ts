@@ -162,7 +162,7 @@ describe('redactLogSecrets', () => {
   });
 
   it('should preserve non-secret content', () => {
-    const log = 'Starting server on port 8000\nLoaded 5 workflows';
+    const log = 'Starting server on port 7777\nLoaded 5 workflows';
     const result = redactLogSecrets(log);
     
     expect(result).toBe(log);

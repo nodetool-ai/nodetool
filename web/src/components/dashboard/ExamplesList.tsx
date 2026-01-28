@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
-import { Box, Typography, CircularProgress, Button } from "@mui/material";
+import React, { useCallback } from "react";
+import { Box, Typography, CircularProgress } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
@@ -115,6 +116,14 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
   handleViewAllTemplates
 }) => {
   const theme = useTheme();
+
+  const handleCardClick = useCallback(
+    (example: Workflow) => () => {
+      handleExampleClick(example);
+    },
+    [handleExampleClick]
+  );
+
   return (
     <Box className="examples-list" css={styles(theme)}>
       <Box
@@ -139,7 +148,7 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
               <Box
                 key={example.id}
                 className="example-card"
-                onClick={() => handleExampleClick(example)}
+                onClick={handleCardClick(example)}
               >
                 {loadingExampleId === example.id && (
                   <Box className="loading-overlay">
@@ -165,14 +174,15 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
           </Box>
         )}
       </Box>
-      <Button
+      <EditorButton
         onClick={handleViewAllTemplates}
         sx={{ marginTop: 2, alignSelf: "center" }}
+        density="normal"
       >
         View All Templates
-      </Button>
+      </EditorButton>
     </Box>
   );
 };
 
-export default ExamplesList;
+export default React.memo(ExamplesList);

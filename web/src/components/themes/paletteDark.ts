@@ -140,10 +140,10 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#000"
   },
   info: {
-    main: "#60A5FA",
-    light: "#93C5FD",
-    dark: "#1D4ED8",
-    contrastText: "#0B1220"
+    main: "#22D3EE",
+    light: "#67E8F9",
+    dark: "#0891B2",
+    contrastText: "#03181D"
   },
   success: {
     main: "#50FA7B",
@@ -193,30 +193,30 @@ export const paletteDark: PaletteOptions = {
   c_bg_loop: "#2563EB22",
   c_bg_group: "#A1A4AD30",
   c_editor_bg_color: "#232323",
-  c_editor_grid_color: "#353535",
+  c_editor_grid_color: "#373737",
   c_editor_axis_color: "#2A2A2A",
   c_selection_rect: "#cdcdcd33",
   c_provider_api: "#93C5FD",
   c_provider_local: "#86EFAC",
   c_provider_hf: "#C4B5FD",
-  c_app_header: "#1E1E1E",
+  c_app_header: "#111111",
   c_tabs_header: "#1E1E1E",
 
   primary: {
-    main: "#60A5FA",
-    light: "#93C5FD",
-    dark: "#1D4ED8",
+    main: "#4f7dab",
+    light: "#618fbb",
+    dark: "#43678a",
     contrastText: "#fff"
   },
   secondary: {
-    main: "#A78BFA",
-    light: "#C4B5FD",
-    dark: "#6D28D9",
-    contrastText: "#fff"
+    main: "#E879F9",
+    light: "#F5D0FE",
+    dark: "#C026D3",
+    contrastText: "#0B1220"
   },
   background: {
-    default: "#141414",
-    paper: "rgba(20, 20, 20, 0.75)"
+    default: "#2e2d2d",
+    paper: "rgba(20, 20, 20, 0.95)"
   },
   text: {
     primary: "#FFFFFF",

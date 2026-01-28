@@ -16,7 +16,7 @@ import useGlobalChatStore, {
 } from "../../../stores/GlobalChatStore";
 import { NewChatButton } from "../thread/NewChatButton";
 import { usePanelStore } from "../../../stores/PanelStore";
-import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
 /**
  * StandaloneChat is a version of GlobalChat without app chrome (no AppHeader, no PanelRight).
@@ -25,28 +25,61 @@ import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
 const StandaloneChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
-  const {
-    status,
-    sendMessage,
-    progress,
-    statusMessage,
-    error,
-    currentThreadId,
-    threads,
-    getCurrentMessagesSync,
-    createNewThread,
-    switchThread,
-    fetchThread,
-    stopGeneration,
-    agentMode,
-    setAgentMode,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentTaskUpdateThreadId,
-    lastTaskUpdatesByThread,
-    currentLogUpdate,
-    threadsLoaded
-  } = useGlobalChatStore();
+  
+  // Get store actions first
+  const connect = useGlobalChatStore((s) => s.connect);
+  const disconnect = useGlobalChatStore((s) => s.disconnect);
+  
+  // Get connection state from WebSocket manager directly
+  const [connectionState, setConnectionState] = React.useState(
+    globalWebSocketManager.getConnectionState()
+  );
+
+  useEffect(() => {
+    const unsubscribe = globalWebSocketManager.subscribeEvent(
+      "stateChange",
+      () => {
+        setConnectionState(globalWebSocketManager.getConnectionState());
+      }
+    );
+    return unsubscribe;
+  }, []);
+
+  // Initialize GlobalChatStore connection on mount
+  useEffect(() => {
+    connect().catch((err) => {
+      console.error("Failed to connect GlobalChatStore:", err);
+    });
+    
+    return () => {
+      try {
+        disconnect();
+      } catch (err) {
+        console.error("Error during GlobalChatStore disconnect:", err);
+      }
+    };
+  }, [connect, disconnect]);
+
+  const status = useGlobalChatStore((s) => s.status);
+  const sendMessage = useGlobalChatStore((s) => s.sendMessage);
+  const progress = useGlobalChatStore((s) => s.progress);
+  const statusMessage = useGlobalChatStore((s) => s.statusMessage);
+  const error = useGlobalChatStore((s) => s.error);
+  const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
+  const threads = useGlobalChatStore((s) => s.threads);
+  const getCurrentMessagesSync = useGlobalChatStore((s) => s.getCurrentMessagesSync);
+  const createNewThread = useGlobalChatStore((s) => s.createNewThread);
+  const switchThread = useGlobalChatStore((s) => s.switchThread);
+  const fetchThread = useGlobalChatStore((s) => s.fetchThread);
+  const stopGeneration = useGlobalChatStore((s) => s.stopGeneration);
+  const agentMode = useGlobalChatStore((s) => s.agentMode);
+  const setAgentMode = useGlobalChatStore((s) => s.setAgentMode);
+  const currentPlanningUpdate = useGlobalChatStore((s) => s.currentPlanningUpdate);
+  const currentTaskUpdate = useGlobalChatStore((s) => s.currentTaskUpdate);
+  const currentTaskUpdateThreadId = useGlobalChatStore((s) => s.currentTaskUpdateThreadId);
+  const lastTaskUpdatesByThread = useGlobalChatStore((s) => s.lastTaskUpdatesByThread);
+  const currentLogUpdate = useGlobalChatStore((s) => s.currentLogUpdate);
+  const threadsLoaded = useGlobalChatStore((s) => s.threadsLoaded);
   const runningToolCallId = useGlobalChatStore(
     (s) => s.currentRunningToolCallId
   );
@@ -96,9 +129,6 @@ const StandaloneChat: React.FC = () => {
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread
   ]);
-
-  // Ensure chat connection while StandaloneChat is visible (do not disconnect on unmount)
-  useEnsureChatConnected();
 
   // Handle thread switching when URL changes
   useEffect(() => {
@@ -325,16 +355,13 @@ const StandaloneChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed &&
-          (error ||
-            status === "reconnecting" ||
-            status === "disconnected" ||
-            status === "failed") && (
+          (error || (!connectionState.isConnected && status !== "streaming" && status !== "loading")) && (
             <Alert
               className="standalone-chat-status-alert"
               severity={
-                status === "reconnecting"
+                connectionState.isConnecting
                   ? "info"
-                  : status === "disconnected"
+                  : !connectionState.isConnected
                   ? "warning"
                   : "error"
               }
@@ -350,12 +377,10 @@ const StandaloneChat: React.FC = () => {
                 flexShrink: 0
               }}
             >
-              {status === "reconnecting"
-                ? statusMessage || "Reconnecting to chat service..."
-                : status === "disconnected"
-                ? "Connection lost. Reconnecting automatically..."
-                : status === "failed"
-                ? "Connection failed. Retrying automatically..."
+              {connectionState.isConnecting
+                ? statusMessage || "Connecting to chat service..."
+                : !connectionState.isConnected
+                ? "Connecting to chat service..."
                 : error}
             </Alert>
           )}

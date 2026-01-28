@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, memo } from "react";
 import {
   Table,
   TableBody,
@@ -41,6 +41,13 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     [onChange, assets]
   );
 
+  const handleAssetRemoveClick = useCallback(
+    (asset: Asset) => {
+      handleRemoveAsset(asset);
+    },
+    [handleRemoveAsset]
+  );
+
   const { onDrop, onDragOver, uploading } = useFileDrop({
     uploadAsset: true,
     onChangeAsset: (asset: Asset) => {
@@ -69,7 +76,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
               <TableCell>
                 <Button
                   variant="outlined"
-                  onClick={() => handleRemoveAsset(asset)}
+                  onClick={() => handleAssetRemoveClick(asset)}
                 >
                   Remove
                 </Button>
@@ -104,4 +111,6 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
   );
 };
 
-export default AssetTable;
+const AssetTableMemo = memo(AssetTable);
+
+export default AssetTableMemo;

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Typography, Box, CircularProgress, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -187,16 +187,16 @@ const AboutMenu: React.FC = () => {
     fetchSystemInfo();
   }, []);
 
-  const handleCopy = (value: string) => {
+  const handleCopy = useCallback((value: string) => {
     navigator.clipboard.writeText(value);
     addNotification({
       type: "info",
       alert: true,
       content: "Copied to clipboard!"
     });
-  };
+  }, [addNotification]);
 
-  const handleCopyAll = () => {
+  const handleCopyAll = useCallback(() => {
     if (!systemInfo) {return;}
 
     const text = `NodeTool System Information
@@ -233,7 +233,7 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
       alert: true,
       content: "System information copied to clipboard!"
     });
-  };
+  }, [systemInfo, addNotification]);
 
   if (loading) {
     return (

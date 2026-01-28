@@ -53,7 +53,6 @@ const logoStyles = (
         (theme as any)?.palette?.grey?.[50] ??
         "#000000",
       borderRadius: ".1em",
-      // boxShadow: small ? `0` : "0 0 24px rgba(200,200,200,0.2)",
       cursor: "pointer",
       boxSizing: "border-box",
       transition: "all .4s ease-in-out"
@@ -132,7 +131,7 @@ const Logo = ({
       style={onClick ? { cursor: "pointer" } : undefined}
     >
       {small && (
-        <img className="logo-image" src="/logo.png" alt="NodeTool" />
+        <img className="logo-image" src="/nodetool_icon.png" alt="NodeTool" />
       )}
       {enableText && (
         <div className="nt" onMouseEnter={handleMouseEnter} aria-hidden="true">

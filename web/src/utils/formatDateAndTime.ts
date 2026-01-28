@@ -68,21 +68,22 @@ export function relativeTime(date: Date | string): string {
   const past = new Date(date);
   const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
 
-  const timeUnits: [string, number][] = [
-    ["year", 31536000],
-    ["month", 2592000],
-    ["week", 604800],
-    ["day", 86400],
-    ["hour", 3600],
-    ["minute", 60],
-    ["second", 1]
+  // [singular, plural, seconds]
+  const timeUnits: [string, string, number][] = [
+    ["year", "years", 31536000],
+    ["month", "months", 2592000],
+    ["week", "weeks", 604800],
+    ["day", "days", 86400],
+    ["hour", "hours", 3600],
+    ["min", "min", 60],
+    ["sec", "sec", 1]
   ];
 
-  for (const [unit, secondsInUnit] of timeUnits) {
+  for (const [singular, plural, secondsInUnit] of timeUnits) {
     const difference = Math.floor(diffInSeconds / secondsInUnit);
 
     if (difference >= 1) {
-      return difference === 1 ? `1 ${unit} ago` : `${difference} ${unit}s ago`;
+      return difference === 1 ? `1 ${singular} ago` : `${difference} ${plural} ago`;
     }
   }
 

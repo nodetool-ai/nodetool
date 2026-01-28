@@ -2,13 +2,18 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo } from "react";
-import { Box } from "@mui/material";
+import React, { memo, useMemo, useRef, useEffect, useState } from "react";
+import { Box, Typography } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
-import isEqual from "lodash/isEqual";
-import { FixedSizeList } from "react-window";
+import { VariableSizeList } from "react-window";
+import { useShowGraphPreview, useSortBy } from "../../stores/WorkflowListViewStore";
+import { groupByDate } from "../../utils/groupByDate";
+
+type ListItem = 
+  | { type: "header"; label: string }
+  | { type: "workflow"; workflow: Workflow; index: number };
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -17,6 +22,7 @@ interface WorkflowListViewProps {
   onSelect: (workflow: Workflow) => void;
   onDelete: (workflow: Workflow) => void;
   onEdit: (workflow: Workflow) => void;
+  onRename: (workflow: Workflow, newName: string) => void;
   onOpenAsApp?: (workflow: Workflow) => void;
   onScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   selectedWorkflows: string[] | null;
@@ -35,21 +41,21 @@ const listStyles = (theme: Theme) =>
       overflow: "hidden auto"
     },
     ".workflow": {
-      height: "32px",
-      padding: "0.35em .5em 0.35em 0.75em",
+      flex: 1,
+      height: "100%",
+      padding: "4px 8px 4px 12px",
       display: "flex",
       flexDirection: "row",
-      alignItems: "flex-start",
+      alignItems: "center",
       margin: "0",
       width: "100%",
       cursor: "pointer",
       outline: "none",
       border: "none",
-      borderLeft: `3px solid transparent`,
-      borderRadius: 6,
-      transition: "background 0.18s ease, border-color 0.2s ease",
+      borderRadius: 3,
+      transition: "background 0.18s ease",
       "& .MuiCheckbox-root": {
-        margin: "0 0.75em 0.35em 0",
+        margin: "0 0.75em 0 0",
         padding: 0
       },
       position: "relative"
@@ -72,11 +78,17 @@ const listStyles = (theme: Theme) =>
       height: "100%",
       objectFit: "cover"
     },
+    ".preview-container": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      justifyContent: "center",
+      position: "relative"
+    },
     ".name": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
-      margin: "0",
-      lineHeight: "1.2em",
+      lineHeight: "2.5em",
       color: theme.vars.palette.grey[0],
       userSelect: "none",
       flex: "1",
@@ -87,9 +99,22 @@ const listStyles = (theme: Theme) =>
       textOverflow: "ellipsis",
       paddingRight: "140px"
     },
-    ".date": {
+    ".date-container": {
       position: "absolute",
+      top: "50%",
+      transform: "translateY(-50%)",
       right: "0.75em",
+      display: "flex",
+      alignItems: "center",
+      gap: "4px"
+    },
+    ".favorite-indicator": {
+      flexShrink: 0
+    },
+    ".workflow:hover .date-container": {
+      opacity: 0
+    },
+    ".date": {
       color: theme.vars.palette.grey[300],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
@@ -99,40 +124,68 @@ const listStyles = (theme: Theme) =>
       userSelect: "none",
       textAlign: "right"
     },
-    ".workflow:hover .date": {
-      opacity: 0
-    },
-    ".workflow:hover .duplicate-button, .workflow:hover .delete-button": {
-      opacity: 1
-    },
     ".duplicate-button svg": {
       transform: "scale(0.7)"
     },
-    ".workflow:hover button": {
-      opacity: 1
-    },
+    // List view (no preview) - actions on the right, no background
     ".actions": {
       position: "absolute",
+      top: "50%",
+      transform: "translateY(-50%)",
       right: "0.35em",
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-end",
-      width: "100px",
+      gap: "2px",
+      zIndex: 10,
+      opacity: 0,
+      transition: "opacity 0.15s ease",
       button: {
-        opacity: 0,
-        padding: "0",
+        opacity: 1,
         color: theme.vars.palette.grey[100],
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[500]
-        },
-        svg: {
-          fontSize: "1.5em"
         }
       }
+    },
+    ".workflow:hover .actions": {
+      opacity: 1
+    },
+    // Preview mode - actions overlay on top of preview with background
+    ".workflow.with-preview .actions": {
+      top: "4px",
+      right: "4px",
+      transform: "none",
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      borderRadius: "4px",
+      padding: "4px 6px",
+      backdropFilter: "blur(4px)",
+      gap: "4px"
+    },
+    // Preview mode - date at top right with higher z-index
+    ".workflow.with-preview .date-container": {
+      top: "5px",
+      right: "5px",
+      transform: "none",
+      zIndex: 5,
+      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      borderRadius: "4px",
+      padding: "2px 6px"
+    },
+    ".date-header": {
+      padding: "8px 12px 4px",
+      color: theme.vars.palette.grey[200],
+      backgroundColor: "transparent",
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: 600,
+      textAlign: "right",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
     }
   });
 
-// Memoize the main WorkflowListView component
 const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   workflows,
   onOpenWorkflow,
@@ -140,6 +193,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   onSelect,
   onDelete,
   onEdit,
+  onRename,
   onOpenAsApp,
   onScroll,
   selectedWorkflows,
@@ -149,9 +203,92 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );
+  const showGraphPreview = useShowGraphPreview();
+  const sortBy = useSortBy();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(500);
 
-  const ITEM_HEIGHT = 32;
-  const CONTAINER_HEIGHT = window.innerHeight - 210;
+  const WORKFLOW_HEIGHT = showGraphPreview ? 150 : 36;
+  const HEADER_HEIGHT = 32;
+
+  // Measure container height dynamically using ResizeObserver
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const updateHeight = () => {
+      if (container.clientHeight > 0) {
+        setContainerHeight(container.clientHeight);
+      }
+    };
+
+    // Initial measurement (with a small delay to ensure layout is complete)
+    updateHeight();
+    // Also measure after a short delay for cases where layout hasn't settled
+    const timeoutId = setTimeout(updateHeight, 50);
+
+    // Use ResizeObserver to detect container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeight();
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [workflows.length]);
+
+  // Group workflows by date and create a flat list with headers
+  const flatList = useMemo(() => {
+    const items: ListItem[] = [];
+    let workflowIndex = 0;
+
+    // Sort workflows based on sortBy option
+    const sortedWorkflows = [...workflows].sort((a, b) => {
+      if (sortBy === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      // Default: sort by date (most recent first)
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+
+    // Only show date headers when sorting by date
+    if (sortBy === "date") {
+      let currentGroup = "";
+      for (const workflow of sortedWorkflows) {
+        const group = groupByDate(workflow.updated_at);
+        if (group !== currentGroup) {
+          currentGroup = group;
+          items.push({ type: "header", label: group });
+        }
+        items.push({ type: "workflow", workflow, index: workflowIndex });
+        workflowIndex++;
+      }
+    } else {
+      // For name sort, no headers
+      for (const workflow of sortedWorkflows) {
+        items.push({ type: "workflow", workflow, index: workflowIndex });
+        workflowIndex++;
+      }
+    }
+
+    return items;
+  }, [workflows, sortBy]);
+
+  const listRef = useRef<VariableSizeList>(null);
+
+  // Reset list cache when flatList, showGraphPreview, or sortBy changes
+  useEffect(() => {
+    listRef.current?.resetAfterIndex(0);
+  }, [flatList, showGraphPreview, sortBy]);
+
+  const getItemSize = (index: number) => {
+    const item = flatList[index];
+    return item.type === "header" ? HEADER_HEIGHT : WORKFLOW_HEIGHT;
+  };
 
   const Row = ({
     index,
@@ -160,42 +297,60 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     index: number;
     style: React.CSSProperties;
   }) => {
-    const workflow = workflows[index];
+    const item = flatList[index];
+
+    if (item.type === "header") {
+      return (
+        <div style={{ ...style, display: "flex" }}>
+          <Typography className="date-header" sx={{ width: "100%" }}>{item.label}</Typography>
+        </div>
+      );
+    }
+
+    const { workflow, index: workflowIndex } = item;
     return (
-      <div style={style}>
+      <div style={{ ...style, display: "flex" }}>
         <WorkflowListItem
           key={workflow.id}
           workflow={workflow}
           isSelected={selectedWorkflows?.includes(workflow.id) || false}
           isCurrent={currentWorkflowId === workflow.id}
           showCheckboxes={showCheckboxes}
+          hideDate={sortBy === "date"}
           onOpenWorkflow={onOpenWorkflow}
           onDuplicateWorkflow={onDuplicateWorkflow}
           onSelect={onSelect}
           onDelete={onDelete}
           onEdit={onEdit}
+          onRename={onRename}
           onOpenAsApp={onOpenAsApp}
-          isAlternate={index % 2 === 1}
+          isAlternate={workflowIndex % 2 === 1}
         />
       </div>
     );
   };
 
   return (
-    <Box className="container list" css={listStyles(theme)}>
-      <FixedSizeList
-        height={CONTAINER_HEIGHT}
+    <Box 
+      ref={containerRef} 
+      className="container list" 
+      css={listStyles(theme)}
+      sx={{ height: "100%", width: "100%" }}
+    >
+      <VariableSizeList
+        ref={listRef}
+        height={containerHeight}
         width="100%"
-        itemCount={workflows.length}
-        itemSize={ITEM_HEIGHT}
+        itemCount={flatList.length}
+        itemSize={getItemSize}
         onScroll={({ scrollOffset }) =>
           onScroll?.({ currentTarget: { scrollTop: scrollOffset } } as any)
         }
       >
         {Row}
-      </FixedSizeList>
+      </VariableSizeList>
     </Box>
   );
 };
 
-export default memo(WorkflowListView, isEqual);
+export default memo(WorkflowListView);

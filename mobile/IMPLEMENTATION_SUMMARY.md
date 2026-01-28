@@ -169,12 +169,14 @@ Comprehensive documentation added:
 
 ### Server URL Setup
 
-Default: `http://localhost:8000`
+**Default (Development):** `http://localhost:7777`
 
 For testing:
-- **Same WiFi**: Use computer's local IP (e.g., `http://192.168.1.100:8000`)
-- **Android Emulator**: Use `http://10.0.2.2:8000`
-- **iOS Simulator**: Use `http://localhost:8000`
+- **Same WiFi**: Use computer's local IP (e.g., `http://192.168.1.100:7777`)
+- **Android Emulator**: Use `http://10.0.2.2:7777`
+- **iOS Simulator**: Use `http://localhost:7777`
+
+**Note:** Both development and production deployments use port 7777 by default.
 
 ## Architecture Highlights
 

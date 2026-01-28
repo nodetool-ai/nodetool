@@ -32,6 +32,9 @@ const AssetMoveToFolderConfirmation: React.FC<
   const setDialogOpen = useAssetGridStore(
     (state) => state.setMoveToFolderDialogOpen
   );
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
   const { mutation } = useAssetUpdate();
   const handleSelectFolder = useCallback(
     async (folderId: string) => {
@@ -65,7 +68,7 @@ const AssetMoveToFolderConfirmation: React.FC<
     <Dialog
       css={dialogStyles(theme)}
       open={dialogOpen}
-      onClose={() => setDialogOpen(false)}
+        onClose={handleClose}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
       PaperProps={{
@@ -104,7 +107,7 @@ const AssetMoveToFolderConfirmation: React.FC<
         <FolderTree onSelect={handleSelectFolder} />
       </DialogContent>
       <DialogActions className="dialog-actions">
-        <Button className="button-cancel" onClick={() => setDialogOpen(false)}>
+        <Button className="button-cancel" onClick={handleClose}>
           Cancel
         </Button>
       </DialogActions>

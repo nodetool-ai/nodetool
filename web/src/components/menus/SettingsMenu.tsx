@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 // Dialog-based settings menu (replacing MUI Menu)
+import React, { memo } from "react";
 import MenuItem from "@mui/material/MenuItem";
 import {
   TextField,
@@ -23,7 +24,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useNavigate } from "react-router";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
-import CloseButton from "../buttons/CloseButton";
+import { CloseButton } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { client, isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
@@ -48,7 +49,7 @@ interface TabPanelProps {
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
+const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
 
   return (
@@ -63,42 +64,28 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box className="tab-panel-content">{children}</Box>}
     </div>
   );
-}
+});
 
 interface SettingsMenuProps {
   buttonText?: string;
 }
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const {
-    isMenuOpen,
-    setMenuOpen,
-    settingsTab,
-    setGridSnap,
-    setConnectionSnap,
-    setPanControls,
-    setSelectionMode,
-    setTimeFormat,
-    setSelectNodesOnDrag,
-    setShowWelcomeOnStartup,
-    setSoundNotifications,
-    settings
-  } = useSettingsStore((state) => ({
-    isMenuOpen: state.isMenuOpen,
-    settings: state.settings,
-    setMenuOpen: state.setMenuOpen,
-    settingsTab: state.settingsTab,
-    setGridSnap: state.setGridSnap,
-    setConnectionSnap: state.setConnectionSnap,
-    setPanControls: state.setPanControls,
-    setSelectionMode: state.setSelectionMode,
-    setTimeFormat: state.setTimeFormat,
-    setSelectNodesOnDrag: state.setSelectNodesOnDrag,
-    setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
-    setSoundNotifications: state.setSoundNotifications
-  }));
+  const user = useAuth((state) => state.user);
+  const _navigate = useNavigate();
+  const isMenuOpen = useSettingsStore((state) => state.isMenuOpen);
+  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+  const settingsTab = useSettingsStore((state) => state.settingsTab);
+  const setGridSnap = useSettingsStore((state) => state.setGridSnap);
+  const setConnectionSnap = useSettingsStore((state) => state.setConnectionSnap);
+  const setPanControls = useSettingsStore((state) => state.setPanControls);
+  const setSelectionMode = useSettingsStore((state) => state.setSelectionMode);
+  const setTimeFormat = useSettingsStore((state) => state.setTimeFormat);
+  const setSelectNodesOnDrag = useSettingsStore((state) => state.setSelectNodesOnDrag);
+  const setShowWelcomeOnStartup = useSettingsStore((state) => state.setShowWelcomeOnStartup);
+  const setSoundNotifications = useSettingsStore((state) => state.setSoundNotifications);
+  const updateAutosaveSettings = useSettingsStore((state) => state.updateAutosaveSettings);
+  const settings = useSettingsStore((state) => state.settings);
 
   const [activeSection, setActiveSection] = useState("editor");
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
@@ -267,11 +254,24 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     exportMutation.mutate();
   }, [exportMutation]);
 
+  const handleOpenExportFolder = useCallback(() => {
+    if (!lastExportPath) {
+      return;
+    }
+    const api = (window as any)?.api;
+    if (api?.shell?.showItemInFolder) {
+      api.shell.showItemInFolder(lastExportPath);
+    } else if (api?.showItemInFolder) {
+      api.showItemInFolder(lastExportPath);
+    }
+  }, [lastExportPath]);
+
   const generalSidebarSections = [
     {
       category: "General",
       items: [
         { id: "editor", label: "Editor" },
+        { id: "autosave", label: "Autosave" },
         { id: "navigation", label: "Navigation" },
         { id: "grid", label: "Grid & Connections" },
         { id: "appearance", label: "Appearance" }
@@ -451,16 +451,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  onClick={() => {
-                                    const api = (window as any)?.api;
-                                    if (api?.shell?.showItemInFolder) {
-                                      api.shell.showItemInFolder(
-                                        lastExportPath
-                                      );
-                                    } else if (api?.showItemInFolder) {
-                                      api.showItemInFolder(lastExportPath);
-                                    }
-                                  }}
+                                  onClick={handleOpenExportFolder}
                                   style={{ alignSelf: "flex-start" }}
                                 >
                                   Open Folder
@@ -518,31 +509,31 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         </Typography>
                       </div>
 
-                      <div className="settings-item">
-                        <FormControl>
-                          <InputLabel htmlFor={id}>
-                            Sound Notifications
-                          </InputLabel>
-                          <Switch
-                            sx={{
-                              "&.MuiSwitch-root": {
-                                margin: "16px 0 0"
+                      {isElectron && (
+                        <div className="settings-item">
+                          <FormControl>
+                            <InputLabel htmlFor={id}>
+                              Sound Notifications
+                            </InputLabel>
+                            <Switch
+                              sx={{
+                                "&.MuiSwitch-root": {
+                                  margin: "16px 0 0"
+                                }
+                              }}
+                              checked={!!settings.soundNotifications}
+                              onChange={(e) =>
+                                setSoundNotifications(e.target.checked ?? true)
                               }
-                            }}
-                            checked={!!settings.soundNotifications}
-                            onChange={(e) =>
-                              setSoundNotifications(e.target.checked ?? true)
-                            }
-                            inputProps={{ "aria-label": id }}
-                          />
-                        </FormControl>
-                        <Typography className="description">
-                          Play a system beep sound when workflows complete,
-                          exports finish, or other important events occur.
-                          <br />
-                          Only works in Electron app.
-                        </Typography>
-                      </div>
+                              inputProps={{ "aria-label": id }}
+                            />
+                          </FormControl>
+                          <Typography className="description">
+                            Play a system beep sound when workflows complete,
+                            exports finish, or other important events occur.
+                          </Typography>
+                        </div>
+                      )}
 
                       {isElectron && (
                         <div className="settings-item">
@@ -582,6 +573,124 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </Typography>
                         </div>
                       )}
+                    </div>
+
+                    <Typography variant="h3" id="autosave">
+                      Autosave & Version History
+                    </Typography>
+                    <div className="settings-section">
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="autosave-enabled">
+                            Enable Autosave
+                          </InputLabel>
+                          <Switch
+                            checked={settings.autosave?.enabled ?? true}
+                            onChange={(e) =>
+                              updateAutosaveSettings({ enabled: e.target.checked })
+                            }
+                            inputProps={{ "aria-label": "autosave-enabled" }}
+                          />
+                        </FormControl>
+                        <Typography className="description">
+                          Automatically save your workflow at regular intervals.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="autosave-interval">
+                            Autosave Interval (minutes)
+                          </InputLabel>
+                          <Select
+                            id="autosave-interval"
+                            value={settings.autosave?.intervalMinutes ?? 10}
+                            variant="standard"
+                            onChange={(e) =>
+                              updateAutosaveSettings({
+                                intervalMinutes: Number(e.target.value)
+                              })
+                            }
+                            disabled={!settings.autosave?.enabled}
+                          >
+                            <MenuItem value={1}>1 minute</MenuItem>
+                            <MenuItem value={5}>5 minutes</MenuItem>
+                            <MenuItem value={10}>10 minutes</MenuItem>
+                            <MenuItem value={15}>15 minutes</MenuItem>
+                            <MenuItem value={30}>30 minutes</MenuItem>
+                            <MenuItem value={60}>60 minutes</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Typography className="description">
+                          How often to automatically save your workflow.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="save-before-run">
+                            Save Before Running
+                          </InputLabel>
+                          <Switch
+                            checked={settings.autosave?.saveBeforeRun ?? true}
+                            onChange={(e) =>
+                              updateAutosaveSettings({
+                                saveBeforeRun: e.target.checked
+                              })
+                            }
+                            inputProps={{ "aria-label": "save-before-run" }}
+                          />
+                        </FormControl>
+                        <Typography className="description">
+                          Create a checkpoint version before executing workflow.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="save-on-close">
+                            Save on Window Close
+                          </InputLabel>
+                          <Switch
+                            checked={settings.autosave?.saveOnClose ?? true}
+                            onChange={(e) =>
+                              updateAutosaveSettings({
+                                saveOnClose: e.target.checked
+                              })
+                            }
+                            inputProps={{ "aria-label": "save-on-close" }}
+                          />
+                        </FormControl>
+                        <Typography className="description">
+                          Automatically save when closing the tab or window.
+                        </Typography>
+                      </div>
+
+                      <div className="settings-item">
+                        <FormControl>
+                          <InputLabel htmlFor="max-versions">
+                            Max Versions per Workflow
+                          </InputLabel>
+                          <Select
+                            id="max-versions"
+                            value={settings.autosave?.maxVersionsPerWorkflow ?? 50}
+                            variant="standard"
+                            onChange={(e) =>
+                              updateAutosaveSettings({
+                                maxVersionsPerWorkflow: Number(e.target.value)
+                              })
+                            }
+                          >
+                            <MenuItem value={10}>10 versions</MenuItem>
+                            <MenuItem value={25}>25 versions</MenuItem>
+                            <MenuItem value={50}>50 versions</MenuItem>
+                            <MenuItem value={100}>100 versions</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Typography className="description">
+                          Maximum number of versions to keep per workflow.
+                        </Typography>
+                      </div>
                     </div>
 
                     <Typography variant="h3" id="navigation">
@@ -810,4 +919,4 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   );
 }
 
-export default SettingsMenu;
+export default memo(SettingsMenu);

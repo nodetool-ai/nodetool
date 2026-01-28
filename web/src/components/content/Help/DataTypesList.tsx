@@ -127,12 +127,15 @@ const DataTypesList = ({
                   iconName={type.value}
                   containerStyle={{
                     fill: type.textColor,
-                    width: "24px",
-                    height: "24px"
+                    width: "50px",
+                    height: "50px"
                   }}
                   bgStyle={{
                     backgroundColor: type.color,
-                    padding: "5px"
+                    width: "50px",
+                    height: "50px",
+                    color: type.textColor,
+                    padding: "8px"
                   }}
                 />
                 <Button
@@ -149,7 +152,7 @@ const DataTypesList = ({
                     style={{
                       fontWeight: "normal",
                       width: "100%",
-                      fontSize: "var(--fontSizeNormal)"
+                      fontSize: "var(--fontSizeBig)"
                     }}
                   >
                     {type.name}
@@ -157,7 +160,11 @@ const DataTypesList = ({
                 </Button>
                 <Typography
                   key={`text-${type.value}`}
-                  style={{ borderRight: "0" }}
+                  style={{
+                    borderRight: "0",
+                    color: theme.vars.palette.grey[50],
+                    fontSize: "var(--fontSizeSmall)"
+                  }}
                 >
                   {type.description}
                 </Typography>

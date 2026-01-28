@@ -47,7 +47,7 @@ The Dashboard is the home screen.
 - **Your Workflows** – Saved projects
 - **Templates** – Ready-to-use workflows
 - **Recent Chats** – Past conversations
-- **Quick Start** – Getting started tips
+- **Getting Started Panel** – Interactive onboarding guide for new users with step-by-step instructions
 
 ### Common Actions
 
@@ -109,6 +109,8 @@ When you select a node, the right panel shows its **configuration**:
 
 AI assistant built into NodeTool.
 
+![Global Chat Interface](assets/screenshots/global-chat-interface.png)
+
 ### Features
 
 - **Chat** with AI models
@@ -124,6 +126,15 @@ AI assistant built into NodeTool.
 | **Model Selector** | Choose which AI model to chat with |
 | **Workflow Menu** | Attach and run your saved workflows |
 | **Agent Mode** | Let the AI use tools and modify your canvas |
+
+### Standalone Chat Window
+
+Access chat directly from the system tray for quick conversations:
+
+- **Quick Access**: Click the tray icon → **Chat** to open a dedicated chat window
+- **Focused Interface**: Chat without the full NodeTool interface
+- **Background Access**: Start conversations while other apps are open
+- **Thread Persistence**: All threads sync with the main application
 
 ---
 
@@ -146,6 +157,14 @@ Convert workflows into simple apps.
    - Run button
    - Output results
 
+### Standalone Mini-App Windows
+
+Launch mini-apps in dedicated windows from the system tray:
+
+- **Quick Launch**: Right-click the tray icon to see available mini-apps
+- **Independent Windows**: Run mini-apps without opening the main editor
+- **Background Execution**: Keep mini-apps running while working on other tasks
+
 ---
 
 ## Assets
@@ -167,6 +186,14 @@ The Asset Explorer manages all your files.
 | Use in workflow | Drag asset onto the canvas |
 | Preview | Click any asset to preview |
 | Organize | Create folders, rename files |
+
+### Audio Player
+
+The built-in audio player features waveform visualization:
+
+- **Visual Waveforms**: See the audio shape with WaveSurfer.js integration
+- **Playback Controls**: Play, pause, and seek through audio files
+- **Preview in Workflows**: Audio results display with interactive waveforms
 
 ---
 

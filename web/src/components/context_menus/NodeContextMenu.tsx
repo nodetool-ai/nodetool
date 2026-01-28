@@ -1,202 +1,109 @@
-import React, { useCallback } from "react";
-import { useReactFlow } from "@xyflow/react";
-//mui
-import { Menu, Divider } from "@mui/material";
+import React, { memo, useCallback } from "react";
+import { Menu, Divider, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
-//icons
-import DataArrayIcon from "@mui/icons-material/DataArray";
+import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-//store
-import useContextMenuStore from "../../stores/ContextMenuStore";
-import { NodeData } from "../../stores/NodeData";
-import { useNotificationStore } from "../../stores/NotificationStore";
-//utils
-import { useClipboard } from "../../hooks/browser/useClipboard";
-import log from "loglevel";
-import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
-import { isDevelopment } from "../../stores/ApiClient";
-//reactflow
+import BlockIcon from "@mui/icons-material/Block";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import DataArrayIcon from "@mui/icons-material/DataArray";
+import SyncIcon from "@mui/icons-material/Sync";
 import { Node } from "@xyflow/react";
-import useMetadataStore from "../../stores/MetadataStore";
-import { useNavigate } from "react-router-dom";
+import { NodeData } from "../../stores/NodeData";
+import { isDevelopment } from "../../stores/ApiClient";
+import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useNodes } from "../../contexts/NodeContext";
-import {
-  constantToInputType,
-  inputToConstantType
-} from "../../utils/NodeTypeMapping";
 
 const NodeContextMenu: React.FC = () => {
-  const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const closeContextMenu = useContextMenuStore(
-    (state) => state.closeContextMenu
-  );
-  const nodeId = useContextMenuStore((state) => state.nodeId);
-  const { getNode } = useReactFlow();
-  const node = nodeId ? getNode(nodeId) : null;
-  const nodeData = node?.data as NodeData;
+  const {
+    menuPosition,
+    closeContextMenu,
+    node,
+    handlers,
+    conditions
+  } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
-  const metadata = useMetadataStore((state) =>
-    state.getMetadata(node?.type ?? "")
-  );
-  const { writeClipboard } = useClipboard();
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  const navigate = useNavigate();
-  const { updateNodeData, updateNode, selectNodesByType, deleteNode, selectedNodes } =
-    useNodes((state) => ({
-      updateNodeData: state.updateNodeData,
-      updateNode: state.updateNode,
-      selectNodesByType: state.selectNodesByType,
-      deleteNode: state.deleteNode,
-      selectedNodes: state.getSelectedNodes()
-    }));
-  const hasCommentTitle = Boolean(nodeData?.title?.trim());
-  const handleToggleComment = useCallback(() => {
-    if (!nodeId) {
-      return;
-    }
-    updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
-    closeContextMenu();
-  }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
 
-  //copy metadata to clipboard
-  const handleCopyMetadataToClipboard = useCallback(() => {
-    if (nodeId && nodeData) {
-      const metadataToCopy = {
-        NodeData: metadata
-      };
-      log.info("Copying metadata to clipboard", metadataToCopy);
-      addNotification({
-        type: "info",
-        alert: true,
-        content: "Copied NodeData to Clipboard!"
-      });
-      writeClipboard(JSON.stringify(metadataToCopy), true, true);
-      closeContextMenu();
-    }
-  }, [
-    nodeId,
-    nodeData,
-    metadata,
-    addNotification,
-    writeClipboard,
-    closeContextMenu
-  ]);
+  const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
 
-  const handleFindTemplates = () => {
-    const nodeType = node?.type || "";
-    // Navigate to templates with the node type as a search parameter
-    navigate(`/templates?node=${encodeURIComponent(nodeType)}`);
-    closeContextMenu();
-  };
-
-  const handleSelectAllSameType = () => {
-    if (node?.type) {
-      selectNodesByType(node.type);
-      closeContextMenu();
-    }
-  };
-
-  const handleDeleteNode = useCallback(() => {
-    if (selectedNodes.length > 1) {
-      selectedNodes.forEach((selected) => {
-        deleteNode(selected.id);
-      });
-    } else if (nodeId) {
-      deleteNode(nodeId);
+  const handleSelectMode = useCallback((mode: "on_any" | "zip_all") => {
+    if (node?.id) {
+      updateNodeData(node.id, { sync_mode: mode });
     }
     closeContextMenu();
-  }, [closeContextMenu, deleteNode, nodeId, selectedNodes]);
+  }, [node, updateNodeData, closeContextMenu]);
 
-  const handleConvertToInput = useCallback(() => {
-    if (!node || !nodeId) {
-      return;
-    }
-    const targetType = constantToInputType(node?.type ?? "");
-    if (targetType) {
-      const match = targetType.match(/nodetool\.input\.(\w+)Input$/);
-      const name = match ? match[1].toLowerCase() : "input";
-      updateNodeData(nodeId, { properties: { ...nodeData?.properties, name } });
-      updateNode(nodeId, { type: targetType });
-      log.info("Converted constant node to input node", {
-        from: node.type,
-        to: targetType
-      });
-      addNotification({
-        type: "info",
-        alert: false,
-        content: `Converted to ${targetType.split(".").pop()}`
-      });
-    }
-    closeContextMenu();
-  }, [node, nodeId, nodeData, updateNodeData, updateNode, addNotification, closeContextMenu]);
+  const handleRemoveFromGroup = useCallback(() => {
+    removeFromGroup([node as Node<NodeData>]);
+  }, [removeFromGroup, node]);
 
-  const handleConvertToConstant = useCallback(() => {
-    if (!node || !nodeId) {
-      return;
-    }
-    const targetType = inputToConstantType(node?.type ?? "");
-    if (targetType) {
-      updateNodeData(nodeId, { properties: { ...nodeData?.properties } });
-      updateNode(nodeId, { type: targetType });
-      log.info("Converted input node to constant node", {
-        from: node.type,
-        to: targetType
-      });
-      addNotification({
-        type: "info",
-        alert: false,
-        content: `Converted to ${targetType.split(".").pop()}`
-      });
-    }
-    closeContextMenu();
-  }, [node, nodeId, nodeData, updateNodeData, updateNode, addNotification, closeContextMenu]);
-
-  const canConvertToInput = nodeId && constantToInputType(node?.type ?? "");
-  const canConvertToConstant = nodeId && inputToConstantType(node?.type ?? "");
+  const handleSyncModeOnAny = useCallback(() => handleSelectMode("on_any"), [handleSelectMode]);
+  const handleSyncModeZipAll = useCallback(() => handleSelectMode("zip_all"), [handleSelectMode]);
 
   const menuItems = [
-    node?.parentId && (
+    conditions.isInGroup && (
       <ContextMenuItem
         key="remove-from-group"
-        onClick={() => removeFromGroup([node as Node<NodeData>])}
+        onClick={handleRemoveFromGroup}
         label="Remove from Group"
         IconComponent={<GroupRemoveIcon />}
         tooltip="Remove this node from the group"
       />
     ),
-    nodeId && (
-      <ContextMenuItem
-        key="toggle-comment"
-        onClick={handleToggleComment}
-        label={hasCommentTitle ? "Remove Comment" : "Add Comment"}
-        IconComponent={<EditIcon />}
-        tooltip={
-          hasCommentTitle
-            ? "Remove the comment from this node"
-            : "Add a comment to this node"
-        }
-      />
-    ),
-    canConvertToInput && (
+    <ContextMenuItem
+      key="run-from-here"
+      onClick={handlers.handleRunFromHere}
+      label={conditions.isWorkflowRunning ? "Running..." : "Run From Here"}
+      IconComponent={<PlayArrowIcon />}
+      tooltip="Run the workflow from this node onwards, using previous results as inputs"
+      addButtonClassName={conditions.isWorkflowRunning ? "disabled" : ""}
+    />,
+    <ContextMenuItem
+      key="toggle-bypass"
+      onClick={handlers.handleToggleBypass}
+      label={conditions.isBypassed ? "Enable Node" : "Bypass Node"}
+      IconComponent={conditions.isBypassed ? <PowerSettingsNewIcon /> : <BlockIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">
+            {conditions.isBypassed ? "Enable Node" : "Bypass Node"}
+          </div>
+          <div className="tooltip-key">
+            <kbd>B</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
+      key="toggle-comment"
+      onClick={handlers.handleToggleComment}
+      label={conditions.hasCommentTitle ? "Remove Comment" : "Add Comment"}
+      IconComponent={<EditIcon />}
+      tooltip={
+        conditions.hasCommentTitle
+          ? "Remove the comment from this node"
+          : "Add a comment to this node"
+      }
+    />,
+    conditions.canConvertToInput && (
       <ContextMenuItem
         key="convert-to-input"
-        onClick={handleConvertToInput}
+        onClick={handlers.handleConvertToInput}
         label="Convert to Input Node"
         IconComponent={<SwapHorizIcon />}
         tooltip="Convert this constant node to an input node"
       />
     ),
-    canConvertToConstant && (
+    conditions.canConvertToConstant && (
       <ContextMenuItem
         key="convert-to-constant"
-        onClick={handleConvertToConstant}
+        onClick={handlers.handleConvertToConstant}
         label="Convert to Constant Node"
         IconComponent={<SwapHorizIcon />}
         tooltip="Convert this input node to a constant node"
@@ -204,35 +111,75 @@ const NodeContextMenu: React.FC = () => {
     ),
     <ContextMenuItem
       key="show-templates"
-      onClick={handleFindTemplates}
+      onClick={handlers.handleFindTemplates}
       label="Show Templates"
       IconComponent={<SearchIcon />}
       tooltip="Find Templates using this node"
     />,
     <ContextMenuItem
       key="select-all"
-      onClick={handleSelectAllSameType}
-      label={`Select all ${metadata?.title || node?.type || ""} nodes`}
+      onClick={handlers.handleSelectAllSameType}
+      label={`Select all ${""} nodes`}
       IconComponent={<FilterListIcon />}
       tooltip="Select all nodes of the same type"
     />,
+    <MenuItem key="sync-mode" disabled sx={{ py: 0.5, minHeight: "unset" }}>
+      <ListItemText
+        primary="Sync Mode"
+        secondary="How inputs are coordinated"
+        primaryTypographyProps={{ fontSize: "0.75rem" }}
+        secondaryTypographyProps={{ fontSize: "0.7rem" }}
+      />
+    </MenuItem>,
+    <MenuItem
+      key="sync-on-any"
+      selected={syncMode === "on_any"}
+      onClick={handleSyncModeOnAny}
+      sx={{ py: 0.5, minHeight: "unset" }}
+    >
+      <ListItemIcon>
+        <SyncIcon sx={{ fontSize: "1rem" }} />
+      </ListItemIcon>
+      <ListItemText
+        primary="on_any"
+        secondary="Run when any input arrives"
+        primaryTypographyProps={{ fontSize: "0.75rem" }}
+        secondaryTypographyProps={{ fontSize: "0.7rem" }}
+      />
+    </MenuItem>,
+    <MenuItem
+      key="sync-zip-all"
+      selected={syncMode === "zip_all"}
+      onClick={handleSyncModeZipAll}
+      sx={{ py: 0.5, minHeight: "unset" }}
+    >
+      <ListItemIcon>
+        <SyncIcon sx={{ fontSize: "1rem", transform: "scaleX(-1)" }} />
+      </ListItemIcon>
+      <ListItemText
+        primary="zip_all"
+        secondary="Wait for all inputs; process items together"
+        primaryTypographyProps={{ fontSize: "0.75rem" }}
+        secondaryTypographyProps={{ fontSize: "0.7rem" }}
+      />
+    </MenuItem>,
+    <Divider key="divider-before-delete" />,
     <ContextMenuItem
       key="delete-node"
-      onClick={handleDeleteNode}
+      onClick={handlers.handleDeleteNode}
       label="Delete Node"
       IconComponent={<DeleteIcon />}
       tooltip="Delete this node"
     />,
+    isDevelopment && <Divider key="dev-divider" />,
     isDevelopment && (
-      <React.Fragment key="dev">
-        <Divider />
-        <ContextMenuItem
-          onClick={handleCopyMetadataToClipboard}
-          label="Copy NodeData"
-          IconComponent={<DataArrayIcon />}
-          tooltip="Copy node metadata to the clipboard"
-        />
-      </React.Fragment>
+      <ContextMenuItem
+        key="copy-nodedata"
+        onClick={handlers.handleCopyMetadataToClipboard}
+        label="Copy NodeData"
+        IconComponent={<DataArrayIcon />}
+        tooltip="Copy node data to the clipboard"
+      />
     )
   ];
 
@@ -259,4 +206,4 @@ const NodeContextMenu: React.FC = () => {
   );
 };
 
-export default NodeContextMenu;
+export default memo(NodeContextMenu);

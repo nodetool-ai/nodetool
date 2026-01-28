@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { LanguageModel } from "../../stores/ApiTypes";
 import { useLanguageModelMenuStore } from "../../stores/ModelMenuStore";
@@ -9,18 +9,21 @@ export interface LanguageModelMenuDialogProps {
   onClose: () => void;
   onModelChange?: (model: LanguageModel) => void;
   allowedProviders?: string[];
+  anchorEl?: HTMLElement | null;
 }
 
-export default function LanguageModelMenuDialog({
+function LanguageModelMenuDialog({
   open,
   onClose,
   onModelChange,
-  allowedProviders
+  allowedProviders,
+  anchorEl
 }: LanguageModelMenuDialogProps) {
   const modelData = useLanguageModelsByProvider({ allowedProviders });
   return (
     <ModelMenuDialogBase<LanguageModel>
       open={open}
+      anchorEl={anchorEl}
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}
@@ -30,4 +33,6 @@ export default function LanguageModelMenuDialog({
     />
   );
 }
+
+export default memo(LanguageModelMenuDialog);
 

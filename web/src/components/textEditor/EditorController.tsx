@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getRoot,
@@ -44,7 +44,6 @@ interface EditorControllerProps {
   onGetSelectedTextCommand?: (fn: () => string) => void;
   onIsCodeBlockChange: (isCodeBlock: boolean) => void;
   initialContent?: string;
-  wordWrapEnabled?: boolean;
 }
 
 const EditorController = ({
@@ -62,8 +61,7 @@ const EditorController = ({
   onSetAllTextCommand,
   onGetSelectedTextCommand,
   onIsCodeBlockChange,
-  initialContent,
-  wordWrapEnabled = true
+  initialContent
 }: EditorControllerProps) => {
   const [editor] = useLexicalComposerContext();
   const [initialContentSet, setInitialContentSet] = useState(false);
@@ -731,4 +729,4 @@ const EditorController = ({
   return null;
 };
 
-export default EditorController;
+export default memo(EditorController);

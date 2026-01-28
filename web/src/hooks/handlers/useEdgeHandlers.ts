@@ -3,7 +3,55 @@ import { Edge } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 
-export default function useEdgeHandlers() {
+/**
+ * Result object containing edge event handlers.
+ */
+export type EdgeHandlersResult = {
+  /** Handler for mouse entering an edge (hover start) */
+  onEdgeMouseEnter: (event: React.MouseEvent, edge: any) => void;
+  /** Handler for mouse leaving an edge (hover end) */
+  onEdgeMouseLeave: (event: React.MouseEvent, edge: any) => void;
+  /** Handler for right-clicking an edge */
+  onEdgeContextMenu: (event: ReactMouseEvent, edge: Edge) => void;
+  /** Handler called when edge dragging starts */
+  onEdgeUpdateStart: () => void;
+  /** Handler called when edge dragging ends */
+  onEdgeUpdateEnd: (event: any, edge: Edge) => void;
+  /** Handler for middle-click on an edge (deletes the edge) */
+  onEdgeClick: (event: ReactMouseEvent, edge: Edge) => void;
+};
+
+/**
+ * Hook for handling edge-related events in the workflow editor.
+ * 
+ * Provides event handlers for edge interactions including:
+ * - Hover effects (animation, label display)
+ * - Context menu on right-click
+ * - Edge reconnection handling
+ * - Deletion on middle-click
+ * 
+ * @returns Object containing all edge event handlers
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   onEdgeMouseEnter,
+ *   onEdgeMouseLeave,
+ *   onEdgeContextMenu,
+ *   onEdgeClick,
+ * } = useEdgeHandlers();
+ * 
+ * return (
+ *   <ReactFlow
+ *     onEdgeMouseEnter={onEdgeMouseEnter}
+ *     onEdgeMouseLeave={onEdgeMouseLeave}
+ *     onEdgeContextMenu={onEdgeContextMenu}
+ *     onEdgeClick={onEdgeClick}
+ *   />
+ * );
+ * ```
+ */
+export default function useEdgeHandlers(): EdgeHandlersResult {
   const {
     findEdge,
     updateEdge,

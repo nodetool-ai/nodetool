@@ -1,9 +1,7 @@
 import React, { memo } from "react";
-import { Button, Box } from "@mui/material";
-import { Visibility } from "@mui/icons-material";
+import { Box } from "@mui/material";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
-import { ProcessTimer } from "./ProcessTimer";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
 import isEqual from "lodash/isEqual";
@@ -23,7 +21,7 @@ interface NodeContentProps {
   showAdvancedFields: boolean;
   hasAdvancedFields: boolean;
   onToggleAdvancedFields: () => void;
-  status: string;
+  status?: string;
   workflowId: string;
   showResultOverlay: boolean;
   result: any;
@@ -46,8 +44,8 @@ const NodeContent: React.FC<NodeContentProps> = ({
   workflowId,
   showResultOverlay,
   result,
-  onShowInputs,
-  onShowResults
+  onShowInputs
+  // onShowResults is no longer used here but kept in interface for backwards compatibility
 }) => {
   const { handleAddProperty } = useDynamicProperty(
     id,
@@ -55,19 +53,39 @@ const NodeContent: React.FC<NodeContentProps> = ({
   );
 
   const isEmptyObject = (obj: any) => {
-   return obj && typeof obj === "object" && Object.keys(obj).length === 0;
-};
+    return obj && typeof obj === "object" && Object.keys(obj).length === 0;
+  };
 
   // For output nodes, always show overlay when result is available
-  const shouldShowOverlay = isOutputNode 
-    ? (result && !isEmptyObject(result))
-    : (showResultOverlay && result && !isEmptyObject(result));
+  const shouldShowOverlay = isOutputNode
+    ? result && !isEmptyObject(result)
+    : showResultOverlay && result && !isEmptyObject(result);
 
   if (shouldShowOverlay) {
     return (
-      <>
-        {/* Keep inputs and outputs in DOM for handles but hide visually */}
-        <Box sx={{ visibility: "hidden", position: "absolute", pointerEvents: "none" }}>
+      <Box
+        sx={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column"
+        }}
+      >
+        {/* Keep inputs and outputs in DOM for handles and to set size, but hide most content visually */}
+        <Box
+          sx={{
+            visibility: "hidden",
+            pointerEvents: "none",
+            // Keep handles visible and interactive
+            "& .react-flow__handle": {
+              visibility: "visible",
+              pointerEvents: "auto",
+              zIndex: 2
+            }
+          }}
+        >
           <NodeInputs
             id={id}
             nodeMetadata={nodeMetadata}
@@ -81,23 +99,50 @@ const NodeContent: React.FC<NodeContentProps> = ({
             basicFields={basicFields}
             onToggleAdvancedFields={onToggleAdvancedFields}
           />
-          {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
+          {!isOutputNode && (
+            <NodeOutputs id={id} outputs={nodeMetadata.outputs} isStreamingOutput={nodeMetadata.is_streaming_output} />
+          )}
         </Box>
-        <ResultOverlay result={result} onShowInputs={isOutputNode ? undefined : onShowInputs} />
-      </>
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 1,
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+            overflow: "auto",
+            // Keep handles clickable even when overlay is on top
+            "& .react-flow__handle": {
+              pointerEvents: "none"
+            }
+          }}
+        >
+          <ResultOverlay
+            result={result}
+            nodeId={id}
+            workflowId={workflowId}
+            nodeName={nodeMetadata.title}
+            onShowInputs={isOutputNode ? undefined : onShowInputs}
+          />
+        </Box>
+      </Box>
     );
   }
 
-  // Determine what to show when overlay is not active
-  const shouldShowResultButton =
-    result &&
-    !isEmptyObject(result) &&
-    onShowResults &&
-    status === "completed" &&
-    !isConstantNode;
-
   return (
-    <>
+    <Box
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column"
+      }}
+    >
       <NodeInputs
         id={id}
         nodeMetadata={nodeMetadata}
@@ -121,24 +166,9 @@ const NodeContent: React.FC<NodeContentProps> = ({
           nodeType={nodeType}
         />
       )}
-      {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
-      {/* Show "Show Result" button when result is available and node is completed */}
-      {shouldShowResultButton && (
-        <Box sx={{ padding: 1, textAlign: "center" }}>
-          <Button
-            size="small"
-            startIcon={<Visibility />}
-            onClick={onShowResults}
-            variant="outlined"
-            sx={{ textTransform: "none" }}
-          >
-            Show Result
-          </Button>
-        </Box>
-      )}
-      <ProcessTimer status={status} />
+      {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} isStreamingOutput={nodeMetadata.is_streaming_output} />}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
-    </>
+    </Box>
   );
 };
 

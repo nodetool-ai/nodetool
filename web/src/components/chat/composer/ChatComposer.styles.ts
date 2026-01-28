@@ -8,23 +8,20 @@ export const createStyles = (theme: Theme) =>
     flexDirection: "column",
     minHeight: "44px",
     ".compose-message": {
-      height: "auto",
       width: "100%",
-      marginTop: "12px",
       backgroundColor: "rgba(255, 255, 255, 0.03)",
       backdropFilter: "blur(10px)",
       border: "1px solid rgba(255, 255, 255, 0.08)",
       display: "flex",
-      alignItems: "center",
+      flexDirection: "column",
+      alignItems: "stretch",
       borderRadius: 24,
       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      padding: "8px 12px",
+      padding: "6px 12px",
       minHeight: "44px",
-      maxHeight: "120px",
       boxSizing: "border-box",
       position: "relative",
-      visibility: "visible",
-      opacity: 1,
+      overflow: "hidden",
       transition: "all 0.2s ease",
 
       "&:focus-within": {
@@ -36,6 +33,18 @@ export const createStyles = (theme: Theme) =>
       "&.dragging": {
         borderColor: "var(--palette-primary-main)",
         backgroundColor: `${theme.vars.palette.grey[800]}80`
+      },
+
+      ".composer-footer": {
+        display: "flex",
+        alignItems: "center",
+        width: "100%",
+        paddingTop: "0px",
+        gap: "8px",
+
+        ".chat-action-buttons": {
+          marginLeft: "auto"
+        }
       }
     },
 
@@ -45,15 +54,15 @@ export const createStyles = (theme: Theme) =>
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[0],
       resize: "none",
-      overflowY: "auto",
-      flex: 1,
+      flex: "none",
+      width: "100%",
+      minWidth: 0,
       outline: "none",
       border: "0",
       borderColor: "transparent",
-      padding: "6px 10px 6px 6px",
-      margin: "6px 0",
+      padding: "6px 10px 0px 6px",
+      margin: "0",
       boxSizing: "border-box",
-      transition: "border 0.2s ease-in-out",
       "&::placeholder": {
         color: theme.vars.palette.grey[500]
       }

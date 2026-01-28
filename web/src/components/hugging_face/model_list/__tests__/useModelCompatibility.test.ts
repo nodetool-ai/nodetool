@@ -671,6 +671,48 @@ describe("useModelCompatibility", () => {
       expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.StableDiffusion");
     });
 
+    it("should match Flux LoRA models only to Flux LoRA selector nodes", () => {
+      const mockMetadata: Record<string, NodeMetadata> = {
+        "lora.flux.node": createMockNode(
+          "huggingface.lora.LoRASelectorFlux",
+          "LoRA Selector Flux",
+          "huggingface.lora",
+          [],
+          [{ name: "lora1", type: { type: "hf.lora_flux", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "lora.sd.node": createMockNode(
+          "huggingface.lora.LoRASelector",
+          "LoRA Selector",
+          "huggingface.lora",
+          [],
+          [{ name: "lora1", type: { type: "hf.lora_sd", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+        "flux.node": createMockNode(
+          "huggingface.text_to_image.Flux",
+          "Flux",
+          "huggingface.text_to_image",
+          [],
+          [{ name: "model", type: { type: "hf.flux", optional: false, values: null, type_args: [], type_name: null } }]
+        ),
+      };
+      mockUseMetadataStore.mockReturnValue(mockMetadata);
+
+      const { result } = renderHook(() => useModelCompatibility());
+      const model = createMockModel("XLabs-AI/flux-lora-collection", "hf.lora_flux", {
+        repo_id: "XLabs-AI/flux-lora-collection",
+      });
+
+      const compatibility = result.current.getModelCompatibility(model);
+      const matchedNodeTypes = compatibility.compatible.map((n) => n.nodeType);
+
+      // Should match Flux LoRA selector node
+      expect(matchedNodeTypes).toContain("huggingface.lora.LoRASelectorFlux");
+      // Should NOT match SD LoRA selector node
+      expect(matchedNodeTypes).not.toContain("huggingface.lora.LoRASelector");
+      // Should NOT match Flux text-to-image node
+      expect(matchedNodeTypes).not.toContain("huggingface.text_to_image.Flux");
+    });
+
     it("should match zero-shot audio classification models to audio nodes only", () => {
       const mockMetadata: Record<string, NodeMetadata> = {
         "audio.node": createMockNode(

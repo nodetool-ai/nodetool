@@ -1,5 +1,7 @@
 # Mobile App Architecture
 
+**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Mobile Architecture**
+
 ## Overview
 
 The NodeTool mobile app is a React Native application built with Expo that enables users to browse and run Mini Apps (NodeTool workflows) from their mobile devices.

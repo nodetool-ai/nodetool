@@ -6,7 +6,8 @@ import React, {
   useState,
   useEffect,
   useMemo,
-  useRef
+  useRef,
+  memo
 } from "react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -30,6 +31,7 @@ import { uuidv4 } from "../../stores/uuidv4";
 import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
 import AppHeader from "../panels/AppHeader";
+import { usePanelStore } from "../../stores/PanelStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -80,6 +82,11 @@ const Dashboard: React.FC = () => {
 
   // Ensure WebSocket connection while dashboard is visible
   useEnsureChatConnected({ disconnectOnUnmount: false });
+
+  // Close panelLeft when dashboard route is opened
+  useEffect(() => {
+    usePanelStore.getState().setVisibility(false);
+  }, []);
 
   const tryParseModel = (model: string) => {
     try {
@@ -159,13 +166,6 @@ const Dashboard: React.FC = () => {
         handleCreateNewWorkflow
       },
       activity: {
-        // Workflows
-        sortedWorkflows,
-        isLoadingWorkflows,
-        settings,
-        handleOrderChange,
-        handleCreateNewWorkflow,
-        handleWorkflowClick,
         // Chats
         threads: threads as { [key: string]: Thread },
         currentThreadId,
@@ -181,14 +181,7 @@ const Dashboard: React.FC = () => {
         handleExampleClick,
         handleViewAllTemplates
       },
-      workflows: {
-        sortedWorkflows,
-        isLoadingWorkflows,
-        settings,
-        handleOrderChange,
-        handleCreateNewWorkflow,
-        handleWorkflowClick
-      },
+      workflows: {},
       "recent-chats": {
         threads: threads as { [key: string]: Thread },
         currentThreadId,
@@ -222,10 +215,7 @@ const Dashboard: React.FC = () => {
     handleViewAllTemplates,
     sortedWorkflows,
     isLoadingWorkflows,
-    settings,
-    handleOrderChange,
     handleCreateNewWorkflow,
-    handleWorkflowClick,
     threads,
     currentThreadId,
     onNewThread,
@@ -485,4 +475,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default memo(Dashboard);

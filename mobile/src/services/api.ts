@@ -77,7 +77,7 @@ class ApiService {
         query: { limit },
       },
     });
-    if (error) throw error;
+    if (error) {throw error;}
     return data;
   }
 
@@ -87,7 +87,7 @@ class ApiService {
         path: { id } as any, // Generated types might use different param names, check paths
       },
     });
-    if (error) throw error;
+    if (error) {throw error;}
     return data;
   }
 
@@ -98,13 +98,13 @@ class ApiService {
       },
       body: params as any, // Check generated body type
     });
-    if (error) throw error;
+    if (error) {throw error;}
     return data;
   }
 
   async getLanguageModelProviders(): Promise<any[]> {
     const { data, error } = await this.client.GET('/api/models/providers');
-    if (error) throw error;
+    if (error) {throw error;}
     
     // Filter for providers that support 'generate_message'
     return (data || []).filter((p: any) => 
@@ -119,7 +119,7 @@ class ApiService {
         path: { provider: provider as any },
       },
     });
-    if (error) throw error;
+    if (error) {throw error;}
     return data || [];
   }
 

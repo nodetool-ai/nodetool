@@ -1,9 +1,12 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
 import isEqual from "lodash/isEqual";
 import Tooltip from "@mui/material/Tooltip";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useTheme } from "@mui/material/styles";
+import { useEditorScope } from "../editor_ui";
 
 interface PropertyLabelProps {
   id: string;
@@ -16,6 +19,11 @@ interface PropertyLabelProps {
    * the label.
    */
   showTooltip?: boolean;
+  /**
+   * Controls the density/spacing of the label. When "compact", removes the bottom margin.
+   * Defaults to "normal".
+   */
+  density?: "compact" | "normal";
 }
 
 const PropertyLabel: React.FC<PropertyLabelProps> = ({
@@ -23,8 +31,11 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   name,
   description,
   showTooltip = true,
-  isDynamicProperty = false
+  isDynamicProperty = false,
+  density = "normal"
 }) => {
+  const theme = useTheme();
+  const scope = useEditorScope();
   const formattedName = useMemo(() => {
     if (isDynamicProperty) {
       return name;
@@ -32,20 +43,64 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     return titleizeString(name);
   }, [name, isDynamicProperty]);
 
+  const labelFontSize =
+    scope === "inspector" ? theme.fontSizeNormal : theme.fontSizeSmall;
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1.5);
+
   return (
-    <div className="property-label">
+    <div
+      className="property-label"
+      css={css({
+        width: "100%",
+        height: "auto",
+        padding: 0,
+        overflow: "visible",
+        flexGrow: 1,
+        "&:hover": {
+          "& label": {
+            opacity: 0.94
+          }
+        },
+        "& label": {
+          display: "block",
+          fontWeight: 500,
+          fontSize: labelFontSize,
+          color: theme.vars.palette.text.secondary,
+          padding: 0,
+          margin: `0 0 ${labelMarginBottom} 0`,
+          lineHeight: "1em",
+          maxHeight: "2em",
+          minHeight: "13px",
+          textTransform: "capitalize",
+          letterSpacing: "0.01em",
+          userSelect: "none"
+        }
+      })}
+    >
       <Tooltip
-        // open={true}
         title={showTooltip ? description || "" : ""}
-        enterDelay={TOOLTIP_ENTER_DELAY}
+        enterDelay={TOOLTIP_ENTER_DELAY * 2}
+        enterNextDelay={TOOLTIP_ENTER_DELAY}
         placement="left"
-        sx={{
-          maxWidth: "50px",
-          backgroundColor: "red",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap"
+        slotProps={{
+          tooltip: {
+            sx: {
+              fontSize: theme.fontSizeSmall + " !important",
+              color: theme.vars.palette.common.white
+            }
+          },
+          popper: {
+            modifiers: [
+              {
+                name: "offset",
+                options: {
+                  offset: density === "compact" ? [0, 64] : [0, 16] // [skidding, distance] - distance pushes tooltip further left
+                }
+              }
+            ]
+          }
         }}
+        disableInteractive
       >
         <label draggable={false} htmlFor={id}>
           {formattedName}

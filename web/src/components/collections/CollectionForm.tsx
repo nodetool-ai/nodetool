@@ -1,3 +1,5 @@
+/** @jsxImportSource @emotion/react */
+import { css, keyframes } from "@emotion/react";
 import React from "react";
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,90 +7,135 @@ import {
   TextField,
   Button,
   Box,
-  FormControl,
-  InputLabel,
   CircularProgress,
-  Typography,
-  Tooltip
+  Typography
 } from "@mui/material";
-import { CollectionCreate, UnifiedModel } from "../../stores/ApiTypes";
-import { client, isProduction } from "../../stores/ApiClient";
-import CloseIcon from "@mui/icons-material/Close";
-import IconButton from "@mui/material/IconButton";
-import LlamaModelSelect from "../properties/LlamaModelSelect";
-import ModelRecommendationsButton from "../node/ModelRecommendationsButton";
-import { getIsElectronDetails } from "../../utils/browser";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { CollectionCreate } from "../../stores/ApiTypes";
+import { client } from "../../stores/ApiClient";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import EmbeddingModelSelect from "../properties/EmbeddingModelSelect";
+
+const slideIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const styles = (theme: Theme) =>
+  css({
+    "&.collection-form": {
+      width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      padding: theme.spacing(2, 3),
+      background: theme.vars.palette.background.paper,
+      position: "relative",
+      animation: `${slideIn} 0.25s ease-out`,
+      boxSizing: "border-box"
+    },
+    ".close-button": {
+      position: "absolute",
+      right: theme.spacing(1),
+      top: theme.spacing(1),
+      color: theme.vars.palette.text.secondary,
+      transition: "all 0.2s",
+      "&:hover": {
+        color: theme.vars.palette.text.primary,
+        backgroundColor: theme.vars.palette.action.hover
+      }
+    },
+    ".header-icon": {
+      width: 36,
+      height: 36,
+      borderRadius: "10px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: `color-mix(in srgb, ${theme.vars.palette.primary.main} 15%, transparent)`,
+      color: theme.vars.palette.primary.main,
+      flexShrink: 0
+    },
+    ".field-label": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(0.5),
+      color: theme.vars.palette.text.secondary,
+      fontWeight: 500,
+      fontSize: "0.75rem"
+    },
+    ".field-icon": {
+      fontSize: "0.875rem",
+      opacity: 0.7
+    },
+    ".text-input": {
+      "& .MuiOutlinedInput-root": {
+        borderRadius: "10px",
+        backgroundColor: theme.vars.palette.background.default,
+        "& fieldset": {
+          borderColor: theme.vars.palette.divider
+        },
+        "&:hover fieldset": {
+          borderColor: theme.vars.palette.text.secondary
+        },
+        "&.Mui-focused fieldset": {
+          borderColor: theme.vars.palette.primary.main,
+          borderWidth: 1
+        }
+      },
+      "& .MuiOutlinedInput-input": {
+        padding: theme.spacing(1.25, 1.5)
+      }
+    },
+    ".model-select": {
+      "& button": {
+        borderRadius: "10px !important",
+        backgroundColor: `${theme.vars.palette.background.default} !important`,
+        border: `1px solid ${theme.vars.palette.divider} !important`,
+        "&:hover": {
+          borderColor: `${theme.vars.palette.text.secondary} !important`
+        }
+      }
+    },
+    ".helper-text": {
+      fontSize: "0.75rem",
+      color: theme.vars.palette.text.secondary,
+      lineHeight: 1.4,
+      opacity: 0.8
+    },
+    ".submit-button": {
+      borderRadius: "10px",
+      padding: theme.spacing(1.25, 2.5),
+      fontWeight: 600,
+      textTransform: "none",
+      fontSize: "0.875rem",
+      "&.Mui-disabled": {
+        opacity: 0.5
+      }
+    },
+    ".error-box": {
+      marginTop: theme.spacing(2),
+      padding: theme.spacing(1.5),
+      borderRadius: "10px",
+      background: `color-mix(in srgb, ${theme.vars.palette.error.main} 10%, transparent)`,
+      border: `1px solid color-mix(in srgb, ${theme.vars.palette.error.main} 25%, transparent)`
+    }
+  });
 
 interface CollectionFormProps {
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-const embeddingModels: UnifiedModel[] = [
-  {
-    id: "all-minilm:22m",
-    name: "All-MiniLM 22M (recommended)"
-  },
-  {
-    id: "all-minilm:33m",
-    name: "All-MiniLM 33M"
-  },
-  {
-    id: "nomic-embed-text:latest",
-    name: "Nomic Embed Text"
-  },
-  {
-    id: "mxbai-embed-large:335m",
-    name: "MXBai Embed Large"
-  },
-  {
-    id: "snowflake-arctic-embed:22m",
-    name: "Snowflake Arctic Embed 22M"
-  },
-  {
-    id: "snowflake-arctic-embed:33m",
-    name: "Snowflake Arctic Embed 33M"
-  },
-  {
-    id: "snowflake-arctic-embed:110m",
-    name: "Snowflake Arctic Embed 110M"
-  },
-  {
-    id: "snowflake-arctic-embed:137m",
-    name: "Snowflake Arctic Embed 137M"
-  },
-  {
-    id: "snowflake-arctic-embed:335m",
-    name: "Snowflake Arctic Embed 335M"
-  },
-  {
-    id: "bge-large:335m",
-    name: "BGE Large 335M"
-  },
-  {
-    id: "bge-m3:567m",
-    name: "BGE M3 567M"
-  },
-  {
-    id: "snowflake-arctic-embed2:568m",
-    name: "Snowflake Arctic Embed 2 568M"
-  },
-  {
-    id: "granite-embedding:30m",
-    name: "Granite Embedding 30M"
-  },
-  {
-    id: "granite-embedding:278m",
-    name: "Granite Embedding 278M"
-  }
-].map((model) => ({
-  id: model.id,
-  name: model.name,
-  type: "embedding_model",
-  repo_id: model.id,
-  downloaded: false
-}));
-
-const CollectionForm = ({ onClose }: CollectionFormProps) => {
+const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
+  const theme = useTheme();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CollectionCreate>({
     name: "",
@@ -100,15 +147,15 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
       const { data, error } = await client.POST("/api/collections/", {
         body: body
       });
-      if (error) {throw error;}
+      if (error) {
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collections"] });
-      setFormData({
-        name: "",
-        embedding_model: ""
-      });
+      setFormData({ name: "", embedding_model: "" });
+      onSuccess?.();
       onClose();
     }
   });
@@ -119,16 +166,17 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
   };
 
   const isSubmitDisabled = useMemo(() => {
-    return !formData.name.trim() || createMutation.isPending;
-  }, [formData.name, createMutation.isPending]);
+    return (
+      !formData.name.trim() ||
+      !formData.embedding_model.trim() ||
+      createMutation.isPending
+    );
+  }, [formData.name, formData.embedding_model, createMutation.isPending]);
 
-  const handleEmbeddingModelChange = (model: {
-    type: string;
-    repo_id: string;
-  }) => {
+  const handleEmbeddingModelChange = (model: { type: string; id: string }) => {
     setFormData((prev) => ({
       ...prev,
-      embedding_model: model.repo_id
+      embedding_model: model.id
     }));
   };
 
@@ -136,97 +184,74 @@ const CollectionForm = ({ onClose }: CollectionFormProps) => {
     <Box
       component="form"
       onSubmit={handleSubmit}
-      sx={{
-        maxWidth: 400,
-        gap: 2,
-        display: "flex",
-        flexDirection: "column",
-        padding: 3,
-        borderRadius: 1,
-        backgroundColor: "background.paper",
-        position: "relative"
-      }}
+      css={styles(theme)}
+      className="collection-form"
     >
-      <Tooltip title="Close New Collection form">
-        <IconButton
-          onClick={onClose}
-          sx={{
-            position: "absolute",
-            right: 8,
-            top: 8
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </Tooltip>
+      {/* Compact single-row layout */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
 
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h6">Create New Collection</Typography>
-        <Typography variant="body1" color="text.secondary">
-          A collection is a dedicated storage space for related documents in the
-          vector database. Each collection maintains its own vector index for
-          similarity search.
-        </Typography>
+        {/* Collection Name */}
+        <Box sx={{ flex: 1, minWidth: 180 }}>
+          <Typography className="field-label" sx={{ mb: 0.5 }}>Collection Name</Typography>
+          <TextField
+            className="text-input"
+            value={formData.name}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, name: e.target.value }))
+            }
+            placeholder="my-collection"
+            required
+            fullWidth
+            size="small"
+            disabled={createMutation.isPending}
+            autoFocus
+          />
+        </Box>
+
+        {/* Embedding Model */}
+        <Box sx={{ flex: 1, minWidth: 200 }}>
+          <Typography className="field-label" sx={{ mb: 0.5 }}>
+            <AutoAwesomeIcon className="field-icon" />
+            Embedding Model
+          </Typography>
+          <Box className="model-select">
+            <EmbeddingModelSelect
+              value={formData.embedding_model}
+              onChange={handleEmbeddingModelChange}
+            />
+          </Box>
+        </Box>
+
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={isSubmitDisabled}
+          className="submit-button"
+          disableElevation
+          sx={{ alignSelf: "flex-end", mb: 0.25 }}
+          startIcon={
+            createMutation.isPending ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <AddCircleOutlineIcon sx={{ fontSize: "1.125rem" }} />
+            )
+          }
+        >
+          {createMutation.isPending ? "Creating..." : "Create"}
+        </Button>
       </Box>
 
-      <TextField
-        label="Collection Name"
-        value={formData.name}
-        onChange={(e) =>
-          setFormData((prev) => ({ ...prev, name: e.target.value }))
-        }
-        required
-        fullWidth
-        disabled={createMutation.isPending}
-        helperText="Set a unique name for the new collection"
-      />
-
-      {(getIsElectronDetails().isElectron || !isProduction) && (
-        <ModelRecommendationsButton recommendedModels={embeddingModels} />
+      {/* Error Display */}
+      {createMutation.isError && (
+        <Box className="error-box" sx={{ mt: 2 }}>
+          <Typography variant="body2" color="error">
+            {createMutation.error instanceof Error
+              ? createMutation.error.message
+              : "Failed to create collection"}
+          </Typography>
+        </Box>
       )}
-
-      <FormControl fullWidth>
-        <InputLabel
-          sx={{
-            position: "relative",
-            transform: "none",
-            marginBottom: "0.5rem"
-          }}
-        >
-          Embedding Model
-        </InputLabel>
-        <LlamaModelSelect
-          value={formData.embedding_model}
-          onChange={handleEmbeddingModelChange}
-        />
-        <p
-          style={{
-            fontSize: "0.75rem",
-            color: "text.secondary",
-            marginTop: "0.5rem"
-          }}
-        >
-          Click on RECOMMENDED MODELS to find an embedding models and select it.
-          <br />
-          <br />
-          The embedding model converts your documents into vectors for
-          similarity search. Different models offer varying trade-offs between
-          speed and accuracy.
-        </p>
-      </FormControl>
-
-      <Button
-        type="submit"
-        variant="outlined"
-        disabled={isSubmitDisabled}
-        startIcon={
-          createMutation.isPending ? (
-            <CircularProgress size={20} color="inherit" />
-          ) : null
-        }
-      >
-        {createMutation.isPending ? "Creating..." : "Create Collection"}
-      </Button>
     </Box>
   );
 };

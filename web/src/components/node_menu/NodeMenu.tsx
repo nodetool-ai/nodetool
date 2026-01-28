@@ -2,14 +2,13 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useRef, useEffect, useState } from "react";
+import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { IconButton, Box, Typography } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { Box } from "@mui/material";
 
 // components
-import TypeFilter from "./TypeFilter";
+import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -22,6 +21,7 @@ import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
+import { useCreateNode } from "../../hooks/useCreateNode";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -39,7 +39,7 @@ const treeStyles = (theme: Theme) =>
       // Glassmorphism container
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "16px",
-      boxShadow: "0 24px 48px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0,0,0,0.2)",
+      boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
       transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
@@ -53,21 +53,12 @@ const treeStyles = (theme: Theme) =>
       borderRadius: "16px 16px 0 0",
       backgroundColor: "transparent", // Let glass effect show through
       width: "100%",
-      minHeight: "48px", // Slightly taller for elegance
+      minHeight: "12px", // Minimal drag handle
       cursor: "grab",
       userSelect: "none",
       display: "flex",
       alignItems: "center",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      h4: {
-        margin: "0",
-        padding: "0 0 0 1.25em",
-        fontSize: "1rem",
-        fontWeight: 500,
-        letterSpacing: "0.5px",
-        color: theme.vars.palette.text.primary,
-        textShadow: "0 1px 2px rgba(0,0,0,0.5)"
-      }
+      justifyContent: "flex-end"
     },
     ".draggable-header:active": {
       cursor: "grabbing"
@@ -82,42 +73,23 @@ const treeStyles = (theme: Theme) =>
     },
     ".search-toolbar": {
       display: "flex",
-      flexDirection: "row",
-      alignItems: "center", // Center vertically
-      gap: "0.75em",
-      minHeight: "48px",
+      flexDirection: "column",
+      gap: "8px",
       flexGrow: 0,
-      overflow: "visible", // Allow dropdowns to overflow if needed, though usually they are portals
+      overflow: "visible",
       width: "100%",
       margin: 0,
-      padding: "0 1em 0 0.5em",
-      ".search-input-container": {
-        minWidth: "200px" // Slightly wider
-      },
-      ".type-filter-container": {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: "0.5em",
-        flexGrow: 1,
-        marginTop: "2px" // Fine-tune vertical alignment with search input
-      }
+      padding: "0 1em 0 0.5em"
     },
-    ".close-button": {
-      position: "absolute",
-      top: "8px",
-      right: "8px",
-      zIndex: 150,
-      color: "text.secondary",
-      width: "32px",
-      height: "32px",
-      padding: "4px",
-      borderRadius: "50%",
-      transition: "all 0.2s ease",
-      "&:hover": {
-        backgroundColor: "action.selected",
-        color: "text.primary",
-        transform: "rotate(90deg)"
+    ".search-row": {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: "0.75em",
+      marginLeft: "-3px",
+      ".search-input-container": {
+        minWidth: "100%",
+        flexGrow: 1
       }
     },
     "& .MuiPaper-root.MuiAccordion-root": {
@@ -183,7 +155,10 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setSelectedOutputType,
     searchTerm,
     setSearchTerm,
-    setMenuSize
+    setMenuSize,
+    moveSelectionUp,
+    moveSelectionDown,
+    getSelectedNode
   } = useStoreWithEqualityFn(
     useNodeMenuStore,
     (state) => ({
@@ -197,7 +172,10 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setSelectedOutputType: state.setSelectedOutputType,
       searchTerm: state.searchTerm,
       setSearchTerm: state.setSearchTerm,
-      setMenuSize: state.setMenuSize
+      setMenuSize: state.setMenuSize,
+      moveSelectionUp: state.moveSelectionUp,
+      moveSelectionDown: state.moveSelectionDown,
+      getSelectedNode: state.getSelectedNode
     }),
     isEqual
   );
@@ -206,13 +184,32 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => treeStyles(theme), [theme]);
 
+  // Hook for creating nodes
+  const handleCreateNode = useCreateNode();
+
+  // Keyboard navigation handlers
+  const handleArrowDown = useCallback(() => {
+    moveSelectionDown();
+  }, [moveSelectionDown]);
+
+  const handleArrowUp = useCallback(() => {
+    moveSelectionUp();
+  }, [moveSelectionUp]);
+
+  const handleEnter = useCallback(() => {
+    const selectedNode = getSelectedNode();
+    if (selectedNode) {
+      handleCreateNode(selectedNode);
+    }
+  }, [getSelectedNode, handleCreateNode]);
+
   useCombo(["Escape"], closeNodeMenu);
 
   // Ensure search is performed after menu opens with a preset term
   useEffect(() => {
-    if (!isMenuOpen) {return;}
-    if (!searchTerm || searchTerm.trim() === "") {return;}
-    if (searchResults.length > 0) {return;}
+    if (!isMenuOpen) { return; }
+    if (!searchTerm || searchTerm.trim() === "") { return; }
+    if (searchResults.length > 0) { return; }
     try {
       const state: any = (useNodeMenuStore as any).getState?.();
       // Do not clear selectedPath here; just perform search with current path
@@ -245,12 +242,12 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // If initial position clips right/bottom, correct after mount using measured size
   useEffect(() => {
-    if (!isMenuOpen) {return;}
+    if (!isMenuOpen) { return; }
     const el = nodeRef.current;
-    if (!el) {return;}
+    if (!el) { return; }
     const width = el.offsetWidth;
     const height = el.offsetHeight;
-    if (!Number.isFinite(width) || !Number.isFinite(height)) {return;}
+    if (!Number.isFinite(width) || !Number.isFinite(height)) { return; }
     const maxX = Math.max(0, window.innerWidth - width - 10);
     const maxY = Math.max(
       0,
@@ -265,7 +262,6 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   }, [isMenuOpen, menuPosition.x, menuPosition.y]);
 
   if (!isMenuOpen) {
-    console.debug("[NodeMenu] isMenuOpen=false; not rendering menu");
     return null;
   }
 
@@ -283,38 +279,28 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         css={memoizedStyles}
       >
         <div className="draggable-header">
-          <Typography className="title" variant="h4">
-            Node Menu
-          </Typography>
-
-          <IconButton
-            className="close-button"
-            edge="end"
-            size="small"
-            color="inherit"
-            onClick={closeNodeMenu}
-            aria-label="close"
-          >
-            <CloseIcon />
-          </IconButton>
         </div>
         <Box className="node-menu-container">
           <div className="main-content">
             <Box className="search-toolbar">
-              <SearchInput
-                focusSearchInput={focusSearchInput}
-                focusOnTyping={true}
-                placeholder="Search for nodes..."
-                debounceTime={80}
-                width={390}
-                maxWidth={"400px"}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                onPressEscape={closeNodeMenu}
-                searchResults={searchResults}
-              />
-
-              <TypeFilter
+              <Box className="search-row">
+                <SearchInput
+                  focusSearchInput={focusSearchInput}
+                  focusOnTyping={true}
+                  placeholder="Search for nodes..."
+                  debounceTime={80}
+                  width={500}
+                  maxWidth={"600px"}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  onPressEscape={closeNodeMenu}
+                  onPressArrowDown={handleArrowDown}
+                  onPressArrowUp={handleArrowUp}
+                  onPressEnter={handleEnter}
+                  searchResults={searchResults}
+                />
+              </Box>
+              <TypeFilterChips
                 selectedInputType={selectedInputType}
                 selectedOutputType={selectedOutputType}
                 setSelectedInputType={setSelectedInputType}

@@ -1,15 +1,14 @@
 /** @jsxImportSource @emotion/react */
 // Ensure global MUI/Emotion type augmentations are loaded in the TS program
-import type {} from "./theme";
-import type {} from "./emotion";
-import type {} from "./material-ui";
-import type {} from "./window";
-// import type {} from "./types/svg-react"; // removed: file does not exist
+import type { } from "./theme";
+import type { } from "./emotion";
+import type { } from "./material-ui";
+import type { } from "./window";
 
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState, useMemo } from "react";
 import ReactDOM from "react-dom/client";
 
 import {
@@ -39,6 +38,7 @@ import "./styles/command_menu.css";
 import "./styles/mobile.css";
 import "dockview/dist/styles/dockview.css";
 import "./styles/dockview.css";
+import "./lib/dragdrop/dragdrop.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./queryClient";
 import { useAssetStore } from "./stores/AssetStore";
@@ -49,7 +49,6 @@ import { isLocalhost } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
-import { useSettingsStore } from "./stores/SettingsStore";
 import {
   FetchCurrentWorkflow,
   WorkflowManagerProvider
@@ -57,7 +56,6 @@ import {
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
-import { useJobReconnection } from "./hooks/useJobReconnection";
 
 import log from "loglevel";
 import Alert from "./components/node_editor/Alert";
@@ -96,24 +94,20 @@ const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
+const StandaloneCanvasEditor = React.lazy(
+  () => import("./components/design/StandaloneCanvasEditor")
+);
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
-import "./lib/tools/builtin/setSelectionMode";
-import "./lib/tools/builtin/setAutoLayout";
 import "./lib/tools/builtin/setNodeSyncMode";
 import "./lib/tools/builtin/connectNodes";
-import "./lib/tools/builtin/deleteNode";
-import "./lib/tools/builtin/deleteEdge";
 import "./lib/tools/builtin/updateNodeData";
 import "./lib/tools/builtin/moveNode";
-import "./lib/tools/builtin/autoLayout";
 import "./lib/tools/builtin/setNodeTitle";
-import "./lib/tools/builtin/setNodeColor";
-import "./lib/tools/builtin/alignNodes";
-import "./lib/tools/builtin/fitView";
 import "./lib/tools/builtin/graph";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
+import { useJobReconnection } from "./hooks/useJobReconnection";
 
 (window as any).log = log;
 
@@ -122,7 +116,7 @@ if (isLocalhost) {
 }
 
 const NavigateToStart = () => {
-  const { state } = useAuth();
+  const { state } = useAuth((auth) => ({ state: auth.state }));
 
   if (isLocalhost) {
     return <Navigate to="/dashboard" replace={true} />;
@@ -305,6 +299,14 @@ function getRoutes() {
     });
   }
 
+  // Add the standalone canvas editor (available in development)
+  if (isLocalhost) {
+    routes.push({
+      path: "/canvas",
+      element: <StandaloneCanvasEditor />
+    });
+  }
+
   routes.forEach((route) => {
     route.ErrorBoundary = ErrorBoundary;
   });
@@ -341,10 +343,26 @@ const JobReconnectionManager = () => {
   return null;
 };
 
+// Standalone routes that don't need backend metadata
+const STANDALONE_ROUTES = ["/canvas", "/layouttest"];
+
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
+  
+  // Check if current path is a standalone route that doesn't need metadata
+  // This is checked once on mount since we're not using SPA navigation to these routes
+  const isStandaloneRoute = useMemo(() => 
+    STANDALONE_ROUTES.some(route => window.location.pathname.startsWith(route)),
+    [] // Empty deps - only check on mount since standalone routes don't use SPA navigation
+  );
 
   useEffect(() => {
+    // Skip metadata loading for standalone routes
+    if (isStandaloneRoute) {
+      setStatus("success");
+      return;
+    }
+    
     // Existing effect for loading metadata
     loadMetadata()
       .then((data) => {
@@ -354,12 +372,11 @@ const AppWrapper = () => {
         console.error("Failed to load metadata:", error);
         setStatus("error"); // Ensure status is set to error on promise rejection
       });
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [isStandaloneRoute]);
 
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <JobReconnectionManager />
         <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />
@@ -396,6 +413,7 @@ const AppWrapper = () => {
                   {/* Render RouterProvider only when metadata is successfully loaded */}
                   {status !== "pending" && status !== "error" && (
                     <>
+                      <JobReconnectionManager />
                       <Suspense
                         fallback={
                           <div

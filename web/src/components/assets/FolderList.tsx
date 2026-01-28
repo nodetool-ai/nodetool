@@ -237,10 +237,12 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         }}
       >
         <AccordionSummary
+          component="div"
           className="accordion-summary"
           sx={{
             marginTop: 0,
-            marginBottom: 0
+            marginBottom: 0,
+            cursor: "pointer"
           }}
           aria-controls={`panel-${folder.id}-content`}
           id={`panel-${folder.id}-header`}

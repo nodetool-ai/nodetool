@@ -16,7 +16,8 @@ import { useTheme } from "@mui/material/styles";
 
 const ModelTypeSidebar: React.FC = () => {
   const { modelTypes, availableModelTypes } = useModels();
-  const { selectedModelType, setSelectedModelType } = useModelManagerStore();
+  const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
+  const setSelectedModelType = useModelManagerStore((state) => state.setSelectedModelType);
   const theme = useTheme();
 
   const onModelTypeChange = useCallback(
@@ -75,11 +76,11 @@ const ModelTypeSidebar: React.FC = () => {
                 ) : undefined
               }
             >
-              <ListItemButton
-                className={`model-type-button`}
-                selected={isSelected}
-                onClick={() => onModelTypeChange(type)}
-                sx={{
+            <ListItemButton
+              className={`model-type-button`}
+              selected={isSelected}
+              onClick={onModelTypeChange.bind(null, type)}
+              sx={{
                   borderRadius: "8px",
                   padding: "8px 12px",
                   transition: "all 0.2s ease",

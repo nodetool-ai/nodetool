@@ -35,7 +35,7 @@
   overflow: hidden;
   border-radius: 8px;
   border: none;
-  background-color: rgba(255, 255, 255, 0.13);
+  background-color: var(--palette-grey-700);
   box-shadow: none;
   overflow: visible;
 }
@@ -44,7 +44,7 @@
   .react-flow__node-nodetool\.workflows\.base_node\.Comment,
 .react-flow.zoomed-out .react-flow__node-nodetool\.group\.Loop,
 .react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Group {
-  background-color: rgba(0, 0, 0, 0.07);
+  background-color: var(--palette-grey-900);
 }
 .react-flow.zoomed-out
   .react-flow__node-nodetool\.workflows\.base_node\.Group
@@ -115,5 +115,5 @@
 
 .react-flow__node-default .node-header {
   border: 0;
-  background-color: rgba(68, 68, 68, 0.27);
+  background-color: var(--palette-grey-700);
 }

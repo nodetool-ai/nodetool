@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import { useEffect, useRef } from "react";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { Button } from "@mui/material";
@@ -35,6 +36,10 @@ const ChunkDisplay: React.FC<ChunkDisplayProps> = ({ chunk }) => {
       <div
         className="node-chunk"
         ref={chunkRef}
+        css={css({
+          marginTop: "0.5em",
+          padding: "0.5em"
+        })}
         style={{
           overflowY: "scroll",
           maxHeight: "200px",

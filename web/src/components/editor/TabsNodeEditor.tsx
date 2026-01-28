@@ -1,13 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { workflowQueryKey, fetchWorkflowById } from "../../serverState/useWorkflow";
 import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
-import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
+import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 
@@ -15,11 +16,10 @@ import TabsBar from "./TabsBar";
 import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
-import WorkflowFormModal from "../workflows/WorkflowFormModal";
 import FloatingToolBar from "../panels/FloatingToolBar";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-// import { getIsElectronDetails } from "../../utils/browser";
+import { useAutosave } from "../../hooks/useAutosave";
 
 const styles = (theme: Theme) =>
   css({
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       position: "relative",
       padding: "4px 0px 0px 10px",
-      width: "calc(100% - 50px)", // -50px to account for the run as app button
+      width: "100%",
       WebkitAppRegion: "drag",
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
@@ -272,13 +272,33 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       : undefined
   );
 
+  // Autosave hook integration
+  const getWorkflowForAutosave = useCallback(() => {
+    if (!activeNodeStore) {
+      return undefined;
+    }
+    return activeNodeStore.getState().getWorkflow();
+  }, [activeNodeStore]);
+
+  const getIsDirty = useCallback(() => {
+    if (!activeNodeStore) {
+      return false;
+    }
+    return activeNodeStore.getState().workflowIsDirty;
+  }, [activeNodeStore]);
+
+  // Use the autosave hook
+  useAutosave({
+    workflowId: currentWorkflowId || null,
+    getWorkflow: getWorkflowForAutosave,
+    isDirty: getIsDirty
+  });
+
   // const electronDetectionDetails = getIsElectronDetails();
   // const isElectron = electronDetectionDetails.isElectron;
   // const isMac = normalizedPlatform.includes("mac");
   // const platform = window.navigator.platform;
   // const normalizedPlatform = platform.toLowerCase();
-
-  const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
   // Determine tab ids: storage open ids + currently loaded ones + active id
   // Seed from localStorage on mount to show placeholders during hydration,
@@ -331,25 +351,42 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   }, [openWorkflows]);
 
   // Fire queries for ids not yet in openWorkflows
+  // Uses shared query key and staleTime for proper deduplication
   const queryResults = useQueries({
     queries: idsForTabs.map((id) => ({
-      queryKey: ["workflow", id],
+      queryKey: workflowQueryKey(id),
       queryFn: async () => {
-        const { client } = await import("../../stores/ApiClient");
-        const { createErrorMessage } = await import(
-          "../../utils/errorHandling"
-        );
-        const { data, error } = await client.GET("/api/workflows/{id}", {
-          params: { path: { id } }
-        });
-        if (error) {
-          throw createErrorMessage(error, "Failed to load workflow");
+        try {
+          return await fetchWorkflowById(id);
+        } catch (error) {
+          // Check if 404 - workflow was deleted
+          if (String(error).includes("404")) {
+            return { __missing: true, id };
+          }
+          throw error;
         }
-        return data;
       },
+      staleTime: 60 * 1000, // Match useWorkflow staleTime
       enabled: !openMap.has(id)
     }))
   });
+
+  useEffect(() => {
+    const missingIds = idsForTabs.filter((id, index) => {
+      const res = queryResults[index];
+      return Boolean((res?.data as { __missing?: boolean })?.__missing);
+    });
+    if (missingIds.length === 0) {
+      return;
+    }
+    const filtered = storageOpenIds.filter((id) => !missingIds.includes(id));
+    setStorageOpenIds(filtered);
+    try {
+      localStorage.setItem("openWorkflows", JSON.stringify(filtered));
+    } catch {
+      // Ignore storage failures to avoid blocking rendering.
+    }
+  }, [idsForTabs, queryResults, storageOpenIds]);
 
   const tabsToRender = useMemo(() => {
     return idsForTabs.map((id, index) => {
@@ -358,7 +395,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
         return loaded;
       }
       const res = queryResults[index];
-      if (res && res.data) {
+      if (res && res.data && !(res.data as { __missing?: boolean }).__missing) {
         const { graph, ...attrs } = res.data as any;
         return attrs as WorkflowAttributes;
       }
@@ -377,13 +414,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
 
   return (
     <>
-      {workflowToEdit && (
-        <WorkflowFormModal
-          open={!!workflowToEdit}
-          onClose={() => setWorkflowToEdit(null)}
-          workflow={workflowToEdit}
-        />
-      )}
       <div
         css={styles(theme)}
         className="tabs-node-editor"
@@ -439,9 +469,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                             />
                           </div>
 
-                          <FloatingToolBar
-                            setWorkflowToEdit={(wf) => setWorkflowToEdit(wf)}
-                          />
+                          <FloatingToolBar />
                         </KeyboardProvider>
                       </ConnectableNodesProvider>
                     </ContextMenuProvider>

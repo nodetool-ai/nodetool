@@ -3,70 +3,54 @@ import { css } from "@emotion/react";
 import {
   Button,
   Checkbox,
-  FormControlLabel,
   Typography,
   Box,
-  Divider,
-  IconButton,
   Chip,
   Tooltip,
-  Dialog,
-  DialogContent,
-  DialogTitle
+  Popover,
+  PopoverOrigin
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
-import FolderIcon from "@mui/icons-material/Folder";
-import CloseIcon from "@mui/icons-material/Close";
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import { useCollectionStore } from "../../../stores/CollectionStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
-const styles = {
-  dialog: css({
-    ".dialog-title": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      margin: 0,
-      padding: "24px 32px",
-      borderBottom: "1px solid var(--palette-grey-700)"
+// Popover dimensions
+const POPOVER_WIDTH = 320;
+const POPOVER_HEIGHT = 380;
+
+const styles = (theme: Theme) => css({
+  ".collections-list": {
+    flex: 1,
+    overflow: "auto",
+    padding: "8px"
+  },
+  ".collection-item": {
+    display: "flex",
+    alignItems: "center",
+    padding: "6px 8px",
+    borderRadius: 6,
+    cursor: "pointer",
+    borderLeft: "3px solid transparent",
+    marginBottom: "2px",
+    "&:hover": {
+      backgroundColor: theme.vars.palette.action.hover
     },
-    ".close-button": {
-      position: "absolute",
-      right: 8,
-      top: 12,
-      color: "var(--palette-grey-500)"
-    },
-    ".dialog-summary": {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      padding: "8px 16px",
-      color: "var(--palette-grey-200)"
-    },
-    ".actions": {
-      padding: "8px 16px",
-      display: "flex",
-      gap: 8
-    },
-    ".collections-grid": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-      gap: 12,
-      padding: "8px 8px 16px"
-    },
-    ".collection-item": {
-      border: "1px solid var(--palette-grey-700)",
-      borderRadius: 8,
-      background: "transparent",
-      padding: 8
-    },
-    ".checkbox-label": {
-      margin: 0,
-      width: "100%"
+    "&.selected": {
+      backgroundColor: theme.vars.palette.action.selected,
+      borderLeft: `3px solid ${theme.vars.palette.primary.main}`
     }
-  })
-};
+  },
+  ".checkbox-label": {
+    margin: 0,
+    width: "100%",
+    "& .MuiFormControlLabel-label": {
+      flex: 1
+    }
+  }
+});
 
 interface CollectionsSelectorProps {
   value: string[];
@@ -78,7 +62,11 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
   onChange
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { collections, fetchCollections, isLoading } = useCollectionStore();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const theme = useTheme();
+  const collections = useCollectionStore((state) => state.collections);
+  const fetchCollections = useCollectionStore((state) => state.fetchCollections);
+  const isLoading = useCollectionStore((state) => state.isLoading);
 
   useEffect(() => {
     if (!collections) {
@@ -86,33 +74,73 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
     }
   }, [collections, fetchCollections]);
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     setIsOpen(true);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsOpen(false);
-  };
+  }, []);
 
-  const handleToggle = (collectionName: string) => {
-    const newValue = value.includes(collectionName)
-      ? value.filter((name) => name !== collectionName)
-      : [...value, collectionName];
-    onChange(newValue);
-  };
+  const handleToggle = useCallback(
+    (collectionName: string) => {
+      const newValue = value.includes(collectionName)
+        ? value.filter((name) => name !== collectionName)
+        : [...value, collectionName];
+      onChange(newValue);
+    },
+    [value, onChange]
+  );
 
-  const handleSelectAll = () => {
-    if (collections) {
+  const handleSelectAll = useCallback(() => {
+    if (collections?.collections) {
       onChange(collections.collections.map((c) => c.name));
     }
-  };
+  }, [collections, onChange]);
 
-  const handleClearAll = () => {
+  const handleClearAll = useCallback(() => {
     onChange([]);
-  };
+  }, [onChange]);
 
   const selectedCount = value.length;
-  const totalCount = collections?.collections.length || 0;
+  const totalCount = collections?.collections?.length || 0;
+
+  // Positioning logic for Popover
+  const [positionConfig, setPositionConfig] = useState<{
+    anchorOrigin: PopoverOrigin;
+    transformOrigin: PopoverOrigin;
+  }>({
+    anchorOrigin: { vertical: "bottom", horizontal: "left" },
+    transformOrigin: { vertical: "top", horizontal: "left" }
+  });
+
+  const updatePosition = useCallback(() => {
+    if (!buttonRef.current) {
+      return;
+    }
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+
+    if (spaceBelow < POPOVER_HEIGHT && rect.top > POPOVER_HEIGHT) {
+      setPositionConfig({
+        anchorOrigin: { vertical: "top", horizontal: "left" },
+        transformOrigin: { vertical: "bottom", horizontal: "left" }
+      });
+    } else {
+      setPositionConfig({
+        anchorOrigin: { vertical: "bottom", horizontal: "left" },
+        transformOrigin: { vertical: "top", horizontal: "left" }
+      });
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener("resize", updatePosition);
+      return () => window.removeEventListener("resize", updatePosition);
+    }
+  }, [isOpen, updatePosition]);
 
   return (
     <>
@@ -127,21 +155,25 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
         enterDelay={TOOLTIP_ENTER_DELAY}
       >
         <Button
+          ref={buttonRef}
           className={`collections-button ${selectedCount > 0 ? "active" : ""}`}
           onClick={handleClick}
           size="small"
-          startIcon={<FolderIcon fontSize="small" />}
+          startIcon={<LibraryBooksOutlinedIcon sx={{ fontSize: 18 }} />}
           endIcon={
             selectedCount > 0 && (
               <Chip
                 size="small"
                 label={selectedCount}
                 sx={{
-                  marginLeft: 1,
-                  backgroundColor: "var(--palette-primary-main)",
-                  color: "var(--palette-grey-1000)",
+                  marginLeft: "-4px",
+                  backgroundColor: theme.vars.palette.grey[700],
+                  color: theme.vars.palette.grey[200],
+                  borderRadius: "6px",
+                  height: "18px",
                   "& .MuiChip-label": {
-                    padding: "0 4px"
+                    padding: "0 5px",
+                    fontSize: "0.7rem"
                   }
                 }}
               />
@@ -163,93 +195,151 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
           })}
         />
       </Tooltip>
-      <Dialog
-        css={styles.dialog}
-        className="collections-selector-dialog"
+
+      <Popover
+        css={styles(theme)}
         open={isOpen}
+        anchorEl={buttonRef.current}
         onClose={handleClose}
-        aria-labelledby="collections-selector-title"
+        anchorOrigin={positionConfig.anchorOrigin}
+        transformOrigin={positionConfig.transformOrigin}
         slotProps={{
-          backdrop: { style: { backdropFilter: "blur(20px)" } }
-        }}
-        sx={(theme) => ({
-          "& .MuiDialog-paper": {
-            width: "92%",
-            maxWidth: "1000px",
-            margin: "auto",
-            borderRadius: 1.5,
-            background: "transparent",
-            border: `1px solid ${theme.vars.palette.grey[700]}`
+          paper: {
+            elevation: 24,
+            style: {
+              width: `${POPOVER_WIDTH}px`,
+              height: `${POPOVER_HEIGHT}px`,
+              maxHeight: "90vh",
+              maxWidth: "100vw",
+              borderRadius: theme.vars.rounded.dialog,
+              background: theme.vars.palette.background.paper,
+              border: `1px solid ${theme.vars.palette.divider}`,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
+            }
           }
-        })}
+        }}
       >
-        <DialogTitle className="dialog-title">
-          <Typography variant="h4" id="collections-selector-title">
-            Collections
-          </Typography>
-          <Tooltip title="Close">
-            <IconButton
-              aria-label="close"
-              onClick={handleClose}
-              className="close-button"
+        {/* Header */}
+        <Box
+          sx={{
+            p: 1.5,
+            pl: 2,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0,
+            background: theme.vars.palette.background.paper
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                color: theme.vars.palette.text.secondary,
+                fontWeight: 600,
+                fontSize: "0.75rem",
+                textTransform: "uppercase",
+                letterSpacing: 0.5
+              }}
             >
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
-        </DialogTitle>
-        <DialogContent sx={{ background: "transparent", pt: 2 }}>
-          <Box className="dialog-summary">
-            <Typography variant="subtitle2">
-              {selectedCount} of {totalCount} selected
+              Collections
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: theme.vars.palette.text.secondary }}
+            >
+              {selectedCount}/{totalCount}
             </Typography>
           </Box>
-          <Box className="actions">
-            <Button size="small" onClick={handleSelectAll} sx={{ mr: 1 }}>
-              Select All
+          <Box sx={{ display: "flex", gap: 0.5 }}>
+            <Button
+              size="small"
+              onClick={handleSelectAll}
+              sx={{ fontSize: "0.7rem", minWidth: "auto", px: 1 }}
+            >
+              All
             </Button>
-            <Button size="small" onClick={handleClearAll}>
-              Clear All
+            <Button
+              size="small"
+              onClick={handleClearAll}
+              sx={{ fontSize: "0.7rem", minWidth: "auto", px: 1 }}
+            >
+              Clear
             </Button>
           </Box>
-          <Divider />
-          <div className="collections-grid">
-            {isLoading ? (
-              <Typography variant="body2" sx={{ p: 2 }}>
-                Loading collections...
-              </Typography>
-            ) : !collections?.collections.length ? (
-              <Typography variant="body2" sx={{ p: 2 }}>
+        </Box>
+
+        {/* Collections List */}
+        <Box className="collections-list">
+          {isLoading ? (
+            <Typography
+              variant="body2"
+              sx={{ p: 2, color: theme.vars.palette.text.secondary }}
+            >
+              Loading collections...
+            </Typography>
+          ) : !collections?.collections.length ? (
+            <Box sx={{ p: 2, color: theme.vars.palette.text.secondary }}>
+              <Typography variant="body2" sx={{ mb: 1 }}>
                 No collections available
               </Typography>
-            ) : (
-              collections.collections.map((collection) => (
-                <div key={collection.name} className="collection-item">
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={value.includes(collection.name)}
-                        onChange={() => handleToggle(collection.name)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <Box>
-                        <Typography variant="body2">
-                          {collection.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {collection.count} items
-                        </Typography>
-                      </Box>
-                    }
-                    className="checkbox-label"
+              <Typography variant="caption" sx={{ display: "block", opacity: 0.8, mb: 1 }}>
+                Collections are vector databases used for semantic search during chat.
+                When selected, relevant document chunks are retrieved and included as context.
+              </Typography>
+              <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
+                Create a collection from the left sidebar, then add documents, PDFs, or text files to index them.
+              </Typography>
+            </Box>
+          ) : (
+            collections.collections.map((collection) => {
+              const isSelected = value.includes(collection.name);
+              return (
+                <Box
+                  key={collection.name}
+                  className={`collection-item ${isSelected ? "selected" : ""}`}
+                  onClick={() => handleToggle(collection.name)}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    size="small"
+                    sx={{
+                      padding: 0.5,
+                      mr: 1,
+                      color: theme.vars.palette.text.secondary,
+                      "&.Mui-checked": {
+                        color: theme.vars.palette.primary.main
+                      }
+                    }}
                   />
-                </div>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: "0.8rem",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {collection.name}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: theme.vars.palette.text.secondary }}
+                    >
+                      {collection.count} items
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })
+          )}
+        </Box>
+      </Popover>
     </>
   );
 };

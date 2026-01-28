@@ -1,11 +1,13 @@
 import { create } from "zustand";
 
+type NodeError = Error | string | null | Record<string, unknown>;
+
 type ErrorStore = {
-  errors: Record<string, string>;
+  errors: Record<string, NodeError>;
   clearErrors: (workflowId: string) => void;
   clearNodeErrors: (workflowId: string, nodeId: string) => void;
-  setError: (workflowId: string, nodeId: string, error: any) => void;
-  getError: (workflowId: string, nodeId: string) => any;
+  setError: (workflowId: string, nodeId: string, error: NodeError) => void;
+  getError: (workflowId: string, nodeId: string) => NodeError;
 };
 
 const hashKey = (workflowId: string, nodeId: string) =>
@@ -19,22 +21,23 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
    * @param workflowId The id of the workflow.
    */
   clearErrors: (workflowId: string) => {
-    const errors = get().errors;
-    for (const key in errors) {
-      if (key.startsWith(workflowId)) {
-        delete errors[key];
-      }
-    }
-    set({ errors });
+    set((state) => ({
+      errors: Object.fromEntries(
+        Object.entries(state.errors).filter(
+          ([key]) => !key.startsWith(workflowId)
+        )
+      )
+    }));
   },
   /**
    * Clear the errors for a specific node.
    */
   clearNodeErrors: (workflowId: string, nodeId: string) => {
-    const errors = get().errors;
     const key = hashKey(workflowId, nodeId);
-    delete errors[key];
-    set({ errors });
+    set((state) => {
+      const { [key]: removed, ...remainingErrors } = state.errors;
+      return { errors: remainingErrors };
+    });
   },
   /**
    * Set the error for a node.
@@ -44,9 +47,11 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
    * @param nodeId The id of the node.
    * @param error The error to set.
    */
-  setError: (workflowId: string, nodeId: string, error: any) => {
+  setError: (workflowId: string, nodeId: string, error: NodeError) => {
     const key = hashKey(workflowId, nodeId);
-    set({ errors: { ...get().errors, [key]: error } });
+    set((state) => ({
+      errors: { ...state.errors, [key]: error }
+    }));
   },
 
   /**

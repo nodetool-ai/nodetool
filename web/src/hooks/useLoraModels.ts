@@ -8,11 +8,19 @@ interface UseLoraModelsParams {
   enabled?: boolean;
 }
 
+/**
+ * Helper function to check if a model type is a supported LoRA type.
+ * Supports SD 1.5, SDXL, and Flux LoRAs.
+ */
+export const isLoraType = (modelType: string): boolean => {
+  return modelType.startsWith("hf.lora_sd") || modelType.startsWith("hf.lora_flux");
+};
+
 export const useLoraModels = ({ modelType, enabled = true }: UseLoraModelsParams) => {
   const { recommendedModels } = useRecommendedModels();
 
   return useQuery({
-    enabled: enabled && modelType.startsWith("hf.lora_sd"),
+    enabled: enabled && isLoraType(modelType),
     queryKey: ["lora-models", modelType],
     queryFn: async () => {
       // Collect LoRA entries from recommendations

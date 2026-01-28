@@ -9,30 +9,38 @@ import type { Theme } from "@mui/material/styles";
 
 // icons
 import stc from "string-to-color";
-import any from "../icons/any.svg?react";
-import notype from "../icons/notype.svg?react";
-import asset from "../icons/asset.svg?react";
-import audio from "../icons/audio.svg?react";
-import bool from "../icons/bool.svg?react";
-import dataframe from "../icons/dataframe.svg?react";
-import dict from "../icons/dict.svg?react";
-import _enum from "../icons/enum.svg?react"; // 'enum' is a reserved keyword
-import file from "../icons/file.svg?react";
-import float from "../icons/float.svg?react";
-import folder from "../icons/folder.svg?react";
-import image from "../icons/image.svg?react";
-import int from "../icons/int.svg?react";
-import list from "../icons/list.svg?react";
-import model from "../icons/model.svg?react";
-import str from "../icons/str.svg?react";
-import tensor from "../icons/tensor.svg?react";
-import text from "../icons/text.svg?react";
-import thread from "../icons/thread.svg?react";
-import thread_message from "../icons/thread_message.svg?react";
-import union from "../icons/union.svg?react";
-import video from "../icons/video.svg?react";
-import database from "../icons/database.svg?react";
-import task from "../icons/task.svg?react";
+import any from "../icons/data_types/nodetool/any.svg?react";
+import notype from "../icons/data_types/nodetool/notype.svg?react";
+import asset from "../icons/data_types/nodetool/asset.svg?react";
+import audio from "../icons/data_types/nodetool/audio.svg?react";
+import bool from "../icons/data_types/nodetool/bool.svg?react";
+import chunk from "../icons/data_types/nodetool/chunk.svg?react";
+import dataframe from "../icons/data_types/nodetool/dataframe.svg?react";
+import dict from "../icons/data_types/nodetool/dict.svg?react";
+import _enum from "../icons/data_types/nodetool/enum.svg?react"; // 'enum' is a reserved keyword
+import file from "../icons/data_types/nodetool/file.svg?react";
+import float from "../icons/data_types/nodetool/float.svg?react";
+import folder from "../icons/data_types/nodetool/folder.svg?react";
+import image from "../icons/data_types/nodetool/image.svg?react";
+import int from "../icons/data_types/nodetool/int.svg?react";
+import list from "../icons/data_types/nodetool/list.svg?react";
+import model from "../icons/data_types/nodetool/model.svg?react";
+import language_model from "../icons/data_types/nodetool/language_model.svg?react";
+import image_model from "../icons/data_types/nodetool/image_model.svg?react";
+import model_3d from "../icons/data_types/nodetool/model_3d.svg?react";
+import str from "../icons/data_types/nodetool/str.svg?react";
+import tensor from "../icons/data_types/nodetool/tensor.svg?react";
+import text from "../icons/data_types/nodetool/text.svg?react";
+import thread from "../icons/data_types/nodetool/thread.svg?react";
+import thread_message from "../icons/data_types/nodetool/thread_message.svg?react";
+import union from "../icons/data_types/nodetool/union.svg?react";
+import video from "../icons/data_types/nodetool/video.svg?react";
+import database from "../icons/data_types/nodetool/database.svg?react";
+import task from "../icons/data_types/nodetool/task.svg?react";
+import documentIcon from "../icons/data_types/nodetool/document.svg?react";
+import np_array from "../icons/data_types/nodetool/np_array.svg?react";
+import datetime from "../icons/data_types/nodetool/datetime.svg?react";
+import date from "../icons/data_types/nodetool/date.svg?react";
 
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
 
@@ -48,7 +56,8 @@ const SpectraNode = {
   matrix: "#6366F1", // indigo 500 — tensors / matrices
   // Accents
   spatial: "#A3E635", // lime 400 — geometry
-  texture: "#D946EF", // fuchsia 500 — images / textures / video
+  texture: "#D946EF", // fuchsia 500 — images / textures
+  video: "#8B5CF6", // violet 500 — video
   textual: "#F59E0B", // amber 500 — text / strings
   collection: "#FACC15", // yellow 400 — list / dict / dataframe / enum
   reference: "#3B82F6", // blue 500 — file‑like / objects / models / assets
@@ -66,6 +75,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   asset,
   audio,
   bool,
+  chunk,
   dataframe,
   dict,
   enum: _enum,
@@ -76,6 +86,9 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   int,
   list,
   model,
+  model_ref: model,
+  language_model,
+  image_model,
   str,
   tensor,
   text,
@@ -84,14 +97,15 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   video,
   database,
   task,
-  language_model: model,
   thread,
-  model_ref: model,
-  image_model: model,
   workflow: dataframe,
-  datetime: float,
+  datetime,
+  date,
   object: dict,
-  np_array: tensor,
+  np_array,
+  json: dict,
+  document: documentIcon,
+  model_3d,
   ...comfyIconMap
 };
 
@@ -123,6 +137,10 @@ function colour(k: SpectraKey) {
   return SpectraNode[k];
 }
 
+function normalizeTypeName(value: string) {
+  return value === "model3d" ? "model_3d" : value;
+}
+
 /**
  * NODETOOL built‑in data types with SpectraNode colours applied.
  */
@@ -130,7 +148,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "any",
     label: "Any",
-    description: "Accepts any data type. Use when a node can handle multiple input types dynamically.",
+    description:
+      "Accepts any data type. Use when a node can handle multiple input types dynamically.",
     color: colour("execution"),
     textColor: "dark",
     name: "",
@@ -141,8 +160,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "notype",
     label: "No Type",
-    description: "No output produced. Used for nodes that perform actions without returning data.",
-    color: "#A7B1BF", // neutral grey
+    description: "No output or type not specified.",
+    color: "#A7B1BF",
     textColor: "dark",
     name: "",
     slug: "",
@@ -152,7 +171,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "asset",
     label: "Asset",
-    description: "Reference to media files or documents stored in the asset library.",
+    description:
+      "Reference to media files or documents stored in the asset library.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -163,7 +183,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "audio",
     label: "Audio",
-    description: "Audio data for playback, processing, or generation. Supports WAV, MP3, and other formats.",
+    description:
+      "Audio data for playback, processing, or generation. Supports WAV, MP3, and other formats.",
     color: colour("audio"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -174,8 +195,9 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "video",
     label: "Video",
-    description: "Video data for playback, editing, or generation. Supports MP4, WebM, and other formats.",
-    color: colour("texture"),
+    description:
+      "Video data for playback, editing, or generation. Supports MP4, WebM, and other formats.",
+    color: colour("video"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
@@ -185,7 +207,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "bool",
     label: "Boolean",
-    description: "Logical true or false value. Used for conditions, toggles, and binary choices.",
+    description:
+      "Logical true or false value. Used for conditions, toggles, and binary choices.",
     color: colour("boolean"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -196,7 +219,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "chunk",
     label: "Chunk",
-    description: "Partial data from a streaming response. Used in real-time chat and generation workflows.",
+    description:
+      "Partial data from a streaming response. Used in real-time chat and generation workflows.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -207,7 +231,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "dataframe",
     label: "Dataframe",
-    description: "Tabular data with rows and columns. Used for CSV data, analytics, and data processing.",
+    description:
+      "Tabular data with rows and columns. Used for CSV data, analytics, and data processing.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -218,7 +243,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "document",
     label: "Document",
-    description: "Structured document with text content and metadata. Supports PDF, DOCX, and text files.",
+    description:
+      "Structured document with text content and metadata. Supports PDF, DOCX, and text files.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -229,7 +255,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "dict",
     label: "Dictionary",
-    description: "Key-value pairs collection. Used for structured data, configurations, and JSON objects.",
+    description:
+      "Key-value pairs collection. Used for structured data, configurations, and JSON objects.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -240,7 +267,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "enum",
     label: "Enumeration",
-    description: "A predefined set of named options. Used for dropdowns and fixed-choice selections.",
+    description:
+      "A predefined set of named options. Used for dropdowns and fixed-choice selections.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -251,7 +279,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "file",
     label: "File",
-    description: "Reference to an uploaded file. Used for file inputs and attachments.",
+    description:
+      "Reference to an uploaded file. Used for file inputs and attachments.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -262,7 +291,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "float",
     label: "Float",
-    description: "Decimal number with fractional precision. Used for measurements, percentages, and ratios.",
+    description:
+      "Decimal number with fractional precision. Used for measurements, percentages, and ratios.",
     color: colour("scalar"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -273,7 +303,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "folder",
     label: "Folder",
-    description: "Reference to a folder in the asset library. Used for batch processing multiple files.",
+    description:
+      "Reference to a folder in the asset library. Used for batch processing multiple files.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -284,7 +315,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "image",
     label: "Image",
-    description: "Image data for display, editing, or generation. Supports PNG, JPEG, WebP, and other formats.",
+    description:
+      "Image data for display, editing, or generation. Supports PNG, JPEG, WebP, and other formats.",
     color: colour("texture"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -295,7 +327,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "int",
     label: "Integer",
-    description: "Whole number without decimals. Used for counts, indices, and discrete quantities.",
+    description:
+      "Whole number without decimals. Used for counts, indices, and discrete quantities.",
     color: "#0891B2",
     textColor: "var(--palette-action-active)",
     name: "",
@@ -306,7 +339,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "list",
     label: "List",
-    description: "Ordered collection of items. Used for arrays, sequences, and batch processing.",
+    description:
+      "Ordered collection of items. Used for arrays, sequences, and batch processing.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -317,7 +351,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "str",
     label: "String",
-    description: "Text value for labels, names, and short text. Use Text type for longer content.",
+    description:
+      "Text value for labels, names, and short text. Use Text type for longer content.",
     color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -328,7 +363,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "tensor",
     label: "Tensor",
-    description: "Multi-dimensional numerical array. Used for ML model inputs, embeddings, and computations.",
+    description:
+      "Multi-dimensional numerical array. Used for ML model inputs, embeddings, and computations.",
     color: colour("matrix"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -339,7 +375,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "text",
     label: "Text",
-    description: "Extended text content for documents, prompts, and multi-line strings.",
+    description:
+      "Extended text content for documents, prompts, and multi-line strings.",
     color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -350,7 +387,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "union",
     label: "Union",
-    description: "Value that can be one of several specified types. Enables flexible type handling.",
+    description:
+      "Value that can be one of several specified types. Enables flexible type handling.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -361,18 +399,20 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "language_model",
     label: "Language Model",
-    description: "Reference to an LLM for text generation, chat, and language understanding tasks.",
+    description:
+      "Reference to an LLM for text generation, chat, and language understanding tasks.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
     slug: "",
     namespace: "",
-    icon: "ModelTraining"
+    icon: "ViewInAr"
   },
   {
     value: "message",
     label: "Message",
-    description: "Chat message with role and content. Used in conversation flows and chat interfaces.",
+    description:
+      "Chat message with role and content. Used in conversation flows and chat interfaces.",
     color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -383,7 +423,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "taesd",
     label: "TAESD",
-    description: "Tiny Autoencoder for Stable Diffusion. Enables fast image previews during generation.",
+    description:
+      "Tiny Autoencoder for Stable Diffusion. Enables fast image previews during generation.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -394,7 +435,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "database",
     label: "Database",
-    description: "Connection to a database for storing and querying structured data.",
+    description:
+      "Connection to a database for storing and querying structured data.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -405,7 +447,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "task",
     label: "Task",
-    description: "Agent task with goals and context. Used for autonomous AI agent workflows.",
+    description:
+      "Agent task with goals and context. Used for autonomous AI agent workflows.",
     color: colour("event"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -416,7 +459,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "thread",
     label: "Thread",
-    description: "Conversation thread containing a sequence of messages for chat interactions.",
+    description:
+      "Conversation thread containing a sequence of messages for chat interactions.",
     color: colour("textual"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -427,7 +471,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "model_ref",
     label: "Model Reference",
-    description: "Reference to a machine learning model file or repository for inference.",
+    description:
+      "Reference to a machine learning model file or repository for inference.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -438,7 +483,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "image_model",
     label: "Image Model",
-    description: "Reference to an image generation or processing model for visual AI tasks.",
+    description:
+      "Reference to an image generation or processing model for visual AI tasks.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -449,7 +495,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "workflow",
     label: "Workflow",
-    description: "Reference to another workflow. Used for nesting and composing complex pipelines.",
+    description:
+      "Reference to another workflow. Used for nesting and composing complex pipelines.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -460,7 +507,19 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "datetime",
     label: "DateTime",
-    description: "Date and time value with timezone support. Used for scheduling and timestamps.",
+    description:
+      "Date and time value with timezone support. Used for scheduling and timestamps.",
+    color: colour("scalar"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
+    value: "date",
+    label: "Date",
+    description: "Calendar date without a time component.",
     color: colour("scalar"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -471,7 +530,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "object",
     label: "Object",
-    description: "Generic structured object. Used for complex data that doesn't fit other types.",
+    description:
+      "Generic structured object. Used for complex data that doesn't fit other types.",
     color: colour("collection"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -480,9 +540,34 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "DataObject"
   },
   {
+    value: "json",
+    label: "JSON",
+    description:
+      "Structured JSON data. Used for nested objects, configuration, and API payloads.",
+    color: colour("collection"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
+    value: "model_3d",
+    label: "Model 3D",
+    description:
+      "3D model data for visualization or processing. Supports GLB and GLTF.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ModelTraining"
+  },
+  {
     value: "np_array",
     label: "NumPy Array",
-    description: "NumPy array for numerical computing. Used for scientific data and ML operations.",
+    description:
+      "NumPy array for numerical computing. Used for scientific data and ML operations.",
     color: colour("matrix"),
     textColor: "var(--palette-action-active)",
     name: "",
@@ -499,7 +584,7 @@ type IconProps = React.SVGProps<SVGSVGElement> & {
   bgStyle?: React.CSSProperties;
 };
 
-const iconStyles = (theme: Theme) => ({
+const iconStyles = (_theme: Theme) => ({
   "&": {
     display: "flex",
     justifyContent: "center",
@@ -520,7 +605,8 @@ const iconStyles = (theme: Theme) => ({
 });
 
 export function datatypeByName(name: string): DataType | null {
-  const foundItem = DATA_TYPES.find((item) => item.value === name);
+  const normalizedName = normalizeTypeName(name);
+  const foundItem = DATA_TYPES.find((item) => item.value === normalizedName);
   return (
     foundItem || DATA_TYPES.find((item) => item.value === "notype") || null
   );
@@ -539,7 +625,7 @@ interface IconForTypeProps extends IconProps {
 type IconSizeOption = "small" | "normal" | "medium" | "large";
 
 const ICON_SIZE_MAP: Record<IconSizeOption, number> = {
-  small: 16,
+  small: 20,
   normal: 24,
   medium: 32,
   large: 40
@@ -555,10 +641,11 @@ export const IconForType = memo(function IconForType({
 }: IconForTypeProps) {
   const theme = useTheme();
   const name = iconName?.replace("nodetool.", "") || "notype";
-  const dataType = datatypeByName(name);
+  const normalizedName = normalizeTypeName(name);
+  const dataType = datatypeByName(normalizedName);
   const description = dataType?.description || "";
-  const IconComponent = name
-    ? iconMap[name] || iconMap["any"] || iconMap["notype"]
+  const IconComponent = normalizedName
+    ? iconMap[normalizedName] || iconMap["any"] || iconMap["notype"]
     : iconMap["notype"];
   const resolvedSize = `${ICON_SIZE_MAP[iconSize] ?? ICON_SIZE_MAP.normal}px`;
 
@@ -605,22 +692,26 @@ export const IconForType = memo(function IconForType({
 isEqual);
 
 export function colorForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.color || stc(type);
 }
 
 export function textColorForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.textColor || "#eee";
 }
 
 export function descriptionForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.description || "";
 }
 
 export function labelForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
   return foundType?.label || "";
 }
 

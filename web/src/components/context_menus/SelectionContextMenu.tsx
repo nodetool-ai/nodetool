@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import { Divider, Typography, MenuItem, Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //store
@@ -9,6 +9,7 @@ import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { useSelectConnected } from "../../hooks/useSelectConnected";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
@@ -17,6 +18,10 @@ import CopyAllIcon from "@mui/icons-material/CopyAll";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
+import BlockIcon from "@mui/icons-material/Block";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { useNodes } from "../../contexts/NodeContext";
 
 interface SelectionContextMenuProps {
@@ -26,13 +31,17 @@ interface SelectionContextMenuProps {
 
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { handleCopy } = useCopyPaste();
-  const { deleteNode } = useNodes((state) => ({
-    deleteNode: state.deleteNode
+  const { deleteNode, toggleBypassSelected } = useNodes((state) => ({
+    deleteNode: state.deleteNode,
+    toggleBypassSelected: state.toggleBypassSelected
   }));
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
   const surroundWithGroup = useSurroundWithGroup();
   const removeFromGroup = useRemoveFromGroup();
+  const selectConnectedAll = useSelectConnected({ direction: "both" });
+  const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
+  const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -45,6 +54,21 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const anyHasParent = useMemo(() => {
     return selectedNodes.some((node) => node.parentId);
   }, [selectedNodes]);
+
+  // Check if majority of selected nodes are bypassed
+  const majorityBypassed = useMemo(() => {
+    if (selectedNodes.length === 0) {
+      return false;
+    }
+    const bypassedCount = selectedNodes.filter((n) => n.data.bypassed).length;
+    return bypassedCount >= selectedNodes.length / 2;
+  }, [selectedNodes]);
+
+  // bypass
+  const handleToggleBypass = useCallback(() => {
+    toggleBypassSelected();
+    closeContextMenu();
+  }, [toggleBypassSelected, closeContextMenu]);
 
   //duplicate
   const handleDuplicateNodes = useCallback(() => {
@@ -61,57 +85,52 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     closeContextMenu();
   }, [closeContextMenu, deleteNode, selectedNodes]);
 
-  //collapse
-  // const handleCollapseAll = useCallback(
-  //   (callAlignNodes: boolean) => {
-  //     if (selectedNodeIds?.length) {
-  //       selectedNodeIds.forEach((id) => {
-  //         const node = findNode(id);
-  //         if (node && node.data.properties) {
-  //           updateNodeData(id, {
-  //             properties: { ...node.data.properties },
-  //             collapsed: true,
-  //             workflow_id: node.data.workflow_id
-  //           });
-  //         }
-  //       });
-  //       // alignNodes
-  //       if (callAlignNodes && alignNodes) {
-  //         setTimeout(() => {
-  //           alignNodes({ arrangeSpacing: true, collapsed: true });
-  //         }, 10);
-  //       }
-  //     }
-  //   },
-  //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
-  // );
+  //select connected
+  const handleSelectConnectedAll = useCallback(() => {
+    selectConnectedAll.selectConnected();
+    closeContextMenu();
+  }, [selectConnectedAll, closeContextMenu]);
 
-  //expand
-  // const handleExpandAll = useCallback(
-  //   (callAlignNodes: boolean) => {
-  //     if (selectedNodeIds?.length) {
-  //       selectedNodeIds.forEach((id) => {
-  //         const node = findNode(id);
-  //         if (node && node.data.properties) {
-  //           updateNodeData(id, {
-  //             properties: { ...node.data.properties },
-  //             collapsed: false,
-  //             workflow_id: node.data.workflow_id
-  //           });
-  //         }
-  //       });
-  //       // alignNodes
-  //       if (callAlignNodes && alignNodes) {
-  //         setTimeout(() => {
-  //           alignNodes({ arrangeSpacing: true, collapsed: false });
-  //         }, 10);
-  //       }
-  //     }
-  //   },
-  //   [selectedNodeIds, alignNodes, findNode, updateNodeData]
-  // );
+  const handleSelectConnectedInputs = useCallback(() => {
+    selectConnectedInputs.selectConnected();
+    closeContextMenu();
+  }, [selectConnectedInputs, closeContextMenu]);
 
-  if (!menuPosition) {return null;}
+  const handleSelectConnectedOutputs = useCallback(() => {
+    selectConnectedOutputs.selectConnected();
+    closeContextMenu();
+  }, [selectConnectedOutputs, closeContextMenu]);
+
+  const handleAlignNodes = useCallback(
+    (arrangeSpacing: boolean) => {
+      alignNodes({ arrangeSpacing });
+    },
+    [alignNodes]
+  );
+
+  const handleSurroundWithGroup = useCallback(() => {
+    surroundWithGroup({ selectedNodes });
+  }, [surroundWithGroup, selectedNodes]);
+
+  const handleRemoveFromGroup = useCallback(() => {
+    removeFromGroup(selectedNodes);
+  }, [removeFromGroup, selectedNodes]);
+
+  const handleCopyNodes = useCallback(() => {
+    handleCopy();
+  }, [handleCopy]);
+
+  const handleAlignNodesFalse = useCallback(() => {
+    handleAlignNodes(false);
+  }, [handleAlignNodes]);
+
+  const handleAlignNodesTrue = useCallback(() => {
+    handleAlignNodes(true);
+  }, [handleAlignNodes]);
+
+  if (!menuPosition) {
+    return null;
+  }
   return (
     <Menu
       className="context-menu selection-context-menu"
@@ -137,7 +156,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       </MenuItem>
 
       <ContextMenuItem
-        onClick={() => handleDuplicateNodes()}
+        onClick={handleDuplicateNodes}
         label="Duplicate"
         IconComponent={<QueueIcon />}
         tooltip={
@@ -150,7 +169,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         }
       />
       <ContextMenuItem
-        onClick={() => handleCopy()}
+        onClick={handleCopyNodes}
         label="Copy"
         IconComponent={<CopyAllIcon />}
         tooltip={
@@ -176,9 +195,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       /> */}
       {selectedNodes?.length > 1 && (
         <ContextMenuItem
-          onClick={() => {
-            alignNodes({ arrangeSpacing: false });
-          }}
+          onClick={handleAlignNodesFalse}
           label="Align"
           IconComponent={<FormatAlignLeftIcon />}
           tooltip={
@@ -193,9 +210,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       )}
       {selectedNodes?.length > 1 && (
         <ContextMenuItem
-          onClick={() => {
-            alignNodes({ arrangeSpacing: true });
-          }}
+          onClick={handleAlignNodesTrue}
           label="Arrange"
           IconComponent={<FormatAlignLeftIcon />}
           tooltip={
@@ -209,11 +224,25 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         />
       )}
 
+      <ContextMenuItem
+        onClick={handleToggleBypass}
+        label={majorityBypassed ? "Enable All" : "Bypass All"}
+        IconComponent={<BlockIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">
+              {majorityBypassed ? "Enable Nodes" : "Bypass Nodes"}
+            </div>
+            <div className="tooltip-key">
+              <kbd>B</kbd>
+            </div>
+          </div>
+        }
+      />
+
       {!anyHasParent && (
         <ContextMenuItem
-          onClick={() => {
-            surroundWithGroup({ selectedNodes });
-          }}
+          onClick={handleSurroundWithGroup}
           label="Surrround With Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={
@@ -232,9 +261,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
       {anyHasParent && (
         <ContextMenuItem
-          onClick={() => {
-            removeFromGroup(selectedNodes);
-          }}
+          onClick={handleRemoveFromGroup}
           label="Remove From Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={
@@ -250,6 +277,70 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           }`}
         />
       )}
+
+      <Divider />
+
+      <MenuItem disabled>
+        <Typography
+          style={{
+            margin: ".1em 0",
+            padding: "0"
+          }}
+          variant="body1"
+        >
+          CONNECTED
+        </Typography>
+      </MenuItem>
+
+      <ContextMenuItem
+        onClick={handleSelectConnectedAll}
+        label="Select All Connected"
+        IconComponent={<CallSplitIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Select All Connected</div>
+            <div className="tooltip-key">
+              <kbd>SHIFT</kbd>+<kbd>C</kbd>
+            </div>
+          </div>
+        }
+        addButtonClassName={`action ${
+          selectedNodes.length < 1 ? "disabled" : ""
+        }`}
+      />
+      <ContextMenuItem
+        onClick={handleSelectConnectedInputs}
+        label="Select Inputs"
+        IconComponent={<ArrowBackIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Select Inputs</div>
+            <div className="tooltip-key">
+              <kbd>SHIFT</kbd>+<kbd>I</kbd>
+            </div>
+          </div>
+        }
+        addButtonClassName={`action ${
+          selectedNodes.length < 1 ? "disabled" : ""
+        }`}
+      />
+      <ContextMenuItem
+        onClick={handleSelectConnectedOutputs}
+        label="Select Outputs"
+        IconComponent={<ArrowForwardIcon />}
+        tooltip={
+          <div className="tooltip-span">
+            <div className="tooltip-title">Select Outputs</div>
+            <div className="tooltip-key">
+              <kbd>SHIFT</kbd>+<kbd>O</kbd>
+            </div>
+          </div>
+        }
+        addButtonClassName={`action ${
+          selectedNodes.length < 1 ? "disabled" : ""
+        }`}
+      />
+
       <Divider />
       <ContextMenuItem
         onClick={handleDelete}
@@ -269,4 +360,4 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   );
 };
 
-export default SelectionContextMenu;
+export default memo(SelectionContextMenu);

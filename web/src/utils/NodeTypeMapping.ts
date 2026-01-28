@@ -107,7 +107,7 @@ export const inputForType = (type: TypeName) => {
 /**
  * Maps internal types to output node type (generic Output node handles all types)
  */
-export const outputForType = (type: TypeName) => {
+export const outputForType = (_type: TypeName) => {
   return "nodetool.output.Output";
 };
 

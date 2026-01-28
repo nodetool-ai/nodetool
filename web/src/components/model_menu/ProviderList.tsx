@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { useCallback } from "react";
 import {
   List,
   ListItemButton,
@@ -14,13 +14,14 @@ import {
   MenuItem,
   Divider
 } from "@mui/material";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import { useTheme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   isHuggingFaceProvider,
@@ -47,13 +48,17 @@ export interface ProviderListProps {
   isLoading: boolean;
   isError: boolean;
   storeHook?: ModelMenuStoreHook<any>;
+  forceUnselect?: boolean;
+  iconOnly?: boolean;
 }
 
 const ProviderList: React.FC<ProviderListProps> = ({
   providers,
   isLoading,
   isError,
-  storeHook = useLanguageModelMenuStore
+  storeHook = useLanguageModelMenuStore,
+  forceUnselect = false,
+  iconOnly = false
 }) => {
   const theme = useTheme();
   const selected = storeHook((s) => s.selectedProvider);
@@ -93,12 +98,57 @@ const ProviderList: React.FC<ProviderListProps> = ({
     return result;
   }, [providers, enabledProviders]);
 
+  const handleSelectNull = useCallback(() => {
+    setSelected(null);
+  }, [setSelected]);
+
+  const handleSelectProvider = useCallback((p: string) => () => {
+    setSelected(p);
+  }, [setSelected]);
+
+  const handleProviderChange = useCallback((p: string, enabled: boolean) => () => {
+    setProviderEnabled(p, enabled);
+  }, [setProviderEnabled]);
+
+  const handleMenuOpen = useCallback((event: React.MouseEvent, p: string) => {
+    event.preventDefault();
+    setMenuAnchor(event.currentTarget as HTMLElement);
+    setMenuProvider(p);
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
+    setMenuAnchor(null);
+    setMenuProvider(null);
+  }, []);
+
+  const handleOpenSettings = useCallback(() => {
+    setMenuOpen(true, 1);
+  }, [setMenuOpen]);
+
+  const handleStopPropagation = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  const handleOpenWebsite = useCallback(() => {
+    const url = getProviderUrl(menuProvider || undefined);
+    if (url) { window.open(url, "_blank"); }
+    handleMenuClose();
+  }, [menuProvider, handleMenuClose]);
+
+  const handleToggleProvider = useCallback(() => {
+    if (menuProvider) {
+      const next = !isProviderEnabled(menuProvider);
+      setProviderEnabled(menuProvider, next);
+    }
+    handleMenuClose();
+  }, [menuProvider, isProviderEnabled, setProviderEnabled, handleMenuClose]);
+
   return (
     <List
       dense
       css={listStyles}
       className="model-menu__providers-list"
-      sx={{ fontSize: (theme) => theme.vars.fontSizeSmall }}
+      sx={{ fontSize: (theme) => theme.vars.fontSizeSmall, px: iconOnly ? 0.5 : 0 }}
     >
       {isLoading && (
         <div className="is-loading" style={{ padding: 8 }}>
@@ -112,19 +162,30 @@ const ProviderList: React.FC<ProviderListProps> = ({
       )}
       <ListItemButton
         disableRipple
-        className={`model-menu__provider-item ${
-          selected === null ? "is-selected" : ""
-        }`}
-        selected={selected === null}
-        onClick={() => setSelected(null)}
-        sx={{ py: 0.25 }}
+        className={`model-menu__provider-item ${selected === null && !forceUnselect ? "is-selected" : ""
+          }`}
+        selected={selected === null && !forceUnselect}
+        onClick={handleSelectNull}
+        sx={{
+          py: iconOnly ? 1 : 0.25,
+          justifyContent: iconOnly ? 'center' : 'flex-start',
+          px: iconOnly ? 0 : 2,
+          minHeight: iconOnly ? 40 : 'auto',
+          borderRadius: iconOnly ? 1 : 0
+        }}
       >
-        <ListItemText
-          primary="All providers"
-          primaryTypographyProps={{
-            sx: { fontSize: (theme) => theme.vars.fontSizeSmall }
-          }}
-        />
+        {iconOnly ? (
+          <Tooltip title="All providers" placement="right">
+            <FormatListBulletedIcon />
+          </Tooltip>
+        ) : (
+          <ListItemText
+            primary="All providers"
+            primaryTypographyProps={{
+              sx: { fontSize: (theme) => theme.vars.fontSizeSmall }
+            }}
+          />
+        )}
       </ListItemButton>
       {[...sortedProviders.enabledList, ...sortedProviders.disabledList].map(
         (p, idx) => {
@@ -142,7 +203,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             const isHF = isHuggingFaceProvider(p);
             const isHFLocal = isHuggingFaceLocalProvider(p);
             const isLocal = /ollama|local|lmstudio|llama[_-]?cpp|mlx/i.test(p);
-            
+
             if (isHF) {
               badges.push({ label: "HF" });
             }
@@ -152,7 +213,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             if (!isHF && !isLocal && !isHFLocal) {
               badges.push({ label: "API" });
             }
-            
+
             return (
               <Box sx={{ display: "flex", gap: 0.5 }}>
                 {badges.map((b) => {
@@ -160,8 +221,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     b.label === "HF"
                       ? "HuggingFace: Models from the Hugging Face Hub."
                       : b.label === "Local"
-                      ? "Local: Runs locally on your machine."
-                      : "API: Remote provider; runs via API without local download. Requires API key.";
+                        ? "Local: Runs locally on your machine."
+                        : "API: Remote provider; runs via API without local download. Requires API key.";
                   return (
                     <Tooltip
                       key={b.label}
@@ -180,8 +241,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             b.label === "API"
                               ? theme.vars.palette.c_provider_api
                               : b.label === "Local"
-                              ? theme.vars.palette.c_provider_local
-                              : theme.vars.palette.c_provider_hf,
+                                ? theme.vars.palette.c_provider_local
+                                : theme.vars.palette.c_provider_hf,
                           letterSpacing: 0.2,
                           border: `1px solid currentColor`
                         }}
@@ -196,110 +257,128 @@ const ProviderList: React.FC<ProviderListProps> = ({
           };
           return (
             <React.Fragment key={`provider-item-${p}`}>
-              {showDivider && (
+              {showDivider && !iconOnly && (
                 <Divider component="li" sx={{ my: 0.5, opacity: 0.5 }} />
               )}
               <ListItemButton
                 disableRipple
-                className={`model-menu__provider-item ${
-                  selected === p ? "is-selected" : ""
-                }`}
+                className={`model-menu__provider-item ${selected === p ? "is-selected" : ""
+                  }`}
                 selected={selected === p}
-                onClick={() => setSelected(p)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setMenuAnchor(e.currentTarget);
-                  setMenuProvider(p);
-                }}
+                onClick={handleSelectProvider(p)}
+                onContextMenu={(e) => handleMenuOpen(e, p)}
                 sx={{
                   gap: 0.1,
                   opacity: enabled && available ? 1 : 0.5,
-                  py: 0.25
+                  py: iconOnly ? 1 : 0.25,
+                  justifyContent: iconOnly ? 'center' : 'flex-start',
+                  px: iconOnly ? 0 : 2,
+                  minHeight: iconOnly ? 40 : 'auto',
+                  borderRadius: iconOnly ? 1 : 0
                 }}
               >
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <span>
-                        {isHuggingFaceProvider(p)
-                          ? getProviderBaseName(p)
-                          : formatGenericProviderName(p)}
-                      </span>
+                {iconOnly ? (
+                  <Tooltip title={p} placement="right">
+                    <Box sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      bgcolor: (selected === p) ? 'primary.main' : (isProviderEnabled(p) ? 'action.selected' : 'transparent'),
+                      border: `1px solid ${selected === p ? 'transparent' : theme.vars.palette.divider}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '0.75rem',
+                      color: (selected === p) ? 'primary.contrastText' : (isProviderEnabled(p) ? 'text.primary' : 'text.disabled'),
+                    }}>
+                      {formatGenericProviderName(p).substring(0, 2).toUpperCase()}
                     </Box>
-                  }
-                  slotProps={{
-                    primary: {
-                      sx: {
-                        fontSize: (theme) => theme.vars.fontSizeSmall
+                  </Tooltip>
+                ) : (
+                  <>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <span>
+                            {isHuggingFaceProvider(p)
+                              ? getProviderBaseName(p)
+                              : formatGenericProviderName(p)}
+                          </span>
+                        </Box>
                       }
-                    }
-                  }}
-                />
-                {!hasKey && (
-                  <Box
-                    sx={{
-                      mr: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Tooltip title="API key required">
-                      <InfoOutlinedIcon
-                        sx={{
-                          fontSize: (theme) => theme.vars.fontSizeNormal,
-                          color: "warning.main"
-                        }}
-                      />
-                    </Tooltip>
-                    <Tooltip title="Open Settings to add API key">
-                      <Button
-                        size="small"
-                        variant="text"
-                        color="warning"
-                        sx={{
-                          minWidth: "auto",
-                          p: 0,
-                          fontSize: (theme) => theme.vars.fontSizeSmaller
-                        }}
-                        onClick={() => setMenuOpen(true, 1)}
-                      >
-                        Add key
-                      </Button>
-                    </Tooltip>
-                  </Box>
-                )}
-                <Box
-                  sx={{
-                    ml: "auto",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Right-aligned badges */}
-                  {renderBadges()}
-                  <Tooltip
-                    title={enabled ? "Disable provider" : "Enable provider"}
-                  >
-                    <Checkbox
-                      edge="end"
-                      size="small"
-                      sx={{
-                        padding: 0,
-                        "& .MuiSvgIcon-root": {
-                          fontSize: (theme) => theme.vars.fontSizeBig
+                      slotProps={{
+                        primary: {
+                          sx: {
+                            fontSize: (theme) => theme.vars.fontSizeSmall
+                          }
                         }
                       }}
-                      checked={enabled}
-                      onChange={(e) => {
-                        setProviderEnabled(p, e.target.checked);
-                      }}
                     />
-                  </Tooltip>
-                </Box>
+                    {!hasKey && (
+                      <Box
+                        sx={{
+                          mr: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5
+                        }}
+                        onClick={handleStopPropagation}
+                      >
+                        <Tooltip title="API key required">
+                          <InfoOutlinedIcon
+                            sx={{
+                              fontSize: (theme) => theme.vars.fontSizeNormal,
+                              color: "warning.main"
+                            }}
+                          />
+                        </Tooltip>
+                        <Tooltip title="Open Settings to add API key">
+                          <Button
+                            size="small"
+                            variant="text"
+                            color="warning"
+                            sx={{
+                              minWidth: "auto",
+                              p: 0,
+                              fontSize: (theme) => theme.vars.fontSizeSmaller
+                            }}
+                            onClick={handleOpenSettings}
+                          >
+                            Add key
+                          </Button>
+                        </Tooltip>
+                      </Box>
+                    )}
+                    <Box
+                      sx={{
+                        ml: "auto",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5
+                      }}
+                      onClick={handleStopPropagation}
+                    >
+                      {renderBadges()}
+                      <Tooltip
+                        title={enabled ? "Disable provider" : "Enable provider"}
+                      >
+                        <Checkbox
+                          edge="end"
+                          size="small"
+                          sx={{
+                            padding: 0,
+                            "& .MuiSvgIcon-root": {
+                              fontSize: (theme) => theme.vars.fontSizeBig
+                            }
+                          }}
+                          checked={enabled}
+                          onChange={(e) => handleProviderChange(p, e.target.checked)}
+                        />
+                      </Tooltip>
+                    </Box>
+                  </>
+                )}
               </ListItemButton>
             </React.Fragment>
           );
@@ -308,31 +387,16 @@ const ProviderList: React.FC<ProviderListProps> = ({
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
-        onClose={() => {
-          setMenuAnchor(null);
-          setMenuProvider(null);
-        }}
+        onClose={handleMenuClose}
       >
         <MenuItem
           disabled={!menuProvider || !getProviderUrl(menuProvider)}
-          onClick={() => {
-            const url = getProviderUrl(menuProvider || undefined);
-            if (url) {window.open(url, "_blank");}
-            setMenuAnchor(null);
-            setMenuProvider(null);
-          }}
+          onClick={handleOpenWebsite}
         >
           Open provider website
         </MenuItem>
         <MenuItem
-          onClick={() => {
-            if (menuProvider) {
-              const next = !isProviderEnabled(menuProvider);
-              setProviderEnabled(menuProvider, next);
-            }
-            setMenuAnchor(null);
-            setMenuProvider(null);
-          }}
+          onClick={handleToggleProvider}
         >
           {menuProvider && isProviderEnabled(menuProvider)
             ? "Disable provider"

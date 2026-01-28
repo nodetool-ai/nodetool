@@ -1,0 +1,46 @@
+/* Drag & Drop Visual Feedback Styles */
+
+/* Drop zone visual feedback */
+[data-dropzone] {
+  transition:
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+/* Global drag-over styling */
+.canvas-drag-over::after,
+.drag-over::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-color: rgba(var(--palette-primary-main-channel, 99 102 241), 0.05);
+  border: 2px dashed rgba(var(--palette-primary-main-channel, 99 102 241), 0.3);
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+.canvas-drop-valid::after,
+.drop-valid::after {
+  background-color: rgba(var(--palette-success-main-channel, 34 197 94), 0.1);
+  border-color: rgba(var(--palette-success-main-channel, 34 197 94), 0.5);
+}
+
+/* Draggable cursor states */
+[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+}
+
+[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+/* Asset folder drop hover state */
+.asset-folder-drop-hover {
+  background-color: rgba(
+    var(--palette-primary-main-channel),
+    0.15
+  ) !important;
+  border: 2px solid var(--palette-primary-main) !important;
+}

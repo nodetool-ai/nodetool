@@ -32,6 +32,9 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [baseNewName, setBaseNewName] = useState("");
   const [showAlert, setShowAlert] = useState<string | null>(null);
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const { refetchAssetsAndFolders } = useAssets();
@@ -156,7 +159,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             className="asset-rename-dialog"
             css={dialogStyles(theme)}
             open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
+            onClose={handleClose}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
             componentsProps={{
@@ -195,7 +198,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
                 <Alert
                   className="asset-rename-error-alert"
                   severity="success"
-                  onClose={() => setShowAlert(null)}
+                  onClose={handleClose}
                 >
                   {showAlert}
                 </Alert>
@@ -218,7 +221,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             <DialogActions className="asset-rename-dialog-actions dialog-actions">
               <Button
                 className="asset-rename-cancel-button button-cancel"
-                onClick={() => setDialogOpen(false)}
+                onClick={handleClose}
               >
                 Cancel
               </Button>

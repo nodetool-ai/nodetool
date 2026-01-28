@@ -10,14 +10,15 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 
 const styles = (_theme: Theme) =>
   css({
-    width: "100%",
+    width: "90%",
+    maxWidth: "1000px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
-    padding: "1.5em",
-    marginTop: "auto",
+    padding: "0",
+    margin: "auto auto 0 auto", // Center horizontally, push to bottom
     flexShrink: 0,
     // Mobile styles handled via separate CSS file
 
@@ -30,27 +31,23 @@ const styles = (_theme: Theme) =>
       flex: 1,
       minWidth: 0,
       width: "100%",
-      order: 1,
       minHeight: "44px",
-      maxHeight: "120px",
       display: "flex",
-      flexDirection: "column",
-      overflow: "visible",
-      contain: "none"
+      flexDirection: "column"
     }
   });
 
 type ChatInputSectionProps = {
   status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "loading"
+  | "error"
+  | "streaming"
+  | "reconnecting"
+  | "disconnecting"
+  | "failed";
   showToolbar?: boolean;
   onSendMessage: (
     content: MessageContent[],
@@ -86,48 +83,52 @@ const ChatInputSection = ({
   showToolbar = true,
   allowedProviders
 }: ChatInputSectionProps) => {
-  const isDisconnected = status === "disconnected" || status === "connecting";
+  const isLoading = status === "loading";
+  const isStreaming = status === "streaming";
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const toolbarNode = (!isMobile && showToolbar) ? (
+    <ChatToolBar
+      selectedTools={selectedTools}
+      onToolsChange={onToolsChange}
+      selectedCollections={selectedCollections}
+      onCollectionsChange={onCollectionsChange}
+      selectedModel={selectedModel}
+      onModelChange={onModelChange}
+      agentMode={agentMode}
+      onAgentModeToggle={onAgentModeToggle}
+      allowedProviders={allowedProviders}
+      embedded={true}
+    />
+  ) : null;
+
   return (
     <div className="chat-input-section" css={styles(theme)}>
-      {showToolbar && (
+      {isMobile && showToolbar && (
         <div className="chat-controls">
-          {isMobile ? (
-            <MobileChatToolbar
-              selectedTools={selectedTools}
-              onToolsChange={onToolsChange}
-              selectedCollections={selectedCollections}
-              onCollectionsChange={onCollectionsChange}
-              selectedModel={selectedModel}
-              onModelChange={onModelChange}
-              agentMode={agentMode}
-              onAgentModeToggle={onAgentModeToggle}
-              allowedProviders={allowedProviders}
-            />
-          ) : (
-            <ChatToolBar
-              selectedTools={selectedTools}
-              onToolsChange={onToolsChange}
-              selectedCollections={selectedCollections}
-              onCollectionsChange={onCollectionsChange}
-              selectedModel={selectedModel}
-              onModelChange={onModelChange}
-              agentMode={agentMode}
-              onAgentModeToggle={onAgentModeToggle}
-              allowedProviders={allowedProviders}
-            />
-          )}
+          <MobileChatToolbar
+            selectedTools={selectedTools}
+            onToolsChange={onToolsChange}
+            selectedCollections={selectedCollections}
+            onCollectionsChange={onCollectionsChange}
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
+            agentMode={agentMode}
+            onAgentModeToggle={onAgentModeToggle}
+            allowedProviders={allowedProviders}
+          />
         </div>
       )}
       <div className="chat-composer-wrapper">
         <ChatComposer
-          status={status}
+          isLoading={isLoading}
+          isStreaming={isStreaming}
           onSendMessage={onSendMessage}
           onStop={onStop}
           onNewChat={onNewChat}
-          disabled={isDisconnected}
           agentMode={agentMode}
+          toolbarNode={toolbarNode}
         />
       </div>
     </div>

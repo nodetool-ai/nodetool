@@ -1,15 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
-import { Typography, Dialog, Tooltip, Button } from "@mui/material";
+import { Typography, Dialog } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 //icons
-import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import CompareIcon from "@mui/icons-material/Compare";
@@ -21,7 +19,6 @@ import { ImageComparer } from "../widgets";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
 //utils
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
@@ -30,6 +27,8 @@ import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 import { isElectron } from "../../utils/browser";
+import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
+import { ToolbarIconButton, CloseButton, DownloadButton } from "../ui_primitives";
 
 const containerStyles = css({
   width: "100%",
@@ -54,13 +53,14 @@ const styles = (theme: Theme) =>
     },
     ".MuiPaper-root": {
       overflow: "hidden",
-      height: "100%",
+      height: "100vh",
+      maxHeight: "100vh",
       backgroundColor: theme.vars.palette.grey[900],
-      width: "100%",
-      maxWidth: "100%",
-      maxHeight: "100%",
+      width: "100vw",
+      maxWidth: "100vw",
       zIndex: 11000,
-      margin: 0
+      margin: 0,
+      borderRadius: 0
     },
     ".asset-info": {
       position: "relative",
@@ -95,15 +95,15 @@ const styles = (theme: Theme) =>
       right: "2em"
     },
     ".actions .button": {
-      width: "1.75em",
-      height: "1.75em",
-      backgroundColor: `rgba(${theme.vars.palette.grey[500]} / 0.67)`,
-      color: theme.vars.palette.grey[900],
-      borderRadius: "0.2em",
+      width: "2em",
+      height: "2em",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      color: "#fff",
+      borderRadius: "50%",
       padding: "0.3em"
     },
     ".actions button svg": {
-      fontSize: "1.5em"
+      fontSize: "1.2em"
     },
     ".actions .button:hover": {
       backgroundColor: theme.vars.palette.grey[500]
@@ -333,29 +333,22 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
   const handleCopyToClipboard = useCallback(async () => {
-    const imageSrc = currentAsset?.get_url || url;
-    if (!imageSrc || !isImage) {
+    const assetSrc = currentAsset?.get_url || url;
+    const assetContentType = currentAsset?.content_type || contentType;
+    const assetName = currentAsset?.name;
+
+    if (!assetSrc || !assetContentType) {
       return;
     }
 
     try {
-      const response = await fetch(imageSrc);
-      const blob = await response.blob();
-
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-
-      await window.api.clipboardWriteImage(dataUrl);
+      await copyAssetToClipboard(assetContentType, assetSrc, assetName);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error("Failed to copy image to clipboard:", error);
+      console.error("Failed to copy to clipboard:", error);
     }
-  }, [currentAsset?.get_url, url, isImage]);
+  }, [currentAsset?.get_url, currentAsset?.content_type, currentAsset?.name, url, contentType]);
 
   const handleChangeAsset = useCallback(
     (index: number) => {
@@ -394,8 +387,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     prevNextAmount,
     onChangeIndex: handleChangeAsset
   });
-
-  useCombo(["Escape"], handleClose);
   useCombo(
     ["left"],
     useCallback(() => {
@@ -449,6 +440,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [compareMode, compareAssetB, selectAssetForCompare, handleChangeAsset]
   );
 
+  const handlePrevAsset = useCallback(() => {
+    if (currentIndex === null) {return;}
+    handleChangeAsset(Math.max(0, currentIndex - 1));
+  }, [currentIndex, handleChangeAsset]);
+
+  const handleNextAsset = useCallback(() => {
+    if (currentIndex === null) {return;}
+    handleChangeAsset(Math.min(assetsToUse.length - 1, currentIndex + 1));
+  }, [currentIndex, assetsToUse.length, handleChangeAsset]);
+
   const navigation = useMemo(() => {
     if (currentIndex === null) {
       return null;
@@ -479,44 +480,40 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       <>
         {!compareMode && (
           <>
-            <IconButton
-              className="prev-next-button left"
-              onMouseDown={() =>
-                handleChangeAsset(Math.max(0, currentIndex - 1))
-              }
+            <ToolbarIconButton
+              icon={<KeyboardArrowLeftIcon />}
+              tooltip="Previous asset"
+              onClick={handlePrevAsset}
               disabled={prevAssets?.length === 0}
-            >
-              <KeyboardArrowLeftIcon />
-            </IconButton>
-            <IconButton
-              className="prev-next-button right"
-              onMouseDown={() =>
-                handleChangeAsset(
-                  Math.min(assetsToUse.length - 1, currentIndex + 1)
-                )
-              }
+              className="prev-next-button left"
+              nodrag={false}
+            />
+            <ToolbarIconButton
+              icon={<KeyboardArrowRightIcon />}
+              tooltip="Next asset"
+              onClick={handleNextAsset}
               disabled={nextAssets?.length === 0}
-            >
-              <KeyboardArrowRightIcon />
-            </IconButton>
+              className="prev-next-button right"
+              nodrag={false}
+            />
           </>
         )}
         <div className="asset-navigation">
           <div className="prev-next-items left">
             {displayPrevAssets?.map((asset, idx) => {
-              // Calculate the actual index in the assetsToUse array
               const assetIndex = Math.max(
                 0,
                 currentIndex - prevAssets.length + idx
               );
               const isCompareSelected = compareAssetA?.id === asset.id;
               return (
-                <Button
+                <EditorButton
                   className={`item ${
                     isCompareSelected ? "compare-selected" : ""
                   }`}
                   key={asset.id || idx}
                   onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
+                  density="compact"
                 >
                   <AssetItem
                     asset={asset}
@@ -528,7 +525,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                     showDuration={true}
                     showFiletype={true}
                   />
-                </Button>
+                </EditorButton>
               );
             })}
           </div>
@@ -550,16 +547,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           </div>
           <div className="prev-next-items right">
             {displayNextAssets?.map((asset, idx) => {
-              // Calculate the actual index in the assetsToUse array
               const assetIndex = currentIndex + 1 + idx;
               const isCompareSelected = compareAssetA?.id === asset.id;
               return (
-                <Button
+                <EditorButton
                   className={`item ${
                     isCompareSelected ? "compare-selected" : ""
                   }`}
                   key={asset.id || idx}
                   onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
+                  density="compact"
                 >
                   <AssetItem
                     asset={asset}
@@ -571,7 +568,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                     showDuration={true}
                     showFiletype={true}
                   />
-                </Button>
+                </EditorButton>
               );
             })}
           </div>
@@ -595,8 +592,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     assetsToUse,
     currentAsset,
     currentFolderName,
-    handleChangeAsset,
     handleThumbnailClick,
+    handlePrevAsset,
+    handleNextAsset,
     compareMode,
     compareAssetA,
     compareAssetB
@@ -612,57 +610,49 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         css={styles(theme)}
         maxWidth={false}
         fullWidth
-        open={asset !== undefined || url !== undefined}
+        open={open}
+        onClose={handleClose}
       >
         <div className="actions">
-          <Tooltip title="Download">
-            <IconButton
-              className="button download"
-              edge="end"
-              color="inherit"
-              onMouseDown={handleDownload}
-              aria-label="download"
-            >
-              <FileDownloadIcon />
-            </IconButton>
-          </Tooltip>
-          {isElectron && isImage && (
-            <Tooltip title={copied ? "Copied!" : "Copy Image"}>
-              <IconButton
-                className="button copy"
-                edge="end"
-                color="inherit"
-                onMouseDown={handleCopyToClipboard}
-                aria-label="copy image"
-              >
-                {copied ? <CheckIcon /> : <ContentCopyIcon />}
-              </IconButton>
-            </Tooltip>
+          <DownloadButton
+            onClick={handleDownload}
+            className="button download"
+            nodrag={false}
+          />
+          {isElectron && currentAsset?.content_type && isClipboardSupported(currentAsset.content_type) && (
+            <ToolbarIconButton
+              icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
+              tooltip={
+                copied 
+                  ? "Copied!" 
+                  : currentAsset.content_type.startsWith("image/")
+                  ? "Copy Image"
+                  : currentAsset.content_type.startsWith("video/")
+                  ? "Copy Video Info"
+                  : currentAsset.content_type.startsWith("audio/")
+                  ? "Copy Audio Info"
+                  : "Copy Content"
+              }
+              onClick={handleCopyToClipboard}
+              className="button copy"
+              nodrag={false}
+            />
           )}
           {canCompare && !compareMode && !compareAssetB && (
-            <Tooltip title="Compare with another image">
-              <IconButton
-                className="button compare"
-                edge="end"
-                color="inherit"
-                onMouseDown={startCompareMode}
-                aria-label="compare"
-              >
-                <CompareIcon />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              icon={<CompareIcon />}
+              tooltip="Compare with another image"
+              onClick={startCompareMode}
+              className="button compare"
+              nodrag={false}
+            />
           )}
-          <Tooltip title="Close" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <IconButton
-              className="button close"
-              edge="end"
-              color="inherit"
-              onMouseDown={compareAssetB ? exitCompareView : handleClose}
-              aria-label="close"
-            >
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
+          <CloseButton
+            onClick={compareAssetB ? exitCompareView : handleClose}
+            tooltip="Close"
+            className="button close"
+            nodrag={false}
+          />
         </div>
 
         {/* Compare mode instruction bar */}
@@ -671,9 +661,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             <Typography variant="body2">
               Select another image from the thumbnails below to compare
             </Typography>
-            <Button size="small" onClick={cancelCompareMode}>
+            <EditorButton density="compact" onClick={cancelCompareMode}>
               Cancel
-            </Button>
+            </EditorButton>
           </div>
         )}
 
@@ -699,4 +689,4 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
 };
 
-export default AssetViewer;
+export default memo(AssetViewer);

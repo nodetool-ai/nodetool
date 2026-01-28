@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { Drawer, IconButton, Tooltip, Typography } from "@mui/material";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import isEqual from "lodash/isEqual";
 import Terminal from "../terminal/Terminal";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -112,6 +112,10 @@ const PanelBottom: React.FC = () => {
   // Add keyboard shortcut for toggle (Ctrl+`)
   useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
 
+  const handleTerminalToggle = useCallback(() => {
+    handlePanelToggle("terminal");
+  }, [handlePanelToggle]);
+
   const openHeight = isVisible
     ? Math.min(
         panelSize,
@@ -177,7 +181,7 @@ const PanelBottom: React.FC = () => {
               >
                 <IconButton
                   size="small"
-                  onClick={() => handlePanelToggle("terminal")}
+                  onClick={handleTerminalToggle}
                   aria-label="Hide terminal"
                 >
                   <CloseIcon />

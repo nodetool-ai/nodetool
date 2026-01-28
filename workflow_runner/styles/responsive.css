@@ -1,73 +1,272 @@
 /* Media queries for responsive design */
+@media (max-width: 1400px) {
+  .container {
+    grid-template-columns: 280px 1fr 280px;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .container {
+    grid-template-columns: 260px 1fr 260px;
+    padding: 0.75rem;
+  }
+  
+  .app-header {
+    padding: 0.875rem 1.25rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  .left-container,
+  .middle-container,
+  .right-container {
+    max-height: none;
+    overflow: visible;
+  }
+  
+  .left-container {
+    max-height: 400px;
+  }
+  
+  .right-container {
+    max-height: 300px;
+  }
+  
+  .right-container.hidden {
+    max-width: 100%;
+    max-height: 48px;
+  }
+  
+  .right-container.hidden .logs-container {
+    display: none;
+  }
+  
+  .app-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .header-actions {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+  
+  #progressContainer {
+    width: 150px;
+  }
+}
+
 @media (max-width: 768px) {
-    body {
-        padding: 0;
-        overflow: hidden;
-    }
+  :root {
+    font-size: 14px;
+  }
+  
+  body {
+    padding: 0;
+    overflow-x: hidden;
+  }
+  
+  .main-container {
+    padding: 0;
+    min-height: 100vh;
+  }
+  
+  .main-container::before,
+  .main-container::after {
+    width: 300px;
+    height: 300px;
+  }
+  
+  .logo-container {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .logo {
+    height: 24px;
+  }
+  
+  .logo-container span {
+    font-size: 0.875rem;
+  }
+  
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  #runWorkflowBtn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+  
+  #progressContainer {
+    width: 120px;
+  }
+  
+  .progress-bar {
+    width: 100px;
+  }
+  
+  .section-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .section-content {
+    padding: 0.75rem 1rem;
+  }
+  
+  .results-container {
+    padding: 1rem;
+  }
+  
+  #toggleLogsBtn {
+    position: relative;
+    top: 0;
+    right: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0.625rem 1rem;
+  }
+  
+  .logs-section {
+    padding: 0.75rem 1rem;
+  }
+  
+  #outputContent,
+  #wsContent {
+    font-size: 0.7rem;
+  }
+  
+  .workflow-item {
+    padding: 0.75rem;
+  }
+  
+  .workflow-item-icon {
+    width: 28px;
+    height: 28px;
+  }
+}
 
-    .main-container {
-        padding: 0;
-        overflow-y: auto;
-        height: 100vh;
-    }
+@media (max-width: 480px) {
+  :root {
+    font-size: 13px;
+  }
+  
+  .container {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .logo-container span {
+    display: none;
+  }
+  
+  .logo-container {
+    padding: 0.5rem;
+  }
+  
+  .logo {
+    height: 28px;
+  }
+  
+  .header-actions {
+    gap: 0.5rem;
+  }
+  
+  #runWorkflowBtn {
+    padding: 0.625rem 1rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+  
+  #runWorkflowBtn svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .progress-bar {
+    width: 80px;
+    height: 4px;
+  }
+  
+  #progressText {
+    font-size: 0.75rem;
+    min-width: 36px;
+  }
+  
+  input[type="text"],
+  input[type="number"],
+  textarea,
+  select {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .output-field {
+    padding: 0.75rem;
+  }
+  
+  .image-placeholder,
+  .string-placeholder,
+  .number-placeholder,
+  .boolean-placeholder {
+    min-height: 60px;
+    padding: 1rem;
+  }
+  
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+  
+  .empty-state svg {
+    width: 48px;
+    height: 48px;
+  }
+}
 
-    .logo-container {
-        width: 100%;
-        left: .5em;
-        top: .5em;
-        position: relative;
-        font-size: .6em;
-        background-color: var(--bg-color);
-    }
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: rgba(255, 255, 255, 0.3);
+    --border-hover: rgba(255, 255, 255, 0.5);
+    --text-secondary: rgba(255, 255, 255, 0.9);
+  }
+}
 
-    .logo-container .logo {
-        height: 25px;
-    }
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
-    .container {
-        flex-direction: column;
-        height: auto;
-        overflow: visible;
-    }
-
-    .left-container,
-    .middle-container,
-    .right-container {
-        width: 100%;
-        height: auto;
-        overflow: visible;
-    }
-
-    .left-container {
-        min-height: auto;
-    }
-
-    #workflowList {
-        height: 15vh;
-    }
-
-    .middle-container,
-    .middle-container.expanded {
-        width: 100%;
-        min-height: auto;
-    }
-
-    #toggleLogsBtn {
-        position: static;
-        width: 100%;
-        margin-bottom: 1em;
-    }
-
-    .logs-container {
-        height: auto;
-    }
-
-    #runWorkflowBtn {
-        width: 90%;
-        height: 2em;
-        font-size: 1.2em;
-        border-radius: .2em;
-        margin-left: 5%;
-        margin-top: 1em;
-    }
+/* Dark mode support (already dark, but for future expansion) */
+@media (prefers-color-scheme: light) {
+  :root {
+    /* Force dark theme */
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --text-primary: #ffffff;
+  }
 }

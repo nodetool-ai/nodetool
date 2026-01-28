@@ -38,6 +38,9 @@ const AssetCreateFolderConfirmation: React.FC = () => {
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [folderName, setFolderName] = useState("New Folder");
   const [showAlert, setShowAlert] = useState<string | null>(null);
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+  }, [setDialogOpen]);
   const inputRef = useRef<HTMLInputElement>(null);
   const theme = useTheme();
   const createFolder = useAssetStore((state) => state.createFolder);
@@ -209,7 +212,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             className="asset-create-folder-dialog"
             css={dialogStyles(theme)}
             open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
+            onClose={handleClose}
             aria-labelledby="alert-dialog-title"
             aria-describedby="alert-dialog-description"
             componentsProps={{
@@ -245,7 +248,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
                 <Alert
                   className="asset-create-folder-error-alert"
                   severity="error"
-                  onClose={() => setShowAlert(null)}
+                  onClose={handleClose}
                 >
                   {showAlert}
                 </Alert>
@@ -268,7 +271,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             <DialogActions className="asset-create-folder-dialog-actions dialog-actions">
               <Button
                 className="asset-create-folder-cancel-button button-cancel"
-                onClick={() => setDialogOpen(false)}
+                onClick={handleClose}
               >
                 Cancel
               </Button>

@@ -1,3 +1,23 @@
+/**
+ * AssetStore manages file assets and folder organization.
+ *
+ * Responsibilities:
+ * - CRUD operations for assets (files and folders)
+ * - Folder tree management and navigation
+ * - Asset search with global query support
+ * - Upload progress tracking
+ * - Batch download of assets
+ * - Integration with TanStack Query for caching
+ *
+ * Assets are versioned file objects with metadata including:
+ * - content_type: MIME type or "folder"
+ * - parent_id: Reference to parent folder
+ * - workflow_id: Optional association with a workflow
+ * - metadata: Additional JSON metadata
+ *
+ * Uses composite keys for cache: ["assets", { parent_id: "..." }]
+ */
+
 import { create } from "zustand";
 import { client, authHeader } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
@@ -140,15 +160,6 @@ export interface AssetStore {
   download: (ids: string[]) => Promise<boolean>;
   getAssetsRecursive: (folderId: string) => Promise<AssetTreeNode[]>;
 }
-
-/**
- * Sort assets by created_at in descending order.
- */
-const sort = (assets: { [key: string]: Asset }) => {
-  return Object.values(assets).sort((a, b) => {
-    return -a.created_at.localeCompare(b.created_at);
-  });
-};
 
 export type FolderTree = Record<string, AssetTreeNode>;
 

@@ -76,7 +76,9 @@ const styles = (theme: Theme) =>
   });
 
 const DownloadManagerDialog: React.FC = () => {
-  const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore();
+  const isDialogOpen = useModelDownloadStore((state) => state.isDialogOpen);
+  const closeDialog = useModelDownloadStore((state) => state.closeDialog);
+  const downloads = useModelDownloadStore((state) => state.downloads);
 
   const hasActiveDownloads = Object.keys(downloads).length > 0;
 
@@ -188,6 +190,7 @@ const DownloadManagerDialog: React.FC = () => {
       </DialogContent>
       <DialogActions className="download-actions">
         <Typography
+          component="div"
           variant="body1"
           sx={{
             padding: "0 1.5em .5em 1em",

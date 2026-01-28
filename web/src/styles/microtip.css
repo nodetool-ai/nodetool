@@ -49,7 +49,7 @@
 [aria-label][role~="tooltip"]::after {
   background: var(--palette-grey-800);
   border-radius: 4px;
-  color: #ffffff;
+  color: var(--palette-grey-0);
   content: attr(aria-label);
   font-size: var(--microtip-font-size);
   font-weight: var(--microtip-font-weight);

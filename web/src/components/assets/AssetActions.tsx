@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -35,7 +35,7 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import FileUploadButton from "../buttons/FileUploadButton";
+import { UploadButton } from "../ui_primitives";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -259,21 +259,25 @@ const AssetActions = ({
   ]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleOrderChange = (_: any, newOrder: any) => {
+  const handleOrderChange = useCallback((_: any, newOrder: any) => {
     if (newOrder !== null) {
       setAssetsOrder(newOrder);
     }
-  };
+  }, [setAssetsOrder]);
 
-  const handleSizeFilterChange = (_: any, newSizeFilter: SizeFilterKey) => {
+  const handleSizeFilterChange = useCallback((_: any, newSizeFilter: SizeFilterKey) => {
     if (newSizeFilter !== null) {
       setSizeFilter(newSizeFilter);
     }
-  };
+  }, [setSizeFilter]);
 
-  const handleViewModeToggle = () => {
+  const handleViewModeToggle = useCallback(() => {
     setViewMode(viewMode === "grid" ? "list" : "grid");
-  };
+  }, [viewMode, setViewMode]);
+
+  const handleCloseCreateFolder = useCallback(() => {
+    setCreateFolderAnchor(null);
+  }, []);
 
   useEffect(() => {
     if (createFolderAnchor) {
@@ -286,14 +290,15 @@ const AssetActions = ({
     }
   }, [createFolderAnchor]);
 
-  const handleChange = (event: Event, value: number | number[]) => {
+  const handleChange = useCallback((event: Event, value: number | number[]) => {
     if (Array.isArray(value)) {
       setAssetItemSize(value[0] as number);
     } else {
       setAssetItemSize(value as number);
     }
-  };
-  const handleCreateFolder = () => {
+  }, [setAssetItemSize]);
+
+  const handleCreateFolder = useCallback(() => {
     setCreateFolderAnchor(null);
     createFolder(currentFolder?.id || "", createFolderName).then(() => {
       addNotification({
@@ -303,12 +308,14 @@ const AssetActions = ({
       setCreateFolderAnchor(null);
       refetchAssetsAndFolders();
     });
-  };
+  }, [createFolder, currentFolder?.id, createFolderName, addNotification, refetchAssetsAndFolders]);
   return (
     <div className="asset-actions" css={styles(theme)}>
-      <FileUploadButton
-        onFileChange={(files) => onUploadFiles?.(files)}
-        compact
+      <UploadButton
+        onFileSelect={(files) => onUploadFiles?.(files)}
+        iconVariant="file"
+        tooltip="Upload files"
+        multiple
       />
       <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
         <Tooltip
@@ -444,7 +451,7 @@ const AssetActions = ({
         className="dialog"
         open={Boolean(createFolderAnchor)}
         anchorEl={createFolderAnchor}
-        onClose={() => setCreateFolderAnchor(null)}
+        onClose={handleCloseCreateFolder}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
@@ -473,7 +480,7 @@ const AssetActions = ({
         <DialogActions className="dialog-actions">
           <Button
             className="button-cancel"
-            onClick={() => setCreateFolderAnchor(null)}
+            onClick={handleCloseCreateFolder}
           >
             Cancel
           </Button>

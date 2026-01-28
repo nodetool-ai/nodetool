@@ -3,10 +3,10 @@ import React, { useState, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, Box, Collapse, IconButton } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Typography, Collapse } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { StepResult } from "../../stores/ApiTypes";
+import { ExpandCollapseButton } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -151,7 +151,7 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
         isPrimitive: false,
         resultType: Array.isArray(result) ? "array" : "object"
       };
-    } catch (error) {
+    } catch {
       return {
         displayValue: String(result),
         isPrimitive: true,
@@ -189,12 +189,13 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
         <Typography className="step-result-title">
           Step Completed
         </Typography>
-        <IconButton
-          size="small"
-          className={`expand-button ${expanded ? "expanded" : ""}`}
-        >
-          <ExpandMoreIcon fontSize="small" />
-        </IconButton>
+        <ExpandCollapseButton
+          expanded={expanded}
+          onClick={handleToggle}
+          buttonSize="small"
+          expandTooltip="Show details"
+          collapseTooltip="Hide details"
+        />
       </div>
       <Collapse in={expanded}>
         <div className="step-result-content">

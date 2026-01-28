@@ -10,7 +10,7 @@ export interface WatchdogOptions {
   args: string[];
   env?: NodeJS.ProcessEnv;
   pidFilePath: string;
-  healthUrl: string; // HTTP endpoint for health checks (e.g., "http://127.0.0.1:8000/health")
+  healthUrl: string; // HTTP endpoint for health checks (e.g., "http://127.0.0.1:7777/health")
   healthPort?: number; // Port to check for TCP connectivity during startup (optional, extracted from healthUrl if not provided)
   healthHost?: string; // Host to check for TCP connectivity (defaults to '127.0.0.1')
   healthCheckIntervalMs?: number;

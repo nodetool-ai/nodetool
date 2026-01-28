@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { BACKEND_HOST } from "./support/backend";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -27,12 +28,12 @@ if (process.env.JEST_WORKER_ID) {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
       
-      // Try to navigate to workflows page
-      await page.goto("/workflows");
+      // Try to navigate to dashboard page
+      await page.goto("/dashboard");
       await page.waitForLoadState("networkidle");
       
       // Check URL changed
-      await expect(page).toHaveURL(/\/workflows/);
+      await expect(page).toHaveURL(/\/dashboard/);
     });
 
     test("should connect to backend API", async ({ page }) => {
@@ -41,7 +42,7 @@ if (process.env.JEST_WORKER_ID) {
       
       page.on("response", (response) => {
         const url = response.url();
-        if (url.includes("localhost:7777") || url.includes("/api/")) {
+        if (url.includes(BACKEND_HOST) || url.includes("/api/")) {
           apiCallMade = true;
         }
       });

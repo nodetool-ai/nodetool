@@ -1,6 +1,37 @@
-import { ImageRef } from "../../stores/ApiTypes";
+import {
+  AudioRef,
+  DataframeRef,
+  DocumentRef,
+  FolderRef,
+  ImageRef,
+  VideoRef
+} from "../../stores/ApiTypes";
 
-export type MiniAppInputKind = "string" | "integer" | "float" | "boolean" | "image" | "audio" | "file_path";
+export type MiniAppInputKind =
+  | "string"
+  | "integer"
+  | "float"
+  | "boolean"
+  | "color"
+  | "image"
+  | "video"
+  | "audio"
+  | "document"
+  | "dataframe"
+  | "file_path"
+  | "folder_path"
+  | "folder"
+  | "select"
+  | "language_model"
+  | "image_model"
+  | "video_model"
+  | "tts_model"
+  | "asr_model"
+  | "embedding_model"
+  | "image_list"
+  | "video_list"
+  | "audio_list"
+  | "text_list";
 
 export interface InputNodeData {
   name: string;
@@ -8,7 +39,17 @@ export interface InputNodeData {
   description: string;
   min?: number;
   max?: number;
+  /** StringInput: 0 = unlimited */
+  max_length?: number;
+  /** StringInput: preferred UI rendering */
+  line_mode?: "single_line" | "multiline";
+  /** Backwards/compat: some graphs may store boolean instead of enum */
+  multiline?: boolean;
   value?: unknown;
+  /** SelectInput: available options for the dropdown */
+  options?: string[];
+  /** SelectInput: enum type name for type matching */
+  enum_type_name?: string;
 }
 
 export interface MiniAppInputDefinition {
@@ -37,4 +78,14 @@ export interface MiniAppProgress {
 
 export type RunnerMessage = { type?: string } & Record<string, unknown>;
 
-export type MiniAppInputValues = Record<string, unknown | ImageRef | undefined>;
+export type MiniAppInputValues = Record<
+  string,
+  | unknown
+  | ImageRef
+  | AudioRef
+  | VideoRef
+  | DocumentRef
+  | DataframeRef
+  | FolderRef
+  | undefined
+>;

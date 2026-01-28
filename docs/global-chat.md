@@ -14,6 +14,7 @@ Global Chat provides:
 - Autonomous agents for complex task execution
 - Workflow and asset integration
 - Multiple conversation threads
+- Standalone chat window from system tray
 
 The chat maintains a persistent WebSocket connection and automatically reconnects after app reloads.
 
@@ -24,6 +25,21 @@ The chat maintains a persistent WebSocket connection and automatically reconnect
 - **From Dashboard**: Click the **Chat** icon in the left sidebar
 - **From Recent Threads**: Select a conversation from your Dashboard
 - **Quick Access**: Use the keyboard shortcut or system tray
+- **Standalone Window**: Click system tray icon → **Chat** for a dedicated window
+
+### Standalone Chat
+
+Access chat in a focused, dedicated window:
+
+1. Click the NodeTool icon in your system tray
+2. Select **Chat** from the menu
+3. A new window opens with just the chat interface
+
+Benefits of standalone chat:
+- **Minimal interface**: No editor, panels, or distractions
+- **Quick access**: Chat without opening the full application
+- **Background availability**: Keep chat accessible while using other apps
+- **Thread sync**: All conversations sync with the main app
 
 ### Interface Layout
 

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import SearchIcon from "@mui/icons-material/Search";
 import WarningIcon from "@mui/icons-material/Warning";
 import {
   Button,
@@ -14,7 +15,8 @@ import {
   Tooltip,
   Chip,
   Box,
-  Divider
+  Divider,
+  InputAdornment
 } from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,14 +35,12 @@ interface SecretFormData {
 const SecretsMenu = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const {
-    secrets,
-    isLoading: storeLoading,
-    fetchSecrets,
-    updateSecret,
-    deleteSecret
-  } = useSecretsStore();
-  const { addNotification } = useNotificationStore();
+  const secrets = useSecretsStore((state) => state.secrets);
+  const storeLoading = useSecretsStore((state) => state.isLoading);
+  const fetchSecrets = useSecretsStore((state) => state.fetchSecrets);
+  const updateSecret = useSecretsStore((state) => state.updateSecret);
+  const deleteSecret = useSecretsStore((state) => state.deleteSecret);
+  const addNotification = useNotificationStore((state) => state.addNotification);
   const safeSecrets = useMemo(() => secrets ?? [], [secrets]);
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -51,6 +51,7 @@ const SecretsMenu = () => {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Use React Query to trigger fetch, but use store state directly
   const { isLoading: queryLoading } = useQuery({
@@ -65,10 +66,19 @@ const SecretsMenu = () => {
   // Group secrets by configured/unconfigured status
   // Use store state directly (same as sidebar) to ensure consistency
   const secretsByStatus = useMemo(() => {
-    const configured = safeSecrets.filter((s: any) => s.is_configured);
-    const unconfigured = safeSecrets.filter((s: any) => !s.is_configured);
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    const filterSecrets = (secrets: any[]) => {
+      if (!lowerSearchTerm) {return secrets;}
+      return secrets.filter(
+        (s: any) =>
+          s.key.toLowerCase().includes(lowerSearchTerm) ||
+          (s.description && s.description.toLowerCase().includes(lowerSearchTerm))
+      );
+    };
+    const configured = filterSecrets(safeSecrets.filter((s: any) => s.is_configured));
+    const unconfigured = filterSecrets(safeSecrets.filter((s: any) => !s.is_configured));
     return { configured, unconfigured };
-  }, [safeSecrets]);
+  }, [safeSecrets, searchTerm]);
 
   const updateMutation = useMutation({
     mutationFn: () => updateSecret(editingSecret.key, formData.value),
@@ -133,18 +143,31 @@ const SecretsMenu = () => {
     setOpenDialog(false);
   };
 
-  const handleOpenEditDialog = (secret: any) => {
+  const handleOpenEditDialog = useCallback((secret: any) => (_event: React.MouseEvent) => {
     setEditingSecret(secret);
     setFormData({
       key: secret.key,
       value: ""
     });
     setOpenDialog(true);
+  }, []);
+
+  const handleDeleteClick = useCallback((key: string) => (_event: React.MouseEvent) => {
+    setSecretToDelete(key);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const confirmDelete = () => {
+    if (secretToDelete) {
+      deleteMutation.mutate(secretToDelete);
+    }
+    setDeleteDialogOpen(false);
+    setSecretToDelete(null);
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     resetForm();
-  };
+  }, []);
 
   const handleSave = useCallback(() => {
     if (!formData.value) {
@@ -159,19 +182,6 @@ const SecretsMenu = () => {
     updateMutation.mutate();
   }, [formData, updateMutation, addNotification]);
 
-  const handleDelete = (key: string) => {
-    setSecretToDelete(key);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (secretToDelete) {
-      deleteMutation.mutate(secretToDelete);
-    }
-    setDeleteDialogOpen(false);
-    setSecretToDelete(null);
-  };
-
   return (
     <>
       {isLoading && (
@@ -183,6 +193,30 @@ const SecretsMenu = () => {
         <div className="secrets-content" css={getSharedSettingsStyles(theme)}>
           <div className="settings-main-content">
             <Typography variant="h1">Secrets Management</Typography>
+
+            <div className="secrets-search-container">
+              <TextField
+                placeholder="Search secrets..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                size="small"
+                fullWidth
+                aria-label="Search secrets"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "text.disabled" }} />
+                    </InputAdornment>
+                  )
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "10px",
+                    backgroundColor: "action.hover"
+                  }
+                }}
+              />
+            </div>
 
             <div className="secrets">
               <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main, flexShrink: 0 }} />
@@ -196,6 +230,10 @@ const SecretsMenu = () => {
               <Typography sx={{ textAlign: "center", padding: "2em" }}>
                 No secrets available. Contact your administrator to configure
                 available secrets.
+              </Typography>
+            ) : secretsByStatus.configured.length === 0 && secretsByStatus.unconfigured.length === 0 ? (
+              <Typography sx={{ textAlign: "center", padding: "2em" }}>
+                No secrets found matching &quot;{searchTerm}&quot;
               </Typography>
             ) : (
               <>
@@ -251,22 +289,22 @@ const SecretsMenu = () => {
                             flexShrink: 0
                           }}
                         >
-                          <Tooltip title="Update secret">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenEditDialog(secret)}
-                              disabled={updateMutation.isPending}
-                            >
+                           <Tooltip title="Update secret">
+                             <IconButton
+                               size="small"
+                               onClick={handleOpenEditDialog(secret)}
+                               disabled={updateMutation.isPending}
+                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete secret">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDelete(secret.key)}
-                              disabled={deleteMutation.isPending}
-                            >
+                           <Tooltip title="Delete secret">
+                             <IconButton
+                               size="small"
+                               color="error"
+                               onClick={handleDeleteClick(secret.key)}
+                               disabled={deleteMutation.isPending}
+                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -318,12 +356,12 @@ const SecretsMenu = () => {
                             flexShrink: 0
                           }}
                         >
-                          <Tooltip title="Set secret">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenEditDialog(secret)}
-                              disabled={updateMutation.isPending}
-                            >
+                           <Tooltip title="Set secret">
+                             <IconButton
+                               size="small"
+                               onClick={handleOpenEditDialog(secret)}
+                               disabled={updateMutation.isPending}
+                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -444,10 +482,7 @@ const SecretsMenu = () => {
 
       <ConfirmDialog
         open={deleteDialogOpen}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setSecretToDelete(null);
-        }}
+        onClose={handleClose}
         onConfirm={confirmDelete}
         title="Delete Secret"
         content={`Are you sure you want to delete the secret "${secretToDelete}"?`}

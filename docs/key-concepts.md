@@ -4,22 +4,22 @@ title: "Key Concepts"
 description: "Core concepts for building workflows in NodeTool."
 ---
 
-This page explains the core concepts for creating workflows in NodeTool.
+Understand how NodeTool works.
 
 ---
 
-## What is NodeTool?
+## What NodeTool Does
 
-NodeTool is a visual workflow builder for AI pipelines. It functions like:
-- Photoshop layers – but for AI workflows
-- A video editing timeline – arranging processing steps
-- Building blocks – connect components to create pipelines
+NodeTool is a visual workflow builder for AI. Think of it like:
+- **Photoshop layers** - but for AI operations
+- **Video editing timeline** - arrange processing steps
+- **Building blocks** - connect pieces to make something work
 
-**Key benefits:**
-- **Privacy:** Data stays local unless you use cloud services
-- **No usage limits:** Local models have no subscription fees
-- **Transparency:** See every step of execution
-- **Flexibility:** Choose local or cloud providers
+**Why use it:**
+- **Private** - Data stays local unless you use cloud services
+- **Unlimited** - Local models have no subscription fees
+- **Transparent** - See every step as it runs
+- **Flexible** - Mix local and cloud providers
 
 ---
 
@@ -27,77 +27,78 @@ NodeTool is a visual workflow builder for AI pipelines. It functions like:
 
 ### Nodes
 
-A **node** performs a single operation:
+A **node** does one thing:
 
-- **Image Generator** node – creates images from text prompts
-- **Color Adjustment** node – modifies image colors
-- **Audio Transcription** node – converts speech to text
+- **Image Generator** - Makes images from text
+- **Color Adjustment** - Changes image colors
+- **Audio Transcription** - Converts speech to text
 
-Each node has:
-- **Inputs** – data entering the node
-- **Outputs** – results from the node
-- **Settings** – configuration options
+Every node has:
+- **Inputs** - Data coming in
+- **Outputs** - Results going out
+- **Settings** - Options you can change
 
 ### Workflows
 
-A **workflow** is a connected graph of nodes. When executed:
+A **workflow** is nodes connected together. When you run it:
 1. Data enters through input nodes
 2. Each node processes and passes data forward
-3. Results appear in preview or output nodes
+3. Results show in preview or output nodes
 
-**Example**: Write a story → Generate characters → Create portraits → Combine into video
+**Example workflow:**
+Write story → Generate characters → Create portraits → Combine into video
 
 ### Connections
 
-**Connections** are lines showing data flow between nodes. Drag from an output to an input to create a connection.
+**Connections** are lines showing data flow. Drag from output to input to connect.
 
 ---
 
 ## AI Models
 
-### What are Models?
+### What They Are
 
 An AI **model** is a trained program for a specific task:
 
-| Model Type | Output | Use Cases |
-|------------|--------|-----------|
-| Image Model | Images | Posters, concept art, product mockups |
-| Video Model | Video clips | Animations, effects, transformations |
-| Audio Model | Audio | Narration, music, sound effects |
-| Text Model | Text | Story ideas, scripts, analysis |
+| Type | Makes | Good For |
+|------|-------|----------|
+| Image | Pictures | Posters, concept art, mockups |
+| Video | Video clips | Animations, effects |
+| Audio | Sound | Narration, music, effects |
+| Text | Words | Story ideas, scripts, analysis |
 
-### Local vs. Cloud Models
+### Local vs. Cloud
 
-- **Local models** – Run on your computer. Free, private, unlimited use. Requires disk space and processing power.
-- **Cloud models** – Run on remote servers. Fast, requires internet, may cost per use.
+- **Local** - Runs on your machine. Free, private, unlimited. Needs disk space and power.
+- **Cloud** - Runs on remote servers. Fast, needs internet, costs per use.
 
-NodeTool supports both. Use local for privacy, add cloud models for additional capabilities.
+NodeTool supports both. Use local for privacy. Add cloud for more capabilities.
 
 ---
 
-## Key Terminology
+## Key Terms
 
-| Term | Plain English Explanation |
-|------|---------------------------|
-| **Workflow** | Your project – a collection of connected nodes that do something useful |
-| **Node** | A single building block that performs one task |
-| **Edge/Connection** | A line connecting two nodes, showing data flow |
-| **Input** | Where data enters a node or workflow |
+| Term | What It Means |
+|------|---------------|
+| **Workflow** | Your project - connected nodes doing something useful |
+| **Node** | One building block that does one task |
+| **Edge/Connection** | Line showing data flow between nodes |
+| **Input** | Where data enters |
 | **Output** | Where results come out |
-| **Preview** | A special node that shows you intermediate results |
-| **Run** | Execute your workflow and see the results |
-| **Model** | An AI program trained to do a specific task |
-| **Provider** | A service that runs AI models (OpenAI, local engine, etc.) |
+| **Preview** | Node that shows intermediate results |
+| **Run** | Execute your workflow |
+| **Model** | AI program trained for a specific task |
+| **Provider** | Service running AI models (OpenAI, local, etc.) |
 
 ---
 
-## How Workflows Execute
+## How Workflows Run
 
-When you click **Run**, NodeTool:
+When you click **Run**:
 
-1. **Checks dependencies** – Figures out which nodes depend on which
-2. **Processes in order** – Runs nodes only when their inputs are ready
-3. **Streams results** – Shows progress in real-time where possible
+1. **Check dependencies** - Figure out which nodes depend on what
+2. **Process in order** - Run nodes when their inputs are ready
+3. **Stream results** - Show progress live when possible
 4. **Displays outputs** – Final results appear in output and preview nodes
 
 **The technical term**: Workflows are "Directed Acyclic Graphs" (DAGs), meaning data flows in one direction without loops. You don't need to remember this – just know that NodeTool automatically figures out the right order to run everything.
@@ -115,7 +116,7 @@ If you're building custom nodes or using the Python API, here are the technical 
 
 ### Node Type Resolution
 
-When a workflow references a node by its type string (e.g., `package.Namespace.Class`), NodeTool resolves the class using a robust strategy:
+When a workflow references a node by its type string (e.g., `package.Namespace.Class`), NodeTool resolves the class using this strategy:
 
 - In-memory registry lookup (with and without a trailing `Node` suffix)
 - Dynamic import of modules based on the type path, then re-check the registry

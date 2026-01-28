@@ -111,7 +111,7 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
               backgroundColor: "var(--palette-grey-800)",
               borderRadius: "0.5em",
               border: `1px solid ${theme.vars.palette.grey[600]}`,
-              "& fieldset": { border: "none " },
+              "& .MuiOutlinedInput-notchedOutline": { border: "none " },
               "&:hover": { opacity: 0.9 },
               "&:focus": {
                 backgroundColor: "var(--palette-grey-500)"

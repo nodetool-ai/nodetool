@@ -89,7 +89,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   }));
   const reactFlowInstance = useReactFlow();
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const { panel } = usePanelStore();
+  const panel = usePanelStore((state) => state.panel);
   const theme = useTheme();
   const handleAddNode = useCallback(() => {
     if (nodeMetadata && nodeRef.current) {

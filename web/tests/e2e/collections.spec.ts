@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
+import { BACKEND_API_URL } from "./support/backend";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -57,7 +58,7 @@ if (process.env.JEST_WORKER_ID) {
 
       // Step 1: Create a collection via API
       const createResponse = await request.post(
-        "http://localhost:7777/api/collections/",
+        `${BACKEND_API_URL}/collections/`,
         {
           data: {
             name: collectionName,
@@ -124,7 +125,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Cleanup: Delete the collection via API
         await request.delete(
-          `http://localhost:7777/api/collections/${collectionName}`
+          `${BACKEND_API_URL}/collections/${collectionName}`
         );
       }
     });

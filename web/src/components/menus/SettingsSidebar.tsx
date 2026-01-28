@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useCallback } from "react";
 
 interface SidebarItem {
   id: string;
@@ -69,6 +69,13 @@ const SettingsSidebar = ({
 }: SettingsSidebarProps) => {
   const theme = useTheme();
 
+  const handleItemClick = useCallback(
+    (sectionId: string) => () => {
+      onSectionClick(sectionId);
+    },
+    [onSectionClick]
+  );
+
   return (
     <div className="settings-sidebar" css={sidebarStyles(theme)}>
       {sections.map((section, index) => (
@@ -80,7 +87,7 @@ const SettingsSidebar = ({
               className={`settings-sidebar-item ${
                 activeSection === item.id ? "active" : ""
               }`}
-              onClick={() => onSectionClick(item.id)}
+              onClick={handleItemClick(item.id)}
             >
               {item.label}
             </div>

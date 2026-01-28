@@ -2,7 +2,7 @@
  * CanvasToolbar - Toolbar for the layout canvas editor
  */
 
-import React, { useCallback, memo } from "react";
+import React, { useCallback, memo, useRef, useState } from "react";
 import {
   Box,
   IconButton,
@@ -11,13 +11,19 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Typography,
+  TextField,
+  Button,
+  Popover
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ImageIcon from "@mui/icons-material/Image";
 import RectangleIcon from "@mui/icons-material/Rectangle";
+import CircleIcon from "@mui/icons-material/Circle";
+import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
 import FolderIcon from "@mui/icons-material/Folder";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
@@ -34,13 +40,19 @@ import AlignHorizontalRightIcon from "@mui/icons-material/AlignHorizontalRight";
 import AlignVerticalTopIcon from "@mui/icons-material/AlignVerticalTop";
 import AlignVerticalCenterIcon from "@mui/icons-material/AlignVerticalCenter";
 import AlignVerticalBottomIcon from "@mui/icons-material/AlignVerticalBottom";
+import ViewColumnIcon from "@mui/icons-material/ViewColumn";
+import TableRowsIcon from "@mui/icons-material/TableRows";
 import GridOnIcon from "@mui/icons-material/GridOn";
 import GridOffIcon from "@mui/icons-material/GridOff";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import DownloadIcon from "@mui/icons-material/Download";
-import { ElementType, GridSettings } from "./types";
+import FileUploadIcon from "@mui/icons-material/FileUpload";
+import SaveAltIcon from "@mui/icons-material/SaveAlt";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import AspectRatioIcon from "@mui/icons-material/AspectRatio";
+import { ElementType, GridSettings, CANVAS_PRESETS, CanvasPreset } from "./types";
 
 interface CanvasToolbarProps {
   selectedCount: number;
@@ -49,6 +61,8 @@ interface CanvasToolbarProps {
   clipboardCount: number;
   gridSettings: GridSettings;
   zoom: number;
+  canvasWidth: number;
+  canvasHeight: number;
   onAddElement: (type: ElementType) => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -59,17 +73,23 @@ interface CanvasToolbarProps {
   onSendToBack: () => void;
   onBringForward: () => void;
   onSendBackward: () => void;
-  onAlignLeft: () => void;
-  onAlignCenter: () => void;
-  onAlignRight: () => void;
-  onAlignTop: () => void;
-  onAlignMiddle: () => void;
-  onAlignBottom: () => void;
+  onAlignLeft: (toCanvas?: boolean) => void;
+  onAlignCenter: (toCanvas?: boolean) => void;
+  onAlignRight: (toCanvas?: boolean) => void;
+  onAlignTop: (toCanvas?: boolean) => void;
+  onAlignMiddle: (toCanvas?: boolean) => void;
+  onAlignBottom: (toCanvas?: boolean) => void;
+  onDistributeHorizontally: () => void;
+  onDistributeVertically: () => void;
+  onTidy: () => void;
   onToggleGrid: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFitToScreen: () => void;
   onExport: () => void;
+  onImportSketch?: (file: File) => void;
+  onExportSketch?: () => void;
+  onCanvasSizeChange?: (width: number, height: number) => void;
 }
 
 // Toolbar button component
@@ -78,13 +98,15 @@ interface ToolbarButtonProps {
   tooltip: string;
   onClick: (event: React.MouseEvent<HTMLElement>) => void;
   disabled?: boolean;
+  ariaLabel?: string;
 }
 
 const ToolbarButton: React.FC<ToolbarButtonProps> = memo(({
   icon,
   tooltip,
   onClick,
-  disabled = false
+  disabled = false,
+  ariaLabel
 }) => {
   return (
     <Tooltip title={tooltip}>
@@ -93,6 +115,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(({
           size="small"
           onClick={onClick}
           disabled={disabled}
+          aria-label={ariaLabel || tooltip}
           sx={{ p: 0.75 }}
         >
           {icon}
@@ -126,6 +149,8 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   clipboardCount,
   gridSettings,
   zoom,
+  canvasWidth,
+  canvasHeight,
   onAddElement,
   onUndo,
   onRedo,
@@ -142,14 +167,24 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   onAlignTop,
   onAlignMiddle,
   onAlignBottom,
+  onDistributeHorizontally,
+  onDistributeVertically,
+  onTidy,
   onToggleGrid,
   onZoomIn,
   onZoomOut,
   onFitToScreen,
-  onExport
+  onExport,
+  onImportSketch,
+  onExportSketch,
+  onCanvasSizeChange
 }) => {
   const theme = useTheme();
   const [addMenuAnchor, setAddMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const [sizeMenuAnchor, setSizeMenuAnchor] = useState<null | HTMLElement>(null);
+  const [customWidth, setCustomWidth] = useState(canvasWidth.toString());
+  const [customHeight, setCustomHeight] = useState(canvasHeight.toString());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenAddMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
@@ -170,20 +205,104 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
     [onAddElement, handleCloseAddMenu]
   );
 
+  // Canvas size menu handlers
+  const handleOpenSizeMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      setCustomWidth(canvasWidth.toString());
+      setCustomHeight(canvasHeight.toString());
+      setSizeMenuAnchor(event.currentTarget);
+    },
+    [canvasWidth, canvasHeight]
+  );
+
+  const handleCloseSizeMenu = useCallback(() => {
+    setSizeMenuAnchor(null);
+  }, []);
+
+  const handlePresetSelect = useCallback(
+    (preset: CanvasPreset) => {
+      if (onCanvasSizeChange) {
+        onCanvasSizeChange(preset.width, preset.height);
+      }
+      handleCloseSizeMenu();
+    },
+    [onCanvasSizeChange, handleCloseSizeMenu]
+  );
+
+  const handleCustomSizeApply = useCallback(() => {
+    const w = parseInt(customWidth, 10);
+    const h = parseInt(customHeight, 10);
+    // Validate: must be positive numbers between 1 and 10000
+    if (!isNaN(w) && !isNaN(h) && w >= 1 && h >= 1 && onCanvasSizeChange) {
+      onCanvasSizeChange(
+        Math.max(1, Math.min(w, 10000)),
+        Math.max(1, Math.min(h, 10000))
+      );
+    }
+    handleCloseSizeMenu();
+  }, [customWidth, customHeight, onCanvasSizeChange, handleCloseSizeMenu]);
+
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file && onImportSketch) {
+        onImportSketch(file);
+      }
+      // Reset the input so the same file can be imported again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [onImportSketch]
+  );
+
+  // Handlers that check for Alt/Option key for canvas alignment
+  const handleAlignLeft = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignLeft(event.altKey || selectedCount === 1);
+  }, [onAlignLeft, selectedCount]);
+
+  const handleAlignCenter = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignCenter(event.altKey || selectedCount === 1);
+  }, [onAlignCenter, selectedCount]);
+
+  const handleAlignRight = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignRight(event.altKey || selectedCount === 1);
+  }, [onAlignRight, selectedCount]);
+
+  const handleAlignTop = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignTop(event.altKey || selectedCount === 1);
+  }, [onAlignTop, selectedCount]);
+
+  const handleAlignMiddle = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignMiddle(event.altKey || selectedCount === 1);
+  }, [onAlignMiddle, selectedCount]);
+
+  const handleAlignBottom = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    onAlignBottom(event.altKey || selectedCount === 1);
+  }, [onAlignBottom, selectedCount]);
+
   const hasSelection = selectedCount > 0;
-  const hasMultipleSelection = selectedCount > 1;
+  // hasMultipleSelection is kept for future features that need 2+ selection
+  const _hasMultipleSelection = selectedCount > 1;
 
   return (
     <Box
+      className="canvas-toolbar"
       sx={{
         display: "flex",
         alignItems: "center",
-        gap: 0.5,
+        justifyContent: "center",
+        gap: 0,
         px: 1,
-        py: 0.5,
+        py: 0,
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper,
-        minHeight: 40
+        minHeight: 40,
+        height: 40
       }}
     >
       {/* Add element */}
@@ -212,6 +331,18 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             <RectangleIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Rectangle</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleAddElement("ellipse")}>
+          <ListItemIcon>
+            <CircleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Ellipse</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleAddElement("line")}>
+          <ListItemIcon>
+            <HorizontalRuleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Line</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => handleAddElement("image")}>
           <ListItemIcon>
@@ -295,42 +426,24 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
       <ToolbarDivider />
 
-      {/* Alignment (visible only when multiple selected) */}
+      {/* Distribute & Tidy */}
       <ToolbarButton
-        icon={<AlignHorizontalLeftIcon />}
-        tooltip="Align left"
-        onClick={onAlignLeft}
-        disabled={!hasMultipleSelection}
+        icon={<ViewColumnIcon />}
+        tooltip="Distribute horizontally"
+        onClick={onDistributeHorizontally}
+        disabled={selectedCount < 3}
       />
       <ToolbarButton
-        icon={<AlignHorizontalCenterIcon />}
-        tooltip="Align center horizontally"
-        onClick={onAlignCenter}
-        disabled={!hasMultipleSelection}
+        icon={<TableRowsIcon />}
+        tooltip="Distribute vertically"
+        onClick={onDistributeVertically}
+        disabled={selectedCount < 3}
       />
       <ToolbarButton
-        icon={<AlignHorizontalRightIcon />}
-        tooltip="Align right"
-        onClick={onAlignRight}
-        disabled={!hasMultipleSelection}
-      />
-      <ToolbarButton
-        icon={<AlignVerticalTopIcon />}
-        tooltip="Align top"
-        onClick={onAlignTop}
-        disabled={!hasMultipleSelection}
-      />
-      <ToolbarButton
-        icon={<AlignVerticalCenterIcon />}
-        tooltip="Align center vertically"
-        onClick={onAlignMiddle}
-        disabled={!hasMultipleSelection}
-      />
-      <ToolbarButton
-        icon={<AlignVerticalBottomIcon />}
-        tooltip="Align bottom"
-        onClick={onAlignBottom}
-        disabled={!hasMultipleSelection}
+        icon={<AutoFixHighIcon />}
+        tooltip="Tidy - arrange into neat grid"
+        onClick={onTidy}
+        disabled={selectedCount < 2}
       />
 
       <ToolbarDivider />
@@ -344,12 +457,158 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
       <ToolbarDivider />
 
-      {/* Export */}
+      {/* Export PNG */}
       <ToolbarButton
         icon={<DownloadIcon />}
         tooltip="Export as PNG"
         onClick={onExport}
       />
+
+      {/* Sketch file import/export */}
+      {onImportSketch && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".sketch"
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+          />
+          <ToolbarButton
+            icon={<FileUploadIcon />}
+            tooltip="Import Sketch file (.sketch)"
+            onClick={handleImportClick}
+          />
+        </>
+      )}
+      {onExportSketch && (
+        <ToolbarButton
+          icon={<SaveAltIcon />}
+          tooltip="Export as Sketch file (.sketch)"
+          onClick={onExportSketch}
+        />
+      )}
+
+      {/* Canvas size */}
+      {onCanvasSizeChange && (
+        <>
+          <ToolbarDivider />
+          <ToolbarButton
+            icon={<AspectRatioIcon />}
+            tooltip={`Canvas size: ${canvasWidth} × ${canvasHeight}`}
+            onClick={handleOpenSizeMenu}
+          />
+          <Popover
+            open={Boolean(sizeMenuAnchor)}
+            anchorEl={sizeMenuAnchor}
+            onClose={handleCloseSizeMenu}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "left"
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "left"
+            }}
+          >
+            <Box sx={{ p: 2, width: 280 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Canvas Size
+              </Typography>
+              
+              {/* Custom size input */}
+              <Box sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center" }}>
+                <TextField
+                  size="small"
+                  label="Width"
+                  type="number"
+                  value={customWidth}
+                  onChange={(e) => setCustomWidth(e.target.value)}
+                  sx={{ width: 90 }}
+                  inputProps={{ min: 1, max: 10000 }}
+                />
+                <Typography variant="body2" color="text.secondary">×</Typography>
+                <TextField
+                  size="small"
+                  label="Height"
+                  type="number"
+                  value={customHeight}
+                  onChange={(e) => setCustomHeight(e.target.value)}
+                  sx={{ width: 90 }}
+                  inputProps={{ min: 1, max: 10000 }}
+                />
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={handleCustomSizeApply}
+                >
+                  Apply
+                </Button>
+              </Box>
+
+              {/* Presets by category */}
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                Presets
+              </Typography>
+              <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
+                {/* Screen sizes */}
+                <Typography variant="caption" sx={{ fontWeight: "bold", display: "block", mt: 1, mb: 0.5 }}>
+                  Screen
+                </Typography>
+                {CANVAS_PRESETS.filter(p => p.category === "screen").map((preset) => (
+                  <MenuItem
+                    key={preset.name}
+                    onClick={() => handlePresetSelect(preset)}
+                    dense
+                    selected={preset.width === canvasWidth && preset.height === canvasHeight}
+                  >
+                    <ListItemText 
+                      primary={preset.name} 
+                      secondary={`${preset.width} × ${preset.height}`}
+                    />
+                  </MenuItem>
+                ))}
+                
+                {/* Social media */}
+                <Typography variant="caption" sx={{ fontWeight: "bold", display: "block", mt: 1, mb: 0.5 }}>
+                  Social Media
+                </Typography>
+                {CANVAS_PRESETS.filter(p => p.category === "social").map((preset) => (
+                  <MenuItem
+                    key={preset.name}
+                    onClick={() => handlePresetSelect(preset)}
+                    dense
+                    selected={preset.width === canvasWidth && preset.height === canvasHeight}
+                  >
+                    <ListItemText 
+                      primary={preset.name} 
+                      secondary={`${preset.width} × ${preset.height}`}
+                    />
+                  </MenuItem>
+                ))}
+                
+                {/* Print */}
+                <Typography variant="caption" sx={{ fontWeight: "bold", display: "block", mt: 1, mb: 0.5 }}>
+                  Print
+                </Typography>
+                {CANVAS_PRESETS.filter(p => p.category === "print").map((preset) => (
+                  <MenuItem
+                    key={preset.name}
+                    onClick={() => handlePresetSelect(preset)}
+                    dense
+                    selected={preset.width === canvasWidth && preset.height === canvasHeight}
+                  >
+                    <ListItemText 
+                      primary={preset.name} 
+                      secondary={`${preset.width} × ${preset.height}`}
+                    />
+                  </MenuItem>
+                ))}
+              </Box>
+            </Box>
+          </Popover>
+        </>
+      )}
 
       {/* Spacer */}
       <Box sx={{ flexGrow: 1 }} />
@@ -357,9 +616,9 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       {/* Zoom controls */}
       <ToolbarButton
         icon={<ZoomOutIcon />}
-        tooltip="Zoom out"
+        tooltip="Zoom out (Ctrl/Cmd + scroll)"
         onClick={onZoomOut}
-        disabled={zoom <= 0.25}
+        disabled={zoom <= 0.1}
       />
       <Box
         sx={{
@@ -374,7 +633,7 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       </Box>
       <ToolbarButton
         icon={<ZoomInIcon />}
-        tooltip="Zoom in"
+        tooltip="Zoom in (Ctrl/Cmd + scroll)"
         onClick={onZoomIn}
         disabled={zoom >= 4}
       />

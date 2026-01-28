@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, memo } from "react";
 //mui
 import { Divider, Menu } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -38,19 +38,13 @@ const OutputContextMenu: React.FC = () => {
     type: state.type,
     handleId: state.handleId
   }));
-  const { openNodeMenu } = useNodeMenuStore();
-  const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
-    (state) => ({
-      createNode: state.createNode,
-      addNode: state.addNode,
-      addEdge: state.addEdge,
-      generateEdgeId: state.generateEdgeId
-    })
-  );
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const createNode = useNodes((state) => state.createNode);
+  const addNode = useNodes((state) => state.addNode);
+  const addEdge = useNodes((state) => state.addEdge);
+  const generateEdgeId = useNodes((state) => state.generateEdgeId);
   const reactFlowInstance = useReactFlow();
-  const { getMetadata } = useMetadataStore((state) => ({
-    getMetadata: state.getMetadata
-  }));
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
   const {
@@ -281,7 +275,7 @@ const OutputContextMenu: React.FC = () => {
     [saveNodeMetadata, createNodeWithEdge]
   );
 
-  const handleOpenNodeMenu = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleOpenNodeMenu = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -293,36 +287,36 @@ const OutputContextMenu: React.FC = () => {
       connectDirection: "source"
     });
     closeContextMenu();
-  };
+  }, [openNodeMenu, sourceType, closeContextMenu]);
 
-  const handleCreatePreviewNode = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleCreatePreviewNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       createPreviewNode(event);
     }
     closeContextMenu();
-  };
+  }, [createPreviewNode, closeContextMenu]);
 
-  const handleCreateRerouteNode = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleCreateRerouteNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       createRerouteNode(event as React.MouseEvent);
     }
     closeContextMenu();
-  };
+  }, [createRerouteNode, closeContextMenu]);
 
-  const handleCreateOutputNode = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleCreateOutputNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       createOutputNode(event);
     }
     closeContextMenu();
-  };
+  }, [createOutputNode, closeContextMenu]);
 
-  const handleCreateToolResultNode = (
+  const handleCreateToolResultNode = useCallback((
     event?: React.MouseEvent<HTMLElement>
   ) => {
     if (event) {
@@ -331,16 +325,16 @@ const OutputContextMenu: React.FC = () => {
       createToolResultNode(event);
     }
     closeContextMenu();
-  };
+  }, [createToolResultNode, closeContextMenu]);
 
-  const handleCreateSaveNode = (event?: React.MouseEvent<HTMLElement>) => {
+  const handleCreateSaveNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
       createSaveNode(event);
     }
     closeContextMenu();
-  };
+  }, [createSaveNode, closeContextMenu]);
 
   const handleShowConnectableNodes = (
     event?: React.MouseEvent<HTMLElement>
@@ -452,5 +446,5 @@ const OutputContextMenu: React.FC = () => {
   );
 };
 
-export default OutputContextMenu;
+export default memo(OutputContextMenu);
 

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -17,10 +17,10 @@ import {
   Box
 } from "@mui/material";
 import isEqual from "lodash/isEqual";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SearchResultGroup } from "../../utils/nodeSearch";
+import { serializeDragData } from "../../lib/dragdrop";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 
 interface RenderNodesSelectableProps {
   nodes: NodeMetadata[];
@@ -29,9 +29,12 @@ interface RenderNodesSelectableProps {
   onToggleSelection?: (nodeType: string) => void;
   onNodeClick?: (node: NodeMetadata) => void;
   onSetSelection?: (newSelection: string[]) => void;
+  hideSelectedSection?: boolean;
+  scrollToNamespace?: string | null;
+  onScrollToNamespaceComplete?: () => void;
 }
 
-const listStyles = (theme: Theme) =>
+const listStyles = () =>
   css({
     "& .MuiPaper-root.MuiAccordion-root": {
       backgroundColor: "transparent !important",
@@ -64,40 +67,100 @@ const listStyles = (theme: Theme) =>
     ".node .node-button": {
       border: `1px solid transparent`,
       transition:
-        "outline-color 120ms ease, background-color 120ms ease, border-color 120ms ease"
+        "outline-color 120ms ease, background-color 120ms ease, border-color 120ms ease",
+      "& svg": {
+        opacity: 0.75
+      }
     },
     ".node.selected .node-button": {
-      borderLeftColor: "var(--palette-primary-main)",
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: "var(--palette-grey-850)",
+      opacity: 0.7,
+      "&:hover": {
+        opacity: 0.9
+      }
     },
+    // Checkmark icon for selected nodes
+    ".node.selected .node-button .MuiSvgIcon-root": {
+      flexShrink: 0
+    },
+    // Section header for "Selected" section
+    ".section-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "8px 4px 6px",
+      marginBottom: "4px",
+      borderBottom: "1px solid var(--palette-grey-700)",
+      "& .section-title": {
+        fontSize: "0.7em",
+        fontWeight: 600,  
+        color: "var(--palette-grey-400)",
+        textTransform: "uppercase",
+        letterSpacing: "0.05em"
+      },
+      "& .section-count": {
+        fontSize: "0.7em",
+        color: "var(--palette-grey-500)"
+      }
+    },
+    // Namespace styling - cleaner, more subtle
     ".namespace-text": {
-      color: theme.vars.palette.primary.main,
-      fontSize: "0.95em",
-      fontWeight: 600,
-      padding: "0.25em 0 0.4em"
+      color: "var(--palette-grey-100)",
+      fontSize: "0.8em",
+      fontWeight: 500,
+      padding: 0,
+      margin: 0,
+      lineHeight: 1.5,
+      display: "flex",
+      alignItems: "center"
     },
     ".namespace-row": {
       display: "flex",
       alignItems: "center",
-      padding: "2px 0",
-      margin: "4px 0"
+      gap: "0.5em",
+      padding: "2px 0 2px 4px",
+      margin: "6px 0 2px",
+      borderBottom: "1px solid var(--palette-grey-800)",
+      minHeight: "32px",
+      transition: "background-color 150ms ease",
+      "&:hover": {
+        backgroundColor: "var(--palette-grey-900)"
+      },
+      "& .MuiTooltip-root": {
+        display: "flex",
+        alignItems: "center"
+      }
     },
     ".namespace-row .namespace-text": {
-      display: "inline-block",
-      padding: "2px 8px",
-      borderRadius: 8,
-      backgroundColor: theme.vars.palette.grey[900],
-      border: `1px solid ${theme.vars.palette.grey[700]}`
-    },
-    ".namespace-row .namespace-text:hover": {
-      borderColor: theme.vars.palette.grey[600]
-    },
-    ".checkbox-cell": {
-      width: "28px",
-      minWidth: "28px",
       display: "flex",
       alignItems: "center",
-      justifyContent: "center"
+      padding: 0,
+      margin: 0,
+      borderRadius: 0,
+      backgroundColor: "transparent",
+      border: "none",
+      flex: 1,
+      minWidth: 0
+    },
+    ".checkbox-cell": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      flexShrink: 0,
+      lineHeight: 0,
+      height: "auto"
+    },
+    // Namespace checkbox styling - match node checkbox styling exactly
+    ".namespace-checkbox": {
+      padding: "2px",
+      margin: 0,
+      "& .MuiSvgIcon-root": {
+        fontSize: "1.1rem"
+      }
+    },
+    // Node items indentation when under namespace
+    ".node-items-group": {
+      paddingLeft: "4px"
     }
   });
 
@@ -115,7 +178,6 @@ const groupNodes = (nodes: NodeMetadata[]) => {
 const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   title
 }) {
-  const theme = useTheme();
   const tooltips: Record<string, string> = {
     Name: "Exact matches in node names",
     Namespace: "Matches in node namespaces and tags",
@@ -123,12 +185,20 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
   };
 
   return (
-    <Tooltip title={tooltips[title] || ""} placement="bottom" enterDelay={200}>
+    <Tooltip
+      title={tooltips[title] || ""}
+      placement="bottom"
+      enterDelay={200}
+      slotProps={{
+        popper: { sx: { zIndex: 2000 } },
+        tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
+      }}
+    >
       <Typography
         variant="h6"
         component="div"
         sx={{
-          color: theme.vars.palette.primary.main,
+          color: "var(--palette-primary-main)",
           fontSize: "0.9em",
           padding: "0.5em 0 0"
         }}
@@ -145,13 +215,59 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   selectedNodeTypes = [],
   onToggleSelection,
   onNodeClick,
-  onSetSelection
+  onSetSelection,
+  hideSelectedSection: _hideSelectedSection = false,
+  scrollToNamespace,
+  onScrollToNamespaceComplete
 }) => {
-  const theme = useTheme();
   const { groupedSearchResults, searchTerm } = useNodeMenuStore((state) => ({
     groupedSearchResults: state.groupedSearchResults,
     searchTerm: state.searchTerm
   }));
+  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
+  const clearDrag = useDragDropStore((s) => s.clearDrag);
+  
+  // Track expanded namespaces when no search term
+  const [expandedNamespaces, setExpandedNamespaces] = useState<Set<string>>(
+    new Set()
+  );
+  
+  // Refs for namespace elements to enable scrolling
+  const namespaceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  
+  // Handle scroll to namespace when prop changes
+  useEffect(() => {
+    if (scrollToNamespace) {
+      // Expand the namespace first
+      setExpandedNamespaces((prev) => {
+        const next = new Set(prev);
+        next.add(scrollToNamespace);
+        return next;
+      });
+      
+      // Scroll to the namespace element after a short delay to allow expansion
+      setTimeout(() => {
+        const element = namespaceRefs.current.get(scrollToNamespace);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        // Signal completion
+        onScrollToNamespaceComplete?.();
+      }, 50);
+    }
+  }, [scrollToNamespace, onScrollToNamespaceComplete]);
+  
+  const toggleNamespaceExpansion = useCallback((namespace: string) => {
+    setExpandedNamespaces((prev) => {
+      const next = new Set(prev);
+      if (next.has(namespace)) {
+        next.delete(namespace);
+      } else {
+        next.add(namespace);
+      }
+      return next;
+    });
+  }, []);
 
   // No-op drag start for selection mode
   const handleDragStart = useCallback(
@@ -161,11 +277,22 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         return;
       }
       // Allow dragging if not in checkbox mode
-      event.dataTransfer.setData("create-node", JSON.stringify(node));
+      // Use unified drag serialization
+      serializeDragData(
+        { type: "create-node", payload: node },
+        event.dataTransfer
+      );
       event.dataTransfer.effectAllowed = "move";
+
+      // Update global drag state
+      setActiveDrag({ type: "create-node", payload: node });
     },
-    [showCheckboxes]
+    [showCheckboxes, setActiveDrag]
   );
+
+  const handleDragEnd = useCallback(() => {
+    clearDrag();
+  }, [clearDrag]);
 
   // Handle node click - either selection or custom handler
   const handleNodeClick = useCallback(
@@ -177,6 +304,13 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       }
     },
     [onNodeClick, showCheckboxes, onToggleSelection]
+  );
+
+  const handleNodeClickWrapper = useCallback(
+    (node: NodeMetadata) => () => {
+      handleNodeClick(node);
+    },
+    [handleNodeClick]
   );
 
   const { selectedPath } = useNodeMenuStore((state) => ({
@@ -224,11 +358,8 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
 
   const renderGroup = useCallback(
     (group: SearchResultGroup) => {
-      // Hide selected nodes from search results, they'll be shown in the top "Selected" section
-      const filteredNodes = group.nodes.filter(
-        (node) => !selectedNodeTypes.includes(node.node_type)
-      );
-      const groupedNodes = groupNodes(filteredNodes);
+      // Keep all nodes visible, including selected ones
+      const groupedNodes = groupNodes(group.nodes);
 
       return (
         <Accordion key={group.title} defaultExpanded={true} disableGutters>
@@ -237,51 +368,74 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
           </AccordionSummary>
           <AccordionDetails sx={{ padding: "0 0 1em 0" }}>
             {Object.entries(groupedNodes).map(
-              ([namespace, nodesInNamespace]) => (
-                <div key={namespace}>
-                  <Box className="namespace-row">
-                    <span className="checkbox-cell">
-                      {showCheckboxes && (
-                        <Checkbox
-                          size="small"
-                          checked={
-                            computeNamespaceSelectionState(namespace).checked
-                          }
-                          indeterminate={
-                            computeNamespaceSelectionState(namespace)
-                              .indeterminate
-                          }
-                          onChange={(e) =>
-                            toggleNamespace(namespace, e.target.checked)
-                          }
+              ([namespace, nodesInNamespace]) => {
+                const nsState = computeNamespaceSelectionState(namespace);
+                return (
+                  <div key={namespace}>
+                    <Box className="namespace-row">
+                      <Tooltip
+                        title="Toggle all in namespace"
+                        placement="left"
+                        enterDelay={500}
+                        slotProps={{
+                          popper: { sx: { zIndex: 2000 } },
+                          tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
+                        }}
+                      >
+                        <span className="checkbox-cell">
+                          {showCheckboxes && (
+                            <Checkbox
+                              size="small"
+                              className="namespace-checkbox"
+                              checked={nsState.checked}
+                              indeterminate={nsState.indeterminate}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleNamespace(namespace, e.target.checked);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              sx={{
+                                color: "var(--palette-grey-500)",
+                                "&.Mui-checked, &.MuiCheckbox-indeterminate": {
+                                  color: "var(--palette-grey-400)"
+                                }
+                              }}
+                            />
+                          )}
+                        </span>
+                      </Tooltip>
+                      <Typography
+                        variant="h5"
+                        component="div"
+                        className="namespace-text"
+                        sx={{
+                          flex: 1,
+                          minWidth: 0
+                        }}
+                      >
+                        {selectedPath.length > 0
+                          ? namespace.replaceAll(selectedPath + ".", "")
+                          : namespace}
+                      </Typography>
+                    </Box>
+                    <div className="node-items-group">
+                      {nodesInNamespace.map((node) => (
+                        <NodeItem
+                          key={node.node_type}
+                          node={node}
+                          onDragStart={handleDragStart(node)}
+                          onDragEnd={handleDragEnd}
+                          onClick={handleNodeClickWrapper(node)}
+                          showCheckbox={showCheckboxes}
+                          isSelected={selectedNodeTypes.includes(node.node_type)}
+                          onToggleSelection={onToggleSelection}
+                          showDescriptionTooltip={true}
                         />
-                      )}
-                    </span>
-                    <Typography
-                      variant="h5"
-                      component="div"
-                      className="namespace-text"
-                    >
-                      {selectedPath.length > 0
-                        ? namespace.replaceAll(selectedPath + ".", "")
-                        : namespace}
-                    </Typography>
-                  </Box>
-                  {nodesInNamespace.map((node) => (
-                    <div key={node.node_type}>
-                      <NodeItem
-                        key={node.node_type}
-                        node={node}
-                        onDragStart={handleDragStart(node)}
-                        onClick={() => handleNodeClick(node)}
-                        showCheckbox={showCheckboxes}
-                        isSelected={selectedNodeTypes.includes(node.node_type)}
-                        onToggleSelection={onToggleSelection}
-                      />
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )
+                  </div>
+                );
+              }
             )}
           </AccordionDetails>
         </Accordion>
@@ -290,105 +444,25 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     [
       selectedPath,
       handleDragStart,
+      handleDragEnd,
       showCheckboxes,
       selectedNodeTypes,
       onToggleSelection,
-      handleNodeClick,
+      handleNodeClickWrapper,
       computeNamespaceSelectionState,
       toggleNamespace
     ]
   );
 
   const elements = useMemo(() => {
-    const selectedNodes = nodes.filter((n) =>
-      selectedNodeTypes.includes(n.node_type)
-    );
-    const unselectedNodes = nodes.filter(
-      (n) => !selectedNodeTypes.includes(n.node_type)
-    );
-
-    const selectedSection: JSX.Element[] = [];
-    if (showCheckboxes && selectedNodes.length > 0) {
-      selectedSection.push(
-        <Typography
-          key="namespace-selected"
-          variant="h5"
-          component="div"
-          className="namespace-text"
-        >
-          Selected
-        </Typography>
-      );
-      const groupedSelected = groupNodes(selectedNodes);
-      Object.entries(groupedSelected).forEach(
-        ([namespace, nodesInNamespace], idx) => {
-          let textForNamespaceHeader = namespace;
-          if (selectedPath && selectedPath === namespace) {
-            textForNamespaceHeader = namespace.split(".").pop() || namespace;
-          } else if (selectedPath && namespace.startsWith(selectedPath + ".")) {
-            textForNamespaceHeader = namespace.substring(
-              selectedPath.length + 1
-            );
-          }
-
-          const nsState = computeNamespaceSelectionState(namespace);
-          selectedSection.push(
-            <Box
-              key={`selected-namespace-${namespace}-${idx}`}
-              className="namespace-row"
-            >
-              <span className="checkbox-cell">
-                {showCheckboxes && (
-                  <Checkbox
-                    size="small"
-                    checked={nsState.checked}
-                    indeterminate={nsState.indeterminate}
-                    onChange={(e) =>
-                      toggleNamespace(namespace, e.target.checked)
-                    }
-                  />
-                )}
-              </span>
-              <Typography
-                variant="h5"
-                component="div"
-                className="namespace-text"
-              >
-                {textForNamespaceHeader}
-              </Typography>
-            </Box>
-          );
-          nodesInNamespace.forEach((node) => {
-            selectedSection.push(
-              <div key={`selected-${node.node_type}`}>
-                <NodeItem
-                  key={`selected-${node.node_type}`}
-                  node={node}
-                  onDragStart={handleDragStart(node)}
-                  onClick={() => handleNodeClick(node)}
-                  showCheckbox={showCheckboxes}
-                  isSelected={true}
-                  onToggleSelection={onToggleSelection}
-                />
-              </div>
-            );
-          });
-        }
-      );
-    }
-
-    // If we're searching, use the grouped results, but prepend the Selected section
+    // If we're searching, use the grouped results (show nodes)
     if (searchTerm) {
-      return [...selectedSection, ...groupedSearchResults.map(renderGroup)];
+      return groupedSearchResults.map(renderGroup);
     }
 
-    // Otherwise use the original namespace-based grouping, excluding selected nodes (they are shown above)
-    return [
-      ...selectedSection,
-      ...Object.entries(groupNodes(unselectedNodes)).flatMap(
+    // Otherwise, only show namespaces (collapsible)
+    return Object.entries(groupNodes(nodes)).map(
         ([namespace, nodesInNamespace], namespaceIndex) => {
-          const elements: JSX.Element[] = [];
-
           let textForNamespaceHeader = namespace; // Default to full namespace string
 
           if (selectedPath && selectedPath === namespace) {
@@ -407,52 +481,99 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
           // it also remains the full 'namespace'.
 
           const nsState = computeNamespaceSelectionState(namespace);
-          const itemsForNamespace: JSX.Element[] = [
-            <Box
-              key={`namespace-${namespace}-${namespaceIndex}`}
-              className="namespace-row"
+          const isExpanded = expandedNamespaces.has(namespace);
+          
+          return (
+            <div
+              key={`namespace-wrapper-${namespace}-${namespaceIndex}`}
+              ref={(el) => {
+                if (el) {
+                  namespaceRefs.current.set(namespace, el);
+                } else {
+                  namespaceRefs.current.delete(namespace);
+                }
+              }}
             >
-              <span className="checkbox-cell">
-                {showCheckboxes && (
-                  <Checkbox
-                    size="small"
-                    checked={nsState.checked}
-                    indeterminate={nsState.indeterminate}
-                    onChange={(e) =>
-                      toggleNamespace(namespace, e.target.checked)
-                    }
-                  />
-                )}
-              </span>
-              <Typography
-                variant="h5"
-                component="div"
-                className="namespace-text"
+              <Box
+                className="namespace-row"
               >
-                {textForNamespaceHeader}
-              </Typography>
-            </Box>,
-            ...nodesInNamespace.map(
-              (node): JSX.Element => (
-                <div key={node.node_type}>
-                  <NodeItem
-                    key={node.node_type}
-                    node={node}
-                    onDragStart={handleDragStart(node)}
-                    onClick={() => handleNodeClick(node)}
-                    showCheckbox={showCheckboxes}
-                    isSelected={selectedNodeTypes.includes(node.node_type)}
-                    onToggleSelection={onToggleSelection}
+                <Tooltip
+                  title="Toggle all in namespace"
+                  placement="left"
+                  enterDelay={500}
+                  slotProps={{
+                    popper: { sx: { zIndex: 2000 } },
+                    tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
+                  }}
+                >
+                  <span className="checkbox-cell">
+                    {showCheckboxes && (
+                      <Checkbox
+                        size="small"
+                        className="namespace-checkbox"
+                        checked={nsState.checked}
+                        indeterminate={nsState.indeterminate}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleNamespace(namespace, e.target.checked);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{
+                          color: "var(--palette-grey-500)",
+                          "&.Mui-checked, &.MuiCheckbox-indeterminate": {
+                            color: "var(--palette-grey-400)"
+                          }
+                        }}
+                      />
+                    )}
+                  </span>
+                </Tooltip>
+                <Typography
+                  variant="h5"
+                  component="div"
+                  className="namespace-text"
+                  onClick={() => toggleNamespaceExpansion(namespace)}
+                  sx={{
+                    cursor: "pointer",
+                    userSelect: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                >
+                  <ExpandMoreIcon
+                    sx={{
+                      fontSize: "1rem",
+                      transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)",
+                      transition: "transform 0.2s ease"
+                    }}
                   />
+                  {textForNamespaceHeader}
+                </Typography>
+              </Box>
+              {isExpanded && (
+                <div
+                  className="node-items-group"
+                >
+                  {nodesInNamespace.map((node) => (
+                    <NodeItem
+                      key={node.node_type}
+                      node={node}
+                      onDragStart={handleDragStart(node)}
+                      onDragEnd={handleDragEnd}
+                      onClick={handleNodeClickWrapper(node)}
+                      showCheckbox={showCheckboxes}
+                      isSelected={selectedNodeTypes.includes(node.node_type)}
+                      onToggleSelection={onToggleSelection}
+                      showDescriptionTooltip={true}
+                    />
+                  ))}
                 </div>
-              )
-            )
-          ];
-
-          return itemsForNamespace;
+              )}
+            </div>
+          );
         }
-      )
-    ];
+      );
   }, [
     searchTerm,
     nodes,
@@ -460,16 +581,19 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     renderGroup,
     selectedPath,
     handleDragStart,
-    handleNodeClick,
+    handleDragEnd,
+    handleNodeClickWrapper,
     showCheckboxes,
     selectedNodeTypes,
     onToggleSelection,
     computeNamespaceSelectionState,
-    toggleNamespace
+    toggleNamespace,
+    expandedNamespaces,
+    toggleNamespaceExpansion
   ]);
 
   return (
-    <div className="nodes" css={listStyles(theme)}>
+    <div className="nodes" css={listStyles()}>
       {nodes.length > 0 ? (
         elements
       ) : (

@@ -57,7 +57,7 @@ nodetool serve --reload
 
 ### 4. Add proxy (TLS + auth)
 
-- Terminate TLS at your proxy (nginx/traefik); forward to `127.0.0.1:8000`.
+- Terminate TLS at your proxy (nginx/traefik); forward to `127.0.0.1:7777`.
 - Expose `/health` and `/ping` without auth; require Bearer tokens elsewhere.
 
 ### 5. Verify health
@@ -157,7 +157,7 @@ gcloud builds submit --tag gcr.io/<project>/nodetool:latest .
 gcloud run deploy nodetool \
   --image gcr.io/<project>/nodetool:latest \
   --allow-unauthenticated=false \
-  --port 8000 \
+  --port 7777 \
   --set-env-vars AUTH_PROVIDER=static,WORKER_AUTH_TOKEN=$(openssl rand -base64 32)
 ```
 
