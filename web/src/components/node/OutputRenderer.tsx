@@ -47,6 +47,7 @@ import { AssetGrid } from "./output/AssetGrid";
 import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
+import DataframeRenderer from "./output/DataframeRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
@@ -467,7 +468,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         return (
           <ObjectRenderer
             value={value}
-            renderValue={(v) => (
+            renderValue={(v: any) => (
               <OutputRenderer value={v} showTextActions={showTextActions} />
             )}
           />

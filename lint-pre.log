@@ -1,12 +1,48 @@
 Linting web package...
 cd web && npm run lint
 
-> nodetool@0.6.2-rc.27 lint
+> nodetool@0.6.3-rc.1 lint
 > eslint src
 
-Linting electron package...
-cd electron && npm run lint
 
-> nodetool-electron@0.6.2-rc.27 lint
-> eslint .
+/home/runner/work/nodetool/nodetool/web/src/components/context_menus/PaneContextMenu.tsx
+  64:9  warning  The 'addComment' function makes the dependencies of useCallback Hook (at line 262) change on every render. Move it inside the useCallback callback. Alternatively, wrap the definition of 'addComment' in its own useCallback() Hook  react-hooks/exhaustive-deps
 
+/home/runner/work/nodetool/nodetool/web/src/components/node/DataTable/TableActions.tsx
+  393:9  warning  'handleExportJSON' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/components/node/OutputRenderer.tsx
+  423:17  error  'DataframeRenderer' is not defined  react/jsx-no-undef
+  647:21  error  'DataframeRenderer' is not defined  react/jsx-no-undef
+
+/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useApiKeyValidation.test.ts
+  224:39  warning  Expected { after 'if' condition  curly
+  225:42  warning  Expected { after 'if' condition  curly
+
+/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useJobReconnection.test.tsx
+  27:10  error  Component definition is missing display name  react/display-name
+
+/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useProviders.test.tsx
+    1:31  warning  'act' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   18:10  error    Component definition is missing display name                           react/display-name
+   57:34  error    A `require()` style import is forbidden                                @typescript-eslint/no-require-imports
+   78:34  error    A `require()` style import is forbidden                                @typescript-eslint/no-require-imports
+   98:34  error    A `require()` style import is forbidden                                @typescript-eslint/no-require-imports
+  120:46  error    A `require()` style import is forbidden                                @typescript-eslint/no-require-imports
+  142:46  error    A `require()` style import is forbidden                                @typescript-eslint/no-require-imports
+  164:47  error    A `require()` style import is forbidden                                @typescript-eslint/no-require-imports
+  186:37  error    A `require()` style import is forbidden                                @typescript-eslint/no-require-imports
+
+/home/runner/work/nodetool/nodetool/web/src/hooks/__tests__/useRunningJobs.test.tsx
+  23:10  error  Component definition is missing display name  react/display-name
+
+/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/NodePlacementStore.test.ts
+  2:33  warning  'NodePlacementSource' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/runner/work/nodetool/nodetool/web/src/stores/__tests__/RecentNodesStore.test.ts
+  2:31  warning  'RecentNode' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 19 problems (12 errors, 7 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+
+make: *** [Makefile:124: lint-web] Error 1
