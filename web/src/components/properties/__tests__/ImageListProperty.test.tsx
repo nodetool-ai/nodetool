@@ -43,7 +43,7 @@ describe("ImageListProperty", () => {
     );
     
     expect(screen.getByText("Images")).toBeInTheDocument();
-    expect(screen.getByText("Drop images here")).toBeInTheDocument();
+    expect(screen.getByText("Click or drop images here")).toBeInTheDocument();
   });
 
   it("renders images when value is provided", () => {
@@ -97,7 +97,7 @@ describe("ImageListProperty", () => {
       </ThemeProvider>
     );
     
-    expect(screen.getByText("Drop images here")).toBeInTheDocument();
+    expect(screen.getByText("Click or drop images here")).toBeInTheDocument();
   });
 
   it("handles drag over and drag leave events", () => {

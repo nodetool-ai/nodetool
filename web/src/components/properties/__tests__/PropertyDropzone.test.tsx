@@ -59,7 +59,7 @@ describe("PropertyDropzone", () => {
     delete (window as any).api;
   });
 
-  it("should render dropzone", () => {
+  it("should render dropzone with click instruction", () => {
     renderWithTheme(
       <PropertyDropzone
         asset={undefined}
@@ -69,10 +69,10 @@ describe("PropertyDropzone", () => {
         props={mockProps as any}
       />
     );
-    expect(screen.getByText("Drop image")).toBeInTheDocument();
+    expect(screen.getByText("Click or drop image")).toBeInTheDocument();
   });
 
-  it("should not render native picker button when not in Electron", () => {
+  it("should render dropzone in browser mode", () => {
     mockIsElectron = false;
     renderWithTheme(
       <PropertyDropzone
@@ -83,10 +83,11 @@ describe("PropertyDropzone", () => {
         props={mockProps as any}
       />
     );
-    expect(screen.queryByText(/Select image/i)).not.toBeInTheDocument();
+    // Dropzone should still be clickable and show instructions
+    expect(screen.getByText("Click or drop image")).toBeInTheDocument();
   });
 
-  it("should render native picker button when in Electron", () => {
+  it("should render dropzone in Electron mode", () => {
     mockIsElectron = true;
     
     // Mock window.api
@@ -109,8 +110,7 @@ describe("PropertyDropzone", () => {
       />
     );
 
-    // Native picker button should be visible in Electron
-    const pickerButton = screen.getByText(/Select image/i);
-    expect(pickerButton).toBeInTheDocument();
+    // Dropzone should be clickable in Electron too
+    expect(screen.getByText("Click or drop image")).toBeInTheDocument();
   });
 });

@@ -39,7 +39,7 @@ describe("AudioListProperty", () => {
     );
     
     expect(screen.getByText("Audio Files")).toBeInTheDocument();
-    expect(screen.getByText("Drop audio files here")).toBeInTheDocument();
+    expect(screen.getByText("Click or drop audio files here")).toBeInTheDocument();
   });
 
   it("renders audio files when value is provided", () => {
@@ -92,7 +92,7 @@ describe("AudioListProperty", () => {
       </ThemeProvider>
     );
     
-    expect(screen.getByText("Drop audio files here")).toBeInTheDocument();
+    expect(screen.getByText("Click or drop audio files here")).toBeInTheDocument();
   });
 
   it("handles drag over and drag leave events", () => {
