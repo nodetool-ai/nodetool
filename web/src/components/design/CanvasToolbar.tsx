@@ -98,13 +98,15 @@ interface ToolbarButtonProps {
   tooltip: string;
   onClick: (event: React.MouseEvent<HTMLElement>) => void;
   disabled?: boolean;
+  ariaLabel?: string;
 }
 
 const ToolbarButton: React.FC<ToolbarButtonProps> = memo(({
   icon,
   tooltip,
   onClick,
-  disabled = false
+  disabled = false,
+  ariaLabel
 }) => {
   return (
     <Tooltip title={tooltip}>
@@ -113,6 +115,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(({
           size="small"
           onClick={onClick}
           disabled={disabled}
+          aria-label={ariaLabel || tooltip}
           sx={{ p: 0.75 }}
         >
           {icon}
@@ -229,8 +232,12 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   const handleCustomSizeApply = useCallback(() => {
     const w = parseInt(customWidth, 10);
     const h = parseInt(customHeight, 10);
-    if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0 && onCanvasSizeChange) {
-      onCanvasSizeChange(Math.min(w, 10000), Math.min(h, 10000));
+    // Validate: must be positive numbers between 1 and 10000
+    if (!isNaN(w) && !isNaN(h) && w >= 1 && h >= 1 && onCanvasSizeChange) {
+      onCanvasSizeChange(
+        Math.max(1, Math.min(w, 10000)),
+        Math.max(1, Math.min(h, 10000))
+      );
     }
     handleCloseSizeMenu();
   }, [customWidth, customHeight, onCanvasSizeChange, handleCloseSizeMenu]);

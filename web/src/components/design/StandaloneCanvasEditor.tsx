@@ -74,8 +74,6 @@ const StandaloneCanvasEditor: React.FC = () => {
         <LayoutCanvasEditor
           value={canvasData}
           onChange={handleChange}
-          width={canvasData.width}
-          height={canvasData.height}
           enableSketchSupport={true}
         />
       </Box>

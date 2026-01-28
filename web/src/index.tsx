@@ -9,7 +9,7 @@ import type {} from "./window";
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState, useMemo } from "react";
 import ReactDOM from "react-dom/client";
 
 import {
@@ -352,13 +352,17 @@ const JobReconnectionManager = () => {
   return null;
 };
 
+// Standalone routes that don't need backend metadata
+const STANDALONE_ROUTES = ["/canvas", "/layouttest"];
+
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
   
   // Check if current path is a standalone route that doesn't need metadata
-  const standaloneRoutes = ["/canvas", "/layouttest"];
-  const isStandaloneRoute = standaloneRoutes.some(route => 
-    window.location.pathname.startsWith(route)
+  // This is checked once on mount since we're not using SPA navigation to these routes
+  const isStandaloneRoute = useMemo(() => 
+    STANDALONE_ROUTES.some(route => window.location.pathname.startsWith(route)),
+    [] // Empty deps - only check on mount since standalone routes don't use SPA navigation
   );
 
   useEffect(() => {
@@ -377,7 +381,7 @@ const AppWrapper = () => {
         console.error("Failed to load metadata:", error);
         setStatus("error"); // Ensure status is set to error on promise rejection
       });
-  }, [isStandaloneRoute]); // Include isStandaloneRoute in dependencies
+  }, [isStandaloneRoute]);
 
   return (
     <React.StrictMode>
