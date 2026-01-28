@@ -200,17 +200,22 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     }
   });
 
+  // Get stored type metadata for dynamic inputs (from LayoutCanvas exposed inputs, etc.)
+  const dynamicInputTypes = data?.dynamic_input_types || {};
+
   const dynamicInputElements = Object.entries(dynamicProperties).map(
     ([name], index) => {
-      // Determine type from incoming edge's source handle
+      // First, check if we have stored type metadata for this input
+      let resolvedType: TypeMetadata = dynamicInputTypes[name] || {
+        type: "any",
+        type_args: [],
+        optional: true
+      } as any;
+
+      // If connected, override with the source handle's type
       const incoming = edges.find(
         (edge) => edge.target === id && edge.targetHandle === name
       );
-      let resolvedType: TypeMetadata = {
-        type: "any",
-        type_args: [],
-        optional: false
-      } as any;
       if (incoming) {
         const sourceNode = findNode(incoming.source);
         if (sourceNode) {

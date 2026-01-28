@@ -69,9 +69,133 @@ interface ElementPropertiesProps {
   onUpdateProperties: (id: string, properties: Partial<TextProps | ImageProps | RectProps | EllipseProps | LineProps | GroupProps>) => void;
   onAddExposedInput: (input: ExposedInput) => void;
   onRemoveExposedInput: (elementId: string, property: string) => void;
+  onUpdateExposedInput?: (elementId: string, property: string, updates: Partial<ExposedInput>) => void;
   // Alignment handlers
   onAlign?: (type: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void;
 }
+
+// Type display mapping for better UX
+const getTypeLabel = (inputType: ExposedInput["inputType"]) => {
+  switch (inputType) {
+    case "string": return "Text";
+    case "image": return "Image";
+    default: return "Any";
+  }
+};
+
+const getTypeColor = (inputType: ExposedInput["inputType"], theme: any) => {
+  switch (inputType) {
+    case "string": return theme.vars.palette.success.main;
+    case "image": return theme.vars.palette.info.main;
+    default: return theme.vars.palette.warning.main;
+  }
+};
+
+// Exposed Input Info Component - shows when a property is exposed
+interface ExposedInputInfoProps {
+  exposedInput: ExposedInput;
+  onUpdate?: (updates: Partial<ExposedInput>) => void;
+  onRemove: () => void;
+}
+
+const ExposedInputInfo: React.FC<ExposedInputInfoProps> = memo(({ exposedInput, onUpdate, onRemove }) => {
+  const theme = useTheme();
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editName, setEditName] = React.useState(exposedInput.inputName);
+
+  const handleSaveName = useCallback(() => {
+    if (onUpdate && editName.trim() && editName !== exposedInput.inputName) {
+      // Sanitize the name: lowercase, replace spaces with underscores
+      const sanitizedName = editName.trim().replace(/\s+/g, "_").toLowerCase();
+      onUpdate({ inputName: sanitizedName });
+    }
+    setIsEditing(false);
+  }, [onUpdate, editName, exposedInput.inputName]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSaveName();
+    } else if (e.key === "Escape") {
+      setEditName(exposedInput.inputName);
+      setIsEditing(false);
+    }
+  }, [handleSaveName, exposedInput.inputName]);
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 0.5,
+        p: 0.75,
+        mb: 1,
+        borderRadius: 1,
+        backgroundColor: theme.vars.palette.action.selected,
+        border: `1px solid ${theme.vars.palette.primary.main}`,
+      }}
+    >
+      <LinkIcon fontSize="small" sx={{ color: theme.vars.palette.primary.main, flexShrink: 0 }} />
+      
+      {isEditing ? (
+        <TextField
+          size="small"
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          onBlur={handleSaveName}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          variant="standard"
+          sx={{ 
+            flex: 1,
+            "& .MuiInputBase-input": { 
+              fontSize: "0.75rem",
+              py: 0.25
+            }
+          }}
+        />
+      ) : (
+        <Tooltip title="Click to edit input name">
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              flex: 1, 
+              cursor: onUpdate ? "pointer" : "default",
+              fontFamily: "monospace",
+              fontWeight: 500,
+              "&:hover": onUpdate ? { textDecoration: "underline" } : {}
+            }}
+            onClick={() => onUpdate && setIsEditing(true)}
+          >
+            {exposedInput.inputName}
+          </Typography>
+        </Tooltip>
+      )}
+      
+      <Box
+        sx={{
+          px: 0.75,
+          py: 0.25,
+          borderRadius: 0.5,
+          backgroundColor: getTypeColor(exposedInput.inputType, theme),
+          color: theme.vars.palette.common.white,
+          fontSize: "0.65rem",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          flexShrink: 0
+        }}
+      >
+        {getTypeLabel(exposedInput.inputType)}
+      </Box>
+      
+      <Tooltip title="Remove from inputs">
+        <IconButton size="small" onClick={onRemove} sx={{ p: 0.25, flexShrink: 0 }}>
+          <LinkOffIcon fontSize="small" sx={{ fontSize: "1rem" }} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+});
+ExposedInputInfo.displayName = "ExposedInputInfo";
 
 // Section header component
 const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ title, action }) => {
@@ -131,6 +255,7 @@ interface TextPropsEditorProps {
   onUpdate: (properties: Partial<TextProps>) => void;
   onAddExposed: (input: ExposedInput) => void;
   onRemoveExposed: (elementId: string, property: string) => void;
+  onUpdateExposed?: (elementId: string, property: string, updates: Partial<ExposedInput>) => void;
 }
 
 const TextPropsEditor: React.FC<TextPropsEditorProps> = memo(({
@@ -139,12 +264,14 @@ const TextPropsEditor: React.FC<TextPropsEditorProps> = memo(({
   exposedInputs,
   onUpdate,
   onAddExposed,
-  onRemoveExposed
+  onRemoveExposed,
+  onUpdateExposed
 }) => {
   const theme = useTheme();
-  const isContentExposed = exposedInputs.some(
+  const contentExposedInput = exposedInputs.find(
     (ei) => ei.elementId === element.id && ei.property === "content"
   );
+  const isContentExposed = !!contentExposedInput;
 
   const toggleExposed = useCallback(() => {
     if (isContentExposed) {
@@ -159,30 +286,42 @@ const TextPropsEditor: React.FC<TextPropsEditorProps> = memo(({
     }
   }, [element.id, element.name, isContentExposed, onAddExposed, onRemoveExposed]);
 
-  const handleFormatChange = (event: React.MouseEvent<HTMLElement>, newFormats: string[]) => {
-    // This is a bit tricky since we store these as separate props
-    // We'll just handle clicks individually for now or map them
-  };
+  const handleUpdateExposed = useCallback((updates: Partial<ExposedInput>) => {
+    if (onUpdateExposed) {
+      onUpdateExposed(element.id, "content", updates);
+    }
+  }, [element.id, onUpdateExposed]);
 
   return (
     <>
       <Box sx={{ mb: 2 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
-           <Typography variant="caption" color="text.secondary">Content</Typography>
-           <IconButton
-            size="small"
-            onClick={toggleExposed}
-            sx={{
-              p: 0.5,
-              color: isContentExposed
-                ? theme.vars.palette.primary.main
-                : theme.vars.palette.text.secondary
-            }}
-            title={isContentExposed ? "Remove from inputs" : "Expose as input"}
-          >
-            {isContentExposed ? <LinkIcon fontSize="small" /> : <LinkOffIcon fontSize="small" />}
-          </IconButton>
+          <Typography variant="caption" color="text.secondary">Content</Typography>
+          {!isContentExposed && (
+            <Tooltip title="Expose as input">
+              <IconButton
+                size="small"
+                onClick={toggleExposed}
+                sx={{
+                  p: 0.5,
+                  color: theme.vars.palette.text.secondary,
+                  "&:hover": { color: theme.vars.palette.primary.main }
+                }}
+              >
+                <LinkOffIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
+        
+        {isContentExposed && contentExposedInput && (
+          <ExposedInputInfo
+            exposedInput={contentExposedInput}
+            onUpdate={onUpdateExposed ? handleUpdateExposed : undefined}
+            onRemove={() => onRemoveExposed(element.id, "content")}
+          />
+        )}
+        
         <TextField
           value={props.content}
           onChange={(e) => onUpdate({ content: e.target.value })}
@@ -192,10 +331,15 @@ const TextPropsEditor: React.FC<TextPropsEditorProps> = memo(({
           size="small"
           fullWidth
           variant="outlined"
+          placeholder={isContentExposed ? "Value set via input connection" : "Enter text content"}
           sx={{ 
             "& .MuiOutlinedInput-root": { 
               padding: 1,
-              fontSize: "0.875rem"
+              fontSize: "0.875rem",
+              ...(isContentExposed && {
+                borderColor: theme.vars.palette.primary.main,
+                backgroundColor: theme.vars.palette.action.hover
+              })
             } 
           }}
         />
@@ -358,6 +502,7 @@ interface ImagePropsEditorProps {
   onUpdate: (properties: Partial<ImageProps>) => void;
   onAddExposed: (input: ExposedInput) => void;
   onRemoveExposed: (elementId: string, property: string) => void;
+  onUpdateExposed?: (elementId: string, property: string, updates: Partial<ExposedInput>) => void;
 }
 
 const ImagePropsEditor: React.FC<ImagePropsEditorProps> = memo(({
@@ -366,12 +511,14 @@ const ImagePropsEditor: React.FC<ImagePropsEditorProps> = memo(({
   exposedInputs,
   onUpdate,
   onAddExposed,
-  onRemoveExposed
+  onRemoveExposed,
+  onUpdateExposed
 }) => {
   const theme = useTheme();
-  const isSourceExposed = exposedInputs.some(
+  const sourceExposedInput = exposedInputs.find(
     (ei) => ei.elementId === element.id && ei.property === "source"
   );
+  const isSourceExposed = !!sourceExposedInput;
 
   const toggleExposed = useCallback(() => {
     if (isSourceExposed) {
@@ -386,32 +533,57 @@ const ImagePropsEditor: React.FC<ImagePropsEditorProps> = memo(({
     }
   }, [element.id, element.name, isSourceExposed, onAddExposed, onRemoveExposed]);
 
+  const handleUpdateExposed = useCallback((updates: Partial<ExposedInput>) => {
+    if (onUpdateExposed) {
+      onUpdateExposed(element.id, "source", updates);
+    }
+  }, [element.id, onUpdateExposed]);
+
   return (
     <>
-      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+      <Box sx={{ mb: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
+          <Typography variant="caption" color="text.secondary">Image Source</Typography>
+          {!isSourceExposed && (
+            <Tooltip title="Expose as input">
+              <IconButton
+                size="small"
+                onClick={toggleExposed}
+                sx={{
+                  p: 0.5,
+                  color: theme.vars.palette.text.secondary,
+                  "&:hover": { color: theme.vars.palette.primary.main }
+                }}
+              >
+                <LinkOffIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+        
+        {isSourceExposed && sourceExposedInput && (
+          <ExposedInputInfo
+            exposedInput={sourceExposedInput}
+            onUpdate={onUpdateExposed ? handleUpdateExposed : undefined}
+            onRemove={() => onRemoveExposed(element.id, "source")}
+          />
+        )}
+        
         <TextField
-          label="Image URL"
           value={props.source}
           onChange={(e) => onUpdate({ source: e.target.value })}
           size="small"
           fullWidth
-          sx={{ mb: 1 }}
-          placeholder="Enter image URL or asset ID"
+          placeholder={isSourceExposed ? "Value set via input connection" : "Enter image URL or asset ID"}
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              ...(isSourceExposed && {
+                borderColor: theme.vars.palette.primary.main,
+                backgroundColor: theme.vars.palette.action.hover
+              })
+            }
+          }}
         />
-        <Tooltip title={isSourceExposed ? "Remove from inputs" : "Expose as input"}>
-          <IconButton
-            size="small"
-            onClick={toggleExposed}
-            sx={{
-              mt: 1,
-              color: isSourceExposed
-                ? theme.vars.palette.primary.main
-                : theme.vars.palette.text.secondary
-            }}
-          >
-            {isSourceExposed ? <LinkIcon /> : <LinkOffIcon />}
-          </IconButton>
-        </Tooltip>
       </Box>
 
       <FormControl fullWidth size="small" sx={{ mb: 1 }}>
@@ -757,6 +929,7 @@ const ElementProperties: React.FC<ElementPropertiesProps> = ({
   onUpdateProperties,
   onAddExposedInput,
   onRemoveExposedInput,
+  onUpdateExposedInput,
   onAlign
 }) => {
   const theme = useTheme();
@@ -927,6 +1100,7 @@ const ElementProperties: React.FC<ElementPropertiesProps> = ({
             onUpdate={handleUpdateProperties}
             onAddExposed={onAddExposedInput}
             onRemoveExposed={onRemoveExposedInput}
+            onUpdateExposed={onUpdateExposedInput}
           />
         )}
         {element.type === "image" && (
@@ -937,6 +1111,7 @@ const ElementProperties: React.FC<ElementPropertiesProps> = ({
             onUpdate={handleUpdateProperties}
             onAddExposed={onAddExposedInput}
             onRemoveExposed={onRemoveExposedInput}
+            onUpdateExposed={onUpdateExposedInput}
           />
         )}
         {element.type === "rectangle" && (

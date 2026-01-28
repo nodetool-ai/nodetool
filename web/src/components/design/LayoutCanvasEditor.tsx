@@ -177,6 +177,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     alignBottom,
     addExposedInput,
     removeExposedInput,
+    updateExposedInput,
     setGridSettings,
     snapToGrid,
     copyToClipboard,
@@ -1253,6 +1254,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             onUpdateProperties={handleUpdateProperties}
             onAddExposedInput={addExposedInput}
             onRemoveExposedInput={removeExposedInput}
+            onUpdateExposedInput={updateExposedInput}
             onAlign={handlePropertyAlign}
           />
         </Box>

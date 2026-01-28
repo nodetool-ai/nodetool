@@ -39,29 +39,74 @@ const LayoutCanvasProperty: React.FC<PropertyProps> = (props) => {
     ? { ...props.value, type: "layout_canvas" as const }
     : DEFAULT_CANVAS_DATA;
 
-  // Sync exposed inputs to node's dynamic_properties
+  // Map exposed input types to TypeMetadata types
+  const getTypeMetadata = useCallback((inputType: ExposedInput["inputType"]) => {
+    switch (inputType) {
+      case "string":
+        return { type: "string", optional: true };
+      case "image":
+        return { type: "image", optional: true };
+      default:
+        return { type: "any", optional: true };
+    }
+  }, []);
+
+  // Track previous exposed inputs to detect name changes
+  const prevExposedInputsRef = React.useRef<ExposedInput[]>([]);
+
+  // Sync exposed inputs to node's dynamic_properties and dynamic_input_types
   const syncExposedInputs = useCallback(
     (exposedInputs: ExposedInput[]) => {
       const node = findNode(props.nodeId);
       if (!node) {return;}
 
-      // Build dynamic properties from exposed inputs
+      // Build a map from (elementId, property) -> old inputName for value migration
+      const oldInputNameMap = new Map<string, string>();
+      prevExposedInputsRef.current.forEach((oldInput) => {
+        const key = `${oldInput.elementId}:${oldInput.property}`;
+        oldInputNameMap.set(key, oldInput.inputName);
+      });
+
+      // Build dynamic properties and type metadata from exposed inputs
       const dynamicProps: Record<string, any> = {};
+      const dynamicInputTypes: Record<string, any> = {};
+      
       exposedInputs.forEach((input) => {
         // Use a default value based on input type
         const defaultValue = input.inputType === "image" ? null : "";
-        // Preserve existing value if it exists
-        const existingValue = node.data.dynamic_properties?.[input.inputName];
+        
+        // Check if this input had a different name before (handle rename)
+        const key = `${input.elementId}:${input.property}`;
+        const oldName = oldInputNameMap.get(key);
+        
+        // Try to preserve existing value - first by current name, then by old name
+        let existingValue = node.data.dynamic_properties?.[input.inputName];
+        if (existingValue === undefined && oldName && oldName !== input.inputName) {
+          existingValue = node.data.dynamic_properties?.[oldName];
+        }
+        
         dynamicProps[input.inputName] = existingValue !== undefined ? existingValue : defaultValue;
+        // Store type metadata for proper input rendering
+        dynamicInputTypes[input.inputName] = getTypeMetadata(input.inputType);
       });
 
-      // Only update if dynamic properties changed
+      // Update ref with current exposed inputs for next sync
+      prevExposedInputsRef.current = exposedInputs;
+
+      // Only update if dynamic properties or types changed
       const currentDynamic = node.data.dynamic_properties || {};
-      if (!isEqual(Object.keys(dynamicProps).sort(), Object.keys(currentDynamic).sort())) {
-        updateNodeData(props.nodeId, { dynamic_properties: dynamicProps });
+      const currentTypes = node.data.dynamic_input_types || {};
+      const propsChanged = !isEqual(dynamicProps, currentDynamic);
+      const typesChanged = !isEqual(dynamicInputTypes, currentTypes);
+      
+      if (propsChanged || typesChanged) {
+        updateNodeData(props.nodeId, { 
+          dynamic_properties: dynamicProps,
+          dynamic_input_types: dynamicInputTypes
+        });
       }
     },
-    [findNode, updateNodeData, props.nodeId]
+    [findNode, updateNodeData, props.nodeId, getTypeMetadata]
   );
 
   // Sync exposed inputs when canvas data changes
