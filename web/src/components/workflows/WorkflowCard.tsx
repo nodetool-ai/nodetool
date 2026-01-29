@@ -31,6 +31,7 @@ const cardStyles = (theme: Theme) =>
     flexDirection: "column",
     width: "100%",
     height: "100%",
+    minHeight: "260px",
     borderRadius: "12px",
     overflow: "hidden",
     cursor: "pointer",
@@ -138,7 +139,7 @@ const cardStyles = (theme: Theme) =>
       flexDirection: "column",
       padding: "12px 14px",
       flex: 1,
-      minHeight: 0
+      minHeight: "60px"
     },
     ".card-title": {
       fontSize: "0.95rem",
@@ -264,46 +265,6 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
           <Typography component="h3" className="card-title">
             {workflow.name}
           </Typography>
-
-
-
-          <Box className="chips-container" sx={chipsContainerSx}>
-            {workflow.required_providers &&
-              workflow.required_providers.map((prov: string) => (
-                <Chip
-                  key={`prov-${prov}`}
-                  label={prov}
-                  title={prov}
-                  size="small"
-                  variant="outlined"
-                  sx={chipSx(theme, "secondary")}
-                />
-              ))}
-
-            {workflow.required_models &&
-              workflow.required_models
-                .slice(0, 3)
-                .map((model: string) => (
-                  <Chip
-                    key={`model-${model}`}
-                    label={model}
-                    title={model}
-                    size="small"
-                    variant="outlined"
-                    sx={chipSx(theme, "primary")}
-                  />
-                ))}
-
-            {workflow.required_models &&
-              workflow.required_models.length > 3 && (
-                <Chip
-                  label={`+${workflow.required_models.length - 3}`}
-                  size="small"
-                  variant="outlined"
-                  sx={chipSx(theme, "info", { uppercase: false })}
-                />
-              )}
-          </Box>
         </Box>
       </Box>
     </Tooltip>

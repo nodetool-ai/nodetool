@@ -1,6 +1,7 @@
 import React from "react";
 import { AssetRef } from "../../../stores/ApiTypes";
 import PreviewImageGrid from "../PreviewImageGrid";
+import { resolveAssetUri } from "./hooks";
 
 type Props = {
   values: AssetRef[];
@@ -12,7 +13,7 @@ export const AssetGrid: React.FC<Props> = ({ values, onOpenIndex }) => {
     .filter((item) => item && (item as any).type === "image")
     .map((item) =>
       (item as any).uri
-        ? ((item as any).uri as string)
+        ? resolveAssetUri((item as any).uri as string)
         : ((item as any).data as unknown as Uint8Array)
     );
   return <PreviewImageGrid images={images} onDoubleClick={onOpenIndex} />;

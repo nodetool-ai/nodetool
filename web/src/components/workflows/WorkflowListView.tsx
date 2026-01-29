@@ -11,7 +11,7 @@ import { VariableSizeList } from "react-window";
 import { useShowGraphPreview, useSortBy } from "../../stores/WorkflowListViewStore";
 import { groupByDate } from "../../utils/groupByDate";
 
-type ListItem = 
+type ListItem =
   | { type: "header"; label: string }
   | { type: "workflow"; workflow: Workflow; index: number };
 
@@ -208,7 +208,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(500);
 
-  const WORKFLOW_HEIGHT = showGraphPreview ? 150 : 36;
+  const WORKFLOW_HEIGHT = showGraphPreview ? 280 : 36;
   const HEADER_HEIGHT = 32;
 
   // Measure container height dynamically using ResizeObserver
@@ -331,9 +331,9 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   };
 
   return (
-    <Box 
-      ref={containerRef} 
-      className="container list" 
+    <Box
+      ref={containerRef}
+      className="container list"
       css={listStyles(theme)}
       sx={{ height: "100%", width: "100%" }}
     >

@@ -63,7 +63,28 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
 
     const link = document.createElement("a");
     link.href = imageUrl;
-    link.download = `image-${Date.now()}.png`;
+
+    let filename = `image-${Date.now()}.png`;
+
+    try {
+      // Check for extension in URL (Asset URL or other)
+      const urlPath = imageUrl.split('?')[0];
+      const lastSegment = urlPath.split('/').pop();
+      if (lastSegment && lastSegment.includes('.')) {
+        filename = decodeURIComponent(lastSegment);
+      } else if (imageUrl.startsWith("data:image/")) {
+        // Handle data URIs
+        const mime = imageUrl.substring(5, imageUrl.indexOf(";"));
+        const ext = mime.split("/")[1];
+        if (ext) {
+          filename = `image-${Date.now()}.${ext === 'jpeg' ? 'jpg' : ext}`;
+        }
+      }
+    } catch (_e) {
+      // fallback
+    }
+
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -79,7 +100,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
 
   return (
     <div
-     css={styles}
+      css={styles}
       className="image-output"
       style={{
         position: "relative",

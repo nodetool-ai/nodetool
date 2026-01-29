@@ -12,6 +12,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
+import { CopyAssetButton } from "../common/CopyAssetButton";
 import { Dialog } from "../ui_primitives";
 
 export type ImageSource = Uint8Array | string;
@@ -212,7 +213,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [compareDialogOpen, setCompareDialogOpen] = useState(false);
   const [compareImages, setCompareImages] = useState<[string, string] | null>(null);
-  
+
   // Asset viewer state
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
@@ -266,7 +267,16 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     // Create a temporary link to download
     const link = document.createElement("a");
     link.href = url;
-    link.download = `image-${index + 1}.png`;
+
+    let filename = `image-${index + 1}.png`; // fallback
+    try {
+      const parts = url.split("?")[0].split("/").pop();
+      if (parts && parts.includes(".")) {
+        filename = decodeURIComponent(parts);
+      }
+    } catch { }
+
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
