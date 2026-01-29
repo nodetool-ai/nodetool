@@ -18,7 +18,7 @@ export interface ExportOptions {
 }
 
 export interface CanvasRenderer {
-  mount(container: HTMLElement): void;
+  mount(container: HTMLElement): Promise<void>;
   resize(width: number, height: number): void;
   setCamera(pan: Point, zoom: number): void;
   setDocument(doc: LayoutCanvasData): void;
