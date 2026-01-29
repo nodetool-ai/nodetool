@@ -33,6 +33,12 @@ describe("shouldRenderVisibleElements", () => {
     ).toBe(false);
   });
 
+  it("stays disabled for interactions below the threshold", () => {
+    expect(
+      shouldRenderVisibleElements(VISIBLE_ELEMENTS_NODE_THRESHOLD - 1, true)
+    ).toBe(false);
+  });
+
   it("keeps visible-element rendering enabled when not interacting", () => {
     expect(
       shouldRenderVisibleElements(VISIBLE_ELEMENTS_NODE_THRESHOLD, false)
