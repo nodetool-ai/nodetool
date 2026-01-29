@@ -335,6 +335,14 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
+const JobReconnectionManager = () => {
+  useJobReconnection();
+  return null;
+};
+
+// Routes that don't require metadata loading
+const STANDALONE_ROUTES = ["/miniapp/", "/standalone-chat/", "/canvas"];
+
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
   

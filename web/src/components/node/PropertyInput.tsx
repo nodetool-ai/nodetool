@@ -47,6 +47,7 @@ import AudioListProperty from "../properties/AudioListProperty";
 import TextListProperty from "../properties/TextListProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
+import LayoutCanvasProperty from "../properties/LayoutCanvasProperty";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
