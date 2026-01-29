@@ -6,14 +6,9 @@ import {
   Text,
   Texture
 } from "pixi.js";
-import type { LayoutCanvasData, LayoutElement, SnapGuide } from "../types";
-import type { CanvasRenderer, Point, AABB, ExportOptions } from "./CanvasRenderer";
-
-const DEFAULT_BACKGROUND = "#ffffff";
-
-const parseHexColor = (color: string): number => {
-  return Number.parseInt(color.replace("#", ""), 16);
-};
+import type { LayoutCanvasData, LayoutElement, SnapGuide } from "../../types";
+import type { CanvasRenderer, Point, AABB, ExportOptions } from "../CanvasRenderer";
+import { DEFAULT_PIXI_BACKGROUND, parseHexColor, toRadians } from "./pixiUtils";
 
 export default class PixiRenderer implements CanvasRenderer {
   private app: Application | null = null;
@@ -38,7 +33,7 @@ export default class PixiRenderer implements CanvasRenderer {
     await app.init({
       width: container.clientWidth || 800,
       height: container.clientHeight || 600,
-      backgroundColor: 0xffffff,
+      backgroundColor: parseHexColor(DEFAULT_PIXI_BACKGROUND),
       preference: "webgpu",
       antialias: true,
       resolution: window.devicePixelRatio || 1,
@@ -83,7 +78,7 @@ export default class PixiRenderer implements CanvasRenderer {
   setDocument(doc: LayoutCanvasData): void {
     this.data = doc;
     if (this.app) {
-      this.app.renderer.background.color = parseHexColor(doc.backgroundColor ?? DEFAULT_BACKGROUND);
+      this.app.renderer.background.color = parseHexColor(doc.backgroundColor ?? DEFAULT_PIXI_BACKGROUND);
     }
     this.renderDocument();
     this.setGrid(this.gridEnabled, this.gridSize, this.gridColor);
@@ -229,22 +224,21 @@ export default class PixiRenderer implements CanvasRenderer {
     switch (element.type) {
       case "rectangle": {
         const rect = new Graphics();
-        const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_BACKGROUND;
+        const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_PIXI_BACKGROUND;
         rect.beginFill(parseHexColor(fillColor));
-        rect.drawRect(element.x, element.y, element.width, element.height);
+        rect.drawRect(0, 0, element.width, element.height);
+        rect.position.set(element.x, element.y);
+        rect.rotation = toRadians(element.rotation);
         rect.endFill();
         return rect;
       }
       case "ellipse": {
         const ellipse = new Graphics();
-        const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_BACKGROUND;
+        const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_PIXI_BACKGROUND;
         ellipse.beginFill(parseHexColor(fillColor));
-        ellipse.drawEllipse(
-          element.x + element.width / 2,
-          element.y + element.height / 2,
-          element.width / 2,
-          element.height / 2
-        );
+        ellipse.drawEllipse(element.width / 2, element.height / 2, element.width / 2, element.height / 2);
+        ellipse.position.set(element.x, element.y);
+        ellipse.rotation = toRadians(element.rotation);
         ellipse.endFill();
         return ellipse;
       }
@@ -252,8 +246,10 @@ export default class PixiRenderer implements CanvasRenderer {
         const line = new Graphics();
         const strokeColor = (element.properties as { strokeColor?: string }).strokeColor ?? "#000000";
         line.lineStyle(2, parseHexColor(strokeColor), 1);
-        line.moveTo(element.x, element.y + element.height / 2);
-        line.lineTo(element.x + element.width, element.y + element.height / 2);
+        line.moveTo(0, element.height / 2);
+        line.lineTo(element.width, element.height / 2);
+        line.position.set(element.x, element.y);
+        line.rotation = toRadians(element.rotation);
         return line;
       }
       case "text": {
@@ -266,6 +262,7 @@ export default class PixiRenderer implements CanvasRenderer {
           }
         });
         text.position.set(element.x, element.y);
+        text.rotation = toRadians(element.rotation);
         return text;
       }
       case "image": {
@@ -275,12 +272,15 @@ export default class PixiRenderer implements CanvasRenderer {
         sprite.position.set(element.x, element.y);
         sprite.width = element.width;
         sprite.height = element.height;
+        sprite.rotation = toRadians(element.rotation);
         return sprite;
       }
       case "group": {
         const group = new Graphics();
         group.lineStyle(1, 0x999999, 1);
-        group.drawRect(element.x, element.y, element.width, element.height);
+        group.drawRect(0, 0, element.width, element.height);
+        group.position.set(element.x, element.y);
+        group.rotation = toRadians(element.rotation);
         return group;
       }
       default:

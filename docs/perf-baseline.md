@@ -30,3 +30,18 @@ Record:
 - Export screenshots of the overlay and attach profiler flame charts.
 - Konva is currently retained only for interaction handling (selection/transform). Dropping it requires Pixi hit
   testing, drag/resize handles, and selection tooling parity.
+
+## Pixi vs Konva Rationale
+
+PixiJS advantages for this migration:
+
+- WebGL-first rendering = higher throughput at 1k–10k objects
+- Lower-level control for custom batching and effects
+- Better performance at scale with complex scenes
+- More active ecosystem and GPU-focused roadmap
+
+Konva trade-offs:
+
+- Faster initial development due to built-in interactions
+- Canvas 2D renderer slows down with large object counts
+- Less flexibility for aggressive performance tuning

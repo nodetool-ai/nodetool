@@ -29,7 +29,7 @@ import LayerPanel from "./LayerPanel";
 import ElementProperties from "./ElementProperties";
 import { readSketchFile, downloadSketchFile, convertFromSketch, convertToSketch } from "./sketch";
 import CanvasScene from "./CanvasScene";
-import PixiRenderer from "./renderers/PixiRenderer";
+import PixiRenderer from "./renderers/pixi/PixiRenderer";
 import type { PerfDatasetSize } from "./perfUtils";
 import { createPerfDataset } from "./perfUtils";
 
