@@ -1,5 +1,11 @@
 /**
  * LayerPanel - Displays and manages layers in the canvas
+ * 
+ * Drag behavior:
+ * - Drag by the grip handle
+ * - While dragging, a line appears between items to show drop position
+ * - For groups, hovering in the center shows a border (drop inside)
+ * - Item only moves on drop, not during drag
  */
 
 import React, { useCallback, memo } from "react";
@@ -28,7 +34,6 @@ import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ImageIcon from "@mui/icons-material/Image";
 import RectangleIcon from "@mui/icons-material/Rectangle";
 import FolderIcon from "@mui/icons-material/Folder";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { LayoutElement } from "./types";
@@ -49,19 +54,73 @@ interface LayerPanelProps {
 
 // Get icon for element type
 const getElementIcon = (type: string): React.ReactNode => {
+  const iconSx = { fontSize: 14 };
   switch (type) {
     case "text":
-      return <TextFieldsIcon fontSize="small" />;
+      return <TextFieldsIcon sx={iconSx} />;
     case "image":
-      return <ImageIcon fontSize="small" />;
+      return <ImageIcon sx={iconSx} />;
     case "rectangle":
-      return <RectangleIcon fontSize="small" />;
+      return <RectangleIcon sx={iconSx} />;
     case "group":
-      return <FolderIcon fontSize="small" />;
+      return <FolderIcon sx={iconSx} />;
     default:
-      return <RectangleIcon fontSize="small" />;
+      return <RectangleIcon sx={iconSx} />;
   }
 };
+
+// Drop zone - receives drag events directly for reliable hit detection
+interface DropZoneProps {
+  active: boolean;
+  onDragEnter: () => void;
+  onDragLeave: () => void;
+  onDrop: () => void;
+}
+
+const DropZone: React.FC<DropZoneProps> = memo(({ active, onDragEnter, onDragLeave, onDrop }) => {
+  const theme = useTheme();
+  return (
+    <Box
+      onDragEnter={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDragEnter();
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDragLeave();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDrop();
+      }}
+      sx={{
+        height: 8,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}
+    >
+      <Box
+        sx={{
+          width: "100%",
+          height: active ? 3 : 1,
+          borderRadius: 1,
+          backgroundColor: active ? theme.vars.palette.primary.main : theme.vars.palette.divider,
+          opacity: active ? 1 : 0.3,
+          transition: "all 0.1s ease"
+        }}
+      />
+    </Box>
+  );
+});
+DropZone.displayName = "DropZone";
 
 interface LayerItemProps {
   element: LayoutElement;
@@ -72,18 +131,19 @@ interface LayerItemProps {
   descendantCount: number;
   visibilityState: "on" | "off" | "mixed";
   lockState: "on" | "off" | "mixed";
-  dragOverPosition: "before" | "after" | "inside" | null;
-  showDropHint: boolean;
+  showDropBefore: boolean;
+  showDropInside: boolean;
   onSelect: (id: string, addToSelection: boolean) => void;
   onToggleVisibility: (id: string) => void;
   onToggleLock: (id: string) => void;
   onToggleCollapse: (id: string) => void;
-  onDragStart: (id: string, e: React.DragEvent) => void;
-  onDragOver: (id: string, e: React.DragEvent) => void;
-  onDrop: (id: string, e: React.DragEvent) => void;
+  onDragStart: (id: string) => void;
+  onSetDropTarget: (targetId: string | null, position: "before" | "after" | "inside" | null) => void;
+  onDrop: () => void;
   onDragEnd: () => void;
   onContextMenu: (event: React.MouseEvent, id: string) => void;
   isDragging: boolean;
+  isBeingDragged: boolean;
 }
 
 const LayerItem: React.FC<LayerItemProps> = memo(({
@@ -95,18 +155,19 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
   descendantCount,
   visibilityState,
   lockState,
-  dragOverPosition,
-  showDropHint,
+  showDropBefore,
+  showDropInside,
   onSelect,
   onToggleVisibility,
   onToggleLock,
   onToggleCollapse,
   onDragStart,
-  onDragOver,
+  onSetDropTarget,
   onDrop,
   onDragEnd,
   onContextMenu,
-  isDragging
+  isDragging,
+  isBeingDragged
 }) => {
   const theme = useTheme();
 
@@ -117,181 +178,204 @@ const LayerItem: React.FC<LayerItemProps> = memo(({
     [element.id, onSelect]
   );
 
+  // For groups: handle drag over the item itself (for "inside" drop)
+  const handleItemDragEnter = useCallback(() => {
+    if (isGroup && isDragging && !isBeingDragged) {
+      onSetDropTarget(element.id, "inside");
+    }
+  }, [element.id, isGroup, isDragging, isBeingDragged, onSetDropTarget]);
+
+  const handleItemDragLeave = useCallback(() => {
+    // Only clear if we're currently the target
+  }, []);
+
+  const handleItemDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isGroup) {
+        onSetDropTarget(element.id, "inside");
+        onDrop();
+      }
+    },
+    [element.id, isGroup, onDrop, onSetDropTarget]
+  );
+
   return (
-    <ListItem
-      className="layer-item"
-      disablePadding
-      draggable
-      onDragStart={(e) => onDragStart(element.id, e)}
-      onDragOver={(e) => onDragOver(element.id, e)}
-      onDrop={(e) => onDrop(element.id, e)}
-      onDragEnd={onDragEnd}
-      sx={{
-        opacity: isDragging ? 0.5 : 1,
-        backgroundColor: dragOverPosition === "inside"
-          ? `${theme.vars.palette.primary.main}14`
-          : isGroup
-            ? `${theme.vars.palette.action.selected}0d`
-            : "transparent",
-        borderBottom: `1px solid ${theme.vars.palette.divider}`,
-        borderTop: dragOverPosition === "before" ? `2px solid ${theme.vars.palette.primary.main}` : "none",
-        borderBottomColor: dragOverPosition === "after" ? theme.vars.palette.primary.main : theme.vars.palette.divider,
-        boxShadow: dragOverPosition === "inside"
-          ? `inset 0 0 0 1px ${theme.vars.palette.primary.main}`
-          : "none",
-        "&:last-child": {
-          borderBottom: "none"
-        }
-      }}
-    >
-      <ListItemButton
-        selected={isSelected}
-        onClick={handleClick}
-        onDoubleClick={(e) => {
-          if (!isGroup) {
-            return;
-          }
-          e.stopPropagation();
-          onToggleCollapse(element.id);
+    <>
+      {/* Drop zone before this item */}
+      <DropZone
+        active={showDropBefore}
+        onDragEnter={() => onSetDropTarget(element.id, "before")}
+        onDragLeave={() => {}}
+        onDrop={onDrop}
+      />
+      
+      <ListItem
+        className="layer-item"
+        disablePadding
+        draggable={!isBeingDragged}
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", element.id);
+          onDragStart(element.id);
         }}
-        onContextMenu={(event) => onContextMenu(event, element.id)}
+        onDragEnd={onDragEnd}
         sx={{
-          py: 0.5,
-          px: 1,
-          minHeight: 30,
-          opacity: element.visible ? 1 : 0.6,
-          pl: 1 + depth * 1.5,
-          position: "relative",
-          "&.Mui-selected": {
-            backgroundColor: `${theme.vars.palette.primary.main}1a`
-          },
-          "&.Mui-selected:after": {
-            content: '""',
-            position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 2,
-            backgroundColor: theme.vars.palette.primary.main
+          opacity: isBeingDragged ? 0.4 : 1,
+          cursor: isDragging ? "grabbing" : "grab",
+          borderBottom: `1px solid ${theme.vars.palette.divider}`,
+          // Show border when this is a group and drop target is "inside"
+          ...(showDropInside && {
+            outline: `2px solid ${theme.vars.palette.primary.main}`,
+            outlineOffset: -2,
+            borderRadius: 1
+          }),
+          "&:last-child": {
+            borderBottom: "none"
           }
         }}
       >
-        {depth > 0 && (
-          <Box
-            sx={{
-              width: depth * 10,
-              alignSelf: "stretch",
-              borderLeft: `1px solid ${theme.vars.palette.divider}`,
-              mr: 0.5
-            }}
-          />
-        )}
-        <Box sx={{ width: 20, display: "flex", alignItems: "center" }}>
-          {isGroup && (
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleCollapse(element.id);
-              }}
-              sx={{ p: 0.25, color: theme.vars.palette.text.secondary }}
-            >
-              {isCollapsed ? (
-                <ChevronRightIcon fontSize="small" />
-              ) : (
-                <ExpandMoreIcon fontSize="small" />
-              )}
-            </IconButton>
-          )}
-        </Box>
-        <Box
+        <ListItemButton
+          selected={isSelected}
+          disableRipple
+          onClick={handleClick}
+          onDragEnter={isGroup ? handleItemDragEnter : undefined}
+          onDragLeave={handleItemDragLeave}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={isGroup ? handleItemDrop : undefined}
+          onDoubleClick={(e) => {
+            if (!isGroup) {
+              return;
+            }
+            e.stopPropagation();
+            onToggleCollapse(element.id);
+          }}
+          onContextMenu={(event) => onContextMenu(event, element.id)}
           sx={{
-            display: "flex",
-            alignItems: "center",
-            cursor: "grab",
-            mr: 1,
-            color: theme.vars.palette.text.secondary,
-            "&:active": {
-              cursor: "grabbing"
+            py: 0.5,
+            px: 1,
+            minHeight: 32,
+            opacity: element.visible ? 1 : 0.6,
+            pl: 1 + depth * 1.5,
+            position: "relative",
+            backgroundColor: isGroup ? "rgba(128, 128, 128, 0.05)" : "transparent",
+            "&:hover": {
+              backgroundColor: "rgba(128, 128, 128, 0.12)"
+            },
+            "&.Mui-selected": {
+              backgroundColor: "rgba(100, 150, 255, 0.15)"
+            },
+            "&.Mui-selected:hover": {
+              backgroundColor: "rgba(100, 150, 255, 0.20)"
+            },
+            "&.Mui-selected:after": {
+              content: '""',
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 2,
+              backgroundColor: theme.vars.palette.primary.main
             }
           }}
         >
-          <DragIndicatorIcon fontSize="small" />
-        </Box>
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          {getElementIcon(element.type)}
-        </ListItemIcon>
-        <ListItemText
-          primary={
-            isGroup && descendantCount > 0
-              ? `${element.name} (${descendantCount})`
-              : element.name
-          }
-          primaryTypographyProps={{
-            variant: "body2",
-            noWrap: true,
-            sx: {
-              textDecoration: element.locked ? "line-through" : "none",
-              fontWeight: isGroup ? 600 : 400
-            }
-          }}
-        />
-        {showDropHint && (
-          <Box
-            sx={{
-              px: 0.75,
-              py: 0.25,
-              borderRadius: 1,
-              backgroundColor: `${theme.vars.palette.primary.main}22`,
-              color: theme.vars.palette.primary.main,
-              fontSize: 11,
-              fontWeight: 600,
-              mr: 0.5
-            }}
-          >
-            Drop inside
+          {/* Indent line for nested items */}
+          {depth > 0 && (
+            <Box
+              sx={{
+                width: depth * 12,
+                alignSelf: "stretch",
+                borderLeft: `1px solid ${theme.vars.palette.divider}`,
+                mr: 0.5
+              }}
+            />
+          )}
+          
+          {/* Collapse/expand button for groups */}
+          <Box sx={{ width: 20, display: "flex", alignItems: "center" }}>
+            {isGroup && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleCollapse(element.id);
+                }}
+                sx={{ p: 0.25, color: theme.vars.palette.text.secondary }}
+              >
+                {isCollapsed ? (
+                  <ChevronRightIcon sx={{ fontSize: 14 }} />
+                ) : (
+                  <ExpandMoreIcon sx={{ fontSize: 14 }} />
+                )}
+              </IconButton>
+            )}
           </Box>
-        )}
-        <Box sx={{ display: "flex", gap: 0.5 }}>
-          <Tooltip title={visibilityState === "on" ? "Hide" : "Show"}>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleVisibility(element.id);
-              }}
-              sx={{ p: 0.5 }}
-            >
-              {visibilityState === "mixed" ? (
-                <VisibilityOutlinedIcon fontSize="small" />
-              ) : visibilityState === "on" ? (
-                <VisibilityIcon fontSize="small" />
-              ) : (
-                <VisibilityOffIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={lockState === "on" ? "Unlock" : "Lock"}>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleLock(element.id);
-              }}
-              sx={{ p: 0.5 }}
-            >
-              {lockState === "mixed" ? (
-                <LockOutlinedIcon fontSize="small" />
-              ) : lockState === "on" ? (
-                <LockIcon fontSize="small" />
-              ) : (
-                <LockOpenIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </ListItemButton>
-    </ListItem>
+          
+          {/* Element icon */}
+          <ListItemIcon sx={{ minWidth: 22 }}>
+            {getElementIcon(element.type)}
+          </ListItemIcon>
+          
+          {/* Element name */}
+          <ListItemText
+            primary={
+              isGroup && descendantCount > 0
+                ? `${element.name} (${descendantCount})`
+                : element.name
+            }
+            primaryTypographyProps={{
+              variant: "caption",
+              noWrap: true,
+              sx: {
+                textDecoration: element.locked ? "line-through" : "none",
+                fontWeight: isGroup ? 500 : 300
+              }
+            }}
+          />
+          
+          {/* Visibility and lock buttons */}
+          <Box sx={{ display: "flex", gap: 0.5 }}>
+            <Tooltip title={visibilityState === "on" ? "Hide" : "Show"}>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleVisibility(element.id);
+                }}
+                sx={{ p: 0.5 }}
+              >
+                {visibilityState === "mixed" ? (
+                  <VisibilityOutlinedIcon sx={{ fontSize: 14 }} />
+                ) : visibilityState === "on" ? (
+                  <VisibilityIcon sx={{ fontSize: 14 }} />
+                ) : (
+                  <VisibilityOffIcon sx={{ fontSize: 14 }} />
+                )}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={lockState === "on" ? "Unlock" : "Lock"}>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleLock(element.id);
+                }}
+                sx={{ p: 0.5 }}
+              >
+                {lockState === "mixed" ? (
+                  <LockOutlinedIcon sx={{ fontSize: 14 }} />
+                ) : lockState === "on" ? (
+                  <LockIcon sx={{ fontSize: 14 }} />
+                ) : (
+                  <LockOpenIcon sx={{ fontSize: 14 }} />
+                )}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </ListItemButton>
+      </ListItem>
+    </>
   );
 });
 LayerItem.displayName = "LayerItem";
@@ -310,18 +394,28 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   onFlatten
 }) => {
   const theme = useTheme();
-  const [draggingId, setDraggingId] = React.useState<string | null>(null);
-  const [dragOver, setDragOver] = React.useState<{
+  
+  // Drag state - stored in ref to avoid re-renders during drag
+  const dragStateRef = React.useRef<{
+    draggedId: string | null;
+    targetId: string | null;
+    position: "before" | "after" | "inside" | null;
+  }>({ draggedId: null, targetId: null, position: null });
+  
+  // Only this state triggers re-renders for visual feedback
+  const [dropIndicator, setDropIndicator] = React.useState<{
     targetId: string;
     position: "before" | "after" | "inside";
   } | null>(null);
+  
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [draggedId, setDraggedId] = React.useState<string | null>(null);
   const [collapsedIds, setCollapsedIds] = React.useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = React.useState<{
     mouseX: number;
     mouseY: number;
     targetId: string;
   } | null>(null);
-  const hoverExpandTimeoutRef = React.useRef<number | null>(null);
 
   const elementById = React.useMemo(
     () => new Map(elements.map((el) => [el.id, el])),
@@ -417,106 +511,80 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
     });
   }, []);
 
-  const getDropPosition = useCallback(
-    (element: LayoutElement, e: React.DragEvent) => {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const ratio = (e.clientY - rect.top) / rect.height;
-      if (element.type !== "group") {
-        return ratio < 0.5 ? "before" : "after";
-      }
-      if (ratio > 0.2 && ratio < 0.8) {
-        return "inside";
-      }
-      return ratio < 0.2 ? "before" : "after";
-    },
-    []
-  );
-
-  const clearHoverExpand = useCallback(() => {
-    if (hoverExpandTimeoutRef.current !== null) {
-      window.clearTimeout(hoverExpandTimeoutRef.current);
-      hoverExpandTimeoutRef.current = null;
-    }
+  const handleDragStart = useCallback((id: string) => {
+    dragStateRef.current = { draggedId: id, targetId: null, position: null };
+    setDraggedId(id);
+    setIsDragging(true);
   }, []);
 
-  const handleDragStart = useCallback((id: string, e: React.DragEvent) => {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", id);
-    setDraggingId(id);
-    clearHoverExpand();
-  }, [clearHoverExpand]);
+  const handleSetDropTarget = useCallback((targetId: string | null, position: "before" | "after" | "inside" | null) => {
+    const state = dragStateRef.current;
+    
+    // Clear if null
+    if (!targetId || !position) {
+      state.targetId = null;
+      state.position = null;
+      setDropIndicator(null);
+      return;
+    }
+    
+    // Don't allow dropping on itself or its descendants
+    if (state.draggedId === targetId) {
+      return;
+    }
+    if (state.draggedId) {
+      const descendants = getDescendantIds(state.draggedId);
+      if (descendants.includes(targetId)) {
+        return;
+      }
+    }
+    
+    // Update ref immediately
+    state.targetId = targetId;
+    state.position = position;
+    
+    // Update visual state
+    setDropIndicator((prev) => {
+      if (prev?.targetId === targetId && prev?.position === position) {
+        return prev;
+      }
+      return { targetId, position };
+    });
+  }, [getDescendantIds]);
 
-  const handleDragOver = useCallback(
-    (id: string, e: React.DragEvent) => {
-      e.preventDefault();
-      const target = elementById.get(id);
-      if (!target) {
-        return;
-      }
-      const position = getDropPosition(target, e);
-      setDragOver({ targetId: id, position });
-      if (
-        target.type === "group" &&
-        position === "inside" &&
-        collapsedIds.has(target.id)
-      ) {
-        clearHoverExpand();
-        hoverExpandTimeoutRef.current = window.setTimeout(() => {
-          setCollapsedIds((prev) => {
-            const next = new Set(prev);
-            next.delete(target.id);
-            return next;
-          });
-        }, 350);
-      } else {
-        clearHoverExpand();
-      }
-    },
-    [clearHoverExpand, collapsedIds, elementById, getDropPosition]
-  );
+  const handleDrop = useCallback(() => {
+    const state = dragStateRef.current;
+    if (state.draggedId && state.targetId && state.position) {
+      onMoveLayer(state.draggedId, state.targetId, state.position);
+    }
+    // Reset state
+    dragStateRef.current = { draggedId: null, targetId: null, position: null };
+    setDropIndicator(null);
+    setDraggedId(null);
+    setIsDragging(false);
+  }, [onMoveLayer]);
 
-  const handleDrop = useCallback(
-    (id: string, e: React.DragEvent) => {
-      e.preventDefault();
-      const dragId = draggingId ?? e.dataTransfer.getData("text/plain");
-      if (!dragId) {
-        return;
-      }
-      const target = elementById.get(id);
-      if (!target) {
-        return;
-      }
-      const position = getDropPosition(target, e);
-      const isGroup = target.type === "group";
-      const finalPosition = position === "inside" && !isGroup ? "after" : position;
-      onMoveLayer(dragId, id, finalPosition);
-      setDragOver(null);
-      setDraggingId(null);
-      clearHoverExpand();
-    },
-    [clearHoverExpand, draggingId, elementById, getDropPosition, onMoveLayer]
-  );
+  const handleDragEnd = useCallback(() => {
+    dragStateRef.current = { draggedId: null, targetId: null, position: null };
+    setDropIndicator(null);
+    setDraggedId(null);
+    setIsDragging(false);
+  }, []);
 
   const handleDropOnRoot = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      const dragId = draggingId ?? e.dataTransfer.getData("text/plain");
-      if (!dragId) {
-        return;
+      const state = dragStateRef.current;
+      if (state.draggedId) {
+        onMoveLayer(state.draggedId, null, "root");
       }
-      onMoveLayer(dragId, null, "root");
-      setDragOver(null);
-      setDraggingId(null);
-      clearHoverExpand();
+      dragStateRef.current = { draggedId: null, targetId: null, position: null };
+      setDropIndicator(null);
+      setDraggedId(null);
+      setIsDragging(false);
     },
-    [clearHoverExpand, draggingId, onMoveLayer]
+    [onMoveLayer]
   );
-
-  const handleDragEnd = useCallback(() => {
-    setDraggingId(null);
-    setDragOver(null);
-    clearHoverExpand();
-  }, [clearHoverExpand]);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, id: string) => {
@@ -547,15 +615,22 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   );
   const canGroup = menuSelection.length > 1;
 
+  // Render items recursively, tracking which need drop indicators
   const renderItems = useCallback(
     (parentId: string, depth: number): React.ReactNode[] => {
       const items: React.ReactNode[] = [];
       const children = getSortedChildren(parentId);
-      children.forEach((child) => {
+      
+      children.forEach((child, index) => {
         const isGroup = child.type === "group";
         const isCollapsed = collapsedIds.has(child.id);
         const { visibilityState, lockState, descendantCount } = getGroupState(child.id);
         const effective = getEffectiveState(child.id);
+        
+        // Determine if this item should show drop indicators
+        const showDropBefore = dropIndicator?.targetId === child.id && dropIndicator?.position === "before";
+        const showDropInside = dropIndicator?.targetId === child.id && dropIndicator?.position === "inside" && isGroup;
+        
         items.push(
           <LayerItem
             key={child.id}
@@ -567,45 +642,58 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
             descendantCount={descendantCount}
             visibilityState={visibilityState}
             lockState={lockState}
-            dragOverPosition={
-              dragOver?.targetId === child.id ? dragOver.position : null
-            }
-            showDropHint={
-              dragOver?.targetId === child.id &&
-              dragOver.position === "inside" &&
-              isGroup
-            }
+            showDropBefore={showDropBefore}
+            showDropInside={showDropInside}
             onSelect={onSelect}
             onToggleVisibility={onToggleVisibility}
             onToggleLock={onToggleLock}
             onToggleCollapse={handleToggleCollapse}
             onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
+            onSetDropTarget={handleSetDropTarget}
             onDrop={handleDrop}
             onDragEnd={handleDragEnd}
             onContextMenu={handleContextMenu}
-            isDragging={draggingId === child.id}
+            isDragging={isDragging}
+            isBeingDragged={draggedId === child.id}
           />
         );
+        
+        // Render children if group is expanded
         if (isGroup && !isCollapsed) {
           items.push(...renderItems(child.id, depth + 1));
         }
+        
+        // Show drop zone after last item
+        if (index === children.length - 1) {
+          const isActive = dropIndicator?.targetId === child.id && dropIndicator?.position === "after";
+          items.push(
+            <DropZone
+              key={`drop-after-${child.id}`}
+              active={isActive}
+              onDragEnter={() => handleSetDropTarget(child.id, "after")}
+              onDragLeave={() => {}}
+              onDrop={handleDrop}
+            />
+          );
+        }
       });
+      
       return items;
     },
     [
       collapsedIds,
-      dragOver,
-      draggingId,
+      draggedId,
+      dropIndicator,
       getEffectiveState,
       getGroupState,
       getSortedChildren,
+      handleContextMenu,
       handleDragEnd,
-      handleDragOver,
+      handleSetDropTarget,
       handleDragStart,
       handleDrop,
-      handleContextMenu,
       handleToggleCollapse,
+      isDragging,
       onSelect,
       onToggleLock,
       onToggleVisibility,
@@ -620,19 +708,21 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        borderLeft: `1px solid ${theme.vars.palette.divider}`
+        // borderLeft removed as container handles the divider
       }}
     >
+      {/* Header */}
       <Box
         className="layer-panel-header"
         sx={{
-          px: 1.5,
-          py: 0.75,
+          px: 2,
+          py: 0.5,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          backgroundColor: theme.vars.palette.background.paper
+          backgroundColor: theme.vars.palette.background.paper,
+          minHeight: 40
         }}
       >
         <Typography variant="subtitle2" fontWeight={600}>
@@ -661,13 +751,22 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
           </Tooltip>
         </Box>
       </Box>
+      
+      {/* Layer list */}
       <Box
         className="layer-panel-content"
         sx={{
           flexGrow: 1,
-          overflow: "auto"
+          overflow: "auto",
+          px: 1
         }}
-        onDragOver={(e) => e.preventDefault()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          // Clear indicator when dragging outside items
+          if (dropIndicator !== null) {
+            setDropIndicator(null);
+          }
+        }}
         onDrop={handleDropOnRoot}
       >
         {elements.length === 0 ? (
@@ -690,6 +789,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
           </List>
         )}
       </Box>
+      
+      {/* Context menu */}
       <Menu
         open={Boolean(contextMenu)}
         onClose={handleCloseMenu}

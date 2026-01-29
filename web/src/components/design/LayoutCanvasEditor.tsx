@@ -1058,28 +1058,40 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       selectionStart,
       setSelection,
       sortedElements,
-      usePixiRenderer
+      usePixiRenderer,
+      effectiveLockedById,
+      effectiveVisibleById
     ]
   );
 
-  // Mouse wheel zoom handler - requires Ctrl/Cmd modifier
+  // Mouse wheel zoom handler
   const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      // Only zoom when Ctrl/Cmd is pressed, allow normal scroll otherwise
-      if (!(e.ctrlKey || e.metaKey)) {
-        return;
-      }
-
-      // Prevent default browser zoom
+    (e: WheelEvent) => {
+      // Prevent default browser zoom/scroll
       e.preventDefault();
       e.stopPropagation();
 
       const delta = e.deltaY;
-      const zoomFactor = delta > 0 ? 0.9 : 1.1;
+      const zoomFactor = delta > 0 ? 0.75 : 1.25;
       setZoom((z) => Math.min(Math.max(z * zoomFactor, 0.1), 4));
     },
     []
   );
+
+  // Attach non-passive wheel listener to container
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {return;}
+
+    // We need to use a non-passive listener to be able to preventDefault()
+    // React's onWheel is passive by default in some cases or doesn't allow preventDefault
+    // if the browser treats it as passive.
+    container.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, [handleWheel]);
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
@@ -1271,7 +1283,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
           sx={{
             width: 240,
             flexShrink: 0,
-            borderRight: `1px solid ${theme.vars.palette.divider}`
+            borderRight: `1px solid ${theme.vars.palette.divider}`,
+            backgroundColor: theme.vars.palette.background.paper
           }}
         >
           <LayerPanel
@@ -1295,7 +1308,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
           tabIndex={0}
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
-          onWheel={handleWheel}
+          // onWheel removed - attached via useEffect ref
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleCanvasMouseMove}
           onMouseUp={handleCanvasMouseUp}
@@ -1306,14 +1319,13 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             justifyContent: "center",
             alignItems: "center",
             backgroundColor:
-              theme.palette.mode === "dark" ? "#1a1a1a" : "#f5f5f5",
+              theme.palette.mode === "dark" ? "#2C2C2C" : "#f5f5f5",
             overflow: "hidden",
-            p: 2,
+            p: 0,
             outline: "none",
             cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : "default",
             "&:focus": {
-              outline: `2px solid ${theme.palette.primary.main}`,
-              outlineOffset: "-2px"
+              outline: "none"
             }
           }}
         >
