@@ -29,7 +29,6 @@ import LayerPanel from "./LayerPanel";
 import ElementProperties from "./ElementProperties";
 import { readSketchFile, downloadSketchFile, convertFromSketch, convertToSketch } from "./sketch";
 import CanvasScene from "./CanvasScene";
-import type { CanvasRenderer } from "./renderers/CanvasRenderer";
 import PixiRenderer from "./renderers/PixiRenderer";
 import type { PerfDatasetSize } from "./perfUtils";
 import { createPerfDataset } from "./perfUtils";
@@ -87,7 +86,6 @@ interface LayoutCanvasEditorProps {
   /** Enable perf harness dataset generation and overlay */
   perfMode?: boolean;
   perfDatasetSize?: PerfDatasetSize;
-  enablePixiRenderer?: boolean;
 }
 
 interface PerfMetricsSnapshot {
@@ -178,8 +176,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   height = 600,
   enableSketchSupport = true,
   perfMode = false,
-  perfDatasetSize = 1000,
-  enablePixiRenderer = false
+  perfDatasetSize = 1000
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -207,10 +204,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     startPositions: Map<string, { x: number; y: number }>;
   } | null>(null);
   const pixiContainerRef = useRef<HTMLDivElement>(null);
-  const pixiRendererRef = useRef<CanvasRenderer | null>(null);
-  const usePixiRenderer =
-    enablePixiRenderer || import.meta.env.VITE_ENABLE_PIXI_RENDERER === "true";
-
+  const pixiRendererRef = useRef<PixiRenderer | null>(null);
   // Use the layout canvas store
   const canvasData = useLayoutCanvasStore((state) => state.canvasData);
   const selectedIds = useLayoutCanvasStore((state) => state.selectedIds);
@@ -462,7 +456,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!usePixiRenderer || !pixiContainerRef.current) {
+    if (!pixiContainerRef.current) {
       return undefined;
     }
     const renderer = new PixiRenderer();
@@ -480,11 +474,11 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       renderer.destroy();
       pixiRendererRef.current = null;
     };
-  }, [usePixiRenderer]);
+  }, []);
 
   useEffect(() => {
     const renderer = pixiRendererRef.current;
-    if (!renderer || !usePixiRenderer) {
+    if (!renderer) {
       return;
     }
     renderer.setDocument(canvasData);
@@ -492,15 +486,15 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     renderer.setSnapGuides(snapGuides);
     const gridColor = theme.palette.mode === "dark" ? "#333333" : "#e0e0e0";
     renderer.setGrid(gridSettings.enabled, gridSettings.size, gridColor);
-  }, [canvasData, gridSettings.enabled, gridSettings.size, selectedIds, snapGuides, theme.palette.mode, usePixiRenderer]);
+  }, [canvasData, gridSettings.enabled, gridSettings.size, selectedIds, snapGuides, theme.palette.mode]);
 
   useEffect(() => {
     const renderer = pixiRendererRef.current;
-    if (!renderer || !usePixiRenderer) {
+    if (!renderer) {
       return;
     }
     renderer.setCamera(stagePosition, zoom);
-  }, [stagePosition, usePixiRenderer, zoom]);
+  }, [stagePosition, zoom]);
 
   useEffect(() => {
     if (perfMode) {
@@ -524,9 +518,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   // Handle stage click (deselect)
   const handleStageClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (usePixiRenderer) {
-        return;
-      }
       // Only deselect if clicking on empty area
       if (
         e.target === e.target.getStage() ||
@@ -539,7 +530,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         clearSelection();
       }
     },
-    [clearSelection, usePixiRenderer]
+    [clearSelection]
   );
 
   // Handle element transform end
@@ -562,9 +553,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   // Handle element drag move - for smart snap guides
   const handleDragMove = useCallback(
     (id: string, x: number, y: number, width: number, height: number) => {
-      if (usePixiRenderer) {
-        return { x, y };
-      }
       const result = calculateSnapGuides(id, x, y, width, height);
       if (perfMode) {
         const entries = performance.getEntriesByName("calculateSnapGuides");
@@ -592,7 +580,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       }
       return { x: result.x, y: result.y };
     },
-    [calculateSnapGuides, perfMode, usePixiRenderer]
+    [calculateSnapGuides, perfMode]
   );
 
   const handleDragStart = useCallback(
@@ -905,10 +893,10 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       return null;
     }
     return {
-      x: position.x / zoom,
-      y: position.y / zoom
+      x: (position.x - stagePosition.x) / zoom,
+      y: (position.y - stagePosition.y) / zoom
     };
-  }, [zoom]);
+  }, [stagePosition.x, stagePosition.y, zoom]);
 
   const normalizeSelectionRect = useCallback(
     (start: { x: number; y: number }, end: { x: number; y: number }) => {
@@ -956,9 +944,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
   const handleStageMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (usePixiRenderer) {
-        return;
-      }
       if (e.evt.button !== 0 || isSpacePressedRef.current || isPanningRef.current) {
         return;
       }
@@ -981,13 +966,10 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       setSelectionStart(start);
       setSelectionRect({ x: start.x, y: start.y, width: 0, height: 0 });
     },
-    [getCanvasPointerPosition, usePixiRenderer]
+    [getCanvasPointerPosition]
   );
 
   const handleStageMouseMove = useCallback(() => {
-    if (usePixiRenderer) {
-      return;
-    }
     if (!isSelecting || !selectionStart) {
       return;
     }
@@ -1004,13 +986,10 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     if (dragDistance > 3) {
       didDragSelectRef.current = true;
     }
-  }, [getCanvasPointerPosition, isSelecting, normalizeSelectionRect, selectionStart, usePixiRenderer]);
+  }, [getCanvasPointerPosition, isSelecting, normalizeSelectionRect, selectionStart]);
 
   const handleStageMouseUp = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (usePixiRenderer) {
-        return;
-      }
       if (!isSelecting || !selectionStart) {
         return;
       }
@@ -1058,7 +1037,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       selectionStart,
       setSelection,
       sortedElements,
-      usePixiRenderer,
       effectiveLockedById,
       effectiveVisibleById
     ]
@@ -1324,54 +1302,50 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             p: 0,
             outline: "none",
             cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : "default",
+            position: "relative",
             "&:focus": {
               outline: "none"
             }
           }}
         >
-          {usePixiRenderer ? (
-            <Box
-              ref={pixiContainerRef}
-              onMouseDown={handleCanvasMouseDown}
-              onMouseMove={handleCanvasMouseMove}
-              onMouseUp={handleCanvasMouseUp}
-              onMouseLeave={handleCanvasMouseUp}
-              sx={{
-                width: canvasData.width,
-                height: canvasData.height,
-                transform: `translate(${stagePosition.x}px, ${stagePosition.y}px) scale(${zoom})`,
-                transformOrigin: "center center",
-                transition: isPanning ? "none" : "transform 0.1s ease-out"
-              }}
-            />
-          ) : (
-            <CanvasScene
-              canvasData={canvasData}
-              gridSettings={gridSettings}
-              snapGuides={snapGuides}
-              sortedElements={sortedElements}
-              selectedIds={selectedIds}
-              effectiveVisibleById={effectiveVisibleById}
-              effectiveLockedById={effectiveLockedById}
-              selectionRect={selectionRect}
-              selectionStroke={selectionStroke}
-              selectionFill={selectionFill}
-              stageRef={stageRef}
-              stagePosition={stagePosition}
-              zoom={zoom}
-              isPanning={isPanning}
-              onSelect={handleSelect}
-              onDragStart={handleDragStart}
-              onTransformEnd={handleTransformEnd}
-              onDragMove={handleDragMove}
-              onDragEnd={handleDragEnd}
-              snapToGrid={snapToGrid}
-              onStageMouseDown={handleStageMouseDown}
-              onStageMouseMove={handleStageMouseMove}
-              onStageMouseUp={handleStageMouseUp}
-              onStageClick={handleStageClick}
-            />
-          )}
+          <CanvasScene
+            canvasData={canvasData}
+            gridSettings={gridSettings}
+            snapGuides={snapGuides}
+            sortedElements={sortedElements}
+            selectedIds={selectedIds}
+            effectiveVisibleById={effectiveVisibleById}
+            effectiveLockedById={effectiveLockedById}
+            selectionRect={selectionRect}
+            selectionStroke={selectionStroke}
+            selectionFill={selectionFill}
+            stageRef={stageRef}
+            stagePosition={stagePosition}
+            zoom={zoom}
+            isPanning={isPanning}
+            onSelect={handleSelect}
+            onDragStart={handleDragStart}
+            onTransformEnd={handleTransformEnd}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
+            snapToGrid={snapToGrid}
+            onStageMouseDown={handleStageMouseDown}
+            onStageMouseMove={handleStageMouseMove}
+            onStageMouseUp={handleStageMouseUp}
+            onStageClick={handleStageClick}
+            elementsOpacity={0}
+            showGrid={false}
+            showGuides={false}
+            backgroundColor="transparent"
+          />
+          <Box
+            ref={pixiContainerRef}
+            sx={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none"
+            }}
+          />
         </Box>
 
         {/* Properties panel */}

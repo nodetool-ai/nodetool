@@ -28,7 +28,6 @@ const StandaloneCanvasEditor: React.FC = () => {
   });
   const [perfMode, setPerfMode] = useState(false);
   const [perfDatasetSize, setPerfDatasetSize] = useState<PerfDatasetSize>(1000);
-  const [enablePixiRenderer, setEnablePixiRenderer] = useState(false);
 
   const handleChange = useCallback((newData: LayoutCanvasData) => {
     setCanvasData(newData);
@@ -54,12 +53,6 @@ const StandaloneCanvasEditor: React.FC = () => {
     []
   );
 
-  const handlePixiToggle = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setEnablePixiRenderer(event.target.checked);
-    },
-    []
-  );
 
   return (
     <Box
@@ -121,16 +114,6 @@ const StandaloneCanvasEditor: React.FC = () => {
           <FormControlLabel
             control={
               <Switch
-                checked={enablePixiRenderer}
-                onChange={handlePixiToggle}
-                size="small"
-              />
-            }
-            label="Pixi renderer"
-          />
-          <FormControlLabel
-            control={
-              <Switch
                 checked={mode === "dark"}
                 onChange={toggleColorMode}
                 size="small"
@@ -149,7 +132,6 @@ const StandaloneCanvasEditor: React.FC = () => {
           enableSketchSupport={true}
           perfMode={perfMode}
           perfDatasetSize={perfDatasetSize}
-          enablePixiRenderer={enablePixiRenderer}
         />
       </Box>
     </Box>

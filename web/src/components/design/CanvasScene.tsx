@@ -7,12 +7,7 @@ import { Paper } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Stage, Layer, Rect, Line } from "react-konva";
 import type Konva from "konva";
-import type {
-  LayoutCanvasData,
-  LayoutElement,
-  SnapGuide,
-  GridSettings
-} from "./types";
+import type { LayoutCanvasData, LayoutElement, SnapGuide, GridSettings } from "./types";
 import CanvasElement from "./CanvasElement";
 
 interface CanvasSceneProps {
@@ -30,6 +25,10 @@ interface CanvasSceneProps {
   stagePosition: { x: number; y: number };
   zoom: number;
   isPanning: boolean;
+  elementsOpacity?: number;
+  showGrid?: boolean;
+  showGuides?: boolean;
+  backgroundColor?: string;
   onSelect: (id: string, event: Konva.KonvaEventObject<MouseEvent>) => void;
   onDragStart: (id: string) => void;
   onTransformEnd: (
@@ -126,6 +125,10 @@ const CanvasScene: React.FC<CanvasSceneProps> = ({
   stagePosition,
   zoom,
   isPanning,
+  elementsOpacity = 1,
+  showGrid = true,
+  showGuides = true,
+  backgroundColor,
   onSelect,
   onDragStart,
   onTransformEnd,
@@ -142,16 +145,17 @@ const CanvasScene: React.FC<CanvasSceneProps> = ({
       className="layout-canvas-stage-wrapper"
       elevation={3}
       sx={{
-        overflow: "hidden",
-        transform: `translate(${stagePosition.x}px, ${stagePosition.y}px) scale(${zoom})`,
-        transformOrigin: "center center",
-        transition: isPanning ? "none" : "transform 0.1s ease-out"
+        overflow: "hidden"
       }}
     >
       <Stage
         ref={stageRef}
         width={canvasData.width}
         height={canvasData.height}
+        x={stagePosition.x}
+        y={stagePosition.y}
+        scaleX={zoom}
+        scaleY={zoom}
         onMouseDown={onStageMouseDown}
         onMouseMove={onStageMouseMove}
         onMouseUp={onStageMouseUp}
@@ -164,18 +168,20 @@ const CanvasScene: React.FC<CanvasSceneProps> = ({
             y={0}
             width={canvasData.width}
             height={canvasData.height}
-            fill={canvasData.backgroundColor}
+            fill={backgroundColor ?? canvasData.backgroundColor}
             name="canvas-background"
           />
-          <GridLines
-            width={canvasData.width}
-            height={canvasData.height}
-            gridSize={gridSettings.size}
-            enabled={gridSettings.enabled}
-          />
+          {showGrid && (
+            <GridLines
+              width={canvasData.width}
+              height={canvasData.height}
+              gridSize={gridSettings.size}
+              enabled={gridSettings.enabled}
+            />
+          )}
         </Layer>
 
-        <Layer>
+        <Layer opacity={elementsOpacity}>
           {sortedElements.map((element) => (
             <CanvasElement
               key={element.id}
@@ -208,9 +214,11 @@ const CanvasScene: React.FC<CanvasSceneProps> = ({
           )}
         </Layer>
 
-        <Layer>
-          <SnapGuidesLayer guides={snapGuides} />
-        </Layer>
+        {showGuides && (
+          <Layer>
+            <SnapGuidesLayer guides={snapGuides} />
+          </Layer>
+        )}
       </Stage>
     </Paper>
   );

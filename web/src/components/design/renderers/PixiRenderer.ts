@@ -11,6 +11,10 @@ import type { CanvasRenderer, Point, AABB, ExportOptions } from "./CanvasRendere
 
 const DEFAULT_BACKGROUND = "#ffffff";
 
+const parseHexColor = (color: string): number => {
+  return Number.parseInt(color.replace("#", ""), 16);
+};
+
 export default class PixiRenderer implements CanvasRenderer {
   private app: Application | null = null;
   private container: HTMLElement | null = null;
@@ -31,30 +35,23 @@ export default class PixiRenderer implements CanvasRenderer {
   async mount(container: HTMLElement): Promise<void> {
     this.container = container;
     const app = new Application();
-    try {
-      await app.init({
-        width: container.clientWidth || 800,
-        height: container.clientHeight || 600,
-        backgroundColor: 0xffffff,
-        preference: "webgpu",
-        antialias: true
-      });
-    } catch (error) {
-      await app.init({
-        width: container.clientWidth || 800,
-        height: container.clientHeight || 600,
-        backgroundColor: 0xffffff,
-        preference: "webgl",
-        antialias: true
-      });
-      console.error("WebGPU init failed, falling back to WebGL", error);
-    }
+    await app.init({
+      width: container.clientWidth || 800,
+      height: container.clientHeight || 600,
+      backgroundColor: 0xffffff,
+      preference: "webgpu",
+      antialias: true,
+      resolution: window.devicePixelRatio || 1,
+      autoDensity: true
+    });
     this.app = app;
     this.root = new Container();
     this.elementContainer = new Container();
     this.selectionContainer = new Container();
     this.guidesContainer = new Container();
     this.gridContainer = new Container();
+
+    this.elementContainer.sortableChildren = true;
 
     this.root.addChild(this.gridContainer);
     this.root.addChild(this.elementContainer);
@@ -85,7 +82,11 @@ export default class PixiRenderer implements CanvasRenderer {
 
   setDocument(doc: LayoutCanvasData): void {
     this.data = doc;
+    if (this.app) {
+      this.app.renderer.background.color = parseHexColor(doc.backgroundColor ?? DEFAULT_BACKGROUND);
+    }
     this.renderDocument();
+    this.setGrid(this.gridEnabled, this.gridSize, this.gridColor);
   }
 
   setSelection(elementIds: string[]): void {
@@ -124,7 +125,7 @@ export default class PixiRenderer implements CanvasRenderer {
     if (!enabled) {
       return;
     }
-    const lineColor = parseInt(color.replace("#", ""), 16);
+    const lineColor = parseHexColor(color);
     const grid = new Graphics();
     grid.lineStyle({ color: lineColor, width: 1, alpha: 0.4 });
     for (let x = 0; x <= this.data.width; x += size) {
@@ -190,13 +191,14 @@ export default class PixiRenderer implements CanvasRenderer {
     this.elementContainer.removeChildren();
     this.data.elements
       .filter((el) => el.visible)
-      .sort((a, b) => a.zIndex - b.zIndex)
       .forEach((element) => {
         const node = this.createElementNode(element);
         if (node) {
+          node.zIndex = element.zIndex;
           this.elementContainer?.addChild(node);
         }
       });
+    this.elementContainer.sortChildren();
   }
 
   private renderSelection(): void {
@@ -228,7 +230,7 @@ export default class PixiRenderer implements CanvasRenderer {
       case "rectangle": {
         const rect = new Graphics();
         const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_BACKGROUND;
-        rect.beginFill(parseInt(fillColor.replace("#", ""), 16));
+        rect.beginFill(parseHexColor(fillColor));
         rect.drawRect(element.x, element.y, element.width, element.height);
         rect.endFill();
         return rect;
@@ -236,7 +238,7 @@ export default class PixiRenderer implements CanvasRenderer {
       case "ellipse": {
         const ellipse = new Graphics();
         const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_BACKGROUND;
-        ellipse.beginFill(parseInt(fillColor.replace("#", ""), 16));
+        ellipse.beginFill(parseHexColor(fillColor));
         ellipse.drawEllipse(
           element.x + element.width / 2,
           element.y + element.height / 2,
@@ -249,7 +251,7 @@ export default class PixiRenderer implements CanvasRenderer {
       case "line": {
         const line = new Graphics();
         const strokeColor = (element.properties as { strokeColor?: string }).strokeColor ?? "#000000";
-        line.lineStyle({ color: parseInt(strokeColor.replace("#", ""), 16), width: 2 });
+        line.lineStyle({ color: parseHexColor(strokeColor), width: 2 });
         line.moveTo(element.x, element.y + element.height / 2);
         line.lineTo(element.x + element.width, element.y + element.height / 2);
         return line;
@@ -267,11 +269,19 @@ export default class PixiRenderer implements CanvasRenderer {
         return text;
       }
       case "image": {
-        const sprite = Sprite.from(Texture.EMPTY);
+        const imageProps = element.properties as { source?: string };
+        const texture = imageProps.source ? Texture.from(imageProps.source) : Texture.EMPTY;
+        const sprite = new Sprite(texture);
         sprite.position.set(element.x, element.y);
         sprite.width = element.width;
         sprite.height = element.height;
         return sprite;
+      }
+      case "group": {
+        const group = new Graphics();
+        group.lineStyle({ color: 0x999999, width: 1 });
+        group.drawRect(element.x, element.y, element.width, element.height);
+        return group;
       }
       default:
         return null;
