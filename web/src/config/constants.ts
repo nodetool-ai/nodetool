@@ -20,6 +20,7 @@ export const DUPLICATE_SPACING = 50;
 export const MIN_ZOOM = 0.12;
 export const MAX_ZOOM = 4.0;
 export const ZOOMED_OUT = 0.35;
+export const VISIBLE_ELEMENTS_NODE_THRESHOLD = 100;
 
 // MODEL
 export const DEFAULT_MODEL = "gpt-oss:20b";
