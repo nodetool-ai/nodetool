@@ -221,7 +221,8 @@ describe("useNamespaceTree", () => {
           openai: "OpenAI API Key",
           aime: "Aime API Key",
           anthropic: "Anthropic API Key",
-          replicate: "Replicate API Token"
+          replicate: "Replicate API Token",
+          meshy: "Meshy API Key"
         };
         const rootNamespace = namespace.split(".")[0];
         return apiKeyNames[rootNamespace];
@@ -231,6 +232,7 @@ describe("useNamespaceTree", () => {
       expect(getRequiredKey("anthropic.completion")).toBe("Anthropic API Key");
       expect(getRequiredKey("replicate.image")).toBe("Replicate API Token");
       expect(getRequiredKey("aime.test")).toBe("Aime API Key");
+      expect(getRequiredKey("meshy.generate")).toBe("Meshy API Key");
     });
   });
 });

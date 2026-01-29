@@ -209,6 +209,18 @@ describe("useApiKeyValidation", () => {
     });
   });
 
+  describe("Meshy namespace", () => {
+    it("returns correct display name for Meshy", () => {
+      mockUseSecrets.mockReturnValue(
+        createMockSecrets(() => false)
+      );
+
+      const { result } = renderHook(() => useApiKeyValidation("meshy.generate"));
+
+      expect(result.current).toBe("Meshy API Key");
+    });
+  });
+
   describe("Multiple namespaces", () => {
     it("validates multiple different namespaces", () => {
       const isApiKeySetFn = (key: string) => {

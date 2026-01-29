@@ -12,6 +12,15 @@ const getRequiredSecretKey = (namespace: string): string | null => {
     anthropic: "ANTHROPIC_API_KEY",
     google: "GEMINI_API_KEY",
     gemini: "GEMINI_API_KEY",
+    meshy: "MESHY_API_KEY",
+    rodin: "RODIN_API_KEY",
+    trellis: "TRELLIS_API_KEY",
+    tripo: "TRIPO_API_KEY",
+    hunyuan3d: "HUNYUAN3D_API_KEY",
+    shap_e: "SHAP_E_API_KEY",
+    point_e: "POINT_E_API_KEY",
+    "shap-e": "SHAP_E_API_KEY",
+    "point-e": "POINT_E_API_KEY",
     aime: "AIME_API_KEY",
     replicate: "REPLICATE_API_TOKEN",
     calendly: "CALENDLY_API_TOKEN",
@@ -30,6 +39,13 @@ const getSecretDisplayName = (secretKey: string): string => {
     OPENAI_API_KEY: "OpenAI API Key",
     ANTHROPIC_API_KEY: "Anthropic API Key",
     GEMINI_API_KEY: "Gemini API Key",
+    MESHY_API_KEY: "Meshy API Key",
+    RODIN_API_KEY: "Rodin API Key",
+    TRELLIS_API_KEY: "Trellis API Key",
+    TRIPO_API_KEY: "Tripo API Key",
+    HUNYUAN3D_API_KEY: "Hunyuan3D API Key",
+    SHAP_E_API_KEY: "Shap-E API Key",
+    POINT_E_API_KEY: "Point-E API Key",
     AIME_API_KEY: "Aime API Key",
     REPLICATE_API_TOKEN: "Replicate API Token",
     CALENDLY_API_TOKEN: "Calendly API Token",
@@ -68,4 +84,3 @@ export const useApiKeyValidation = (nodeNamespace: string): string | null => {
     return null; // API key is set
   }, [nodeNamespace, isApiKeySet, isLoading]);
 };
-

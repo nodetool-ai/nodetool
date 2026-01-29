@@ -17,6 +17,7 @@ requirements of different AI services. The system supports multiple modalities:
 - **Video Generation** - Text-to-video and image-to-video synthesis
 - **Text-to-Speech (TTS)** - Convert text to natural speech audio
 - **Automatic Speech Recognition (ASR)** - Transcribe audio to text
+- **3D Generation** - Text-to-3D and image-to-3D model creation
 
 To select a provider, pick a model in the node property panel. Providers are grouped under model families: OpenAI,
 Anthropic, Gemini, Hugging Face, Ollama, vLLM.
@@ -255,6 +256,56 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Access via Google's Gemini API using `GEMINI_API_KEY`, or through kie.ai
 
+### 3D Generation Providers
+
+NodeTool supports text-to-3D and image-to-3D providers through the unified provider interface.
+
+#### Hunyuan3D V2 / 3.0
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `HUNYUAN3D_API_KEY` in Settings → Providers
+
+#### Trellis 2
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `TRELLIS_API_KEY` in Settings → Providers
+
+#### TripoSR
+
+**Capabilities:** Image-to-3D
+
+**Configuration:** Set `TRIPO_API_KEY` in Settings → Providers
+
+#### Shap-E
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `SHAP_E_API_KEY` in Settings → Providers
+
+#### Point-E
+
+**Capabilities:** Text-to-3D
+
+**Configuration:** Set `POINT_E_API_KEY` in Settings → Providers
+
+#### Meshy AI
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `MESHY_API_KEY` in Settings → Providers
+
+#### Rodin AI
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `RODIN_API_KEY` in Settings → Providers
+
+#### 3D Model Nodes
+
+Use the HuggingFace 3D nodes for base model selection (`HFTextTo3D`, `HFImageTo3D`) or the generic nodes (`nodetool.3d.TextTo3D`, `nodetool.3d.ImageTo3D`) for provider switching across the 3D ecosystem.
+
 ### Multi-Provider Aggregators
 
 #### kie.ai
@@ -365,6 +416,32 @@ The following generic nodes are available in the NodeTool interface (visible in 
 - Kling 2.6
 - Stability AI
 - Other video generation services
+
+#### nodetool.3d.TextTo3D
+
+**Purpose:** Generate 3D assets from text prompts
+
+**Quick Switch:**
+
+- Hunyuan3D V2/3.0
+- Trellis 2
+- Meshy AI
+- Rodin AI
+- Shap-E
+- Point-E
+
+#### nodetool.3d.ImageTo3D
+
+**Purpose:** Generate 3D assets from images
+
+**Quick Switch:**
+
+- Hunyuan3D V2/3.0
+- Trellis 2
+- TripoSR
+- Meshy AI
+- Rodin AI
+- Shap-E
 
 #### nodetool.audio.TextToSpeech
 
@@ -491,6 +568,13 @@ TextToVideoParams(
 | **Replicate**   | `REPLICATE_API_TOKEN` | -                               |
 | **FAL**         | `FAL_API_KEY`         | -                               |
 | **ElevenLabs**  | `ELEVENLABS_API_KEY`  | -                               |
+| **Hunyuan3D**   | `HUNYUAN3D_API_KEY`   | -                               |
+| **Trellis**     | `TRELLIS_API_KEY`     | -                               |
+| **TripoSR**     | `TRIPO_API_KEY`       | -                               |
+| **Shap-E**      | `SHAP_E_API_KEY`      | -                               |
+| **Point-E**     | `POINT_E_API_KEY`     | -                               |
+| **Meshy AI**    | `MESHY_API_KEY`       | -                               |
+| **Rodin AI**    | `RODIN_API_KEY`       | -                               |
 
 ### Getting API Keys
 
