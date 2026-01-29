@@ -26,7 +26,7 @@ const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
   });
 
   const currentSelectedModelDetails = React.useMemo(() => {
-    if (!fetchedModels || !value) {return null;}
+    if (!fetchedModels || !value) { return null; }
     return fetchedModels.find((m) => m.id === value);
   }, [fetchedModels, value]);
 
@@ -43,7 +43,8 @@ const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
       onChange({
         type: "embedding_model",
         id: model.id,
-        name: model.name
+        name: model.name,
+        provider: model.provider
       });
       addRecent({
         provider: model.provider || "",

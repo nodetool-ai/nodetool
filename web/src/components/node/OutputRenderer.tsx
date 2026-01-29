@@ -36,7 +36,9 @@ import {
   renderSVGDocument,
   useImageAssets,
   useRevokeBlobUrls,
-  useVideoSrc
+  useVideoSrc,
+  resolveAssetUri,
+  getMimeTypeFromUri
 } from "./output";
 import { TextRenderer } from "./output/TextRenderer";
 import { BooleanRenderer } from "./output/BooleanRenderer";
@@ -338,7 +340,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         } else {
           let imageSource: string | Uint8Array;
           if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
-            imageSource = value.uri;
+            imageSource = resolveAssetUri(value.uri);
           } else if (value?.data instanceof Uint8Array) {
             imageSource = value.data;
           } else if (Array.isArray(value?.data)) {
@@ -355,8 +357,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         let audioSource: string | Uint8Array;
 
         if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
-          // Use URI if available
-          audioSource = value.uri;
+          // Use URI if available (resolve asset:// to /api/storage/)
+          audioSource = resolveAssetUri(value.uri);
         } else if (Array.isArray(value?.data)) {
           // Convert array of bytes to Uint8Array
           audioSource = new Uint8Array(value.data);
@@ -372,7 +374,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         }
 
         const metadata = (value as any).metadata || {};
-        const mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
+        let mimeType = getMimeTypeFromUri(value?.uri);
+        if (!mimeType) {
+          mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
+        }
 
         return (
           <div className="audio" style={{ padding: "1em" }}>
@@ -394,21 +399,22 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           />
         );
       case "model_3d": {
-        const url: string =
+        const rawUri: string =
           (value && typeof value === "object" && typeof value.uri === "string"
             ? value.uri
             : "") || "";
 
-        if (!url) {
+        if (!rawUri) {
           return <JSONRenderer value={value} showActions={showTextActions} />;
         }
 
+        const url = resolveAssetUri(rawUri);
         const format =
           value && typeof value === "object" && typeof (value as any).format === "string"
             ? ((value as any).format as string)
             : undefined;
-        const contentType =
-          format === "gltf" ? "model/gltf+json" : "model/gltf-binary";
+        const contentType = getMimeTypeFromUri(url) ||
+          (format === "gltf" ? "model/gltf+json" : "model/gltf-binary");
 
         return (
           <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
