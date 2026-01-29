@@ -32,4 +32,10 @@ describe("shouldRenderVisibleElements", () => {
       shouldRenderVisibleElements(VISIBLE_ELEMENTS_NODE_THRESHOLD, true)
     ).toBe(false);
   });
+
+  it("keeps visible-element rendering enabled when not interacting", () => {
+    expect(
+      shouldRenderVisibleElements(VISIBLE_ELEMENTS_NODE_THRESHOLD, false)
+    ).toBe(true);
+  });
 });
