@@ -16,6 +16,7 @@ import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge"
 import MiniAppResults from "./components/MiniAppResults";
 import MiniAppInputsForm from "./components/MiniAppInputsForm";
 import MiniAppSidePanel from "./components/MiniAppSidePanel";
+import VibeCodingPreview from "../vibecoding/VibeCodingPreview";
 import { useMiniAppInputs } from "./hooks/useMiniAppInputs";
 import { useMiniAppRunner } from "./hooks/useMiniAppRunner";
 import { clampNumber } from "./utils";
@@ -166,6 +167,9 @@ const MiniAppPage: React.FC = () => {
   const { isVisible, panelSize } = usePanelStore((state) => state.panel);
   const leftOffset = isVisible ? panelSize : 50;
 
+  // Check for custom HTML app
+  const hasCustomApp = Boolean(workflow?.html_app);
+
   const isRunning = runnerState === "running" || runnerState === "connecting";
 
   // Live timer during execution
@@ -207,138 +211,155 @@ const MiniAppPage: React.FC = () => {
         className="mini-app-page"
         sx={{
           marginLeft: `${leftOffset}px`,
-          width: `calc(100% - ${leftOffset}px)`,
-          transition: "margin-left 0.2s ease-out, width 0.2s ease-out"
+          width: "auto", // Allow auto width to fill available space
+          minHeight: "100vh",
+          transition: "margin-left 0.2s ease-out"
         }}
       >
-        {/* Loading State */}
-        {isLoading && (
-          <Box display="flex" justifyContent="center" py={8}>
-            <CircularProgress />
-          </Box>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <Box py={4}>
-            <Typography color="error">{error.message}</Typography>
-          </Box>
-        )}
-
         {workflow && (
-          <>
-            {/* Side Panel */}
-            <MiniAppSidePanel
-              workflow={workflow}
-              isRunning={runnerState === "running"}
+          <MiniAppSidePanel
+            workflow={workflow}
+            isRunning={runnerState === "running"}
+          />
+        )}
+
+        {/* Custom HTML App - Full Width */}
+        {hasCustomApp && workflow && (
+          <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
+            <VibeCodingPreview
+              html={workflow.html_app!}
+              workflowId={workflow.id}
             />
+          </Box>
+        )}
 
-            {/* Header Section */}
-            <div className="page-header">
-              <Typography variant="h2" fontWeight={300}>
-                {workflow.name}
-              </Typography>
-              {workflow.description && (
-                <Typography variant="body2" className="workflow-description">
-                  {workflow.description}
-                </Typography>
-              )}
-            </div>
-
-            {/* Progress Bar - Only shown when running with progress */}
-            {isRunning && progress && (
-              <div className="status-bar">
-                <Box className="status-bar-progress" sx={{ width: "100%" }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(progress.current * 100.0) / progress.total}
-                    sx={{ height: 6, borderRadius: 3 }}
-                  />
-                </Box>
-              </div>
+        {/* Default UI - Centered Container */}
+        {!hasCustomApp && (
+          <div className="layout-container">
+            {/* Loading State */}
+            {isLoading && (
+              <Box display="flex" justifyContent="center" py={8}>
+                <CircularProgress />
+              </Box>
             )}
 
-            {/* Main Content Grid */}
-            <form
-              className="content-grid"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void handleSubmit();
-              }}
-              autoComplete="off"
-            >
-              <div className="inputs-column">
-                <MiniAppInputsForm
-                  workflow={workflow}
-                  inputDefinitions={inputDefinitions}
-                  inputValues={inputValues}
-                  onInputChange={updateInputValue}
-                  onError={setSubmitError}
-                />
-                <div className="composer-actions">
-                  {isRunning ? (
-                    <Button
-                      color="warning"
-                      variant="contained"
-                      onClick={handleCancelWorkflow}
-                      className="generate-button"
-                      fullWidth
-                    >
-                      Stop
-                    </Button>
-                  ) : (
-                    <Tooltip
-                      enterDelay={TOOLTIP_ENTER_DELAY * 2}
-                      title={
-                        isSubmitDisabled
-                          ? "Workflow is running..."
-                          : ""
-                      }
-                    >
-                      <span style={{ width: "100%" }}>
-                        <Button
-                          color="primary"
-                          variant="contained"
-                          type="submit"
-                          disabled={isSubmitDisabled}
-                          className="generate-button"
-                          fullWidth
-                        >
-                          Run Workflow
-                        </Button>
-                      </span>
-                    </Tooltip>
-                  )}
-                  {isRunning && (
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: "block", textAlign: "center", mt: 1, width: "100%" }}
-                    >
-                      {formatDuration(elapsedTime)}
-                    </Typography>
-                  )}
-                  {lastRunDuration != null && !isRunning && (
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: "block", textAlign: "center", mt: 1, width: "100%" }}
-                    >
-                      Completed in {formatDuration(lastRunDuration)}
+            {/* Error State */}
+            {error && (
+              <Box py={4}>
+                <Typography color="error">{error.message}</Typography>
+              </Box>
+            )}
+
+            {workflow && (
+              <>
+                {/* Header Section */}
+                <div className="page-header">
+                  <Typography variant="h2" fontWeight={300}>
+                    {workflow.name}
+                  </Typography>
+                  {workflow.description && (
+                    <Typography variant="body2" className="workflow-description">
+                      {workflow.description}
                     </Typography>
                   )}
                 </div>
-              </div>
-              <MiniAppResults
-                results={results}
-                isRunning={isRunning}
-                onClear={
-                  workflow?.id ? () => clearResults(workflow.id) : undefined
-                }
-                workflow={workflow}
-              />
-            </form>
-          </>
+
+                {/* Progress Bar - Only shown when running with progress */}
+                {isRunning && progress && (
+                  <div className="status-bar">
+                    <Box className="status-bar-progress" sx={{ width: "100%" }}>
+                      <LinearProgress
+                        variant="determinate"
+                        value={progress.total > 0 ? (progress.current * 100.0) / progress.total : 0}
+                        sx={{ height: 6, borderRadius: 3 }}
+                      />
+                    </Box>
+                  </div>
+                )}
+
+                {/* Main Content Grid */}
+                <form
+                  className="content-grid"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void handleSubmit();
+                  }}
+                  autoComplete="off"
+                >
+                  <div className="inputs-column">
+                    <MiniAppInputsForm
+                      workflow={workflow}
+                      inputDefinitions={inputDefinitions}
+                      inputValues={inputValues}
+                      onInputChange={updateInputValue}
+                      onError={setSubmitError}
+                    />
+                    <div className="composer-actions">
+                      {isRunning ? (
+                        <Button
+                          color="warning"
+                          variant="contained"
+                          onClick={handleCancelWorkflow}
+                          className="generate-button"
+                          fullWidth
+                        >
+                          Stop
+                        </Button>
+                      ) : (
+                        <Tooltip
+                          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+                          title={
+                            isSubmitDisabled
+                              ? "Workflow is running..."
+                              : ""
+                          }
+                        >
+                          <span style={{ width: "100%" }}>
+                            <Button
+                              color="primary"
+                              variant="contained"
+                              type="submit"
+                              disabled={isSubmitDisabled}
+                              className="generate-button"
+                              fullWidth
+                            >
+                              Run Workflow
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      )}
+                      {isRunning && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", textAlign: "center", mt: 1, width: "100%" }}
+                        >
+                          {formatDuration(elapsedTime)}
+                        </Typography>
+                      )}
+                      {lastRunDuration != null && !isRunning && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", textAlign: "center", mt: 1, width: "100%" }}
+                        >
+                          Completed in {formatDuration(lastRunDuration)}
+                        </Typography>
+                      )}
+                    </div>
+                  </div>
+                  <MiniAppResults
+                    results={results}
+                    isRunning={isRunning}
+                    onClear={
+                      workflow?.id ? () => clearResults(workflow.id) : undefined
+                    }
+                    workflow={workflow}
+                  />
+                </form>
+              </>
+            )}
+          </div>
         )}
       </Box>
     </NodeContext.Provider>

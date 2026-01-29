@@ -3,9 +3,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
-import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Button from "@mui/material/Button";
+import { Dialog } from "../ui_primitives";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 

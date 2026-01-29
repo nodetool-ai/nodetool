@@ -39,7 +39,7 @@ describe("TextListProperty", () => {
     );
     
     expect(screen.getByText("Text Files")).toBeInTheDocument();
-    expect(screen.getByText("Drop text files here")).toBeInTheDocument();
+    expect(screen.getByText("Click or drop text files here")).toBeInTheDocument();
   });
 
   it("renders text files when value is provided", () => {
@@ -92,7 +92,7 @@ describe("TextListProperty", () => {
       </ThemeProvider>
     );
     
-    expect(screen.getByText("Drop text files here")).toBeInTheDocument();
+    expect(screen.getByText("Click or drop text files here")).toBeInTheDocument();
   });
 
   it("handles drag over and drag leave events", () => {

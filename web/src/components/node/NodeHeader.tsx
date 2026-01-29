@@ -128,7 +128,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           wordWrap: "break-word",
           lineHeight: "1.2em",
           fontSize: "var(--fontSizeNormal)",
-          fontWeight: 600,
+          fontWeight: 500,
           letterSpacing: "0.02em",
           padding: "2px 0",
           color: "var(--palette-text-primary)"

@@ -74,6 +74,10 @@ export function graphNodeToReactFlowNode(
       originalType: node.type
     },
     position: ui_properties?.position || { x: 0, y: 0 },
+    // Set both top-level width/height (used by ReactFlow after resize) and style (for initial render)
+    // ReactFlow's applyNodeChanges sets node.width/height when user resizes, so we restore them here
+    width: defaultWidth,
+    height: defaultHeight,
     style: {
       width: defaultWidth,
       height: defaultHeight

@@ -45,7 +45,6 @@ import ImageListProperty from "../properties/ImageListProperty";
 import VideoListProperty from "../properties/VideoListProperty";
 import AudioListProperty from "../properties/AudioListProperty";
 import TextListProperty from "../properties/TextListProperty";
-import LayoutCanvasProperty from "../properties/LayoutCanvasProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";

@@ -335,17 +335,6 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
-/**
- * Component to handle job reconnection on app load
- */
-const JobReconnectionManager = () => {
-  useJobReconnection();
-  return null;
-};
-
-// Standalone routes that don't need backend metadata
-const STANDALONE_ROUTES = ["/canvas", "/layouttest"];
-
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
   
