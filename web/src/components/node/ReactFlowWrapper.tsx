@@ -380,8 +380,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [activeGradientKeys]
   );
   const renderVisibleElements = useMemo(
-    () => shouldRenderVisibleElements(nodes.length),
-    [nodes.length]
+    () => shouldRenderVisibleElements(nodes.length, connecting),
+    [nodes.length, connecting]
   );
 
   useEffect(() => {

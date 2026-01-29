@@ -26,4 +26,10 @@ describe("shouldRenderVisibleElements", () => {
   it("returns false for negative values", () => {
     expect(shouldRenderVisibleElements(-1)).toBe(false);
   });
+
+  it("disables visible-element rendering during interactions", () => {
+    expect(
+      shouldRenderVisibleElements(VISIBLE_ELEMENTS_NODE_THRESHOLD, true)
+    ).toBe(false);
+  });
 });
