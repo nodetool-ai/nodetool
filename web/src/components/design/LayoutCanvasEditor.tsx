@@ -1343,6 +1343,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             sx={{
               position: "absolute",
               inset: 0,
+              width: canvasData.width,
+              height: canvasData.height,
               pointerEvents: "none"
             }}
           />

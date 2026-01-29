@@ -31,6 +31,17 @@ Record:
 - Konva is currently retained only for interaction handling (selection/transform). Dropping it requires Pixi hit
   testing, drag/resize handles, and selection tooling parity.
 
+## Konva Replacement Plan
+
+Short-term focus (Pixi-only rendering is active now):
+
+1. **Interaction parity**: implement Pixi hit testing for click/drag, marquee selection, and transform handles.
+2. **Snapping**: port snap guide logic into Pixi-driven drag loop.
+3. **Group transforms**: apply matrix-based transforms for grouped selections to match current behavior.
+4. **Tooling**: replace Konva transformers with Pixi handle overlays.
+
+Until these land, Konva remains hidden to drive selection, drag, and transform interactions.
+
 ## Pixi vs Konva Rationale
 
 PixiJS advantages for this migration:
