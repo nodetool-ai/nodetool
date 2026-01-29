@@ -181,7 +181,7 @@ const CanvasScene: React.FC<CanvasSceneProps> = ({
           )}
         </Layer>
 
-        <Layer opacity={elementsOpacity}>
+        <Layer>
           {sortedElements.map((element) => (
             <CanvasElement
               key={element.id}
@@ -189,6 +189,7 @@ const CanvasScene: React.FC<CanvasSceneProps> = ({
               isSelected={selectedIds.includes(element.id)}
               effectiveVisible={effectiveVisibleById.get(element.id)}
               effectiveLocked={effectiveLockedById.get(element.id)}
+              contentOpacity={elementsOpacity}
               onSelect={onSelect}
               onDragStart={onDragStart}
               onTransformEnd={onTransformEnd}

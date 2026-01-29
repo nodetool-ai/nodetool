@@ -102,7 +102,7 @@ export default class PixiRenderer implements CanvasRenderer {
     this.guidesContainer.removeChildren();
     guides.forEach((guide) => {
       const line = new Graphics();
-      line.lineStyle({ color: 0xff00ff, width: 1, alpha: 1 });
+      line.lineStyle(1, 0xff00ff, 1);
       if (guide.type === "vertical") {
         line.moveTo(guide.position, guide.start);
         line.lineTo(guide.position, guide.end);
@@ -127,7 +127,7 @@ export default class PixiRenderer implements CanvasRenderer {
     }
     const lineColor = parseHexColor(color);
     const grid = new Graphics();
-    grid.lineStyle({ color: lineColor, width: 1, alpha: 0.4 });
+    grid.lineStyle(1, lineColor, 0.4);
     for (let x = 0; x <= this.data.width; x += size) {
       grid.moveTo(x, 0);
       grid.lineTo(x, this.data.height);
@@ -211,7 +211,7 @@ export default class PixiRenderer implements CanvasRenderer {
         return;
       }
       const outline = new Graphics();
-      outline.lineStyle({ color: 0x4f46e5, width: 1 });
+      outline.lineStyle(1, 0x4f46e5, 1);
       outline.drawRect(el.x, el.y, el.width, el.height);
       this.selectionContainer?.addChild(outline);
     });
@@ -251,7 +251,7 @@ export default class PixiRenderer implements CanvasRenderer {
       case "line": {
         const line = new Graphics();
         const strokeColor = (element.properties as { strokeColor?: string }).strokeColor ?? "#000000";
-        line.lineStyle({ color: parseHexColor(strokeColor), width: 2 });
+        line.lineStyle(2, parseHexColor(strokeColor), 1);
         line.moveTo(element.x, element.y + element.height / 2);
         line.lineTo(element.x + element.width, element.y + element.height / 2);
         return line;
@@ -279,7 +279,7 @@ export default class PixiRenderer implements CanvasRenderer {
       }
       case "group": {
         const group = new Graphics();
-        group.lineStyle({ color: 0x999999, width: 1 });
+        group.lineStyle(1, 0x999999, 1);
         group.drawRect(element.x, element.y, element.width, element.height);
         return group;
       }

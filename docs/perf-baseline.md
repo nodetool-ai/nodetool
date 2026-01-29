@@ -28,3 +28,5 @@ Record:
 
 - Measurements should be captured on a consistent hardware profile.
 - Export screenshots of the overlay and attach profiler flame charts.
+- Konva is currently retained only for interaction handling (selection/transform). Dropping it requires Pixi hit
+  testing, drag/resize handles, and selection tooling parity.

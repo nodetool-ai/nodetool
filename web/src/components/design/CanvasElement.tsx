@@ -31,6 +31,7 @@ interface CanvasElementProps {
   isSelected: boolean;
   effectiveVisible?: boolean;
   effectiveLocked?: boolean;
+  contentOpacity?: number;
   onSelect: (id: string, event: Konva.KonvaEventObject<MouseEvent>) => void;
   onDragStart?: (id: string, event: Konva.KonvaEventObject<DragEvent>) => void;
   onTransformEnd: (
@@ -358,6 +359,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
   isSelected,
   effectiveVisible,
   effectiveLocked,
+  contentOpacity = 1,
   onSelect,
   onDragStart,
   onTransformEnd,
@@ -511,6 +513,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({
         width={element.width}
         height={element.height}
         rotation={element.rotation}
+        opacity={contentOpacity}
         draggable={!isLocked}
         onClick={handleClick}
         onTap={handleClick}
