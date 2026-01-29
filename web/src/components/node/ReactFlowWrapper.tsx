@@ -374,6 +374,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     () => Array.from(activeGradientKeys),
     [activeGradientKeys]
   );
+  const shouldRenderVisibleElements = nodes.length >= 100;
 
   useEffect(() => {
     if (isSelecting) {
@@ -476,7 +477,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         className={reactFlowClasses}
         colorMode={isDarkMode ? "dark" : "light"}
         style={reactFlowStyle}
-        onlyRenderVisibleElements={false}
+        onlyRenderVisibleElements={shouldRenderVisibleElements}
         ref={ref}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
