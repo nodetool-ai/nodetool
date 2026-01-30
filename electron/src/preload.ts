@@ -292,6 +292,10 @@ const api = {
     onUpdatesAvailable: createEventSubscription(
       IpcChannels.PACKAGE_UPDATES_AVAILABLE,
     ),
+
+    /** Check package versions against expected versions */
+    checkVersion: () =>
+      ipcRenderer.invoke(IpcChannels.PACKAGE_VERSION_CHECK),
   },
 
   // ============================================================================
