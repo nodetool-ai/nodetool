@@ -19,7 +19,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("capture FileBrowserDialog screenshot", async ({ page }) => {
-      await page.goto("http://localhost:5173/editor");
+      await page.goto("/editor");
       await page.waitForLoadState("networkidle");
       
       // Take a screenshot of the page
@@ -30,7 +30,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("capture RequiredModelsDialog screenshot", async ({ page }) => {
-      await page.goto("http://localhost:5173/models");
+      await page.goto("/models");
       await page.waitForLoadState("networkidle");
       
       // Take a screenshot
@@ -41,7 +41,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("capture RecommendedModelsDialog screenshot", async ({ page }) => {
-      await page.goto("http://localhost:5173/models");
+      await page.goto("/models");
       await page.waitForLoadState("networkidle");
       
       // Take a screenshot
@@ -52,7 +52,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("capture DownloadManagerDialog screenshot", async ({ page }) => {
-      await page.goto("http://localhost:5173/models");
+      await page.goto("/models");
       await page.waitForLoadState("networkidle");
       
       // Take a screenshot
@@ -63,7 +63,7 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test("capture WorkflowFormModal screenshot", async ({ page }) => {
-      await page.goto("http://localhost:5173/editor");
+      await page.goto("/editor");
       await page.waitForLoadState("networkidle");
       
       // Take a screenshot
