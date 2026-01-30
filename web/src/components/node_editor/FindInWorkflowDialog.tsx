@@ -8,6 +8,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
+import { CloseButton } from "../ui_primitives/CloseButton";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 
 const styles = (theme: Theme) =>
@@ -186,6 +187,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     const theme = useTheme();
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const {
       isOpen,
@@ -207,6 +209,29 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         setTimeout(() => inputRef.current?.focus(), 50);
       }
     }, [isOpen]);
+
+    // Click outside to close
+    useEffect(() => {
+      if (!isOpen) {
+        return;
+      }
+
+      const handleClickOutside = (event: MouseEvent) => {
+        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+          closeFind();
+        }
+      };
+
+      // Delay adding the listener to avoid immediately closing on the same click that opened
+      const timeoutId = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      }, 100);
+
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [isOpen, closeFind]);
 
     useEffect(() => {
       if (!isOpen) {
@@ -279,7 +304,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     };
 
     return (
-      <Box className="find-dialog-container" css={styles(theme)}>
+      <Box ref={containerRef} className="find-dialog-container" css={styles(theme)}>
         <Box className="find-header">
           <Box className="search-icon-wrapper">
             <SearchIcon fontSize="small" />
@@ -317,6 +342,13 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               <ArrowDownwardIcon fontSize="small" />
             </button>
           </Box>
+          <CloseButton
+            onClick={closeFind}
+            tooltip="Close (Escape)"
+            buttonSize="small"
+            nodrag={false}
+            sx={{ marginLeft: "8px" }}
+          />
         </Box>
 
         <Box className="results-count">
