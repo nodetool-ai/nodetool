@@ -153,10 +153,11 @@ jest.mock("../../../../lib/websocket/GlobalWebSocketManager", () => ({
 // Mock complex components to avoid dependency issues
 jest.mock("../../../../components/chat/containers/ChatView", () => ({
   __esModule: true,
-  default: ({ status, messages }: any) => (
+  default: ({ status, messages, progressMessage }: any) => (
     <div data-testid="chat-view">
       <div>Status: {status}</div>
       <div>Messages: {messages?.length || 0}</div>
+      {progressMessage && <div>{progressMessage}</div>}
     </div>
   )
 }));

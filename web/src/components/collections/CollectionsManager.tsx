@@ -24,7 +24,7 @@ const fadeIn = keyframes`
   }
 `;
 
-const styles = (theme: Theme) =>
+const styles = (_theme: Theme) =>
   css({
     ".collections-manager": {
       display: "flex",
