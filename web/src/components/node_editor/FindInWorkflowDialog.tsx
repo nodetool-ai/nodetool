@@ -217,7 +217,10 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       }
 
       const handleClickOutside = (event: MouseEvent) => {
-        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        if (
+          containerRef.current &&
+          !containerRef.current.contains(event.target as Node)
+        ) {
           closeFind();
         }
       };
@@ -274,17 +277,30 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isOpen, closeFind, navigateNext, navigatePrevious, results.length, goToSelected]);
+    }, [
+      isOpen,
+      closeFind,
+      navigateNext,
+      navigatePrevious,
+      results.length,
+      goToSelected
+    ]);
 
-    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-      performSearch(event.target.value);
-    }, [performSearch]);
+    const handleInputChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        performSearch(event.target.value);
+      },
+      [performSearch]
+    );
 
-    const handleResultClick = useCallback((index: number) => (_event: React.MouseEvent) => {
-      selectNode(index);
-      goToSelected();
-      closeFind();
-    }, [selectNode, goToSelected, closeFind]);
+    const handleResultClick = useCallback(
+      (index: number) => (_event: React.MouseEvent) => {
+        selectNode(index);
+        goToSelected();
+        closeFind();
+      },
+      [selectNode, goToSelected, closeFind]
+    );
 
     const handleClear = useCallback(() => {
       clearSearch();
@@ -304,7 +320,11 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     };
 
     return (
-      <Box ref={containerRef} className="find-dialog-container" css={styles(theme)}>
+      <Box
+        ref={containerRef}
+        className="find-dialog-container"
+        css={styles(theme)}
+      >
         <Box className="find-header">
           <Box className="search-icon-wrapper">
             <SearchIcon fontSize="small" />
@@ -354,7 +374,8 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         <Box className="results-count">
           {results.length > 0 ? (
             <>
-              {selectedIndex + 1} of {results.length} node{results.length !== 1 ? "s" : ""} found
+              {selectedIndex + 1} of {results.length} node
+              {results.length !== 1 ? "s" : ""} found
             </>
           ) : searchTerm ? (
             <>No nodes found</>
@@ -363,12 +384,18 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           )}
         </Box>
 
-          {results.length > 0 ? (
+        {results.length > 0 ? (
           <List className="results-list" ref={listRef}>
             {results.map((result, index) => (
-              <ListItem key={result.node.id} className="result-item" disablePadding>
+              <ListItem
+                key={result.node.id}
+                className="result-item"
+                disablePadding
+              >
                 <ListItemButton
-                  className={`result-button ${index === selectedIndex ? "selected" : ""}`}
+                  className={`result-button ${
+                    index === selectedIndex ? "selected" : ""
+                  }`}
                   onClick={handleResultClick(index)}
                 >
                   <Typography className="result-name" variant="body2">
