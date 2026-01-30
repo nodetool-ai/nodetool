@@ -14,16 +14,6 @@ Run your first NodeTool workflow. No AI experience or coding needed.
 
 For a visual overview first, see [Start Here](index.md#start-here).
 
----
-
-## Two Quick Definitions
-
-**Workflow** - Connected steps (nodes) that do something useful. Each node does one thing and passes results forward.
-
-**AI Model** - Pre-trained program for a specific task (image generation, text analysis, etc.). You pick the right one for your task.
-
----
-
 ## Step 1 — Install NodeTool
 
 1. **Download** from [nodetool.ai](https://nodetool.ai) for macOS, Windows, or Linux
@@ -35,15 +25,6 @@ For a visual overview first, see [Start Here](index.md#start-here).
 > Need help? See [Installation Guide](installation.md) for GPU requirements and troubleshooting.
 
 ![Dashboard Overview](assets/screenshots/dashboard-overview.png)
-
-### First Launch
-
-The **Getting Started Panel** walks you through:
-
-1. **Overview** - What NodeTool can do
-2. **First Workflow** - Run your first template
-3. **AI Models** - Install what you need
-4. **Tips** - Helpful shortcuts
 
 ### Install AI Models
 
@@ -126,7 +107,6 @@ Workflows are reusable. Try variations. Refine. Save.
 
 Convert a workflow into a simplified interface:
 
-1. **Open your workflow** in the editor
 1. **Open your workflow** in the editor
 2. **Click Mini-App** (top-right)
 3. **See simplified view**: Only inputs and outputs, no graph

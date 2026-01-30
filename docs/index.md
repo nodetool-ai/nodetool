@@ -8,6 +8,7 @@ layout: home
   <p class="lead">
    Connect nodes to generate content, analyze data, and automate tasks. Run models locally or via cloud APIs.
   </p>
+  <img src="{{ '/assets/home.jpg' | relative_url }}" alt="NodeTool visual workflow editor" class="home-screenshot">
   <div class="cta-row">
     <a href="{{ '/' | relative_url }}#start-here" class="cta-button primary">Start Here</a>
     <a href="{{ '/getting-started' | relative_url }}" class="cta-button">Getting Started</a>
@@ -126,74 +127,6 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
     <a href="{{ '/models-and-providers' | relative_url }}">Models & Providers →</a>
   </article>
 </div>
-
-<section class="home-section">
-  <h2 id="personal-ai-stack">📱 Personal AI Stack</h2>
-  <p class="lead">
-    Access self-hosted AI infrastructure from mobile devices.
-  </p>
-  <p>
-    NodeTool's mobile app connects to your own NodeTool server. Run workflows remotely, accessing models and data on hardware you control.
-  </p>
-
-  <div class="architecture-diagram">
-    {% mermaid %}
-    flowchart TB
-      Mobile["📱 NodeTool Mobile"] --> |Secure Connection| VPN
-      VPN["🔒 VPN / Tailscale / WireGuard"] --> |Encrypted Tunnel| Server
-      Server["🖥️ NodeTool Server<br/>(Your Hardware)"]
-
-      subgraph Stack["Your AI Stack"]
-        direction TB
-        LLMs["🧠 Local LLMs<br/>Llama, Mistral, Qwen, Phi"]
-        Data["📁 Your Data<br/>Documents, Photos, Notes"]
-        Media["🎨 Media AI<br/>Flux, Whisper, Music, Video"]
-        Integrations["🔌 Integrations<br/>APIs, Tools, Home Automation"]
-      end
-
-      Server --> Stack
-    {% endmermaid %}
-  </div>
-
-  <h3>Deployment Options</h3>
-  <div class="pattern-grid">
-    <article class="pattern-card">
-      <h5>🏠 Local Stack</h5>
-      <p>Connect via VPN to a home server. All processing on your hardware. Data stays on your network.</p>
-      <p><code>[Mobile] → [VPN] → [Home Server] → [Local LLMs + Data]</code></p>
-    </article>
-    <article class="pattern-card">
-      <h5>☁️ NodeTool Cloud</h5>
-      <p>Managed infrastructure. No hardware setup. Workflows sync across devices.</p>
-      <p><code>[Mobile] → [NodeTool Cloud] → [Managed LLMs + Storage]</code></p>
-    </article>
-    <article class="pattern-card">
-      <h5>🏢 Private Cloud</h5>
-      <p>Deploy to your organization's VPC. Supports compliance requirements and multi-user access.</p>
-      <p><code>[Mobile] → [VPN] → [VPC] → [Self-Hosted NodeTool]</code></p>
-    </article>
-    <article class="pattern-card">
-      <h5>🌐 Hybrid Stack</h5>
-      <p>Local processing for sensitive data, cloud APIs for additional models.</p>
-      <p><code>[Mobile] → [Local Server] → [Local LLMs + Cloud APIs]</code></p>
-    </article>
-  </div>
-
-  <h3>Capabilities</h3>
-  <ul>
-    <li><strong>Personal AI Assistant</strong> — Chat with an AI that accesses your documents and knowledge base.</li>
-    <li><strong>Mobile AI Workspace</strong> — Generate images, audio, and video from your phone using local models.</li>
-    <li><strong>Private Knowledge Base</strong> — Index and query your documents with RAG.</li>
-    <li><strong>Home Automation</strong> — Connect NodeTool to smart home devices.</li>
-    <li><strong>Team Collaboration</strong> — Share workflows while keeping data in your infrastructure.</li>
-  </ul>
-
-  <div class="cta-row">
-    <a href="{{ '/getting-started' | relative_url }}" class="cta-button primary">Get Started →</a>
-    <a href="{{ '/self_hosted' | relative_url }}" class="cta-button">Self-Hosted Setup →</a>
-    <a href="{{ '/deployment' | relative_url }}" class="cta-button ghost">Deployment Guide →</a>
-  </div>
-</section>
 
 <section class="home-section">
   <h2>Key Features</h2>
