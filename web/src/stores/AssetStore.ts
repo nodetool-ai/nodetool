@@ -563,11 +563,21 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     // Only include fields that are explicitly provided in the request.
     // Sending null for unspecified fields can cause the backend to clear them.
     const body: Record<string, unknown> = {};
-    if (req.name !== undefined) body.name = req.name;
-    if (req.parent_id !== undefined) body.parent_id = req.parent_id;
-    if (req.content_type !== undefined) body.content_type = req.content_type;
-    if (req.metadata !== undefined) body.metadata = req.metadata;
-    if (req.data !== undefined) body.data = req.data;
+    if (req.name !== undefined) {
+      body.name = req.name;
+    }
+    if (req.parent_id !== undefined) {
+      body.parent_id = req.parent_id;
+    }
+    if (req.content_type !== undefined) {
+      body.content_type = req.content_type;
+    }
+    if (req.metadata !== undefined) {
+      body.metadata = req.metadata;
+    }
+    if (req.data !== undefined) {
+      body.data = req.data;
+    }
 
     const { error, data } = await client.PUT("/api/assets/{id}", {
       params: { path: { id: req.id } },
