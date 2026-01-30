@@ -15,7 +15,8 @@ describe("useSelectionEvents", () => {
   const mockScreenToFlowPosition = jest.fn().mockReturnValue({ x: 100, y: 200 });
   const mockReactFlowInstance = {
     screenToFlowPosition: mockScreenToFlowPosition,
-    getIntersectingNodes: jest.fn().mockReturnValue([])
+    getIntersectingNodes: jest.fn().mockReturnValue([]),
+    getNodes: jest.fn().mockReturnValue([])
   };
 
   const mockOpenContextMenu = jest.fn();
@@ -35,9 +36,10 @@ describe("useSelectionEvents", () => {
     mockedUseContextMenu.mockReturnValue({
       openContextMenu: mockOpenContextMenu
     });
-    mockedUseNodes.mockReturnValue({
-      updateNode: mockUpdateNode
-    });
+    // Use mockImplementation to properly call the selector function
+    mockedUseNodes.mockImplementation((selector: any) =>
+      selector({ updateNode: mockUpdateNode })
+    );
     mockedUseReactFlow.mockReturnValue(mockReactFlowInstance);
     mockedUseDragHandlers.mockReturnValue({
       onSelectionStart: mockOnSelectionStart,
@@ -234,6 +236,97 @@ describe("useSelectionEvents", () => {
 
       result.current.selectGroupsWithinSelection();
 
+      expect(mockUpdateNode).not.toHaveBeenCalled();
+    });
+
+    it("deselects groups that are selected but not fully enclosed", () => {
+      const mockGroupNode = {
+        id: "group-1",
+        type: "nodetool.workflows.base_node.Group",
+        selected: true,
+        position: { x: 0, y: 0 }
+      };
+      
+      // Group is in getNodes but not in getIntersectingNodes (not fully enclosed)
+      mockReactFlowInstance.getNodes = jest.fn().mockReturnValue([mockGroupNode]);
+      mockReactFlowInstance.getIntersectingNodes = jest.fn().mockReturnValue([]);
+
+      const { result } = renderHook(() =>
+        useSelectionEvents({
+          reactFlowInstance: mockReactFlowInstance as any,
+          onSelectionStartBase: mockOnSelectionStart,
+          onSelectionEndBase: mockOnSelectionEnd,
+          onSelectionDragStartBase: mockOnSelectionDragStart,
+          onSelectionDragStopBase: mockOnSelectionDragStop
+        })
+      );
+
+      result.current.selectionStartRef.current = { x: 0, y: 0 };
+      result.current.selectionEndRef.current = { x: 100, y: 100 };
+
+      result.current.selectGroupsWithinSelection();
+
+      expect(mockUpdateNode).toHaveBeenCalledWith("group-1", { selected: false });
+    });
+
+    it("selects groups that are fully enclosed", () => {
+      const mockGroupNode = {
+        id: "group-1",
+        type: "nodetool.workflows.base_node.Group",
+        selected: false,
+        position: { x: 0, y: 0 }
+      };
+      
+      // Group is in both getNodes and getIntersectingNodes (fully enclosed)
+      mockReactFlowInstance.getNodes = jest.fn().mockReturnValue([mockGroupNode]);
+      mockReactFlowInstance.getIntersectingNodes = jest.fn().mockReturnValue([mockGroupNode]);
+
+      const { result } = renderHook(() =>
+        useSelectionEvents({
+          reactFlowInstance: mockReactFlowInstance as any,
+          onSelectionStartBase: mockOnSelectionStart,
+          onSelectionEndBase: mockOnSelectionEnd,
+          onSelectionDragStartBase: mockOnSelectionDragStart,
+          onSelectionDragStopBase: mockOnSelectionDragStop
+        })
+      );
+
+      result.current.selectionStartRef.current = { x: 0, y: 0 };
+      result.current.selectionEndRef.current = { x: 100, y: 100 };
+
+      result.current.selectGroupsWithinSelection();
+
+      expect(mockUpdateNode).toHaveBeenCalledWith("group-1", { selected: true });
+    });
+
+    it("does not update already correctly selected groups", () => {
+      const mockGroupNode = {
+        id: "group-1",
+        type: "nodetool.workflows.base_node.Group",
+        selected: true,
+        position: { x: 0, y: 0 }
+      };
+      
+      // Group is fully enclosed and already selected
+      mockReactFlowInstance.getNodes = jest.fn().mockReturnValue([mockGroupNode]);
+      mockReactFlowInstance.getIntersectingNodes = jest.fn().mockReturnValue([mockGroupNode]);
+
+      const { result } = renderHook(() =>
+        useSelectionEvents({
+          reactFlowInstance: mockReactFlowInstance as any,
+          onSelectionStartBase: mockOnSelectionStart,
+          onSelectionEndBase: mockOnSelectionEnd,
+          onSelectionDragStartBase: mockOnSelectionDragStart,
+          onSelectionDragStopBase: mockOnSelectionDragStop
+        })
+      );
+
+      result.current.selectionStartRef.current = { x: 0, y: 0 };
+      result.current.selectionEndRef.current = { x: 100, y: 100 };
+
+      result.current.selectGroupsWithinSelection();
+
+      // Should not be called since the group is already in the correct state
       expect(mockUpdateNode).not.toHaveBeenCalled();
     });
   });

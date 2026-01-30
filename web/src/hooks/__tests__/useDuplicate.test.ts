@@ -259,7 +259,82 @@ describe("useDuplicateNodes", () => {
     expect(externalEdge).toBeDefined();
   });
 
-  it("does not duplicate edges connected to unselected nodes", () => {
+  it("preserves upstream connections by default", () => {
+    const selectedNodes = [
+      {
+        id: "node-2",
+        position: { x: 200, y: 200 },
+        data: { positionAbsolute: { x: 200, y: 200 } },
+        parentId: undefined,
+      },
+    ];
+
+    // Edge from node-1 (not selected) to node-2 (selected) - an upstream connection
+    mockUseNodesReturn.edges = [
+      { id: "edge-1", source: "node-1", target: "node-2" },
+    ];
+    mockGetSelectedNodes.mockReturnValue(selectedNodes);
+    mockGetNodesBounds.mockReturnValue({ width: 50, height: 30, x: 200, y: 200 });
+
+    const { result } = renderHook(() => useDuplicateNodes(false));
+    act(() => {
+      result.current();
+    });
+
+    const setEdgesCall = mockSetEdges.mock.calls[0][0];
+    // Original edge + new upstream edge to duplicated node
+    expect(setEdgesCall.length).toBe(2);
+
+    // Original edge should be preserved
+    const originalEdge = setEdgesCall.find((e: any) => e.id === "edge-1");
+    expect(originalEdge).toBeDefined();
+
+    // New upstream edge from node-1 to new-node-0
+    const upstreamEdge = setEdgesCall.find(
+      (e: any) => e.source === "node-1" && e.target === "new-node-0"
+    );
+    expect(upstreamEdge).toBeDefined();
+    expect(upstreamEdge.id).toBe("mock-uuid-1234");
+  });
+
+  it("does not preserve upstream connections when keepUpstreamConnections is false", () => {
+    const selectedNodes = [
+      {
+        id: "node-2",
+        position: { x: 200, y: 200 },
+        data: { positionAbsolute: { x: 200, y: 200 } },
+        parentId: undefined,
+      },
+    ];
+
+    // Edge from node-1 (not selected) to node-2 (selected) - an upstream connection
+    mockUseNodesReturn.edges = [
+      { id: "edge-1", source: "node-1", target: "node-2" },
+    ];
+    mockGetSelectedNodes.mockReturnValue(selectedNodes);
+    mockGetNodesBounds.mockReturnValue({ width: 50, height: 30, x: 200, y: 200 });
+
+    // Pass keepUpstreamConnections = false
+    const { result } = renderHook(() => useDuplicateNodes(false, false));
+    act(() => {
+      result.current();
+    });
+
+    const setEdgesCall = mockSetEdges.mock.calls[0][0];
+    // Only original edge, no new upstream edge
+    expect(setEdgesCall.length).toBe(1);
+
+    const originalEdge = setEdgesCall.find((e: any) => e.id === "edge-1");
+    expect(originalEdge).toBeDefined();
+
+    // No upstream edge should be created
+    const upstreamEdge = setEdgesCall.find(
+      (e: any) => e.target === "new-node-0"
+    );
+    expect(upstreamEdge).toBeUndefined();
+  });
+
+  it("does not duplicate downstream edges (edges going out from selected nodes)", () => {
     const selectedNodes = [
       {
         id: "node-1",
@@ -269,6 +344,7 @@ describe("useDuplicateNodes", () => {
       },
     ];
 
+    // Edge from node-1 (selected) to node-2 (not selected) - a downstream connection
     mockUseNodesReturn.edges = [
       { id: "edge-1", source: "node-1", target: "node-2" },
     ];
@@ -281,10 +357,16 @@ describe("useDuplicateNodes", () => {
     });
 
     const setEdgesCall = mockSetEdges.mock.calls[0][0];
+    // Only original edge, no new downstream edge (downstream edges are never duplicated)
     expect(setEdgesCall.length).toBe(1);
-    const externalEdge = setEdgesCall.find((e: any) => e.target === "node-2");
-    expect(externalEdge).toBeDefined();
-    expect(externalEdge.id).toBe("edge-1");
+    const originalEdge = setEdgesCall.find((e: any) => e.id === "edge-1");
+    expect(originalEdge).toBeDefined();
+
+    // No edge from new-node-0 should exist
+    const downstreamEdge = setEdgesCall.find(
+      (e: any) => e.source === "new-node-0"
+    );
+    expect(downstreamEdge).toBeUndefined();
   });
 
   it("handles nodes with parentId correctly", () => {
