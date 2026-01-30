@@ -99,8 +99,7 @@ export default class PixiRenderer implements CanvasRenderer {
     }
     this.guidesContainer.removeChildren();
     this.guideNodes = guides.map((guide) => {
-      const line = new Graphics();
-      line.lineStyle(1, 0xff00ff, 1);
+      const line = new Graphics().setStrokeStyle({ width: 1, color: 0xff00ff, alpha: 1 });
       if (guide.type === "vertical") {
         line.moveTo(guide.position, guide.start);
         line.lineTo(guide.position, guide.end);
@@ -125,8 +124,7 @@ export default class PixiRenderer implements CanvasRenderer {
       return;
     }
     const lineColor = parseHexColor(color);
-    const grid = new Graphics();
-    grid.lineStyle(1, lineColor, 0.4);
+    const grid = new Graphics().setStrokeStyle({ width: 1, color: lineColor, alpha: 0.4 });
     const width = snapToGrid(this.data.width, size);
     const height = snapToGrid(this.data.height, size);
     for (let x = 0; x <= width; x += size) {
@@ -213,8 +211,7 @@ export default class PixiRenderer implements CanvasRenderer {
       if (!this.selection.has(el.id)) {
         return;
       }
-      const outline = new Graphics();
-      outline.lineStyle(1, 0x4f46e5, 1);
+      const outline = new Graphics().setStrokeStyle({ width: 1, color: 0x4f46e5, alpha: 1 });
       outline.drawRect(el.x, el.y, el.width, el.height);
       this.selectionContainer?.addChild(outline);
       this.selectionNodes.push(outline);
@@ -234,27 +231,24 @@ export default class PixiRenderer implements CanvasRenderer {
       case "rectangle": {
         const rect = new Graphics();
         const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_PIXI_BACKGROUND;
-        rect.beginFill(parseHexColor(fillColor));
-        rect.drawRect(0, 0, element.width, element.height);
+        rect.fill(parseHexColor(fillColor));
+        rect.rect(0, 0, element.width, element.height);
         rect.position.set(element.x, element.y);
         rect.rotation = toRadians(element.rotation);
-        rect.endFill();
         return rect;
       }
       case "ellipse": {
         const ellipse = new Graphics();
         const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_PIXI_BACKGROUND;
-        ellipse.beginFill(parseHexColor(fillColor));
-        ellipse.drawEllipse(element.width / 2, element.height / 2, element.width / 2, element.height / 2);
+        ellipse.fill(parseHexColor(fillColor));
+        ellipse.ellipse(element.width / 2, element.height / 2, element.width / 2, element.height / 2);
         ellipse.position.set(element.x, element.y);
         ellipse.rotation = toRadians(element.rotation);
-        ellipse.endFill();
         return ellipse;
       }
       case "line": {
-        const line = new Graphics();
         const strokeColor = (element.properties as { strokeColor?: string }).strokeColor ?? "#000000";
-        line.lineStyle(2, parseHexColor(strokeColor), 1);
+        const line = new Graphics().setStrokeStyle({ width: 2, color: parseHexColor(strokeColor), alpha: 1 });
         line.moveTo(0, element.height / 2);
         line.lineTo(element.width, element.height / 2);
         line.position.set(element.x, element.y);
@@ -285,9 +279,8 @@ export default class PixiRenderer implements CanvasRenderer {
         return sprite;
       }
       case "group": {
-        const group = new Graphics();
-        group.lineStyle(1, 0x999999, 1);
-        group.drawRect(0, 0, element.width, element.height);
+        const group = new Graphics().setStrokeStyle({ width: 1, color: 0x999999, alpha: 1 });
+        group.rect(0, 0, element.width, element.height);
         group.position.set(element.x, element.y);
         group.rotation = toRadians(element.rotation);
         return group;

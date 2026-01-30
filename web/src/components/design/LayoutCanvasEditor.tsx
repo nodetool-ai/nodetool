@@ -12,7 +12,6 @@ import React, {
 } from "react";
 import { Box } from "@mui/material";
 import { useTheme, alpha } from "@mui/material/styles";
-import Konva from "konva";
 import {
   LayoutCanvasData,
   ElementType,
@@ -28,7 +27,7 @@ import CanvasToolbar from "./CanvasToolbar";
 import LayerPanel from "./LayerPanel";
 import ElementProperties from "./ElementProperties";
 import { readSketchFile, downloadSketchFile, convertFromSketch, convertToSketch } from "./sketch";
-import CanvasScene from "./CanvasScene";
+import type { PixiInteractionHandlers } from "./renderers/pixi/PixiRenderer";
 import PixiRenderer from "./renderers/pixi/PixiRenderer";
 import type { PerfDatasetSize } from "./perfUtils";
 import { createPerfDataset } from "./perfUtils";
@@ -180,7 +179,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<Konva.Stage>(null);
   const [zoom, setZoom] = useState(1);
   const [, setStageSize] = useState({ width: width, height: height });
   const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([]);
@@ -504,8 +502,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
   // Handle element selection
   const handleSelect = useCallback(
-    (id: string, event: Konva.KonvaEventObject<MouseEvent>) => {
-      const isShiftKey = event.evt.shiftKey || event.evt.ctrlKey || event.evt.metaKey;
+    (id: string, event: PixiInteractionHandlers["onSelect"]) => {
+      const isShiftKey = event.shiftKey || event.ctrlKey || event.metaKey;
       if (isShiftKey) {
         addToSelection(id);
       } else {
@@ -515,23 +513,13 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     [addToSelection, setSelection]
   );
 
-  // Handle stage click (deselect)
-  const handleStageClick = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
-      // Only deselect if clicking on empty area
-      if (
-        e.target === e.target.getStage() ||
-        e.target?.name() === "canvas-background"
-      ) {
-        if (didDragSelectRef.current) {
-          didDragSelectRef.current = false;
-          return;
-        }
-        clearSelection();
-      }
-    },
-    [clearSelection]
-  );
+  const handleStageClick = useCallback(() => {
+    if (didDragSelectRef.current) {
+      didDragSelectRef.current = false;
+      return;
+    }
+    clearSelection();
+  }, [clearSelection]);
 
   // Handle element transform end
   const handleTransformEnd = useCallback(
@@ -566,21 +554,20 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         if (start) {
           const deltaX = result.x - start.x;
           const deltaY = result.y - start.y;
-          const stage = stageRef.current;
-          if (stage) {
-            selectionDrag.startPositions.forEach((pos, elementId) => {
-              const node = stage.findOne<Konva.Node>(`#${elementId}`);
-              if (node) {
-                node.x(pos.x + deltaX);
-                node.y(pos.y + deltaY);
-              }
-            });
-          }
+          selectionDrag.startPositions.forEach((pos, elementId) => {
+            if (elementId === id) {
+              return;
+            }
+            const element = findElement(elementId);
+            if (element) {
+              updateElement(elementId, { x: pos.x + deltaX, y: pos.y + deltaY });
+            }
+          });
         }
       }
       return { x: result.x, y: result.y };
     },
-    [calculateSnapGuides, perfMode]
+    [calculateSnapGuides, findElement, perfMode, updateElement]
   );
 
   const handleDragStart = useCallback(
@@ -883,20 +870,18 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     }
   }, []);
 
-  const getCanvasPointerPosition = useCallback(() => {
-    const stage = stageRef.current;
-    if (!stage) {
-      return null;
-    }
-    const position = stage.getPointerPosition();
-    if (!position) {
-      return null;
-    }
-    return {
-      x: (position.x - stagePosition.x) / zoom,
-      y: (position.y - stagePosition.y) / zoom
-    };
-  }, [stagePosition.x, stagePosition.y, zoom]);
+  const getCanvasPointerPosition = useCallback(
+    (event: React.MouseEvent | React.PointerEvent) => {
+      if (!pixiContainerRef.current) {
+        return null;
+      }
+      const rect = pixiContainerRef.current.getBoundingClientRect();
+      const x = (event.clientX - rect.left - stagePosition.x) / zoom;
+      const y = (event.clientY - rect.top - stagePosition.y) / zoom;
+      return { x, y };
+    },
+    [stagePosition.x, stagePosition.y, zoom]
+  );
 
   const normalizeSelectionRect = useCallback(
     (start: { x: number; y: number }, end: { x: number; y: number }) => {
@@ -943,20 +928,12 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   );
 
   const handleStageMouseDown = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (e.evt.button !== 0 || isSpacePressedRef.current || isPanningRef.current) {
+    (event: React.MouseEvent) => {
+      if (event.button !== 0 || isSpacePressedRef.current || isPanningRef.current) {
         return;
       }
 
-      const stage = e.target.getStage();
-      const isBackground =
-        e.target === stage || e.target?.name() === "canvas-background";
-
-      if (!isBackground) {
-        return;
-      }
-
-      const start = getCanvasPointerPosition();
+      const start = getCanvasPointerPosition(event);
       if (!start) {
         return;
       }
@@ -969,36 +946,39 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     [getCanvasPointerPosition]
   );
 
-  const handleStageMouseMove = useCallback(() => {
-    if (!isSelecting || !selectionStart) {
-      return;
-    }
-    const point = getCanvasPointerPosition();
-    if (!point) {
-      return;
-    }
+  const handleStageMouseMove = useCallback(
+    (event: React.MouseEvent) => {
+      if (!isSelecting || !selectionStart) {
+        return;
+      }
+      const point = getCanvasPointerPosition(event);
+      if (!point) {
+        return;
+      }
 
-    const nextRect = normalizeSelectionRect(selectionStart, point);
-    setSelectionRect(nextRect);
+      const nextRect = normalizeSelectionRect(selectionStart, point);
+      setSelectionRect(nextRect);
 
-    const dragDistance =
-      Math.abs(point.x - selectionStart.x) + Math.abs(point.y - selectionStart.y);
-    if (dragDistance > 3) {
-      didDragSelectRef.current = true;
-    }
-  }, [getCanvasPointerPosition, isSelecting, normalizeSelectionRect, selectionStart]);
+      const dragDistance =
+        Math.abs(point.x - selectionStart.x) + Math.abs(point.y - selectionStart.y);
+      if (dragDistance > 3) {
+        didDragSelectRef.current = true;
+      }
+    },
+    [getCanvasPointerPosition, isSelecting, normalizeSelectionRect, selectionStart]
+  );
 
   const handleStageMouseUp = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
+    (event: React.MouseEvent) => {
       if (!isSelecting || !selectionStart) {
         return;
       }
 
-      const end = getCanvasPointerPosition() ?? selectionStart;
+      const end = getCanvasPointerPosition(event) ?? selectionStart;
       const rect = normalizeSelectionRect(selectionStart, end);
-      const isContainedMode = e.evt.ctrlKey || e.evt.metaKey;
-      const isAdditive = e.evt.shiftKey;
-      const isSubtractive = e.evt.altKey;
+      const isContainedMode = event.ctrlKey || event.metaKey;
+      const isAdditive = event.shiftKey;
+      const isSubtractive = event.altKey;
 
       const hits = sortedElements
         .filter(
@@ -1287,9 +1267,18 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
           // onWheel removed - attached via useEffect ref
-          onMouseDown={handleCanvasMouseDown}
-          onMouseMove={handleCanvasMouseMove}
-          onMouseUp={handleCanvasMouseUp}
+          onMouseDown={(event) => {
+            handleCanvasMouseDown(event);
+            handleStageMouseDown(event);
+          }}
+          onMouseMove={(event) => {
+            handleCanvasMouseMove(event);
+            handleStageMouseMove(event);
+          }}
+          onMouseUp={(event) => {
+            handleCanvasMouseUp(event);
+            handleStageMouseUp(event);
+          }}
           onMouseLeave={handleCanvasMouseUp}
           sx={{
             flexGrow: 1,
@@ -1308,36 +1297,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
             }
           }}
         >
-          <CanvasScene
-            canvasData={canvasData}
-            gridSettings={gridSettings}
-            snapGuides={snapGuides}
-            sortedElements={sortedElements}
-            selectedIds={selectedIds}
-            effectiveVisibleById={effectiveVisibleById}
-            effectiveLockedById={effectiveLockedById}
-            selectionRect={selectionRect}
-            selectionStroke={selectionStroke}
-            selectionFill={selectionFill}
-            stageRef={stageRef}
-            stagePosition={stagePosition}
-            zoom={zoom}
-            isPanning={isPanning}
-            onSelect={handleSelect}
-            onDragStart={handleDragStart}
-            onTransformEnd={handleTransformEnd}
-            onDragMove={handleDragMove}
-            onDragEnd={handleDragEnd}
-            snapToGrid={snapToGrid}
-            onStageMouseDown={handleStageMouseDown}
-            onStageMouseMove={handleStageMouseMove}
-            onStageMouseUp={handleStageMouseUp}
-            onStageClick={handleStageClick}
-            elementsOpacity={0}
-            showGrid={false}
-            showGuides={false}
-            backgroundColor="transparent"
-          />
           <Box
             ref={pixiContainerRef}
             sx={{
