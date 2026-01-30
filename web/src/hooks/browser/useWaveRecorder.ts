@@ -29,7 +29,8 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   const [error, setError] = useState<string | null>(null);
   const [audioInputDevices, setAudioInputDevices] = useState<AudioDevice[]>([]);
   const [audioOutputDevices, setAudioOutputDevices] = useState<string[]>([]);
-  const [selectedInputDeviceId, setSelectedInputDeviceId] = useState<string>("");
+  const [selectedInputDeviceId, setSelectedInputDeviceId] =
+    useState<string>("");
 
   const fetchAudioDeviceNames = useCallback(() => {
     if (!navigator.mediaDevices) {
