@@ -560,33 +560,18 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     if (req.id === req.parent_id) {
       throw new Error("Cannot move an asset into itself.");
     }
-    // Only include fields that are explicitly provided in the request.
-    // Sending null for unspecified fields can cause the backend to clear them.
-    const body: Record<string, unknown> = {};
-    if (req.name !== undefined) {
-      body.name = req.name;
-    }
-    if (req.parent_id !== undefined) {
-      body.parent_id = req.parent_id;
-    }
-    if (req.content_type !== undefined) {
-      body.content_type = req.content_type;
-    }
-    if (req.metadata !== undefined) {
-      body.metadata = req.metadata;
-    }
-    if (req.data !== undefined) {
-      body.data = req.data;
-    }
-
+    // Use provided values or fall back to previous values for required fields.
+    // This ensures we don't accidentally clear fields like parent_id when only
+    // updating the name.
     const { error, data } = await client.PUT("/api/assets/{id}", {
       params: { path: { id: req.id } },
-      body: body as {
-        name: string | null;
-        parent_id: string | null;
-        content_type: string | null;
-        metadata: Record<string, never> | null;
-        data: string | null;
+      body: {
+        name: req.name !== undefined ? req.name : prev.name,
+        parent_id: req.parent_id !== undefined ? req.parent_id : prev.parent_id,
+        content_type:
+          req.content_type !== undefined ? req.content_type : prev.content_type,
+        metadata: req.metadata !== undefined ? req.metadata : null,
+        data: req.data !== undefined ? req.data : null
       }
     });
     if (error) {
