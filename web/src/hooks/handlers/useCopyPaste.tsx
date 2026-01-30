@@ -2,7 +2,7 @@
  * Custom hook that provides copy, cut, and paste functionality for nodes and edges in the flow editor.
  * Handles both single node and multi-node operations, preserves connections between copied nodes,
  * and supports both Electron clipboard API and localStorage fallback for data persistence.
- * 
+ *
  * Also handles pasting of clipboard content like images, HTML, RTF, and text by creating
  * appropriate constant nodes.
  */
@@ -86,13 +86,16 @@ export const useCopyPaste = () => {
           await navigator.clipboard.writeText(serializedData);
         } catch (error) {
           // Browser clipboard may fail due to permissions, fall back to localStorage
-          log.debug("Browser clipboard write failed, using localStorage:", error);
+          log.debug(
+            "Browser clipboard write failed, using localStorage:",
+            error
+          );
           localStorage.setItem("copiedNodesData", serializedData);
         }
       } else {
         localStorage.setItem("copiedNodesData", serializedData);
       }
-      
+
       // Also store in localStorage as backup for cross-tab paste
       localStorage.setItem("copiedNodesData", serializedData);
 
@@ -177,7 +180,9 @@ export const useCopyPaste = () => {
       !(parsedData as any).edges.every(isValidEdge)
     ) {
       // Not valid node data, try to handle as clipboard content
-      log.debug("Clipboard data does not contain valid nodes/edges, trying content paste");
+      log.debug(
+        "Clipboard data does not contain valid nodes/edges, trying content paste"
+      );
       const handled = await handleContentPaste();
       if (!handled) {
         setIsClipboardValid(false);
@@ -248,9 +253,9 @@ export const useCopyPaste = () => {
           workflow_id: workflowId,
           positionAbsolute: positionAbsolute
             ? {
-              x: positionAbsolute.x + offset.x,
-              y: positionAbsolute.y + offset.y
-            }
+                x: positionAbsolute.x + offset.x,
+                y: positionAbsolute.y + offset.y
+              }
             : undefined
         },
         position: {
