@@ -257,7 +257,7 @@ export const useCopyPaste = () => {
           x: node.position.x + (newParentId ? 0 : offset.x),
           y: node.position.y + (newParentId ? 0 : offset.y)
         },
-        selected: false
+        selected: true // Select pasted nodes
       };
 
       newNodes.push(newNode);
@@ -273,14 +273,25 @@ export const useCopyPaste = () => {
           ...edge,
           id: uuidv4(), // Edge IDs can still be UUIDs
           source: newSource,
-          target: newTarget
+          target: newTarget,
+          selected: false // Edges should not be selected
         });
       }
     });
 
+    // Deselect existing nodes, then add the new selected nodes
+    const deselectedNodes = nodes.map((node) => ({
+      ...node,
+      selected: false
+    }));
+    const deselectedEdges = edges.map((edge) => ({
+      ...edge,
+      selected: false
+    }));
+
     // Update state
-    setNodes([...nodes, ...newNodes]);
-    setEdges([...edges, ...newEdges]);
+    setNodes([...deselectedNodes, ...newNodes]);
+    setEdges([...deselectedEdges, ...newEdges]);
   }, [
     generateNodeIds,
     reactFlow,
