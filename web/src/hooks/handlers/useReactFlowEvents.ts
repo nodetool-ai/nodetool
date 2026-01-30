@@ -7,6 +7,11 @@ export function useReactFlowEvents() {
   const setViewport = useNodes((state) => state.setViewport);
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const viewportTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setViewportRef = useRef(setViewport);
+
+  useEffect(() => {
+    setViewportRef.current = setViewport;
+  }, [setViewport]);
 
   useEffect(() => {
     return () => {
@@ -22,11 +27,11 @@ export function useReactFlowEvents() {
         clearTimeout(viewportTimeoutRef.current);
       }
       viewportTimeoutRef.current = setTimeout(() => {
-        setViewport(viewport);
+        setViewportRef.current(viewport);
         viewportTimeoutRef.current = null;
       }, 100);
     },
-    [setViewport]
+    []
   );
 
   const handleOnMoveStart = useCallback(

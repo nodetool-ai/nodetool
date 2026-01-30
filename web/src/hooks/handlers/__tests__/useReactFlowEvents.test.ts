@@ -58,6 +58,60 @@ describe("useReactFlowEvents", () => {
       });
       expect(mockSetViewport).toHaveBeenCalledWith(viewport);
     });
+
+    it("uses the latest viewport when called rapidly", () => {
+      const { result } = renderHook(() => useReactFlowEvents());
+      const firstViewport: Viewport = { x: 0, y: 0, zoom: 1 };
+      const secondViewport: Viewport = { x: 10, y: 20, zoom: 1.2 };
+
+      act(() => {
+        result.current.handleMoveEnd({} as any, firstViewport);
+        result.current.handleMoveEnd({} as any, secondViewport);
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(mockSetViewport).toHaveBeenCalledTimes(1);
+      expect(mockSetViewport).toHaveBeenCalledWith(secondViewport);
+    });
+
+    it("clears pending timers on unmount", () => {
+      const { result, unmount } = renderHook(() => useReactFlowEvents());
+      const viewport: Viewport = { x: 5, y: 10, zoom: 0.8 };
+
+      act(() => {
+        result.current.handleMoveEnd({} as any, viewport);
+      });
+
+      unmount();
+
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(mockSetViewport).not.toHaveBeenCalled();
+    });
+
+    it("cancels the previous timeout on successive calls", () => {
+      const { result } = renderHook(() => useReactFlowEvents());
+      const firstViewport: Viewport = { x: 1, y: 2, zoom: 1.1 };
+      const secondViewport: Viewport = { x: 3, y: 4, zoom: 1.2 };
+
+      act(() => {
+        result.current.handleMoveEnd({} as any, firstViewport);
+        jest.advanceTimersByTime(50);
+        result.current.handleMoveEnd({} as any, secondViewport);
+        jest.advanceTimersByTime(50);
+      });
+
+      expect(mockSetViewport).not.toHaveBeenCalled();
+
+      act(() => {
+        jest.advanceTimersByTime(50);
+      });
+
+      expect(mockSetViewport).toHaveBeenCalledTimes(1);
+      expect(mockSetViewport).toHaveBeenCalledWith(secondViewport);
+    });
   });
 
   describe("handleOnMoveStart", () => {
