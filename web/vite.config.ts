@@ -33,6 +33,9 @@ export default defineConfig(async ({ mode }) => {
       port: 3000,
       proxy: proxyConfig
     },
+    optimizeDeps: {
+      exclude: ["@tanstack/react-query"]
+    },
     plugins: [
       react({
         jsxImportSource: "@emotion/react",
