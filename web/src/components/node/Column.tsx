@@ -53,7 +53,6 @@ const Column: React.FC<ColumnProps> = ({
         value={field.data_type}
         onChange={(e) => handleDataTypeChange(index, e.target.value as string)}
         className="mui-select"
-        disableUnderline={true}
         MenuProps={{
           anchorOrigin: {
             vertical: "bottom",

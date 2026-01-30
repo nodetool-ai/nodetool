@@ -490,7 +490,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (value[0] === undefined || value[0] === null) {
             return null;
           }
-          if (typeof value[0] === "string") {
+          if (typeof value[0] === "string" && value.every((v: any) => typeof v === "string")) {
             const seen = new Map<string, number>();
             return (
               <div
@@ -505,7 +505,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 }}
               >
                 <List sx={{ p: 1 }}>
-                  {value.map((v: any) => (
+                  {value.map((v: string) => (
                     <ListItem
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(v),
