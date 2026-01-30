@@ -8,7 +8,7 @@ import {
 } from "pixi.js";
 import type { LayoutCanvasData, LayoutElement, SnapGuide } from "../../types";
 import type { CanvasRenderer, Point, AABB, ExportOptions } from "../CanvasRenderer";
-import { DEFAULT_PIXI_BACKGROUND, parseHexColor, toRadians } from "./pixiUtils";
+import { DEFAULT_PIXI_BACKGROUND, parseHexColor, snapToGrid, toRadians } from "./pixiUtils";
 
 export default class PixiRenderer implements CanvasRenderer {
   private app: Application | null = null;
@@ -26,6 +26,9 @@ export default class PixiRenderer implements CanvasRenderer {
   private gridColor = "#e0e0e0";
   private pan: Point = { x: 0, y: 0 };
   private zoom = 1;
+  private gridNodes: Graphics[] = [];
+  private guideNodes: Graphics[] = [];
+  private selectionNodes: Graphics[] = [];
 
   async mount(container: HTMLElement): Promise<void> {
     this.container = container;
@@ -95,7 +98,7 @@ export default class PixiRenderer implements CanvasRenderer {
       return;
     }
     this.guidesContainer.removeChildren();
-    guides.forEach((guide) => {
+    this.guideNodes = guides.map((guide) => {
       const line = new Graphics();
       line.lineStyle(1, 0xff00ff, 1);
       if (guide.type === "vertical") {
@@ -106,6 +109,7 @@ export default class PixiRenderer implements CanvasRenderer {
         line.lineTo(guide.end, guide.position);
       }
       this.guidesContainer?.addChild(line);
+      return line;
     });
   }
 
@@ -123,14 +127,17 @@ export default class PixiRenderer implements CanvasRenderer {
     const lineColor = parseHexColor(color);
     const grid = new Graphics();
     grid.lineStyle(1, lineColor, 0.4);
-    for (let x = 0; x <= this.data.width; x += size) {
+    const width = snapToGrid(this.data.width, size);
+    const height = snapToGrid(this.data.height, size);
+    for (let x = 0; x <= width; x += size) {
       grid.moveTo(x, 0);
-      grid.lineTo(x, this.data.height);
+      grid.lineTo(x, height);
     }
-    for (let y = 0; y <= this.data.height; y += size) {
+    for (let y = 0; y <= height; y += size) {
       grid.moveTo(0, y);
-      grid.lineTo(this.data.width, y);
+      grid.lineTo(width, y);
     }
+    this.gridNodes = [grid];
     this.gridContainer.addChild(grid);
   }
 
@@ -201,6 +208,7 @@ export default class PixiRenderer implements CanvasRenderer {
       return;
     }
     this.selectionContainer.removeChildren();
+    this.selectionNodes = [];
     this.data.elements.forEach((el) => {
       if (!this.selection.has(el.id)) {
         return;
@@ -209,6 +217,7 @@ export default class PixiRenderer implements CanvasRenderer {
       outline.lineStyle(1, 0x4f46e5, 1);
       outline.drawRect(el.x, el.y, el.width, el.height);
       this.selectionContainer?.addChild(outline);
+      this.selectionNodes.push(outline);
     });
   }
 

@@ -42,6 +42,18 @@ Short-term focus (Pixi-only rendering is active now):
 
 Until these land, Konva remains hidden to drive selection, drag, and transform interactions.
 
+### Pixi Utility Library Structure (Proposed)
+
+```
+renderers/pixi/
+├── PixiRenderer.ts
+├── pixiUtils.ts         # Minimal helpers (clamp, snap, normalizeAngle, lerp)
+├── pixiSnap.ts          # Snap manager + guides
+├── pixiSelection.ts     # Marquee selection + selection bounds
+├── pixiTransform.ts     # Handle math + cursor mappings
+└── pixiSpatial.ts       # Spatial index for snapping/selection
+```
+
 ## Pixi vs Konva Rationale
 
 PixiJS advantages for this migration:

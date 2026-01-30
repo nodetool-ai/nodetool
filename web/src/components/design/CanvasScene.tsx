@@ -145,7 +145,8 @@ const CanvasScene: React.FC<CanvasSceneProps> = ({
       className="layout-canvas-stage-wrapper"
       elevation={3}
       sx={{
-        overflow: "hidden"
+        overflow: "hidden",
+        backgroundColor: "transparent"
       }}
     >
       <Stage
