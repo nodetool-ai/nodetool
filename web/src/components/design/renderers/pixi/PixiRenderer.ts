@@ -10,6 +10,14 @@ import type { LayoutCanvasData, LayoutElement, SnapGuide } from "../../types";
 import type { CanvasRenderer, Point, AABB, ExportOptions } from "../CanvasRenderer";
 import { DEFAULT_PIXI_BACKGROUND, parseHexColor, snapToGrid, toRadians } from "./pixiUtils";
 
+export interface PixiInteractionHandlers {
+  onSelect?: (id: string, event: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) => void;
+  onDragStart?: (id: string) => void;
+  onDragMove?: (id: string, x: number, y: number, width: number, height: number) => { x: number; y: number };
+  onDragEnd?: (id: string, x: number, y: number) => void;
+  onStageClick?: () => void;
+}
+
 export default class PixiRenderer implements CanvasRenderer {
   private app: Application | null = null;
   private container: HTMLElement | null = null;
@@ -29,6 +37,9 @@ export default class PixiRenderer implements CanvasRenderer {
   private gridNodes: Graphics[] = [];
   private guideNodes: Graphics[] = [];
   private selectionNodes: Graphics[] = [];
+  private interactionHandlers: PixiInteractionHandlers | null = null;
+  private interactionProvider: (() => PixiInteractionHandlers) | null = null;
+  private dragState: { id: string; start: Point; startElement: Point } | null = null;
 
   async mount(container: HTMLElement): Promise<void> {
     this.container = container;
@@ -55,6 +66,14 @@ export default class PixiRenderer implements CanvasRenderer {
     this.root.addChild(this.elementContainer);
     this.root.addChild(this.selectionContainer);
     this.root.addChild(this.guidesContainer);
+    this.root.eventMode = "static";
+    this.root.on("pointertap", (event) => {
+      if (event.target !== this.root) {
+        return;
+      }
+      const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+      handlers?.onStageClick?.();
+    });
     app.stage.addChild(this.root);
     container.appendChild(app.canvas);
 
@@ -182,6 +201,13 @@ export default class PixiRenderer implements CanvasRenderer {
     this.gridContainer = null;
     this.container = null;
     this.data = null;
+    this.interactionHandlers = null;
+    this.dragState = null;
+  }
+
+  setInteractionHandlers(provider: () => PixiInteractionHandlers): void {
+    this.interactionProvider = provider;
+    this.interactionHandlers = provider();
   }
 
   private renderDocument(): void {
@@ -235,6 +261,54 @@ export default class PixiRenderer implements CanvasRenderer {
         rect.rect(0, 0, element.width, element.height);
         rect.position.set(element.x, element.y);
         rect.rotation = toRadians(element.rotation);
+        rect.eventMode = "static";
+        rect.cursor = "move";
+        rect.on("pointerdown", (event) => {
+          event.stopPropagation();
+          this.dragState = {
+            id: element.id,
+            start: { x: event.global.x, y: event.global.y },
+            startElement: { x: element.x, y: element.y }
+          };
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onSelect?.(element.id, {
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey
+          });
+          handlers?.onDragStart?.(element.id);
+        });
+        rect.on("pointermove", (event) => {
+          if (!this.dragState || this.dragState.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const nextX = this.dragState.startElement.x + dx;
+          const nextY = this.dragState.startElement.y + dy;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragMove?.(
+            element.id,
+            nextX,
+            nextY,
+            element.width,
+            element.height
+          );
+        });
+        rect.on("pointerup", (event) => {
+          if (this.dragState?.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragEnd?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy
+          );
+          this.dragState = null;
+        });
         return rect;
       }
       case "ellipse": {
@@ -244,6 +318,52 @@ export default class PixiRenderer implements CanvasRenderer {
         ellipse.ellipse(element.width / 2, element.height / 2, element.width / 2, element.height / 2);
         ellipse.position.set(element.x, element.y);
         ellipse.rotation = toRadians(element.rotation);
+        ellipse.eventMode = "static";
+        ellipse.cursor = "move";
+        ellipse.on("pointerdown", (event) => {
+          event.stopPropagation();
+          this.dragState = {
+            id: element.id,
+            start: { x: event.global.x, y: event.global.y },
+            startElement: { x: element.x, y: element.y }
+          };
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onSelect?.(element.id, {
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey
+          });
+          handlers?.onDragStart?.(element.id);
+        });
+        ellipse.on("pointermove", (event) => {
+          if (!this.dragState || this.dragState.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragMove?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy,
+            element.width,
+            element.height
+          );
+        });
+        ellipse.on("pointerup", (event) => {
+          if (this.dragState?.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragEnd?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy
+          );
+          this.dragState = null;
+        });
         return ellipse;
       }
       case "line": {
@@ -253,6 +373,52 @@ export default class PixiRenderer implements CanvasRenderer {
         line.lineTo(element.width, element.height / 2);
         line.position.set(element.x, element.y);
         line.rotation = toRadians(element.rotation);
+        line.eventMode = "static";
+        line.cursor = "move";
+        line.on("pointerdown", (event) => {
+          event.stopPropagation();
+          this.dragState = {
+            id: element.id,
+            start: { x: event.global.x, y: event.global.y },
+            startElement: { x: element.x, y: element.y }
+          };
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onSelect?.(element.id, {
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey
+          });
+          handlers?.onDragStart?.(element.id);
+        });
+        line.on("pointermove", (event) => {
+          if (!this.dragState || this.dragState.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragMove?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy,
+            element.width,
+            element.height
+          );
+        });
+        line.on("pointerup", (event) => {
+          if (this.dragState?.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragEnd?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy
+          );
+          this.dragState = null;
+        });
         return line;
       }
       case "text": {
@@ -266,6 +432,52 @@ export default class PixiRenderer implements CanvasRenderer {
         });
         text.position.set(element.x, element.y);
         text.rotation = toRadians(element.rotation);
+        text.eventMode = "static";
+        text.cursor = "move";
+        text.on("pointerdown", (event) => {
+          event.stopPropagation();
+          this.dragState = {
+            id: element.id,
+            start: { x: event.global.x, y: event.global.y },
+            startElement: { x: element.x, y: element.y }
+          };
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onSelect?.(element.id, {
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey
+          });
+          handlers?.onDragStart?.(element.id);
+        });
+        text.on("pointermove", (event) => {
+          if (!this.dragState || this.dragState.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragMove?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy,
+            element.width,
+            element.height
+          );
+        });
+        text.on("pointerup", (event) => {
+          if (this.dragState?.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragEnd?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy
+          );
+          this.dragState = null;
+        });
         return text;
       }
       case "image": {
@@ -276,6 +488,52 @@ export default class PixiRenderer implements CanvasRenderer {
         sprite.width = element.width;
         sprite.height = element.height;
         sprite.rotation = toRadians(element.rotation);
+        sprite.eventMode = "static";
+        sprite.cursor = "move";
+        sprite.on("pointerdown", (event) => {
+          event.stopPropagation();
+          this.dragState = {
+            id: element.id,
+            start: { x: event.global.x, y: event.global.y },
+            startElement: { x: element.x, y: element.y }
+          };
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onSelect?.(element.id, {
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey
+          });
+          handlers?.onDragStart?.(element.id);
+        });
+        sprite.on("pointermove", (event) => {
+          if (!this.dragState || this.dragState.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragMove?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy,
+            element.width,
+            element.height
+          );
+        });
+        sprite.on("pointerup", (event) => {
+          if (this.dragState?.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragEnd?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy
+          );
+          this.dragState = null;
+        });
         return sprite;
       }
       case "group": {
@@ -283,6 +541,52 @@ export default class PixiRenderer implements CanvasRenderer {
         group.rect(0, 0, element.width, element.height);
         group.position.set(element.x, element.y);
         group.rotation = toRadians(element.rotation);
+        group.eventMode = "static";
+        group.cursor = "move";
+        group.on("pointerdown", (event) => {
+          event.stopPropagation();
+          this.dragState = {
+            id: element.id,
+            start: { x: event.global.x, y: event.global.y },
+            startElement: { x: element.x, y: element.y }
+          };
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onSelect?.(element.id, {
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey
+          });
+          handlers?.onDragStart?.(element.id);
+        });
+        group.on("pointermove", (event) => {
+          if (!this.dragState || this.dragState.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragMove?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy,
+            element.width,
+            element.height
+          );
+        });
+        group.on("pointerup", (event) => {
+          if (this.dragState?.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragEnd?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy
+          );
+          this.dragState = null;
+        });
         return group;
       }
       default:

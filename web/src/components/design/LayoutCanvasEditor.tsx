@@ -461,11 +461,16 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     pixiRendererRef.current = renderer;
     let cancelled = false;
 
-    renderer.mount(pixiContainerRef.current).catch((error) => {
-      if (!cancelled) {
-        console.error("Failed to initialize Pixi renderer", error);
-      }
-    });
+    renderer
+      .mount(pixiContainerRef.current)
+      .then(() => {
+        renderer.setInteractionHandlers(() => interactionHandlersRef.current);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("Failed to initialize Pixi renderer", error);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -473,6 +478,8 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       pixiRendererRef.current = null;
     };
   }, []);
+
+  const interactionHandlersRef = useRef<PixiInteractionHandlers>({});
 
   useEffect(() => {
     const renderer = pixiRendererRef.current;
@@ -513,15 +520,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     [addToSelection, setSelection]
   );
 
-  const handleStageClick = useCallback(() => {
-    if (didDragSelectRef.current) {
-      didDragSelectRef.current = false;
-      return;
-    }
-    clearSelection();
-  }, [clearSelection]);
-
-  // Handle element transform end
   const handleTransformEnd = useCallback(
     (
       id: string,
@@ -538,7 +536,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     [findElement, transformGroupWithChildren, updateElement]
   );
 
-  // Handle element drag move - for smart snap guides
   const handleDragMove = useCallback(
     (id: string, x: number, y: number, width: number, height: number) => {
       const result = calculateSnapGuides(id, x, y, width, height);
@@ -594,7 +591,6 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     [findElement, selectedIds, setSelection]
   );
 
-  // Handle element drag end
   const handleDragEnd = useCallback(
     (id: string, x: number, y: number) => {
       setSnapGuides([]);
@@ -657,6 +653,24 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     },
     [findElement, getDescendantIds, moveGroupWithChildren, updateElement, updateElements]
   );
+
+  const handleStageClick = useCallback(() => {
+    if (didDragSelectRef.current) {
+      didDragSelectRef.current = false;
+      return;
+    }
+    clearSelection();
+  }, [clearSelection]);
+
+  useEffect(() => {
+    interactionHandlersRef.current = {
+      onSelect: handleSelect,
+      onDragStart: handleDragStart,
+      onDragMove: handleDragMove,
+      onDragEnd: handleDragEnd,
+      onStageClick: handleStageClick
+    };
+  }, [handleDragEnd, handleDragMove, handleDragStart, handleSelect, handleStageClick]);
 
   // Handle layer selection from panel
   const handleLayerSelect = useCallback(
@@ -926,6 +940,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     },
     []
   );
+
 
   const handleStageMouseDown = useCallback(
     (event: React.MouseEvent) => {
