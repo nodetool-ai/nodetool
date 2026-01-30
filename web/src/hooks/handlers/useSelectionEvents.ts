@@ -69,15 +69,28 @@ export function useSelectionEvents({
       return;
     }
 
-    const intersectingGroups = getNodesWithinSelection(
+    // Get groups that are fully enclosed by the selection rectangle
+    const fullyEnclosedGroups = getNodesWithinSelection(
       reactFlowInstance,
       selectionRect,
       (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
     );
+    const fullyEnclosedIds = new Set(fullyEnclosedGroups.map((n) => n.id));
 
-    intersectingGroups.forEach((node) => {
-      if (!node.selected) {
+    // Get all group nodes from the instance
+    const allNodes = reactFlowInstance.getNodes();
+    const allGroupNodes = allNodes.filter(
+      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
+    );
+
+    // Select fully enclosed groups, deselect groups that are selected but not fully enclosed
+    allGroupNodes.forEach((node) => {
+      const isFullyEnclosed = fullyEnclosedIds.has(node.id);
+      if (isFullyEnclosed && !node.selected) {
         updateNode(node.id, { selected: true });
+      } else if (!isFullyEnclosed && node.selected) {
+        // Deselect groups that were selected by ReactFlow but aren't fully enclosed
+        updateNode(node.id, { selected: false });
       }
     });
   }, [reactFlowInstance, updateNode]);
