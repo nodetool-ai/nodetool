@@ -560,14 +560,23 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     if (req.id === req.parent_id) {
       throw new Error("Cannot move an asset into itself.");
     }
+    // Only include fields that are explicitly provided in the request.
+    // Sending null for unspecified fields can cause the backend to clear them.
+    const body: Record<string, unknown> = {};
+    if (req.name !== undefined) body.name = req.name;
+    if (req.parent_id !== undefined) body.parent_id = req.parent_id;
+    if (req.content_type !== undefined) body.content_type = req.content_type;
+    if (req.metadata !== undefined) body.metadata = req.metadata;
+    if (req.data !== undefined) body.data = req.data;
+
     const { error, data } = await client.PUT("/api/assets/{id}", {
       params: { path: { id: req.id } },
-      body: {
-        name: req.name || null,
-        parent_id: req.parent_id || null,
-        content_type: req.content_type || null,
-        metadata: req.metadata || null,
-        data: req.data || null
+      body: body as {
+        name: string | null;
+        parent_id: string | null;
+        content_type: string | null;
+        metadata: Record<string, never> | null;
+        data: string | null;
       }
     });
     if (error) {
@@ -575,7 +584,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
     get().add(data);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
-    if (req.parent_id !== prev.parent_id) {
+    if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
       get().invalidateQueries(["assets", { parent_id: req.parent_id }]);
     }
     return data;
