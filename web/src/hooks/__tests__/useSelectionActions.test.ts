@@ -28,30 +28,36 @@ jest.mock("../nodes/useSurroundWithGroup", () => ({
 import { useNodes } from "../../contexts/NodeContext";
 
 describe("useSelectionActions", () => {
+  const defaultNodes = [
+    {
+      id: "1",
+      position: { x: 0, y: 0 },
+      selected: true,
+      measured: { width: 100, height: 50 }
+    },
+    {
+      id: "2",
+      position: { x: 200, y: 0 },
+      selected: true,
+      measured: { width: 100, height: 50 }
+    },
+    {
+      id: "3",
+      position: { x: 400, y: 0 },
+      selected: true,
+      measured: { width: 100, height: 50 }
+    }
+  ];
+
   beforeEach(() => {
     jest.clearAllMocks();
     (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
       sel({
-        getSelectedNodes: jest.fn(() => [
-          {
-            id: "1",
-            position: { x: 0, y: 0 },
-            selected: true,
-            measured: { width: 100, height: 50 }
-          },
-          {
-            id: "2",
-            position: { x: 200, y: 0 },
-            selected: true,
-            measured: { width: 100, height: 50 }
-          },
-          {
-            id: "3",
-            position: { x: 400, y: 0 },
-            selected: true,
-            measured: { width: 100, height: 50 }
-          }
-        ]),
+        nodes: defaultNodes,
+        edges: [],
+        setNodes: mockSetNodes,
+        setEdges: mockSetEdges,
+        getSelectedNodes: jest.fn(() => defaultNodes),
         deleteNode: jest.fn(),
         updateNodeData: jest.fn(),
         toggleBypassSelected: jest.fn()
@@ -391,11 +397,16 @@ describe("useSelectionActions", () => {
 
   describe("duplicateSelected", () => {
     it("duplicates nodes with offset and deselects originals", () => {
+      const testNodes = [
+        { id: "1", position: { x: 0, y: 0 }, selected: true, data: {} }
+      ];
       (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
         sel({
-          getSelectedNodes: () => [
-            { id: "1", position: { x: 0, y: 0 }, selected: true, data: {} }
-          ]
+          nodes: testNodes,
+          edges: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes
         })
       );
 
@@ -403,12 +414,8 @@ describe("useSelectionActions", () => {
       result.current.duplicateSelected();
       expect(mockSetNodes).toHaveBeenCalled();
 
-      // Get the update function passed to setNodes
-      const updateFn = mockSetNodes.mock.calls[0][0];
-      const currentNodes = [
-        { id: "1", position: { x: 0, y: 0 }, selected: true, data: {} }
-      ];
-      const updatedNodes = updateFn(currentNodes);
+      // Get the nodes array passed to setNodes
+      const updatedNodes = mockSetNodes.mock.calls[0][0];
 
       // Should have original + duplicate
       expect(updatedNodes.length).toBe(2);
@@ -424,12 +431,17 @@ describe("useSelectionActions", () => {
   describe("deleteSelected", () => {
     it("deletes all selected nodes", () => {
       const mockDeleteNode = jest.fn();
+      const testNodes = [
+        { id: "1", position: { x: 0, y: 0 }, selected: true },
+        { id: "2", position: { x: 200, y: 0 }, selected: true }
+      ];
       (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
         sel({
-          getSelectedNodes: () => [
-            { id: "1", position: { x: 0, y: 0 }, selected: true },
-            { id: "2", position: { x: 200, y: 0 }, selected: true }
-          ],
+          nodes: testNodes,
+          edges: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes,
           deleteNode: mockDeleteNode
         })
       );
@@ -445,11 +457,14 @@ describe("useSelectionActions", () => {
   describe("bypassSelected", () => {
     it("toggles bypass on selected nodes", () => {
       const mockToggleBypass = jest.fn();
+      const testNodes = [{ id: "1", position: { x: 0, y: 0 }, selected: true }];
       (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
         sel({
-          getSelectedNodes: () => [
-            { id: "1", position: { x: 0, y: 0 }, selected: true }
-          ],
+          nodes: testNodes,
+          edges: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes,
           toggleBypassSelected: mockToggleBypass
         })
       );

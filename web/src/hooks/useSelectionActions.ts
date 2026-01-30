@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
+import { v4 as uuidv4 } from "uuid";
 import { useNodes } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
@@ -78,9 +79,23 @@ const getNodeHeight = (node: { measured?: { height?: number } }) =>
   node.measured?.height ?? 0;
 
 export const useSelectionActions = (): SelectionActionsReturn => {
-  const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
-  const deleteNode = useNodes((state) => state.deleteNode);
-  const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    getSelectedNodes,
+    deleteNode,
+    toggleBypassSelected
+  } = useNodes((state) => ({
+    nodes: state.nodes,
+    edges: state.edges,
+    setNodes: state.setNodes,
+    setEdges: state.setEdges,
+    getSelectedNodes: state.getSelectedNodes,
+    deleteNode: state.deleteNode,
+    toggleBypassSelected: state.toggleBypassSelected
+  }));
   const reactFlow = useReactFlow();
   const surroundWithGroup = useSurroundWithGroup();
 
@@ -308,50 +323,49 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     // Use larger offset for better spacing
     const offset = 50;
 
-    reactFlow.setNodes((currentNodes) => {
-      const newNodes: typeof currentNodes = [];
-      const nodeIdMap: Record<string, string> = {};
+    const nodeIdMap: Record<string, string> = {};
+    const newNodes = selectedNodes.map((node) => {
+      const newId = uuidv4();
+      nodeIdMap[node.id] = newId;
 
-      selectedNodes.forEach((node) => {
-        const newId = `${node.id}_copy_${Date.now()}`;
-        nodeIdMap[node.id] = newId;
-
-        newNodes.push({
-          ...node,
-          id: newId,
-          position: {
-            x: node.position.x + offset,
-            y: node.position.y + offset
-          },
-          selected: true,
-          data: { ...node.data }
-        });
-      });
-
-      const newEdges = reactFlow.getEdges().map((edge) => {
-        if (nodeIdMap[edge.source] && nodeIdMap[edge.target]) {
-          return {
-            ...edge,
-            id: `${edge.id}_copy`,
-            source: nodeIdMap[edge.source],
-            target: nodeIdMap[edge.target],
-            selected: true
-          };
-        }
-        return { ...edge, selected: false };
-      });
-
-      reactFlow.setEdges(newEdges);
-
-      // Deselect original nodes, keep only new nodes selected
-      return [
-        ...currentNodes.map((node) =>
-          node.selected ? { ...node, selected: false } : node
-        ),
-        ...newNodes
-      ];
+      return {
+        ...node,
+        id: newId,
+        position: {
+          x: node.position.x + offset,
+          y: node.position.y + offset
+        },
+        selected: true,
+        data: { ...node.data }
+      };
     });
-  }, [getSelectedNodes, reactFlow]);
+
+    // Create new edges for duplicated nodes (only for edges where both nodes are duplicated)
+    const selectedNodeIds = selectedNodes.map((n) => n.id);
+    const newEdges = edges
+      .filter(
+        (edge) =>
+          selectedNodeIds.includes(edge.source) &&
+          selectedNodeIds.includes(edge.target)
+      )
+      .map((edge) => ({
+        ...edge,
+        id: uuidv4(),
+        source: nodeIdMap[edge.source],
+        target: nodeIdMap[edge.target],
+        selected: true
+      }));
+
+    // Deselect original nodes and add new duplicated nodes
+    const updatedNodes = nodes.map((node) => ({
+      ...node,
+      selected: false
+    }));
+
+    // Update state using NodeStore (not ReactFlow directly)
+    setNodes([...updatedNodes, ...newNodes]);
+    setEdges([...edges, ...newEdges]);
+  }, [getSelectedNodes, nodes, edges, setNodes, setEdges]);
 
   const groupSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();

@@ -125,7 +125,8 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
           ...edge,
           id: uuidv4(), // Edge IDs can still be UUIDs
           source: newSource,
-          target: newTarget
+          target: newTarget,
+          selected: false // New edges should not be selected
         });
       }
     }
@@ -136,8 +137,14 @@ export const useDuplicateNodes = (vertical: boolean = false) => {
       selected: false
     }));
 
+    // Deselect old edges
+    const updatedEdges = edges.map((edge) => ({
+      ...edge,
+      selected: false
+    }));
+
     setNodes([...updatedNodes, ...newNodes]);
-    setEdges([...edges, ...newEdges]);
+    setEdges([...updatedEdges, ...newEdges]);
   }, [
     vertical,
     generateNodeIds,
