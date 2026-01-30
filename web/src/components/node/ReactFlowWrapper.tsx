@@ -530,7 +530,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         onDoubleClick={handleDoubleClick}
         proOptions={proOptions}
         panActivationKeyCode=""
-        deleteKeyCode={["Delete", "Backspace"]}
+        deleteKeyCode={null}
       >
         <Background
           id={workflowId}
