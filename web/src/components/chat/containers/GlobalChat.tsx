@@ -52,7 +52,7 @@ const GlobalChat: React.FC = () => {
   const disconnect = useGlobalChatStore((s) => s.disconnect);
 
   // Get connection state from WebSocket manager directly
-  const [connectionState, setConnectionState] = useState(
+  const [_connectionState, setConnectionState] = useState(
     globalWebSocketManager.getConnectionState()
   );
 

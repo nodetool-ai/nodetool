@@ -5,13 +5,12 @@ import {
   Typography,
   CircularProgress,
   Fade,
-  Chip,
   Tooltip
 } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
-import { chipsContainerSx, chipSx } from "./WorkflowCard.styles";
+
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { getNodeDisplayName, getNodeNamespace } from "../../utils/nodeDisplay";
