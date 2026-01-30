@@ -125,26 +125,6 @@ See [mobile/README.md](mobile/README.md) for setup.
 
 ______________________________________________________________________
 
-## Personal AI Stack
-
-Run NodeTool on your hardware and access it from mobile devices via secure connection.
-
-**Deployment options:**
-
-🏠 **Local**: Mobile → VPN → Home Server → Local models + data
-
-🏢 **Private Cloud**: Mobile → VPN → VPC → Self-hosted NodeTool → Private models
-
-🌐 **Hybrid**: Mobile → VPN → Local Server → Local models + Cloud APIs
-
-**Setup:**
-1. Install NodeTool on your machine or cloud
-2. Set up VPN (Tailscale, WireGuard, etc.)
-3. Install mobile app
-4. Connect to your server
-
-See [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/self_hosted.md).
-
 ## Testing
 
 ```bash
