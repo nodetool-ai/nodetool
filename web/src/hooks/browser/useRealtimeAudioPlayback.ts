@@ -102,7 +102,9 @@ export const useRealtimeAudioPlayback = ({
     (base64: string) => {
       const ctx = audioContextRef.current;
       const gain = gainRef.current;
-      if (!ctx || !gain || !base64) {return;}
+      if (!ctx || !gain || !base64) {
+        return;
+      }
       const u8 = base64ToUint8Array(base64);
       const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
       const frameCount = Math.floor(u8.byteLength / 2 / channels);
@@ -149,7 +151,9 @@ export const useRealtimeAudioPlayback = ({
   const internalStart = useCallback(() => {
     console.debug("[RealtimeAudio] Internal start");
     const ctx = audioContextRef.current;
-    if (!ctx) {return;}
+    if (!ctx) {
+      return;
+    }
     try {
       ctx.resume();
     } catch (e) {
@@ -172,7 +176,9 @@ export const useRealtimeAudioPlayback = ({
     });
     sourcesRef.current = [];
     const ctx = audioContextRef.current;
-    if (ctx) {nextStartTimeRef.current = ctx.currentTime;}
+    if (ctx) {
+      nextStartTimeRef.current = ctx.currentTime;
+    }
   }, []);
 
   // Schedule newly arrived chunks when actually playing (queue approved)
@@ -247,7 +253,8 @@ export const useRealtimeAudioPlayback = ({
       // Cleanup: dequeue on unmount or when dependencies change
       audioQueue.dequeue(instanceId);
     };
-  }, [audioQueue, internalStart, internalStop, wantsToPlay]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [internalStart, internalStop, wantsToPlay]); // audioQueue is stable, don't include it
 
   const stream = streamDestRef.current ? streamDestRef.current.stream : null;
 
