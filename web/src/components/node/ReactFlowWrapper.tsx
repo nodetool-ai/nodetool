@@ -26,11 +26,7 @@ import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 import { useFitView } from "../../hooks/useFitView";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
-import {
-  MAX_ZOOM,
-  MIN_ZOOM,
-  ZOOMED_OUT
-} from "../../config/constants";
+import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
 import isEqual from "lodash/isEqual";
 import { useTheme } from "@mui/material/styles";
@@ -54,7 +50,6 @@ import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
 import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
-import { shouldRenderVisibleElements } from "../../utils/renderVisibility";
 
 const fitViewOptions = {
   maxZoom: MAX_ZOOM,
@@ -379,10 +374,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     () => Array.from(activeGradientKeys),
     [activeGradientKeys]
   );
-  const renderVisibleElements = useMemo(
-    () => shouldRenderVisibleElements(nodes.length, connecting),
-    [nodes.length, connecting]
-  );
 
   useEffect(() => {
     if (isSelecting) {
@@ -485,7 +476,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         className={reactFlowClasses}
         colorMode={isDarkMode ? "dark" : "light"}
         style={reactFlowStyle}
-        onlyRenderVisibleElements={renderVisibleElements}
         ref={ref}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}

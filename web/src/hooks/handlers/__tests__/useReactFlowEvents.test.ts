@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { Viewport } from "@xyflow/react";
 import { useReactFlowEvents } from "../useReactFlowEvents";
 
@@ -28,6 +28,12 @@ jest.mock("../../../stores/NodeMenuStore", () => ({
 describe("useReactFlowEvents", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it("returns handleMoveEnd and handleOnMoveStart functions", () => {
@@ -37,13 +43,19 @@ describe("useReactFlowEvents", () => {
   });
 
   describe("handleMoveEnd", () => {
-    it("calls setViewport with the viewport", () => {
+    it("calls setViewport with the viewport after debounce", () => {
       const { result } = renderHook(() => useReactFlowEvents());
       const viewport: Viewport = { x: 100, y: 200, zoom: 1.5 };
       const event = {} as any;
 
-      result.current.handleMoveEnd(event, viewport);
+      act(() => {
+        result.current.handleMoveEnd(event, viewport);
+      });
+      expect(mockSetViewport).not.toHaveBeenCalled();
 
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
       expect(mockSetViewport).toHaveBeenCalledWith(viewport);
     });
   });
