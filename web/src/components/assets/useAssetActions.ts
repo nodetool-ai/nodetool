@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
+import useAssets from "../../serverState/useAssets";
 import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import {
@@ -30,6 +31,7 @@ export const useAssetActions = (asset: Asset) => {
   );
 
   const { mutation: updateAssetMutation } = useAssetUpdate();
+  const { refetchAssetsAndFolders } = useAssets();
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
@@ -174,6 +176,10 @@ export const useAssetActions = (asset: Asset) => {
             assetIdsToMove.map((id: string) => ({ id, parent_id: asset.id }))
           );
           setMoveToFolderDialogOpen(false);
+          // Clear selection and refetch to update the UI
+          setSelectedAssetIds([]);
+          setSelectedAssets([]);
+          refetchAssetsAndFolders();
         }
       } catch (_error) {
         log.error("Failed to process drop:", _error);
@@ -183,7 +189,10 @@ export const useAssetActions = (asset: Asset) => {
       asset.content_type,
       asset.id,
       setMoveToFolderDialogOpen,
-      updateAssetMutation
+      updateAssetMutation,
+      setSelectedAssetIds,
+      setSelectedAssets,
+      refetchAssetsAndFolders
     ]
   );
 
