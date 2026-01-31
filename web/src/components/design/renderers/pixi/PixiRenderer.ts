@@ -2,6 +2,7 @@ import {
   Application,
   Container,
   Graphics,
+  RAD_TO_DEG,
   Rectangle,
   Sprite,
   Text,
@@ -411,6 +412,49 @@ export default class PixiRenderer implements CanvasRenderer {
       });
       this.selectionHandles?.addChild(handle);
     });
+    const rotationHandle = new Graphics()
+      .rect(bounds.x + bounds.width / 2 - half, bounds.y - handleSize * 2, handleSize, handleSize)
+      .fill(0xffffff)
+      .stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
+    rotationHandle.eventMode = "static";
+    rotationHandle.cursor = "crosshair";
+    rotationHandle.on("pointerdown", (event) => {
+      event.stopPropagation();
+      this.resizeState = {
+        id: Array.from(this.selection)[0],
+        handle: "n",
+        startBounds: bounds.clone(),
+        startPointer: { x: event.global.x, y: event.global.y },
+        rotation: this.getRotationAngle(
+          { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 },
+          event.global
+        )
+      };
+    });
+    rotationHandle.on("pointermove", (event) => {
+      if (!this.resizeState) {
+        return;
+      }
+      if (!(event.buttons & 1)) {
+        this.resizeState = null;
+        return;
+      }
+      const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+      const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+      const angle = this.getRotationAngle(center, event.global);
+      const rotation = angle - this.resizeState.rotation;
+      handlers?.onTransformEnd?.(this.resizeState.id, {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        rotation
+      });
+    });
+    rotationHandle.on("pointerup", () => {
+      this.resizeState = null;
+    });
+    this.selectionHandles?.addChild(rotationHandle);
   }
 
   private getHandleCursor(handle: ResizeHandle): string {
@@ -466,6 +510,11 @@ export default class PixiRenderer implements CanvasRenderer {
     next.width = width;
     next.height = height;
     return next;
+  }
+
+  private getRotationAngle(center: Point, pointer: Point): number {
+    const angle = Math.atan2(pointer.y - center.y, pointer.x - center.x);
+    return angle * RAD_TO_DEG;
   }
 
   private applyCamera(): void {
