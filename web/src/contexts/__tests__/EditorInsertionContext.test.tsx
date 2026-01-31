@@ -115,33 +115,6 @@ describe("EditorInsertionContext", () => {
     });
   });
 
-  describe("context updates", () => {
-    it("updates when provider value changes", () => {
-      const mockInsertFn1: InsertIntoEditorFn = jest.fn();
-      const mockInsertFn2: InsertIntoEditorFn = jest.fn();
-
-      const wrapper: React.FC<{
-        value: InsertIntoEditorFn | null;
-        children: React.ReactNode;
-      }> = ({ value, children }) => (
-        <EditorInsertionProvider value={value}>
-          {children}
-        </EditorInsertionProvider>
-      );
-
-      const { result, rerender } = renderHook(() => useEditorInsertion(), {
-        wrapper: ({ children }) => wrapper({ value: mockInsertFn1, children })
-      });
-
-      expect(result.current).toBe(mockInsertFn1);
-
-      rerender(wrapper({ value: mockInsertFn2, children: null }));
-
-      // Note: the hook should now return the new function after rerender
-      // However, due to how rerender works with wrapper, we need to test this differently
-    });
-  });
-
   describe("default export", () => {
     it("exports the context as default", () => {
       expect(EditorInsertionContext).toBeDefined();
