@@ -285,14 +285,14 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should remember open workflows", async ({ page }) => {
+        // Navigate to dashboard first to establish context
+        await page.goto("/dashboard");
+        await page.waitForLoadState("networkidle");
+
         // Check for open workflows persistence
         const _openWorkflows = await page.evaluate(() => {
           return localStorage.getItem("openWorkflows");
         });
-
-        // Navigate to dashboard
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
 
         // Page should be functional
         const bodyText = await page.textContent("body");
@@ -300,14 +300,14 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should remember current workflow", async ({ page }) => {
+        // Navigate to dashboard first to establish context
+        await page.goto("/dashboard");
+        await page.waitForLoadState("networkidle");
+
         // Check for current workflow persistence
         const _currentWorkflow = await page.evaluate(() => {
           return localStorage.getItem("currentWorkflowId");
         });
-
-        // Navigate to dashboard
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
 
         // Page should be functional
         const bodyText = await page.textContent("body");
