@@ -35,13 +35,17 @@ import type {
   EditAction,
   BrushSettings,
   AdjustmentSettings,
+  ShapeSettings,
+  TextSettings,
   CropRegion,
   Point,
   HistoryEntry
 } from "./types";
 import {
   DEFAULT_BRUSH_SETTINGS,
-  DEFAULT_ADJUSTMENTS
+  DEFAULT_ADJUSTMENTS,
+  DEFAULT_SHAPE_SETTINGS,
+  DEFAULT_TEXT_SETTINGS
 } from "./types";
 
 const styles = (theme: Theme) =>
@@ -168,6 +172,8 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   // Editor state
   const [tool, setTool] = useState<EditTool>("select");
   const [brushSettings, setBrushSettings] = useState<BrushSettings>(DEFAULT_BRUSH_SETTINGS);
+  const [shapeSettings, setShapeSettings] = useState<ShapeSettings>(DEFAULT_SHAPE_SETTINGS);
+  const [textSettings, setTextSettings] = useState<TextSettings>(DEFAULT_TEXT_SETTINGS);
   const [adjustments, setAdjustments] = useState<AdjustmentSettings>(DEFAULT_ADJUSTMENTS);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
@@ -266,6 +272,22 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   const handleBrushSettingsChange = useCallback(
     (settings: Partial<BrushSettings>) => {
       setBrushSettings((prev) => ({ ...prev, ...settings }));
+    },
+    []
+  );
+
+  // Handle shape settings change
+  const handleShapeSettingsChange = useCallback(
+    (settings: Partial<ShapeSettings>) => {
+      setShapeSettings((prev) => ({ ...prev, ...settings }));
+    },
+    []
+  );
+
+  // Handle text settings change
+  const handleTextSettingsChange = useCallback(
+    (settings: Partial<TextSettings>) => {
+      setTextSettings((prev) => ({ ...prev, ...settings }));
     },
     []
   );
@@ -567,6 +589,8 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
           <ImageEditorToolbar
             tool={tool}
             brushSettings={brushSettings}
+            shapeSettings={shapeSettings}
+            textSettings={textSettings}
             adjustments={adjustments}
             zoom={zoom}
             isCropping={isCropping}
@@ -574,6 +598,8 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             canRedo={canRedo}
             onToolChange={handleToolChange}
             onBrushSettingsChange={handleBrushSettingsChange}
+            onShapeSettingsChange={handleShapeSettingsChange}
+            onTextSettingsChange={handleTextSettingsChange}
             onAdjustmentsChange={handleAdjustmentsChange}
             onAction={handleAction}
             onZoomChange={handleZoomChange}
@@ -588,6 +614,8 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
               imageUrl={imageUrl}
               tool={tool}
               brushSettings={brushSettings}
+              shapeSettings={shapeSettings}
+              textSettings={textSettings}
               adjustments={adjustments}
               zoom={zoom}
               pan={pan}

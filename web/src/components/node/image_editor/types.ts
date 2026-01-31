@@ -46,6 +46,32 @@ export interface BrushSettings {
   opacity: number;
 }
 
+export interface ShapeSettings {
+  fillColor: string;
+  strokeColor: string;
+  strokeWidth: number;
+  filled: boolean;
+}
+
+export interface TextSettings {
+  fontSize: number;
+  fontFamily: string;
+  color: string;
+  bold: boolean;
+  italic: boolean;
+}
+
+/**
+ * Represents a shape being drawn or already drawn
+ */
+export interface ShapeData {
+  type: "rectangle" | "ellipse" | "line" | "arrow" | "text";
+  startPoint: Point;
+  endPoint: Point;
+  settings: ShapeSettings | TextSettings;
+  text?: string; // For text tool
+}
+
 export interface AdjustmentSettings {
   brightness: number;
   contrast: number;
@@ -73,6 +99,21 @@ export const DEFAULT_BRUSH_SETTINGS: BrushSettings = {
   size: 10,
   color: "#ffffff",
   opacity: 1
+};
+
+export const DEFAULT_SHAPE_SETTINGS: ShapeSettings = {
+  fillColor: "#ffffff",
+  strokeColor: "#ffffff",
+  strokeWidth: 2,
+  filled: false
+};
+
+export const DEFAULT_TEXT_SETTINGS: TextSettings = {
+  fontSize: 24,
+  fontFamily: "Arial",
+  color: "#ffffff",
+  bold: false,
+  italic: false
 };
 
 export const DEFAULT_ADJUSTMENTS: AdjustmentSettings = {
