@@ -62,14 +62,14 @@ This guide helps you make informed decisions about when to use local models vers
 
 | Provider | Model | Cost per Image | Equivalent Local | Notes |
 |----------|-------|---------------|------------------|-------|
-| OpenAI | DALL-E 3 (1024x1024) | $0.04 | Flux / SDXL | Best quality |
+| OpenAI | DALL-E 3 (1024x1024) | $0.04 | Flux / Qwen Image | Best quality |
 | OpenAI | DALL-E 2 (1024x1024) | $0.02 | SD 1.5 | Good quality |
 | Replicate | Flux Pro | $0.055 | Flux Dev (local) | High quality |
-| Replicate | SDXL | $0.003 | SDXL (local) | Fast, affordable |
+| Replicate | Qwen Image | $0.004 | Qwen Image (local) | Fast, affordable |
 | Local | Flux Dev | $0.00 | — | One-time download ~12GB |
-| Local | SDXL | $0.00 | — | One-time download ~7GB |
+| Local | Qwen Image | $0.00 | — | One-time download ~7GB |
 
-**Break-even analysis (DALL-E 2 vs local SDXL):**
+**Break-even analysis (DALL-E 2 vs local Qwen Image):**
 - Cloud cost: $0.02 per image
 - Local hardware: $2,000 (RTX 4080 or M2 Max)
 - **Break-even: 100,000 images** ($2,000 in API fees)
@@ -154,16 +154,16 @@ This guide helps you make informed decisions about when to use local models vers
 - **Capabilities:**
   - LLMs up to 70B parameters (Q4)
   - Whisper XL
-  - Flux/SDXL image generation
-- **Performance:** ~15 tokens/sec (Llama-70B), 30 sec/image (SDXL)
+  - Flux/Qwen Image generation
+- **Performance:** ~15 tokens/sec (Llama-70B), 30 sec/image (Qwen Image)
 
 **Option 2: Desktop with RTX 4080 (16GB VRAM)**
 - **Cost:** $2,000
 - **Capabilities:**
   - LLMs up to 70B parameters
-  - All image models (Flux, SDXL, etc.)
+  - All image models (Flux, Qwen Image, etc.)
   - Video processing
-- **Performance:** ~40 tokens/sec (Llama-70B), 15 sec/image (SDXL)
+- **Performance:** ~40 tokens/sec (Llama-70B), 15 sec/image (Qwen Image)
 
 ### High-Performance Setup (Production)
 
@@ -173,7 +173,7 @@ This guide helps you make informed decisions about when to use local models vers
   - LLMs up to 70B (FP16) or 120B (Q4)
   - All image/video models
   - Multi-modal workflows
-- **Performance:** ~60 tokens/sec (Llama-70B), 8 sec/image (SDXL)
+- **Performance:** ~60 tokens/sec (Llama-70B), 8 sec/image (Qwen Image)
 
 ---
 
