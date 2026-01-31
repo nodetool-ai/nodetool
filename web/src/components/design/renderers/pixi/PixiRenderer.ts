@@ -233,12 +233,13 @@ export default class PixiRenderer implements CanvasRenderer {
     if (!this.data || elementIds.length === 0) {
       return { x: 0, y: 0, width: 0, height: 0 };
     }
-    const elements = this.data.elements.filter((el) => elementIds.includes(el.id));
-    const minX = Math.min(...elements.map((el) => el.x));
-    const minY = Math.min(...elements.map((el) => el.y));
-    const maxX = Math.max(...elements.map((el) => el.x + el.width));
-    const maxY = Math.max(...elements.map((el) => el.y + el.height));
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    const bounds = new Rectangle();
+    this.data.elements
+      .filter((el) => elementIds.includes(el.id))
+      .forEach((el) => {
+        bounds.enlarge(new Rectangle(el.x, el.y, el.width, el.height));
+      });
+    return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
   }
 
   async exportPng(_options: ExportOptions): Promise<Blob> {
