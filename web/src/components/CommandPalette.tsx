@@ -23,7 +23,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  Divider,
   Chip
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -238,7 +237,7 @@ const CommandPalette: React.FC = () => {
                   <Typography className="command-category">
                     {category}
                   </Typography>
-                  {commands.map((command, index) => {
+                  {commands.map((command) => {
                     const globalIndex = filteredCommands.indexOf(command);
                     return (
                       <ListItem
