@@ -15,7 +15,6 @@ import CompareIcon from "@mui/icons-material/Compare";
 import EditIcon from "@mui/icons-material/Edit";
 import AssetItem from "./AssetItem";
 import { ImageComparer } from "../widgets";
-import { ImageEditorModal } from "../node/image_editor";
 //
 //components
 //store
@@ -29,11 +28,9 @@ import type { Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
-import { useAssetImageEditor } from "../../hooks/assets/useAssetImageEditor";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import { ToolbarIconButton, CloseButton, DownloadButton } from "../ui_primitives";
-import log from "loglevel";
 
 const containerStyles = css({
   width: "100%",
@@ -282,7 +279,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       setCompareMode(false);
       setCompareAssetA(null);
       setCompareAssetB(null);
-      setIsEditingImage(false);
     }
   }, [open]);
 
@@ -339,12 +335,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     setCompareAssetB(null);
   }, []);
 
-  // Image editor handler - navigate to dedicated route
   const handleOpenImageEditor = useCallback(() => {
     if (currentAsset && isImage) {
       navigate(`/assets/edit/${currentAsset.id}`);
     }
   }, [currentAsset, isImage, navigate]);
+
 
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
@@ -707,16 +703,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         )}
         {navigation}
       </Dialog>
-
-      {/* Image Editor Modal */}
-      {isEditingImage && currentAsset && currentAsset.get_url && (
-        <ImageEditorModal
-          imageUrl={currentAsset.get_url}
-          onSave={handleSaveEditedImage}
-          onClose={handleCloseImageEditor}
-          title={`Edit: ${currentAsset.name || "Image"}`}
-        />
-      )}
     </div>
   );
 };
