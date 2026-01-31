@@ -65,7 +65,7 @@ export const useAssetImageEditor = (): UseAssetImageEditorResult => {
 
         // Invalidate cache to refresh the asset display
         invalidateQueries(["assets", asset.id]);
-        if (asset.parent_id && asset.parent_id !== "") {
+        if (asset.parent_id) {
           invalidateQueries(["assets", { parent_id: asset.parent_id }]);
         }
 
