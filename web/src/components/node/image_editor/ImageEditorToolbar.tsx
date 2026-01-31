@@ -272,14 +272,14 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     [onAction]
   );
 
-  const handleApplyCrop = useCallback(() => handleActionClick("apply-crop"), [handleActionClick]);
-  const handleCancelCrop = useCallback(() => handleActionClick("cancel-crop"), [handleActionClick]);
+  const handleApplyCrop = useCallback(() => handleActionClick("apply-crop")(), [handleActionClick]);
+  const handleCancelCrop = useCallback(() => handleActionClick("cancel-crop")(), [handleActionClick]);
 
-  const handleRotateCCW = useCallback(() => handleActionClick("rotate-ccw"), [handleActionClick]);
-  const handleRotateCW = useCallback(() => handleActionClick("rotate-cw"), [handleActionClick]);
-  const handleFlipH = useCallback(() => handleActionClick("flip-h"), [handleActionClick]);
-  const handleFlipV = useCallback(() => handleActionClick("flip-v"), [handleActionClick]);
-  const handleReset = useCallback(() => handleActionClick("reset"), [handleActionClick]);
+  const handleRotateCCW = useCallback(() => handleActionClick("rotate-ccw")(), [handleActionClick]);
+  const handleRotateCW = useCallback(() => handleActionClick("rotate-cw")(), [handleActionClick]);
+  const handleFlipH = useCallback(() => handleActionClick("flip-h")(), [handleActionClick]);
+  const handleFlipV = useCallback(() => handleActionClick("flip-v")(), [handleActionClick]);
+  const handleReset = useCallback(() => handleActionClick("reset")(), [handleActionClick]);
 
   const handleZoomOut = useCallback(() => {
     onZoomChange(Math.max(0.1, zoom - 0.1));
@@ -295,7 +295,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
 
   const handleToolClick = useCallback(
     (newTool: EditTool) => {
-      handleToolSelect(newTool);
+      handleToolSelect(newTool)();
     },
     [handleToolSelect]
   );
@@ -562,9 +562,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                   />
                 }
                 label="Filled"
-                sx={{ 
-                  color: "grey.400", 
-                  "& .MuiTypography-root": { fontSize: "12px" } 
+                sx={{
+                  color: "grey.400",
+                  "& .MuiTypography-root": { fontSize: "12px" }
                 }}
               />
             )}
@@ -634,9 +634,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 />
               }
               label="Bold"
-              sx={{ 
-                color: "grey.400", 
-                "& .MuiTypography-root": { fontSize: "12px" } 
+              sx={{
+                color: "grey.400",
+                "& .MuiTypography-root": { fontSize: "12px" }
               }}
             />
             <FormControlLabel
@@ -649,9 +649,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 />
               }
               label="Italic"
-              sx={{ 
-                color: "grey.400", 
-                "& .MuiTypography-root": { fontSize: "12px" } 
+              sx={{
+                color: "grey.400",
+                "& .MuiTypography-root": { fontSize: "12px" }
               }}
             />
           </div>
