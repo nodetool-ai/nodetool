@@ -244,9 +244,9 @@ if (process.env.JEST_WORKER_ID) {
       
       // Title should be a string (may be empty in CI if app doesn't fully load)
       expect(typeof title).toBe('string');
-      // In CI environments, title might be empty due to timing - only assert if title exists
-      if (title) {
-        expect(title.length).toBeGreaterThan(0);
+      // In CI environments, title might be empty due to timing - only assert if non-empty
+      if (title.length > 0) {
+        expect(title).toBeTruthy();
       }
       
       await electronApp.close();
