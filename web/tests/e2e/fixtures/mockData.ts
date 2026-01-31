@@ -91,11 +91,16 @@ const templates = loadJson<Templates>("templates.json");
 export { workflows, threads, messages, models, templates };
 
 /**
- * Get the backend API URL from environment or use default
+ * Get the API URL for route mocking.
+ * 
+ * For Playwright route interception, we need to intercept requests as seen by the browser.
+ * The browser makes requests to the frontend URL (e.g., http://localhost:3000/api/...)
+ * which Vite then proxies to the backend. Since we're intercepting at the browser level,
+ * we use the frontend URL, not the backend URL.
  */
 export function getBackendApiUrl(): string {
-  const backendUrl = process.env.E2E_BACKEND_URL || "http://localhost:7777";
-  return `${backendUrl}/api`;
+  const frontendUrl = process.env.E2E_FRONTEND_URL || "http://localhost:3000";
+  return `${frontendUrl}/api`;
 }
 
 /**
@@ -257,6 +262,124 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(models.providers)
+    });
+  });
+
+  // Mock essential app endpoints needed for the app to load
+
+  // Mock settings endpoint
+  await page.route(`${apiUrl}/settings/`, async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        COMFY_FOLDER: "",
+        CHROMA_PATH: ""
+      })
+    });
+  });
+
+  // Mock secrets endpoint (match with and without query params)
+  await page.route(`${apiUrl}/settings/secrets*`, async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({})
+    });
+  });
+
+  // Mock workflow versions endpoint
+  await page.route(`${apiUrl}/workflows/*/versions*`, async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ versions: [], next: null })
+    });
+  });
+
+  // Mock nodes metadata endpoint with minimal metadata
+  await page.route(`${apiUrl}/nodes/metadata`, async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          title: "Text Input",
+          description: "A text input node",
+          namespace: "nodetool.text",
+          node_type: "nodetool.text.TextInput",
+          layout: "default",
+          basic_fields: [],
+          is_dynamic: false,
+          properties: [
+            {
+              name: "value",
+              type: { type: "str", optional: false, type_args: [] },
+              required: false
+            }
+          ],
+          outputs: [
+            {
+              name: "output",
+              type: { type: "str", optional: false, type_args: [] }
+            }
+          ],
+          the_model_info: {},
+          recommended_models: [],
+          expose_as_tool: false,
+          supports_dynamic_outputs: false,
+          is_streaming_output: false
+        },
+        {
+          title: "Preview",
+          description: "Preview any value",
+          namespace: "nodetool.workflows.base_node",
+          node_type: "nodetool.workflows.base_node.Preview",
+          layout: "default",
+          basic_fields: [],
+          is_dynamic: false,
+          properties: [
+            {
+              name: "value",
+              type: { type: "any", optional: true, type_args: [] },
+              required: false
+            }
+          ],
+          outputs: [],
+          the_model_info: {},
+          recommended_models: [],
+          expose_as_tool: false,
+          supports_dynamic_outputs: false,
+          is_streaming_output: false
+        }
+      ])
+    });
+  });
+
+  // Mock models/all endpoint
+  await page.route(`${apiUrl}/models/all`, async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([])
+    });
+  });
+
+  // Mock assets endpoint
+  await page.route(`${apiUrl}/assets/`, async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ assets: [], next: null })
+    });
+  });
+
+  // Mock jobs endpoint
+  await page.route(`${apiUrl}/jobs/`, async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ jobs: [], next: null })
     });
   });
 }
