@@ -46,6 +46,7 @@ header_pages:
   - user-interface.md
   - workflow-editor.md
   - workflow-debugging.md
+  - mobile-app.md
   - cookbook.md
   - workflows/index.md
   - models-and-providers.md
