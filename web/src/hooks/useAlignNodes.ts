@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { useNodes } from "../contexts/NodeContext";
 
@@ -36,8 +35,11 @@ type AlignNodesOptions = {
 const useAlignNodes = () => {
   const VERTICAL_SPACING = 20;
   const HORIZONTAL_SPACING = 40;
-  const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
-  const reactFlow = useReactFlow();
+  const { nodes, setNodes, getSelectedNodes } = useNodes((state) => ({
+    nodes: state.nodes,
+    setNodes: state.setNodes,
+    getSelectedNodes: state.getSelectedNodes
+  }));
 
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {
@@ -131,9 +133,9 @@ const useAlignNodes = () => {
         });
       }
 
-      // Update React Flow nodes
-      reactFlow.setNodes((currentNodes) =>
-        currentNodes.map((currentNode) => {
+      // Update nodes via NodeStore
+      setNodes(
+        nodes.map((currentNode) => {
           const updatedProps = nodeUpdates.get(currentNode.id);
           if (updatedProps) {
             return {
@@ -146,7 +148,7 @@ const useAlignNodes = () => {
         })
       );
     },
-    [getSelectedNodes, reactFlow]
+    [getSelectedNodes, nodes, setNodes]
   );
 
   return alignNodes;
