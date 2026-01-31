@@ -240,16 +240,17 @@ describe("useSelectionEvents", () => {
     });
 
     it("deselects groups that are selected but not fully enclosed", () => {
+      // Node extends beyond rect boundary (80 + 50 = 130 > 100)
       const mockGroupNode = {
         id: "group-1",
         type: "nodetool.workflows.base_node.Group",
         selected: true,
-        position: { x: 0, y: 0 }
+        position: { x: 80, y: 80 },
+        measured: { width: 50, height: 50 }
       };
       
-      // Group is in getNodes but not in getIntersectingNodes (not fully enclosed)
+      // Group is in getNodes but NOT fully enclosed (extends past selection rect)
       mockReactFlowInstance.getNodes = jest.fn().mockReturnValue([mockGroupNode]);
-      mockReactFlowInstance.getIntersectingNodes = jest.fn().mockReturnValue([]);
 
       const { result } = renderHook(() =>
         useSelectionEvents({
@@ -270,16 +271,17 @@ describe("useSelectionEvents", () => {
     });
 
     it("selects groups that are fully enclosed", () => {
+      // Node is fully within rect boundary (10 + 20 = 30 < 100)
       const mockGroupNode = {
         id: "group-1",
         type: "nodetool.workflows.base_node.Group",
         selected: false,
-        position: { x: 0, y: 0 }
+        position: { x: 10, y: 10 },
+        measured: { width: 20, height: 20 }
       };
       
-      // Group is in both getNodes and getIntersectingNodes (fully enclosed)
+      // Group is in getNodes and IS fully enclosed
       mockReactFlowInstance.getNodes = jest.fn().mockReturnValue([mockGroupNode]);
-      mockReactFlowInstance.getIntersectingNodes = jest.fn().mockReturnValue([mockGroupNode]);
 
       const { result } = renderHook(() =>
         useSelectionEvents({
@@ -300,16 +302,17 @@ describe("useSelectionEvents", () => {
     });
 
     it("does not update already correctly selected groups", () => {
+      // Node is fully within rect boundary (10 + 20 = 30 < 100)
       const mockGroupNode = {
         id: "group-1",
         type: "nodetool.workflows.base_node.Group",
         selected: true,
-        position: { x: 0, y: 0 }
+        position: { x: 10, y: 10 },
+        measured: { width: 20, height: 20 }
       };
       
       // Group is fully enclosed and already selected
       mockReactFlowInstance.getNodes = jest.fn().mockReturnValue([mockGroupNode]);
-      mockReactFlowInstance.getIntersectingNodes = jest.fn().mockReturnValue([mockGroupNode]);
 
       const { result } = renderHook(() =>
         useSelectionEvents({

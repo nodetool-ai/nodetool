@@ -338,8 +338,14 @@ describe("AssetStore", () => {
         metadata: { updated: true }
       };
 
+      const prevAsset = { 
+        id: "asset1", 
+        name: "old.jpg",
+        parent_id: "", 
+        content_type: "image/jpeg" 
+      };
       const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockResolvedValue({ data: { id: "asset1", parent_id: "" } });
+      (client.GET as jest.Mock).mockResolvedValue({ data: prevAsset });
       (client.PUT as jest.Mock).mockResolvedValue({ data: mockAsset });
 
       const { update } = useAssetStore.getState();
@@ -348,12 +354,13 @@ describe("AssetStore", () => {
         name: "updated.jpg"
       });
 
+      // The update function falls back to previous values for fields not explicitly provided
       expect(client.PUT).toHaveBeenCalledWith("/api/assets/{id}", {
         params: { path: { id: "asset1" } },
         body: {
           name: "updated.jpg",
-          parent_id: null,
-          content_type: null,
+          parent_id: "",
+          content_type: "image/jpeg",
           metadata: null,
           data: null
         }
