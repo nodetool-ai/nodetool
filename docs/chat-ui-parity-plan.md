@@ -37,7 +37,7 @@ This plan captures basic, high-impact features from [OpenChatUI](https://github.
 - [x] Chat tools (web search, image generation, TTS)
 
 ### 🔜 Near-term improvements (basic + high-impact)
-- [ ] Add conversation export (markdown/json)
+- [x] Add conversation export (markdown/json)
 - [ ] Add conversation sharing (public link or copy summary)
 - [ ] Add pin/star for important threads
 - [ ] Add lightweight folder/tag grouping for threads
@@ -49,4 +49,3 @@ This plan captures basic, high-impact features from [OpenChatUI](https://github.
 - [ ] Add chat-level generation parameter controls (temperature, max tokens)
 - [ ] Add Drive/Docs connectors (Google Drive/Docs)
 - [ ] Add dedicated “Chat Settings” panel (model visibility, defaults)
-

@@ -31,6 +31,7 @@ import log from "loglevel";
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
+import { useNotificationStore } from "./NotificationStore";
 import {
   FrontendToolRegistry,
   FrontendToolState
@@ -144,6 +145,7 @@ export interface GlobalChatState {
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
+  exportThread: (threadId: string) => void;
   setLastUsedThreadId: (threadId: string | null) => void;
   getCurrentMessages: () => Message[];
   getCurrentMessagesSync: () => Message[];
@@ -692,7 +694,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         get().loadMessages(threadId);
       },
 
-      deleteThread: async (threadId: string) => {
+    deleteThread: async (threadId: string) => {
         try {
           const { error } = await client.DELETE("/api/threads/{thread_id}", {
             params: { path: { thread_id: threadId } }
@@ -757,6 +759,59 @@ const useGlobalChatStore = create<GlobalChatState>()(
         } catch (error) {
           log.error("Failed to delete thread:", error);
           throw error;
+        }
+      },
+      exportThread: (threadId: string) => {
+        const { threads, messageCache } = get();
+        const thread = threads[threadId];
+        const messages = messageCache[threadId] || [];
+        const addNotification = useNotificationStore.getState().addNotification;
+
+        if (!thread) {
+          addNotification({
+            content: "Thread not found",
+            type: "error",
+            alert: true
+          });
+          return;
+        }
+
+        const payload = {
+          id: thread.id,
+          title: thread.title ?? "Conversation",
+          created_at: thread.created_at,
+          updated_at: thread.updated_at,
+          messages
+        };
+
+        try {
+          const blob = new Blob([JSON.stringify(payload, null, 2)], {
+            type: "application/json"
+          });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          const safeTitle =
+            (payload.title || "conversation").replace(
+              /[\\/:*?"<>|]/g,
+              "_"
+            ) || "conversation";
+          link.download = `${safeTitle}.json`;
+          link.href = url;
+          link.click();
+          URL.revokeObjectURL(url);
+
+          addNotification({
+            content: "Conversation exported",
+            type: "success",
+            alert: true
+          });
+        } catch (error) {
+          log.error("Failed to export thread:", error);
+          addNotification({
+            content: "Failed to export conversation",
+            type: "error",
+            alert: true
+          });
         }
       },
 

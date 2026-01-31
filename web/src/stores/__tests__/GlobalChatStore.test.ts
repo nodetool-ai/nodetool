@@ -1,7 +1,8 @@
 import { TextEncoder, TextDecoder } from "util";
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
-(global as any).URL.createObjectURL = jest.fn(() => "blob:mock");
+  (global as any).URL.createObjectURL = jest.fn(() => "blob:mock");
+  (global as any).URL.revokeObjectURL = jest.fn();
 
 jest.mock("../BASE_URL", () => ({
   BASE_URL: "http://localhost:7777",
@@ -215,6 +216,69 @@ describe("GlobalChatStore", () => {
       if (mockServer) {mockServer.stop();}
       store.getState().disconnect();
     }
+  });
+
+  it("exportThread downloads thread JSON and notifies", async () => {
+    const link = {
+      href: "",
+      download: "",
+      click: jest.fn()
+    };
+    const createElementSpy = jest
+      .spyOn(document, "createElement")
+      .mockReturnValue(link as unknown as HTMLAnchorElement);
+    const addNotification = jest.fn();
+
+    const NotificationStore = await import("../NotificationStore");
+    NotificationStore.useNotificationStore.setState({
+      notifications: [],
+      lastDisplayedTimestamp: null,
+      addNotification,
+      removeNotification: jest.fn(),
+      clearNotifications: jest.fn(),
+      updateLastDisplayedTimestamp: jest.fn()
+    });
+
+    const threadId = "thread-export";
+    store.setState((state) => ({
+      ...state,
+      threads: {
+        ...state.threads,
+        [threadId]: {
+          id: threadId,
+          title: "Export Test",
+          created_at: "2024-01-01T00:00:00Z",
+          updated_at: "2024-01-02T00:00:00Z",
+          user_id: "user-1"
+        }
+      },
+      messageCache: {
+        ...state.messageCache,
+        [threadId]: [
+          {
+            id: "message-1",
+            role: "user",
+            type: "message",
+            content: "Hello",
+            created_at: "2024-01-01T00:00:00Z"
+          }
+        ]
+      }
+    }) as any);
+
+    store.getState().exportThread(threadId);
+
+    expect(link.click).toHaveBeenCalled();
+    expect(URL.createObjectURL).toHaveBeenCalled();
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: "Conversation exported",
+        type: "success",
+        alert: true
+      })
+    );
+
+    createElementSpy.mockRestore();
   });
 
   it("switchThread does nothing for invalid id", () => {

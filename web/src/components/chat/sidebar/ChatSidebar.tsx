@@ -23,6 +23,7 @@ interface ChatSidebarProps {
     onNewChat: () => void;
     onSelectThread: (id: string) => void;
     onDeleteThread: (id: string) => void;
+    onExportThread: (id: string) => void;
     getThreadPreview: (id: string) => string;
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
@@ -34,6 +35,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     onNewChat,
     onSelectThread,
     onDeleteThread,
+    onExportThread,
     getThreadPreview,
     isOpen,
     onOpenChange
@@ -265,6 +267,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         onNewThread={handleNewChat}
                         onSelectThread={handleSelectThread}
                         onDeleteThread={onDeleteThread}
+                        onExportThread={onExportThread}
                         getThreadPreview={getThreadPreview}
                     />
                 </Box>
