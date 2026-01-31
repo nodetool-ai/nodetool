@@ -377,7 +377,7 @@ Switch on message.type
 This architecture separates concerns cleanly:
 - **Workflow Asset Panel**: Uses existing asset infrastructure with workflow_id filtering
 - **Node Result History**: Adds session-based accumulation without disrupting current run display
-- **Minimal Changes**: Leverages existing WebSocket flow and TanStack Query patterns
+- **Minimal Changes**: Uses existing WebSocket flow and TanStack Query patterns
 - **Extensible**: Easy to add persistent history via asset API later
 
-The design maintains backward compatibility while adding powerful new features for workflow and node output management.
+The design maintains backward compatibility while adding new features for workflow and node output management.
