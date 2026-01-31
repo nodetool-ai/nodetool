@@ -33,6 +33,8 @@ import type {
     EditTool,
     EditAction,
     BrushSettings,
+    ShapeSettings,
+    TextSettings,
     AdjustmentSettings,
     CropRegion,
     Point,
@@ -40,6 +42,8 @@ import type {
 } from "./types";
 import {
     DEFAULT_BRUSH_SETTINGS,
+    DEFAULT_SHAPE_SETTINGS,
+    DEFAULT_TEXT_SETTINGS,
     DEFAULT_ADJUSTMENTS
 } from "./types";
 
@@ -164,6 +168,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
     // Editor state
     const [tool, setTool] = useState<EditTool>("select");
     const [brushSettings, setBrushSettings] = useState<BrushSettings>(DEFAULT_BRUSH_SETTINGS);
+    const [shapeSettings, setShapeSettings] = useState<ShapeSettings>(DEFAULT_SHAPE_SETTINGS);
+    const [textSettings, setTextSettings] = useState<TextSettings>(DEFAULT_TEXT_SETTINGS);
     const [adjustments, setAdjustments] = useState<AdjustmentSettings>(DEFAULT_ADJUSTMENTS);
     const [zoom, setZoom] = useState(1);
     const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
@@ -265,6 +271,22 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
         []
     );
 
+    // Handle shape settings change
+    const handleShapeSettingsChange = useCallback(
+        (settings: Partial<ShapeSettings>) => {
+            setShapeSettings((prev) => ({ ...prev, ...settings }));
+        },
+        []
+    );
+
+    // Handle text settings change
+    const handleTextSettingsChange = useCallback(
+        (settings: Partial<TextSettings>) => {
+            setTextSettings((prev) => ({ ...prev, ...settings }));
+        },
+        []
+    );
+
     // Handle adjustments change
     const handleAdjustmentsChange = useCallback(
         (newAdjustments: Partial<AdjustmentSettings>) => {
@@ -290,6 +312,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                         imageCanvas.height = rotated.height;
                         ctx.drawImage(rotated, 0, 0);
                         saveToHistory("Rotate CW");
+                        canvasRef.current?.refresh();
                     }
                     break;
                 }
@@ -302,6 +325,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                         imageCanvas.height = rotated.height;
                         ctx.drawImage(rotated, 0, 0);
                         saveToHistory("Rotate CCW");
+                        canvasRef.current?.refresh();
                     }
                     break;
                 }
@@ -313,6 +337,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                         ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
                         ctx.drawImage(flipped, 0, 0);
                         saveToHistory("Flip Horizontal");
+                        canvasRef.current?.refresh();
                     }
                     break;
                 }
@@ -324,6 +349,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                         ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
                         ctx.drawImage(flipped, 0, 0);
                         saveToHistory("Flip Vertical");
+                        canvasRef.current?.refresh();
                     }
                     break;
                 }
@@ -561,6 +587,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                 <ImageEditorToolbar
                     tool={tool}
                     brushSettings={brushSettings}
+                    shapeSettings={shapeSettings}
+                    textSettings={textSettings}
                     adjustments={adjustments}
                     zoom={zoom}
                     isCropping={isCropping}
@@ -568,6 +596,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                     canRedo={canRedo}
                     onToolChange={handleToolChange}
                     onBrushSettingsChange={handleBrushSettingsChange}
+                    onShapeSettingsChange={handleShapeSettingsChange}
+                    onTextSettingsChange={handleTextSettingsChange}
                     onAdjustmentsChange={handleAdjustmentsChange}
                     onAction={handleAction}
                     onZoomChange={handleZoomChange}
@@ -582,6 +612,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                         imageUrl={imageUrl}
                         tool={tool}
                         brushSettings={brushSettings}
+                        shapeSettings={shapeSettings}
+                        textSettings={textSettings}
                         adjustments={adjustments}
                         zoom={zoom}
                         pan={pan}
