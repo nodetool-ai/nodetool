@@ -314,21 +314,19 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 
 **Target Location:** `/docs/workflows/*.md`, new `/docs/case-studies.md`
 
-### Gap 6: Unclear Differentiation from Alternatives
+### Gap 6: Clarity on NodeTool's Niche
 
-**Issue:** Documentation doesn't explicitly compare NodeTool to alternatives (LangChain, n8n, Zapier, Flowise).
+**Issue:** Documentation could better explain what NodeTool is good at without direct competitive comparisons.
 
-**Evidence:** Value proposition mentioned but no competitive positioning.
+**Evidence:** Value proposition mentioned but the unique niche isn't clearly articulated.
 
 **Recommendation:**
-- Create `/docs/comparisons.md` with:
-  - NodeTool vs LangChain (code-first vs visual-first)
-  - NodeTool vs n8n/Zapier (AI-native vs general automation)
-  - NodeTool vs Flowise (deployment flexibility, local-first)
-  - NodeTool vs custom Python scripts (maintainability, visualization)
-- Add "When to choose NodeTool" decision guide
+- Clarify NodeTool's focus: visual AI workflow builder for multi-modal pipelines
+- Explain what makes it distinct: local-first, streaming output, combines LLMs with media processing
+- Avoid direct feature comparisons with other tools
+- Focus on what users can build, not what competitors lack
 
-**Target Location:** New `/docs/comparisons.md`, `/docs/index.md` (add comparison section)
+**Target Location:** `/docs/comparisons.md`, `/docs/index.md`
 
 ### Gap 7: Limited Evaluation & Testing Guidance
 
@@ -687,8 +685,8 @@ NodeTool's architecture is designed around three core principles that directly i
 4. ✅ **Add "Why This Matters"** sections to `/docs/key-concepts.md` and `/docs/architecture.md` (see Updates 4-5)
 
 ### New Content (Fill Gaps)
-5. **Create `/docs/cost-analysis.md`** with local vs cloud cost comparisons and break-even analysis
-6. **Create `/docs/comparisons.md`** positioning NodeTool against LangChain, n8n, Flowise, custom scripts
+5. **Create `/docs/cost-analysis.md`** with local vs cloud cost considerations
+6. **Update `/docs/comparisons.md`** to clarify NodeTool's niche without competitive positioning
 7. **Create `/docs/troubleshooting.md`** with systematic debugging approaches
 8. **Create `/docs/testing-workflows.md`** with evaluation and A/B testing patterns
 9. **Expand `/docs/deployment-journeys.md`** with narrative progression and decision trees
