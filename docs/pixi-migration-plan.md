@@ -108,37 +108,38 @@ src/
 - [x] Resize/rotate via handles (resize + rotation handle wired, rotation snap done)
 - [x] Creation tools (Rect/Ellipse/Line/Text/Image)
 - [x] Hit testing (Pixi getBounds-based hit test in renderer; spatial index deferred)
-- [ ] Snapping (snap index + guides)
+- [~] Snapping (guides rendering wired; snap index pending)
 
 ✅ **Milestone achieved:** Pixi selection + drag wired through Pixi pointer events (no Konva).
 
 ## Phase 2 — Snap & Grid
 
 1. **Snap Manager**
-   - Snap to grid, canvas edges/center, object edges/centers
-   - Guide overlay rendering via Pixi Graphics
+   - [~] Snap to grid, canvas edges/center, object edges/centers (snap index pending)
+   - [x] Guide overlay rendering via Pixi Graphics
 2. **Grid Renderer**
-   - Cached grid drawing (Graphics or TilingSprite)
-   - Adaptive spacing by zoom level
+   - [x] Cached grid drawing (Graphics or TilingSprite)
+   - [ ] Adaptive spacing by zoom level
 
 ## Phase 3 — History & Serialization
 
 1. **History Manager**
-   - Command pattern with deltas
-   - Batch operations per gesture
+   - [x] Command pattern with deltas (Zustand history)
+   - [x] Batch operations per gesture
 2. **Serialization**
-   - JSON export/import for layout canvas
-   - PNG/SVG export pipeline
+   - [x] JSON export/import for layout canvas
+   - [x] PNG export pipeline
+   - [ ] SVG export pipeline
 
 ## Phase 4 — Performance & Utilities
 
 1. **Spatial Index**
-   - R-tree or quadtree for snap/selection queries
+   - [ ] R-tree or quadtree for snap/selection queries
 2. **Culling & Pooling**
-   - Viewport culling
-   - Reuse Graphics and Sprite instances
+   - [ ] Viewport culling
+   - [ ] Reuse Graphics and Sprite instances
 3. **Performance Harness**
-   - FPS/latency overlay for 1k/5k/10k elements
+   - [x] FPS/latency overlay for 1k/5k/10k elements
 
 ## Directory Structure
 
