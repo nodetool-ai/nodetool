@@ -68,6 +68,7 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
 import { encode } from "@msgpack/msgpack";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
+import { useNotificationStore } from "../NotificationStore";
 import {
   Message,
   JobUpdate,
@@ -218,7 +219,7 @@ describe("GlobalChatStore", () => {
     }
   });
 
-  it("exportThread downloads thread JSON and notifies", async () => {
+  it("exportThread downloads thread JSON and notifies", () => {
     const link = {
       href: "",
       download: "",
@@ -229,8 +230,7 @@ describe("GlobalChatStore", () => {
       .mockReturnValue(link as unknown as HTMLAnchorElement);
     const addNotification = jest.fn();
 
-    const NotificationStore = await import("../NotificationStore");
-    NotificationStore.useNotificationStore.setState({
+    useNotificationStore.setState({
       notifications: [],
       lastDisplayedTimestamp: null,
       addNotification,

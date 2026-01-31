@@ -790,11 +790,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
           });
           const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
-          const safeTitle =
-            (payload.title || "conversation").replace(
-              /[\\/:*?"<>|]/g,
-              "_"
-            ) || "conversation";
+          const safeTitle = (payload.title || "conversation").replace(
+            /[\\/:*?"<>|]/g,
+            "_"
+          );
           link.download = `${safeTitle}.json`;
           link.href = url;
           link.click();
