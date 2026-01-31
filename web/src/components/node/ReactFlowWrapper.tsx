@@ -476,7 +476,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         className={reactFlowClasses}
         colorMode={isDarkMode ? "dark" : "light"}
         style={reactFlowStyle}
-        onlyRenderVisibleElements={false}
         ref={ref}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
