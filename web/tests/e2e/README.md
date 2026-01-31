@@ -326,12 +326,113 @@ test.describe("Feature with Mocks", () => {
 - Isolate workflow changes between tabs
 - Don't share selection state between workflows
 
+### 21. error-handling.spec.ts (New)
+**Tests: 22**
+- Invalid workflow ID handling
+- Invalid route handling
+- Navigation recovery from bad URLs
+- Deep invalid route handling
+- Failed API request handling
+- Slow API response handling
+- 404 API response handling
+- 500 API response handling
+- Malformed JSON response handling
+- Empty form submission handling
+- State recovery after page refresh
+- localStorage corruption handling
+- Cleared localStorage handling
+- Fallback UI on component error
+- Navigation after error
+- Navigation history preservation after error
+- Multiple failed request handling
+- Request timeout handling
+- Chat with invalid thread ID
+- WebSocket connection failure
+- Editor with invalid data
+- Editor with missing node types
+
+### 22. workflow-execution.spec.ts (New)
+**Tests: 21**
+- Run button display in editor
+- Stop/cancel button visibility
+- Execution status area display
+- Run button click handling
+- Keyboard shortcut for run
+- Empty workflow execution
+- Execution progress tracking
+- Node execution state display
+- Job status after execution
+- Output preview after execution
+- Execution error handling
+- Jobs API list fetch
+- Job cancellation request
+- WebSocket connection for execution
+- Real-time execution updates
+- Execution queue status display
+- Multiple execution request handling
+- Execution history access
+- Mini app execution view
+- Mini app with workflow ID
+- Standalone mini app route
+
+### 23. help-documentation.spec.ts (New)
+**Tests: 25**
+- Help menu access from dashboard
+- Help icon in editor
+- Keyboard shortcut for help
+- Node info on hover
+- Node details in inspector panel
+- Node type documentation
+- Button tooltips
+- Node handle tooltips
+- Property tooltips in inspector
+- Node metadata API fetch
+- Node metadata structure validation
+- Version information display
+- Settings/about section
+- Clear error messages
+- Actionable form error feedback
+- First-time user experience
+- Templates for learning
+- Easy navigation to examples
+- Keyboard shortcuts documentation
+- Available shortcuts in editor
+- External documentation links
+- Community/support links
+- Contextual help in node menu
+- Help for node properties
+- Model recommendation info
+
+### 24. workflow-import-export.spec.ts (New)
+**Tests: 21**
+- Export option in editor
+- Export via keyboard shortcut
+- Copy workflow JSON to clipboard
+- Import option in dashboard/editor
+- Import via file input
+- Paste workflow from clipboard
+- Fetch workflow data from API
+- Create workflow via API (import)
+- Update workflow via API
+- Template loading from templates page
+- Navigation from template to editor
+- Workflow creation from template
+- Workflow duplication
+- Duplicate via keyboard shortcut
+- Workflow versions API fetch
+- Version history display in editor
+- Share option for workflow
+- Workflow access level update
+- Workflow structure validation on import
+- Corrupted workflow data handling
+- Cross-browser compatible export format
+
 ## Total Test Coverage
 
-- **Total Files:** 20
-- **Total Tests:** 184
-- **Original Tests:** 110
-- **New Tests in this PR:** 74 (28 + 22 + 24)
+- **Total Files:** 24
+- **Total Tests:** 273
+- **Original Tests:** 184
+- **New Tests in this PR:** 89 (22 + 21 + 25 + 21)
 
 ## Test Coverage Areas
 
@@ -358,6 +459,10 @@ test.describe("Feature with Mocks", () => {
 - ✅ **NEW: Advanced node operations** (selection, deletion, dragging, duplication, grouping)
 - ✅ **NEW: Drag-and-drop interactions** (canvas drag, node drag, edge creation, selection box, file drop)
 - ✅ **NEW: Multi-tab workflow editing** (tab switching, state preservation, error handling)
+- ✅ **NEW: Error handling and recovery** (invalid routes, API errors, network issues, corrupted data)
+- ✅ **NEW: Workflow execution** (run, cancel, status tracking, jobs API, WebSocket events)
+- ✅ **NEW: Help and documentation** (tooltips, node info, API metadata, contextual help)
+- ✅ **NEW: Workflow import/export** (export, import, templates, duplication, versioning, sharing)
 
 ### Test Patterns Used
 
@@ -513,10 +618,13 @@ When running with `--mock`, the server provides:
 
 Potential areas for additional tests:
 - Real chat interactions with AI responses
-- Workflow execution and result validation
+- ~~Workflow execution and result validation~~ ✅ **Completed**
 - ~~Complex node operations (grouping, connections)~~ ✅ **Completed**
 - ~~Drag-and-drop node creation~~ ✅ **Completed**
 - ~~Multi-tab workflow editing~~ ✅ **Completed**
+- ~~Error handling and recovery~~ ✅ **Completed**
+- ~~Help and documentation access~~ ✅ **Completed**
+- ~~Workflow import/export~~ ✅ **Completed**
 - Real-time collaboration features
 - Performance benchmarking
 - Additional file system operations
