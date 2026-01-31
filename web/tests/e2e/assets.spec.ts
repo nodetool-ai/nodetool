@@ -16,12 +16,14 @@ async function checkPageForErrors(page: Page): Promise<void> {
 
 // Helper function to upload a file and wait for completion
 async function uploadFile(page: Page, filePath: string): Promise<void> {
-  // Wait for the upload button container to be visible
-  const uploadContainer = page.locator(".file-upload-button").first();
-  await expect(uploadContainer).toBeVisible({ timeout: 10000 });
+  // Wait for the upload button to be visible
+  // The UploadButton component uses the class "upload-button"
+  const uploadButton = page.locator(".upload-button").first();
+  await expect(uploadButton).toBeVisible({ timeout: 10000 });
 
-  // Get the hidden file input inside the upload button container
-  const fileInput = uploadContainer.locator('input[type="file"]');
+  // The hidden file input is a sibling before the button in the UploadButton component
+  // Use page-level selector to find input[type="file"] associated with asset uploads
+  const fileInput = page.locator('input[type="file"]').first();
 
   // Set the file directly on the input (bypassing the click/filechooser flow)
   await fileInput.setInputFiles(filePath);
