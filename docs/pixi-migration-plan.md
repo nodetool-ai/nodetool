@@ -107,7 +107,7 @@ src/
 - [x] Select tool (click/multi-select + drag move)
 - [x] Resize/rotate via handles (resize + rotation handle wired, rotation snap done)
 - [x] Creation tools (Rect/Ellipse/Line/Text/Image)
-- [ ] Hit testing (R-tree spatial index)
+- [x] Hit testing (Pixi getBounds-based hit test in renderer; spatial index deferred)
 - [ ] Snapping (snap index + guides)
 
 ✅ **Milestone achieved:** Pixi selection + drag wired through Pixi pointer events (no Konva).

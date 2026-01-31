@@ -258,6 +258,20 @@ export default class PixiRenderer implements CanvasRenderer {
   }
 
   hitTest(_point: Point): string | null {
+    if (!this.root || !this.elementContainer) {
+      return null;
+    }
+    const global = this.root.toGlobal(_point);
+    const children = [...this.elementContainer.children].sort(
+      (a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0)
+    );
+    for (let i = children.length - 1; i >= 0; i -= 1) {
+      const child = children[i];
+      const bounds = child.getBounds();
+      if (bounds.contains(global.x, global.y)) {
+        return child.name || null;
+      }
+    }
     return null;
   }
 
@@ -322,6 +336,7 @@ export default class PixiRenderer implements CanvasRenderer {
         const node = this.createElementNode(element);
         if (node) {
           node.zIndex = element.zIndex;
+          node.name = element.id;
           this.elementContainer?.addChild(node);
           this.elementNodes.set(element.id, node);
         }
