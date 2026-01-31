@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $createTextNode,
+  $getRoot,
   $getSelection,
   $isRangeSelection,
   COMMAND_PRIORITY_HIGH,
@@ -41,8 +42,20 @@ export function MarkdownPastePlugin(): null {
             selection.removeText();
 
             try {
-              // Convert markdown to Lexical nodes
-              $convertFromMarkdownString(text, TRANSFORMERS);
+              // Check if editor is empty - $convertFromMarkdownString replaces
+              // the entire root content, so we can only use it on empty editors
+              const root = $getRoot();
+              const isEmpty = root.getTextContent().trim() === "";
+
+              if (isEmpty) {
+                // Safe to replace entire content with parsed markdown
+                $convertFromMarkdownString(text, TRANSFORMERS);
+              } else {
+                // Editor has content - insert as plain text to preserve existing content
+                // (markdown formatting is lost, but this is better than replacing everything)
+                const textNode = $createTextNode(text);
+                selection.insertNodes([textNode]);
+              }
             } catch (error) {
               console.error("Error converting markdown:", error);
               // Fallback to plain text if conversion fails
