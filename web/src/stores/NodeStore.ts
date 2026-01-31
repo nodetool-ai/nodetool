@@ -398,7 +398,26 @@ export const createNodeStore = (
                   (change.type === "position" && change.dragging === false)
               );
 
-            const nodes = applyNodeChanges(changes, get().nodes);
+            // Filter out selection changes for group nodes that have selectable: false
+            // This prevents groups from being selected during drag selection when they shouldn't be
+            const currentNodes = get().nodes;
+            const filteredChanges = changes.filter((change) => {
+              if (change.type === "select" && change.selected) {
+                const node = currentNodes.find((n) => n.id === change.id);
+                // If node is a group and has selectable: false, don't allow selection
+                if (
+                  node &&
+                  (node.type === GROUP_NODE_TYPE ||
+                    node.data?.originalType === GROUP_NODE_TYPE) &&
+                  node.selectable === false
+                ) {
+                  return false;
+                }
+              }
+              return true;
+            });
+
+            const nodes = applyNodeChanges(filteredChanges, currentNodes);
             set({ nodes });
 
             // Only mark as dirty if there are actual user changes, not just internal React Flow updates
