@@ -231,7 +231,9 @@ function Initialize-Directories {
 function Install-Micromamba {
     Write-Step "Downloading micromamba $MICROMAMBA_VERSION"
 
-    $micromambaUrl = "$MICROMAMBA_RELEASE_URL/micromamba-win-64.exe"
+    # Detect Windows architecture (future-proofing for ARM64 support)
+    $micromambaArch = "win-64"
+    $micromambaUrl = "$MICROMAMBA_RELEASE_URL/micromamba-$micromambaArch.exe"
     $micromambaPath = "$script:MICROMAMBA_DIR\Library\bin\micromamba.exe"
 
     # Check if micromamba already exists and is working
@@ -326,12 +328,13 @@ function Install-PythonPackages {
     Write-Step "Installing Python packages from NodeTool registry"
 
     $uvPath = "$script:ENV_DIR\Scripts\uv.exe"
+    $uvPathAlt = "$script:ENV_DIR\Library\bin\uv.exe"
 
     if (-not (Test-Path $uvPath)) {
         # Try alternate location
-        $uvPath = "$script:ENV_DIR\Library\bin\uv.exe"
+        $uvPath = $uvPathAlt
         if (-not (Test-Path $uvPath)) {
-            throw "uv not found in conda environment"
+            throw "uv not found in conda environment. Checked: $script:ENV_DIR\Scripts\uv.exe and $uvPathAlt. The conda environment creation may have failed. Try removing $script:ENV_DIR and running the installer again."
         }
     }
 

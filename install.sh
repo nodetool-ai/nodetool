@@ -370,8 +370,14 @@ create_conda_environment() {
         die "Failed to create conda environment"
     fi
     
-    # Remove from cleanup since it succeeded
-    CLEANUP_DIRS=("${CLEANUP_DIRS[@]/$ENV_DIR}")
+    # Remove from cleanup since it succeeded (proper array element removal)
+    local new_cleanup=()
+    for item in "${CLEANUP_DIRS[@]}"; do
+        if [[ "$item" != "$ENV_DIR" ]]; then
+            new_cleanup+=("$item")
+        fi
+    done
+    CLEANUP_DIRS=("${new_cleanup[@]}")
     
     success "Created conda environment with all dependencies"
 }
@@ -382,7 +388,7 @@ install_python_packages() {
     local uv_path="${ENV_DIR}/bin/uv"
     
     if [[ ! -x "$uv_path" ]]; then
-        die "uv not found in conda environment at $uv_path"
+        die "uv not found in conda environment at $uv_path. This may indicate the conda environment creation failed. Try removing $ENV_DIR and running the installer again."
     fi
     
     info "Installing: ${PYTHON_PACKAGES[*]}"
@@ -475,33 +481,38 @@ print_completion_message() {
     echo -e "${BOLD}Or add this line to your shell configuration file:${NC}"
     echo ""
     
-    # Detect the shell
+    # Detect the shell and config file
     local shell_name
+    local rc_file
     shell_name=$(basename "${SHELL:-/bin/bash}")
     
     case "$shell_name" in
         zsh)
-            echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> ~/.zshrc${NC}"
+            rc_file="~/.zshrc"
+            echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> $rc_file${NC}"
             ;;
         bash)
             if [[ -f "$HOME/.bash_profile" ]]; then
-                echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> ~/.bash_profile${NC}"
+                rc_file="~/.bash_profile"
             else
-                echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> ~/.bashrc${NC}"
+                rc_file="~/.bashrc"
             fi
+            echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> $rc_file${NC}"
             ;;
         fish)
+            rc_file="~/.config/fish/config.fish"
             echo -e "    ${CYAN}fish_add_path $bin_path${NC}"
             ;;
         *)
-            echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> ~/.profile${NC}"
+            rc_file="~/.profile"
+            echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> $rc_file${NC}"
             ;;
     esac
     
     echo ""
     echo -e "${BOLD}Then start a new terminal or run:${NC}"
     echo ""
-    echo -e "    ${CYAN}source ~/.${shell_name}rc${NC}  # or your shell's config file"
+    echo -e "    ${CYAN}source $rc_file${NC}"
     echo ""
     echo -e "${BOLD}Quick start:${NC}"
     echo ""
