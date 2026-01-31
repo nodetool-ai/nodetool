@@ -1649,7 +1649,8 @@ export interface paths {
          * @description Serve the HTML app for a workflow as a website.
          *
          *     Returns the stored html_app content as an HTML response that can be
-         *     rendered directly in a browser.
+         *     rendered directly in a browser. Injects runtime configuration (API URL,
+         *     WS URL, workflow ID) so the app works in any environment.
          */
         get: operations["get_workflow_app_api_workflows__id__app_get"];
         put?: never;
@@ -2628,6 +2629,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/vibecoding/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Html
+         * @description Generate HTML app for a workflow based on user prompt.
+         *
+         *     Returns streaming response with the generated HTML.
+         *     The HTML will be wrapped in ```html ... ``` code blocks.
+         */
+        post: operations["generate_html_api_vibecoding_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/vibecoding/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Templates
+         * @description Return starter templates for common workflow patterns.
+         */
+        get: operations["get_templates_api_vibecoding_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/list": {
         parameters: {
             query?: never;
@@ -2984,13 +3028,15 @@ export interface components {
         /** AssetUpdateRequest */
         AssetUpdateRequest: {
             /** Name */
-            name: string | null;
+            name?: string | null;
             /** Parent Id */
-            parent_id: string | null;
+            parent_id?: string | null;
             /** Content Type */
-            content_type: string | null;
+            content_type?: string | null;
             /** Data */
             data?: string | null;
+            /** Data Encoding */
+            data_encoding?: "base64" | null;
             /** Metadata */
             metadata?: {
                 [key: string]: unknown;
@@ -3674,6 +3720,18 @@ export interface components {
          * @enum {string}
          */
         FontSource: "system" | "google_fonts" | "url";
+        /**
+         * GenerateRequest
+         * @description Request model for HTML generation.
+         */
+        GenerateRequest: {
+            /** Workflow Id */
+            workflow_id: string;
+            /** Prompt */
+            prompt: string;
+            /** Thread Id */
+            thread_id?: string | null;
+        };
         /**
          * GitHubUserResponse
          * @description Response for GitHub user endpoint.
@@ -6953,6 +7011,20 @@ export interface components {
          * @enum {string}
          */
         TaskUpdateEvent: "task_created" | "step_started" | "entered_conclusion_stage" | "step_completed" | "step_failed" | "task_completed";
+        /**
+         * Template
+         * @description A starter template for HTML generation.
+         */
+        Template: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Prompt */
+            prompt: string;
+        };
         /** TextRef */
         TextRef: {
             /**
@@ -11590,6 +11662,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_html_api_vibecoding_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_templates_api_vibecoding_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Template"][];
                 };
             };
         };

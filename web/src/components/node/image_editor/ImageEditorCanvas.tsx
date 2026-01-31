@@ -177,7 +177,7 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
       const mainCtx = mainCanvasRef.current.getContext("2d");
       const overlayCtx = overlayCanvasRef.current.getContext("2d");
 
-      if (!mainCtx || !overlayCtx) {return;}
+      if (!mainCtx || !overlayCtx) { return; }
 
       const canvas = mainCanvasRef.current;
       const imgCanvas = imageCanvasRef.current;
@@ -334,17 +334,15 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
           drawingCanvas.height = img.height;
           drawingCanvasRef.current = drawingCanvas;
 
+          // Setting imageSize will trigger the render effect
           setImageSize({ width: img.width, height: img.height });
-
-          // Render the image
-          render();
         } catch (error) {
           console.error("Failed to load image:", error);
         }
       };
 
       initCanvas();
-    }, [imageUrl, render]);
+    }, [imageUrl]);
 
     useEffect(() => {
       const handleResize = () => updateCanvasSize();
@@ -352,14 +350,14 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
       return () => window.removeEventListener("resize", handleResize);
     }, [updateCanvasSize]);
 
-    // Re-render when dependencies change
+    // Re-render when dependencies change (including when imageSize changes after loading)
     useEffect(() => {
       render();
-    }, [render]);
+    }, [render, imageSize]);
 
     // Get mouse position on canvas
     const getCanvasPoint = useCallback((e: React.MouseEvent): Point => {
-      if (!mainCanvasRef.current) {return { x: 0, y: 0 };}
+      if (!mainCanvasRef.current) { return { x: 0, y: 0 }; }
       const rect = mainCanvasRef.current.getBoundingClientRect();
       return {
         x: e.clientX - rect.left,
@@ -389,9 +387,9 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
     // Drawing functions
     const drawLine = useCallback(
       (from: Point, to: Point, erase: boolean = false) => {
-        if (!drawingCanvasRef.current) {return;}
+        if (!drawingCanvasRef.current) { return; }
         const ctx = drawingCanvasRef.current.getContext("2d");
-        if (!ctx) {return;}
+        if (!ctx) { return; }
 
         ctx.save();
         ctx.lineCap = "round";
@@ -453,7 +451,7 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
 
     const handleMouseMove = useCallback(
       (e: React.MouseEvent) => {
-        if (!isMouseDown) {return;}
+        if (!isMouseDown) { return; }
 
         const canvasPoint = getCanvasPoint(e);
         const imagePoint = getImagePoint(canvasPoint);

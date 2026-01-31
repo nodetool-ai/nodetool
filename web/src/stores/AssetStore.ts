@@ -58,7 +58,9 @@ const emitUploadProgress = (
   loaded: number,
   total: number
 ) => {
-  if (!onUploadProgress) {return;}
+  if (!onUploadProgress) {
+    return;
+  }
   onUploadProgress({
     loaded,
     total,
@@ -101,10 +103,10 @@ const uploadAsset = async (
       error instanceof DOMException && error.name === "AbortError"
         ? createErrorMessage(error, "Asset upload was cancelled")
         : error instanceof TypeError
-        ? createErrorMessage(error, "Network error while creating asset")
-        : statusCode === 408
-        ? createErrorMessage(error, "Asset upload timed out")
-        : createErrorMessage(error, errorMessage);
+          ? createErrorMessage(error, "Network error while creating asset")
+          : statusCode === 408
+            ? createErrorMessage(error, "Asset upload timed out")
+            : createErrorMessage(error, errorMessage);
 
     throw normalizedError;
   }
@@ -133,6 +135,7 @@ export type AssetUpdate = {
   content_type?: string;
   metadata?: Record<string, never>;
   data?: string;
+  data_encoding?: "base64";
   duration?: number;
 };
 
@@ -345,10 +348,15 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       const headers = await authHeader();
       const params = new URLSearchParams();
       params.append("query", query.query);
-      if (query.content_type) {params.append("content_type", query.content_type);}
-      if (query.page_size)
-        {params.append("page_size", query.page_size.toString());}
-      if (query.cursor) {params.append("cursor", query.cursor);}
+      if (query.content_type) {
+        params.append("content_type", query.content_type);
+      }
+      if (query.page_size) {
+        params.append("page_size", query.page_size.toString());
+      }
+      if (query.cursor) {
+        params.append("cursor", query.cursor);
+      }
 
       const response = await axios.get(
         `${BASE_URL}/api/assets/search?${params.toString()}`,
@@ -488,10 +496,12 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
 
       const electronApi =
-        (window as unknown as {
-          electron?: { saveFile?: ElectronSaveFile };
-          api?: { saveFile?: ElectronSaveFile };
-        }).electron ||
+        (
+          window as unknown as {
+            electron?: { saveFile?: ElectronSaveFile };
+            api?: { saveFile?: ElectronSaveFile };
+          }
+        ).electron ||
         (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
 
       if (electronApi?.saveFile) {
@@ -571,7 +581,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         content_type:
           req.content_type !== undefined ? req.content_type : prev.content_type,
         metadata: req.metadata !== undefined ? req.metadata : null,
-        data: req.data !== undefined ? req.data : null
+        data: req.data !== undefined ? req.data : null,
+        data_encoding:
+          req.data_encoding !== undefined ? req.data_encoding : null
       }
     });
     if (error) {

@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
+import { useNavigate } from "react-router-dom";
 //mui
 import { Typography } from "@mui/material";
 import { EditorButton, Dialog } from "../ui_primitives";
@@ -272,11 +273,10 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [compareAssetA, setCompareAssetA] = useState<Asset | null>(null);
   const [compareAssetB, setCompareAssetB] = useState<Asset | null>(null);
 
-  // Image editor state
-  const [isEditingImage, setIsEditingImage] = useState(false);
-  const { saveEditedImage } = useAssetImageEditor();
+  // Navigation for image editor
+  const navigate = useNavigate();
 
-  // Reset compare mode and editor when viewer closes
+  // Reset compare mode when viewer closes
   useEffect(() => {
     if (!open) {
       setCompareMode(false);
@@ -339,39 +339,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     setCompareAssetB(null);
   }, []);
 
-  // Image editor handlers
+  // Image editor handler - navigate to dedicated route
   const handleOpenImageEditor = useCallback(() => {
     if (currentAsset && isImage) {
-      setIsEditingImage(true);
+      navigate(`/assets/edit/${currentAsset.id}`);
     }
-  }, [currentAsset, isImage]);
-
-  const handleCloseImageEditor = useCallback(() => {
-    setIsEditingImage(false);
-  }, []);
-
-  const handleSaveEditedImage = useCallback(
-    async (_editedImageUrl: string, blob: Blob) => {
-      if (!currentAsset) {
-        return;
-      }
-
-      try {
-        await saveEditedImage(currentAsset, blob);
-        
-        // Refresh the current asset to show the updated image
-        const updatedAsset = await getAsset(currentAsset.id);
-        setCurrentAsset(updatedAsset);
-        
-        // Close the editor
-        setIsEditingImage(false);
-      } catch (error) {
-        log.error("Failed to save edited image:", error);
-        // Error is already logged by the hook, just keep editor open
-      }
-    },
-    [currentAsset, saveEditedImage, getAsset]
-  );
+  }, [currentAsset, isImage, navigate]);
 
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
@@ -484,12 +457,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
 
   const handlePrevAsset = useCallback(() => {
-    if (currentIndex === null) {return;}
+    if (currentIndex === null) { return; }
     handleChangeAsset(Math.max(0, currentIndex - 1));
   }, [currentIndex, handleChangeAsset]);
 
   const handleNextAsset = useCallback(() => {
-    if (currentIndex === null) {return;}
+    if (currentIndex === null) { return; }
     handleChangeAsset(Math.min(assetsToUse.length - 1, currentIndex + 1));
   }, [currentIndex, assetsToUse.length, handleChangeAsset]);
 
@@ -551,9 +524,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               const isCompareSelected = compareAssetA?.id === asset.id;
               return (
                 <EditorButton
-                  className={`item ${
-                    isCompareSelected ? "compare-selected" : ""
-                  }`}
+                  className={`item ${isCompareSelected ? "compare-selected" : ""
+                    }`}
                   key={asset.id || idx}
                   onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
                   density="compact"
@@ -573,9 +545,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             })}
           </div>
           <div
-            className={`prev-next-items current ${
-              compareAssetA?.id === currentAsset?.id ? "compare-selected" : ""
-            }`}
+            className={`prev-next-items current ${compareAssetA?.id === currentAsset?.id ? "compare-selected" : ""
+              }`}
           >
             <AssetItem
               asset={currentAsset as Asset}
@@ -594,9 +565,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               const isCompareSelected = compareAssetA?.id === asset.id;
               return (
                 <EditorButton
-                  className={`item ${
-                    isCompareSelected ? "compare-selected" : ""
-                  }`}
+                  className={`item ${isCompareSelected ? "compare-selected" : ""
+                    }`}
                   key={asset.id || idx}
                   onMouseDown={() => handleThumbnailClick(asset, assetIndex)}
                   density="compact"
@@ -675,15 +645,15 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             <ToolbarIconButton
               icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
               tooltip={
-                copied 
-                  ? "Copied!" 
+                copied
+                  ? "Copied!"
                   : currentAsset.content_type.startsWith("image/")
-                  ? "Copy Image"
-                  : currentAsset.content_type.startsWith("video/")
-                  ? "Copy Video Info"
-                  : currentAsset.content_type.startsWith("audio/")
-                  ? "Copy Audio Info"
-                  : "Copy Content"
+                    ? "Copy Image"
+                    : currentAsset.content_type.startsWith("video/")
+                      ? "Copy Video Info"
+                      : currentAsset.content_type.startsWith("audio/")
+                        ? "Copy Audio Info"
+                        : "Copy Content"
               }
               onClick={handleCopyToClipboard}
               className="button copy"
