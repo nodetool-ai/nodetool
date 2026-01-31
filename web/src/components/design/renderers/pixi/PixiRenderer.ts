@@ -305,7 +305,7 @@ export default class PixiRenderer implements CanvasRenderer {
         return;
       }
       const outline = new Graphics().setStrokeStyle({ width: 1, color: 0x4f46e5, alpha: 1 });
-      outline.drawRect(el.x, el.y, el.width, el.height);
+      outline.rect(el.x, el.y, el.width, el.height);
       this.selectionContainer?.addChild(outline);
       this.selectionNodes.push(outline);
     });
