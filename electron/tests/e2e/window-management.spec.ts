@@ -236,7 +236,7 @@ if (process.env.JEST_WORKER_ID) {
 
       // Wait for title to appear with polling (title might load after the page)
       let title = '';
-      for (let i = 0; i < 10; i++) {
+      for (let attempt = 0; attempt < 10; attempt++) {
         title = await window.title();
         if (title && title.length > 0) break;
         await new Promise(resolve => setTimeout(resolve, 500));

@@ -362,9 +362,8 @@ if (process.env.JEST_WORKER_ID) {
           await window.evaluate(async () => {
             await (window as any).api.shell.beep();
           });
-        } catch (e) {
+        } catch {
           // Beep may fail in headless/CI environments, that's acceptable
-          console.log('shell.beep call failed (may be expected in CI):', e);
         }
 
         await electronApp.close();
