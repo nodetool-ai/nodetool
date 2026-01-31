@@ -99,13 +99,13 @@ src/
 - [x] Element rendering (Rect/Ellipse/Line/Text/Image)
 - [x] Selection rendering (bounds + outline + handles)
 - [x] Grid rendering
-- [~] Selection handle interactions (resize + rotation handle wired, rotation snap pending)
+- [x] Selection handle interactions (resize + rotation handle wired, rotation snap done)
 
 ## Phase 3 — Tools & Interaction (checklist)
 
 - [ ] Tool architecture (Tool interface + manager)
 - [x] Select tool (click/multi-select + drag move)
-- [~] Resize/rotate via handles (resize + rotation handle wired, rotation snap pending)
+- [x] Resize/rotate via handles (resize + rotation handle wired, rotation snap done)
 - [x] Creation tools (Rect/Ellipse/Line/Text/Image)
 - [ ] Hit testing (R-tree spatial index)
 - [ ] Snapping (snap index + guides)

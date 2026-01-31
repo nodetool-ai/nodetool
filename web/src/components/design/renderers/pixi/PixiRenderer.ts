@@ -442,7 +442,7 @@ export default class PixiRenderer implements CanvasRenderer {
       const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
       const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
       const angle = this.getRotationAngle(center, event.global);
-      const rotation = angle - this.resizeState.rotation;
+      const rotation = this.snapRotation(angle - this.resizeState.rotation);
       handlers?.onTransformEnd?.(this.resizeState.id, {
         x: bounds.x,
         y: bounds.y,
@@ -515,6 +515,11 @@ export default class PixiRenderer implements CanvasRenderer {
   private getRotationAngle(center: Point, pointer: Point): number {
     const angle = Math.atan2(pointer.y - center.y, pointer.x - center.x);
     return angle * RAD_TO_DEG;
+  }
+
+  private snapRotation(rotation: number): number {
+    const step = 15;
+    return Math.round(rotation / step) * step;
   }
 
   private applyCamera(): void {
