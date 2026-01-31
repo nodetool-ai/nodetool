@@ -327,7 +327,7 @@ test.describe("Feature with Mocks", () => {
 - Don't share selection state between workflows
 
 ### 21. error-handling.spec.ts (New)
-**Tests: 21**
+**Tests: 22**
 - Invalid workflow ID handling
 - Invalid route handling
 - Navigation recovery from bad URLs
@@ -348,10 +348,11 @@ test.describe("Feature with Mocks", () => {
 - Request timeout handling
 - Chat with invalid thread ID
 - WebSocket connection failure
-- Editor with invalid/missing data
+- Editor with invalid data
+- Editor with missing node types
 
 ### 22. workflow-execution.spec.ts (New)
-**Tests: 25**
+**Tests: 21**
 - Run button display in editor
 - Stop/cancel button visibility
 - Execution status area display
@@ -375,7 +376,7 @@ test.describe("Feature with Mocks", () => {
 - Standalone mini app route
 
 ### 23. help-documentation.spec.ts (New)
-**Tests: 24**
+**Tests: 25**
 - Help menu access from dashboard
 - Help icon in editor
 - Keyboard shortcut for help
@@ -403,7 +404,7 @@ test.describe("Feature with Mocks", () => {
 - Model recommendation info
 
 ### 24. workflow-import-export.spec.ts (New)
-**Tests: 22**
+**Tests: 21**
 - Export option in editor
 - Export via keyboard shortcut
 - Copy workflow JSON to clipboard
@@ -429,9 +430,9 @@ test.describe("Feature with Mocks", () => {
 ## Total Test Coverage
 
 - **Total Files:** 24
-- **Total Tests:** 276
+- **Total Tests:** 273
 - **Original Tests:** 184
-- **New Tests in this PR:** 92 (21 + 25 + 24 + 22)
+- **New Tests in this PR:** 89 (22 + 21 + 25 + 21)
 
 ## Test Coverage Areas
 

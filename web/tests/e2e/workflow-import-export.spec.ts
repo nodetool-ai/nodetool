@@ -1,9 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
-import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
-
-// Pre-defined mock workflow ID for testing - used by template tests
-const _MOCK_WORKFLOW_ID = workflows.workflows[0].id;
+import { setupMockApiRoutes } from "./fixtures/mockData";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
