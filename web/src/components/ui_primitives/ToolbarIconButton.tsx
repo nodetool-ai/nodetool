@@ -119,32 +119,6 @@ export const ToolbarIconButton = memo(
 
       const variantStyles = getVariantStyles();
 
-      // Wrap in span when disabled so Tooltip can still detect hover events
-      const button = (
-        <IconButton
-          ref={ref}
-          className={cn(
-            "toolbar-icon-button",
-            nodrag && editorClassNames.nodrag,
-            active && "active",
-            className
-          )}
-          size={size}
-          tabIndex={-1}
-          sx={{
-            ...variantStyles,
-            ...(active && {
-              backgroundColor: theme.vars.palette.grey[800],
-              color: "var(--palette-primary-main)"
-            }),
-            ...sx
-          }}
-          {...props}
-        >
-          {icon}
-        </IconButton>
-      );
-
       return (
         <Tooltip
           title={tooltip}
@@ -152,7 +126,28 @@ export const ToolbarIconButton = memo(
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
-          {props.disabled ? <span>{button}</span> : button}
+          <IconButton
+            ref={ref}
+            className={cn(
+              "toolbar-icon-button",
+              nodrag && editorClassNames.nodrag,
+              active && "active",
+              className
+            )}
+            size={size}
+            tabIndex={-1}
+            sx={{
+              ...variantStyles,
+              ...(active && {
+                backgroundColor: theme.vars.palette.grey[800],
+                color: "var(--palette-primary-main)"
+              }),
+              ...sx
+            }}
+            {...props}
+          >
+            {icon}
+          </IconButton>
         </Tooltip>
       );
     }
