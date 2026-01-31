@@ -27,8 +27,8 @@ const ALLOWED_TEXTAREA_COMBOS: Array<{
 }> = [
   { key: "Enter", shiftKey: true },
   { key: "Enter", ctrlKey: true },
-  { key: "Enter", metaKey: true }
-  // Add other allowed combinations here if needed
+  { key: "Enter", metaKey: true },
+  { key: "Escape" } // Allow Escape to close modals/editors
 ];
 
 interface ComboOptions {

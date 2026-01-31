@@ -707,6 +707,19 @@ const TextEditorModal = ({
 
   useCombo(["escape"], onClose);
 
+  // Direct keydown listener for Escape - more reliable than useCombo when Monaco is focused
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, true); // Use capture phase
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [onClose]);
+
   // Shortcuts: fullscreen, assistant pane, editor mode (hook)
   useEditorKeyboardShortcuts({
     onToggleFullscreen: toggleFullscreen,
