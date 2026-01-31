@@ -2,6 +2,7 @@ import {
   Application,
   Container,
   Graphics,
+  Rectangle,
   Sprite,
   Text,
   Texture
@@ -40,6 +41,8 @@ export default class PixiRenderer implements CanvasRenderer {
   private interactionHandlers: PixiInteractionHandlers | null = null;
   private interactionProvider: (() => PixiInteractionHandlers) | null = null;
   private dragState: { id: string; start: Point; startElement: Point } | null = null;
+  private selectionRect: Graphics | null = null;
+  private marqueeStart: Point | null = null;
 
   async mount(container: HTMLElement): Promise<void> {
     this.container = container;
@@ -67,12 +70,73 @@ export default class PixiRenderer implements CanvasRenderer {
     this.root.addChild(this.selectionContainer);
     this.root.addChild(this.guidesContainer);
     this.root.eventMode = "static";
+    this.root.hitArea = new Rectangle(0, 0, container.clientWidth || 800, container.clientHeight || 600);
     this.root.on("pointertap", (event) => {
       if (event.target !== this.root) {
         return;
       }
       const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
       handlers?.onStageClick?.();
+    });
+    this.root.on("pointerdown", (event) => {
+      if (event.target !== this.root) {
+        return;
+      }
+      this.marqueeStart = { x: event.global.x, y: event.global.y };
+      const rect = new Graphics()
+        .setStrokeStyle({ width: 1, color: 0x4f46e5, alpha: 1 })
+        .rect(0, 0, 1, 1)
+        .fill({ color: 0x4f46e5, alpha: 0.1 });
+      rect.position.set(this.marqueeStart.x, this.marqueeStart.y);
+      this.selectionRect = rect;
+      this.selectionContainer?.addChild(rect);
+    });
+    this.root.on("pointermove", (event) => {
+      if (!this.marqueeStart || !this.selectionRect) {
+        return;
+      }
+      const x = Math.min(this.marqueeStart.x, event.global.x);
+      const y = Math.min(this.marqueeStart.y, event.global.y);
+      const width = Math.abs(event.global.x - this.marqueeStart.x);
+      const height = Math.abs(event.global.y - this.marqueeStart.y);
+      this.selectionRect.clear();
+      this.selectionRect
+        .setStrokeStyle({ width: 1, color: 0x4f46e5, alpha: 1 })
+        .rect(0, 0, width, height)
+        .fill({ color: 0x4f46e5, alpha: 0.1 });
+      this.selectionRect.position.set(x, y);
+    });
+    this.root.on("pointerup", (event) => {
+      if (!this.marqueeStart || !this.selectionRect) {
+        return;
+      }
+      const x = Math.min(this.marqueeStart.x, event.global.x);
+      const y = Math.min(this.marqueeStart.y, event.global.y);
+      const width = Math.abs(event.global.x - this.marqueeStart.x);
+      const height = Math.abs(event.global.y - this.marqueeStart.y);
+      const selectionBounds = new Rectangle(
+        (x - this.pan.x) / this.zoom,
+        (y - this.pan.y) / this.zoom,
+        width / this.zoom,
+        height / this.zoom
+      );
+      const hits: string[] = [];
+      this.data?.elements.forEach((element) => {
+        const elementBounds = new Rectangle(element.x, element.y, element.width, element.height);
+        if (selectionBounds.intersects(elementBounds)) {
+          hits.push(element.id);
+        }
+      });
+      if (hits.length > 0) {
+        const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+        hits.forEach((id, index) => {
+          handlers?.onSelect?.(id, { shiftKey: index > 0, ctrlKey: false, metaKey: false });
+        });
+      }
+      this.selectionContainer?.removeChild(this.selectionRect);
+      this.selectionRect.destroy();
+      this.selectionRect = null;
+      this.marqueeStart = null;
     });
     app.stage.addChild(this.root);
     container.appendChild(app.canvas);
@@ -89,6 +153,9 @@ export default class PixiRenderer implements CanvasRenderer {
       return;
     }
     this.app.renderer.resize(width, height);
+    if (this.root) {
+      this.root.hitArea = new Rectangle(0, 0, width, height);
+    }
   }
 
   setCamera(pan: Point, zoom: number): void {
