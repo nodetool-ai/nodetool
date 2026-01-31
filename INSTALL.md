@@ -2,9 +2,39 @@
 
 A portable, self-contained installer that bootstraps a complete NodeTool CLI environment using [micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) and installs `nodetool-core` and `nodetool-base` packages from the [NodeTool registry](https://nodetool-ai.github.io/nodetool-registry/).
 
-## Quick Start
+## Installation Methods
 
-### One-liner Installation
+NodeTool can be installed in two ways:
+
+| Method | Best For | How to Install |
+|--------|----------|----------------|
+| **CLI Installer** (`install.sh`) | Servers, headless systems, automation, developers | Run shell script (see below) |
+| **Electron Desktop App** | Desktop users with GUI, GPU workflows | [Download from releases](https://github.com/nodetool-ai/nodetool/releases) |
+
+### Differences Between CLI and Electron Installations
+
+| Feature | CLI Installer | Electron Desktop App |
+|---------|--------------|----------------------|
+| **Interface** | Command-line only | Full graphical UI |
+| **Default Location** | `~/.nodetool` | Platform-specific (see below) |
+| **GPU Detection** | Manual configuration | Automatic PyTorch GPU detection |
+| **Model Backends** | External Ollama only | Built-in Ollama/llama.cpp options |
+| **Use Case** | Servers, CI/CD, headless | Desktop workflows, visual editing |
+
+**Electron Default Locations:**
+- Linux: `~/.local/share/nodetool/conda_env`
+- macOS: `~/nodetool_env`
+- Windows: `%APPDATA%\nodetool\conda_env`
+
+> **Note:** CLI and Electron installations use separate directories and do not conflict with each other. You can have both installed on the same system.
+
+---
+
+## CLI Installation
+
+### CLI Quick Start
+
+#### One-liner Installation
 
 **Linux / macOS:**
 ```bash
@@ -289,6 +319,86 @@ For development, you might want to use the environment directly:
 # Install additional packages
 ~/.nodetool/env/bin/uv pip install some-package
 ```
+
+---
+
+## Electron Desktop App Installation
+
+For users who prefer a graphical interface, the NodeTool Electron desktop app provides:
+
+- **Visual workflow editor** with drag-and-drop interface
+- **Automatic GPU detection** for PyTorch/CUDA configurations
+- **Built-in model backends** (Ollama, llama.cpp)
+- **Interactive installation wizard** with progress indicators
+
+### Downloading the Electron App
+
+Download the latest release for your platform from the [NodeTool Releases](https://github.com/nodetool-ai/nodetool/releases) page:
+
+- **Windows**: `NodeTool-Setup-x.x.x.exe`
+- **macOS (Intel)**: `NodeTool-x.x.x.dmg`
+- **macOS (Apple Silicon)**: `NodeTool-x.x.x-arm64.dmg`
+- **Linux**: `NodeTool-x.x.x.AppImage`
+
+### Electron vs CLI Feature Comparison
+
+| Feature | CLI | Electron |
+|---------|-----|----------|
+| Visual workflow editor | ❌ | ✅ |
+| Run workflows | ✅ | ✅ |
+| Serve API endpoints | ✅ | ✅ |
+| Worker mode | ✅ | ✅ |
+| GPU auto-detection | ❌ | ✅ |
+| Built-in Ollama | ❌ | ✅ |
+| Headless operation | ✅ | ❌ |
+| Docker-friendly | ✅ | ❌ |
+| Automation/CI | ✅ | ❌ |
+
+### Using Both CLI and Electron
+
+You can safely install both the CLI and Electron versions on the same system:
+
+1. **Separate Installations**: Each uses its own directory and micromamba root
+2. **No Conflicts**: Different `MAMBA_ROOT_PREFIX` paths prevent interference
+3. **Use Case**: Use Electron for design, CLI for deployment
+
+```bash
+# CLI installation (for servers/automation)
+~/.nodetool/
+
+# Electron installation (for desktop workflows)
+~/.local/share/nodetool/conda_env  # Linux
+~/nodetool_env                      # macOS
+%APPDATA%\nodetool\conda_env       # Windows
+```
+
+---
+
+## Technical Compatibility Notes
+
+### Environment Variables
+
+The CLI installer sets the following variables in its wrapper script:
+
+| Variable | CLI Value | Notes |
+|----------|-----------|-------|
+| `MAMBA_ROOT_PREFIX` | `$NODETOOL_HOME/micromamba` | Separate from Electron's root |
+| `HF_HOME` | `$NODETOOL_HOME/cache/huggingface` | Can be shared if overridden |
+| `OLLAMA_MODELS` | `$NODETOOL_HOME/cache/ollama` | Can be shared if overridden |
+
+The Electron app uses `app.getPath("userData")/micromamba` for its `MAMBA_ROOT_PREFIX`, ensuring no conflicts.
+
+### Sharing Model Caches
+
+To share HuggingFace and Ollama model caches between CLI and Electron installations:
+
+```bash
+# Set shared cache locations before running either
+export HF_HOME="$HOME/.cache/huggingface"
+export OLLAMA_MODELS="$HOME/.ollama/models"
+```
+
+---
 
 ## License
 
