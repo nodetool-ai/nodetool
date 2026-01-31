@@ -84,9 +84,9 @@ export default class PixiRenderer implements CanvasRenderer {
       }
       this.marqueeStart = { x: event.global.x, y: event.global.y };
       const rect = new Graphics()
-        .setStrokeStyle({ width: 1, color: 0x4f46e5, alpha: 1 })
         .rect(0, 0, 1, 1)
         .fill({ color: 0x4f46e5, alpha: 0.1 });
+      rect.stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
       rect.position.set(this.marqueeStart.x, this.marqueeStart.y);
       this.selectionRect = rect;
       this.selectionContainer?.addChild(rect);
@@ -101,9 +101,9 @@ export default class PixiRenderer implements CanvasRenderer {
       const height = Math.abs(event.global.y - this.marqueeStart.y);
       this.selectionRect.clear();
       this.selectionRect
-        .setStrokeStyle({ width: 1, color: 0x4f46e5, alpha: 1 })
         .rect(0, 0, width, height)
         .fill({ color: 0x4f46e5, alpha: 0.1 });
+      this.selectionRect.stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
       this.selectionRect.position.set(x, y);
     });
     this.root.on("pointerup", (event) => {
@@ -185,7 +185,7 @@ export default class PixiRenderer implements CanvasRenderer {
     }
     this.guidesContainer.removeChildren();
     this.guideNodes = guides.map((guide) => {
-      const line = new Graphics().setStrokeStyle({ width: 1, color: 0xff00ff, alpha: 1 });
+      const line = new Graphics();
       if (guide.type === "vertical") {
         line.moveTo(guide.position, guide.start);
         line.lineTo(guide.position, guide.end);
@@ -193,6 +193,7 @@ export default class PixiRenderer implements CanvasRenderer {
         line.moveTo(guide.start, guide.position);
         line.lineTo(guide.end, guide.position);
       }
+      line.stroke({ width: 1, color: 0xff00ff, alpha: 1 });
       this.guidesContainer?.addChild(line);
       return line;
     });
@@ -210,7 +211,7 @@ export default class PixiRenderer implements CanvasRenderer {
       return;
     }
     const lineColor = parseHexColor(color);
-    const grid = new Graphics().setStrokeStyle({ width: 1, color: lineColor, alpha: 0.4 });
+    const grid = new Graphics();
     const width = snapToGrid(this.data.width, size);
     const height = snapToGrid(this.data.height, size);
     for (let x = 0; x <= width; x += size) {
@@ -221,6 +222,7 @@ export default class PixiRenderer implements CanvasRenderer {
       grid.moveTo(0, y);
       grid.lineTo(width, y);
     }
+    grid.stroke({ width: 1, color: lineColor, alpha: 0.4 });
     this.gridNodes = [grid];
     this.gridContainer.addChild(grid);
   }
@@ -305,8 +307,9 @@ export default class PixiRenderer implements CanvasRenderer {
       if (!this.selection.has(el.id)) {
         return;
       }
-      const outline = new Graphics().setStrokeStyle({ width: 1, color: 0x4f46e5, alpha: 1 });
+      const outline = new Graphics();
       outline.rect(el.x, el.y, el.width, el.height);
+      outline.stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
       this.selectionContainer?.addChild(outline);
       this.selectionNodes.push(outline);
     });
@@ -325,8 +328,8 @@ export default class PixiRenderer implements CanvasRenderer {
       case "rectangle": {
         const rect = new Graphics();
         const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_PIXI_BACKGROUND;
-        rect.fill(parseHexColor(fillColor));
         rect.rect(0, 0, element.width, element.height);
+        rect.fill(parseHexColor(fillColor));
         rect.position.set(element.x, element.y);
         rect.rotation = toRadians(element.rotation);
         rect.eventMode = "static";
@@ -382,8 +385,8 @@ export default class PixiRenderer implements CanvasRenderer {
       case "ellipse": {
         const ellipse = new Graphics();
         const fillColor = (element.properties as { fillColor?: string }).fillColor ?? DEFAULT_PIXI_BACKGROUND;
-        ellipse.fill(parseHexColor(fillColor));
         ellipse.ellipse(element.width / 2, element.height / 2, element.width / 2, element.height / 2);
+        ellipse.fill(parseHexColor(fillColor));
         ellipse.position.set(element.x, element.y);
         ellipse.rotation = toRadians(element.rotation);
         ellipse.eventMode = "static";
@@ -436,9 +439,10 @@ export default class PixiRenderer implements CanvasRenderer {
       }
       case "line": {
         const strokeColor = (element.properties as { strokeColor?: string }).strokeColor ?? "#000000";
-        const line = new Graphics().setStrokeStyle({ width: 2, color: parseHexColor(strokeColor), alpha: 1 });
+        const line = new Graphics();
         line.moveTo(0, element.height / 2);
         line.lineTo(element.width, element.height / 2);
+        line.stroke({ width: 2, color: parseHexColor(strokeColor), alpha: 1 });
         line.position.set(element.x, element.y);
         line.rotation = toRadians(element.rotation);
         line.eventMode = "static";
@@ -605,8 +609,9 @@ export default class PixiRenderer implements CanvasRenderer {
         return sprite;
       }
       case "group": {
-        const group = new Graphics().setStrokeStyle({ width: 1, color: 0x999999, alpha: 1 });
+        const group = new Graphics();
         group.rect(0, 0, element.width, element.height);
+        group.stroke({ width: 1, color: 0x999999, alpha: 1 });
         group.position.set(element.x, element.y);
         group.rotation = toRadians(element.rotation);
         group.eventMode = "static";
