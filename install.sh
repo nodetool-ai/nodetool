@@ -377,7 +377,7 @@ create_conda_environment() {
             new_cleanup+=("$item")
         fi
     done
-    CLEANUP_DIRS=("${new_cleanup[@]}")
+    CLEANUP_DIRS=("${new_cleanup[@]+${new_cleanup[@]}}")
     
     success "Created conda environment with all dependencies"
 }
@@ -402,7 +402,8 @@ install_python_packages() {
         "${PYTHON_PACKAGES[@]}" \
         --python "${ENV_DIR}/bin/python" \
         --index-url "$NODETOOL_REGISTRY" \
-        --extra-index-url "$PYPI_INDEX"; then
+        --extra-index-url "$PYPI_INDEX" \
+        --pre; then
         die "Failed to install Python packages"
     fi
     

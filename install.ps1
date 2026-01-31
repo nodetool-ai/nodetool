@@ -353,7 +353,8 @@ function Install-PythonPackages {
     ) + $PYTHON_PACKAGES + @(
         "--python", $pythonPath,
         "--index-url", $NODETOOL_REGISTRY,
-        "--extra-index-url", $PYPI_INDEX
+        "--extra-index-url", $PYPI_INDEX,
+        "--pre"
     )
 
     try {
