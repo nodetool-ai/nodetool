@@ -45,6 +45,7 @@ header_pages:
   - key-concepts.md
   - user-interface.md
   - workflow-editor.md
+  - image-editor.md
   - workflow-debugging.md
   - mobile-app.md
   - cookbook.md
