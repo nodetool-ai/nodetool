@@ -2,7 +2,7 @@
  * Canvas utility functions for the Image Editor
  */
 
-import type { Point, CropRegion, AdjustmentSettings } from "./types";
+import type { Point, CropRegion, AdjustmentSettings, ShapeSettings } from "./types";
 
 /**
  * Loads an image from a URL
@@ -396,4 +396,245 @@ export const mergeCanvases = (
   ctx.drawImage(drawingCanvas, 0, 0);
 
   return canvas;
+};
+
+/**
+ * Flood fill algorithm for the fill tool
+ */
+export const floodFill = (
+  ctx: CanvasRenderingContext2D,
+  startX: number,
+  startY: number,
+  fillColor: string
+): void => {
+  const canvas = ctx.canvas;
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  // Parse fill color
+  const fillRGB = hexToRgb(fillColor);
+  if (!fillRGB) {return;}
+  
+  // Get the color at the starting point
+  const startIdx = (startY * canvas.width + startX) * 4;
+  const startR = data[startIdx];
+  const startG = data[startIdx + 1];
+  const startB = data[startIdx + 2];
+  const startA = data[startIdx + 3];
+  
+  // If the start color is the same as fill color, return
+  if (
+    startR === fillRGB.r &&
+    startG === fillRGB.g &&
+    startB === fillRGB.b &&
+    startA === 255
+  ) {
+    return;
+  }
+  
+  // Tolerance for color matching
+  const tolerance = 32;
+  
+  const matchesStart = (idx: number): boolean => {
+    return (
+      Math.abs(data[idx] - startR) <= tolerance &&
+      Math.abs(data[idx + 1] - startG) <= tolerance &&
+      Math.abs(data[idx + 2] - startB) <= tolerance &&
+      Math.abs(data[idx + 3] - startA) <= tolerance
+    );
+  };
+  
+  // Stack-based flood fill
+  const stack: [number, number][] = [[startX, startY]];
+  const visited = new Set<number>();
+  
+  while (stack.length > 0) {
+    const [x, y] = stack.pop()!;
+    
+    if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
+      continue;
+    }
+    
+    const idx = (y * canvas.width + x) * 4;
+    const key = y * canvas.width + x;
+    
+    if (visited.has(key)) {
+      continue;
+    }
+    
+    if (!matchesStart(idx)) {
+      continue;
+    }
+    
+    visited.add(key);
+    
+    // Fill the pixel
+    data[idx] = fillRGB.r;
+    data[idx + 1] = fillRGB.g;
+    data[idx + 2] = fillRGB.b;
+    data[idx + 3] = 255;
+    
+    // Add neighbors
+    stack.push([x + 1, y]);
+    stack.push([x - 1, y]);
+    stack.push([x, y + 1]);
+    stack.push([x, y - 1]);
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
+};
+
+/**
+ * Helper function to convert hex color to RGB
+ */
+const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      }
+    : null;
+};
+
+/**
+ * Draws a shape preview on the overlay canvas
+ */
+export const drawShape = (
+  ctx: CanvasRenderingContext2D,
+  shapeType: "rectangle" | "ellipse" | "line" | "arrow",
+  start: Point,
+  end: Point,
+  settings: ShapeSettings,
+  zoom: number,
+  pan: Point,
+  canvas: HTMLCanvasElement,
+  imgWidth: number,
+  imgHeight: number
+): void => {
+  // Convert image coordinates to canvas coordinates
+  const startCanvas = imageToCanvasCoords(start.x, start.y, canvas, imgWidth, imgHeight, zoom, pan);
+  const endCanvas = imageToCanvasCoords(end.x, end.y, canvas, imgWidth, imgHeight, zoom, pan);
+  
+  ctx.save();
+  ctx.strokeStyle = settings.strokeColor;
+  ctx.lineWidth = settings.strokeWidth * zoom;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  
+  switch (shapeType) {
+    case "rectangle": {
+      const x = Math.min(startCanvas.x, endCanvas.x);
+      const y = Math.min(startCanvas.y, endCanvas.y);
+      const w = Math.abs(endCanvas.x - startCanvas.x);
+      const h = Math.abs(endCanvas.y - startCanvas.y);
+      
+      if (settings.filled) {
+        ctx.fillStyle = settings.fillColor;
+        ctx.fillRect(x, y, w, h);
+      }
+      ctx.strokeRect(x, y, w, h);
+      break;
+    }
+    
+    case "ellipse": {
+      const cx = (startCanvas.x + endCanvas.x) / 2;
+      const cy = (startCanvas.y + endCanvas.y) / 2;
+      const rx = Math.abs(endCanvas.x - startCanvas.x) / 2;
+      const ry = Math.abs(endCanvas.y - startCanvas.y) / 2;
+      
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+      if (settings.filled) {
+        ctx.fillStyle = settings.fillColor;
+        ctx.fill();
+      }
+      ctx.stroke();
+      break;
+    }
+    
+    case "line": {
+      ctx.beginPath();
+      ctx.moveTo(startCanvas.x, startCanvas.y);
+      ctx.lineTo(endCanvas.x, endCanvas.y);
+      ctx.stroke();
+      break;
+    }
+    
+    case "arrow": {
+      drawArrowOnCanvas(ctx, startCanvas, endCanvas, settings.strokeWidth * zoom);
+      break;
+    }
+  }
+  
+  ctx.restore();
+};
+
+/**
+ * Draws an arrow from start to end point (for canvas coordinates)
+ */
+const drawArrowOnCanvas = (
+  ctx: CanvasRenderingContext2D,
+  start: Point,
+  end: Point,
+  lineWidth: number
+): void => {
+  const headLength = Math.max(lineWidth * 3, 10);
+  const angle = Math.atan2(end.y - start.y, end.x - start.x);
+  
+  // Draw line
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
+  
+  // Draw arrowhead
+  ctx.beginPath();
+  ctx.moveTo(end.x, end.y);
+  ctx.lineTo(
+    end.x - headLength * Math.cos(angle - Math.PI / 6),
+    end.y - headLength * Math.sin(angle - Math.PI / 6)
+  );
+  ctx.lineTo(
+    end.x - headLength * Math.cos(angle + Math.PI / 6),
+    end.y - headLength * Math.sin(angle + Math.PI / 6)
+  );
+  ctx.closePath();
+  ctx.fill();
+};
+
+/**
+ * Draws an arrow from start to end point (for image coordinates, used in final draw)
+ */
+export const drawArrow = (
+  ctx: CanvasRenderingContext2D,
+  start: Point,
+  end: Point,
+  lineWidth: number
+): void => {
+  const headLength = Math.max(lineWidth * 3, 10);
+  const angle = Math.atan2(end.y - start.y, end.x - start.x);
+  
+  ctx.fillStyle = ctx.strokeStyle;
+  
+  // Draw line
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
+  
+  // Draw arrowhead
+  ctx.beginPath();
+  ctx.moveTo(end.x, end.y);
+  ctx.lineTo(
+    end.x - headLength * Math.cos(angle - Math.PI / 6),
+    end.y - headLength * Math.sin(angle - Math.PI / 6)
+  );
+  ctx.lineTo(
+    end.x - headLength * Math.cos(angle + Math.PI / 6),
+    end.y - headLength * Math.sin(angle + Math.PI / 6)
+  );
+  ctx.closePath();
+  ctx.fill();
 };

@@ -17,13 +17,18 @@ import type {
   Point,
   CropRegion,
   BrushSettings,
-  AdjustmentSettings
+  AdjustmentSettings,
+  ShapeSettings,
+  TextSettings
 } from "./types";
 import {
   loadImage,
   canvasToImageCoords,
   drawCropOverlay,
-  applyAdjustments
+  applyAdjustments,
+  floodFill,
+  drawShape,
+  drawArrow
 } from "./canvasUtils";
 
 const styles = (theme: Theme) =>
@@ -51,6 +56,15 @@ const styles = (theme: Theme) =>
       },
       "&.tool-draw, &.tool-erase": {
         cursor: "crosshair"
+      },
+      "&.tool-fill": {
+        cursor: "crosshair"
+      },
+      "&.tool-text": {
+        cursor: "text"
+      },
+      "&.tool-rectangle, &.tool-ellipse, &.tool-line, &.tool-arrow": {
+        cursor: "crosshair"
       }
     },
     ".overlay-canvas": {
@@ -68,6 +82,17 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       display: "flex",
       gap: "16px"
+    },
+    ".text-input": {
+      position: "absolute",
+      background: "transparent",
+      border: "1px dashed rgba(255, 255, 255, 0.5)",
+      outline: "none",
+      color: "#ffffff",
+      minWidth: "100px",
+      padding: "4px",
+      fontFamily: "inherit",
+      resize: "none"
     }
   });
 
@@ -82,6 +107,8 @@ interface ImageEditorCanvasProps {
   imageUrl: string;
   tool: EditTool;
   brushSettings: BrushSettings;
+  shapeSettings: ShapeSettings;
+  textSettings: TextSettings;
   adjustments: AdjustmentSettings;
   zoom: number;
   pan: Point;
@@ -99,6 +126,8 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
       imageUrl,
       tool,
       brushSettings,
+      shapeSettings,
+      textSettings,
       adjustments,
       zoom,
       pan,
@@ -124,6 +153,13 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
     const [dragStart, setDragStart] = useState<Point | null>(null);
     const [cropStart, setCropStart] = useState<Point | null>(null);
     const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+    // Shape drawing state
+    const [shapeStart, setShapeStart] = useState<Point | null>(null);
+    const [shapeEnd, setShapeEnd] = useState<Point | null>(null);
+    // Text input state
+    const [textInputPos, setTextInputPos] = useState<Point | null>(null);
+    const [textInputValue, setTextInputValue] = useState("");
+    const textInputRef = useRef<HTMLTextAreaElement>(null);
 
     // Expose methods to parent
     useImperativeHandle(ref, () => ({
@@ -444,9 +480,58 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
             // Draw a dot at the starting point
             drawLine(imagePoint, imagePoint, tool === "erase");
             break;
+
+          case "fill":
+            // Perform flood fill at the clicked point
+            if (imageCanvasRef.current && drawingCanvasRef.current) {
+              // Merge image and drawing canvas for fill operation
+              const mergedCanvas = document.createElement("canvas");
+              mergedCanvas.width = imageCanvasRef.current.width;
+              mergedCanvas.height = imageCanvasRef.current.height;
+              const mergedCtx = mergedCanvas.getContext("2d");
+              if (mergedCtx) {
+                mergedCtx.drawImage(imageCanvasRef.current, 0, 0);
+                mergedCtx.drawImage(drawingCanvasRef.current, 0, 0);
+                
+                const x = Math.floor(imagePoint.x);
+                const y = Math.floor(imagePoint.y);
+                if (x >= 0 && x < mergedCanvas.width && y >= 0 && y < mergedCanvas.height) {
+                  floodFill(mergedCtx, x, y, shapeSettings.fillColor);
+                  // Copy result to drawing canvas
+                  const drawCtx = drawingCanvasRef.current.getContext("2d");
+                  if (drawCtx) {
+                    drawCtx.clearRect(0, 0, drawingCanvasRef.current.width, drawingCanvasRef.current.height);
+                    drawCtx.drawImage(mergedCanvas, 0, 0);
+                    // Clear image canvas and redraw original
+                    const imgCtx = imageCanvasRef.current.getContext("2d");
+                    if (imgCtx && originalImageRef.current) {
+                      imgCtx.drawImage(originalImageRef.current, 0, 0);
+                    }
+                  }
+                  render();
+                  onImageChange();
+                }
+              }
+            }
+            break;
+
+          case "text":
+            // Show text input at clicked position
+            setTextInputPos(canvasPoint);
+            setTextInputValue("");
+            // Focus will be handled in useEffect
+            break;
+
+          case "rectangle":
+          case "ellipse":
+          case "line":
+          case "arrow":
+            setShapeStart(imagePoint);
+            setShapeEnd(imagePoint);
+            break;
         }
       },
-      [tool, getCanvasPoint, getImagePoint, drawLine, onCropRegionChange]
+      [tool, getCanvasPoint, getImagePoint, drawLine, onCropRegionChange, shapeSettings.fillColor, render, onImageChange]
     );
 
     const handleMouseMove = useCallback(
@@ -492,6 +577,36 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
               setLastPoint(imagePoint);
             }
             break;
+
+          case "rectangle":
+          case "ellipse":
+          case "line":
+          case "arrow":
+            if (shapeStart) {
+              setShapeEnd(imagePoint);
+              // Draw preview on overlay canvas
+              if (overlayCanvasRef.current && mainCanvasRef.current && imageCanvasRef.current) {
+                const overlayCtx = overlayCanvasRef.current.getContext("2d");
+                if (overlayCtx) {
+                  // Clear overlay
+                  overlayCtx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+                  // Draw preview shape
+                  drawShape(
+                    overlayCtx,
+                    tool as "rectangle" | "ellipse" | "line" | "arrow",
+                    shapeStart,
+                    imagePoint,
+                    shapeSettings,
+                    zoom,
+                    pan,
+                    mainCanvasRef.current,
+                    imageCanvasRef.current.width,
+                    imageCanvasRef.current.height
+                  );
+                }
+              }
+            }
+            break;
         }
       },
       [
@@ -500,7 +615,10 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
         dragStart,
         cropStart,
         lastPoint,
+        shapeStart,
         pan,
+        zoom,
+        shapeSettings,
         getCanvasPoint,
         getImagePoint,
         drawLine,
@@ -510,16 +628,75 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
     );
 
     const handleMouseUp = useCallback(() => {
+      // Finalize shapes
+      if ((tool === "rectangle" || tool === "ellipse" || tool === "line" || tool === "arrow") && 
+          shapeStart && shapeEnd && drawingCanvasRef.current) {
+        const drawCtx = drawingCanvasRef.current.getContext("2d");
+        if (drawCtx) {
+          // Draw the final shape on the drawing canvas (in image coordinates)
+          drawCtx.save();
+          drawCtx.strokeStyle = shapeSettings.strokeColor;
+          drawCtx.lineWidth = shapeSettings.strokeWidth;
+          drawCtx.lineCap = "round";
+          drawCtx.lineJoin = "round";
+
+          if (tool === "rectangle") {
+            const x = Math.min(shapeStart.x, shapeEnd.x);
+            const y = Math.min(shapeStart.y, shapeEnd.y);
+            const w = Math.abs(shapeEnd.x - shapeStart.x);
+            const h = Math.abs(shapeEnd.y - shapeStart.y);
+            if (shapeSettings.filled) {
+              drawCtx.fillStyle = shapeSettings.fillColor;
+              drawCtx.fillRect(x, y, w, h);
+            }
+            drawCtx.strokeRect(x, y, w, h);
+          } else if (tool === "ellipse") {
+            const cx = (shapeStart.x + shapeEnd.x) / 2;
+            const cy = (shapeStart.y + shapeEnd.y) / 2;
+            const rx = Math.abs(shapeEnd.x - shapeStart.x) / 2;
+            const ry = Math.abs(shapeEnd.y - shapeStart.y) / 2;
+            drawCtx.beginPath();
+            drawCtx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+            if (shapeSettings.filled) {
+              drawCtx.fillStyle = shapeSettings.fillColor;
+              drawCtx.fill();
+            }
+            drawCtx.stroke();
+          } else if (tool === "line") {
+            drawCtx.beginPath();
+            drawCtx.moveTo(shapeStart.x, shapeStart.y);
+            drawCtx.lineTo(shapeEnd.x, shapeEnd.y);
+            drawCtx.stroke();
+          } else if (tool === "arrow") {
+            drawArrow(drawCtx, shapeStart, shapeEnd, shapeSettings.strokeWidth);
+          }
+
+          drawCtx.restore();
+          onImageChange();
+        }
+
+        // Clear overlay
+        if (overlayCanvasRef.current) {
+          const overlayCtx = overlayCanvasRef.current.getContext("2d");
+          if (overlayCtx) {
+            overlayCtx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+          }
+        }
+        render();
+      }
+
       setIsMouseDown(false);
       setDragStart(null);
       setCropStart(null);
       setLastPoint(null);
+      setShapeStart(null);
+      setShapeEnd(null);
 
       // Notify image changed if drawing
       if (tool === "draw" || tool === "erase") {
         onImageChange();
       }
-    }, [tool, onImageChange]);
+    }, [tool, shapeStart, shapeEnd, shapeSettings, onImageChange, render]);
 
     const handleMouseLeave = useCallback(() => {
       if (isMouseDown) {
@@ -540,6 +717,61 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
 
     const cursorClass = `tool-${tool}${isMouseDown && tool === "select" ? " dragging" : ""}`;
 
+    // Handle text input commit
+    const commitText = useCallback(() => {
+      if (textInputPos && textInputValue.trim() && drawingCanvasRef.current && imageCanvasRef.current && mainCanvasRef.current) {
+        const drawCtx = drawingCanvasRef.current.getContext("2d");
+        if (drawCtx) {
+          // Convert canvas position to image coordinates
+          const imagePoint = canvasToImageCoords(
+            textInputPos.x,
+            textInputPos.y,
+            mainCanvasRef.current,
+            imageCanvasRef.current.width,
+            imageCanvasRef.current.height,
+            zoom,
+            pan
+          );
+
+          drawCtx.save();
+          drawCtx.fillStyle = textSettings.color;
+          const fontStyle = `${textSettings.italic ? "italic " : ""}${textSettings.bold ? "bold " : ""}`;
+          drawCtx.font = `${fontStyle}${textSettings.fontSize}px ${textSettings.fontFamily}`;
+          drawCtx.textBaseline = "top";
+          
+          // Handle multi-line text
+          const lines = textInputValue.split("\n");
+          lines.forEach((line, index) => {
+            drawCtx.fillText(line, imagePoint.x, imagePoint.y + index * textSettings.fontSize * 1.2);
+          });
+          
+          drawCtx.restore();
+          render();
+          onImageChange();
+        }
+      }
+      setTextInputPos(null);
+      setTextInputValue("");
+    }, [textInputPos, textInputValue, textSettings, zoom, pan, render, onImageChange]);
+
+    // Handle text input keydown
+    const handleTextKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Escape") {
+        setTextInputPos(null);
+        setTextInputValue("");
+      } else if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        commitText();
+      }
+    }, [commitText]);
+
+    // Focus text input when it appears
+    useEffect(() => {
+      if (textInputPos && textInputRef.current) {
+        textInputRef.current.focus();
+      }
+    }, [textInputPos]);
+
     return (
       <div css={styles(theme)}>
         <div ref={containerRef} className="canvas-container">
@@ -553,6 +785,26 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
             onWheel={handleWheel}
           />
           <canvas ref={overlayCanvasRef} className="overlay-canvas" />
+          {textInputPos && (
+            <textarea
+              ref={textInputRef}
+              className="text-input"
+              value={textInputValue}
+              onChange={(e) => setTextInputValue(e.target.value)}
+              onKeyDown={handleTextKeyDown}
+              onBlur={commitText}
+              style={{
+                left: textInputPos.x,
+                top: textInputPos.y,
+                fontSize: `${textSettings.fontSize * zoom}px`,
+                fontFamily: textSettings.fontFamily,
+                fontWeight: textSettings.bold ? "bold" : "normal",
+                fontStyle: textSettings.italic ? "italic" : "normal",
+                color: textSettings.color
+              }}
+              placeholder="Type text..."
+            />
+          )}
           <div className="image-info">
             <span>{imageSize.width} × {imageSize.height}px</span>
             <span>{Math.round(zoom * 100)}%</span>
