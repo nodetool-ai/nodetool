@@ -292,12 +292,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     <div
       css={styles(theme, MIN_WIDTH, MIN_HEIGHT)}
       ref={nodeRef}
-      className={`group-node ${nodeHovered ? "hovered" : ""} 
-      }`}
+      className={`group-node ${nodeHovered ? "hovered" : ""} ${props.selected ? "selected" : ""}`}
       style={{
-        ...(nodeHovered
-          ? { border: `2px solid ${theme.vars.palette.primary.main}` }
-          : {}),
+        ...(props.selected
+          ? {
+              border: `2px solid ${theme.vars.palette.primary.main}`,
+              boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}40, inset 0 0 20px ${theme.vars.palette.primary.main}10`
+            }
+          : nodeHovered
+            ? { border: `2px solid ${theme.vars.palette.primary.main}` }
+            : {}),
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",
