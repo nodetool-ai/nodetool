@@ -8,13 +8,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCommandPaletteStore } from "../stores/CommandPaletteStore";
-import { useWorkflowStore } from "../stores/WorkflowStore";
+import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 
 export const useCommandPaletteCommands = () => {
   const navigate = useNavigate();
   const registerCommand = useCommandPaletteStore((state) => state.registerCommand);
   const unregisterCommand = useCommandPaletteStore((state) => state.unregisterCommand);
-  const createWorkflow = useWorkflowStore((state) => state.create);
+  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   
   useEffect(() => {
     // Navigation commands
@@ -71,9 +71,9 @@ export const useCommandPaletteCommands = () => {
       keywords: ["new", "create", "workflow", "blank"],
       category: "Workflow",
       shortcut: "⌘N",
-      action: () => {
-        createWorkflow();
-        navigate("/editor");
+      action: async () => {
+        const workflow = await createNewWorkflow();
+        navigate(`/editor/${workflow.id}`);
       }
     });
     
@@ -128,9 +128,9 @@ export const useCommandPaletteCommands = () => {
       keywords: ["help", "shortcuts", "keyboard", "hotkeys"],
       category: "Help",
       action: () => {
-        // This will open a keyboard shortcuts dialog
-        // For now, we'll just show an alert
-        alert("Keyboard Shortcuts:\n\n" +
+        // This will open a keyboard shortcuts dialog in the future
+        // For now, we log to console instead of using alert
+        console.log("Keyboard Shortcuts:\n\n" +
               "⌘/Ctrl + K - Open Command Palette\n" +
               "⌘/Ctrl + N - New Workflow\n" +
               "⌘/Ctrl + S - Save Workflow\n" +
@@ -152,5 +152,5 @@ export const useCommandPaletteCommands = () => {
       unregisterCommand("help.docs");
       unregisterCommand("help.shortcuts");
     };
-  }, [navigate, registerCommand, unregisterCommand, createWorkflow]);
+  }, [navigate, registerCommand, unregisterCommand, createNewWorkflow]);
 };

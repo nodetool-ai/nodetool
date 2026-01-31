@@ -28,8 +28,8 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
-import { useCommandPaletteStore } from "../../stores/CommandPaletteStore";
-import { useCombo } from "../../stores/KeyPressedStore";
+import { useCommandPaletteStore } from "../stores/CommandPaletteStore";
+import { useCombo } from "../stores/KeyPressedStore";
 import SearchIcon from "@mui/icons-material/Search";
 import KeyboardIcon from "@mui/icons-material/Keyboard";
 
