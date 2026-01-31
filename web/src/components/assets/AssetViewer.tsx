@@ -32,6 +32,7 @@ import { useAssetImageEditor } from "../../hooks/assets/useAssetImageEditor";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import { ToolbarIconButton, CloseButton, DownloadButton } from "../ui_primitives";
+import log from "loglevel";
 
 const containerStyles = css({
   width: "100%",
@@ -365,7 +366,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         // Close the editor
         setIsEditingImage(false);
       } catch (error) {
-        console.error("Failed to save edited image:", error);
+        log.error("Failed to save edited image:", error);
         // Error is already logged by the hook, just keep editor open
       }
     },

@@ -138,10 +138,4 @@ describe("useAssetImageEditor", () => {
     // Verify cache was not invalidated
     expect(mockInvalidateQueries).not.toHaveBeenCalled();
   });
-
-  test("should have isProcessing set to false", () => {
-    const { result } = renderHook(() => useAssetImageEditor());
-    
-    expect(result.current.isProcessing).toBe(false);
-  });
 });

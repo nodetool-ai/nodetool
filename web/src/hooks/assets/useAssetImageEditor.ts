@@ -17,7 +17,6 @@ interface UseAssetImageEditorResult {
     asset: Asset,
     blob: Blob
   ) => Promise<void>;
-  isProcessing: boolean;
 }
 
 /**
@@ -80,7 +79,6 @@ export const useAssetImageEditor = (): UseAssetImageEditorResult => {
   );
 
   return {
-    saveEditedImage,
-    isProcessing: false // Can be expanded to track processing state if needed
+    saveEditedImage
   };
 };
