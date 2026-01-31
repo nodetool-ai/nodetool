@@ -25,6 +25,8 @@ feature parity for selection, transforms, snapping, and export.
    - Maintain aspect ratio with shift
    - Rotation snapping to 15° increments
 
+✅ **Milestone achieved:** Pixi selection + drag managers are now wired through Pixi pointer events (no Konva).
+
 ## Phase 2 — Snap & Grid
 
 1. **Snap Manager**
