@@ -263,12 +263,75 @@ test.describe("Feature with Mocks", () => {
 - Tablet orientation changes
 - Content overflow handling
 
+### 18. node-operations.spec.ts (New)
+**Tests: 28**
+- Node selection (single, multi-select with Cmd/Ctrl+click)
+- Clear selection on canvas click
+- Node deletion with Delete key
+- Node deletion with Backspace key
+- Delete multiple selected nodes
+- Drag node to new position
+- Drag multiple selected nodes together
+- Node duplication with Cmd/Ctrl+D
+- Node context menu on right-click
+- Select all nodes with Cmd/Ctrl+A
+- Edge creation between nodes
+- Display existing edges
+- Delete edge on click and delete
+- Node grouping operations
+- Bulk delete on multiple nodes
+- Copy-paste of nodes
+
+### 19. drag-drop.spec.ts (New)
+**Tests: 22**
+- Drag canvas with middle mouse button
+- Drag canvas with spacebar + mouse
+- Drag node to reposition
+- Snap node to grid during drag
+- Prevent node drag outside canvas bounds
+- Create edge by dragging from handle
+- Show edge path preview during drag
+- Validate handle compatibility
+- Create selection box by dragging on canvas
+- Select multiple nodes with selection box
+- Handle file drop on canvas
+- Prevent dropping invalid files
+- Open node palette
+- Handle drag from node palette to canvas
+- Support touch drag on nodes (mobile)
+- Support pinch-to-zoom on canvas (mobile)
+
+### 20. tabs.spec.ts (New)
+**Tests: 24**
+- Open workflow in new tab
+- Handle multiple workflow tabs via navigation
+- Open workflow in same tab by default
+- Switch between workflows via browser navigation
+- Maintain workflow state when switching tabs
+- Preserve zoom level when switching workflows
+- Preserve canvas position when switching workflows
+- Handle unsaved changes when switching workflows
+- Track active workflow ID
+- Handle rapid tab switching
+- Handle opening multiple workflows sequentially
+- Cleanup resources when leaving workflow
+- Don't interfere with workflow execution state
+- Respect workflow-specific shortcuts
+- Handle undo/redo across workflow switches
+- Handle workflow not found in one tab
+- Recover from failed workflow load
+- Handle network errors during tab switch
+- Maintain browser history for tab navigation
+- Support forward navigation
+- Isolate workflow changes between tabs
+- Don't share selection state between workflows
+
 ## Total Test Coverage
 
-- **Total Files:** 17
-- **Total Tests:** ~110+
+- **Total Files:** 20
+- **Total Tests:** ~184+
 - **Original Tests:** 3
-- **New Tests:** ~107+
+- **New Tests in this PR:** ~74+
 
 ## Test Coverage Areas
 
@@ -292,6 +355,9 @@ test.describe("Feature with Mocks", () => {
 - ✅ Keyboard shortcuts (editor, chat, navigation)
 - ✅ Settings and preferences (localStorage, theme)
 - ✅ Responsive design (mobile, tablet, desktop)
+- ✅ **NEW: Advanced node operations** (selection, deletion, dragging, duplication, grouping)
+- ✅ **NEW: Drag-and-drop interactions** (canvas drag, node drag, edge creation, selection box, file drop)
+- ✅ **NEW: Multi-tab workflow editing** (tab switching, state preservation, error handling)
 
 ### Test Patterns Used
 
@@ -448,8 +514,11 @@ When running with `--mock`, the server provides:
 Potential areas for additional tests:
 - Real chat interactions with AI responses
 - Workflow execution and result validation
-- Complex node operations (grouping, connections)
-- Drag-and-drop node creation
-- Multi-tab workflow editing
+- ~~Complex node operations (grouping, connections)~~ ✅ **Completed**
+- ~~Drag-and-drop node creation~~ ✅ **Completed**
+- ~~Multi-tab workflow editing~~ ✅ **Completed**
 - Real-time collaboration features
 - Performance benchmarking
+- Additional file system operations
+- Native menu integration testing
+- Advanced clipboard operations
