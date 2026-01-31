@@ -73,6 +73,7 @@ const executeComboCallbacks = (
       activeElement.tagName === "TEXTAREA" ||
       activeElement.closest('[data-slate-editor="true"]') ||
       activeElement.closest(".text-editor-container") ||
+      activeElement.closest(".monaco-editor") ||
       activeElement.closest(".editor-input"));
 
   if (isInputFocused) {
@@ -113,8 +114,9 @@ const executeComboCallbacks = (
       //    this logic will prevent it from firing when Slate (or other inputs) are focused.
       
       // Allow copy/paste shortcuts even when inputs are focused (for text copying)
-      if (pressedKeysString === "c+meta" || pressedKeysString === "meta+v" || pressedKeysString === "meta+x") {
-        // Allow copy/paste to proceed - they can handle both text and node copying
+      // Also allow Escape to close modals/editors
+      if (pressedKeysString === "c+meta" || pressedKeysString === "meta+v" || pressedKeysString === "meta+x" || pressedKeysString === "escape") {
+        // Allow these to proceed - they can handle both text and global actions
       } else {
         return; // Suppress other global combos in focused inputs.
       }
@@ -246,6 +248,7 @@ const initKeyListeners = () => {
       '[data-slate-editor="true"]'
     );
     const targetIsLexicalEditor = eventTarget.closest(".text-editor-container");
+    const targetIsMonacoEditor = eventTarget.closest(".monaco-editor");
     const targetIsTextarea = eventTarget instanceof HTMLTextAreaElement;
 
     if (
@@ -253,6 +256,7 @@ const initKeyListeners = () => {
       targetIsSelectHeader ||
       targetIsSlateEditor ||
       targetIsLexicalEditor ||
+      targetIsMonacoEditor ||
       targetIsTextarea
     ) {
       if (isPressed) {
