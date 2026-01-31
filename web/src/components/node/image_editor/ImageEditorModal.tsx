@@ -47,7 +47,7 @@ import {
 const styles = (theme: Theme) =>
   css({
     ".modal-overlay": {
-      position: "absolute",
+      position: "fixed",
       top: 0,
       left: 0,
       right: 0,
@@ -122,32 +122,32 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.primary
       }
     },
-     ".button-primary": {
-       backgroundColor: theme.vars.palette.primary.main,
-       color: theme.vars.palette.primary.contrastText,
-       border: "none",
-       "&:hover": {
-         backgroundColor: theme.vars.palette.primary.dark
-       },
-       "&:disabled": {
-         backgroundColor: theme.vars.palette.grey[700],
-         color: theme.vars.palette.grey[500],
-         cursor: "not-allowed"
-       }
-     },
-     ".loading-overlay": {
-       position: "absolute",
-       top: 0,
-       left: 0,
-       right: 0,
-       bottom: 0,
-       display: "flex",
-       alignItems: "center",
-       justifyContent: "center",
-       backgroundColor: "rgba(0, 0, 0, 0.7)",
-       zIndex: 100
-     }
-   });
+    ".button-primary": {
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.contrastText,
+      border: "none",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.primary.dark
+      },
+      "&:disabled": {
+        backgroundColor: theme.vars.palette.grey[700],
+        color: theme.vars.palette.grey[500],
+        cursor: "not-allowed"
+      }
+    },
+    ".loading-overlay": {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      zIndex: 100
+    }
+  });
 
 interface ImageEditorModalProps {
   imageUrl: string;
@@ -219,12 +219,12 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
   // Save current state to history
   const saveToHistory = useCallback((action: string) => {
-    if (!canvasRef.current) {return;}
+    if (!canvasRef.current) { return; }
 
     const imageCanvas = canvasRef.current.getImageCanvas();
     const drawingCanvas = canvasRef.current.getDrawingCanvas();
 
-    if (!imageCanvas) {return;}
+    if (!imageCanvas) { return; }
 
     // Merge canvases to get complete state
     let finalCanvas = imageCanvas;
@@ -233,7 +233,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     }
 
     const ctx = finalCanvas.getContext("2d");
-    if (!ctx) {return;}
+    if (!ctx) { return; }
 
     const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
 
@@ -281,10 +281,10 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   // Handle editor actions
   const handleAction = useCallback(
     (action: EditAction) => {
-      if (!canvasRef.current) {return;}
+      if (!canvasRef.current) { return; }
 
       const imageCanvas = canvasRef.current.getImageCanvas();
-      if (!imageCanvas) {return;}
+      if (!imageCanvas) { return; }
 
       switch (action) {
         case "rotate-cw": {
@@ -421,12 +421,12 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
   // Handle download
   const handleDownload = useCallback(async () => {
-    if (!canvasRef.current) {return;}
+    if (!canvasRef.current) { return; }
 
     const imageCanvas = canvasRef.current.getImageCanvas();
     const drawingCanvas = canvasRef.current.getDrawingCanvas();
 
-    if (!imageCanvas) {return;}
+    if (!imageCanvas) { return; }
 
     // Create final canvas with adjustments applied
     const finalCanvas = document.createElement("canvas");
@@ -434,7 +434,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     finalCanvas.height = imageCanvas.height;
     const ctx = finalCanvas.getContext("2d");
 
-    if (!ctx) {return;}
+    if (!ctx) { return; }
 
     // Draw image
     ctx.drawImage(imageCanvas, 0, 0);
@@ -467,7 +467,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
   // Handle save
   const handleSave = useCallback(async () => {
-    if (!canvasRef.current) {return;}
+    if (!canvasRef.current) { return; }
 
     setIsSaving(true);
 

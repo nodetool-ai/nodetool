@@ -87,6 +87,9 @@ const TabsNodeEditor = React.lazy(
 const AssetExplorer = React.lazy(
   () => import("./components/assets/AssetExplorer")
 );
+const AssetEditor = React.lazy(
+  () => import("./components/assets/AssetEditor")
+);
 const CollectionsExplorer = React.lazy(
   () => import("./components/collections/CollectionsExplorer")
 );
@@ -230,6 +233,14 @@ function getRoutes() {
         <ProtectedRoute>
           <PanelLeft />
           <AssetExplorer />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "assets/edit/:assetId",
+      element: (
+        <ProtectedRoute>
+          <AssetEditor />
         </ProtectedRoute>
       )
     },
