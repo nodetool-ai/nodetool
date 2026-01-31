@@ -32,6 +32,7 @@ import { createPanelComponents } from "./panelComponents";
 import { PanelInfo } from "./AddPanelDropdown";
 import AppHeader from "../panels/AppHeader";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useCommandPaletteCommands } from "../../hooks/useCommandPaletteCommands";
 
 const styles = (theme: Theme) =>
   css({
@@ -82,6 +83,9 @@ const Dashboard: React.FC = () => {
 
   // Ensure WebSocket connection while dashboard is visible
   useEnsureChatConnected({ disconnectOnUnmount: false });
+
+  // Register command palette commands
+  useCommandPaletteCommands();
 
   // Close panelLeft when dashboard route is opened
   useEffect(() => {

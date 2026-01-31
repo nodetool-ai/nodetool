@@ -56,6 +56,7 @@ import {
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
+import CommandPalette from "./components/CommandPalette";
 
 import log from "loglevel";
 import Alert from "./components/node_editor/Alert";
@@ -395,6 +396,7 @@ const AppWrapper = () => {
                         <RouterProvider router={router} />
                       </Suspense>
                       <DownloadManagerDialog />
+                      <CommandPalette />
                     </>
                   )}
                 </KeyboardProvider>
