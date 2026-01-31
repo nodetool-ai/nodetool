@@ -5,14 +5,6 @@ const mockSetNodes = jest.fn();
 const mockSetEdges = jest.fn();
 const mockSurroundWithGroup = jest.fn();
 
-jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn(() => ({
-    setNodes: mockSetNodes,
-    setEdges: mockSetEdges,
-    getEdges: jest.fn(() => [])
-  }))
-}));
-
 jest.mock("../../contexts/NodeContext", () => ({
   useNodes: jest.fn(),
   useTemporalNodes: jest.fn(() => ({
@@ -89,32 +81,7 @@ describe("useSelectionActions", () => {
 
   describe("alignCenter", () => {
     it("aligns selected nodes by their horizontal centers", () => {
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
-        sel({
-          getSelectedNodes: () => [
-            {
-              id: "1",
-              position: { x: 0, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            },
-            {
-              id: "2",
-              position: { x: 200, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            }
-          ]
-        })
-      );
-
-      const { result } = renderHook(() => useSelectionActions());
-      result.current.alignCenter();
-      expect(mockSetNodes).toHaveBeenCalled();
-
-      // Get the update function passed to setNodes
-      const updateFn = mockSetNodes.mock.calls[0][0];
-      const currentNodes = [
+      const testNodes = [
         {
           id: "1",
           position: { x: 0, y: 0 },
@@ -128,7 +95,22 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      const updatedNodes = updateFn(currentNodes);
+      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+        sel({
+          nodes: testNodes,
+          edges: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes
+        })
+      );
+
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.alignCenter();
+      expect(mockSetNodes).toHaveBeenCalled();
+
+      // Get the nodes array passed directly to setNodes
+      const updatedNodes = mockSetNodes.mock.calls[0][0];
 
       // Both nodes should have their centers aligned
       // Node 1 center: 0 + 100/2 = 50
@@ -143,32 +125,7 @@ describe("useSelectionActions", () => {
 
   describe("alignMiddle", () => {
     it("aligns selected nodes by their vertical centers", () => {
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
-        sel({
-          getSelectedNodes: () => [
-            {
-              id: "1",
-              position: { x: 0, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            },
-            {
-              id: "2",
-              position: { x: 0, y: 100 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            }
-          ]
-        })
-      );
-
-      const { result } = renderHook(() => useSelectionActions());
-      result.current.alignMiddle();
-      expect(mockSetNodes).toHaveBeenCalled();
-
-      // Get the update function passed to setNodes
-      const updateFn = mockSetNodes.mock.calls[0][0];
-      const currentNodes = [
+      const testNodes = [
         {
           id: "1",
           position: { x: 0, y: 0 },
@@ -182,7 +139,22 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      const updatedNodes = updateFn(currentNodes);
+      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+        sel({
+          nodes: testNodes,
+          edges: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes
+        })
+      );
+
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.alignMiddle();
+      expect(mockSetNodes).toHaveBeenCalled();
+
+      // Get the nodes array passed directly to setNodes
+      const updatedNodes = mockSetNodes.mock.calls[0][0];
 
       // Both nodes should have their vertical centers aligned
       // Node 1 center: 0 + 50/2 = 25
@@ -203,37 +175,8 @@ describe("useSelectionActions", () => {
     });
 
     it("distributes nodes in x-order, independent of getSelectedNodes() ordering", () => {
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
-        sel({
-          getSelectedNodes: () => [
-            // Intentionally not in x-order (simulates input nodes being returned last)
-            {
-              id: "A",
-              position: { x: 200, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            },
-            {
-              id: "B",
-              position: { x: 400, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            },
-            {
-              id: "input",
-              position: { x: 0, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            }
-          ]
-        })
-      );
-
-      const { result } = renderHook(() => useSelectionActions());
-      result.current.distributeHorizontal();
-
-      const updateFn = mockSetNodes.mock.calls[0][0];
-      const currentNodes = [
+      const testNodes = [
+        // Intentionally not in x-order (simulates input nodes being returned last)
         {
           id: "A",
           position: { x: 200, y: 0 },
@@ -253,7 +196,21 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      const updatedNodes = updateFn(currentNodes);
+      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+        sel({
+          nodes: testNodes,
+          edges: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes
+        })
+      );
+
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.distributeHorizontal();
+
+      // Get the nodes array passed directly to setNodes
+      const updatedNodes = mockSetNodes.mock.calls[0][0];
       const byId = Object.fromEntries(updatedNodes.map((n: any) => [n.id, n]));
 
       // Sequential placement with spacing from leftMostX:
@@ -266,22 +223,27 @@ describe("useSelectionActions", () => {
     });
 
     it("distributes with 2 nodes", () => {
+      const testNodes = [
+        {
+          id: "1",
+          position: { x: 0, y: 0 },
+          selected: true,
+          measured: { width: 100, height: 50 }
+        },
+        {
+          id: "2",
+          position: { x: 120, y: 0 },
+          selected: true,
+          measured: { width: 100, height: 50 }
+        }
+      ];
       (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
         sel({
-          getSelectedNodes: () => [
-            {
-              id: "1",
-              position: { x: 0, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            },
-            {
-              id: "2",
-              position: { x: 120, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            }
-          ]
+          nodes: testNodes,
+          edges: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes
         })
       );
 
@@ -307,37 +269,8 @@ describe("useSelectionActions", () => {
 
   describe("distributeVertical", () => {
     it("distributes nodes in y-order, independent of getSelectedNodes() ordering", () => {
-      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
-        sel({
-          getSelectedNodes: () => [
-            // Intentionally not in y-order (simulates input nodes being returned last)
-            {
-              id: "A",
-              position: { x: 0, y: 200 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            },
-            {
-              id: "B",
-              position: { x: 0, y: 400 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            },
-            {
-              id: "input",
-              position: { x: 0, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            }
-          ]
-        })
-      );
-
-      const { result } = renderHook(() => useSelectionActions());
-      result.current.distributeVertical();
-
-      const updateFn = mockSetNodes.mock.calls[0][0];
-      const currentNodes = [
+      const testNodes = [
+        // Intentionally not in y-order (simulates input nodes being returned last)
         {
           id: "A",
           position: { x: 0, y: 200 },
@@ -357,7 +290,21 @@ describe("useSelectionActions", () => {
           measured: { width: 100, height: 50 }
         }
       ];
-      const updatedNodes = updateFn(currentNodes);
+      (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
+        sel({
+          nodes: testNodes,
+          edges: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes
+        })
+      );
+
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.distributeVertical();
+
+      // Get the nodes array passed directly to setNodes
+      const updatedNodes = mockSetNodes.mock.calls[0][0];
       const byId = Object.fromEntries(updatedNodes.map((n: any) => [n.id, n]));
 
       // Sequential placement with spacing from topMostY:
@@ -370,22 +317,27 @@ describe("useSelectionActions", () => {
     });
 
     it("distributes with 2 nodes", () => {
+      const testNodes = [
+        {
+          id: "1",
+          position: { x: 0, y: 0 },
+          selected: true,
+          measured: { width: 100, height: 50 }
+        },
+        {
+          id: "2",
+          position: { x: 0, y: 120 },
+          selected: true,
+          measured: { width: 100, height: 50 }
+        }
+      ];
       (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
         sel({
-          getSelectedNodes: () => [
-            {
-              id: "1",
-              position: { x: 0, y: 0 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            },
-            {
-              id: "2",
-              position: { x: 0, y: 120 },
-              selected: true,
-              measured: { width: 100, height: 50 }
-            }
-          ]
+          nodes: testNodes,
+          edges: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes
         })
       );
 

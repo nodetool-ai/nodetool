@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { useReactFlow } from "@xyflow/react";
 import { v4 as uuidv4 } from "uuid";
 import { useNodes } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
@@ -96,7 +95,6 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     deleteNode: state.deleteNode,
     toggleBypassSelected: state.toggleBypassSelected
   }));
-  const reactFlow = useReactFlow();
   const surroundWithGroup = useSurroundWithGroup();
 
   const alignLeft = useCallback(() => {
@@ -106,16 +104,17 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     }
 
     const leftMostX = Math.min(...selectedNodes.map((n) => n.position.x));
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           return { ...node, position: { ...node.position, x: leftMostX } };
         }
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, nodes, setNodes]);
 
   const alignCenter = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -130,9 +129,11 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return sum + n.position.x + nodeWidth / 2;
       }, 0) / selectedNodes.length;
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
+
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           const nodeWidth = node.measured?.width ?? NODE_WIDTH;
           return {
             ...node,
@@ -142,7 +143,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, nodes, setNodes]);
 
   const alignRight = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -156,9 +157,11 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       )
     );
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
+
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           const nodeWidth = node.measured?.width ?? NODE_WIDTH;
           return {
             ...node,
@@ -168,7 +171,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, nodes, setNodes]);
 
   const alignTop = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -177,16 +180,17 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     }
 
     const topMostY = Math.min(...selectedNodes.map((n) => n.position.y));
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           return { ...node, position: { ...node.position, y: topMostY } };
         }
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, nodes, setNodes]);
 
   const alignMiddle = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -201,9 +205,11 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return sum + n.position.y + nodeHeight / 2;
       }, 0) / selectedNodes.length;
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
+
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           const nodeHeight = node.measured?.height ?? 0;
           return {
             ...node,
@@ -213,7 +219,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, nodes, setNodes]);
 
   const alignBottom = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -225,9 +231,11 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       ...selectedNodes.map((n) => n.position.y + (n.measured?.height ?? 0))
     );
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.selected) {
+    const selectedIds = new Set(selectedNodes.map((n) => n.id));
+
+    setNodes(
+      nodes.map((node) => {
+        if (selectedIds.has(node.id)) {
           const nodeHeight = node.measured?.height ?? 0;
           return {
             ...node,
@@ -237,7 +245,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, nodes, setNodes]);
 
   const distributeHorizontal = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -262,8 +270,8 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       currentX += getNodeWidth(node) + HORIZONTAL_SPACING;
     });
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
+    setNodes(
+      nodes.map((node) => {
         const newX = positionMap.get(node.id);
         if (newX !== undefined) {
           return { ...node, position: { ...node.position, x: newX } };
@@ -271,7 +279,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, nodes, setNodes]);
 
   const distributeVertical = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -296,8 +304,8 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       currentY += getNodeHeight(node) + VERTICAL_SPACING;
     });
 
-    reactFlow.setNodes((currentNodes) =>
-      currentNodes.map((node) => {
+    setNodes(
+      nodes.map((node) => {
         const newY = positionMap.get(node.id);
         if (newY !== undefined) {
           return { ...node, position: { ...node.position, y: newY } };
@@ -305,7 +313,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, reactFlow]);
+  }, [getSelectedNodes, nodes, setNodes]);
 
   const deleteSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
