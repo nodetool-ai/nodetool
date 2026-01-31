@@ -299,6 +299,8 @@ Click the edit icon on image outputs or properties to open the full-featured edi
 - **Adjustments**: Brightness, contrast, saturation controls
 - **History**: Undo/redo all changes
 
+> **📖 Full Guide:** See [Image Editor](image-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
+
 ### Color Picker
 
 The professional color picker appears when selecting colors in properties:

@@ -95,7 +95,7 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
 
 ### Choose your path
 
-- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
+- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Image Editor]({{ '/image-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
 - **I want to explore:** [Example Workflows]({{ '/workflows/' | relative_url }}), [Workflow Patterns]({{ '/cookbook' | relative_url }}), [Community](https://discord.gg/WmQTWZRcYE).
 - **I need AI models:** [Models & Providers]({{ '/models-and-providers' | relative_url }}), [HuggingFace Integration]({{ '/huggingface' | relative_url }}), [Local vs Cloud]({{ '/models' | relative_url }}).
 - **I'm coming from another tool:** [How NodeTool Compares]({{ '/comparisons' | relative_url }}) – understand where NodeTool fits.
