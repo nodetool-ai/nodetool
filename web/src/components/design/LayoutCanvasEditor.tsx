@@ -668,9 +668,10 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       onDragStart: handleDragStart,
       onDragMove: handleDragMove,
       onDragEnd: handleDragEnd,
+      onTransformEnd: handleTransformEnd,
       onStageClick: handleStageClick
     };
-  }, [handleDragEnd, handleDragMove, handleDragStart, handleSelect, handleStageClick]);
+  }, [handleDragEnd, handleDragMove, handleDragStart, handleSelect, handleStageClick, handleTransformEnd]);
 
   // Handle layer selection from panel
   const handleLayerSelect = useCallback(

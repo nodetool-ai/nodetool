@@ -16,8 +16,22 @@ export interface PixiInteractionHandlers {
   onDragStart?: (id: string) => void;
   onDragMove?: (id: string, x: number, y: number, width: number, height: number) => { x: number; y: number };
   onDragEnd?: (id: string, x: number, y: number) => void;
+  onTransformEnd?: (
+    id: string,
+    attrs: { x: number; y: number; width: number; height: number; rotation: number }
+  ) => void;
   onStageClick?: () => void;
 }
+
+type ResizeHandle =
+  | "nw"
+  | "n"
+  | "ne"
+  | "e"
+  | "se"
+  | "s"
+  | "sw"
+  | "w";
 
 export default class PixiRenderer implements CanvasRenderer {
   private app: Application | null = null;
@@ -45,6 +59,15 @@ export default class PixiRenderer implements CanvasRenderer {
   private selectionRect: Graphics | null = null;
   private marqueeStart: Point | null = null;
   private elementNodes = new Map<string, Container | Graphics | Sprite | Text>();
+  private resizeState:
+    | {
+        id: string;
+        handle: ResizeHandle;
+        startBounds: Rectangle;
+        startPointer: Point;
+        rotation: number;
+      }
+    | null = null;
 
   async mount(container: HTMLElement): Promise<void> {
     this.container = container;
@@ -333,26 +356,116 @@ export default class PixiRenderer implements CanvasRenderer {
       .stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
     const handleSize = 8;
     const half = handleSize / 2;
-    const positions: Array<{ x: number; y: number }> = [
-      { x: bounds.x, y: bounds.y },
-      { x: bounds.x + bounds.width / 2, y: bounds.y },
-      { x: bounds.x + bounds.width, y: bounds.y },
-      { x: bounds.x, y: bounds.y + bounds.height / 2 },
-      { x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
-      { x: bounds.x, y: bounds.y + bounds.height },
-      { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
-      { x: bounds.x + bounds.width, y: bounds.y + bounds.height }
+    const positions: Array<{ x: number; y: number; handle: ResizeHandle }> = [
+      { x: bounds.x, y: bounds.y, handle: "nw" },
+      { x: bounds.x + bounds.width / 2, y: bounds.y, handle: "n" },
+      { x: bounds.x + bounds.width, y: bounds.y, handle: "ne" },
+      { x: bounds.x, y: bounds.y + bounds.height / 2, handle: "w" },
+      { x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2, handle: "e" },
+      { x: bounds.x, y: bounds.y + bounds.height, handle: "sw" },
+      { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height, handle: "s" },
+      { x: bounds.x + bounds.width, y: bounds.y + bounds.height, handle: "se" }
     ];
     positions.forEach((position) => {
-      this.selectionHandles?.rect(
-        position.x - half,
-        position.y - half,
-        handleSize,
-        handleSize
-      );
+      const handle = new Graphics();
+      handle
+        .rect(position.x - half, position.y - half, handleSize, handleSize)
+        .fill(0xffffff)
+        .stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
+      handle.eventMode = "static";
+      handle.cursor = this.getHandleCursor(position.handle);
+      handle.on("pointerdown", (event) => {
+        event.stopPropagation();
+        this.resizeState = {
+          id: Array.from(this.selection)[0],
+          handle: position.handle,
+          startBounds: bounds.clone(),
+          startPointer: { x: event.global.x, y: event.global.y },
+          rotation: 0
+        };
+      });
+      handle.on("pointermove", (event) => {
+        if (!this.resizeState || this.resizeState.handle !== position.handle) {
+          return;
+        }
+        const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+        const next = this.calculateResizeBounds(bounds, this.resizeState, event.global);
+        if (handlers?.onDragMove) {
+          handlers.onDragMove(this.resizeState.id, next.x, next.y, next.width, next.height);
+        }
+      });
+      handle.on("pointerup", (event) => {
+        if (!this.resizeState || this.resizeState.handle !== position.handle) {
+          return;
+        }
+        const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+        const next = this.calculateResizeBounds(bounds, this.resizeState, event.global);
+        handlers?.onTransformEnd?.(this.resizeState.id, {
+          x: next.x,
+          y: next.y,
+          width: next.width,
+          height: next.height,
+          rotation: this.resizeState.rotation
+        });
+        this.resizeState = null;
+      });
+      this.selectionHandles?.addChild(handle);
     });
-    this.selectionHandles.fill(0xffffff);
-    this.selectionHandles.stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
+  }
+
+  private getHandleCursor(handle: ResizeHandle): string {
+    switch (handle) {
+      case "n":
+      case "s":
+        return "ns-resize";
+      case "e":
+      case "w":
+        return "ew-resize";
+      case "ne":
+      case "sw":
+        return "nesw-resize";
+      case "nw":
+      case "se":
+        return "nwse-resize";
+      default:
+        return "default";
+    }
+  }
+
+  private calculateResizeBounds(
+    current: Rectangle,
+    state: {
+      handle: ResizeHandle;
+      startBounds: Rectangle;
+      startPointer: Point;
+    },
+    pointer: Point
+  ): Rectangle {
+    const dx = (pointer.x - state.startPointer.x) / this.zoom;
+    const dy = (pointer.y - state.startPointer.y) / this.zoom;
+    let { x, y, width, height } = state.startBounds;
+    if (state.handle.includes("e")) {
+      width = Math.max(1, width + dx);
+    }
+    if (state.handle.includes("s")) {
+      height = Math.max(1, height + dy);
+    }
+    if (state.handle.includes("w")) {
+      const nextWidth = Math.max(1, width - dx);
+      x += width - nextWidth;
+      width = nextWidth;
+    }
+    if (state.handle.includes("n")) {
+      const nextHeight = Math.max(1, height - dy);
+      y += height - nextHeight;
+      height = nextHeight;
+    }
+    const next = new Rectangle();
+    next.x = x;
+    next.y = y;
+    next.width = width;
+    next.height = height;
+    return next;
   }
 
   private applyCamera(): void {
