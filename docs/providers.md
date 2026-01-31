@@ -248,10 +248,10 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Features:**
 - ✅ Sharper 2K native output
-- ✅ Intelligent 4K upscaling
+- ✅ 4K upscaling
 - ✅ Improved text rendering accuracy
-- ✅ Enhanced character consistency
-- ✅ Advanced detail preservation
+- ✅ Better character consistency
+- ✅ Detail preservation
 
 **Configuration:** Access via Google's Gemini API using `GEMINI_API_KEY`, or through kie.ai
 
@@ -412,7 +412,7 @@ The following generic nodes are available in the NodeTool interface (visible in 
 
 ### Provider Parameter Mapping
 
-Generic nodes intelligently map parameters to provider-specific formats:
+Generic nodes map parameters to provider-specific formats:
 
 **TextToImage mapping:**
 

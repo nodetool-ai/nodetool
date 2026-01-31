@@ -15,7 +15,7 @@ Generate images using Kontext reference image fusion on Apple Silicon.
     mlx, flux, kontext, reference guidance
 
     Use cases:
-    - Leverage a reference image and prompt to produce stylistically consistent outputs
+    - Use a reference image and prompt to produce stylistically consistent outputs
     - Perform context-aware edits without external services
     - Prototype Kontext-driven workflows locally
 

@@ -16,7 +16,7 @@ Generate images with MFlux ControlNet guidance using local MLX acceleration.
 
     Use cases:
     - Apply edge-aware guidance via ControlNet canny models
-    - Leverage local Apple Silicon acceleration for conditioned generations
+    - Use local Apple Silicon acceleration for conditioned generations
     - Upscale images using ControlNet upscaler weights
 
 ## Properties

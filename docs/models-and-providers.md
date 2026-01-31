@@ -80,7 +80,7 @@ NodeTool provides access to high-quality generative AI models through cloud prov
 | Model | Provider | Capabilities | Key Features |
 |-------|----------|-------------|--------------|
 | **Black Forest Labs FLUX.2** | BFL | T2I with control | Photoreal images, multi-reference consistency, accurate text rendering, flexible control |
-| **Google Nano Banana Pro** | Google | High-res T2I | Sharper 2K output, intelligent 4K scaling, improved text rendering, enhanced character consistency |
+| **Google Nano Banana Pro** | Google | High-res T2I | Sharper 2K output, 4K upscaling, improved text rendering, better character consistency |
 
 ### Using These Models
 

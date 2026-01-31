@@ -312,7 +312,7 @@ A: While workflows aren't directly importable, the migration is straightforward.
 A: NodeTool saves workflow state at checkpoints. Long-running processes (hours or days) can be paused and resumed without losing progress—perfect for large batch processing or multi-stage campaigns.
 
 **Q: What makes NodeTool's agentic approach different?**  
-A: NodeTool's Agent nodes can plan multi-step strategies, reason about results, call tools, and adapt execution dynamically. This goes beyond fixed workflow graphs to enable autonomous, intelligent orchestration.
+A: NodeTool's Agent nodes can plan multi-step strategies, reason about results, call tools, and adapt execution dynamically. This goes beyond fixed workflow graphs to enable autonomous orchestration.
 
 **Q: Is NodeTool suitable for production?**  
 A: Yes. The same workflow runs locally and in production environments (RunPod, Cloud Run, self-hosted). See [Deployment Guide](deployment.md).
