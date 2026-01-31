@@ -897,11 +897,12 @@ if (process.env.JEST_WORKER_ID) {
             await node.click();
             await page.waitForTimeout(500);
 
-            // Look for input fields in inspector
-            const inputs = page.locator('input, textarea');
-            if ((await inputs.count()) > 0) {
-              // Try to focus and type
-              const firstInput = inputs.first();
+            // Look for input fields in the node inspector panel
+            // Use more specific selectors to target inspector inputs, not other page inputs
+            const inspectorInputs = page.locator('.node-inspector input, .node-inspector textarea, .properties-panel input, .properties-panel textarea, .react-flow__node input, .react-flow__node textarea');
+            if ((await inspectorInputs.count()) > 0) {
+              // Try to focus and type in the first visible input
+              const firstInput = inspectorInputs.first();
               if (await firstInput.isVisible()) {
                 await firstInput.click();
                 await page.keyboard.type("test");

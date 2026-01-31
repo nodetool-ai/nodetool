@@ -277,14 +277,23 @@ if (process.env.JEST_WORKER_ID) {
         const images = page.locator("img");
         const imageCount = await images.count();
         
-        // If there are images, they should have alt text
+        // If there are images, they should have alt text or be marked as decorative
         if (imageCount > 0) {
           for (let i = 0; i < Math.min(imageCount, 5); i++) {
             const img = images.nth(i);
             const alt = await img.getAttribute("alt");
             const role = await img.getAttribute("role");
-            // Either has alt or has role="presentation" for decorative images
-            expect(alt !== null || role === "presentation" || role === "none").toBe(true);
+            
+            // Images should either:
+            // 1. Have meaningful alt text for screen readers
+            // 2. Be marked as decorative with role="presentation" or role="none"
+            const hasAltText = alt !== null;
+            const isDecorativeImage = role === "presentation" || role === "none";
+            
+            expect(
+              hasAltText || isDecorativeImage,
+              `Image ${i} should have alt text or be marked as decorative`
+            ).toBe(true);
           }
         }
       });
