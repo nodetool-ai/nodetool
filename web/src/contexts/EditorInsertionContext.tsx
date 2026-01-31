@@ -1,8 +1,8 @@
-import React, { useContext } from "react";
+import { createContext, useContext } from "react";
 
 export type InsertIntoEditorFn = (text: string, language?: string) => void;
 
-const EditorInsertionContext = React.createContext<InsertIntoEditorFn | null>(
+const EditorInsertionContext = createContext<InsertIntoEditorFn | null>(
   null
 );
 
