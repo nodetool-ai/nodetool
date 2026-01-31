@@ -29,7 +29,7 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
     <h4>Creators & Designers</h4>
     <p>Generate and transform media with AI.</p>
     <ul>
-      <li>Use Flux, SDXL, and custom models</li>
+      <li>Use Flux, Qwen Image, and custom models</li>
       <li>Generate variations</li>
       <li>Build reusable workflows</li>
     </ul>
@@ -87,7 +87,7 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
 
 <ol class="step-sequence">
   <li><a href="{{ '/installation' | relative_url }}">Download NodeTool</a> — install for macOS, Windows, or Linux.</li>
-  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux/SDXL, or use cloud services.</li>
+  <li><a href="{{ '/getting-started' | relative_url }}#step-1--install-nodetool">Choose your AI models</a> — install local models like Flux or Qwen Image, or use cloud services.</li>
   <li><a href="{{ '/getting-started' | relative_url }}#step-2--run-a-beginner-workflow-end-to-end">Try a template workflow</a> — explore examples, press Run, watch results stream.</li>
   <li><a href="{{ '/getting-started' | relative_url }}#step-3--save-and-re-run-it-from-global-chat">Experiment and customize</a> — change inputs, connect nodes differently, make it yours.</li>
   <li><a href="{{ '/getting-started' | relative_url }}#step-4--turn-it-into-a-mini-app">Share your workflow</a> — turn it into a simple app others can use.</li>

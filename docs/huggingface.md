@@ -39,6 +39,12 @@ All HuggingFace nodes are available under the `huggingface.*` namespace with 27 
 - Support for IP adapters and LoRA models
 - Use cases: Marketing materials, game assets, interior design concepts
 
+**Qwen-Image** - High-quality general-purpose text-to-image generation
+- Nunchaku quantization support for efficient memory usage
+- True CFG scale control for precise guidance
+- Supports MLX for Apple Silicon optimization
+- Use cases: General-purpose image generation, quick prototyping, production workflows
+
 **Flux** - Image generation with memory-efficient quantization
 - Supports *schnell* (fast) and *dev* (high-quality) variants
 - Nunchaku quantization (FP16, FP4, INT4) for reduced VRAM usage
