@@ -43,8 +43,34 @@ export const getSelectionRect = (
 };
 
 /**
- * Helper that wraps React Flow's getIntersectingNodes API with a predicate filter.
- * Used to select fully contained group nodes within a selection rectangle.
+ * Check if a node is fully contained within a selection rectangle.
+ * The node must be entirely inside the rect (all 4 corners within bounds).
+ */
+const isNodeFullyEnclosed = (node: Node, rect: SelectionRect): boolean => {
+  const nodeX = node.position.x;
+  const nodeY = node.position.y;
+  const nodeWidth = node.measured?.width ?? node.width ?? 0;
+  const nodeHeight = node.measured?.height ?? node.height ?? 0;
+
+  const nodeRight = nodeX + nodeWidth;
+  const nodeBottom = nodeY + nodeHeight;
+
+  const rectRight = rect.x + rect.width;
+  const rectBottom = rect.y + rect.height;
+
+  // Node must be fully inside the rect
+  return (
+    nodeX >= rect.x &&
+    nodeY >= rect.y &&
+    nodeRight <= rectRight &&
+    nodeBottom <= rectBottom
+  );
+};
+
+/**
+ * Helper that finds nodes fully contained within a selection rectangle.
+ * Uses manual bounds checking instead of ReactFlow's getIntersectingNodes
+ * which doesn't reliably check for full enclosure.
  */
 export const getNodesWithinSelection = (
   instance: ReactFlowInstance<Node, Edge>,
@@ -55,14 +81,13 @@ export const getNodesWithinSelection = (
     return [];
   }
 
-  const intersectingNodes = instance.getIntersectingNodes(
-    rect,
-    false
-  ) as Node[];
-
-  if (!predicate) {
-    return intersectingNodes;
-  }
-
-  return intersectingNodes.filter(predicate);
+  const allNodes = instance.getNodes();
+  
+  // Filter to nodes that match predicate (if provided) and are fully enclosed
+  return allNodes.filter((node) => {
+    if (predicate && !predicate(node)) {
+      return false;
+    }
+    return isNodeFullyEnclosed(node, rect);
+  });
 };

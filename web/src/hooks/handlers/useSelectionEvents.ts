@@ -109,7 +109,10 @@ export function useSelectionEvents({
     (event: ReactMouseEvent) => {
       onSelectionEndBase(event);
       selectionEndRef.current = projectMouseEventToFlow(event);
-      selectGroupsWithinSelection();
+      // Defer to next frame to allow ReactFlow to complete its selection updates
+      requestAnimationFrame(() => {
+        selectGroupsWithinSelection();
+      });
     },
     [onSelectionEndBase, projectMouseEventToFlow, selectGroupsWithinSelection]
   );
