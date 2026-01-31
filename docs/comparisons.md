@@ -65,7 +65,7 @@ n8n is a general-purpose automation platform for SaaS integration and simple "if
 1. Agent analyzes brief and creates strategy
 2. Generate script variations (parallel)
 3. Create voiceover (TTS)
-4. Generate visual assets (Flux/SDXL)
+4. Generate visual assets (Flux/Qwen Image)
 5. Composite video with effects
 6. Generate social media variants
 7. Package deliverables with metadata

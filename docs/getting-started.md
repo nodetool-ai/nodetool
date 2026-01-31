@@ -32,7 +32,7 @@ For local workflows, install models:
 
 1. Open **Models**
 2. Install starter models:
-   - **Flux** or **SDXL** - Image generation (needs 8-12 GB VRAM)
+   - **Flux** or **Qwen Image** - Image generation (needs 8-12 GB VRAM)
    - **GPT-OSS** - Text generation (optional)
 3. Wait for downloads (~20 GB)
 

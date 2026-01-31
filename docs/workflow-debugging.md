@@ -226,7 +226,7 @@ Error: Connection refused on localhost:7777
 
 1. **Check model installation**
    - Open Model Manager
-   - Ensure SDXL/Flux/etc. is downloaded
+   - Ensure Flux/Qwen Image/etc. is downloaded
 
 2. **Verify VRAM**
    - Check GPU memory with `nvidia-smi`

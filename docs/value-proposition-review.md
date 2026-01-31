@@ -240,7 +240,7 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 **Recommendation:**
 - Add performance benchmarks table in `/docs/models.md`:
   - Tokens/second for local LLMs on Apple Silicon vs NVIDIA
-  - Image generation time for Flux/SDXL at different resolutions
+  - Image generation time for Flux/Qwen Image at different resolutions
   - Transcription speed for Whisper variants
 - Include hardware recommendations with expected throughput
 - Add cold-start vs warm-start times for deployed workflows
