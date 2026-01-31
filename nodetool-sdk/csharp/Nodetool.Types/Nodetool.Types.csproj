@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>12.0</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    
+    <!-- NuGet Package Properties -->
+    <PackageId>Nodetool.Types</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>NodeTool</Authors>
+    <Company>NodeTool</Company>
+    <Description>Core types for NodeTool SDK - includes asset references, message types, and workflow definitions</Description>
+    <PackageProjectUrl>https://github.com/nodetool-ai/nodetool</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nodetool-ai/nodetool</RepositoryUrl>
+    <PackageTags>nodetool;ai;workflow;automation</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MessagePack" Version="2.5.187" />
+  </ItemGroup>
+
+</Project>
