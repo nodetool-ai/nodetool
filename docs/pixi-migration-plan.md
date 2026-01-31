@@ -5,42 +5,43 @@
 Deliver a Pixi.js v8-only canvas editor with the MVP feature set defined below, then layer V2 capabilities without
 reimplementing Pixi-provided geometry, bounds, or event handling.
 
-## Scope
+## Scope (checklist)
 
 ### Must have (MVP)
 
-- Canvas pan/zoom
-- Create: rectangle, ellipse, line, text, image
-- Select, move, resize, rotate
-- Multi-select with shift/cmd
-- Layers panel with hierarchy
-- Properties panel (fill, stroke, opacity, size, position)
-- Undo/redo
-- Export PNG
-- Save/load documents
+- [x] Canvas pan/zoom (existing LayoutCanvasEditor controls)
+- [x] Create: rectangle, ellipse, line, text, image (toolbar + element types)
+- [x] Select, move (Pixi pointer events wired)
+- [ ] Resize, rotate (handles rendering done; interaction wiring pending)
+- [x] Multi-select with shift/cmd (selection logic in store + Pixi events)
+- [x] Layers panel with hierarchy (existing panel)
+- [x] Properties panel (fill, stroke, opacity, size, position)
+- [x] Undo/redo (existing history in LayoutCanvasStore)
+- [x] Export PNG (existing export action)
+- [x] Save/load documents (existing document store serialization)
 
 ### Should have (V2)
 
-- Groups and frames
-- Boolean operations
-- Align/distribute tools
-- Smart guides and snapping
-- Components/symbols
-- Text styling
-- Image filters
-- Keyboard shortcuts
-- Grid and rulers
-- Basic vector editing
+- [ ] Groups and frames (group rendering exists; interaction parity pending)
+- [ ] Boolean operations
+- [ ] Align/distribute tools (UI exists; Pixi parity pending)
+- [ ] Smart guides and snapping (snap guides render; Pixi drag parity pending)
+- [ ] Components/symbols
+- [ ] Text styling (basic text; advanced styling pending)
+- [ ] Image filters (blur/shadow pending)
+- [ ] Keyboard shortcuts (basic shortcuts exist; tool-specific pending)
+- [x] Grid and rulers (grid rendering exists)
+- [ ] Basic vector editing
 
 ### Won't have (out of scope)
 
-- Real-time multiplayer
-- Auto-layout
-- Prototyping/interactions
-- Plugins/extensions
-- Version history
-- Comments/annotations
-- Dev mode/code export
+- [ ] Real-time multiplayer
+- [ ] Auto-layout
+- [ ] Prototyping/interactions
+- [ ] Plugins/extensions
+- [ ] Version history
+- [ ] Comments/annotations
+- [ ] Dev mode/code export
 
 ## Architecture (target)
 
@@ -81,55 +82,33 @@ src/
     └── export/
 ```
 
-## Phase 1 — Foundation
+## Phase 1 — Foundation (checklist)
 
-1. **Document model**
-   - Element interface: id, type, x, y, width, height, rotation, opacity, visible, locked
-   - Concrete elements: Rect, Ellipse, Line, Text, Image
-   - DocumentModel with add/remove/update + JSON serialize/deserialize
-2. **State management**
-   - Zustand stores for document, canvas, tool state
-   - Granular selectors; no full-store subscriptions
-3. **History system**
-   - Undo/redo with immer patches
-   - Batch operations per gesture
-   - Max history depth (100)
+- [x] Document model (LayoutCanvasStore elements + serialization)
+- [x] Element interface (id/type/x/y/width/height/rotation/opacity/visible/locked)
+- [x] Concrete elements (Rect/Ellipse/Line/Text/Image)
+- [x] State management (Zustand stores)
+- [x] Granular selectors (no full-store subscriptions)
+- [x] History system (undo/redo, batched updates)
 
-## Phase 2 — Renderer
+## Phase 2 — Renderer (checklist)
 
-1. **Pixi setup**
-   - PixiRenderer implements CanvasRenderer
-   - Mount/resize/destroy lifecycle
-2. **Camera system**
-   - Pan via container position
-   - Zoom via container scale
-3. **Element rendering**
-   - Rect → Graphics.rect()
-   - Ellipse → Graphics.ellipse()
-   - Line → moveTo/lineTo + stroke()
-   - Text → Text
-   - Image → Sprite
-4. **Selection rendering**
-   - Use `DisplayObject.getBounds()` and `Rectangle.enlarge()` for bounds
-   - Render selection box + handles via Graphics.rect()
-5. **Grid rendering**
-   - TilingSprite-based grid
+- [x] PixiRenderer implements CanvasRenderer
+- [x] Mount/resize/destroy lifecycle
+- [x] Camera system (pan/zoom)
+- [x] Element rendering (Rect/Ellipse/Line/Text/Image)
+- [x] Selection rendering (bounds + outline + handles)
+- [x] Grid rendering
+- [ ] Selection handle interactions (resize/rotate)
 
-## Phase 3 — Tools & Interaction
+## Phase 3 — Tools & Interaction (checklist)
 
-1. **Tool architecture**
-   - Base Tool interface with pointer events
-   - Tool manager for active tool
-2. **Select tool**
-   - Click/multi-select (shift/cmd)
-   - Drag to move
-   - Resize/rotate via handles
-3. **Creation tools**
-   - Rect, Ellipse, Line, Text, Image
-4. **Hit testing**
-   - R-tree spatial index for large scenes
-5. **Snapping**
-   - Snap index with grid/canvas/element edges
+- [ ] Tool architecture (Tool interface + manager)
+- [x] Select tool (click/multi-select + drag move)
+- [ ] Resize/rotate via handles
+- [x] Creation tools (Rect/Ellipse/Line/Text/Image)
+- [ ] Hit testing (R-tree spatial index)
+- [ ] Snapping (snap index + guides)
 
 ✅ **Milestone achieved:** Pixi selection + drag wired through Pixi pointer events (no Konva).
 
