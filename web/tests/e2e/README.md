@@ -329,9 +329,9 @@ test.describe("Feature with Mocks", () => {
 ## Total Test Coverage
 
 - **Total Files:** 20
-- **Total Tests:** ~184+
-- **Original Tests:** 3
-- **New Tests in this PR:** ~74+
+- **Total Tests:** 184
+- **Original Tests:** 110
+- **New Tests in this PR:** 74 (28 + 22 + 24)
 
 ## Test Coverage Areas
 

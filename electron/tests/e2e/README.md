@@ -60,9 +60,9 @@ This directory contains end-to-end tests for the NodeTool Electron desktop appli
 ## Total Test Coverage
 
 - **Total Files:** 4
-- **Total Tests:** 41
-- **Original Tests:** 13
-- **New Tests in this PR:** 28
+- **Total Tests:** 41 (13 original + 28 new)
+- **Original Tests:** 13 (4 + 9 from existing files)
+- **New Tests in this PR:** 28 (20 + 8)
 
 ## Test Coverage Areas
 
