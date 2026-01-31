@@ -17,9 +17,13 @@ NodeTool can integrate with external services via HTTP when needed.
 | Feature | NodeTool | n8n | ComfyUI |
 |---------|----------|-----|---------|
 | **Primary Focus** | ✅ Multi-modal AI workflows (text, image, audio, video) | ✅ Business automation and SaaS integrations | ✅ Image/video generation with diffusion models |
-| **AI Agents** | ✅ Built-in Agent nodes with tool calling and streaming | ⚠️ AI Agent node via LangChain integration | ❌ No agent support |
-| **LLM Integration** | ✅ OpenAI, Anthropic, Google, Ollama, HuggingFace | ✅ OpenAI, Anthropic, Google via nodes | ❌ Not designed for LLMs |
-| **Image Generation** | ✅ Stable Diffusion, FLUX, local and cloud models | ⚠️ Via API integrations (DALL-E, etc.) | ✅ Deep control over diffusion internals |
+| **AI Agents** | ✅ Built-in Agent nodes with tool calling and streaming | ⚠️ AI Agent node via LangChain integration | ⚠️ Via custom nodes (comfyui-ollama) |
+| **LLM Integration** | ✅ OpenAI, Anthropic, Google, Ollama, HuggingFace | ✅ OpenAI, Anthropic, Google via nodes | ⚠️ Via custom nodes (Ollama, OpenAI) |
+| **Image Generation** | ✅ Local: SD, FLUX, MLX · API: FAL, Replicate, OpenAI | ⚠️ Via API integrations (DALL-E, etc.) | ✅ Deep control over diffusion internals |
+| **Video Generation** | ✅ Local: HuggingFace CogVideoX, Wan · API: Gemini Veo, Kling | ⚠️ Via API integrations only | ✅ Local diffusion-based video (AnimateDiff, etc.) |
+| **Audio Generation** | ✅ Local: MusicGen, AudioLDM, Stable Audio · API: HuggingFace | ❌ Not a primary focus | ⚠️ Via custom nodes (ACE-Step, Stable Audio) |
+| **Text-to-Speech (TTS)** | ✅ Local: MLX Kokoro, Sesame, Spark · API: OpenAI, Gemini | ⚠️ Via API integrations | ⚠️ Via custom nodes |
+| **Speech Recognition (ASR)** | ✅ Local: Whisper (MLX, HuggingFace) · API: OpenAI, FAL | ⚠️ Via API integrations | ⚠️ Via custom nodes (Whisper) |
 | **Real-time Streaming** | ✅ Token-by-token LLM responses, live progress | ⚠️ Limited streaming support | ❌ Queue-based execution |
 | **Local Execution** | ✅ Ollama, MLX (Apple Silicon), local Whisper | ✅ Self-hosted option available | ✅ Runs entirely local |
 | **SaaS Integrations** | ⚠️ HTTP requests, Gmail, RSS (limited) | ✅ 1300+ app integrations built-in | ❌ Not designed for SaaS |
