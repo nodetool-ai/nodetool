@@ -171,9 +171,11 @@ const CommandPalette: React.FC = () => {
   // Focus input when dialog opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      setTimeout(() => {
+      // Use requestAnimationFrame to ensure the dialog is fully rendered
+      // before attempting to focus the input element
+      requestAnimationFrame(() => {
         inputRef.current?.focus();
-      }, 100);
+      });
     }
   }, [isOpen]);
   

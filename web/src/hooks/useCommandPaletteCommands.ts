@@ -72,8 +72,12 @@ export const useCommandPaletteCommands = () => {
       category: "Workflow",
       shortcut: "⌘N",
       action: async () => {
-        const workflow = await createNewWorkflow();
-        navigate(`/editor/${workflow.id}`);
+        try {
+          const workflow = await createNewWorkflow();
+          navigate(`/editor/${workflow.id}`);
+        } catch (error) {
+          console.error("Failed to create new workflow:", error);
+        }
       }
     });
     
@@ -85,13 +89,19 @@ export const useCommandPaletteCommands = () => {
       category: "Workflow",
       shortcut: "⌘S",
       action: () => {
-        // This will be handled by the editor's save functionality
-        const event = new KeyboardEvent("keydown", {
-          key: "s",
-          metaKey: true,
-          bubbles: true
-        });
-        document.dispatchEvent(event);
+        // Note: This delegates to the editor's existing save functionality
+        // through keyboard event dispatching. In the future, this should
+        // be replaced with a direct save function from the editor context.
+        try {
+          const event = new KeyboardEvent("keydown", {
+            key: "s",
+            metaKey: true,
+            bubbles: true
+          });
+          document.dispatchEvent(event);
+        } catch (error) {
+          console.error("Failed to trigger save action:", error);
+        }
       }
     });
     
@@ -103,9 +113,19 @@ export const useCommandPaletteCommands = () => {
       keywords: ["theme", "dark", "light", "appearance"],
       category: "Settings",
       action: () => {
-        // This will be handled by the theme toggle
-        const themeButton = document.querySelector('[aria-label="Toggle theme"]') as HTMLElement;
-        themeButton?.click();
+        // Note: This delegates to the existing theme toggle button.
+        // In the future, this should use a theme toggle function from
+        // the theme context for more robust implementation.
+        try {
+          const themeButton = document.querySelector('[aria-label="Toggle theme"]') as HTMLElement;
+          if (themeButton) {
+            themeButton.click();
+          } else {
+            console.warn("Theme toggle button not found");
+          }
+        } catch (error) {
+          console.error("Failed to toggle theme:", error);
+        }
       }
     });
     
