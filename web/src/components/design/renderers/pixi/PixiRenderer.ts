@@ -37,12 +37,14 @@ export default class PixiRenderer implements CanvasRenderer {
   private zoom = 1;
   private gridNodes: Graphics[] = [];
   private guideNodes: Graphics[] = [];
-  private selectionNodes: Graphics[] = [];
+  private selectionOutline: Graphics | null = null;
+  private selectionHandles: Graphics | null = null;
   private interactionHandlers: PixiInteractionHandlers | null = null;
   private interactionProvider: (() => PixiInteractionHandlers) | null = null;
   private dragState: { id: string; start: Point; startElement: Point } | null = null;
   private selectionRect: Graphics | null = null;
   private marqueeStart: Point | null = null;
+  private elementNodes = new Map<string, Container | Graphics | Sprite | Text>();
 
   async mount(container: HTMLElement): Promise<void> {
     this.container = container;
@@ -62,6 +64,8 @@ export default class PixiRenderer implements CanvasRenderer {
     this.selectionContainer = new Container();
     this.guidesContainer = new Container();
     this.gridContainer = new Container();
+    this.selectionOutline = new Graphics();
+    this.selectionHandles = new Graphics();
 
     this.elementContainer.sortableChildren = true;
 
@@ -69,6 +73,8 @@ export default class PixiRenderer implements CanvasRenderer {
     this.root.addChild(this.elementContainer);
     this.root.addChild(this.selectionContainer);
     this.root.addChild(this.guidesContainer);
+    this.selectionContainer.addChild(this.selectionOutline);
+    this.selectionContainer.addChild(this.selectionHandles);
     this.root.eventMode = "static";
     this.root.hitArea = new Rectangle(0, 0, container.clientWidth || 800, container.clientHeight || 600);
     this.root.on("pointertap", (event) => {
@@ -285,6 +291,7 @@ export default class PixiRenderer implements CanvasRenderer {
       return;
     }
     this.elementContainer.removeChildren();
+    this.elementNodes.clear();
     this.data.elements
       .filter((el) => el.visible)
       .forEach((element) => {
@@ -292,27 +299,60 @@ export default class PixiRenderer implements CanvasRenderer {
         if (node) {
           node.zIndex = element.zIndex;
           this.elementContainer?.addChild(node);
+          this.elementNodes.set(element.id, node);
         }
       });
     this.elementContainer.sortChildren();
   }
 
   private renderSelection(): void {
-    if (!this.selectionContainer || !this.data) {
+    if (!this.selectionContainer || !this.data || !this.selectionOutline || !this.selectionHandles) {
       return;
     }
-    this.selectionContainer.removeChildren();
-    this.selectionNodes = [];
-    this.data.elements.forEach((el) => {
-      if (!this.selection.has(el.id)) {
+    this.selectionOutline.clear();
+    this.selectionHandles.clear();
+    if (this.selection.size === 0) {
+      return;
+    }
+    const bounds = new Rectangle();
+    this.selection.forEach((id) => {
+      const node = this.elementNodes.get(id);
+      if (!node || !this.root) {
         return;
       }
-      const outline = new Graphics();
-      outline.rect(el.x, el.y, el.width, el.height);
-      outline.stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
-      this.selectionContainer?.addChild(outline);
-      this.selectionNodes.push(outline);
+      const global = node.getBounds();
+      const topLeft = this.root.toLocal({ x: global.x, y: global.y });
+      const bottomRight = this.root.toLocal({
+        x: global.x + global.width,
+        y: global.y + global.height
+      });
+      bounds.enlarge(new Rectangle(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y));
     });
+    this.selectionOutline
+      .rect(bounds.x, bounds.y, bounds.width, bounds.height)
+      .stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
+    const handleSize = 8;
+    const half = handleSize / 2;
+    const positions: Array<{ x: number; y: number }> = [
+      { x: bounds.x, y: bounds.y },
+      { x: bounds.x + bounds.width / 2, y: bounds.y },
+      { x: bounds.x + bounds.width, y: bounds.y },
+      { x: bounds.x, y: bounds.y + bounds.height / 2 },
+      { x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
+      { x: bounds.x, y: bounds.y + bounds.height },
+      { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
+      { x: bounds.x + bounds.width, y: bounds.y + bounds.height }
+    ];
+    positions.forEach((position) => {
+      this.selectionHandles?.rect(
+        position.x - half,
+        position.y - half,
+        handleSize,
+        handleSize
+      );
+    });
+    this.selectionHandles.fill(0xffffff);
+    this.selectionHandles.stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
   }
 
   private applyCamera(): void {
