@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
-import { Typography, Dialog } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { Typography } from "@mui/material";
+import { EditorButton, Dialog } from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";

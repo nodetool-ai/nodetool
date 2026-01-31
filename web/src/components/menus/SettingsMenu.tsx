@@ -13,7 +13,6 @@ import {
   Tabs,
   Tab,
   Box,
-  Dialog,
   DialogContent
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -42,6 +41,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
+import { Dialog } from "../ui_primitives";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -307,36 +307,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         open={isMenuOpen}
         onClose={handleClose}
         fullWidth
-        maxWidth="md"
-        sx={{
-          "& .MuiDialog-paper": {
-            width: "70vw",
-            minWidth: "400px",
-            maxWidth: "1000px",
-            height: "75vh",
-            margin: "auto",
-            borderRadius: 1,
-            border: `1px solid ${theme.vars.palette.divider}`,
-            backgroundColor:
-              (theme as any)?.palette?.glass?.backgroundDialogContent ??
-              "transparent",
-            boxShadow: `0 8px 32px ${theme.vars.palette.grey[1000]}80`
-          }
-        }}
-        slotProps={{
-          backdrop: {
-            style: {
-              backdropFilter: theme.vars.palette.glass.blur,
-              backgroundColor: theme.vars.palette.glass.backgroundDialog
-            }
-          },
-          paper: {
-            style: {
-              borderRadius: theme.vars.rounded.dialog,
-              background: theme.vars.palette.glass.backgroundDialogContent
-            }
-          }
-        }}
+        maxWidth="lg"
       >
         <DialogContent sx={{ p: 0, overflow: "hidden" }}>
           <div css={settingsStyles(theme)}>
@@ -369,14 +340,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     settingsTab === 0
                       ? generalSidebarSections
                       : settingsTab === 1
-                      ? getApiServicesSidebarSections()
-                      : settingsTab === 2
-                      ? getFoldersSidebarSections()
-                      : settingsTab === 3
-                      ? getSecretsSidebarSections()
-                      : settingsTab === 4
-                      ? getAboutSidebarSections()
-                      : []
+                        ? getApiServicesSidebarSections()
+                        : settingsTab === 2
+                          ? getFoldersSidebarSections()
+                          : settingsTab === 3
+                            ? getSecretsSidebarSections()
+                            : settingsTab === 4
+                              ? getAboutSidebarSections()
+                              : []
                   }
                   onSectionClick={scrollToSection}
                 />
@@ -548,9 +519,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                               onChange={(e) =>
                                 handleCloseBehaviorChange(
                                   e.target.value as
-                                    | "ask"
-                                    | "quit"
-                                    | "background"
+                                  | "ask"
+                                  | "quit"
+                                  | "background"
                                 )
                               }
                             >

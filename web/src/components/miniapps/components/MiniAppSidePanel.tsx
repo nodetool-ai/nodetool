@@ -2,15 +2,17 @@
 import React, { useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Box, IconButton, Tooltip, Typography, Collapse } from "@mui/material";
+import { Box, IconButton, Tooltip, Typography, Collapse, Button } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 
 import ThemeToggle from "../../ui/ThemeToggle";
 import MiniWorkflowGraph from "./MiniWorkflowGraph";
+import VibeCodingModal from "../../vibecoding/VibeCodingModal";
 import { Workflow } from "../../../stores/ApiTypes";
 
 interface MiniAppSidePanelProps {
@@ -25,6 +27,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [showGraph, setShowGraph] = useState(true);
+  const [vibeCodingOpen, setVibeCodingOpen] = useState(false);
 
   const handleOpenPanel = useCallback(() => {
     setIsOpen(true);
@@ -37,6 +40,14 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
   const handleToggleGraph = useCallback(() => {
     setShowGraph(!showGraph);
   }, [showGraph]);
+
+  const handleOpenVibeCoding = useCallback(() => {
+    setVibeCodingOpen(true);
+  }, []);
+
+  const handleCloseVibeCoding = useCallback(() => {
+    setVibeCodingOpen(false);
+  }, []);
 
   const panelWidth = 360;
 
@@ -218,6 +229,32 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
             </Collapse>
           </div>
 
+          {/* VibeCoding Button */}
+          <div className="panel-section" style={{ marginTop: theme.spacing(2) }}>
+            <Button
+              variant="outlined"
+              startIcon={<AutoFixHighIcon />}
+              onClick={handleOpenVibeCoding}
+              fullWidth
+              sx={{
+                justifyContent: "flex-start",
+                textTransform: "none",
+                py: 1
+              }}
+            >
+              Design App UI
+            </Button>
+            {workflow.html_app && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                This workflow has a custom app UI
+              </Typography>
+            )}
+          </div>
+
           {/* Spacer */}
           <div style={{ flex: 1 }} />
 
@@ -230,6 +267,13 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
           </div>
         </div>
       </div>
+
+      {/* VibeCoding Modal */}
+      <VibeCodingModal
+        open={vibeCodingOpen}
+        workflow={workflow}
+        onClose={handleCloseVibeCoding}
+      />
     </Box>
   );
 };

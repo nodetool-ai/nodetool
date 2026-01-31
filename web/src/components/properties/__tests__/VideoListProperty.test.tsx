@@ -39,7 +39,7 @@ describe("VideoListProperty", () => {
     );
     
     expect(screen.getByText("Videos")).toBeInTheDocument();
-    expect(screen.getByText("Drop videos here")).toBeInTheDocument();
+    expect(screen.getByText("Click or drop videos here")).toBeInTheDocument();
   });
 
   it("renders videos when value is provided", () => {
@@ -92,7 +92,7 @@ describe("VideoListProperty", () => {
       </ThemeProvider>
     );
     
-    expect(screen.getByText("Drop videos here")).toBeInTheDocument();
+    expect(screen.getByText("Click or drop videos here")).toBeInTheDocument();
   });
 
   it("handles drag over and drag leave events", () => {

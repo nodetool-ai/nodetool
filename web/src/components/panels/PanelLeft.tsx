@@ -189,6 +189,7 @@ const styles = (
   });
 };
 
+
 const VerticalToolbar = memo(function VerticalToolbar({
   activeView,
   onViewChange,

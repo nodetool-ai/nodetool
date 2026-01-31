@@ -45,6 +45,9 @@ const applyPositionUpdates = (
 };
 
 const ROOT_PARENT_ID = "__root__";
+const SNAP_MEASURE_NAME = "calculateSnapGuides";
+const SNAP_MARK_START = `${SNAP_MEASURE_NAME}-start`;
+const SNAP_MARK_END = `${SNAP_MEASURE_NAME}-end`;
 
 const buildChildrenMap = (elements: LayoutElement[]) => {
   const map = new Map<string, LayoutElement[]>();
@@ -143,7 +146,6 @@ interface LayoutCanvasStoreState {
   gridSettings: GridSettings;
 
   // Smart snap guides (shown during drag)
-  snapGuides: SnapGuide[];
   snapEnabled: boolean;
   snapThreshold: number;
 
@@ -163,6 +165,7 @@ interface LayoutCanvasStoreState {
   // Element actions
   addElement: (type: ElementType, x?: number, y?: number) => LayoutElement;
   updateElement: (id: string, updates: Partial<LayoutElement>) => void;
+  updateElements: (updates: Array<{ id: string } & Partial<LayoutElement>>) => void;
   deleteElements: (ids: string[]) => void;
   duplicateElements: (ids: string[]) => LayoutElement[];
 
@@ -221,8 +224,6 @@ interface LayoutCanvasStoreState {
 
   // Smart snap guides
   setSnapEnabled: (enabled: boolean) => void;
-  setSnapGuides: (guides: SnapGuide[]) => void;
-  clearSnapGuides: () => void;
   calculateSnapGuides: (elementId: string, x: number, y: number, width: number, height: number) => { x: number; y: number; guides: SnapGuide[] };
 
   // Copy/paste
@@ -247,7 +248,6 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     size: 10,
     snap: true
   },
-  snapGuides: [],
   snapEnabled: true,
   snapThreshold: 5,
   clipboard: [],
@@ -375,6 +375,27 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
         elements: state.canvasData.elements.map((el) =>
           el.id === id ? { ...el, ...updates } : el
         )
+      }
+    }));
+    get().saveToHistory();
+  },
+
+  updateElements: (updates) => {
+    if (updates.length === 0) {
+      return;
+    }
+    const updatesById = new Map(updates.map((update) => [update.id, update]));
+    set((state) => ({
+      canvasData: {
+        ...state.canvasData,
+        elements: state.canvasData.elements.map((el) => {
+          const update = updatesById.get(el.id);
+          if (!update) {
+            return el;
+          }
+          const { id: _id, ...rest } = update;
+          return { ...el, ...rest };
+        })
       }
     }));
     get().saveToHistory();
@@ -1224,18 +1245,17 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
     set({ snapEnabled: enabled });
   },
 
-  setSnapGuides: (guides) => {
-    set({ snapGuides: guides });
-  },
-
-  clearSnapGuides: () => {
-    set({ snapGuides: [] });
-  },
 
   calculateSnapGuides: (elementId, x, y, width, height) => {
     const { canvasData, snapEnabled, snapThreshold } = get();
+    performance.mark(SNAP_MARK_START);
     
     if (!snapEnabled) {
+      performance.mark(SNAP_MARK_END);
+      performance.measure(SNAP_MEASURE_NAME, SNAP_MARK_START, SNAP_MARK_END);
+      performance.clearMarks(SNAP_MARK_START);
+      performance.clearMarks(SNAP_MARK_END);
+      performance.clearMeasures(SNAP_MEASURE_NAME);
       return { x, y, guides: [] };
     }
     
@@ -1366,6 +1386,11 @@ export const useLayoutCanvasStore = create<LayoutCanvasStoreState>((set, get) =>
       });
     }
     
+    performance.mark(SNAP_MARK_END);
+    performance.measure(SNAP_MEASURE_NAME, SNAP_MARK_START, SNAP_MARK_END);
+    performance.clearMarks(SNAP_MARK_START);
+    performance.clearMarks(SNAP_MARK_END);
+    performance.clearMeasures(SNAP_MEASURE_NAME);
     return { x: snappedX, y: snappedY, guides };
   },
 
