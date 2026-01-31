@@ -11,8 +11,10 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import CompareIcon from "@mui/icons-material/Compare";
+import EditIcon from "@mui/icons-material/Edit";
 import AssetItem from "./AssetItem";
 import { ImageComparer } from "../widgets";
+import { ImageEditorModal } from "../node/image_editor";
 //
 //components
 //store
@@ -26,9 +28,11 @@ import type { Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
+import { useAssetImageEditor } from "../../hooks/assets/useAssetImageEditor";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import { ToolbarIconButton, CloseButton, DownloadButton } from "../ui_primitives";
+import log from "loglevel";
 
 const containerStyles = css({
   width: "100%",
@@ -268,12 +272,17 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [compareAssetA, setCompareAssetA] = useState<Asset | null>(null);
   const [compareAssetB, setCompareAssetB] = useState<Asset | null>(null);
 
-  // Reset compare mode when viewer closes
+  // Image editor state
+  const [isEditingImage, setIsEditingImage] = useState(false);
+  const { saveEditedImage } = useAssetImageEditor();
+
+  // Reset compare mode and editor when viewer closes
   useEffect(() => {
     if (!open) {
       setCompareMode(false);
       setCompareAssetA(null);
       setCompareAssetB(null);
+      setIsEditingImage(false);
     }
   }, [open]);
 
@@ -329,6 +338,40 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const exitCompareView = useCallback(() => {
     setCompareAssetB(null);
   }, []);
+
+  // Image editor handlers
+  const handleOpenImageEditor = useCallback(() => {
+    if (currentAsset && isImage) {
+      setIsEditingImage(true);
+    }
+  }, [currentAsset, isImage]);
+
+  const handleCloseImageEditor = useCallback(() => {
+    setIsEditingImage(false);
+  }, []);
+
+  const handleSaveEditedImage = useCallback(
+    async (_editedImageUrl: string, blob: Blob) => {
+      if (!currentAsset) {
+        return;
+      }
+
+      try {
+        await saveEditedImage(currentAsset, blob);
+        
+        // Refresh the current asset to show the updated image
+        const updatedAsset = await getAsset(currentAsset.id);
+        setCurrentAsset(updatedAsset);
+        
+        // Close the editor
+        setIsEditingImage(false);
+      } catch (error) {
+        log.error("Failed to save edited image:", error);
+        // Error is already logged by the hook, just keep editor open
+      }
+    },
+    [currentAsset, saveEditedImage, getAsset]
+  );
 
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
@@ -619,6 +662,15 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             className="button download"
             nodrag={false}
           />
+          {isImage && !compareMode && (
+            <ToolbarIconButton
+              icon={<EditIcon />}
+              tooltip="Edit Image"
+              onClick={handleOpenImageEditor}
+              className="button edit"
+              nodrag={false}
+            />
+          )}
           {isElectron && currentAsset?.content_type && isClipboardSupported(currentAsset.content_type) && (
             <ToolbarIconButton
               icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
@@ -685,6 +737,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         )}
         {navigation}
       </Dialog>
+
+      {/* Image Editor Modal */}
+      {isEditingImage && currentAsset && currentAsset.get_url && (
+        <ImageEditorModal
+          imageUrl={currentAsset.get_url}
+          onSave={handleSaveEditedImage}
+          onClose={handleCloseImageEditor}
+          title={`Edit: ${currentAsset.name || "Image"}`}
+        />
+      )}
     </div>
   );
 };
