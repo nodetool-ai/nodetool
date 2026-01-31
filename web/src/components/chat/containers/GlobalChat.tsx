@@ -47,6 +47,7 @@ const GlobalChat: React.FC = () => {
   const threadsLoaded = useGlobalChatStore((s) => s.threadsLoaded);
   const workflowId = useGlobalChatStore((s) => s.workflowId);
   const deleteThread = useGlobalChatStore((s) => s.deleteThread);
+  const exportThread = useGlobalChatStore((s) => s.exportThread);
   const messageCache = useGlobalChatStore((s) => s.messageCache);
   const connect = useGlobalChatStore((s) => s.connect);
   const disconnect = useGlobalChatStore((s) => s.disconnect);
@@ -291,6 +292,13 @@ const GlobalChat: React.FC = () => {
     [deleteThread]
   );
 
+  const handleExportThread = useCallback(
+    (id: string) => {
+      exportThread(id);
+    },
+    [exportThread]
+  );
+
   const getThreadPreview = useCallback(
     (threadId: string) => {
       if (!threads) {
@@ -484,6 +492,7 @@ const GlobalChat: React.FC = () => {
             onNewChat={handleNewChat}
             onSelectThread={handleSelectThread}
             onDeleteThread={handleDeleteThread}
+            onExportThread={handleExportThread}
             getThreadPreview={getThreadPreview}
             isOpen={sidebarOpen}
             onOpenChange={setSidebarOpen}

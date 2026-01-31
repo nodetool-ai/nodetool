@@ -55,7 +55,7 @@ export const createStyles = (theme: Theme) =>
       outline: "none",
 
       "&:hover": {
-        ".delete-button": { opacity: 1 }
+        ".delete-button, .download-button": { opacity: 1 }
       },
 
       "&:focus-visible": {
@@ -98,7 +98,7 @@ export const createStyles = (theme: Theme) =>
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      paddingRight: "36px"
+      paddingRight: "64px"
     },
 
     ".date": {
@@ -119,6 +119,26 @@ export const createStyles = (theme: Theme) =>
 
       "&:hover": {
         color: theme.vars.palette.error.main,
+        backgroundColor: theme.vars.palette.grey[500],
+        transform: "translateY(-50%) scale(1.05)"
+      },
+
+      svg: { fontSize: "1.2em" }
+    },
+
+    ".download-button": {
+      position: "absolute",
+      right: "2.2em",
+      top: "50%",
+      transform: "translateY(-50%)",
+      opacity: 0,
+      padding: "4px",
+      minWidth: "unset",
+      color: theme.vars.palette.grey[200],
+      transition: "opacity 0.2s, transform 0.15s ease",
+
+      "&:hover": {
+        color: theme.vars.palette.primary.main,
         backgroundColor: theme.vars.palette.grey[500],
         transform: "translateY(-50%) scale(1.05)"
       },
