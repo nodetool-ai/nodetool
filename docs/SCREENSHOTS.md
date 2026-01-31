@@ -59,7 +59,7 @@ This document provides a comprehensive list of screenshots needed to improve the
 | Field | Value |
 |-------|-------|
 | **Page** | `getting-started.md` |
-| **Position** | After "Watch the magic" instruction |
+| **Position** | After "Watch" instruction |
 | **Description** | The workflow mid-execution showing streaming text in the Preview node |
 | **Priority** | High |
 | **Filename** | `assets/screenshots/workflow-streaming-output.png` |
@@ -627,7 +627,7 @@ These screenshots will have the biggest impact on documentation quality:
 2. `app-layout-annotated.png` - Helps users orient themselves
 3. `creative-story-workflow.png` - Core getting started flow
 4. `node-anatomy-annotated.png` - Essential for understanding nodes
-5. `workflow-streaming-output.png` - Shows the "magic" of NodeTool
+5. `workflow-streaming-output.png` - Shows streaming in NodeTool
 6. `global-chat-interface.png` - Key feature for chat-first users
 7. `models-manager-full.png` - Critical for model management
 8. `agent-planning.png` - Showcases agent capabilities

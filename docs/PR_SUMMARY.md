@@ -230,7 +230,7 @@ To implement the agent CLI command in nodetool-core:
 2. **Reproducible workflows**: YAML configs can be version controlled
 3. **Tool orchestration**: Agents coordinate multiple capabilities
 4. **Flexible deployment**: Use in scripts, automation, and production
-5. **Planning integration**: Intelligent task decomposition and execution
+5. **Planning integration**: Task decomposition and execution
 
 ## Related Documentation
 
