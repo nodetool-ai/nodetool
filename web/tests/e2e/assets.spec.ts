@@ -22,8 +22,8 @@ async function uploadFile(page: Page, filePath: string): Promise<void> {
   await expect(uploadButton).toBeVisible({ timeout: 10000 });
 
   // The hidden file input is a sibling before the button in the UploadButton component
-  // Use page-level selector to find input[type="file"] associated with asset uploads
-  const fileInput = page.locator('input[type="file"]').first();
+  // It's located within the asset-actions section (not other file inputs on the page)
+  const fileInput = page.locator('.asset-actions input[type="file"]').first();
 
   // Set the file directly on the input (bypassing the click/filechooser flow)
   await fileInput.setInputFiles(filePath);

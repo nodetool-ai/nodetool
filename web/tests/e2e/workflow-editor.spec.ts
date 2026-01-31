@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
 
+// Pre-defined mock workflow ID for testing
+const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
+
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
@@ -12,16 +15,13 @@ if (process.env.JEST_WORKER_ID) {
       }) => {
         // Set up mock API routes
         await setupMockApiRoutes(page);
-        
-        // Use a pre-existing mock workflow ID
-        const workflowId = workflows.workflows[0].id;
 
         // Navigate to the editor with the workflow
-        await page.goto(`/editor/${workflowId}`);
+        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
         await page.waitForLoadState("networkidle");
 
         // Verify we're on the editor page
-        await expect(page).toHaveURL(new RegExp(`/editor/${workflowId}`));
+        await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_ID}`));
 
         // Check that the editor loaded without errors
         const bodyText = await page.textContent("body");
@@ -38,11 +38,8 @@ if (process.env.JEST_WORKER_ID) {
       }) => {
         // Set up mock API routes
         await setupMockApiRoutes(page);
-        
-        // Use a pre-existing mock workflow ID
-        const workflowId = workflows.workflows[0].id;
 
-        await page.goto(`/editor/${workflowId}`);
+        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
         await page.waitForLoadState("networkidle");
 
         // Check for the presence of editor controls
@@ -58,11 +55,8 @@ if (process.env.JEST_WORKER_ID) {
       test("should handle workflow save action", async ({ page }) => {
         // Set up mock API routes
         await setupMockApiRoutes(page);
-        
-        // Use a pre-existing mock workflow ID
-        const workflowId = workflows.workflows[0].id;
 
-        await page.goto(`/editor/${workflowId}`);
+        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
         await page.waitForLoadState("networkidle");
 
         // Wait for editor to be ready
@@ -86,11 +80,8 @@ if (process.env.JEST_WORKER_ID) {
       test("should allow panning the canvas", async ({ page }) => {
         // Set up mock API routes
         await setupMockApiRoutes(page);
-        
-        // Use a pre-existing mock workflow ID
-        const workflowId = workflows.workflows[0].id;
 
-        await page.goto(`/editor/${workflowId}`);
+        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
         await page.waitForLoadState("networkidle");
 
         // Wait for the ReactFlow canvas
@@ -126,11 +117,8 @@ if (process.env.JEST_WORKER_ID) {
       test("should support zoom controls", async ({ page }) => {
         // Set up mock API routes
         await setupMockApiRoutes(page);
-        
-        // Use a pre-existing mock workflow ID
-        const workflowId = workflows.workflows[0].id;
 
-        await page.goto(`/editor/${workflowId}`);
+        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
         await page.waitForLoadState("networkidle");
 
         // Wait for the canvas
@@ -154,11 +142,8 @@ if (process.env.JEST_WORKER_ID) {
       test("should open node menu on right-click", async ({ page }) => {
         // Set up mock API routes
         await setupMockApiRoutes(page);
-        
-        // Use a pre-existing mock workflow ID
-        const workflowId = workflows.workflows[0].id;
 
-        await page.goto(`/editor/${workflowId}`);
+        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
         await page.waitForLoadState("networkidle");
 
         // Wait for the canvas
@@ -179,11 +164,8 @@ if (process.env.JEST_WORKER_ID) {
       }) => {
         // Set up mock API routes
         await setupMockApiRoutes(page);
-        
-        // Use a pre-existing mock workflow ID
-        const workflowId = workflows.workflows[0].id;
 
-        await page.goto(`/editor/${workflowId}`);
+        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
         await page.waitForLoadState("networkidle");
 
         // Wait for the canvas
@@ -207,21 +189,18 @@ if (process.env.JEST_WORKER_ID) {
       test("should fetch workflow data on load", async ({ page }) => {
         // Set up mock API routes
         await setupMockApiRoutes(page);
-        
-        // Use a pre-existing mock workflow ID
-        const workflowId = workflows.workflows[0].id;
 
         // Set up request interceptor to track API calls
         const apiCalls: string[] = [];
 
         page.on("response", (response) => {
           const url = response.url();
-          if (url.includes(`/api/workflows/${workflowId}`)) {
+          if (url.includes(`/api/workflows/${MOCK_WORKFLOW_ID}`)) {
             apiCalls.push(url);
           }
         });
 
-        await page.goto(`/editor/${workflowId}`);
+        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
         await page.waitForLoadState("networkidle");
 
         // Wait for the editor to load
