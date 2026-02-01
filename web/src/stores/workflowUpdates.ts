@@ -242,7 +242,7 @@ export const handleUpdate = (
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
     setOutputResult(workflow.id, update.node_id, update.value, true);
-    
+
     // Add each streaming output to history for display in ResultOverlay
     addToHistory(workflow.id, update.node_id, {
       result: update.value,
@@ -250,7 +250,7 @@ export const handleUpdate = (
       jobId: runner.job_id,
       status: "completed"
     });
-    
+
     appendLog({
       workflowId: workflow.id,
       workflowName: workflow.name,
@@ -318,13 +318,13 @@ export const handleUpdate = (
     ) {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     }
-    
+
     switch (job.status) {
       case "completed":
         runner.addNotification({
           type: "info",
           alert: true,
-          content: "Job completed"
+          content: `Job completed in ${job.duration?.toPrecision(2)} seconds`
         });
         // Note: Don't clear edges on completion - keep the stream item counts visible
         // Edges are cleared when a new run starts (in WorkflowRunner.ts)
@@ -481,7 +481,9 @@ export const handleUpdate = (
         // Add to history (persists across runs)
         // Skip if we've already received streaming outputs via output_update
         // (those are already added to history individually)
-        const existingOutputResult = useResultsStore.getState().getOutputResult(workflow.id, update.node_id);
+        const existingOutputResult = useResultsStore
+          .getState()
+          .getOutputResult(workflow.id, update.node_id);
         if (!existingOutputResult) {
           addToHistory(workflow.id, update.node_id, {
             result: update.result,
