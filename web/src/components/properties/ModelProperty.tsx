@@ -13,6 +13,7 @@ import ImageModelSelect from "./ImageModelSelect";
 import TTSModelSelect from "./TTSModelSelect";
 import ASRModelSelect from "./ASRModelSelect";
 import VideoModelSelect from "./VideoModelSelect";
+import Model3DModelSelect from "./Model3DModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -136,6 +137,20 @@ const ModelProperty = (props: PropertyProps) => {
           onChange={props.onChange}
           value={props.value?.id || ""}
           task={videoTask}
+        />
+      );
+    } else if (modelType === "model_3d_model") {
+      const model3dTask =
+        props.nodeType === "nodetool.model3d.TextTo3D"
+          ? ("text_to_3d" as const)
+          : props.nodeType === "nodetool.model3d.ImageTo3D"
+            ? ("image_to_3d" as const)
+            : undefined;
+      return (
+        <Model3DModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+          task={model3dTask}
         />
       );
     } else if (modelType === "llama_model") {
