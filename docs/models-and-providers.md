@@ -8,21 +8,6 @@ This guide explains AI models in NodeTool and how to choose between local and cl
 
 ---
 
-## What Are AI Models?
-
-An AI **model** is a trained program for a specific task:
-
-| Model Type | Function | Example |
-|------------|----------|---------|
-| **Language Model (LLM)** | Text generation | Stories, Q&A, summarization |
-| **Image Model** | Image generation/editing | Artwork, photos, variations |
-| **Speech Model** | Speech↔text conversion | Transcription, text-to-speech |
-| **Vision Model** | Image understanding | Photo descriptions, OCR |
-
-Models come pre-trained. Select one for your task.
-
----
-
 ## Local vs. Cloud
 
 NodeTool runs AI models locally or through cloud APIs.
