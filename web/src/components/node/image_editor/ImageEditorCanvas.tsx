@@ -492,7 +492,7 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
               if (mergedCtx) {
                 mergedCtx.drawImage(imageCanvasRef.current, 0, 0);
                 mergedCtx.drawImage(drawingCanvasRef.current, 0, 0);
-                
+
                 const x = Math.floor(imagePoint.x);
                 const y = Math.floor(imagePoint.y);
                 if (x >= 0 && x < mergedCanvas.width && y >= 0 && y < mergedCanvas.height) {
@@ -629,8 +629,8 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
 
     const handleMouseUp = useCallback(() => {
       // Finalize shapes
-      if ((tool === "rectangle" || tool === "ellipse" || tool === "line" || tool === "arrow") && 
-          shapeStart && shapeEnd && drawingCanvasRef.current) {
+      if ((tool === "rectangle" || tool === "ellipse" || tool === "line" || tool === "arrow") &&
+        shapeStart && shapeEnd && drawingCanvasRef.current) {
         const drawCtx = drawingCanvasRef.current.getContext("2d");
         if (drawCtx) {
           // Draw the final shape on the drawing canvas (in image coordinates)
@@ -738,13 +738,13 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
           const fontStyle = `${textSettings.italic ? "italic " : ""}${textSettings.bold ? "bold " : ""}`;
           drawCtx.font = `${fontStyle}${textSettings.fontSize}px ${textSettings.fontFamily}`;
           drawCtx.textBaseline = "top";
-          
+
           // Handle multi-line text
           const lines = textInputValue.split("\n");
           lines.forEach((line, index) => {
             drawCtx.fillText(line, imagePoint.x, imagePoint.y + index * textSettings.fontSize * 1.2);
           });
-          
+
           drawCtx.restore();
           render();
           onImageChange();
