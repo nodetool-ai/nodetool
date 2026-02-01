@@ -17,7 +17,7 @@ reimplementing Pixi-provided geometry, bounds, or event handling.
 - [x] Layers panel with hierarchy (existing panel)
 - [x] Properties panel (fill, stroke, opacity, size, position)
 - [x] Undo/redo (existing history in LayoutCanvasStore)
-- [x] Export PNG (existing export action)
+- [x] Export PNG (Pixi export pipeline)
 - [x] Save/load documents (existing document store serialization)
 
 ### Should have (V2)

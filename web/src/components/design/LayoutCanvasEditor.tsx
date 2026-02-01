@@ -1092,42 +1092,35 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     setGridSettings({ enabled: !gridSettings.enabled });
   }, [gridSettings.enabled, setGridSettings]);
 
-  // Export canvas as PNG using Konva's native toDataURL
-  const handleExport = useCallback(() => {
-    if (!stageRef.current) {
+  // Export canvas as PNG using Pixi renderer extract
+  const handleExport = useCallback(async () => {
+    const renderer = pixiRendererRef.current;
+    if (!renderer) {
       return;
     }
 
-    // Temporarily hide grid for export
     const wasGridEnabled = gridSettings.enabled;
     if (wasGridEnabled) {
       setGridSettings({ enabled: false });
     }
 
-    // Wait for render to complete, then export
-    requestAnimationFrame(() => {
-      if (!stageRef.current) {
-        return;
-      }
-      
-      const uri = stageRef.current.toDataURL({
-        pixelRatio: 2, // Higher resolution for better quality
-        mimeType: "image/png"
-      });
-
-      // Create download link
-      const link = document.createElement("a");
-      link.download = "canvas-export.png";
-      link.href = uri;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Restore grid if it was enabled
-      if (wasGridEnabled) {
-        setGridSettings({ enabled: true });
-      }
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
     });
+
+    const blob = await renderer.exportPng({ scale: 2 });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = "canvas-export.png";
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    if (wasGridEnabled) {
+      setGridSettings({ enabled: true });
+    }
   }, [gridSettings.enabled, setGridSettings]);
 
   // Import Sketch file
