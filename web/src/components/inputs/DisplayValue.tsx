@@ -1,4 +1,5 @@
 import React from "react";
+import { formatFloat } from "./NumberInput.utils";
 
 interface DisplayValueProps {
   value: number;
@@ -14,7 +15,7 @@ const DisplayValue: React.FC<DisplayValueProps> = ({
   <div className="value">
     {typeof value === "number"
       ? isFloat
-        ? value.toFixed(decimalPlaces)
+        ? formatFloat(value)
         : value
       : "NaN"}
   </div>

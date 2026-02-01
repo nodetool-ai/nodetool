@@ -74,6 +74,16 @@ export const getEffectiveSliderWidth = (
   return zoomEnabled && zoom > 0 ? actualSliderWidth * zoom : actualSliderWidth;
 };
 
+export const formatFloat = (value: number, minDecimalPlaces: number = 1): string => {
+  const s = value.toString();
+  const dotIndex = s.indexOf(".");
+  if (dotIndex === -1) {
+    return value.toFixed(minDecimalPlaces);
+  }
+  const decimals = s.length - dotIndex - 1;
+  return value.toFixed(Math.max(minDecimalPlaces, decimals));
+};
+
 export const applyValueConstraints = (
   value: number,
   min: number | undefined,

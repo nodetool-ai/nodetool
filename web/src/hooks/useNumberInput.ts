@@ -9,7 +9,8 @@ import {
   calculateStep,
   calculateDecimalPlaces,
   calculateSpeedFactor,
-  applyValueConstraints
+  applyValueConstraints,
+  formatFloat
 } from "../components/inputs/NumberInput.utils";
 
 // Multiplier for drag speed when inputs are unbounded.
@@ -226,7 +227,10 @@ export const useDragHandling = (
       setState((prev) => ({
         ...prev,
         isDragging: false,
-        localValue: String(finalValue)
+        localValue:
+          props.inputType === "float"
+            ? formatFloat(finalValue)
+            : String(finalValue)
       }));
 
       if (!dragStateRef.current.hasExceededDragThreshold) {

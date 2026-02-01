@@ -10,6 +10,7 @@ import { useDragHandling } from "../../hooks/useNumberInput";
 import DisplayValue from "./DisplayValue";
 import SpeedDisplay from "./SpeedDisplay";
 import { numberInputStyles } from "./numberInputStyles";
+import { formatFloat } from "./NumberInput.utils";
 
 // Drag-tuning constants
 export const DRAG_THRESHOLD = 10; // px before drag counts (to prevent accidental dragging when clicking to set value)
@@ -70,10 +71,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
   const sliderVisible = (props.showSlider ?? hasBounds) && hasBounds;
   const [state, setState] = useState<NumberInputState>({
     isDefault: false,
-    localValue: props.value?.toString() ?? "",
+    localValue: props.inputType === "float" ? formatFloat(props.value ?? 0) : (props.value?.toString() ?? ""),
     originalValue: props.value ?? 0,
     dragStartX: 0,
-    decimalPlaces: 1,
+    decimalPlaces: props.inputType === "float" ? 2 : 0,
     isDragging: false,
     hasExceededDragThreshold: false,
     dragInitialValue: props.value ?? 0,
@@ -158,7 +159,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
           ...prevState,
           inputIsFocused: false,
           isDefault: finalValue === props.value,
-          localValue: finalValue.toString()
+          localValue:
+            props.inputType === "float"
+              ? formatFloat(finalValue)
+              : finalValue.toString()
         }));
 
         props.onChange(null, finalValue);
@@ -167,11 +171,14 @@ const NumberInput: React.FC<InputProps> = (props) => {
           props.onChangeComplete(finalValue);
         }
       } else {
-        setState((prevState) => ({
-          ...prevState,
-          inputIsFocused: false,
-          localValue: (props.value ?? 0).toString()
-        }));
+      setState((prevState) => ({
+        ...prevState,
+        inputIsFocused: false,
+        localValue:
+          props.inputType === "float"
+            ? formatFloat(props.value ?? 0)
+            : (props.value ?? 0).toString()
+      }));
       }
     },
     [props, state.localValue, state.originalValue]
@@ -252,7 +259,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
   useEffect(() => {
     // Sync with external value changes, but only when not dragging or focused.
     if (!inputIsFocused && !state.isDragging) {
-      const newValueStr = (props.value ?? 0).toString();
+      const isFloat = props.inputType === "float";
+      const newValueStr = isFloat
+        ? formatFloat(props.value ?? 0)
+        : (props.value ?? 0).toString();
       setState((prevState) => {
         // Only update if the string representation changed to prevent
         // an infinite re-render loop.
