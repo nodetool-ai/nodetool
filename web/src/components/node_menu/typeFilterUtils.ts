@@ -68,16 +68,61 @@ export function isConnectableCached(
 }
 
 /**
+ * Calculate match priority for a node based on how well its properties match the input type.
+ * Lower numbers = higher priority (better match).
+ *
+ * Priority levels:
+ * - 0: Exact type match (same type and type_name for enums)
+ * - 1: Same base type (e.g., enum to enum with different type_name)
+ * - 2: Compatible but different type (e.g., enum to str)
+ * - 3: No match (should be filtered out)
+ */
+const getInputMatchPriority = (
+  inputType: TypeMetadata,
+  node: NodeMetadata
+): number => {
+  let bestPriority = 3;
+
+  for (const prop of node.properties) {
+    if (prop.type.type === "any") {
+      continue;
+    }
+
+    if (!isConnectableCached(inputType, prop.type)) {
+      continue;
+    }
+
+    // Exact match: same type and (for enums) same type_name
+    if (prop.type.type === inputType.type) {
+      if (inputType.type === "enum") {
+        if (prop.type.type_name === inputType.type_name) {
+          return 0; // Best possible match
+        }
+        bestPriority = Math.min(bestPriority, 1);
+      } else {
+        return 0; // Exact type match for non-enums
+      }
+    } else {
+      // Compatible but different type (e.g., enum -> str)
+      bestPriority = Math.min(bestPriority, 2);
+    }
+  }
+
+  return bestPriority;
+};
+
+/**
  * Filter node that can be connected to the input type.
+ * Results are sorted by match quality: exact matches first, then compatible matches.
  * @param metadata - The metadata to filter.
  * @param inputType - The selected input type.
- * @returns The filtered metadata.
+ * @returns The filtered metadata, sorted by match priority.
  */
 export const filterTypesByInputType = (
   metadata: NodeMetadata[],
   inputType: TypeMetadata
 ): NodeMetadata[] => {
-  return metadata.filter((node) => {
+  const filtered = metadata.filter((node) => {
     return node.properties.some((prop) => {
       // Exclude matches that are only connectable because the property is "any"
       if (prop.type.type === "any") {
@@ -86,29 +131,92 @@ export const filterTypesByInputType = (
       return isConnectableCached(inputType, prop.type);
     });
   });
+
+  // Sort by match priority (lower = better match)
+  return filtered.sort((a, b) => {
+    const priorityA = getInputMatchPriority(inputType, a);
+    const priorityB = getInputMatchPriority(inputType, b);
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    // Secondary sort: alphabetically by title
+    return a.title.localeCompare(b.title);
+  });
+};
+
+/**
+ * Calculate match priority for a node based on how well its outputs match the output type.
+ * Lower numbers = higher priority (better match).
+ */
+const getOutputMatchPriority = (
+  outputType: TypeMetadata,
+  node: NodeMetadata
+): number => {
+  let bestPriority = 3;
+
+  for (const output of node.outputs) {
+    if (output.type.type === "any") {
+      continue;
+    }
+
+    if (!isConnectableCached(output.type, outputType)) {
+      continue;
+    }
+
+    // Exact match: same type and (for enums) same type_name
+    if (output.type.type === outputType.type) {
+      if (outputType.type === "enum") {
+        if (output.type.type_name === outputType.type_name) {
+          return 0; // Best possible match
+        }
+        bestPriority = Math.min(bestPriority, 1);
+      } else {
+        return 0; // Exact type match for non-enums
+      }
+    } else {
+      // Compatible but different type (e.g., str -> enum)
+      bestPriority = Math.min(bestPriority, 2);
+    }
+  }
+
+  return bestPriority;
 };
 
 /**
  * Filter node that can be connected to the output type.
+ * Results are sorted by match quality: exact matches first, then compatible matches.
  * @param metadata - The metadata to filter.
  * @param outputType - The selected output type.
- * @returns The filtered metadata.
+ * @returns The filtered metadata, sorted by match priority.
  */
 export const filterTypesByOutputType = (
   metadata: NodeMetadata[],
   outputType: TypeMetadata
 ): NodeMetadata[] => {
-  return outputType
-    ? metadata.filter((node) => {
-        return node.outputs.some((output) => {
-          // Exclude matches that are only connectable because the output is "any"
-          if (output.type.type === "any") {
-            return false;
-          }
-          return isConnectableCached(output.type, outputType);
-        });
-      })
-    : metadata;
+  if (!outputType) {
+    return metadata;
+  }
+
+  const filtered = metadata.filter((node) => {
+    return node.outputs.some((output) => {
+      // Exclude matches that are only connectable because the output is "any"
+      if (output.type.type === "any") {
+        return false;
+      }
+      return isConnectableCached(output.type, outputType);
+    });
+  });
+
+  // Sort by match priority (lower = better match)
+  return filtered.sort((a, b) => {
+    const priorityA = getOutputMatchPriority(outputType, a);
+    const priorityB = getOutputMatchPriority(outputType, b);
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    // Secondary sort: alphabetically by title
+    return a.title.localeCompare(b.title);
+  });
 };
 
 /**
