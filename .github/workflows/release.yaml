@@ -145,6 +145,24 @@ jobs:
           npm ci
           npm run build
 
+      - name: Create Web Build Archive
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          VERSION_NO_V="${VERSION#v}"
+          cd web/dist
+          zip -r ../../nodetool-web-${VERSION_NO_V}.zip .
+          cd ../..
+          ls -lh nodetool-web-${VERSION_NO_V}.zip
+
+      - name: Upload Web Build to GitHub Release
+        if: matrix.os == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            nodetool-web-*.zip
+
       - name: Build Electron (Windows, unpacked)
         if: matrix.os == 'windows-latest'
         shell: bash -l {0}
