@@ -1,4 +1,4 @@
-# NodeTool: Visual AI Workflow Builder
+# NodeTool: Node-Based Visual Builder for AI Workflows and LLM Agents
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
 [![Downloads](https://img.shields.io/github/downloads/nodetool-ai/nodetool/total?color=3fb950)](https://github.com/nodetool-ai/nodetool/releases)
@@ -9,32 +9,46 @@
 
 **Build AI workflows visually. Run them anywhere.**
 
-NodeTool is open-source software for creating AI workflows without code. Drag and drop nodes to generate images, process documents, analyze data, and automate tasks. Run models on your machine or use cloud APIs.
+NodeTool is an open-source visual programming tool for building AI workflows. Run locally on macOS, Windows, or Linux. Connect LLMs, create RAG systems, build AI agents, and process multimodal content through a drag-and-drop node interface.
+
+**Alternative to ComfyUI for general AI and n8n for AI-specific automation.**
 
 ![Screenshot](screen2.png)
 
 ## Why NodeTool
 
-- **Visual editing**: Connect nodes by dragging lines between them
-- **Run anywhere**: Your laptop, a server, or the cloud
-- **Private by default**: Models run on your hardware unless you choose otherwise
-- **See it happen**: Watch results appear as your workflow runs
+- **Node-based visual interface**: Connect nodes by dragging lines between them for AI workflow orchestration
+- **Run anywhere**: Your laptop, a server, or the cloud - local execution engine for macOS, Windows, and Linux
+- **Local-first AI**: Run models entirely on your machine with support for local LLMs via Ollama, MLX, and GGML/GGUF formats
+- **See it happen**: Real-time workflow execution with live output preview
+- **Build AI agents**: Create LLM agents with tool use, web browsing, and RAG pipelines
+- **Type-safe connections**: Ensure compatibility between node inputs and outputs
 
 ## What You Can Do
 
-- Work with text, images, audio, and video
-- Run models locally on Apple Silicon, NVIDIA GPUs, or CPU (works offline)
-- Access 500,000+ models from HuggingFace
-- Use cloud APIs: OpenAI, Anthropic, Gemini, OpenRouter, Kie, Fal, MiniMax, Replicate
-- Deploy to RunPod, Google Cloud Run, or your own infrastructure
-- Manage and organize your media files
+- **Multimodal AI**: Process text, images, video, and audio
+- **Run locally**: Apple Silicon (M1+), NVIDIA GPUs, or CPU (works offline)
+- **Access models**: 500,000+ models from HuggingFace
+- **Cloud APIs**: OpenAI, Anthropic, Gemini, OpenRouter, Kie, Fal, MiniMax, Replicate
+- **Build RAG systems**: Vector database integration for semantic search and retrieval-augmented generation
+- **Deploy anywhere**: RunPod, Google Cloud Run, or your own infrastructure
+- **Manage assets**: Organize and manage your media files
+- **Extend with Python**: Python-based backend extensibility via custom nodes
 
 ## Common Uses
 
-- Generate and edit images, videos, and audio
-- Build RAG systems, extract text, search documents
-- Transform data, create charts, generate reports
-- Create AI agents that plan and execute tasks
+- **LLM Applications**: Build AI agents with tool use and web browsing capabilities
+- **RAG Systems**: Create retrieval-augmented generation pipelines for document search and question answering
+- **Generative AI**: Generate and edit images, videos, and audio
+- **Document Processing**: Extract text, search documents, and build document analysis workflows
+- **Data Transformation**: Transform data, create charts, generate reports
+- **AI Agents**: Create agents that plan and execute complex tasks
+
+## How NodeTool Compares
+
+**vs ComfyUI**: While ComfyUI focuses on image generation workflows with Stable Diffusion, NodeTool extends the node-based concept to general AI workflows including LLM agents, text processing, RAG systems, audio, and video generation.
+
+**vs n8n**: While n8n is a general workflow automation tool for business processes and API integrations, NodeTool is specialized for AI workloads with native support for model management, local LLMs, multimodal AI operations, and RAG pipelines.
 
 ## Cloud Models
 
