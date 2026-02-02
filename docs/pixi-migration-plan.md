@@ -43,6 +43,30 @@ reimplementing Pixi-provided geometry, bounds, or event handling.
 - [ ] Comments/annotations
 - [ ] Dev mode/code export
 
+## Mini report
+
+**Done**
+
+- Pixi-only renderer (Konva removed from layout canvas path)
+- Selection/multi-select + drag move
+- Selection outline + resize/rotation handles (with 15° snap)
+- Pixi hit testing via bounds
+- PNG export routed through Pixi renderer
+- Perf harness overlay for 1k/5k/10k datasets
+
+**Todo**
+
+- Snap index + snapping behavior (guides already rendering)
+- Tool architecture + tool manager
+- Spatial index (R-tree/quadtree) for large scenes
+- Adaptive grid spacing by zoom
+- SVG export pipeline
+
+**Open questions**
+
+- Which spatial index library to standardize on (or custom R-tree)?
+- Snap threshold defaults and keyboard toggle UX
+
 ## Architecture (target)
 
 ```
