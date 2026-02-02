@@ -132,7 +132,7 @@ src/
 - [x] Resize/rotate via handles (resize + rotation handle wired, rotation snap done)
 - [x] Creation tools (Rect/Ellipse/Line/Text/Image)
 - [x] Hit testing (Pixi getBounds-based hit test in renderer; spatial index deferred)
-- [~] Snapping (guides rendering wired; snap index pending)
+- [x] Snapping (guides + snap index in LayoutCanvasStore)
 
 ✅ **Milestone achieved:** Pixi selection + drag wired through Pixi pointer events (no Konva).
 
