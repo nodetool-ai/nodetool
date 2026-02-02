@@ -1,4 +1,4 @@
-# NodeTool: Node-Based Visual Builder for AI Workflows and LLM Agents
+# NodeTool: Visual Builder for AI Workflows and Agents
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
 [![Downloads](https://img.shields.io/github/downloads/nodetool-ai/nodetool/total?color=3fb950)](https://github.com/nodetool-ai/nodetool/releases)
