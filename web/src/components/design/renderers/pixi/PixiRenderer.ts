@@ -242,13 +242,18 @@ export default class PixiRenderer implements CanvasRenderer {
     }
     const lineColor = parseHexColor(color);
     const grid = new Graphics();
+    const scale = Math.max(this.zoom, 0.01);
+    let step = size;
+    while (step * scale < 16) {
+      step *= 2;
+    }
     const width = snapToGrid(this.data.width, size);
     const height = snapToGrid(this.data.height, size);
-    for (let x = 0; x <= width; x += size) {
+    for (let x = 0; x <= width; x += step) {
       grid.moveTo(x, 0);
       grid.lineTo(x, height);
     }
-    for (let y = 0; y <= height; y += size) {
+    for (let y = 0; y <= height; y += step) {
       grid.moveTo(0, y);
       grid.lineTo(width, y);
     }

@@ -143,7 +143,7 @@ src/
    - [x] Guide overlay rendering via Pixi Graphics
 2. **Grid Renderer**
    - [x] Cached grid drawing (Graphics or TilingSprite)
-   - [ ] Adaptive spacing by zoom level
+   - [x] Adaptive spacing by zoom level
 
 ## Phase 3 — History & Serialization
 
