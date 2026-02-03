@@ -35,14 +35,7 @@ NodeTool is an open-source visual programming tool for building AI workflows. Co
 - **Manage assets**: Organize and manage your media files
 - **Extend with Python**: Python-based backend extensibility via custom nodes
 
-## Common Uses
-
-- **LLM Applications**: Build AI agents with tool use and code execution
-- **Creative Workflows**: Chaining specialized models into a single pipeline for storytelling or design 
-- **RAG Systems**: Create retrieval-augmented pipelines for document search and question answering
-- **Generative AI**: Generate and edit images, videos, and audio
-- **Document Processing**: Extract text, search documents, and build document analysis workflows
-- **Data Transformation**: Transform data, create charts, generate reports
+**Common applications**: LLM agents with tool use, creative pipelines, RAG systems, generative media, document processing, and data transformation.
 
 ## How NodeTool Compares
 
@@ -66,15 +59,11 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 
 | Platform | Get It | Requirements |
 | :--- | :--- | :--- |
-| **Windows** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 20GB space |
-| **macOS** | [Download](https://nodetool.ai) | M1+ Apple Silicon |
-| **Linux** | [Download](https://nodetool.ai) | NVIDIA GPU recommended |
+| **Windows** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 4GB+ VRAM (local AI), 20GB space |
+| **macOS** | [Download](https://nodetool.ai) | M1+ Apple Silicon, 16GB+ RAM (local AI) |
+| **Linux** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 4GB+ VRAM (local AI) |
 
-**Running AI locally needs:**
-
-- **Apple Silicon**: 16GB+ RAM for text/audio, 24GB+ for images
-- **Windows/Linux**: 4GB+ VRAM for text/audio, 8GB+ for images, 12GB+ for video
-- **Cloud only**: No GPU needed—just use API services
+*Cloud-only usage requires no GPU—just use API services.*
 
 ______________________________________________________________________
 
