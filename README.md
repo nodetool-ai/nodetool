@@ -7,6 +7,10 @@
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 
+[![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://nodetool.ai)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
+[![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
+
 NodeTool is an open-source visual programming tool for building AI workflows. Connect LLMs, real-time systems, build AI agents and generate media through a drag-and-drop node interface.
 
 ![Screenshot](screen2.png)
