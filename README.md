@@ -30,10 +30,10 @@ NodeTool is an open-source visual programming tool for building AI workflows. Co
 - **Run locally**: Apple Silicon (M1+), NVIDIA GPUs, or CPU (works offline)
 - **Access models**: 500,000+ models from HuggingFace
 - **Cloud APIs**: OpenAI, Anthropic, Gemini, OpenRouter, Kie, Fal, MiniMax, Replicate
-- **Build RAG systems**: Vector database integration for semantic search and retrieval-augmented generation
-- **Deploy anywhere**: RunPod, Google Cloud Run, or your own infrastructure
-- **Manage assets**: Organize and manage your media files
-- **Extend with Python**: Python-based backend extensibility via custom nodes
+- **Secure Code execution**: Execute code in secure containers
+- **Build RAG systems**: Vector database integration for semantic search
+- **Deploy anywhere**: Docker, RunPod, Google Cloud Run
+- **Extend with Python**: Build custom nodes
 
 **Common applications**: LLM agents with tool use, creative pipelines, RAG systems, generative media, document processing, and data transformation.
 
