@@ -7,11 +7,7 @@
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 
-**Build AI workflows visually. Run them anywhere.**
-
-NodeTool is an open-source visual programming tool for building AI workflows. Run locally on macOS, Windows, or Linux. Connect LLMs, create RAG systems, build AI agents, and process multimodal content through a drag-and-drop node interface.
-
-**Alternative to ComfyUI for general AI and n8n for AI-specific automation.**
+NodeTool is an open-source visual programming tool for building AI workflows. Connect LLMs, real-time systems, build AI agents and generate media through a drag-and-drop node interface.
 
 ![Screenshot](screen2.png)
 
@@ -20,8 +16,8 @@ NodeTool is an open-source visual programming tool for building AI workflows. Ru
 - **Node-based visual interface**: Connect nodes by dragging lines between them for AI workflow orchestration
 - **Run anywhere**: Your laptop, a server, or the cloud - local execution engine for macOS, Windows, and Linux
 - **Local-first AI**: Run models entirely on your machine with support for local LLMs via Ollama, MLX, and GGML/GGUF formats
-- **See it happen**: Real-time workflow execution with live output preview
-- **Build AI agents**: Create LLM agents with tool use, web browsing, and RAG pipelines
+- **Streaming**: Real-time workflow execution with async data streams
+- **Build AI agents**: Create LLM agents with tool use and secure code execution
 - **Type-safe connections**: Ensure compatibility between node inputs and outputs
 
 ## What You Can Do
@@ -37,18 +33,18 @@ NodeTool is an open-source visual programming tool for building AI workflows. Ru
 
 ## Common Uses
 
-- **LLM Applications**: Build AI agents with tool use and web browsing capabilities
-- **RAG Systems**: Create retrieval-augmented generation pipelines for document search and question answering
+- **LLM Applications**: Build AI agents with tool use and code execution
+- **Creative Workflows**: Chaining specialized models into a single pipeline for storytelling or design 
+- **RAG Systems**: Create retrieval-augmented pipelines for document search and question answering
 - **Generative AI**: Generate and edit images, videos, and audio
 - **Document Processing**: Extract text, search documents, and build document analysis workflows
 - **Data Transformation**: Transform data, create charts, generate reports
-- **AI Agents**: Create agents that plan and execute complex tasks
 
 ## How NodeTool Compares
 
-**vs ComfyUI**: While ComfyUI focuses on image generation workflows with Stable Diffusion, NodeTool extends the node-based concept to general AI workflows including LLM agents, text processing, RAG systems, audio, and video generation.
+**vs ComfyUI**: While ComfyUI focuses on media generation workflows, NodeTool extends the node-based concept to general AI workflows including LLM agents, real-time streaming and RAG systems.
 
-**vs n8n**: While n8n is a general workflow automation tool for business processes and API integrations, NodeTool is specialized for AI workloads with native support for model management, local LLMs, multimodal AI operations, and RAG pipelines.
+**vs n8n**: While n8n is a general workflow automation tool for business processes and API integrations, NodeTool is specialized for AI workloads with native support for model management, local LLMs, multimodal, RAG and secure code execution.
 
 ## Cloud Models
 
