@@ -123,7 +123,7 @@ async function notifyPackageUpdates(): Promise<void> {
 /**
  * Check and install expected package versions on startup
  */
-async function checkAndInstallExpectedPackages(): Promise<void> {
+async function checkAndInstallExpectedPackages(): Promise<boolean> {
   try {
     logMessage("=== Starting Expected Package Version Check ===");
 
@@ -131,7 +131,7 @@ async function checkAndInstallExpectedPackages(): Promise<void> {
 
     if (packagesNeedingUpdate.length === 0) {
       logMessage("All expected packages are at correct versions");
-      return;
+      return false;
     }
 
     logMessage(
@@ -157,11 +157,13 @@ async function checkAndInstallExpectedPackages(): Promise<void> {
     }
 
     logMessage("=== Expected Package Version Check Complete ===");
+    return result.success && result.packagesUpdated > 0;
   } catch (error: any) {
     logMessage(
       `Failed to check/install expected packages: ${error.message ?? String(error)}`,
       "warn",
     );
+    return false;
   }
 }
 
@@ -267,15 +269,15 @@ async function initialize(): Promise<void> {
         "Environment exists, determining if package checks are needed",
       );
 
-      // Check if any pip packages need update - only then check/update conda packages
-      // This optimization prevents slow conda checks on every startup
-      const pipUpdatesNeeded = await checkExpectedPackageVersions();
+      // Check and install expected package versions
+      // This is now done synchronously before starting the backend to ensure version consistency
+      const pipUpdatesPerformed = await checkAndInstallExpectedPackages();
 
-      if (pipUpdatesNeeded.length > 0) {
-        logMessage("Pip updates detected, checking for conda package updates");
+      if (pipUpdatesPerformed) {
+        logMessage("Pip packages updated, checking for conda package updates");
         await checkAndUpdateCondaPackages();
       } else {
-        logMessage("No pip updates needed, skipping conda package check");
+        logMessage("No pip updates performed, skipping conda package check");
       }
 
       logMessage("Starting backend server");
@@ -295,9 +297,6 @@ async function initialize(): Promise<void> {
     }
 
     void notifyPackageUpdates();
-
-    // Check and install expected package versions
-    void checkAndInstallExpectedPackages();
 
     // Request notification permissions
     if (process.platform === "darwin") {
