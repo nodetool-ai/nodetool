@@ -3,9 +3,9 @@ export const APP_NAME = "nodetool";
 export const VERSION = "0.6.3-rc.15";
 
 // TOOLTIPS
-export const TOOLTIP_ENTER_DELAY = 600;
+export const TOOLTIP_ENTER_DELAY = 700;
 export const TOOLTIP_LEAVE_DELAY = 0;
-export const TOOLTIP_ENTER_NEXT_DELAY = 300;
+export const TOOLTIP_ENTER_NEXT_DELAY = 350;
 
 export const DEBUG_RENDER_LOGGING = process.env.NODE_ENV !== "production";
 
