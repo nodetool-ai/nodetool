@@ -281,8 +281,26 @@ const getProcessEnv = (): ProcessEnv => {
     baseEnv.PATH || "",
   ];
 
+  // Create dedicated cache directory for uv inside app userData
+  // This fixes macOS permission issues when Electron spawns uv
+  const userDataPath = app.getPath("userData");
+  const uvCacheDir = path.join(userDataPath, "uv-cache");
+  
+  // Ensure the UV cache directory exists
+  try {
+    fs.mkdirSync(uvCacheDir, { recursive: true });
+  } catch (error) {
+    logMessage(`Warning: Failed to create UV cache directory: ${error}`, "warn");
+  }
+
+  // Set HOME if not already set (needed on macOS for GUI processes)
+  const homeDir = baseEnv.HOME || os.homedir();
+
   return {
     ...baseEnv,
+    HOME: homeDir,
+    XDG_CACHE_HOME: path.join(userDataPath, "cache"),
+    UV_CACHE_DIR: uvCacheDir,
     PYTHONPATH: srcPath,
     PYTHONUNBUFFERED: "1",
     PYTHONNOUSERSITE: "1",
