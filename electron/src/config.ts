@@ -298,22 +298,28 @@ const getProcessEnv = (): ProcessEnv => {
   const uvCacheDir = path.join(userDataPath, "uv-cache");
   const xdgCacheHome = path.join(userDataPath, "cache");
   
+  // Set HOME if not already set (needed on macOS for GUI processes)
+  const homeDir = baseEnv.HOME || os.homedir();
+
+  // HuggingFace cache: Use env var if set, otherwise default to ~/.cache/huggingface
+  // This ensures consistency between Electron app and CLI usage
+  const hfHome = baseEnv.HF_HOME || path.join(homeDir, ".cache", "huggingface");
+
   // Ensure cache directories exist
   try {
     fs.mkdirSync(uvCacheDir, { recursive: true });
     fs.mkdirSync(xdgCacheHome, { recursive: true });
+    fs.mkdirSync(hfHome, { recursive: true });
   } catch (error) {
     logMessage(`Warning: Failed to create cache directories: ${error}`, "warn");
   }
-
-  // Set HOME if not already set (needed on macOS for GUI processes)
-  const homeDir = baseEnv.HOME || os.homedir();
 
   return {
     ...baseEnv,
     HOME: homeDir,
     XDG_CACHE_HOME: xdgCacheHome,
     UV_CACHE_DIR: uvCacheDir,
+    HF_HOME: hfHome,
     PYTHONPATH: srcPath,
     PYTHONUNBUFFERED: "1",
     PYTHONNOUSERSITE: "1",
