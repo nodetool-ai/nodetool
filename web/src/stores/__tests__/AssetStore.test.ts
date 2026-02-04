@@ -362,7 +362,8 @@ describe("AssetStore", () => {
           parent_id: "",
           content_type: "image/jpeg",
           metadata: null,
-          data: null
+          data: null,
+          data_encoding: null
         }
       });
       expect(result).toEqual(mockAsset);
