@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Typography } from "@mui/material";
 import { relativeTime } from "../../../utils/formatDateAndTime";
 import { ThreadItemProps } from "../types/thread.types";
-import { DeleteButton } from "../../ui_primitives";
+import { DeleteButton, DownloadButton } from "../../ui_primitives";
 
 export const ThreadItem: React.FC<ThreadItemProps> = ({
   threadId: _threadId,
@@ -10,6 +10,7 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
   isSelected,
   onSelect,
   onDelete,
+  onExport,
   getPreview,
   showDate = true
 }) => {
@@ -49,6 +50,16 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
           handleDelete();
         }}
       />
+      {onExport && (
+        <DownloadButton
+          onClick={(e) => {
+            e.stopPropagation();
+            onExport();
+          }}
+          tooltip="Export conversation"
+          iconVariant="file"
+        />
+      )}
       {/* <IconButton
         className="delete-button"
         size="small"

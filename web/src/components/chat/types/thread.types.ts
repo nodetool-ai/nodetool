@@ -11,6 +11,7 @@ export interface ThreadListProps {
   onNewThread: () => void;
   onSelectThread: (id: string) => void;
   onDeleteThread: (id: string) => void;
+  onExportThread?: (id: string) => void;
   getThreadPreview: (id: string) => string;
 }
 
@@ -20,6 +21,7 @@ export interface ThreadItemProps {
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  onExport?: () => void;
   getPreview: () => string;
   /**
    * Controls whether the thread's relative timestamp should be displayed.
