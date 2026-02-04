@@ -373,6 +373,11 @@ describe('Config', () => {
       expect(result.HOME).toBe('/home/user');
       expect(result.SOME_NUMBER_VAR).toBe('123');
       expect(result.SOME_UNDEFINED_VAR).toBeUndefined();
+      // Verify UV cache environment variables are set
+      expect(result.UV_CACHE_DIR).toBeDefined();
+      expect(result.UV_CACHE_DIR).toContain('uv-cache');
+      expect(result.XDG_CACHE_HOME).toBeDefined();
+      expect(result.XDG_CACHE_HOME).toContain('cache');
     });
 
     it('should return process environment with conda paths on Unix', () => {
@@ -389,6 +394,11 @@ describe('Config', () => {
       expect(normalizedPath).toContain('/test/conda/bin');
       expect(normalizedPath).toContain('/test/conda/lib');
       expect(result.HOME).toBe('/home/user');
+      // Verify UV cache environment variables are set
+      expect(result.UV_CACHE_DIR).toBeDefined();
+      expect(result.UV_CACHE_DIR).toContain('uv-cache');
+      expect(result.XDG_CACHE_HOME).toBeDefined();
+      expect(result.XDG_CACHE_HOME).toContain('cache');
     });
 
     it('should handle missing PATH environment variable', () => {
@@ -411,6 +421,26 @@ describe('Config', () => {
       expect(result.STRING_VAR).toBe('test');
       expect(result.NUMBER_VAR).toBeUndefined();
       expect(result.OBJECT_VAR).toBeUndefined();
+    });
+
+    it('should set HOME from os.homedir() when not in environment', () => {
+      delete process.env.HOME;
+
+      const result = getProcessEnv();
+
+      expect(result.HOME).toBeDefined();
+      expect(typeof result.HOME).toBe('string');
+      expect(result.HOME.length).toBeGreaterThan(0);
+    });
+
+    it('should set UV_CACHE_DIR to a writable location inside userData', () => {
+      const result = getProcessEnv();
+
+      expect(result.UV_CACHE_DIR).toBeDefined();
+      expect(result.UV_CACHE_DIR).toContain('uv-cache');
+      // UV_CACHE_DIR should be inside userData directory
+      const userDataPath = app.getPath('userData');
+      expect(result.UV_CACHE_DIR).toContain(userDataPath);
     });
   });
 });
