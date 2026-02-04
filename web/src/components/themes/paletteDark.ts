@@ -203,9 +203,9 @@ export const paletteDark: PaletteOptions = {
   c_tabs_header: "#1E1E1E",
 
   primary: {
-    main: "#4f7dab",
-    light: "#618fbb",
-    dark: "#43678a",
+    main: "#3c70bb",
+    light: "#4c82cf",
+    dark: "#365e98",
     contrastText: "#fff"
   },
   secondary: {
