@@ -39,6 +39,8 @@ const PLATFORM_SPECIFIC_LOCK_FILES: Partial<
 const FALLBACK_LOCK_FILE_NAME = "environment.lock.yml";
 
 // Returns a sane default install location if settings do not define CONDA_ENV
+// IMPORTANT: These paths MUST match getDefaultInstallLocation() in python.ts
+// to avoid looking in the wrong place when settings are unavailable
 const getDefaultCondaEnvPath = (): string => {
   switch (process.platform) {
     case "win32":
@@ -51,12 +53,8 @@ const getDefaultCondaEnvPath = (): string => {
             "conda_env"
           );
     case "darwin":
-      return process.env.SUDO_USER
-        ? path.join("/Library/Application Support/nodetool/conda_env")
-        : path.join(
-            os.homedir(),
-            "Library/Application Support/nodetool/conda_env"
-          );
+      // Use ~/nodetool_env to match getDefaultInstallLocation() in python.ts
+      return path.join(os.homedir(), "nodetool_env");
     case "linux":
       return process.env.SUDO_USER
         ? "/opt/nodetool/conda_env"
