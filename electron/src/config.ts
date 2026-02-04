@@ -102,10 +102,23 @@ const getCondaEnvPath = (): string => {
     return condaPathFromSettings;
   }
 
+  // CONDA_ENV not set - use default and persist it immediately to avoid future inconsistencies
   const fallbackPath = getDefaultCondaEnvPath();
   logMessage(
-    `CONDA_ENV not set in settings. Using default path: ${fallbackPath}`
+    `CONDA_ENV not set in settings. Using and persisting default path: ${fallbackPath}`
   );
+  
+  // Persist the default so it's always consistent going forward
+  try {
+    updateSetting("CONDA_ENV", fallbackPath);
+    logMessage(`Persisted default CONDA_ENV to settings: ${fallbackPath}`);
+  } catch (error) {
+    logMessage(
+      `Failed to persist default CONDA_ENV to settings: ${error}`,
+      "warn"
+    );
+  }
+  
   return fallbackPath;
 };
 
