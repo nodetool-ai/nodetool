@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useState, useEffect, useRef } from "react";
 import {
   Fab,
   Box,
@@ -96,6 +96,73 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(
   }
 );
 
+// Format seconds into precise time display
+// Returns text and size key: "smaller" | "tiny" | "tinyer"
+const formatRunningTime = (seconds: number): { text: string; sizeKey: "smaller" | "tiny" | "tinyer" } => {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  
+  if (hrs > 0) {
+    // H:MM:SS format
+    const text = `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return { text, sizeKey: "tinyer" };
+  }
+  if (mins >= 10) {
+    // MM:SS format
+    const text = `${mins}:${secs.toString().padStart(2, "0")}`;
+    return { text, sizeKey: "tiny" };
+  }
+  // M:SS format
+  return { text: `${mins}:${secs.toString().padStart(2, "0")}`, sizeKey: "smaller" };
+};
+
+// Running time display component
+const RunningTime: React.FC<{ isRunning: boolean }> = memo(function RunningTime({ isRunning }) {
+  const theme = useTheme();
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isRunning) {
+      startTimeRef.current = Date.now();
+      setElapsedSeconds(0);
+      
+      const interval = setInterval(() => {
+        if (startTimeRef.current) {
+          const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+          setElapsedSeconds(elapsed);
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      startTimeRef.current = null;
+      setElapsedSeconds(0);
+    }
+  }, [isRunning]);
+
+  const { text, sizeKey } = formatRunningTime(elapsedSeconds);
+  const fontSizeMap = {
+    smaller: theme.fontSizeSmaller,
+    tiny: theme.fontSizeTiny,
+    tinyer: theme.fontSizeTinyer
+  };
+
+  return (
+    <span
+      style={{
+        fontSize: fontSizeMap[sizeKey],
+        fontWeight: 600,
+        fontFamily: "monospace",
+        letterSpacing: "-0.5px"
+      }}
+    >
+      {text}
+    </span>
+  );
+});
+
 const styles = (theme: Theme) =>
   css({
     position: "fixed",
@@ -168,9 +235,6 @@ const styles = (theme: Theme) =>
           animation: "border-spin 2s linear infinite",
           pointerEvents: "none",
           zIndex: -1
-        },
-        "& svg": {
-          animation: "pulse-scale 1s ease-in-out infinite"
         }
       }
     },
@@ -672,7 +736,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         />
 
         <ToolbarButton
-          icon={<PlayArrow />}
+          icon={isWorkflowRunning ? <RunningTime isRunning={isWorkflowRunning} /> : <PlayArrow />}
           tooltip={isWorkflowRunning ? "Running..." : "Run"}
           shortcut="runWorkflow"
           variant="primary"
