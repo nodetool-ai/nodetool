@@ -13,6 +13,7 @@ import { readSettings, updateSettings, updateSetting } from "./settings";
 import { emitBootMessage, emitServerLog, emitUpdateProgress } from "./events";
 import os from "os";
 import { fileExists } from "./utils";
+import { downloadFile } from "./download";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 import { getCondaLockFilePath, getPythonPath } from "./config";
@@ -35,6 +36,19 @@ const MODEL_BACKEND_SETTING_KEY = "MODEL_BACKEND";
 const MICROMAMBA_LOCK_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 const MICROMAMBA_LOCK_ERROR_PATTERN = /could not set lock|cannot lock/i;
 const DEFAULT_MAMBA_HOME_DIR = ".mamba";
+
+const MICROMAMBA_URLS: Record<string, string> = {
+  "win32-x64":
+    "https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-win-64.exe",
+  "darwin-arm64":
+    "https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-osx-arm64",
+  "darwin-x64":
+    "https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-osx-64",
+  "linux-x64":
+    "https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-linux-64",
+  "linux-arm64":
+    "https://github.com/mamba-org/micromamba-releases/releases/download/2.3.3-0/micromamba-linux-aarch64",
+};
 
 interface InstallationPreferences {
   location: string;
@@ -404,6 +418,44 @@ async function findBundledMicromambaExecutable(): Promise<string | null> {
   return null;
 }
 
+async function downloadMicromamba(): Promise<string> {
+  const platformKey = `${process.platform}-${process.arch}`;
+  const url = MICROMAMBA_URLS[platformKey];
+
+  if (!url) {
+    throw new Error(
+      `No micromamba binary available for platform: ${platformKey}`
+    );
+  }
+
+  const dest = getMicromambaExecutablePath();
+  const destDir = path.dirname(dest);
+
+  logMessage(`Attempting to download micromamba from ${url} to ${dest}...`);
+  emitBootMessage("Downloading micromamba...");
+
+  try {
+    await fs.mkdir(destDir, { recursive: true });
+    await downloadFile(url, dest);
+
+    if (process.platform !== "win32") {
+      logMessage("Setting executable permissions for micromamba...");
+      await fs.chmod(dest, 0o755);
+    }
+
+    logMessage("Successfully downloaded micromamba");
+    return dest;
+  } catch (error) {
+    logMessage(
+      `Failed to download micromamba: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      "error"
+    );
+    throw error;
+  }
+}
+
 async function ensureMicromambaAvailable(): Promise<string> {
   const explicitExecutable = resolveExplicitMicromambaExecutable();
   if (explicitExecutable) {
@@ -431,11 +483,22 @@ async function ensureMicromambaAvailable(): Promise<string> {
     return localExecutable;
   }
 
-  // No download fallback - require bundled micromamba or explicit configuration
-  throw new Error(
-    "micromamba not found. Please ensure micromamba is bundled in resources/micromamba/ " +
-    "or set the MICROMAMBA_EXE environment variable, or install micromamba system-wide."
-  );
+  // Try to download as fallback
+  logMessage("micromamba not found locally, attempting download...");
+  try {
+    const downloaded = await downloadMicromamba();
+    process.env[MICROMAMBA_ENV_VAR] = downloaded;
+    return downloaded;
+  } catch (error) {
+    throw new Error(
+      "micromamba not found and download failed. " +
+        "Please ensure micromamba is bundled in resources/micromamba/ " +
+        "or set the MICROMAMBA_EXE environment variable, or install micromamba system-wide.\n" +
+        `Download error: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+    );
+  }
 }
 
 async function runMicromambaCommand(
