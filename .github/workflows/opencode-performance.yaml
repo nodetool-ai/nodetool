@@ -1,4 +1,4 @@
-name: OpenCode Performance Monitor
+name: Performance Monitor
 
 on:
   schedule:
@@ -41,13 +41,14 @@ jobs:
           cd web
           npm run build
           npx vite-bundle-visualizer --open=false --json=bundle-stats.json || true
-
-      - name: Run OpenCode
-        uses: anomalyco/opencode/github@latest
+      - name: Run Claude Code
+        uses: anthropic-ai/claude-code-action@v1.0.44
         env:
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ZAI_API_KEY }}
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+          ANTHROPIC_DEFAULT_SONNET_MODEL: glm-4.7
+          ANTHROPIC_DEFAULT_OPUS_MODEL: glm-4.7
         with:
-          model: zai-coding-plan/glm-4.7
           prompt: |
             # NodeTool Performance Monitoring
 
