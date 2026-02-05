@@ -14,7 +14,7 @@ describe('datatypeByName', () => {
         const unique = new Set(values);
         if (values.length !== unique.size) {
             const seen = new Set();
-            const dups = [];
+            const dups: string[] = [];
             values.forEach(v => {
                 if (seen.has(v)) {dups.push(v);}
                 seen.add(v);
