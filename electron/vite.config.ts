@@ -46,6 +46,7 @@ export default defineConfig({
         index: resolve(__dirname, "index.html"),
         packages: resolve(__dirname, "pages/packages.html"),
         logs: resolve(__dirname, "pages/logs.html"),
+        settings: resolve(__dirname, "pages/settings.html"),
       },
       output: {
         format: "es",

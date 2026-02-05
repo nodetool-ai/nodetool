@@ -69,4 +69,45 @@ describe('settings module', () => {
     const contents = yaml.load(fs.readFileSync(settingsPath, 'utf8')) as any;
     expect(contents).toEqual({ alpha: 1 });
   });
+
+  test('autoUpdatesEnabled defaults to false when not set', async () => {
+    const { readSettings } = await import('../settings');
+    const settings = readSettings();
+    // Auto-updates should default to false (opt-in behavior)
+    expect(settings.autoUpdatesEnabled).toBeUndefined();
+    // When checking the setting, undefined should be treated as false
+    expect(settings.autoUpdatesEnabled === true).toBe(false);
+  });
+
+  test('autoUpdatesEnabled can be set to true', async () => {
+    const { updateSetting, readSettings } = await import('../settings');
+    
+    // Enable auto-updates
+    updateSetting('autoUpdatesEnabled', true);
+    
+    // Re-import to clear cache
+    jest.resetModules();
+    const { readSettings: readSettingsAgain } = await import('../settings');
+    const settings = readSettingsAgain();
+    
+    expect(settings.autoUpdatesEnabled).toBe(true);
+  });
+
+  test('autoUpdatesEnabled can be toggled on and off', async () => {
+    const settingsDir = path.join(tempDir, '.config', 'nodetool');
+    fs.mkdirSync(settingsDir, { recursive: true });
+    const settingsPath = path.join(settingsDir, 'settings.yaml');
+    
+    const { updateSetting } = await import('../settings');
+    
+    // Enable auto-updates
+    updateSetting('autoUpdatesEnabled', true);
+    let contents = yaml.load(fs.readFileSync(settingsPath, 'utf8')) as any;
+    expect(contents.autoUpdatesEnabled).toBe(true);
+    
+    // Disable auto-updates
+    updateSetting('autoUpdatesEnabled', false);
+    contents = yaml.load(fs.readFileSync(settingsPath, 'utf8')) as any;
+    expect(contents.autoUpdatesEnabled).toBe(false);
+  });
 });
