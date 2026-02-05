@@ -590,6 +590,15 @@ const NODETOOL_DATA_TYPES: DataType[] = [
 ];
 
 let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES, ...COMFY_DATA_TYPES];
+let DATA_TYPE_MAP: Record<string, DataType> = Object.create(null);
+
+// Populate map for O(1) lookup
+DATA_TYPES.forEach((type) => {
+  // First-wins precedence to match original Array.find behavior
+  if (!DATA_TYPE_MAP[type.value]) {
+    DATA_TYPE_MAP[type.value] = type;
+  }
+});
 
 type IconProps = React.SVGProps<SVGSVGElement> & {
   containerStyle?: React.CSSProperties;
@@ -618,10 +627,7 @@ const iconStyles = (_theme: Theme) => ({
 
 export function datatypeByName(name: string): DataType | null {
   const normalizedName = normalizeTypeName(name);
-  const foundItem = DATA_TYPES.find((item) => item.value === normalizedName);
-  return (
-    foundItem || DATA_TYPES.find((item) => item.value === "notype") || null
-  );
+  return DATA_TYPE_MAP[normalizedName] || DATA_TYPE_MAP["notype"] || null;
 }
 
 interface IconForTypeProps extends IconProps {
@@ -705,25 +711,25 @@ isEqual);
 
 export function colorForType(type: string): string {
   const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.color || stc(type);
 }
 
 export function textColorForType(type: string): string {
   const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.textColor || "#eee";
 }
 
 export function descriptionForType(type: string): string {
   const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.description || "";
 }
 
 export function labelForType(type: string): string {
   const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.label || "";
 }
 
