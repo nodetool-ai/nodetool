@@ -541,6 +541,7 @@ export interface IpcRequest {
   [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.SHOW_PACKAGE_MANAGER]: string | undefined;
+  [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
