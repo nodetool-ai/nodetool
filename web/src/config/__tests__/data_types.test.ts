@@ -16,7 +16,7 @@ describe('datatypeByName', () => {
             const seen = new Set();
             const dups = [];
             values.forEach(v => {
-                if (seen.has(v)) dups.push(v);
+                if (seen.has(v)) {dups.push(v);}
                 seen.add(v);
             });
             console.error('Duplicate values found in DATA_TYPES:', dups);

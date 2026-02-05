@@ -590,7 +590,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
 ];
 
 let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES, ...COMFY_DATA_TYPES];
-let DATA_TYPE_MAP: Record<string, DataType> = {};
+const DATA_TYPE_MAP: Record<string, DataType> = {};
 
 type IconProps = React.SVGProps<SVGSVGElement> & {
   containerStyle?: React.CSSProperties;
