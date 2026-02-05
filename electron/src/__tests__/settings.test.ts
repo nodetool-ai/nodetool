@@ -110,4 +110,21 @@ describe('settings module', () => {
     contents = yaml.load(fs.readFileSync(settingsPath, 'utf8')) as any;
     expect(contents.autoUpdatesEnabled).toBe(false);
   });
+
+  test('readSettingsAsync returns empty object when missing', async () => {
+    const { readSettingsAsync } = await import('../settings');
+    const result = await readSettingsAsync();
+    expect(result).toEqual({});
+  });
+
+  test('readSettingsAsync loads existing yaml', async () => {
+    const settingsDir = path.join(tempDir, '.config', 'nodetool');
+    fs.mkdirSync(settingsDir, { recursive: true });
+    const settingsPath = path.join(settingsDir, 'settings.yaml');
+    fs.writeFileSync(settingsPath, yaml.dump({ foo: 'async' }), 'utf8');
+
+    const { readSettingsAsync } = await import('../settings');
+    const result = await readSettingsAsync();
+    expect(result).toEqual({ foo: 'async' });
+  });
 });
