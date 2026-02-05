@@ -1,16 +1,10 @@
 import { renderHook } from "@testing-library/react";
 import { useRenderLogger } from "../useRenderLogger";
 
-// Store original module
-const originalModule = jest.requireActual("loglevel");
-
 // Mock the constants module
 jest.mock("../../config/constants", () => ({
   DEBUG_RENDER_LOGGING: true,
 }));
-
-// Create a mock log object
-const mockLogInfo = jest.fn();
 
 // Mock loglevel
 jest.mock("loglevel", () => ({
@@ -30,12 +24,12 @@ describe("useRenderLogger", () => {
     (log.info as jest.Mock).mockClear();
   });
 
-  it("should log on initial render when deps are provided", () => {
+  it("should not log on initial render when no previous deps exist", () => {
     renderHook(() => useRenderLogger("TestComponent", { value: 1 }));
 
-    // Initial render may or may not log depending on implementation
-    // Just verify the hook runs without error
-    expect(true).toBe(true);
+    // On initial render, there are no changes because prevDeps starts with the same reference
+    // useMemo compares the deps array, and on first render they're the same object
+    expect(log.info).not.toHaveBeenCalled();
   });
 
   it("should call log.info when dependencies change", () => {
