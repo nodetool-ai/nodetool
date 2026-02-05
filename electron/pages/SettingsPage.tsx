@@ -177,7 +177,7 @@ const Settings: React.FC = () => {
         <div className="info-section">
           <div className="info-icon">ℹ️</div>
           <div className="info-text">
-            Changes to settings take effect immediately. Auto-update changes will apply on the next application restart.
+            Settings are saved immediately. Auto-update preference will take effect on the next application restart.
           </div>
         </div>
       </div>
