@@ -6,6 +6,7 @@ import {
   NodeUpdate,
   TaskUpdate,
   ToolCallUpdate,
+  ToolResultUpdate,
   PlanningUpdate,
   OutputUpdate,
   PreviewUpdate,
@@ -127,6 +128,7 @@ export type MsgpackData =
   | Message
   | LogUpdate
   | ToolCallUpdate
+  | ToolResultUpdate
   | TaskUpdate
   | PlanningUpdate
   | OutputUpdate
@@ -228,6 +230,21 @@ export const handleUpdate = (
     }
     // Note: Chat-related ToolCallUpdates don't have node_id - this is expected.
     // They are handled separately in chatProtocol.ts.
+  }
+
+  if (data.type === "tool_result_update") {
+    const toolResult = data as ToolResultUpdate;
+    if (toolResult.node_id) {
+      setOutputResult(workflow.id, toolResult.node_id, toolResult.result, true);
+
+      // Add to history for display in ResultOverlay
+      addToHistory(workflow.id, toolResult.node_id, {
+        result: toolResult.result,
+        timestamp: Date.now(),
+        jobId: runner.job_id,
+        status: "completed"
+      });
+    }
   }
 
   if (data.type === "task_update") {
