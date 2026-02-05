@@ -121,6 +121,7 @@ export type UnifiedModel = components["schemas"]["UnifiedModel"] & {
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];
+export type ToolResultUpdate = components["schemas"]["ToolResultUpdate"];
 export type Chunk = components["schemas"]["Chunk"];
 export type SVGElement = components["schemas"]["SVGElement"];
 export type DocumentRef = components["schemas"]["DocumentRef"];
