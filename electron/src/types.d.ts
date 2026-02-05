@@ -182,6 +182,8 @@ declare global {
         getCloseBehavior: () => Promise<WindowCloseAction>;
         setCloseBehavior: (action: WindowCloseAction) => Promise<void>;
         getSystemInfo: () => Promise<SystemInfo>;
+        getAutoUpdates: () => Promise<boolean>;
+        setAutoUpdates: (enabled: boolean) => Promise<void>;
       };
 
       // Debug operations
@@ -449,6 +451,8 @@ export enum IpcChannels {
   // Settings channels
   SETTINGS_GET_CLOSE_BEHAVIOR = "settings-get-close-behavior",
   SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
+  SETTINGS_GET_AUTO_UPDATES = "settings-get-auto-updates",
+  SETTINGS_SET_AUTO_UPDATES = "settings-set-auto-updates",
   // System directory channels
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY = "file-explorer-open-system-directory",
   // System info channel
@@ -541,6 +545,7 @@ export interface IpcRequest {
   [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.SHOW_PACKAGE_MANAGER]: string | undefined;
+  [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
@@ -603,6 +608,8 @@ export interface IpcRequest {
   // Settings
   [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: void;
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
+  [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: void;
+  [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: boolean;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: SystemDirectory;
   // System info
@@ -678,6 +685,8 @@ export interface IpcResponse {
   // Settings
   [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: WindowCloseAction;
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;
+  [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: boolean;
+  [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: void;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: FileExplorerResult;
   // System info

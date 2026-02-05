@@ -813,6 +813,21 @@ export function initializeIpcHandlers(): void {
     },
   );
 
+  // Auto-updates settings handlers (opt-in)
+  createIpcMainHandler(IpcChannels.SETTINGS_GET_AUTO_UPDATES, async () => {
+    const settings = readSettings();
+    // Auto-updates are opt-in, default to false
+    return settings.autoUpdatesEnabled === true;
+  });
+
+  createIpcMainHandler(
+    IpcChannels.SETTINGS_SET_AUTO_UPDATES,
+    async (_event, enabled) => {
+      logMessage(`Setting auto-updates to: ${enabled}`);
+      updateSetting("autoUpdatesEnabled", enabled);
+    },
+  );
+
   createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {
     const { getSystemInfo } = await import("./systemInfo");
     return await getSystemInfo();

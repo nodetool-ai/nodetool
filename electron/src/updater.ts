@@ -6,6 +6,7 @@ import fs from "fs";
 import { logMessage } from "./logger";
 import { getMainWindow } from "./state";
 import { IpcChannels } from "./types.d";
+import { readSettings } from "./settings";
 
 let updateAvailable: boolean = false;
 
@@ -81,12 +82,37 @@ function isMissingAppUpdateConfigError(err: Error): boolean {
 }
 
 /**
+ * Checks if auto-updates are enabled in settings.
+ * Auto-updates are opt-in by default (disabled unless explicitly enabled).
+ * @returns true if auto-updates are enabled, false otherwise
+ */
+function isAutoUpdatesEnabled(): boolean {
+  try {
+    const settings = readSettings();
+    // Auto-updates are opt-in, so default to false if not set
+    return settings.autoUpdatesEnabled === true;
+  } catch (err) {
+    logMessage(
+      `Error reading auto-updates setting: ${(err as Error).message}`,
+      "warn"
+    );
+    return false;
+  }
+}
+
+/**
  * Sets up the auto-updater
  */
 function setupAutoUpdater(): void {
   // Skip auto-update in development mode
   if (!app.isPackaged) {
     logMessage("Skipping auto-updater in development mode");
+    return;
+  }
+
+  // Check if auto-updates are enabled (opt-in)
+  if (!isAutoUpdatesEnabled()) {
+    logMessage("Auto-updates disabled by user preference (opt-in required)");
     return;
   }
 
