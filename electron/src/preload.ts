@@ -586,6 +586,9 @@ const api = {
     /** Set auto-updates setting (opt-in) */
     setAutoUpdates: (enabled: boolean) =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_SET_AUTO_UPDATES, enabled),
+
+    /** Open the settings window */
+    openSettings: () => ipcRenderer.invoke(IpcChannels.SHOW_SETTINGS),
   },
 
   // ============================================================================

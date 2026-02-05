@@ -25,7 +25,7 @@ import {
   WindowCloseAction,
 } from "./types.d";
 import { readSettings, updateSetting } from "./settings";
-import { createPackageManagerWindow } from "./window";
+import { createPackageManagerWindow, createSettingsWindow } from "./window";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
 import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
@@ -827,6 +827,12 @@ export function initializeIpcHandlers(): void {
       updateSetting("autoUpdatesEnabled", enabled);
     },
   );
+
+  // Show settings window
+  createIpcMainHandler(IpcChannels.SHOW_SETTINGS, async () => {
+    logMessage("Opening Settings window");
+    createSettingsWindow();
+  });
 
   createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {
     const { getSystemInfo } = await import("./systemInfo");
