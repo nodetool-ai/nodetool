@@ -42,7 +42,7 @@ jobs:
           npm run build
           npx vite-bundle-visualizer --open=false --json=bundle-stats.json || true
       - name: Run Claude Code
-        uses: anthropic-ai/claude-code-action@v1.0.44
+        uses: anthropics/claude-code-action@v1
         env:
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.ZAI_API_KEY }}
           ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
