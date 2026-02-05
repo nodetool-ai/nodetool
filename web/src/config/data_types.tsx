@@ -590,6 +590,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
 ];
 
 let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES, ...COMFY_DATA_TYPES];
+let DATA_TYPE_MAP: Record<string, DataType> = {};
 
 type IconProps = React.SVGProps<SVGSVGElement> & {
   containerStyle?: React.CSSProperties;
@@ -618,10 +619,7 @@ const iconStyles = (_theme: Theme) => ({
 
 export function datatypeByName(name: string): DataType | null {
   const normalizedName = normalizeTypeName(name);
-  const foundItem = DATA_TYPES.find((item) => item.value === normalizedName);
-  return (
-    foundItem || DATA_TYPES.find((item) => item.value === "notype") || null
-  );
+  return DATA_TYPE_MAP[normalizedName] || DATA_TYPE_MAP["notype"] || null;
 }
 
 interface IconForTypeProps extends IconProps {
@@ -705,25 +703,25 @@ isEqual);
 
 export function colorForType(type: string): string {
   const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.color || stc(type);
 }
 
 export function textColorForType(type: string): string {
   const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.textColor || "#eee";
 }
 
 export function descriptionForType(type: string): string {
   const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.description || "";
 }
 
 export function labelForType(type: string): string {
   const normalizedType = normalizeTypeName(type);
-  const foundType = DATA_TYPES.find((dt) => dt.value === normalizedType);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.label || "";
 }
 
@@ -807,6 +805,7 @@ DATA_TYPES.forEach((type) => {
     `--c_${type.slug}_text`,
     type.textColor
   );
+  DATA_TYPE_MAP[type.value] = type;
 });
 
 export { DATA_TYPES };
