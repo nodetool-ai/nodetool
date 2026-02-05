@@ -169,7 +169,7 @@ export type WorkflowManagerState = {
     fromExamplePackage?: string,
     fromExampleName?: string
   ) => Promise<Workflow>;
-  load: (cursor?: string, limit?: number) => Promise<any>;
+  load: (cursor?: string, limit?: number, columns?: string) => Promise<any>;
   loadIDs: (workflowIds: string[]) => Promise<Workflow[]>;
   loadPublic: (cursor?: string) => Promise<any>;
   loadTemplates: () => Promise<any>;
@@ -313,7 +313,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
              existingNames = cachedData.workflows.map(w => w.name);
            } else {
              // Fallback: fetch workflows if not cached
-             const data = await get().load("", 1000);
+             // Optimize by only fetching names to reduce network load (O(N) bandwidth optimization)
+             const data = await get().load("", 1000, "name");
              if (data?.workflows) {
                existingNames = data.workflows.map((w: Workflow) => w.name);
              }
@@ -393,13 +394,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * Loads workflows with optional pagination.
        * @param {string} [cursor] Pagination cursor
        * @param {number} [limit] Number of workflows to load
+       * @param {string} [columns] Optional comma-separated list of columns to fetch
        * @returns {Promise<any>} The loaded workflows data
        * @throws {Error} If the API call fails
        */
-      load: async (cursor?: string, limit?: number) => {
+      load: async (cursor?: string, limit?: number, columns?: string) => {
         cursor = cursor || "";
         const { data, error } = await client.GET("/api/workflows/", {
-          params: { query: { cursor, limit } }
+          params: { query: { cursor, limit, columns } }
         });
         if (error) {
           throw createErrorMessage(error, "Failed to load workflows");
