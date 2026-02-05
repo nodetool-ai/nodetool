@@ -1,4 +1,4 @@
-import { app } from "electron";
+import { app, Notification } from "electron";
 import { autoUpdater, ProgressInfo, UpdateInfo } from "electron-updater";
 import log from "electron-log";
 import path from "path";
@@ -183,6 +183,28 @@ function setupAutoUpdaterEvents(): void {
           downloaded: false,
         });
       }
+
+      // Show native notification
+      // Note: When auto-updates are disabled, electron-updater doesn't auto-download,
+      // so we direct user to open the app to download manually
+      if (Notification.isSupported()) {
+        const autoUpdateEnabled = isAutoUpdatesEnabled();
+        const notification = new Notification({
+          title: "NodeTool Update Available",
+          body: autoUpdateEnabled
+            ? `Version ${info.version} is available. Downloading in the background...`
+            : `Version ${info.version} is available. Click to open NodeTool.`,
+        });
+        notification.on("click", () => {
+          const win = getMainWindow();
+          if (win) {
+            if (win.isMinimized()) win.restore();
+            win.show();
+            win.focus();
+          }
+        });
+        notification.show();
+      }
     } catch (err) {
       logMessage(
         `Error handling update-available event: ${(err as Error).message}`,
@@ -221,6 +243,23 @@ function setupAutoUpdaterEvents(): void {
           releaseUrl,
           downloaded: true,
         });
+      }
+
+      // Show native notification
+      if (Notification.isSupported()) {
+        const notification = new Notification({
+          title: "NodeTool Update Ready",
+          body: `Version ${info.version} has been downloaded. Click to restart and install.`,
+        });
+        notification.on("click", () => {
+          const win = getMainWindow();
+          if (win) {
+            if (win.isMinimized()) win.restore();
+            win.show();
+            win.focus();
+          }
+        });
+        notification.show();
       }
     } catch (err) {
       logMessage(

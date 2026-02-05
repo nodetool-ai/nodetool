@@ -686,7 +686,9 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     }
 
     const packageSpec = `${packageName}==${latestVersion}`;
-    logMessage(`Installing ${packageSpec} with Nodetool extra index`);
+    const message = `Installing ${packageName} v${latestVersion}...`;
+    logMessage(message);
+    emitServerLog(message);
 
     const args = [
       "pip",
@@ -775,7 +777,9 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     }
 
     const packageSpec = `${packageName}==${latestVersion}`;
-    logMessage(`Updating to ${packageSpec} with Nodetool extra index (forcing reinstall)`);
+    const message = `Updating ${packageName} to v${latestVersion}...`;
+    logMessage(message);
+    emitServerLog(message);
 
     const args = [
       "pip",
@@ -952,7 +956,9 @@ export async function installExpectedPackages(): Promise<{
     try {
       const packageSpec = `${packageName}==${expectedVersion}`;
 
-      logMessage(`Installing ${packageSpec} with Nodetool extra index`);
+      const message = `Installing ${packageName} v${expectedVersion}...`;
+      logMessage(message);
+      emitServerLog(message);
 
       const args = [
         "pip",
@@ -974,7 +980,9 @@ export async function installExpectedPackages(): Promise<{
       }
 
       await runUvCommand(args);
-      logMessage(`Successfully installed ${packageSpec}`);
+      const successMessage = `Successfully installed ${packageName} v${expectedVersion}`;
+      logMessage(successMessage);
+      emitServerLog(successMessage);
 
       packagesUpdated++;
     } catch (error: any) {
