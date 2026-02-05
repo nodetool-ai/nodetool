@@ -154,6 +154,7 @@ function setupAutoUpdaterEvents(): void {
         mainWindow.webContents.send(IpcChannels.UPDATE_AVAILABLE, {
           version: info.version,
           releaseUrl,
+          downloaded: false,
         });
       }
     } catch (err) {
@@ -188,7 +189,12 @@ function setupAutoUpdaterEvents(): void {
 
       const mainWindow = getMainWindow();
       if (mainWindow) {
-        mainWindow.webContents.send(IpcChannels.UPDATE_AVAILABLE, info);
+        const releaseUrl = `https://github.com/nodetool-ai/nodetool/releases/tag/v${info.version}`;
+        mainWindow.webContents.send(IpcChannels.UPDATE_AVAILABLE, {
+          version: info.version,
+          releaseUrl,
+          downloaded: true,
+        });
       }
     } catch (err) {
       logMessage(
