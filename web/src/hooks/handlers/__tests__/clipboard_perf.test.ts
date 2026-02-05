@@ -6,8 +6,6 @@ import { useAssetUpload } from "../../../serverState/useAssetUpload";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import useAuth from "../../../stores/useAuth";
 import useMetadataStore from "../../../stores/MetadataStore";
-import * as MousePosition from "../../../utils/MousePosition";
-import * as Browser from "../../../utils/browser";
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
@@ -18,8 +16,12 @@ jest.mock("../../../serverState/useAssetUpload");
 jest.mock("../../../stores/AssetGridStore");
 jest.mock("../../../stores/useAuth");
 jest.mock("../../../stores/MetadataStore");
-jest.mock("../../../utils/MousePosition");
-jest.mock("../../../utils/browser");
+jest.mock("../../../utils/MousePosition", () => ({
+  getMousePosition: jest.fn()
+}));
+jest.mock("../../../utils/browser", () => ({
+  isTextInputActive: jest.fn()
+}));
 
 describe("useClipboardContentPaste Performance", () => {
   const mockScreenToFlowPosition = jest.fn();
@@ -66,19 +68,17 @@ describe("useClipboardContentPaste Performance", () => {
 
     const { result } = renderHook(() => useClipboardContentPaste());
 
-    const start = performance.now();
     await act(async () => {
       const content = await result.current.readClipboardContent();
       expect(content.type).toBe("image");
       expect(content.mimeType).toBe("image/jpeg");
     });
-    const end = performance.now();
 
     // Restore clipboard
     if (originalClipboard) {
        Object.defineProperty(navigator, "clipboard", { value: originalClipboard, writable: true });
     } else {
-       // @ts-ignore
+       // @ts-expect-error - clipboard is read-only but we are mocking it
        delete navigator.clipboard;
     }
   });
