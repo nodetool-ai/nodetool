@@ -485,6 +485,10 @@ const api = {
   updates: {
     /** Subscribe to update available event */
     onAvailable: createEventSubscription(IpcChannels.UPDATE_AVAILABLE),
+
+    /** Restart and install the downloaded update */
+    restartAndInstall: () =>
+      ipcRenderer.invoke(IpcChannels.INSTALL_UPDATE),
   },
 
   // ============================================================================

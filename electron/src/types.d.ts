@@ -147,6 +147,7 @@ declare global {
       // Updates
       updates: {
         onAvailable: (callback: (info: UpdateInfo) => void) => () => void;
+        restartAndInstall: () => Promise<void>;
       };
 
       // Menu events
@@ -632,6 +633,7 @@ export interface IpcResponse {
   [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: void;
   [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
+  [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
@@ -715,7 +717,9 @@ export interface UpdateProgressData {
 }
 
 export interface UpdateInfo {
+  version: string;
   releaseUrl: string;
+  downloaded?: boolean;
 }
 
 export interface InstallLocationData {

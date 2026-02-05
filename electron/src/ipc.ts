@@ -570,9 +570,11 @@ export function initializeIpcHandlers(): void {
     },
   );
 
-  //   createIpcMainHandler(IpcChannels.INSTALL_UPDATE, async () => {
-  //     await installUpdate();
-  //   });
+  createIpcMainHandler(IpcChannels.INSTALL_UPDATE, async () => {
+    const { autoUpdater } = await import("electron-updater");
+    logMessage("User requested to install update and restart");
+    autoUpdater.quitAndInstall();
+  });
 
   // Window control handlers
   ipcMain.on(IpcChannels.WINDOW_CLOSE, (event) => {
