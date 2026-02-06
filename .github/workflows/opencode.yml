@@ -86,7 +86,14 @@ jobs:
             - TypeScript strict: no `any`, use `===`, use `Array.isArray()`
             - React: selective Zustand subscriptions, useCallback for child props, MUI theme values
 
-            Review the issue comment and provide helpful assistance.
+            ## Your Task
+            Review the issue comment and provide helpful assistance. 
+            
+            **If you make code changes to fix an issue or implement a feature:**
+            1. Make the changes and test them thoroughly
+            2. Commit your changes with a clear message
+            3. Push your branch
+            4. **Create a Pull Request** with a clear description of what you did and why
 
       - name: Post-change verification
         if: always()

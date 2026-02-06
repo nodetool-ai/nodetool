@@ -47,6 +47,14 @@ jobs:
 
             Explore and prototype an experimental feature for NodeTool (React/TypeScript visual AI workflow builder).
 
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Choose an experimental feature or concept to explore
+            2. Build a working prototype
+            3. **Create a Pull Request with your prototype**
+            
+            Do NOT just research or analyze. You must build something tangible and submit a PR.
+
             ## Context
             - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - Packages: `/web`, `/electron`, `/mobile`
@@ -80,7 +88,10 @@ jobs:
             3. Mark experimental features clearly
             4. `make typecheck && make lint && make test` must all pass
 
-            ## Deliverable
-            Create a PR with:
-            - The prototype implementation
-            - Brief description of what was explored, findings, and next steps
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've built your prototype, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with:
+               - The prototype implementation
+               - Description of what was explored, key findings, and potential next steps
