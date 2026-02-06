@@ -10,7 +10,7 @@ interface DisplayValueProps {
 const DisplayValue: React.FC<DisplayValueProps> = ({
   value,
   isFloat,
-  decimalPlaces
+  decimalPlaces: _decimalPlaces
 }) => (
   <div className="value">
     {typeof value === "number"

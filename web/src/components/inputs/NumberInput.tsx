@@ -275,7 +275,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
         };
       });
     }
-  }, [props.value, inputIsFocused, state.isDragging]);
+  }, [props.inputType, props.value, inputIsFocused, state.isDragging]);
 
   useEffect(() => {
     if (!state.isDragging) {
