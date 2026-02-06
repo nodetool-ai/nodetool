@@ -93,9 +93,9 @@ StatItem.displayName = "StatItem";
 
 const ComplexityBadge: React.FC<{ complexity: number }> = memo(({ complexity }) => {
   const getComplexityLevel = (): { label: string; color: string } => {
-    if (complexity <= 5) return { label: "Simple", color: "success" };
-    if (complexity <= 15) return { label: "Moderate", color: "info" };
-    if (complexity <= 30) return { label: "Complex", color: "warning" };
+    if (complexity <= 5) {return { label: "Simple", color: "success" };}
+    if (complexity <= 15) {return { label: "Moderate", color: "info" };}
+    if (complexity <= 30) {return { label: "Complex", color: "warning" };}
     return { label: "Very Complex", color: "error" };
   };
 
