@@ -437,7 +437,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
 
   // Handle container resize
   useEffect(() => {
-    if (!containerRef.current) {
+    if (!pixiContainerRef.current) {
       return;
     }
 
@@ -448,9 +448,10 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
         height: containerHeight
       });
       pixiRendererRef.current?.resize(containerWidth, containerHeight);
+      hasCenteredRef.current = false;
     });
 
-    resizeObserver.observe(containerRef.current);
+    resizeObserver.observe(pixiContainerRef.current);
     return () => resizeObserver.disconnect();
   }, []);
 
@@ -487,6 +488,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
     const centerX = (stageSize.width - canvasData.width * zoom) / 2;
     const centerY = (stageSize.height - canvasData.height * zoom) / 2;
     setStagePosition({ x: centerX, y: centerY });
+    hasCenteredRef.current = true;
   }, [canvasData.height, canvasData.width, stageSize.height, stageSize.width, zoom]);
 
   const interactionHandlersRef = useRef<PixiInteractionHandlers>({});

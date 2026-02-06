@@ -366,15 +366,22 @@ export default class PixiRenderer implements CanvasRenderer {
     if (this.selection.size === 0) {
       return;
     }
-    const bounds = new Rectangle();
+    let bounds: Rectangle | null = null;
     this.selection.forEach((id) => {
       const node = this.elementNodes.get(id);
       if (!node) {
         return;
       }
       const localBounds = node.getBounds(this.root);
-      bounds.enlarge(localBounds);
+      if (!bounds) {
+        bounds = localBounds.clone();
+      } else {
+        bounds.enlarge(localBounds);
+      }
     });
+    if (!bounds) {
+      return;
+    }
     this.selectionOutline
       .rect(bounds.x, bounds.y, bounds.width, bounds.height)
       .stroke({ width: 1, color: 0x4f46e5, alpha: 1 });
