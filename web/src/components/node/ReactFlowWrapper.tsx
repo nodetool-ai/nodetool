@@ -74,16 +74,32 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 }) => {
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
-  const nodes = useNodes((state) => state.nodes);
-  const edges = useNodes((state) => state.edges);
-  const onEdgesChange = useNodes((state) => state.onEdgesChange);
-  const onEdgeUpdate = useNodes((state) => state.onEdgeUpdate);
-  const shouldFitToScreen = useNodes((state) => state.shouldFitToScreen);
-  const setShouldFitToScreen = useNodes((state) => state.setShouldFitToScreen);
-  const storedViewport = useNodes((state) => state.viewport);
-  const deleteEdge = useNodes((state) => state.deleteEdge);
-  const setEdgeSelectionState = useNodes(
-    (state) => state.setEdgeSelectionState
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const {
+    nodes,
+    edges,
+    onEdgesChange,
+    onEdgeUpdate,
+    shouldFitToScreen,
+    setShouldFitToScreen,
+    storedViewport,
+    deleteEdge,
+    setEdgeSelectionState
+  } = useNodes(
+    useMemo(
+      () => (state) => ({
+        nodes: state.nodes,
+        edges: state.edges,
+        onEdgesChange: state.onEdgesChange,
+        onEdgeUpdate: state.onEdgeUpdate,
+        shouldFitToScreen: state.shouldFitToScreen,
+        setShouldFitToScreen: state.setShouldFitToScreen,
+        storedViewport: state.viewport,
+        deleteEdge: state.deleteEdge,
+        setEdgeSelectionState: state.setEdgeSelectionState
+      }),
+      []
+    )
   );
 
   const [isVisible, setIsVisible] = useState(true);
@@ -91,7 +107,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   useEffect(() => {
     setIsVisible(!!storedViewport || nodes.length === 0);
-  }, [workflowId, storedViewport, nodes.length]);
+  }, [workflowId, storedViewport, nodes]);
 
   const reactFlowInstance = useReactFlow();
   const pendingNodeType = useNodePlacementStore(

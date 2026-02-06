@@ -69,23 +69,49 @@ const containerStyles = css({
  * currently active workflow and with help mode enabled by default.
  */
 const WorkflowAssistantChat: React.FC = () => {
-  const status = useGlobalChatStore((state) => state.status);
-  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
-  const progress = useGlobalChatStore((state) => state.progress);
-  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
-  const error = useGlobalChatStore((state) => state.error);
-  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
-  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
-  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
-  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
-  const threads = useGlobalChatStore((state) => state.threads);
-  const switchThread = useGlobalChatStore((state) => state.switchThread);
-  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
-  const messageCache = useGlobalChatStore((state) => state.messageCache);
-  const currentRunningToolCallId = useGlobalChatStore((state) => state.currentRunningToolCallId);
-  const currentToolMessage = useGlobalChatStore((state) => state.currentToolMessage);
-  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
-  const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
+  // Combine multiple GlobalChatStore subscriptions into a single selector to reduce re-renders
+  const {
+    status,
+    sendMessage,
+    progress,
+    statusMessage,
+    error,
+    stopGeneration,
+    getCurrentMessagesSync,
+    createNewThread,
+    currentThreadId,
+    threads,
+    switchThread,
+    deleteThread,
+    messageCache,
+    currentRunningToolCallId,
+    currentToolMessage,
+    selectedModel,
+    setSelectedModel
+  } = useGlobalChatStore(
+    useMemo(
+      () => (state) => ({
+        status: state.status,
+        sendMessage: state.sendMessage,
+        progress: state.progress,
+        statusMessage: state.statusMessage,
+        error: state.error,
+        stopGeneration: state.stopGeneration,
+        getCurrentMessagesSync: state.getCurrentMessagesSync,
+        createNewThread: state.createNewThread,
+        currentThreadId: state.currentThreadId,
+        threads: state.threads,
+        switchThread: state.switchThread,
+        deleteThread: state.deleteThread,
+        messageCache: state.messageCache,
+        currentRunningToolCallId: state.currentRunningToolCallId,
+        currentToolMessage: state.currentToolMessage,
+        selectedModel: state.selectedModel,
+        setSelectedModel: state.setSelectedModel
+      }),
+      []
+    )
+  );
 
   const {
     currentWorkflowId,
@@ -185,8 +211,8 @@ const WorkflowAssistantChat: React.FC = () => {
   // Chat mode toggle state (help mode vs workflow chat mode)
   const [isHelpMode, setIsHelpMode] = useState(true);
 
-  // Check if workflow has message input nodes
-  const hasMessageInput = (() => {
+  // Check if workflow has message input nodes - memoized to avoid recomputation
+  const hasMessageInput = useMemo(() => {
     if (!nodes || nodes.length === 0) {
       return false;
     }
@@ -198,7 +224,7 @@ const WorkflowAssistantChat: React.FC = () => {
         (nodeType === "MessageInput" || nodeType === "MessageListInput")
       );
     });
-  })();
+  }, [nodes]);
 
   const { models: approvedModels } = useLanguageModelsByProvider({
     allowedProviders: ["OpenAI", "MiniMax", "Anthropic", "Google", "Gemini"]
@@ -232,6 +258,17 @@ const WorkflowAssistantChat: React.FC = () => {
   const uiTools = useMemo(() => {
     return FrontendToolRegistry.getManifest().map((t) => t.name);
   }, []);
+
+  // Memoize graph conversion to avoid recomputing on every render
+  const graph = useMemo(() => {
+    if (!isHelpMode) {
+      return undefined;
+    }
+    return {
+      nodes: nodes.map(reactFlowNodeToGraphNode),
+      edges: edges.map(reactFlowEdgeToGraphEdge)
+    };
+  }, [isHelpMode, nodes, edges]);
 
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
@@ -640,14 +677,7 @@ const WorkflowAssistantChat: React.FC = () => {
         ]}
         runningToolCallId={currentRunningToolCallId}
         runningToolMessage={currentToolMessage}
-        graph={
-          isHelpMode
-            ? {
-                nodes: nodes.map(reactFlowNodeToGraphNode),
-                edges: edges.map(reactFlowEdgeToGraphEdge)
-              }
-            : undefined
-        }
+        graph={graph}
       />
     </div>
   );
