@@ -68,7 +68,7 @@ export const useFindInWorkflow = () => {
 
   const nodes = useNodes((state) => state.nodes);
   const { setCenter, fitView } = useReactFlow();
-  const metadataStore = useMetadataStore();
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getNodeDisplayName = useCallback(
@@ -78,13 +78,13 @@ export const useFindInWorkflow = () => {
         return title;
       }
       const nodeType = node.type ?? "";
-      const metadata = metadataStore.getMetadata(nodeType);
+      const metadata = getMetadata(nodeType);
       if (metadata?.title) {
         return metadata.title;
       }
       return nodeType.split(".").pop() || node.id;
     },
-    [metadataStore]
+    [getMetadata]
   );
 
   const searchNodes = useCallback(

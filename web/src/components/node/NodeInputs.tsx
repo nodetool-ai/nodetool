@@ -138,10 +138,13 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     []
   );
 
-  const tabableProperties = properties.filter((property) => {
-    const type = property.type;
-    return !type.optional && type.type !== "readonly";
-  });
+  const tabableProperties = useMemo(
+    () => properties.filter((property) => {
+      const type = property.type;
+      return !type.optional && type.type !== "readonly";
+    }),
+    [properties]
+  );
   const dynamicProperties: { [key: string]: Property } =
     data?.dynamic_properties || {};
 
