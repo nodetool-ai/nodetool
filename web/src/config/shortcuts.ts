@@ -198,6 +198,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Exit fullscreen mode",
     registerCombo: false
   },
+  {
+    title: "Add Comment",
+    slug: "addComment",
+    keyCombo: ["Control", "/"],
+    category: "editor",
+    description: "Add a comment node at the center of the viewport",
+    registerCombo: true
+  },
   // ---------- NODES -------------------------------------------------------
   {
     title: "Copy",

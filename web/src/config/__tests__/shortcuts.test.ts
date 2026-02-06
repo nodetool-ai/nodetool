@@ -1,6 +1,37 @@
 import { NODE_EDITOR_SHORTCUTS, Shortcut } from "../shortcuts";
 
 describe("NODE_EDITOR_SHORTCUTS", () => {
+  describe("addComment shortcut", () => {
+    const addCommentShortcut = NODE_EDITOR_SHORTCUTS.find(
+      (s: Shortcut) => s.slug === "addComment"
+    );
+
+    it("should exist", () => {
+      expect(addCommentShortcut).toBeDefined();
+    });
+
+    it("should have correct keyCombo for non-Mac", () => {
+      expect(addCommentShortcut?.keyCombo).toEqual(["Control", "/"]);
+    });
+
+    it("should have correct category", () => {
+      expect(addCommentShortcut?.category).toBe("editor");
+    });
+
+    it("should be registerable", () => {
+      expect(addCommentShortcut?.registerCombo).toBe(true);
+    });
+
+    it("should have a description", () => {
+      expect(addCommentShortcut?.description).toBeDefined();
+      expect(addCommentShortcut?.description?.length).toBeGreaterThan(0);
+    });
+
+    it("should have title", () => {
+      expect(addCommentShortcut?.title).toBe("Add Comment");
+    });
+  });
+
   describe("resetZoom shortcut", () => {
     const resetZoomShortcut = NODE_EDITOR_SHORTCUTS.find(
       (s: Shortcut) => s.slug === "resetZoom"

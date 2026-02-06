@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { COMMENT_NODE_METADATA } from "../utils/nodeUtils";
 
 /**
  * Hook that registers and manages all keyboard shortcuts for the node editor.
@@ -78,7 +79,9 @@ export const useNodeEditorShortcuts = (
     selectedNodes: state.getSelectedNodes(),
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
+    toggleBypassSelected: state.toggleBypassSelected,
+    createNode: state.createNode,
+    addNode: state.addNode
   }));
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
@@ -116,7 +119,7 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected, createNode, addNode } =
     nodesStore;
   const {
     saveExample,
@@ -145,6 +148,19 @@ export const useNodeEditorShortcuts = (
       surroundWithGroup({ selectedNodes });
     }
   }, [surroundWithGroup, selectedNodes]);
+
+  const handleAddComment = useCallback(() => {
+    // Get center of viewport for comment placement
+    const { x, y, zoom } = reactFlow.getViewport();
+    const centerX = (window.innerWidth / 2 - x) / zoom;
+    const centerY = (window.innerHeight / 2 - y) / zoom;
+
+    const newNode = createNode(COMMENT_NODE_METADATA, { x: centerX, y: centerY });
+    newNode.width = 150;
+    newNode.height = 100;
+    newNode.style = { width: 150, height: 100 };
+    addNode(newNode);
+  }, [createNode, addNode, reactFlow]);
 
   const handleBypassSelected = useCallback(() => {
     if (selectedNodes.length > 0) {
@@ -471,6 +487,7 @@ export const useNodeEditorShortcuts = (
       },
       openNodeMenu: { callback: handleOpenNodeMenu },
       groupSelected: { callback: handleGroup },
+      addComment: { callback: handleAddComment },
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
@@ -583,6 +600,7 @@ export const useNodeEditorShortcuts = (
     duplicateNodesVertical,
     handleOpenNodeMenu,
     handleGroup,
+    handleAddComment,
     handleInspectorToggle,
     handleWorkflowSettingsToggle,
     handleShowKeyboardShortcuts,
