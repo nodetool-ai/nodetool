@@ -115,8 +115,9 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
     // Otherwise use the original namespace-based grouping
     const seenServices = new Set<string>();
+    const grouped = groupNodes(nodes);
 
-    return Object.entries(groupNodes(nodes)).flatMap(
+    return Object.entries(grouped).flatMap(
       ([namespace, nodesInNamespace], namespaceIndex) => {
         const service = getServiceFromNamespace(namespace);
         const isFirstNamespaceForService = !seenServices.has(service);

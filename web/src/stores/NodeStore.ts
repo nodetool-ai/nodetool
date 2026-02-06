@@ -134,6 +134,7 @@ export interface NodeStoreState {
   getOutputEdges: (nodeId: string) => Edge[];
   getSelection: () => NodeSelection;
   getSelectedNodes: () => Node<NodeData>[];
+  getSelectedNodeCount: () => number;
   setSelectedNodes: (nodes: Node<NodeData>[]) => void;
   selectNodesByType: (nodeType: string) => void;
   getSelectedNodeIds: () => string[];
@@ -319,6 +320,8 @@ export const createNodeStore = (
           },
           getSelectedNodes: (): Node<NodeData>[] =>
             get().nodes.filter((node) => node.selected),
+          getSelectedNodeCount: (): number =>
+            get().nodes.filter((node) => node.selected).length,
           setSelectedNodes: (nodes: Node<NodeData>[]): void => {
             set({
               nodes: get().nodes.map((node) => ({
