@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import type { MenuEventData } from "../window";
 
 /**
  * Hook that registers and manages all keyboard shortcuts for the node editor.
@@ -298,7 +299,7 @@ export const useNodeEditorShortcuts = (
   }, [onShowShortcuts]);
 
   const handleMenuEvent = useCallback(
-    (data: any) => {
+    (data: MenuEventData) => {
       if (!active) {
         return;
       }
@@ -367,7 +368,9 @@ export const useNodeEditorShortcuts = (
           handleGroup();
           break;
         case "switchToTab":
-          handleSwitchToTab(data.index);
+          if (data.index !== undefined) {
+            handleSwitchToTab(data.index);
+          }
           break;
         default:
           break;
