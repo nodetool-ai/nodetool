@@ -1,5 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
@@ -155,7 +161,6 @@ const MiniAppPage: React.FC = () => {
   const isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
-
   // const notificationsCount = notifications?.length ?? 0;
   // const showAlerts = submitError || notificationsCount > 0;
 
@@ -258,7 +263,10 @@ const MiniAppPage: React.FC = () => {
                     {workflow.name}
                   </Typography>
                   {workflow.description && (
-                    <Typography variant="body2" className="workflow-description">
+                    <Typography
+                      variant="body2"
+                      className="workflow-description"
+                    >
                       {workflow.description}
                     </Typography>
                   )}
@@ -270,7 +278,11 @@ const MiniAppPage: React.FC = () => {
                     <Box className="status-bar-progress" sx={{ width: "100%" }}>
                       <LinearProgress
                         variant="determinate"
-                        value={progress.total > 0 ? (progress.current * 100.0) / progress.total : 0}
+                        value={
+                          progress.total > 0
+                            ? (progress.current * 100.0) / progress.total
+                            : 0
+                        }
                         sx={{ height: 6, borderRadius: 3 }}
                       />
                     </Box>
@@ -309,9 +321,7 @@ const MiniAppPage: React.FC = () => {
                         <Tooltip
                           enterDelay={TOOLTIP_ENTER_DELAY * 2}
                           title={
-                            isSubmitDisabled
-                              ? "Workflow is running..."
-                              : ""
+                            isSubmitDisabled ? "Workflow is running..." : ""
                           }
                         >
                           <span style={{ width: "100%" }}>
@@ -332,7 +342,12 @@ const MiniAppPage: React.FC = () => {
                         <Typography
                           variant="caption"
                           color="text.secondary"
-                          sx={{ display: "block", textAlign: "center", mt: 1, width: "100%" }}
+                          sx={{
+                            display: "block",
+                            textAlign: "center",
+                            mt: 1,
+                            width: "100%"
+                          }}
                         >
                           {formatDuration(elapsedTime)}
                         </Typography>
@@ -341,7 +356,12 @@ const MiniAppPage: React.FC = () => {
                         <Typography
                           variant="caption"
                           color="text.secondary"
-                          sx={{ display: "block", textAlign: "center", mt: 1, width: "100%" }}
+                          sx={{
+                            display: "block",
+                            textAlign: "center",
+                            mt: 1,
+                            width: "100%"
+                          }}
                         >
                           Completed in {formatDuration(lastRunDuration)}
                         </Typography>
