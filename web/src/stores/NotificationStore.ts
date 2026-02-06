@@ -26,7 +26,12 @@ export interface Notification {
   dismissable?: boolean;
   alert?: boolean;
   action?: NotificationAction;
+  /** Optional key for deduplication. If not provided, type + content is used. */
+  dedupeKey?: string;
 }
+
+/** Time window in milliseconds within which duplicate notifications are suppressed. */
+const DEDUPE_WINDOW_MS = 5000;
 
 interface NotificationStore {
   notifications: Notification[];
@@ -47,11 +52,29 @@ export function verbosityCheck(
   return acceptedTypes.includes(notificationType);
 }
 
-export const useNotificationStore = create<NotificationStore>()((set) => ({
+export const useNotificationStore = create<NotificationStore>()((set, get) => ({
   notifications: [],
   lastDisplayedTimestamp: null,
 
   addNotification: (notification) => {
+    // Deduplicate: skip if an identical notification was added recently
+    const now = new Date();
+    const key =
+      notification.dedupeKey ?? `${notification.type}:${notification.content}`;
+    const isDuplicate = get().notifications.some((existing) => {
+      const existingKey =
+        existing.dedupeKey ?? `${existing.type}:${existing.content}`;
+      return (
+        existingKey === key &&
+        now.getTime() - existing.timestamp.getTime() < DEDUPE_WINDOW_MS
+      );
+    });
+
+    if (isDuplicate) {
+      log.debug("NOTIFICATION suppressed (duplicate):", notification);
+      return;
+    }
+
     if (notification.type === "warning") {
       log.warn("NOTIFICATION:", notification);
     } else if (notification.type === "error") {
@@ -63,7 +86,7 @@ export const useNotificationStore = create<NotificationStore>()((set) => ({
     set((state) => ({
       notifications: [
         ...state.notifications,
-        { ...notification, id: uuidv4(), timestamp: new Date() }
+        { ...notification, id: uuidv4(), timestamp: now }
       ]
     }));
   },
