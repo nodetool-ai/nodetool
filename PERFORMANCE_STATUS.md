@@ -151,10 +151,10 @@ grep -r "onClick={() =>" --include="*.tsx" web/src/components/node
 ## Files Modified
 
 ### Documentation Files Created
-- `.github/opencode-memory/insights/performance/audit-complete-20260117.md`
+- `.memory/insights/performance/audit-complete-20260117.md`
 
 ### Memory Files Updated
-- `.github/opencode-memory/project-context.md` (performance entry exists)
+- `.memory/project-context.md` (performance entry exists)
 
 ---
 
