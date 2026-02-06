@@ -31,10 +31,10 @@ jobs:
           cd web
           npm ci
 
-      - name: Install electron dependencies
-        run: |
-          cd electron
-          npm ci
+      # - name: Install electron dependencies
+      #   run: |
+      #     cd electron
+      #     npm ci
 
       - name: Analyze bundle size
         run: |
@@ -44,9 +44,9 @@ jobs:
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ZAI_API_KEY }}
           ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
         with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
           prompt: |
             # NodeTool Performance Monitoring
 
