@@ -143,7 +143,7 @@ const JobItem = ({ job }: { job: Job }) => {
   const handleStop = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (cancelling) return;
+      if (cancelling) {return;}
       setCancelling(true);
 
       try {

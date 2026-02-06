@@ -4,6 +4,7 @@ import { useEdges } from "@xyflow/react";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import useMetadataStore from "../stores/MetadataStore";
+import { NodeMetadata } from "../stores/ApiTypes";
 import useResultsStore from "../stores/ResultsStore";
 import useErrorStore from "../stores/ErrorStore";
 
@@ -51,14 +52,14 @@ interface UseSelectedNodesInfoReturn {
  */
 const getNodeDisplayName = (
   node: Node<NodeData>,
-  metadataStore: ReturnType<typeof useMetadataStore.getState>
+  getMetadata: (nodeType: string) => NodeMetadata | undefined
 ): string => {
   const title = node.data?.properties?.name;
   if (title && typeof title === "string" && title.trim()) {
     return title;
   }
   const nodeType = node.type ?? "";
-  const metadata = metadataStore.getMetadata(nodeType);
+  const metadata = getMetadata(nodeType);
   if (metadata?.title) {
     return metadata.title;
   }
@@ -68,7 +69,8 @@ const getNodeDisplayName = (
 export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const edges = useEdges();
-  const metadataStore = useMetadataStore();
+  // Subscribe to getMetadata method only - this is a stable reference
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const results = useResultsStore((state) => state.results);
   const errors = useErrorStore((state) => state.errors);
   const currentWorkflowId = useNodes((state) => state.workflow?.id ?? "");
@@ -76,7 +78,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
   const nodesInfo = useMemo(() => {
     return selectedNodes.map((node) => {
       const nodeType = node.type ?? "";
-      const metadata = metadataStore.getMetadata(nodeType);
+      const metadata = getMetadata(nodeType);
       const nodeEdges = edges.filter(
         (edge: { source: string; target: string }) =>
           edge.source === node.id || edge.target === node.id
@@ -107,7 +109,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
 
       return {
         id: node.id,
-        label: getNodeDisplayName(node, metadataStore),
+        label: getNodeDisplayName(node, getMetadata),
         type: node.type ?? "unknown",
         namespace: metadata?.namespace ?? node.type ?? "",
         description: metadata?.description,
@@ -124,7 +126,7 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
         lastExecutedAt: typeof nodeResult === "object" && nodeResult !== null ? (nodeResult as { timestamp?: string }).timestamp : undefined
       };
     });
-  }, [selectedNodes, edges, metadataStore, results, errors, currentWorkflowId]);
+  }, [selectedNodes, edges, getMetadata, results, errors, currentWorkflowId]);
 
   return {
     nodesInfo,
