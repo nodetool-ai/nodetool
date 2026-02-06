@@ -1,0 +1,70 @@
+name: Code Quality
+
+on:
+  schedule:
+    - cron: "30 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          prompt: |
+            # Code Quality Improvement
+
+            Scan for and fix code quality issues in NodeTool (React/TypeScript visual AI workflow builder).
+
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - Packages: `/web`, `/electron`, `/mobile`
+            - Memory: `.memory/` contains project context and known issues
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing branches
+            2. Read `.memory/project-context.md` for recent changes
+
+            ## What to Look For
+            - TypeScript `any` types that should be explicit
+            - Unused imports, dead code, commented-out code blocks
+            - React anti-patterns: full store subscriptions, missing useCallback/useMemo
+            - Hardcoded colors/spacing instead of MUI theme values
+            - Missing ARIA labels, poor keyboard navigation
+            - Security: unsanitized input, dangerouslySetInnerHTML, eval()
+
+            ## Guidelines
+            - One issue type per PR — don't mix type fixes with test fixes
+            - High impact first: bugs > security > performance > style
+            - Don't refactor working code without clear benefit
+            - Follow existing patterns in the codebase
+            - Run `make typecheck && make lint && make test` — all must pass
+
+            ## Deliverable
+            Create a PR with focused fixes and clear description of what was wrong and how you fixed it.

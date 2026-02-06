@@ -1,0 +1,75 @@
+name: Performance Monitor
+
+on:
+  schedule:
+    - cron: "20 * * * *"
+  workflow_dispatch:
+
+jobs:
+  performance-monitor:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: cd web && npm ci
+
+      - name: Analyze bundle size
+        run: |
+          cd web
+          npm run build
+          npx vite-bundle-visualizer --open=false --json=bundle-stats.json || true
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          prompt: |
+            # Performance Optimization
+
+            Identify and fix performance bottlenecks in NodeTool (React/TypeScript visual AI workflow builder).
+
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - Packages: `/web`, `/electron`, `/mobile`
+            - Performance-critical: node editor (100+ nodes), asset management (1000+ files)
+            - Memory: `.memory/` contains project context and known issues
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing performance branches
+            2. Read `.memory/project-context.md` and `.memory/features.md`
+
+            ## Audit Areas
+
+            **React re-renders**: Find components subscribing to entire Zustand stores (`useStore()` without selectors), missing `React.memo`, `useCallback`, `useMemo`.
+
+            **List rendering**: Large lists without virtualization (use `@tanstack/react-virtual`).
+
+            **Bundle size**: Check `web/bundle-stats.json` for large/duplicate/unused dependencies. Use code splitting and lazy loading.
+
+            **Memory leaks**: `useEffect` without cleanup (event listeners, timers, subscriptions).
+
+            **Heavy computations**: Filter/map/sort/JSON.parse in render paths — memoize them.
+
+            ## Fix Guidelines
+            - Measure before optimizing — focus on real bottlenecks
+            - One focused PR per optimization area
+            - Run `make typecheck && make lint && make test` before submitting
+            - Create a PR with clear description of what was slow and how you fixed it
