@@ -87,7 +87,7 @@ const Toolbar = memo(function Toolbar({
   dragging?: boolean;
 }) {
   const { activeSelect } = useSelect();
-  const selectedCount = useNodes((state) => state.getSelectedNodes().length);
+  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
 
   // Delay showing toolbar to avoid flash when clicking to drag
   const delayedSelected = useDelayedVisibility({
