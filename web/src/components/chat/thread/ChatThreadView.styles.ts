@@ -283,7 +283,8 @@ export const createStyles = (theme: Theme) => ({
 
     ".chat-message-list-item": {
       margin: "0",
-      padding: "0"
+      padding: "0",
+      listStyle: "none"
     },
 
     // Execution event styles
