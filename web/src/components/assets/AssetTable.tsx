@@ -33,8 +33,8 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
   }, [getAsset, assetIds]);
 
   const handleRemoveAsset = useCallback(
-    (asset: Asset) => {
-      const newAssets = assets.filter((a) => a.id !== asset.id);
+    (assetId: string) => {
+      const newAssets = assets.filter((a) => a.id !== assetId);
       setAssets(newAssets);
       onChange(newAssets.map((a) => a.id));
     },
@@ -42,8 +42,8 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
   );
 
   const handleAssetRemoveClick = useCallback(
-    (asset: Asset) => {
-      handleRemoveAsset(asset);
+    (assetId: string) => {
+      handleRemoveAsset(assetId);
     },
     [handleRemoveAsset]
   );
@@ -76,7 +76,13 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
               <TableCell>
                 <Button
                   variant="outlined"
-                  onClick={() => handleAssetRemoveClick(asset)}
+                  data-asset-id={asset.id}
+                  onClick={(e) => {
+                    const assetId = e.currentTarget.dataset.assetId;
+                    if (assetId) {
+                      handleAssetRemoveClick(assetId);
+                    }
+                  }}
                 >
                   Remove
                 </Button>
