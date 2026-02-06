@@ -52,6 +52,14 @@ jobs:
 
             Add tests for untested or undertested code in NodeTool (React/TypeScript visual AI workflow builder).
 
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find code with missing or insufficient test coverage
+            2. Write tests for it
+            3. **Create a Pull Request with your new tests**
+            
+            Do NOT just analyze or report gaps. You must write tests and submit a PR.
+
             ## Context
             - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - Testing: Jest 29 + React Testing Library 16 + Playwright (E2E)
@@ -81,5 +89,8 @@ jobs:
             - Don't test trivial code (simple getters, TypeScript types, constants)
             - Don't test third-party library internals
 
-            ## Deliverable
-            Create a PR with new tests, noting coverage before/after.
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've written your tests, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** noting coverage improvements (before/after percentages)
