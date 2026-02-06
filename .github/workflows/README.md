@@ -2,6 +2,18 @@
 
 Automated AI agent workflows for code quality, features, and maintenance. All use Claude Sonnet via `anthropics/claude-code-action@v1`.
 
+## Enhanced Capabilities
+
+All Claude agents now have **full power** with these capabilities:
+
+- **Bash Execution**: Run any command (npm, make, git, pytest, etc.)
+- **Web Browsing**: Fetch documentation and research online via WebFetch
+- **Pull Request Creation**: Create PRs directly with their changes
+- **CI/CD Integration**: Access workflow runs, job logs, and CI status via `actions: read` permission
+- **File Operations**: Read, edit, and replace files as needed
+
+This enables Claude to autonomously develop features, run tests, debug CI failures, research solutions, and create PRs.
+
 ## Workflows
 
 | Workflow | Schedule | Purpose |
