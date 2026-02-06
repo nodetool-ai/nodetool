@@ -82,9 +82,12 @@ describe("useSelectedNodesInfo", () => {
 
     mockUseEdges.mockReturnValue([]);
 
-    mockUseMetadataStore.mockReturnValue({
-      getMetadata: () => undefined
-    } as any);
+    mockUseMetadataStore.mockImplementation((selector: any) => {
+      const state = {
+        getMetadata: () => undefined
+      };
+      return selector(state);
+    });
 
     mockUseResultsStore.mockImplementation((selector: any) => {
       return selector({ results: {} });
@@ -118,20 +121,23 @@ describe("useSelectedNodesInfo", () => {
         return selector(state);
       });
 
-      mockUseMetadataStore.mockReturnValue({
-        getMetadata: (nodeType: string) => {
-          if (nodeType === "test.TextNode") {
-            return {
-              title: "Text Node",
-              namespace: "test",
-              description: "A text processing node",
-              properties: [{ name: "input" }],
-              outputs: [{ name: "output" }]
-            };
+      mockUseMetadataStore.mockImplementation((selector: any) => {
+        const state = {
+          getMetadata: (nodeType: string) => {
+            if (nodeType === "test.TextNode") {
+              return {
+                title: "Text Node",
+                namespace: "test",
+                description: "A text processing node",
+                properties: [{ name: "input" }],
+                outputs: [{ name: "output" }]
+              };
+            }
+            return undefined;
           }
-          return undefined;
-        }
-      } as any);
+        };
+        return selector(state);
+      });
 
       const { result } = renderHook(() => useSelectedNodesInfo());
 
@@ -230,14 +236,17 @@ describe("useSelectedNodesInfo", () => {
         { id: "e3", source: "node-2", target: "node-3", sourceHandle: "out1", targetHandle: "in" }
       ]);
 
-      mockUseMetadataStore.mockReturnValue({
-        getMetadata: () => ({
-          title: "Node",
-          namespace: "test",
-          properties: [{ name: "in1" }, { name: "in2" }, { name: "in3" }],
-          outputs: [{ name: "out1" }, { name: "out2" }]
-        })
-      } as any);
+      mockUseMetadataStore.mockImplementation((selector: any) => {
+        const state = {
+          getMetadata: () => ({
+            title: "Node",
+            namespace: "test",
+            properties: [{ name: "in1" }, { name: "in2" }, { name: "in3" }],
+            outputs: [{ name: "out1" }, { name: "out2" }]
+          })
+        };
+        return selector(state);
+      });
 
       const { result } = renderHook(() => useSelectedNodesInfo());
 
