@@ -51,6 +51,14 @@ jobs:
 
             Identify and fix performance bottlenecks in NodeTool (React/TypeScript visual AI workflow builder).
 
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find performance bottlenecks
+            2. Fix them
+            3. **Create a Pull Request with your optimizations**
+            
+            Do NOT just analyze or report findings. You must make optimizations and submit a PR.
+
             ## Context
             - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - Packages: `/web`, `/electron`, `/mobile`
@@ -77,4 +85,9 @@ jobs:
             - Measure before optimizing — focus on real bottlenecks
             - One focused PR per optimization area
             - Run `make typecheck && make lint && make test` before submitting
-            - Create a PR with clear description of what was slow and how you fixed it
+
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've made your performance improvements, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with clear description of what was slow and how you fixed it
