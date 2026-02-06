@@ -116,21 +116,27 @@ export const useFileStore = create<FileStore>((set, get) => ({
           fileItems.push(fileToTreeItem(file));
         }
 
-        const dirItems: TreeViewItem[] = [];
+        const dirsToProcess: FileInfo[] = [];
         for (const dir of directories) {
           if (budget.remaining <= 0) {break;}
           budget.remaining -= 1;
-          const children = await buildTreeRecursively(
-            dir.path,
-            depth + 1,
-            budget,
-            visited
-          );
-          dirItems.push({
-            ...fileToTreeItem(dir),
-            children
-          });
+          dirsToProcess.push(dir);
         }
+
+        const dirItems: TreeViewItem[] = await Promise.all(
+          dirsToProcess.map(async (dir) => {
+            const children = await buildTreeRecursively(
+              dir.path,
+              depth + 1,
+              budget,
+              visited
+            );
+            return {
+              ...fileToTreeItem(dir),
+              children
+            };
+          })
+        );
 
         // Combine and return all items
         return [...dirItems, ...fileItems];

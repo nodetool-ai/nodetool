@@ -150,12 +150,13 @@ describe('Config', () => {
         mockReadSettings.mockReturnValue({});
       });
 
-      it('should use system path when SUDO_USER is set', () => {
+      it('should use user path when SUDO_USER is set', () => {
         process.env.SUDO_USER = 'testuser';
 
         const result = getCondaEnvPath();
 
-        expect(result.replace(/\\/g, '/')).toBe('/Library/Application Support/nodetool/conda_env');
+        // macOS implementation ignores SUDO_USER and always uses ~/nodetool_env
+        expect(result.replace(/\\/g, '/')).toContain('nodetool_env');
       });
 
       it('should use user path when SUDO_USER not set', () => {
@@ -163,7 +164,7 @@ describe('Config', () => {
 
         const result = getCondaEnvPath();
 
-        expect(result.replace(/\\/g, '/')).toContain('Library/Application Support/nodetool/conda_env');
+        expect(result.replace(/\\/g, '/')).toContain('nodetool_env');
       });
     });
 

@@ -11,7 +11,7 @@ These scripts are typically executed manually by maintainers.
 
 ## compact-memory.py
 
-Compacts the OpenCode memory files in `.github/opencode-memory/` to keep them manageable and prevent context window bloating.
+Compacts the memory files in `.memory/` to keep them manageable and prevent context window bloating.
 
 **Usage:**
 

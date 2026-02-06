@@ -53,7 +53,7 @@ import {
 } from "./packageManager";
 import { checkAndUpdateCondaPackages } from "./condaPackageChecker";
 import { IpcChannels } from "./types.d";
-import { readSettings, updateSetting } from "./settings";
+import { readSettings, updateSetting, readSettingsAsync } from "./settings";
 
 /**
  * Global application state flags and objects
@@ -378,6 +378,13 @@ async function checkMediaPermissions(): Promise<void> {
 let isInitialized = false;
 
 app.on("ready", async () => {
+  // Warm up settings cache asynchronously
+  try {
+    await readSettingsAsync();
+  } catch (error) {
+    logMessage(`Failed to warm up settings cache: ${error}`, "warn");
+  }
+
   await initializeIpcHandlers();
 
   // Skip media permissions check in test mode

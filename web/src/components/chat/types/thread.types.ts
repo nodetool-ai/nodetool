@@ -18,9 +18,9 @@ export interface ThreadItemProps {
   threadId: string;
   thread: ThreadInfo;
   isSelected: boolean;
-  onSelect: () => void;
-  onDelete: () => void;
-  getPreview: () => string;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+  previewText: string;
   /**
    * Controls whether the thread's relative timestamp should be displayed.
    * When omitted, the timestamp is shown by default.

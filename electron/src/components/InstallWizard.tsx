@@ -3,7 +3,6 @@ import logo from "../assets/logo.png";
 
 const moduleMapping = {
   apple: "nodetool-ai/nodetool-apple",
-  audio: "nodetool-ai/nodetool-lib-audio",
   // comfy: "nodetool-ai/nodetool-comfy",
   elevenlabs: "nodetool-ai/nodetool-elevenlabs",
   whispercpp: "nodetool-ai/nodetool-whispercpp",
@@ -50,10 +49,6 @@ const packageMeta: Record<
     title: "🔄 Replicate",
     description: "Access hundreds of AI models hosted on Replicate",
   },
-  audio: {
-    title: "🔊 Audio Processing",
-    description: "Apply audio effects and analyze audio",
-  },
   apple: {
     title: "🍎 Apple Integration",
     description: "Automation for Apple Notes, Calendar, and more",
@@ -74,11 +69,6 @@ const baseGroups: Array<{ key: string; title: string; items: ModuleKey[] }> = [
     key: "services",
     title: "AI Services",
     items: ["elevenlabs", "fal", "replicate"],
-  },
-  {
-    key: "utilities",
-    title: "Utilities",
-    items: ["audio"],
   },
   { key: "integrations", title: "Integrations", items: ["apple"] },
 ];

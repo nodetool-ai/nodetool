@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { Box, useTheme } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import { createStyles } from "./ThreadList.styles";
@@ -37,9 +37,9 @@ const ThreadList: React.FC<ThreadListProps> = ({
           threadId={singleId}
           thread={singleThread}
           isSelected={singleId === currentThreadId}
-          onSelect={() => onSelectThread(singleId)}
-          onDelete={() => onDeleteThread(singleId)}
-          getPreview={() => getThreadPreview(singleId)}
+          onSelect={onSelectThread}
+          onDelete={onDeleteThread}
+          previewText={getThreadPreview(singleId)}
           showDate={true}
         />
       );
@@ -70,9 +70,9 @@ const ThreadList: React.FC<ThreadListProps> = ({
             threadId={threadId}
             thread={thread}
             isSelected={threadId === currentThreadId}
-            onSelect={() => onSelectThread(threadId)}
-            onDelete={() => onDeleteThread(threadId)}
-            getPreview={() => getThreadPreview(threadId)}
+            onSelect={onSelectThread}
+            onDelete={onDeleteThread}
+            previewText={getThreadPreview(threadId)}
             showDate={false}
           />
         );
@@ -93,4 +93,4 @@ const ThreadList: React.FC<ThreadListProps> = ({
   );
 };
 
-export default ThreadList;
+export default memo(ThreadList);

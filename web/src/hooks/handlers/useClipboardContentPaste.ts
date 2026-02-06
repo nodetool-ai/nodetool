@@ -93,13 +93,17 @@ export const useClipboardContentPaste = () => {
       // Fallback to web Clipboard API
       if (navigator.clipboard && navigator.clipboard.read) {
         const items = await navigator.clipboard.read();
+        const promises: Promise<Blob>[] = [];
         for (const item of items) {
           for (const type of item.types) {
             if (type.startsWith("image/")) {
-              const blob = await item.getType(type);
-              return blob;
+              promises.push(item.getType(type));
             }
           }
+        }
+
+        if (promises.length > 0) {
+          return await Promise.any(promises);
         }
       }
     } catch (error) {

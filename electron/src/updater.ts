@@ -1,4 +1,4 @@
-import { app } from "electron";
+import { app, Notification } from "electron";
 import { autoUpdater, ProgressInfo, UpdateInfo } from "electron-updater";
 import log from "electron-log";
 import path from "path";
@@ -6,6 +6,7 @@ import fs from "fs";
 import { logMessage } from "./logger";
 import { getMainWindow } from "./state";
 import { IpcChannels } from "./types.d";
+import { readSettings } from "./settings";
 
 let updateAvailable: boolean = false;
 
@@ -81,12 +82,37 @@ function isMissingAppUpdateConfigError(err: Error): boolean {
 }
 
 /**
+ * Checks if auto-updates are enabled in settings.
+ * Auto-updates are opt-in by default (disabled unless explicitly enabled).
+ * @returns true if auto-updates are enabled, false otherwise
+ */
+function isAutoUpdatesEnabled(): boolean {
+  try {
+    const settings = readSettings();
+    // Auto-updates are opt-in, so default to false if not set
+    return settings.autoUpdatesEnabled === true;
+  } catch (err) {
+    logMessage(
+      `Error reading auto-updates setting: ${(err as Error).message}`,
+      "warn"
+    );
+    return false;
+  }
+}
+
+/**
  * Sets up the auto-updater
  */
 function setupAutoUpdater(): void {
   // Skip auto-update in development mode
   if (!app.isPackaged) {
     logMessage("Skipping auto-updater in development mode");
+    return;
+  }
+
+  // Check if auto-updates are enabled (opt-in)
+  if (!isAutoUpdatesEnabled()) {
+    logMessage("Auto-updates disabled by user preference (opt-in required)");
     return;
   }
 
@@ -154,7 +180,30 @@ function setupAutoUpdaterEvents(): void {
         mainWindow.webContents.send(IpcChannels.UPDATE_AVAILABLE, {
           version: info.version,
           releaseUrl,
+          downloaded: false,
         });
+      }
+
+      // Show native notification
+      // Note: When auto-updates are disabled, electron-updater doesn't auto-download,
+      // so we direct user to open the app to download manually
+      if (Notification.isSupported()) {
+        const autoUpdateEnabled = isAutoUpdatesEnabled();
+        const notification = new Notification({
+          title: "NodeTool Update Available",
+          body: autoUpdateEnabled
+            ? `Version ${info.version} is available. Downloading in the background...`
+            : `Version ${info.version} is available. Click to open NodeTool.`,
+        });
+        notification.on("click", () => {
+          const win = getMainWindow();
+          if (win) {
+            if (win.isMinimized()) win.restore();
+            win.show();
+            win.focus();
+          }
+        });
+        notification.show();
       }
     } catch (err) {
       logMessage(
@@ -188,7 +237,29 @@ function setupAutoUpdaterEvents(): void {
 
       const mainWindow = getMainWindow();
       if (mainWindow) {
-        mainWindow.webContents.send(IpcChannels.UPDATE_AVAILABLE, info);
+        const releaseUrl = `https://github.com/nodetool-ai/nodetool/releases/tag/v${info.version}`;
+        mainWindow.webContents.send(IpcChannels.UPDATE_AVAILABLE, {
+          version: info.version,
+          releaseUrl,
+          downloaded: true,
+        });
+      }
+
+      // Show native notification
+      if (Notification.isSupported()) {
+        const notification = new Notification({
+          title: "NodeTool Update Ready",
+          body: `Version ${info.version} has been downloaded. Click to restart and install.`,
+        });
+        notification.on("click", () => {
+          const win = getMainWindow();
+          if (win) {
+            if (win.isMinimized()) win.restore();
+            win.show();
+            win.focus();
+          }
+        });
+        notification.show();
       }
     } catch (err) {
       logMessage(
