@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -25,6 +25,7 @@ import { useJobAssets } from "../../../serverState/useJobAssets";
 import { client } from "../../../stores/ApiClient";
 import { useQueryClient } from "@tanstack/react-query";
 import AssetGridContent from "../../assets/AssetGridContent";
+import isEqual from "lodash/isEqual";
 
 /**
  * Format a duration in milliseconds to a human-readable string
@@ -309,4 +310,9 @@ const JobItem = ({ job }: { job: Job }) => {
   );
 };
 
-export default JobItem;
+const MemoizedJobItem = memo(JobItem, (prevProps, nextProps) => {
+  // Custom comparison for Job props - only re-render if job data changes
+  return isEqual(prevProps.job, nextProps.job);
+});
+
+export default MemoizedJobItem;
