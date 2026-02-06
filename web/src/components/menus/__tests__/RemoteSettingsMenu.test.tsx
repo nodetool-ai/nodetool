@@ -89,7 +89,23 @@ describe("RemoteSettingsMenu", () => {
     jest.clearAllMocks();
     queryClient.clear();
 
-    mockUseRemoteSettingsStore.mockReturnValue(mockRemoteSettingsStore as any);
+    // Mock useRemoteSettingsStore to handle both selector and non-selector calls
+    mockUseRemoteSettingsStore.mockImplementation((selector?) => {
+      if (typeof selector === "function") {
+        // Handle selector calls
+        const storeState = {
+          ...mockRemoteSettingsStore,
+          settings: [],
+          settingsByGroup: new Map(),
+          isLoading: false,
+          error: null
+        };
+        return selector(storeState);
+      }
+      // Handle non-selector calls (backward compatibility)
+      return mockRemoteSettingsStore as any;
+    });
+
     mockUseNotificationStore.mockReturnValue(mockNotificationStore as any);
 
     mockRemoteSettingsStore.fetchSettings.mockResolvedValue([]);

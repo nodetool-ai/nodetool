@@ -119,16 +119,14 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
     swatchId: string;
   } | null>(null);
 
-  const {
-    recentColors,
-    swatches,
-    palettes,
-    addSwatch,
-    removeSwatch,
-    clearRecentColors,
-    addPalette,
-    removePalette
-  } = useColorPickerStore();
+  const recentColors = useColorPickerStore((state) => state.recentColors);
+  const swatches = useColorPickerStore((state) => state.swatches);
+  const palettes = useColorPickerStore((state) => state.palettes);
+  const addSwatch = useColorPickerStore((state) => state.addSwatch);
+  const removeSwatch = useColorPickerStore((state) => state.removeSwatch);
+  const clearRecentColors = useColorPickerStore((state) => state.clearRecentColors);
+  const addPalette = useColorPickerStore((state) => state.addPalette);
+  const removePalette = useColorPickerStore((state) => state.removePalette);
 
   const handleAddSwatch = useCallback(() => {
     addSwatch(currentColor);

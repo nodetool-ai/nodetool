@@ -123,8 +123,9 @@ type VisibleRange = {
 const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
-  const { selectedModelType, modelSearchTerm, filterStatus } =
-    useModelManagerStore();
+  const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
+  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
+  const filterStatus = useModelManagerStore((state) => state.filterStatus);
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
   const cachePending = useHfCacheStatusStore((state) => state.pending);
