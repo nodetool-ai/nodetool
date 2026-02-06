@@ -359,7 +359,6 @@ window.api.installer.onLocationPrompt(async ({ defaultPath, packages }) => {
   const moduleMapping = {
     anthropic: "nodetool-ai/nodetool-anthropic",
     apple: "nodetool-ai/nodetool-apple",
-    audio: "nodetool-ai/nodetool-lib-audio",
     chroma: "nodetool-ai/nodetool-chroma",
     comfy: "nodetool-ai/nodetool-comfy",
     data: "nodetool-ai/nodetool-lib-data",

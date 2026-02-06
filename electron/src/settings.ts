@@ -95,6 +95,54 @@ function readSettings(): Record<string, any> {
 }
 
 /**
+ * Reads settings from cache or YAML file asynchronously
+ * @returns {Promise<Record<string, any>>} Settings object
+ * @throws {Error} If reading or parsing fails
+ */
+async function readSettingsAsync(): Promise<Record<string, any>> {
+  try {
+    logMessage("=== Reading Settings (Async) ===");
+
+    // Return cached settings if available
+    if (settingsCache !== null) {
+      logMessage("Returning cached settings");
+      return settingsCache;
+    }
+
+    const settingsPath = getAppConfigPath("settings.yaml");
+    logMessage(`Settings path: ${settingsPath}`);
+
+    try {
+      await fs.promises.access(settingsPath);
+    } catch {
+      logMessage("Settings file does not exist, returning empty settings");
+      settingsCache = {};
+      return settingsCache;
+    }
+
+    logMessage("Reading settings from " + settingsPath);
+    const fileContents = await fs.promises.readFile(settingsPath, "utf8");
+    logMessage(`File contents: ${fileContents}`);
+
+    settingsCache = (yaml.load(fileContents) as Record<string, any>) || {};
+    logMessage(`Parsed settings: ${JSON.stringify(settingsCache, null, 2)}`);
+
+    for (const key in settingsCache) {
+      logMessage(`${key}: ${settingsCache[key]}`);
+    }
+
+    return settingsCache;
+  } catch (error) {
+    logMessage(`Error reading settings: ${error}`, "error");
+    throw new Error(
+      `Failed to read settings: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+/**
  * Writes settings to the YAML file and updates cache
  * @param {Object} settings - Settings object to write
  * @throws {Error} If writing fails
@@ -163,4 +211,4 @@ function updateSettings(settings: Record<string, any>): void {
   }
 }
 
-export { getAppConfigPath, readSettings, updateSetting, updateSettings };
+export { getAppConfigPath, readSettings, readSettingsAsync, updateSetting, updateSettings };

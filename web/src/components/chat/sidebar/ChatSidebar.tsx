@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, memo } from "react";
 import {
     Box,
     IconButton,
@@ -273,4 +273,4 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     );
 };
 
-export default ChatSidebar;
+export default memo(ChatSidebar);

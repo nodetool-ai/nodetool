@@ -42,7 +42,7 @@ The capability system uses introspection to automatically detect which features 
 
 ### Language Model Providers
 
-#### OpenAI (`openai_provider.py`)
+#### <img src="assets/icons/openai.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="OpenAI" /> OpenAI (`openai_provider.py`)
 
 **Capabilities:** Language models (GPT-4, GPT-3.5), Image generation (DALL-E), Speech services
 
@@ -59,7 +59,7 @@ The capability system uses introspection to automatically detect which features 
 - ✅ Text-to-speech (TTS)
 - ✅ Speech-to-text (Whisper)
 
-#### Anthropic (`anthropic_provider.py`)
+#### <img src="assets/icons/anthropic.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Anthropic" /> Anthropic (`anthropic_provider.py`)
 
 **Capabilities:** Claude language models, Advanced reasoning
 
@@ -73,7 +73,7 @@ The capability system uses introspection to automatically detect which features 
 - ✅ Multimodal inputs (vision)
 - ✅ JSON mode (via tool use)
 
-#### Google Gemini (`gemini_provider.py`)
+#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Gemini" /> Google Gemini (`gemini_provider.py`)
 
 **Capabilities:** Gemini language models, Multimodal AI, Video generation
 
@@ -86,7 +86,7 @@ The capability system uses introspection to automatically detect which features 
 - ✅ JSON mode
 - ✅ Video generation (Veo 2, Veo 3)
 
-#### Ollama (`ollama_provider.py`)
+#### <img src="assets/icons/ollama.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Ollama" /> Ollama (`ollama_provider.py`)
 
 **Capabilities:** Local/self-hosted models, Open-source models
 
@@ -108,7 +108,7 @@ The capability system uses introspection to automatically detect which features 
 - Textual fallback mechanism available for incompatible models
 - Models must be pulled via `ollama pull` before use
 
-#### vLLM (`vllm_provider.py`)
+#### <img src="assets/icons/vllm.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="vLLM" /> vLLM (`vllm_provider.py`)
 
 **Capabilities:** Self-hosted inference, OpenAI-compatible API
 
@@ -123,7 +123,7 @@ The capability system uses introspection to automatically detect which features 
 
 ### Image Generation Providers
 
-#### HuggingFace (`huggingface_provider.py`)
+#### <img src="assets/icons/huggingface.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace (`huggingface_provider.py`)
 
 **Capabilities:** Diverse model ecosystem, Multiple hosted services, 500,000+ models
 
@@ -151,7 +151,7 @@ For detailed information on all HuggingFace nodes, model recommendations, and us
 
 Multiple providers now support advanced video generation capabilities through the unified interface. NodeTool supports text-to-video and image-to-video generation:
 
-#### OpenAI Sora 2 Pro
+#### <img src="assets/icons/sora.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Sora" /> OpenAI Sora 2 Pro
 
 **Capabilities:** Text-to-video, Image-to-video
 
@@ -164,7 +164,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Set `OPENAI_API_KEY` environment variable or configure in Settings → Providers
 
-#### Google Veo 3.1 (via Gemini)
+#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Gemini" /> Google Veo 3.1 (via Gemini)
 
 **Capabilities:** Text-to-video, Image-to-video, Multi-image reference
 
@@ -177,7 +177,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Set `GEMINI_API_KEY` environment variable or configure in Settings → Providers
 
-#### xAI Grok Imagine
+#### <img src="assets/icons/xai.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="xAI" /> xAI Grok Imagine
 
 **Capabilities:** Multimodal text/image-to-video, Text-to-image
 
@@ -189,7 +189,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
 
-#### Alibaba Wan 2.6
+#### <img src="assets/icons/alibaba.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Alibaba" /> Alibaba Wan 2.6
 
 **Capabilities:** Multi-shot video generation, Reference-guided generation
 
@@ -202,7 +202,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
 
-#### MiniMax Hailuo 2.3
+#### <img src="assets/icons/hailuo.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="MiniMax Hailuo" /> MiniMax Hailuo 2.3
 
 **Capabilities:** High-fidelity text-to-video and image-to-video
 
@@ -214,7 +214,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Set `MINIMAX_API_KEY` environment variable or configure in Settings → Providers
 
-#### Kling 2.6
+#### <img src="assets/icons/kling.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Kling" /> Kling 2.6
 
 **Capabilities:** Video generation with audio
 
@@ -229,7 +229,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 ### Image Generation Providers
 
-#### Black Forest Labs FLUX.2
+#### <img src="assets/icons/bfl.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Black Forest Labs" /> Black Forest Labs FLUX.2
 
 **Capabilities:** Advanced text-to-image generation
 
@@ -242,7 +242,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Available through HuggingFace provider or direct API access
 
-#### Google Nano Banana Pro
+#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Google" /> Google Nano Banana Pro
 
 **Capabilities:** High-resolution text-to-image
 
@@ -482,25 +482,25 @@ TextToVideoParams(
 
 | Provider        | Required Variables    | Optional Variables              |
 | --------------- | --------------------- | ------------------------------- |
-| **OpenAI**      | `OPENAI_API_KEY`      | -                               |
-| **Anthropic**   | `ANTHROPIC_API_KEY`   | -                               |
-| **Gemini**      | `GEMINI_API_KEY`      | -                               |
-| **HuggingFace** | `HF_TOKEN`            | -                               |
-| **Ollama**      | -                     | `OLLAMA_API_URL`                |
-| **vLLM**        | -                     | `VLLM_BASE_URL`, `VLLM_API_KEY` |
-| **Replicate**   | `REPLICATE_API_TOKEN` | -                               |
-| **FAL**         | `FAL_API_KEY`         | -                               |
-| **ElevenLabs**  | `ELEVENLABS_API_KEY`  | -                               |
+| <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **OpenAI**      | `OPENAI_API_KEY`      | -                               |
+| <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Anthropic**   | `ANTHROPIC_API_KEY`   | -                               |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Gemini**      | `GEMINI_API_KEY`      | -                               |
+| <img src="assets/icons/huggingface.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **HuggingFace** | `HF_TOKEN`            | -                               |
+| <img src="assets/icons/ollama.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Ollama**      | -                     | `OLLAMA_API_URL`                |
+| <img src="assets/icons/vllm.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **vLLM**        | -                     | `VLLM_BASE_URL`, `VLLM_API_KEY` |
+| <img src="assets/icons/replicate.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Replicate**   | `REPLICATE_API_TOKEN` | -                               |
+| <img src="assets/icons/fal.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **FAL**         | `FAL_API_KEY`         | -                               |
+| <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **ElevenLabs**  | `ELEVENLABS_API_KEY`  | -                               |
 
 ### Getting API Keys
 
-- **OpenAI:** https://platform.openai.com/api-keys
-- **Anthropic:** https://console.anthropic.com/settings/keys
-- **Google Gemini:** https://ai.google.dev/
-- **HuggingFace:** https://huggingface.co/settings/tokens
-- **Replicate:** https://replicate.com/account/api-tokens
-- **FAL:** https://fal.ai/dashboard/keys
-- **ElevenLabs:** https://elevenlabs.io/app/settings/api-keys
+- <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **OpenAI:** https://platform.openai.com/api-keys
+- <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Anthropic:** https://console.anthropic.com/settings/keys
+- <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Google Gemini:** https://ai.google.dev/
+- <img src="assets/icons/huggingface.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **HuggingFace:** https://huggingface.co/settings/tokens
+- <img src="assets/icons/replicate.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Replicate:** https://replicate.com/account/api-tokens
+- <img src="assets/icons/fal.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **FAL:** https://fal.ai/dashboard/keys
+- <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **ElevenLabs:** https://elevenlabs.io/app/settings/api-keys
 
 ## Provider Development
 

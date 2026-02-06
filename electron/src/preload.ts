@@ -485,6 +485,10 @@ const api = {
   updates: {
     /** Subscribe to update available event */
     onAvailable: createEventSubscription(IpcChannels.UPDATE_AVAILABLE),
+
+    /** Restart and install the downloaded update */
+    restartAndInstall: () =>
+      ipcRenderer.invoke(IpcChannels.INSTALL_UPDATE),
   },
 
   // ============================================================================
@@ -574,6 +578,17 @@ const api = {
 
     /** Get system information for about dialog */
     getSystemInfo: () => ipcRenderer.invoke(IpcChannels.GET_SYSTEM_INFO),
+
+    /** Get auto-updates setting (opt-in, default is false) */
+    getAutoUpdates: () =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_GET_AUTO_UPDATES),
+
+    /** Set auto-updates setting (opt-in) */
+    setAutoUpdates: (enabled: boolean) =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_SET_AUTO_UPDATES, enabled),
+
+    /** Open the settings window */
+    openSettings: () => ipcRenderer.invoke(IpcChannels.SHOW_SETTINGS),
   },
 
   // ============================================================================
