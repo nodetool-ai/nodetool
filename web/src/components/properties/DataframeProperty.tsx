@@ -144,7 +144,7 @@ const DataframeProperty = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const notificationStore = useNotificationStore();
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
@@ -216,7 +216,7 @@ const DataframeProperty = ({
       const file = files[0];
 
       if (!isSupportedDataframeFile(file)) {
-        notificationStore.addNotification({
+        addNotification({
           type: "error",
           alert: true,
           content:
@@ -230,7 +230,7 @@ const DataframeProperty = ({
         const dataframe = await parseDataframeFile(file);
         onChange(dataframe);
       } catch (error) {
-        notificationStore.addNotification({
+        addNotification({
           type: "error",
           alert: true,
           content: `Failed to parse file: ${error instanceof Error ? error.message : "Unknown error"}`
@@ -239,7 +239,7 @@ const DataframeProperty = ({
         setIsLoading(false);
       }
     },
-    [onChange, notificationStore]
+    [onChange, addNotification]
   );
 
   // Check if dataframe has data

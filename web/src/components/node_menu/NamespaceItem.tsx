@@ -23,7 +23,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   hasChildren,
   tree
 }) => {
-  const { setSelectedPath } = useNodeMenuStore();
+  const setSelectedPath = useNodeMenuStore((state) => state.setSelectedPath);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLLIElement>) => {

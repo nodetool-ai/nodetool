@@ -70,12 +70,10 @@ const SETTING_TOOLTIPS: Record<string, string> = {
 
 const RemoteSettings = () => {
   const queryClient = useQueryClient();
-  const {
-    updateSettings,
-    fetchSettings,
-    settingsByGroup: storeSettingsByGroup,
-    settings
-  } = useRemoteSettingsStore();
+  const updateSettings = useRemoteSettingsStore((state) => state.updateSettings);
+  const fetchSettings = useRemoteSettingsStore((state) => state.fetchSettings);
+  const storeSettingsByGroup = useRemoteSettingsStore((state) => state.settingsByGroup);
+  const settings = useRemoteSettingsStore((state) => state.settings);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
   // HuggingFace OAuth state

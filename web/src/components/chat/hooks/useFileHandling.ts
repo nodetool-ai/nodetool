@@ -5,7 +5,7 @@ import { useNotificationStore } from "../../../stores/NotificationStore";
 
 export const useFileHandling = () => {
   const [droppedFiles, setDroppedFiles] = useState<DroppedFile[]>([]);
-  const { addNotification } = useNotificationStore();
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   const makeMessageContent = (file: DroppedFile): MessageContent => {
     if (file.type.startsWith("image/")) {

@@ -261,7 +261,7 @@ const WorkspaceTree: React.FC = () => {
     saveWorkflow: state.saveWorkflow
   }));
 
-  const { setIsOpen: setWorkspaceManagerOpen } = useWorkspaceManagerStore();
+  const setWorkspaceManagerOpen = useWorkspaceManagerStore((state) => state.setIsOpen);
 
   const currentWorkflow = getCurrentWorkflow();
   const currentWorkflowMeta = openWorkflows.find(
