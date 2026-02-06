@@ -42,6 +42,14 @@ jobs:
 
             Develop ONE polished feature for NodeTool (React/TypeScript visual AI workflow builder).
 
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Choose or invent a useful feature to implement
+            2. Develop it completely with tests
+            3. **Create a Pull Request with your feature**
+            
+            Do NOT just plan or prototype. You must implement a complete, tested feature and submit a PR.
+
             ## Context
             - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - Packages: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
@@ -71,8 +79,8 @@ jobs:
             - Tests for new functionality (Jest + React Testing Library)
             - `make typecheck && make lint && make test` must all pass
 
-            ## Deliverable
-            Create a PR with:
-            - The feature implementation
-            - Tests
-            - Clear PR title and description explaining what and why
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've completed your feature, you MUST:
+            1. Commit all your changes (implementation + tests)
+            2. Push your branch
+            3. **Open a Pull Request** with clear title and description explaining what the feature does and why it's useful

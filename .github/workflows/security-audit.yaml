@@ -51,6 +51,14 @@ jobs:
 
             Find and fix security vulnerabilities in NodeTool (React/TypeScript visual AI workflow builder).
 
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find security vulnerabilities
+            2. Fix them
+            3. **Create a Pull Request with your changes**
+            
+            Do NOT just analyze or report findings. You must make fixes and submit a PR.
+
             ## Context
             - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - Packages: `/web`, `/electron`, `/mobile`
@@ -87,5 +95,8 @@ jobs:
             - `make typecheck && make lint && make test` must all pass
             - Test affected functionality after fixes
 
-            ## Deliverable
-            Create a PR with security fixes, noting severity and CVEs addressed.
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've made your security fixes, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with security fixes, noting severity and CVEs addressed

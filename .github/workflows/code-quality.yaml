@@ -42,6 +42,14 @@ jobs:
 
             Scan for and fix code quality issues in NodeTool (React/TypeScript visual AI workflow builder).
 
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find code quality issues
+            2. Fix them
+            3. **Create a Pull Request with your changes**
+            
+            Do NOT just analyze or report findings. You must make fixes and submit a PR.
+
             ## Context
             - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - Packages: `/web`, `/electron`, `/mobile`
@@ -66,5 +74,8 @@ jobs:
             - Follow existing patterns in the codebase
             - Run `make typecheck && make lint && make test` — all must pass
 
-            ## Deliverable
-            Create a PR with focused fixes and clear description of what was wrong and how you fixed it.
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've made your fixes, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with a focused title and clear description of what was wrong and how you fixed it

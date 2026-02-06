@@ -75,6 +75,15 @@ jobs:
 
             Fix quality issues in NodeTool (React/TypeScript visual AI workflow builder).
 
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Run quality checks and identify issues
+            2. Fix any issues you find
+            3. **Create a Pull Request with your fixes**
+            
+            If you find issues, you MUST fix them and create a PR. Do NOT just report findings.
+            If everything is already green (no issues found), you can skip creating a PR.
+
             ## Context
             - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - Packages: `/web`, `/electron`, `/mobile`
@@ -101,7 +110,14 @@ jobs:
             - Never make quality worse — if codebase was clean, keep it clean
             - One issue type per PR (don't mix type errors with test failures)
             - Small, focused changes (5-10 files max per PR)
-            - Create a PR with changes if you find and fix issues
+
+            ## Final Step: CREATE THE PULL REQUEST (if you made fixes)
+            If you found and fixed issues, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** describing what was broken and how you fixed it
+            
+            If no issues were found and everything is green, you may skip the PR.
 
       - name: Post-change verification
         if: always()

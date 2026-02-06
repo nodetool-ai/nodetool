@@ -40,6 +40,14 @@ jobs:
 
             Audit and improve accessibility in NodeTool (React/TypeScript visual AI workflow builder). Target: WCAG 2.1 Level AA.
 
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find accessibility issues
+            2. Fix them
+            3. **Create a Pull Request with your changes**
+            
+            Do NOT just analyze or report findings. You must make fixes and submit a PR.
+
             ## Context
             - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
             - Packages: `/web` (React app), `/electron` (desktop)
@@ -79,5 +87,8 @@ jobs:
             ## Quality
             - `make typecheck && make lint && make test` must all pass
 
-            ## Deliverable
-            Create a PR with accessibility improvements.
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've made your accessibility improvements, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with a clear title and description of what accessibility issues you fixed

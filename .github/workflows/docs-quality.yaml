@@ -42,6 +42,14 @@ jobs:
 
             Audit and improve documentation in NodeTool (React/TypeScript visual AI workflow builder).
 
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find documentation issues (outdated, incorrect, missing, or unclear docs)
+            2. Fix them
+            3. **Create a Pull Request with your changes**
+            
+            Do NOT just analyze or report findings. You must make improvements and submit a PR.
+
             ## Context
             - Packages: `/web`, `/electron`, `/mobile`
             - Key docs: `/AGENTS.md`, `/README.md`, `/.github/copilot-instructions.md`, `/web/README.md`, `/web/TESTING.md`
@@ -72,5 +80,8 @@ jobs:
             - Don't document trivial/obvious code
             - Remove obsolete information
 
-            ## Deliverable
-            Create a PR with documentation improvements.
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've made your documentation improvements, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with a clear title and description of what documentation you improved
