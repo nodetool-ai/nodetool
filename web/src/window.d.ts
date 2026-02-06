@@ -43,10 +43,11 @@ interface FileExplorerResult {
   message?: string;
 }
 
-type MenuEventType =
+export type MenuEventType =
   | "saveWorkflow"
   | "newTab"
   | "close"
+  | "closeTab"
   | "cut"
   | "copy"
   | "paste"
@@ -61,10 +62,15 @@ type MenuEventType =
   | "fitView"
   | "resetZoom"
   | "zoomIn"
-  | "zoomOut";
+  | "zoomOut"
+  | "prevTab"
+  | "nextTab"
+  | "switchToTab";
 
-interface MenuEventData {
+export interface MenuEventData {
   type: MenuEventType;
+  index?: number;
+  [key: string]: unknown;
 }
 
 // Clipboard content info for smart paste decisions
@@ -232,10 +238,10 @@ declare global {
       };
     };
     electron?: {
-      on: (channel: string, listener: (...args: any[]) => void) => void;
-      off: (channel: string, listener: (...args: any[]) => void) => void;
+      on: (channel: string, listener: (...args: unknown[]) => void) => void;
+      off: (channel: string, listener: (...args: unknown[]) => void) => void;
     };
-    __UPDATES__?: any[];
+    __UPDATES__?: Record<string, unknown>[];
   }
 }
 
