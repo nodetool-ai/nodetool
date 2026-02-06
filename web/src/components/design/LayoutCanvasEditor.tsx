@@ -180,7 +180,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
-  const [, setStageSize] = useState({ width: width, height: height });
+  const [stageSize, setStageSize] = useState({ width: width, height: height });
   const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([]);
   const [snapTime, setSnapTime] = useState<number | null>(null);
   
@@ -481,15 +481,13 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   }, []);
 
   useEffect(() => {
-    if (hasCenteredRef.current || !pixiContainerRef.current) {
+    if (hasCenteredRef.current || !stageSize.width || !stageSize.height) {
       return;
     }
-    const rect = pixiContainerRef.current.getBoundingClientRect();
-    const centerX = (rect.width - canvasData.width * zoom) / 2;
-    const centerY = (rect.height - canvasData.height * zoom) / 2;
+    const centerX = (stageSize.width - canvasData.width * zoom) / 2;
+    const centerY = (stageSize.height - canvasData.height * zoom) / 2;
     setStagePosition({ x: centerX, y: centerY });
-    hasCenteredRef.current = true;
-  }, [canvasData.height, canvasData.width, zoom]);
+  }, [canvasData.height, canvasData.width, stageSize.height, stageSize.width, zoom]);
 
   const interactionHandlersRef = useRef<PixiInteractionHandlers>({});
 
@@ -869,6 +867,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       // Middle mouse button (button 1) or space + left click
       if (e.button === 1 || (e.button === 0 && isSpacePressedRef.current)) {
         e.preventDefault();
+        hasCenteredRef.current = true;
         isPanningRef.current = true;
         setIsPanning(true);
         setPanStart({ x: e.clientX - stagePosition.x, y: e.clientY - stagePosition.y });

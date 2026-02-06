@@ -53,7 +53,7 @@ export default class PixiRenderer implements CanvasRenderer {
   private gridNodes: Graphics[] = [];
   private guideNodes: Graphics[] = [];
   private selectionOutline: Graphics | null = null;
-  private selectionHandles: Graphics | null = null;
+  private selectionHandles: Container | null = null;
   private interactionHandlers: PixiInteractionHandlers | null = null;
   private interactionProvider: (() => PixiInteractionHandlers) | null = null;
   private dragState: { id: string; start: Point; startElement: Point } | null = null;
@@ -89,14 +89,17 @@ export default class PixiRenderer implements CanvasRenderer {
     this.guidesContainer = new Container();
     this.gridContainer = new Container();
     this.selectionOutline = new Graphics();
-    this.selectionHandles = new Graphics();
+    this.selectionHandles = new Container();
 
     this.elementContainer.sortableChildren = true;
     this.elementContainer.eventMode = "static";
     this.elementContainer.interactiveChildren = true;
+    this.selectionContainer.eventMode = "passive";
+    this.selectionContainer.interactiveChildren = true;
     this.selectionOutline.eventMode = "none";
     this.selectionHandles.eventMode = "passive";
     this.selectionHandles.interactiveChildren = true;
+    this.root.interactiveChildren = true;
 
     this.root.addChild(this.gridContainer);
     this.root.addChild(this.elementContainer);
@@ -247,8 +250,9 @@ export default class PixiRenderer implements CanvasRenderer {
     const lineColor = parseHexColor(color);
     const grid = new Graphics();
     const scale = Math.max(this.zoom, 0.01);
+    const minSpacing = 32;
     let step = size;
-    while (step * scale < 16) {
+    while (step * scale < minSpacing) {
       step *= 2;
     }
     const width = snapToGrid(this.data.width, size);
@@ -359,7 +363,6 @@ export default class PixiRenderer implements CanvasRenderer {
     }
     this.selectionOutline.clear();
     this.selectionHandles.removeChildren();
-    this.selectionHandles.clear();
     if (this.selection.size === 0) {
       return;
     }
@@ -410,7 +413,7 @@ export default class PixiRenderer implements CanvasRenderer {
       if (!this.resizeState || this.resizeState.handle !== position.handle) {
         return;
       }
-      if (!(event.buttons & 1)) {
+      if ("buttons" in event && !(event.buttons & 1)) {
         this.resizeState = null;
         return;
       }
@@ -465,7 +468,7 @@ export default class PixiRenderer implements CanvasRenderer {
       if (!this.resizeState) {
         return;
       }
-      if (!(event.buttons & 1)) {
+      if ("buttons" in event && !(event.buttons & 1)) {
         this.resizeState = null;
         return;
       }
@@ -591,7 +594,7 @@ export default class PixiRenderer implements CanvasRenderer {
           if (!this.dragState || this.dragState.id !== element.id) {
             return;
           }
-          if (!(event.buttons & 1)) {
+          if ("buttons" in event && !(event.buttons & 1)) {
             this.dragState = null;
             return;
           }
@@ -666,7 +669,7 @@ export default class PixiRenderer implements CanvasRenderer {
           if (!this.dragState || this.dragState.id !== element.id) {
             return;
           }
-          if (!(event.buttons & 1)) {
+          if ("buttons" in event && !(event.buttons & 1)) {
             this.dragState = null;
             return;
           }
@@ -740,7 +743,7 @@ export default class PixiRenderer implements CanvasRenderer {
           if (!this.dragState || this.dragState.id !== element.id) {
             return;
           }
-          if (!(event.buttons & 1)) {
+          if ("buttons" in event && !(event.buttons & 1)) {
             this.dragState = null;
             return;
           }
