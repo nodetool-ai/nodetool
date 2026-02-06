@@ -4,6 +4,7 @@ import { useEdges } from "@xyflow/react";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import useMetadataStore from "../stores/MetadataStore";
+import { NodeMetadata } from "../stores/ApiTypes";
 import useResultsStore from "../stores/ResultsStore";
 import useErrorStore from "../stores/ErrorStore";
 
@@ -51,7 +52,7 @@ interface UseSelectedNodesInfoReturn {
  */
 const getNodeDisplayName = (
   node: Node<NodeData>,
-  getMetadata: (nodeType: string) => any
+  getMetadata: (nodeType: string) => NodeMetadata | undefined
 ): string => {
   const title = node.data?.properties?.name;
   if (title && typeof title === "string" && title.trim()) {
@@ -68,6 +69,7 @@ const getNodeDisplayName = (
 export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const edges = useEdges();
+  // Subscribe to getMetadata method only - this is a stable reference
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const results = useResultsStore((state) => state.results);
   const errors = useErrorStore((state) => state.errors);

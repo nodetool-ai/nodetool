@@ -1,107 +1,42 @@
-# Web UI - React App Navigation
+# Web UI
 
 **Navigation**: [Root AGENTS.md](../../AGENTS.md) → **Web**
 
-This guide helps AI agents navigate the React web application structure.
+## Build, Lint & Test
+
+```bash
+npm install              # Install dependencies
+npm start                # Start dev server (http://localhost:3000)
+npm run build            # Production build
+npm run typecheck        # TypeScript check
+npm run lint             # ESLint
+npm run lint:fix         # Auto-fix lint issues
+npm test                 # Run all tests
+npm run test:watch       # Watch mode
+npm run test:coverage    # Coverage report
+npm run test:e2e         # E2E tests (requires backend)
+```
 
 ## Specialized Guides
 
-For detailed information on specific areas, see these specialized guides:
+- **[Components](components/AGENTS.md)** — UI component guidelines
+- **[Stores](stores/AGENTS.md)** — Zustand state management guidelines
+- **[Contexts](contexts/AGENTS.md)** — React context guidelines
+- **[Hooks](hooks/AGENTS.md)** — Custom React hook guidelines
+- **[Utils](utils/AGENTS.md)** — Utility function guidelines
+- **[ServerState](serverState/AGENTS.md)** — TanStack Query guidelines
+- **[Lib](lib/AGENTS.md)** — Third-party library integration guidelines
+- **[Config](config/AGENTS.md)** — Configuration guidelines
 
-- **[Components](components/AGENTS.md)** - UI component architecture and patterns
-- **[Stores](stores/AGENTS.md)** - Zustand state management
-- **[Contexts](contexts/AGENTS.md)** - React context providers
-- **[Hooks](hooks/AGENTS.md)** - Custom React hooks
-- **[Utils](utils/AGENTS.md)** - Utility functions and helpers
-- **[ServerState](serverState/AGENTS.md)** - TanStack Query and API integration
-- **[Lib](lib/AGENTS.md)** - Third-party library integrations
-- **[Config](config/AGENTS.md)** - Configuration and constants
+## Coding Guidelines
 
----
+See the [root AGENTS.md](../../AGENTS.md) for TypeScript, React, Zustand, MUI, and testing rules.
 
-## Application Overview
+Key reminders for this package:
 
-The web UI is the main visual editor for NodeTool that allows users to build AI workflows through a drag-and-drop interface. It's built with React, TypeScript, and ReactFlow.
-
-## Directory Structure
-
-- `/components`: UI components organized by functionality
-  - `/asset_viewer`: Components for viewing different asset types (audio, image, PDF, etc.)
-  - `/assets`: Asset management components (explorer, grid, actions, etc.)
-  - `/assistants`: Chat interfaces and workflow generators
-  - `/audio`: Audio playback and recording components
-  - `/buttons`: Reusable button components
-  - `/collections`: Components for managing workflow collections
-  - `/content`: Help documentation and welcome screens
-  - `/context_menus`: Context menu components for different UI elements
-  - `/dialogs`: Modal dialogs and confirmations
-  - `/editor`: Tab-based editor components
-  - `/hugging_face`: HuggingFace model integration components
-  - `/inputs`: Form input components (color picker, date picker, etc.)
-  - `/menus`: Application menus and settings
-  - `/node`: Node visualization and editing components
-  - `/node_editor`: The main workflow editor components
-  - `/node_menu`: Components for node selection and organization
-  - `/node_types`: Custom node type implementations
-  - `/panels`: UI panels and toolbars
-  - `/properties`: Property editors for different data types
-  - `/search`: Search functionality components
-  - `/themes`: Theming components and color palettes
-  - `/workflows`: Workflow management components
-
-- `/config`: Application configuration
-- `/constants`: Application constants
-- `/contexts`: React contexts for state management
-- `/core`: Core functionality (graph logic)
-- `/hooks`: Custom React hooks
-  - `/assets`: Asset-related hooks
-  - `/browser`: Browser interaction hooks
-  - `/contextmenus`: Context menu hooks
-  - `/handlers`: Event handler hooks
-  - `/nodes`: Node manipulation hooks
-- `/icons`: SVG icons for different data types and UI elements
-- `/lib`: External library integrations
-- `/providers`: React context providers
-- `/serverState`: Server state management hooks
-- `/stores`: Application state stores
-- `/styles`: CSS styles
-- `/utils`: Utility functions
-
-## Key Components
-
-- `NodeEditor.tsx`: The main workflow editor component
-- `WorkflowCreator.tsx`: Component for creating new workflows
-- `NodeMenu.tsx`: Component for browsing and selecting nodes
-- `BaseNode.tsx`: The base component for all nodes
-- `AssetExplorer.tsx`: File/asset browser component
-
-## State Management
-
-The application uses a custom store system with files in the `/stores` directory:
-- `NodeStore.ts`: Manages node state
-- `WorkflowRunner.ts`: Handles workflow execution
-- `AssetStore.ts`: Manages assets
-- `SettingsStore.ts`: Application settings
-
-## Core Workflows
-
-1. **Creating Workflows**:
-   - `WorkflowCreator.tsx`
-   - `NodeEditor.tsx`
-   - `NodeMenu.tsx`
-
-2. **Running Workflows**:
-   - `WorkflowRunner.ts`
-   - `NodeStore.ts`
-
-3. **Managing Assets**:
-   - `AssetExplorer.tsx`
-   - `AssetGrid.tsx`
-   - `AssetViewer.tsx`
-
-## Development Notes
-
-- The application uses ReactFlow for the node graph visualization
-- Custom hooks in `/hooks` handle most of the UI interaction logic
-- Node type mapping and handling is in `/utils/NodeTypeMapping.ts`
-- Theme configuration is in `/styles` and `/themes`
+- Use TypeScript with explicit types. No `any`.
+- Use functional components with typed props interfaces.
+- Use Zustand selectors to avoid unnecessary re-renders.
+- Use `sx` prop for one-off MUI styles, `styled()` for reusable styles.
+- Place tests in `__tests__/` directories next to source files.
+- Follow the import order: React → third-party → stores/contexts → components → utils → styles.

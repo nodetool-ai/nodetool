@@ -64,14 +64,12 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const {
-    getSession,
-    addMessage,
-    updateLastMessage,
-    setStatus,
-    setError,
-    setCurrentHtml
-  } = useVibeCodingStore();
+  const getSession = useVibeCodingStore((state) => state.getSession);
+  const addMessage = useVibeCodingStore((state) => state.addMessage);
+  const updateLastMessage = useVibeCodingStore((state) => state.updateLastMessage);
+  const setStatus = useVibeCodingStore((state) => state.setStatus);
+  const setError = useVibeCodingStore((state) => state.setError);
+  const setCurrentHtml = useVibeCodingStore((state) => state.setCurrentHtml);
 
   const session = getSession(workflow.id);
   const [templates, setTemplates] = useState<Template[]>([]);

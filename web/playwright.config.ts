@@ -44,9 +44,11 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  timeout: process.env.CI ? 20_000 : 30_000,
+  globalTimeout: process.env.CI ? 30 * 60_000 : 0,
   use: {
     baseURL: FRONTEND_URL,
     trace: 'on-first-retry',

@@ -90,8 +90,11 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const { getSession, initSession, setCurrentHtml, setSavedHtml, isDirty } =
-    useVibeCodingStore();
+  const getSession = useVibeCodingStore((state) => state.getSession);
+  const initSession = useVibeCodingStore((state) => state.initSession);
+  const setCurrentHtml = useVibeCodingStore((state) => state.setCurrentHtml);
+  const setSavedHtml = useVibeCodingStore((state) => state.setSavedHtml);
+  const isDirty = useVibeCodingStore((state) => state.isDirty);
 
   const session = getSession(workflow.id);
   const hasUnsavedChanges = isDirty(workflow.id);

@@ -3,19 +3,34 @@ import { css, keyframes } from "@emotion/react";
 import React from "react";
 
 const rotate = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 `;
 
 const dash = keyframes`
-  0% { stroke-dashoffset: 200; }
-  50% { stroke-dashoffset: 50; }
-  100% { stroke-dashoffset: 200; }
+  0% {
+    stroke-dasharray: 8 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90 150;
+    stroke-dashoffset: -20;
+  }
+  100% {
+    stroke-dasharray: 8 150;
+    stroke-dashoffset: -120;
+  }
 `;
 
 const pulse = keyframes`
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
 `;
 
 const styles = {
@@ -30,17 +45,18 @@ const styles = {
   svg: css`
     width: 28px;
     height: 28px;
-    animation: ${rotate} 3s linear infinite;
+    animation: ${rotate} 1.9s linear infinite;
+    transform-origin: 50% 50%;
+    will-change: transform;
   `,
   circle: css`
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
-    stroke-dasharray: 150;
-    stroke-dashoffset: 200;
-    animation: ${dash} 1.5s ease-in-out infinite;
+    animation: ${dash} 1.55s cubic-bezier(0.42, 0, 0.28, 1) infinite;
     opacity: 0.8;
+    will-change: stroke-dasharray, stroke-dashoffset;
   `,
   core: css`
     position: absolute;
@@ -52,7 +68,8 @@ const styles = {
     margin-top: -3px;
     border-radius: 50%;
     background: currentColor;
-    animation: ${pulse} 1.5s ease-in-out infinite;
+    animation: ${pulse} 1.55s cubic-bezier(0.42, 0, 0.28, 1) infinite;
+    will-change: transform, opacity;
   `,
   wrapper: css`
     position: relative;

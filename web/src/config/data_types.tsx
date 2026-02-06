@@ -126,7 +126,7 @@ export interface DataType {
   /**
    * Fallback text colour. Re‑evaluated later for WCAG contrast.
    */
-  textColor: "#fff" | "dark" | "var(--palette-action-active)";
+  textColor: "#fff" | "#111" | "#eee" | "dark" | "var(--palette-action-active)";
   icon?: string;
 }
 
@@ -782,7 +782,7 @@ DATA_TYPES = DATA_TYPES.map((node): DataType => {
 });
 
 // Auto‑derive text colour + register CSS variables
-DATA_TYPES = DATA_TYPES.map((type: any) => {
+DATA_TYPES = DATA_TYPES.map((type: DataType) => {
   const color = type.color || stc(type.value);
   const { namespace, name, slug } = getNames(type.value);
   const rgbColor = hexToRgb(color);
