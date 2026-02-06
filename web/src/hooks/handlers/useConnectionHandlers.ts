@@ -461,8 +461,13 @@ export default function useConnectionHandlers() {
         }
       }
 
-      // targetIsPane: open context menu for output
-      if (!connectionCreated.current && (targetIsPane || targetIsGroup)) {
+      // targetIsPane: open context menu for output (skip during edge reconnection)
+      const { isReconnecting } = useConnectionStore.getState();
+      if (
+        !connectionCreated.current &&
+        !isReconnecting &&
+        (targetIsPane || targetIsGroup)
+      ) {
         if (connectDirection === "source") {
           openContextMenu(
             "output-context-menu",
@@ -476,7 +481,8 @@ export default function useConnectionHandlers() {
         }
         if (connectDirection === "target") {
           // Get min/max/default from ConnectionStore before it gets reset
-          const { connectMin, connectMax, connectDefault } = useConnectionStore.getState();
+          const { connectMin, connectMax, connectDefault } =
+            useConnectionStore.getState();
           openContextMenu(
             "input-context-menu",
             connectNodeId || "",
@@ -487,7 +493,7 @@ export default function useConnectionHandlers() {
             connectHandleId || "",
             undefined,
             undefined,
-            { connectMin, connectMax, connectDefault }  // Pass min/max/default through payload
+            { connectMin, connectMax, connectDefault } // Pass min/max/default through payload
           );
         }
       }

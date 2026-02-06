@@ -2,6 +2,7 @@ import { useCallback, MouseEvent as ReactMouseEvent } from "react";
 import { Edge } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
+import useConnectionStore from "../../stores/ConnectionStore";
 
 /**
  * Result object containing edge event handlers.
@@ -23,15 +24,15 @@ export type EdgeHandlersResult = {
 
 /**
  * Hook for handling edge-related events in the workflow editor.
- * 
+ *
  * Provides event handlers for edge interactions including:
  * - Hover effects (animation, label display)
  * - Context menu on right-click
  * - Edge reconnection handling
  * - Deletion on middle-click
- * 
+ *
  * @returns Object containing all edge event handlers
- * 
+ *
  * @example
  * ```typescript
  * const {
@@ -40,7 +41,7 @@ export type EdgeHandlersResult = {
  *   onEdgeContextMenu,
  *   onEdgeClick,
  * } = useEdgeHandlers();
- * 
+ *
  * return (
  *   <ReactFlow
  *     onEdgeMouseEnter={onEdgeMouseEnter}
@@ -67,6 +68,9 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
   }));
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const setIsReconnecting = useConnectionStore(
+    (state) => state.setIsReconnecting
+  );
 
   /* EDGE HOVER */
   const onEdgeMouseEnter = useCallback(
@@ -131,7 +135,8 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
 
   const onEdgeUpdateStart = useCallback(() => {
     setEdgeUpdateSuccessful(false);
-  }, [setEdgeUpdateSuccessful]);
+    setIsReconnecting(true);
+  }, [setEdgeUpdateSuccessful, setIsReconnecting]);
 
   // change edge connection
   const onEdgeUpdateEnd = useCallback(
@@ -141,8 +146,14 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
         deleteEdge(edge.id);
       }
       setEdgeUpdateSuccessful(true);
+      setIsReconnecting(false);
     },
-    [edgeUpdateSuccessful, setEdgeUpdateSuccessful, deleteEdge]
+    [
+      edgeUpdateSuccessful,
+      setEdgeUpdateSuccessful,
+      deleteEdge,
+      setIsReconnecting
+    ]
   );
 
   const onEdgeClick = useCallback(
