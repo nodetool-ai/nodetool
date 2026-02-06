@@ -52,6 +52,7 @@ interface NodeInputProps {
     oldPropertyName: string,
     newPropertyName: string
   ) => void;
+  isConnected: boolean;
 }
 
 const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
@@ -66,19 +67,10 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   tabIndex,
   showAdvancedFields,
   basicFields,
-  isDynamicProperty
+  isDynamicProperty,
+  isConnected
 }) {
-  const { edges } = useNodes((state) => ({
-    edges: state.edges,
-    findNode: state.findNode
-  }));
-
   const isConstantNode = property.type.type.startsWith("nodetool.constant");
-  const isConnected = useMemo(() => {
-    return edges.some(
-      (edge) => edge.target === id && edge.targetHandle === property.name
-    );
-  }, [edges, id, property.name]);
 
   const isBasicField = useMemo(() => {
     return basicFields?.includes(property.name);
@@ -155,18 +147,24 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
 
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
-  const { edges, findNode } = useNodes((state) => ({
-    edges: state.edges,
-    findNode: state.findNode
-  }));
+
+  // Optimization: Select only edges connected to this node
+  const connectedEdges = useNodes(
+    useCallback((state) => state.edges.filter(e => e.target === id), [id])
+  );
+
+  const findNode = useNodes((state) => state.findNode);
+
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+
   const isConnected = useCallback(
     (handle: string) => {
-      return edges.some(
-        (edge) => edge.target === id && edge.targetHandle === handle
+      // Edges are already filtered by target === id
+      return connectedEdges.some(
+        (edge) => edge.targetHandle === handle
       );
     },
-    [edges, id]
+    [connectedEdges]
   );
 
   properties.forEach((property, index) => {
@@ -175,6 +173,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     );
     const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
     const isBasicField = basicFields?.includes(property.name);
+
+    const connected = isConnected(property.name);
 
     const inputElement = (
       <NodeInput
@@ -190,10 +190,11 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         tabIndex={finalTabIndex}
         showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}
+        isConnected={connected}
       />
     );
 
-    if (isBasicField || isConnected(property.name)) {
+    if (isBasicField || connected) {
       basicInputs.push(inputElement);
     } else {
       advancedInputs.push(inputElement);
@@ -203,9 +204,11 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const dynamicInputElements = Object.entries(dynamicProperties).map(
     ([name], index) => {
       // Determine type from incoming edge's source handle
-      const incoming = edges.find(
-        (edge) => edge.target === id && edge.targetHandle === name
+      // Edges are already filtered by target === id
+      const incoming = connectedEdges.find(
+        (edge) => edge.targetHandle === name
       );
+
       let resolvedType: TypeMetadata = {
         type: "any",
         type_args: [],
@@ -244,6 +247,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           showHandle={true}
           tabIndex={-1}
           isDynamicProperty={true}
+          isConnected={!!incoming}
         />
       );
     }
