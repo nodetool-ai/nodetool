@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import { EditorButton } from "../ui_primitives";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
@@ -79,7 +79,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     fetchFolderTree();
   }, [loadFolderTree, sortBy]);
 
-  const renderTree = (node: AssetTreeNode): React.ReactNode => {
+  const renderTree = useCallback((node: AssetTreeNode): React.ReactNode => {
     const handleOnSelect = (
       event: React.MouseEvent,
       node: AssetTreeNode
@@ -110,7 +110,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
           : null}
       </TreeItem>
     );
-  };
+  }, [onSelect]);
 
   return (
     <Box className="folder-tree" css={styles(theme)}>
