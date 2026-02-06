@@ -24,3 +24,5 @@ dependencies:
   - lua
   - nodejs>=20
   - pip
+  - postgresql>=16
+  - pgvector

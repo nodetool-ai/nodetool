@@ -4,7 +4,7 @@ import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
 import { createPackageManagerWindow, createWindow, createLogViewerWindow, createSettingsWindow } from "./window";
 import { execSync } from "child_process";
-import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning, isLlamaServerRunning } from "./server";
+import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning, isLlamaServerRunning, isPostgresRunning } from "./server";
 import { fetchWorkflows } from "./api";
 import { readSettings, updateSetting } from "./settings";
 import { createMiniAppWindow, createChatWindow } from "./workflowWindow";
@@ -299,6 +299,7 @@ async function updateTrayMenu(): Promise<void> {
   const statusIndicator = connected ? "🟢" : "🔴";
   const ollamaRunning = isOllamaRunning();
   const llamaServerRunning = isLlamaServerRunning();
+  const postgresRunning = isPostgresRunning();
   const state = getServerState();
   const backendLabel = connected
     ? `${statusIndicator} NodeTool: ${state.serverPort ?? "unknown"}`
@@ -313,6 +314,9 @@ async function updateTrayMenu(): Promise<void> {
     : state.llamaExternalManaged
       ? `🟢 Llama.cpp (external): ${state.llamaPort ?? "unknown"}`
       : "🔴 Llama.cpp: stopped";
+  const postgresLabel = postgresRunning
+    ? `🟢 PostgreSQL: ${state.postgresPort ?? "unknown"}`
+    : "🔴 PostgreSQL: stopped";
 
   // Fetch workflows if connected
   let workflows: Workflow[] = [];
@@ -329,6 +333,10 @@ async function updateTrayMenu(): Promise<void> {
   const contextMenu = Menu.buildFromTemplate([
     {
       label: backendLabel,
+      enabled: false,
+    },
+    {
+      label: postgresLabel,
       enabled: false,
     },
     {
