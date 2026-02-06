@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import {
   DialogTitle,
@@ -62,7 +62,9 @@ const DownloadManagerDialog: React.FC = () => {
   const closeDialog = useModelDownloadStore((state) => state.closeDialog);
   const downloads = useModelDownloadStore((state) => state.downloads);
 
-  const hasActiveDownloads = Object.keys(downloads).length > 0;
+  // Memoize download names to avoid recomputing Object.keys on every render
+  const downloadNames = useMemo(() => Object.keys(downloads), [downloads]);
+  const hasActiveDownloads = downloadNames.length > 0;
 
   const theme = useTheme();
 
@@ -104,8 +106,8 @@ const DownloadManagerDialog: React.FC = () => {
       </DialogTitle>
       <DialogContent className="download-dialog-content">
         <Box mt={1} className="downloads-list">
-          {Object.keys(downloads).length > 0 ? (
-            Object.keys(downloads).map((name) => (
+          {hasActiveDownloads ? (
+            downloadNames.map((name) => (
               <DownloadProgress key={name} name={name} />
             ))
           ) : (

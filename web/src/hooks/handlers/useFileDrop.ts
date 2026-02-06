@@ -69,7 +69,7 @@ export type FileDropResult = {
  */
 export function useFileDrop(props: FileDropProps): FileDropResult {
   const [filename, setFilename] = useState("");
-  const notificationStore = useNotificationStore();
+  const addNotification = useNotificationStore((state) => state.addNotification);
   const { uploadAsset, isUploading } = useAssetUpload();
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
@@ -96,7 +96,7 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
           props.onChangeAsset?.(asset);
           props.onChange?.(asset.get_url as string);
         } else {
-          notificationStore.addNotification({
+          addNotification({
             type: "error",
             alert: true,
             content: `Invalid file type. Please drop a ${props.type} file.`
@@ -160,7 +160,7 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
               reader.readAsDataURL(file);
             }
           } else {
-            notificationStore.addNotification({
+            addNotification({
               type: "error",
               alert: true,
               content: `Invalid file type. Please drop a ${props.type} file.`
@@ -169,7 +169,7 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
         }
       }
     },
-    [props, uploadAsset, notificationStore]
+    [props, uploadAsset, addNotification]
   );
 
   return { onDragOver, onDrop, filename, uploading: isUploading };
