@@ -2,7 +2,8 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, memo } from "react";
+import { isEqual } from "lodash";
 import {
   Node,
   Edge,
@@ -99,7 +100,7 @@ type ChatViewProps = {
   workflowId?: string | null;
 };
 
-const ChatView = ({
+const ChatView = memo(({
   status,
   progress,
   total,
@@ -223,6 +224,30 @@ const ChatView = ({
       />
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for ChatView to prevent unnecessary re-renders
+  return (
+    prevProps.status === nextProps.status &&
+    prevProps.progress === nextProps.progress &&
+    prevProps.total === nextProps.total &&
+    prevProps.messages === nextProps.messages &&
+    prevProps.model === nextProps.model &&
+    prevProps.progressMessage === nextProps.progressMessage &&
+    isEqual(prevProps.selectedTools, nextProps.selectedTools) &&
+    prevProps.showToolbar === nextProps.showToolbar &&
+    isEqual(prevProps.selectedCollections, nextProps.selectedCollections) &&
+    prevProps.agentMode === nextProps.agentMode &&
+    prevProps.helpMode === nextProps.helpMode &&
+    prevProps.currentPlanningUpdate === nextProps.currentPlanningUpdate &&
+    prevProps.currentTaskUpdate === nextProps.currentTaskUpdate &&
+    prevProps.currentLogUpdate === nextProps.currentLogUpdate &&
+    prevProps.graph === nextProps.graph &&
+    prevProps.runningToolCallId === nextProps.runningToolCallId &&
+    prevProps.runningToolMessage === nextProps.runningToolMessage &&
+    prevProps.workflowId === nextProps.workflowId
+    // Note: function props (sendMessage, onToolsChange, etc.) are assumed to be stable
+  );
+});
+ChatView.displayName = "ChatView";
 
 export default ChatView;
