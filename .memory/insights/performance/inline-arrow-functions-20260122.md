@@ -83,6 +83,6 @@ const handleClick = useCallback(() => {
 
 ## Related Memory
 
-- Previous memoization work in `.github/opencode-memory/insights/performance/`
+- Previous memoization work in `.memory/insights/performance/`
 - Component memoization audit (2026-01-19) in `audit-2026-01-19.md`
 - React best practices in `AGENTS.md`

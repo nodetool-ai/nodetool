@@ -1,8 +1,8 @@
 # NodeTool Feature List
 
-This document lists all existing features in NodeTool to help OpenCode agents avoid creating redundant functionality. **Always read this file before planning new features.**
+Existing features in NodeTool. **Read before adding new features to avoid duplicates.**
 
-**When adding features**: Add ONE line per feature using format: `- **Feature Name**: Brief description (max 10 words)`
+Format: `- **Feature Name**: Brief description`
 
 Last updated: 2026-01-19
 
@@ -339,7 +339,7 @@ Last updated: 2026-01-19
 **Files Updated**:
 - mobile/IMPLEMENTATION_SUMMARY.md
 - workflow_runner/AGENTS.md
-- .github/opencode-memory/issues/git-ci/documentation-port-inconsistency.md
+- .memory/issues/git-ci/documentation-port-inconsistency.md
 
 ---
 
@@ -365,9 +365,9 @@ Last updated: 2026-01-19
 - mobile/README.md
 - mobile/QUICKSTART.md
 - docs/AGENTS.md
-- .github/opencode-memory/issues/git-ci/documentation-port-inconsistency.md
-- .github/opencode-memory/insights/code-quality/documentation-best-practices.md
-- .github/opencode-memory/issues/documentation/documentation-audit-2026-01-16.md (NEW)
+- .memory/issues/git-ci/documentation-port-inconsistency.md
+- .memory/insights/code-quality/documentation-best-practices.md
+- .memory/issues/documentation/documentation-audit-2026-01-16.md (NEW)
 
 ---
 
@@ -389,7 +389,7 @@ Last updated: 2026-01-19
   - Added troubleshooting section
 
 **Related Memory**:
-- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+- `.memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
 
 ---
 
@@ -426,8 +426,8 @@ Last updated: 2026-01-19
 - web/src/hooks/useAlignNodes.ts
 
 **Related Memory**:
-- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
-- `.github/opencode-memory/issues/documentation/documentation-quality-audit-2026-01-17.md` - Audit findings
+- `.memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+- `.memory/issues/documentation/documentation-quality-audit-2026-01-17.md` - Audit findings
 
 ---
 
@@ -491,8 +491,8 @@ Last updated: 2026-01-19
 - ✅ All documentation follows established JSDoc patterns
 
 **Related Memory**:
-- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
-- `.github/opencode-memory/issues/documentation/jsdoc-improvements-2026-01-17.md` - Detailed improvements
+- `.memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+- `.memory/issues/documentation/jsdoc-improvements-2026-01-17.md` - Detailed improvements
 
 ---
 
@@ -561,7 +561,7 @@ All hooks now include module-level JSDoc with @param, @returns, and @example tag
 **Files Audited**: 23 documentation files across all packages
 
 **Related Memory**:
-- `.github/opencode-memory/issues/documentation/documentation-quality-audit-2026-01-19.md`
+- `.memory/issues/documentation/documentation-quality-audit-2026-01-19.md`
 
 ---
 

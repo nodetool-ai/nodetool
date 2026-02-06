@@ -50,5 +50,5 @@ export default memo(QuickActionTiles);
 
 ## Related Documentation
 
-- Previous memoization work documented in `.github/opencode-memory/insights/`
+- Previous memoization work documented in `.memory/insights/`
 - Performance optimization guidelines in `AGENTS.md`

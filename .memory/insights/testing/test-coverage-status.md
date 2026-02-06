@@ -221,8 +221,8 @@ Test coverage is comprehensive and stable. The small number of failing tests are
 
 - **Testing Guide**: `web/TESTING.md`
 - **AGENTS.md**: `web/src/AGENTS.md`
-- **Build/Test/Lint**: `.github/opencode-memory/build-test-lint.md`
-- **Testing Insights**: `.github/opencode-memory/insights/testing/`
+- **Build/Test/Lint**: `.memory/build-test-lint.md`
+- **Testing Insights**: `.memory/insights/testing/`
 
 ---
 

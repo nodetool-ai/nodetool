@@ -207,7 +207,7 @@ Always specify the context (dev/prod/docker) when documenting ports.
 - Monthly documentation reviews recommended
 - Update AGENTS.md files when modifying core functionality
 - Test code examples when updating documentation
-- Track documentation issues in `.github/opencode-memory/issues/documentation/`
+- Track documentation issues in `.memory/issues/documentation/`
 
 ## Impact
 

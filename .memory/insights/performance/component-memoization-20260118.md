@@ -76,8 +76,8 @@ web/src/components/context_menus/EdgeContextMenu.tsx
 
 ## Related Memory
 
-- `.github/opencode-memory/insights/performance/audit-complete-20260117.md` - Previous performance audit
-- `.github/opencode-memory/insights/performance/component-memoization-20260117.md` - Earlier memoization work
+- `.memory/insights/performance/audit-complete-20260117.md` - Previous performance audit
+- `.memory/insights/performance/component-memoization-20260117.md` - Earlier memoization work
 
 ## Date
 

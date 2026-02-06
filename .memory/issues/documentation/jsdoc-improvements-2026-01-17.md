@@ -58,8 +58,8 @@
 - ✅ All documentation follows established JSDoc patterns
 
 **Related Memory**:
-- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
-- `.github/opencode-memory/issues/documentation/documentation-quality-audit-2026-01-17.md` - Previous audit findings
+- `.memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+- `.memory/issues/documentation/documentation-quality-audit-2026-01-17.md` - Previous audit findings
 
 ---
 

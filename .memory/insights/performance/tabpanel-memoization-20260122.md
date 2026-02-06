@@ -44,5 +44,5 @@ const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
 - No breaking changes to component API
 
 **Related**:
-- `.github/opencode-memory/insights/component-memoization-20260119.md`
-- `.github/opencode-memory/insights/component-memoization-20260120.md`
+- `.memory/insights/component-memoization-20260119.md`
+- `.memory/insights/component-memoization-20260120.md`

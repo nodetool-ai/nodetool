@@ -154,7 +154,7 @@ npm install --save-dev @types/jest @types/node
 4. **Code Examples**: All documentation includes working code examples
 5. **Cross-References**: Files link to related documentation
 6. **Testing Docs**: Comprehensive testing guide (941 lines) and helpers (692 lines)
-7. **Memory Integration**: Documentation issues tracked in `.github/opencode-memory/`
+7. **Memory Integration**: Documentation issues tracked in `.memory/`
 
 ---
 

@@ -102,7 +102,7 @@ All markdown files use consistent formatting:
 3. **Code Examples**: All documentation includes working code examples
 4. **Cross-References**: Files link to related documentation
 5. **Testing Docs**: Comprehensive testing guide (941 lines) and helpers (692 lines)
-6. **Memory Integration**: Documentation issues tracked in `.github/opencode-memory/`
+6. **Memory Integration**: Documentation issues tracked in `.memory/`
 
 ---
 

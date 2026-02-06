@@ -38,6 +38,6 @@
 - ✅ Tests: 3089/3092 pass (3 skipped, pre-existing)
 
 **Related Memory**:
-- `.github/opencode-memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
-- `.github/opencode-memory/issues/documentation/jsdoc-improvements-2026-01-17.md` - Previous JSDoc work
-- `.github/opencode-memory/issues/documentation/hook-jsdoc-improvements-2026-01-18.md` - Hook documentation
+- `.memory/insights/code-quality/documentation-best-practices.md` - Documentation standards
+- `.memory/issues/documentation/jsdoc-improvements-2026-01-17.md` - Previous JSDoc work
+- `.memory/issues/documentation/hook-jsdoc-improvements-2026-01-18.md` - Hook documentation

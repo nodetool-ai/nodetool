@@ -51,4 +51,4 @@
 ## Related Patterns
 
 This follows the same code-splitting pattern documented in:
-- `.github/opencode-memory/insights/bundle-code-splitting.md`
+- `.memory/insights/bundle-code-splitting.md`
