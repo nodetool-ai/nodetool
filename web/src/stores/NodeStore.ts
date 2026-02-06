@@ -13,12 +13,7 @@
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
 import { create, StoreApi, UseBoundStore } from "zustand";
-import {
-  NodeMetadata,
-  RepoPath,
-  UnifiedModel,
-  Workflow
-} from "./ApiTypes";
+import { NodeMetadata, RepoPath, UnifiedModel, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import {
   Connection,
@@ -42,19 +37,14 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import log from "loglevel";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
-import {
-  findOutputHandle,
-  findInputHandle
-} from "../utils/handleUtils";
+import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
-import {
-  graphEdgeToReactFlowEdge
-} from "./graphEdgeToReactFlowEdge";
+import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -66,7 +56,10 @@ import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
  * Generates a default name for input nodes based on their type.
  * For example, "nodetool.input.StringInput" becomes "string_input_1"
  */
-const generateInputNodeName = (nodeType: string, existingNodes: Node<NodeData>[]): string => {
+const generateInputNodeName = (
+  nodeType: string,
+  existingNodes: Node<NodeData>[]
+): string => {
   // Extract the input type from the node type (e.g., "StringInput" from "nodetool.input.StringInput")
   const match = nodeType.match(/nodetool\.input\.(\w+)Input$/);
   if (!match) {
@@ -84,12 +77,10 @@ const generateInputNodeName = (nodeType: string, existingNodes: Node<NodeData>[]
 
   const inputType = match[1].toLowerCase();
   const baseName = `${inputType}_input`;
-  
+
   // Count existing input nodes of the same type
-  const existingCount = existingNodes.filter(
-    (n) => n.type === nodeType
-  ).length;
-  
+  const existingCount = existingNodes.filter((n) => n.type === nodeType).length;
+
   return `${baseName}_${existingCount + 1}`;
 };
 
@@ -103,11 +94,14 @@ const generateUUID = (): string => {
   }
 
   // Fallback implementation for environments without crypto.randomUUID
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (char) {
-    const randomValue = (Math.random() * 16) | 0;
-    const hexValue = char === "x" ? randomValue : (randomValue & 0x3) | 0x8;
-    return hexValue.toString(16);
-  });
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+    /[xy]/g,
+    function (char) {
+      const randomValue = (Math.random() * 16) | 0;
+      const hexValue = char === "x" ? randomValue : (randomValue & 0x3) | 0x8;
+      return hexValue.toString(16);
+    }
+  );
 };
 
 export { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
@@ -786,7 +780,7 @@ export const createNodeStore = (
           getWorkflow: (): Workflow => {
             const workflow = get().workflow;
             const edges = get().edges;
-            
+
             // Optimization: Build a set of connected handles for O(1) lookups
             // instead of checking all edges for each property (O(n*m*e) -> O(n*m))
             const connectedHandles = new Set<string>();
@@ -795,11 +789,11 @@ export const createNodeStore = (
                 connectedHandles.add(`${edge.target}:${edge.targetHandle}`);
               }
             }
-            
+
             const isHandleConnected = (nodeId: string, handle: string) => {
               return connectedHandles.has(`${nodeId}:${handle}`);
             };
-            
+
             const unconnectedProperties = (node: Node<NodeData>) => {
               const properties: Record<string, any> = {};
               for (const name in node.data.properties) {
@@ -844,24 +838,32 @@ export const createNodeStore = (
               if (nodes.length === 0) {
                 return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
               }
-              
+
               let minX = Infinity;
               let minY = Infinity;
               let maxX = -Infinity;
               let maxY = -Infinity;
-              
+
               for (const node of nodes) {
                 const nodeX = node.position.x;
                 const nodeY = node.position.y;
                 const width = node.measured?.width ?? node.width ?? 100;
                 const height = node.measured?.height ?? node.height ?? 100;
-                
-                if (nodeX < minX) {minX = nodeX;}
-                if (nodeY < minY) {minY = nodeY;}
-                if (nodeX + width > maxX) {maxX = nodeX + width;}
-                if (nodeY + height > maxY) {maxY = nodeY + height;}
+
+                if (nodeX < minX) {
+                  minX = nodeX;
+                }
+                if (nodeY < minY) {
+                  minY = nodeY;
+                }
+                if (nodeX + width > maxX) {
+                  maxX = nodeX + width;
+                }
+                if (nodeY + height > maxY) {
+                  maxY = nodeY + height;
+                }
               }
-              
+
               return { minX, minY, maxX, maxY };
             };
 
@@ -1034,13 +1036,17 @@ export const createNodeStore = (
                 defaults[key] = properties[key];
               }
             }
-            
+
             // Generate default name for input nodes if name property exists but is empty
-            const isInputNode = metadata.node_type.startsWith("nodetool.input.");
+            const isInputNode =
+              metadata.node_type.startsWith("nodetool.input.");
             if (isInputNode && "name" in defaults && !defaults.name) {
-              defaults.name = generateInputNodeName(metadata.node_type, get().nodes);
+              defaults.name = generateInputNodeName(
+                metadata.node_type,
+                get().nodes
+              );
             }
-            
+
             const nodeId = get().generateNodeId();
             useResultsStore.getState().clearResults(nodeId);
 
@@ -1094,10 +1100,10 @@ export const createNodeStore = (
               set((state) => ({
                 nodes: state.nodes.map((n) =>
                   n.id === nodeId
-                    ? { 
-                        ...n, 
+                    ? {
+                        ...n,
                         className: newBypassed ? "bypassed" : undefined,
-                        data: { ...n.data, bypassed: newBypassed } 
+                        data: { ...n.data, bypassed: newBypassed }
                       }
                     : n
                 )
@@ -1109,10 +1115,10 @@ export const createNodeStore = (
             set((state) => ({
               nodes: state.nodes.map((n) =>
                 n.id === nodeId
-                  ? { 
-                      ...n, 
+                  ? {
+                      ...n,
                       className: bypassed ? "bypassed" : undefined,
-                      data: { ...n.data, bypassed } 
+                      data: { ...n.data, bypassed }
                     }
                   : n
               )
@@ -1124,18 +1130,20 @@ export const createNodeStore = (
             if (selectedNodes.length === 0) {
               return;
             }
-            
+
             // Determine if we should bypass or enable based on majority
-            const bypassedCount = selectedNodes.filter(n => n.data.bypassed).length;
+            const bypassedCount = selectedNodes.filter(
+              (n) => n.data.bypassed
+            ).length;
             const shouldBypass = bypassedCount < selectedNodes.length / 2;
-            
+
             set((state) => ({
               nodes: state.nodes.map((n) =>
                 n.selected
-                  ? { 
-                      ...n, 
+                  ? {
+                      ...n,
                       className: shouldBypass ? "bypassed" : undefined,
-                      data: { ...n.data, bypassed: shouldBypass } 
+                      data: { ...n.data, bypassed: shouldBypass }
                     }
                   : n
               )

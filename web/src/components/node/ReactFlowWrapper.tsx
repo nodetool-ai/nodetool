@@ -186,23 +186,25 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   const connecting = useConnectionStore((state) => state.connecting);
   const updateNodeInternals = useUpdateNodeInternals();
 
-  // After a connection drag ends, CSS handle transforms revert to normal.
-  // Wait one frame for the DOM to settle, then force React Flow to
-  // re-read handle positions so edges align correctly.
-  const wasConnectingRef = useRef(false);
+  // Single trigger: connection drag ended or edges changed (add/remove/reconnect).
+  // Wait one frame, then refresh handle positions for all nodes.
+  const prevConnectingRef = useRef(connecting);
+  const prevEdgeCountRef = useRef(edges.length);
   useEffect(() => {
-    if (wasConnectingRef.current && !connecting) {
+    const dragEnded = prevConnectingRef.current && !connecting;
+    const edgesChanged = prevEdgeCountRef.current !== edges.length;
+    prevConnectingRef.current = connecting;
+    prevEdgeCountRef.current = edges.length;
+    if (dragEnded || edgesChanged) {
       const rafId = requestAnimationFrame(() => {
         const nodeIds = nodes.map((n) => n.id);
         if (nodeIds.length > 0) {
           updateNodeInternals(nodeIds);
         }
       });
-      wasConnectingRef.current = false;
       return () => cancelAnimationFrame(rafId);
     }
-    wasConnectingRef.current = connecting;
-  }, [connecting, nodes, updateNodeInternals]);
+  }, [connecting, edges.length, nodes, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
