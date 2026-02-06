@@ -317,7 +317,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     // If tab actually changed and we have a previous store, autosave it
     if (prevId && prevId !== currentWorkflowId && prevStore) {
       const autosaveSettings = useSettingsStore.getState().settings.autosave;
-      if (!autosaveSettings?.enabled) return;
+      if (!autosaveSettings?.enabled) {return;}
 
       const prevState = prevStore.getState();
       if (prevState.workflowIsDirty) {
