@@ -10,7 +10,26 @@ import { TemporalState } from "zundo";
 import isEqual from "lodash/isEqual";
 import { Box } from "@mui/material";
 
-export const NodeContext = createContext<NodeStore | null>(null);
+// Extend Window interface for HMR context preservation
+declare global {
+  interface Window {
+    __NODE_CONTEXT__?: React.Context<NodeStore | null>;
+  }
+}
+
+// Preserve the context reference across HMR to prevent
+// "cannot read property of null getSnapshot" crashes caused by
+// context mismatch between providers and consumers after hot reload.
+export const NodeContext: React.Context<NodeStore | null> = (() => {
+  if (import.meta.hot && window.__NODE_CONTEXT__) {
+    return window.__NODE_CONTEXT__;
+  }
+  const ctx = createContext<NodeStore | null>(null);
+  if (import.meta.hot) {
+    window.__NODE_CONTEXT__ = ctx;
+  }
+  return ctx;
+})();
 
 interface NodeProviderProps {
   createStore: () => NodeStore | null;
