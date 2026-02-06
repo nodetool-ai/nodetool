@@ -8,6 +8,7 @@ import {
   SelectionMode,
   ConnectionMode,
   useViewport,
+  useUpdateNodeInternals
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -62,7 +63,6 @@ interface ReactFlowWrapperProps {
   active: boolean;
 }
 
-
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
@@ -94,8 +94,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   }, [workflowId, storedViewport, nodes.length]);
 
   const reactFlowInstance = useReactFlow();
-  const pendingNodeType = useNodePlacementStore((state) => state.pendingNodeType);
-  const cancelPlacement = useNodePlacementStore((state) => state.cancelPlacement);
+  const pendingNodeType = useNodePlacementStore(
+    (state) => state.pendingNodeType
+  );
+  const cancelPlacement = useNodePlacementStore(
+    (state) => state.cancelPlacement
+  );
   const placementLabel = useNodePlacementStore((state) => state.label);
   const [ghostPosition, setGhostPosition] = useState<{
     x: number;
@@ -180,6 +184,25 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const connecting = useConnectionStore((state) => state.connecting);
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  // After a connection drag ends, CSS handle transforms revert to normal.
+  // Wait one frame for the DOM to settle, then force React Flow to
+  // re-read handle positions so edges align correctly.
+  const wasConnectingRef = useRef(false);
+  useEffect(() => {
+    if (wasConnectingRef.current && !connecting) {
+      const rafId = requestAnimationFrame(() => {
+        const nodeIds = nodes.map((n) => n.id);
+        if (nodeIds.length > 0) {
+          updateNodeInternals(nodeIds);
+        }
+      });
+      wasConnectingRef.current = false;
+      return () => cancelAnimationFrame(rafId);
+    }
+    wasConnectingRef.current = connecting;
+  }, [connecting, nodes, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
@@ -316,27 +339,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const { isConnectionValid } = useConnectionEvents();
 
-  const {
-    handleDoubleClick,
-    handlePaneClick,
-    handlePaneContextMenu
-  } = usePaneEvents({
-    pendingNodeType,
-    placementLabel,
-    reactFlowInstance
-  });
+  const { handleDoubleClick, handlePaneClick, handlePaneContextMenu } =
+    usePaneEvents({
+      pendingNodeType,
+      placementLabel,
+      reactFlowInstance
+    });
 
-  const {
-    handleNodeContextMenu,
-    handleNodesChange
-  } = useNodeEvents();
+  const { handleNodeContextMenu, handleNodesChange } = useNodeEvents();
 
-  const {
-    onEdgeContextMenu,
-    onEdgeUpdateEnd,
-    onEdgeUpdateStart,
-    onEdgeClick
-  } = useEdgeHandlers();
+  const { onEdgeContextMenu, onEdgeUpdateEnd, onEdgeUpdateStart, onEdgeClick } =
+    useEdgeHandlers();
 
   const {
     onSelectionDragStart,
@@ -432,8 +445,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const reactFlowClasses = useMemo(() => {
     const classes = [];
-    if (zoom <= ZOOMED_OUT) { classes.push("zoomed-out"); }
-    if (connecting) { classes.push("is-connecting"); }
+    if (zoom <= ZOOMED_OUT) {
+      classes.push("zoomed-out");
+    }
+    if (connecting) {
+      classes.push("is-connecting");
+    }
     return classes.join(" ");
   }, [zoom, connecting]);
 
