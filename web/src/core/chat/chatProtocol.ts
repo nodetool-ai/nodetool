@@ -101,17 +101,18 @@ import type { GlobalChatState, StepToolCall } from "../../stores/GlobalChatStore
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
+import type { Graph } from "../../stores/ApiTypes";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
   workflow_id: string;
-  graph: any;
+  graph: Graph;
 }
 
 export interface WorkflowUpdatedUpdate {
   type: "workflow_updated";
   workflow_id: string;
-  graph: any;
+  graph: Graph;
 }
 
 export interface GenerationStoppedUpdate {
@@ -123,7 +124,7 @@ export interface ToolCallMessage {
   type: "tool_call";
   tool_call_id: string;
   name: string;
-  args: any;
+  args: Record<string, unknown>;
   thread_id: string;
 }
 
@@ -149,7 +150,7 @@ export type MsgpackData =
 export interface ToolResultMessage {
   type: "tool_result";
   tool_call_id: string;
-  result: any;
+  result: unknown;
   ok: boolean;
 }
 

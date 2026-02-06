@@ -13,7 +13,7 @@ export function useInputStream(inputName: string) {
   const state = useWebsocketRunner((s) => s.state);
 
   const send = useCallback(
-    (value: any, handle?: string) => {
+    (value: unknown, handle?: string) => {
       if (!inputName) {return;}
       if (state !== "running") {return;}
       streamInput(inputName, value, handle);
