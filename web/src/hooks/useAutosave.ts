@@ -39,32 +39,57 @@ interface AutosaveResponse {
   skipped: boolean;
 }
 
-export const useAutosave = (
-  options: UseAutosaveOptions
-): UseAutosaveReturn => {
+/**
+ * Standalone utility to trigger an autosave for a specific workflow.
+ * Can be called from anywhere without needing the hook.
+ */
+export async function triggerAutosaveForWorkflow(
+  workflowId: string,
+  graph: { nodes: unknown[]; edges: unknown[] },
+  saveType: "autosave" | "checkpoint" = "autosave",
+  options?: { description?: string; force?: boolean; maxVersions?: number }
+): Promise<void> {
+  try {
+    await fetch(`/api/workflows/${workflowId}/autosave`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        save_type: saveType,
+        description: options?.description,
+        force: options?.force ?? false,
+        client_id: "system",
+        graph,
+        max_versions: options?.maxVersions ?? 50
+      })
+    });
+  } catch (error) {
+    console.error(`Autosave (${saveType}) failed:`, error);
+  }
+}
+
+export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
   const { workflowId, getWorkflow, isDirty } = options;
   const queryClient = useQueryClient();
 
-  const autosaveSettings = useSettingsStore(
-    (state) => state.settings.autosave
-  );
+  const autosaveSettings = useSettingsStore((state) => state.settings.autosave);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
 
-  const { getLastAutosaveTime, updateLastAutosaveTime } = useVersionHistoryStore(
-    (state) => ({
+  const { getLastAutosaveTime, updateLastAutosaveTime } =
+    useVersionHistoryStore((state) => ({
       getLastAutosaveTime: state.getLastAutosaveTime,
       updateLastAutosaveTime: state.updateLastAutosaveTime
-    })
-  );
+    }));
 
   const isSavingRef = useRef(false);
   const [lastAutosaveTime, setLastAutosaveTime] = useState(0);
   const clientIdRef = useRef<string>(uuidv4());
-  
+
   // Ref to store latest triggerAutosave function to avoid resetting interval on callback changes
-  const triggerAutosaveRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const triggerAutosaveRef = useRef<() => Promise<void>>(() =>
+    Promise.resolve()
+  );
 
   useEffect(() => {
     if (workflowId) {
@@ -75,7 +100,11 @@ export const useAutosave = (
   const callAutosaveEndpoint = useCallback(
     async (
       saveType: "autosave" | "checkpoint",
-      options?: { force?: boolean; description?: string; graph?: { nodes: unknown[]; edges: unknown[] } }
+      options?: {
+        force?: boolean;
+        description?: string;
+        graph?: { nodes: unknown[]; edges: unknown[] };
+      }
     ): Promise<AutosaveResponse> => {
       if (!workflowId) {
         return { version: null, message: "no workflow", skipped: true };
@@ -215,7 +244,7 @@ export const useAutosave = (
   /**
    * Set up interval-based autosave triggering
    * Backend handles rate limiting, we just trigger at configured interval
-   * 
+   *
    * Note: We use triggerAutosaveRef instead of triggerAutosave directly
    * to prevent the timer from resetting on every callback change.
    */
@@ -259,22 +288,33 @@ export const useAutosave = (
   ]);
 
   /**
-   * Set up save on window/tab close
+   * Set up save on window/tab close using sendBeacon for reliability.
+   * Unlike async fetch, sendBeacon survives page unload and is fire-and-forget.
    */
   useEffect(() => {
     if (!autosaveSettings?.enabled || !autosaveSettings?.saveOnClose) {
       return;
     }
 
-    const handleBeforeUnload = async () => {
+    const handleBeforeUnload = () => {
       if (workflowId && isDirty()) {
         const workflow = getWorkflow();
         // Never save empty workflows
         if (workflow && !isWorkflowEmpty(workflow)) {
-          await callAutosaveEndpoint("autosave", {
-            description: "Before close",
-            graph: workflow.graph
-          });
+          const blob = new Blob(
+            [
+              JSON.stringify({
+                save_type: "autosave",
+                description: "Before close",
+                force: true,
+                client_id: clientIdRef.current,
+                graph: workflow.graph,
+                max_versions: autosaveSettings?.maxVersionsPerWorkflow ?? 50
+              })
+            ],
+            { type: "application/json" }
+          );
+          navigator.sendBeacon(`/api/workflows/${workflowId}/autosave`, blob);
         }
       }
     };
@@ -287,11 +327,11 @@ export const useAutosave = (
   }, [
     autosaveSettings?.enabled,
     autosaveSettings?.saveOnClose,
+    autosaveSettings?.maxVersionsPerWorkflow,
     workflowId,
     isDirty,
     getWorkflow,
-    isWorkflowEmpty,
-    callAutosaveEndpoint
+    isWorkflowEmpty
   ]);
 
   return {
