@@ -57,15 +57,13 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   onRestore,
   onClose
 }) => {
-  const {
-    selectedVersionId,
-    compareVersionId,
-    isCompareMode,
-    setSelectedVersion,
-    setCompareVersion,
-    setCompareMode,
-    setHistoryPanelOpen
-  } = useVersionHistoryStore();
+  const selectedVersionId = useVersionHistoryStore((state) => state.selectedVersionId);
+  const compareVersionId = useVersionHistoryStore((state) => state.compareVersionId);
+  const isCompareMode = useVersionHistoryStore((state) => state.isCompareMode);
+  const setSelectedVersion = useVersionHistoryStore((state) => state.setSelectedVersion);
+  const setCompareVersion = useVersionHistoryStore((state) => state.setCompareVersion);
+  const setCompareMode = useVersionHistoryStore((state) => state.setCompareMode);
+  const setHistoryPanelOpen = useVersionHistoryStore((state) => state.setHistoryPanelOpen);
 
   const {
     data: apiVersions,

@@ -49,12 +49,10 @@ interface ModelFiltersBarProps {
 }
 
 const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
-  const {
-    selectedTypes,
-    sizeBucket,
-    toggleType,
-    setSizeBucket
-  } = useModelFiltersStore();
+  const selectedTypes = useModelFiltersStore((state) => state.selectedTypes);
+  const sizeBucket = useModelFiltersStore((state) => state.sizeBucket);
+  const toggleType = useModelFiltersStore((state) => state.toggleType);
+  const setSizeBucket = useModelFiltersStore((state) => state.setSizeBucket);
 
   // Local anchors for persistent menus
   const [typeAnchor, setTypeAnchor] = React.useState<null | HTMLElement>(null);

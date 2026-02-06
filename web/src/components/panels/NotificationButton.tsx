@@ -30,11 +30,9 @@ const popoverStyles = css({
 const NotificationButton: React.FC = React.memo(() => {
   const [notificationAnchor, setNotificationAnchor] =
     useState<null | HTMLElement>(null);
-  const {
-    notifications,
-    lastDisplayedTimestamp,
-    updateLastDisplayedTimestamp
-  } = useNotificationStore();
+  const notifications = useNotificationStore((state) => state.notifications);
+  const lastDisplayedTimestamp = useNotificationStore((state) => state.lastDisplayedTimestamp);
+  const updateLastDisplayedTimestamp = useNotificationStore((state) => state.updateLastDisplayedTimestamp);
   const theme = useTheme();
   const unreadCount = useMemo(() => {
     if (!lastDisplayedTimestamp) {return notifications.length;}

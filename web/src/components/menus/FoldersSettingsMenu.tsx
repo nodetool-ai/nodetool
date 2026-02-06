@@ -42,13 +42,11 @@ const FolderButton = ({ label, onClick }: FolderButtonProps) => (
 
 const FoldersSettings = () => {
   const queryClient = useQueryClient();
-  const {
-    updateSettings,
-    fetchSettings,
-    settingsByGroup: storeSettingsByGroup,
-    settings
-  } = useRemoteSettingsStore();
-  const { addNotification } = useNotificationStore();
+  const updateSettings = useRemoteSettingsStore((state) => state.updateSettings);
+  const fetchSettings = useRemoteSettingsStore((state) => state.fetchSettings);
+  const storeSettingsByGroup = useRemoteSettingsStore((state) => state.settingsByGroup);
+  const settings = useRemoteSettingsStore((state) => state.settings);
+  const addNotification = useNotificationStore((state) => state.addNotification);
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings

@@ -201,8 +201,9 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   contrastBackgroundColor = "#ffffff"
 }) => {
   const theme = useTheme();
-  const { addRecentColor, preferredColorMode, setPreferredColorMode } =
-    useColorPickerStore();
+  const addRecentColor = useColorPickerStore((state) => state.addRecentColor);
+  const preferredColorMode = useColorPickerStore((state) => state.preferredColorMode);
+  const setPreferredColorMode = useColorPickerStore((state) => state.setPreferredColorMode);
 
   // Internal state
   const [color, setColor] = useState(initialColor || "#ff0000");
