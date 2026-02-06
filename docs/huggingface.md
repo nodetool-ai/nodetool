@@ -4,7 +4,7 @@ title: "HuggingFace Integration"
 description: "Guide to HuggingFace nodes in NodeTool."
 ---
 
-# HuggingFace Integration
+# <img src="assets/icons/huggingface.svg" width="28" height="28" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace Integration
 
 The HuggingFace integration connects NodeTool to the HuggingFace Hub, providing nodes for text, image, audio, and multimodal processing. With support for over 25 different model types and access to 500,000+ pre-trained models, you can build AI workflows using the latest open-source models.
 
