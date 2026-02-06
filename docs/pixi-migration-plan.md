@@ -56,10 +56,8 @@ reimplementing Pixi-provided geometry, bounds, or event handling.
 
 **Todo**
 
-- Snap index + snapping behavior (guides already rendering)
 - Tool architecture + tool manager
 - Spatial index (R-tree/quadtree) for large scenes
-- Adaptive grid spacing by zoom
 - SVG export pipeline
 
 **Open questions**

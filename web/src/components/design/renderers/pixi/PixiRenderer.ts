@@ -92,6 +92,11 @@ export default class PixiRenderer implements CanvasRenderer {
     this.selectionHandles = new Graphics();
 
     this.elementContainer.sortableChildren = true;
+    this.elementContainer.eventMode = "static";
+    this.elementContainer.interactiveChildren = true;
+    this.selectionOutline.eventMode = "none";
+    this.selectionHandles.eventMode = "passive";
+    this.selectionHandles.interactiveChildren = true;
 
     this.root.addChild(this.gridContainer);
     this.root.addChild(this.elementContainer);
@@ -99,6 +104,7 @@ export default class PixiRenderer implements CanvasRenderer {
     this.root.addChild(this.guidesContainer);
     this.selectionContainer.addChild(this.selectionOutline);
     this.selectionContainer.addChild(this.selectionHandles);
+    this.app.stage.eventMode = "static";
     this.root.eventMode = "static";
     this.root.hitArea = new Rectangle(0, 0, container.clientWidth || 800, container.clientHeight || 600);
     this.root.on("pointertap", (event) => {
@@ -112,7 +118,8 @@ export default class PixiRenderer implements CanvasRenderer {
       if (event.target !== this.root) {
         return;
       }
-      this.marqueeStart = { x: event.global.x, y: event.global.y };
+      const local = this.root.toLocal(event.global);
+      this.marqueeStart = { x: local.x, y: local.y };
       const rect = new Graphics()
         .rect(0, 0, 1, 1)
         .fill({ color: 0x4f46e5, alpha: 0.1 });
@@ -125,10 +132,11 @@ export default class PixiRenderer implements CanvasRenderer {
       if (!this.marqueeStart || !this.selectionRect) {
         return;
       }
-      const x = Math.min(this.marqueeStart.x, event.global.x);
-      const y = Math.min(this.marqueeStart.y, event.global.y);
-      const width = Math.abs(event.global.x - this.marqueeStart.x);
-      const height = Math.abs(event.global.y - this.marqueeStart.y);
+      const local = this.root?.toLocal(event.global) ?? event.global;
+      const x = Math.min(this.marqueeStart.x, local.x);
+      const y = Math.min(this.marqueeStart.y, local.y);
+      const width = Math.abs(local.x - this.marqueeStart.x);
+      const height = Math.abs(local.y - this.marqueeStart.y);
       this.selectionRect.clear();
       this.selectionRect
         .rect(0, 0, width, height)
@@ -140,16 +148,12 @@ export default class PixiRenderer implements CanvasRenderer {
       if (!this.marqueeStart || !this.selectionRect) {
         return;
       }
-      const x = Math.min(this.marqueeStart.x, event.global.x);
-      const y = Math.min(this.marqueeStart.y, event.global.y);
-      const width = Math.abs(event.global.x - this.marqueeStart.x);
-      const height = Math.abs(event.global.y - this.marqueeStart.y);
-      const selectionBounds = new Rectangle(
-        (x - this.pan.x) / this.zoom,
-        (y - this.pan.y) / this.zoom,
-        width / this.zoom,
-        height / this.zoom
-      );
+      const local = this.root?.toLocal(event.global) ?? event.global;
+      const x = Math.min(this.marqueeStart.x, local.x);
+      const y = Math.min(this.marqueeStart.y, local.y);
+      const width = Math.abs(local.x - this.marqueeStart.x);
+      const height = Math.abs(local.y - this.marqueeStart.y);
+      const selectionBounds = new Rectangle(x, y, width, height);
       const hits: string[] = [];
       this.data?.elements.forEach((element) => {
         const elementBounds = new Rectangle(element.x, element.y, element.width, element.height);
@@ -354,6 +358,7 @@ export default class PixiRenderer implements CanvasRenderer {
       return;
     }
     this.selectionOutline.clear();
+    this.selectionHandles.removeChildren();
     this.selectionHandles.clear();
     if (this.selection.size === 0) {
       return;
@@ -361,16 +366,11 @@ export default class PixiRenderer implements CanvasRenderer {
     const bounds = new Rectangle();
     this.selection.forEach((id) => {
       const node = this.elementNodes.get(id);
-      if (!node || !this.root) {
+      if (!node) {
         return;
       }
-      const global = node.getBounds();
-      const topLeft = this.root.toLocal({ x: global.x, y: global.y });
-      const bottomRight = this.root.toLocal({
-        x: global.x + global.width,
-        y: global.y + global.height
-      });
-      bounds.enlarge(new Rectangle(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y));
+      const localBounds = node.getBounds(this.root);
+      bounds.enlarge(localBounds);
     });
     this.selectionOutline
       .rect(bounds.x, bounds.y, bounds.width, bounds.height)
@@ -397,25 +397,34 @@ export default class PixiRenderer implements CanvasRenderer {
       handle.cursor = this.getHandleCursor(position.handle);
       handle.on("pointerdown", (event) => {
         event.stopPropagation();
+        const rotation = this.data?.elements.find((el) => el.id === Array.from(this.selection)[0])?.rotation ?? 0;
         this.resizeState = {
           id: Array.from(this.selection)[0],
           handle: position.handle,
           startBounds: bounds.clone(),
           startPointer: { x: event.global.x, y: event.global.y },
-          rotation: 0
+          rotation
         };
       });
       handle.on("pointermove", (event) => {
-        if (!this.resizeState || this.resizeState.handle !== position.handle) {
-          return;
-        }
-        const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
-        const next = this.calculateResizeBounds(bounds, this.resizeState, event.global);
-        if (handlers?.onDragMove) {
-          handlers.onDragMove(this.resizeState.id, next.x, next.y, next.width, next.height);
-        }
+      if (!this.resizeState || this.resizeState.handle !== position.handle) {
+        return;
+      }
+      if (!(event.buttons & 1)) {
+        this.resizeState = null;
+        return;
+      }
+      const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+      const next = this.calculateResizeBounds(bounds, this.resizeState, event.global);
+      handlers?.onTransformEnd?.(this.resizeState.id, {
+        x: next.x,
+          y: next.y,
+          width: next.width,
+          height: next.height,
+          rotation: this.resizeState.rotation
+        });
       });
-      handle.on("pointerup", (event) => {
+      const endResize = (event: { global: Point }) => {
         if (!this.resizeState || this.resizeState.handle !== position.handle) {
           return;
         }
@@ -429,7 +438,9 @@ export default class PixiRenderer implements CanvasRenderer {
           rotation: this.resizeState.rotation
         });
         this.resizeState = null;
-      });
+      };
+      handle.on("pointerup", endResize);
+      handle.on("pointerupoutside", endResize);
       this.selectionHandles?.addChild(handle);
     });
     const rotationHandle = new Graphics()
@@ -440,15 +451,14 @@ export default class PixiRenderer implements CanvasRenderer {
     rotationHandle.cursor = "crosshair";
     rotationHandle.on("pointerdown", (event) => {
       event.stopPropagation();
+      const rotation = this.data?.elements.find((el) => el.id === Array.from(this.selection)[0])?.rotation ?? 0;
+      const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
       this.resizeState = {
         id: Array.from(this.selection)[0],
         handle: "n",
         startBounds: bounds.clone(),
         startPointer: { x: event.global.x, y: event.global.y },
-        rotation: this.getRotationAngle(
-          { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 },
-          event.global
-        )
+        rotation: rotation + this.getRotationAngle(center, event.global)
       };
     });
     rotationHandle.on("pointermove", (event) => {
@@ -548,6 +558,7 @@ export default class PixiRenderer implements CanvasRenderer {
     }
     this.root.position.set(this.pan.x, this.pan.y);
     this.root.scale.set(this.zoom);
+    this.root.pivot.set(0, 0);
   }
 
   private createElementNode(element: LayoutElement): Container | Graphics | Sprite | Text | null {
@@ -580,6 +591,10 @@ export default class PixiRenderer implements CanvasRenderer {
           if (!this.dragState || this.dragState.id !== element.id) {
             return;
           }
+          if (!(event.buttons & 1)) {
+            this.dragState = null;
+            return;
+          }
           const dx = (event.global.x - this.dragState.start.x) / this.zoom;
           const dy = (event.global.y - this.dragState.start.y) / this.zoom;
           const nextX = this.dragState.startElement.x + dx;
@@ -594,6 +609,20 @@ export default class PixiRenderer implements CanvasRenderer {
           );
         });
         rect.on("pointerup", (event) => {
+          if (this.dragState?.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragEnd?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy
+          );
+          this.dragState = null;
+        });
+        rect.on("pointerupoutside", (event) => {
           if (this.dragState?.id !== element.id) {
             return;
           }
@@ -637,6 +666,10 @@ export default class PixiRenderer implements CanvasRenderer {
           if (!this.dragState || this.dragState.id !== element.id) {
             return;
           }
+          if (!(event.buttons & 1)) {
+            this.dragState = null;
+            return;
+          }
           const dx = (event.global.x - this.dragState.start.x) / this.zoom;
           const dy = (event.global.y - this.dragState.start.y) / this.zoom;
           const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
@@ -649,6 +682,20 @@ export default class PixiRenderer implements CanvasRenderer {
           );
         });
         ellipse.on("pointerup", (event) => {
+          if (this.dragState?.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragEnd?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy
+          );
+          this.dragState = null;
+        });
+        ellipse.on("pointerupoutside", (event) => {
           if (this.dragState?.id !== element.id) {
             return;
           }
@@ -693,6 +740,10 @@ export default class PixiRenderer implements CanvasRenderer {
           if (!this.dragState || this.dragState.id !== element.id) {
             return;
           }
+          if (!(event.buttons & 1)) {
+            this.dragState = null;
+            return;
+          }
           const dx = (event.global.x - this.dragState.start.x) / this.zoom;
           const dy = (event.global.y - this.dragState.start.y) / this.zoom;
           const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
@@ -705,6 +756,20 @@ export default class PixiRenderer implements CanvasRenderer {
           );
         });
         line.on("pointerup", (event) => {
+          if (this.dragState?.id !== element.id) {
+            return;
+          }
+          const dx = (event.global.x - this.dragState.start.x) / this.zoom;
+          const dy = (event.global.y - this.dragState.start.y) / this.zoom;
+          const handlers = this.interactionProvider ? this.interactionProvider() : this.interactionHandlers;
+          handlers?.onDragEnd?.(
+            element.id,
+            this.dragState.startElement.x + dx,
+            this.dragState.startElement.y + dy
+          );
+          this.dragState = null;
+        });
+        line.on("pointerupoutside", (event) => {
           if (this.dragState?.id !== element.id) {
             return;
           }

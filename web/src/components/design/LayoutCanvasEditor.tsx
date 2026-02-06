@@ -189,6 +189,7 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+  const hasCenteredRef = useRef(false);
   const isPanningRef = useRef(false);
   const isSpacePressedRef = useRef(false);
 
@@ -478,6 +479,17 @@ const LayoutCanvasEditor: React.FC<LayoutCanvasEditorProps> = ({
       pixiRendererRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (hasCenteredRef.current || !pixiContainerRef.current) {
+      return;
+    }
+    const rect = pixiContainerRef.current.getBoundingClientRect();
+    const centerX = (rect.width - canvasData.width * zoom) / 2;
+    const centerY = (rect.height - canvasData.height * zoom) / 2;
+    setStagePosition({ x: centerX, y: centerY });
+    hasCenteredRef.current = true;
+  }, [canvasData.height, canvasData.width, zoom]);
 
   const interactionHandlersRef = useRef<PixiInteractionHandlers>({});
 
