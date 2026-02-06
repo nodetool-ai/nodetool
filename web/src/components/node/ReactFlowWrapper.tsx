@@ -204,22 +204,6 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     wasConnectingRef.current = connecting;
   }, [connecting, nodes, updateNodeInternals]);
 
-  // When edges are added or removed (delete, reconnect, etc.),
-  // wait one frame then recalculate handle positions for affected nodes.
-  const prevEdgeCountRef = useRef(edges.length);
-  useEffect(() => {
-    if (prevEdgeCountRef.current !== edges.length) {
-      prevEdgeCountRef.current = edges.length;
-      const rafId = requestAnimationFrame(() => {
-        const nodeIds = nodes.map((n) => n.id);
-        if (nodeIds.length > 0) {
-          updateNodeInternals(nodeIds);
-        }
-      });
-      return () => cancelAnimationFrame(rafId);
-    }
-  }, [edges.length, nodes, updateNodeInternals]);
-
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
 
