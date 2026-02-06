@@ -351,21 +351,29 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
     setExpanded(!expanded);
   }, [expanded]);
 
+  // Memoize formatted tool args to avoid repeated JSON parsing on every render
+  const formattedArgs = useMemo(() => {
+    return toolCalls.map(tc => ({
+      id: tc.id,
+      args: tc.args ? formatToolArgs(tc.args) : ""
+    }));
+  }, [toolCalls]);
+
   if (!toolCalls || toolCalls.length === 0) {return null;}
 
   return (
     <div className="tool-calls-container">
-      <div 
+      <div
         className="tool-calls-header"
         onClick={handleToggleExpanded}
       >
         <div className="tool-calls-title">
-          <KeyboardArrowDownIcon 
-            sx={{ 
-              fontSize: 16, 
+          <KeyboardArrowDownIcon
+            sx={{
+              fontSize: 16,
               transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 0.2s"
-            }} 
+            }}
           />
           Tool Activity
           <span className="tool-calls-count">{toolCalls.length}</span>
@@ -373,7 +381,7 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
       </div>
       <Collapse in={expanded}>
         <div className="tool-calls-list">
-          {toolCalls.map((tc) => (
+          {toolCalls.map((tc, index) => (
             <div key={tc.id} className="tool-call-item">
               <div className="tool-call-header-row">
                 <div className={`tool-call-status-dot ${tc.status || (tc.message ? "running" : "completed")}`} />
@@ -385,7 +393,7 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
                    {tc.args && Object.keys(tc.args).length > 0 && (
                      <details style={{ marginTop: "4px" }}>
                        <summary style={{ fontSize: "0.65rem", color: theme.vars.palette.text.secondary, cursor: "pointer" }}>Arguments</summary>
-                       <pre className="tool-args">{formatToolArgs(tc.args)}</pre>
+                       <pre className="tool-args">{formattedArgs[index]?.args}</pre>
                      </details>
                   )}
                 </div>
