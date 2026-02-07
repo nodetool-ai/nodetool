@@ -13,7 +13,7 @@ export const numberInputStyles = (theme: Theme) =>
       cursor: "ew-resize !important",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.light,
       marginBottom: "10px"
     },
 
