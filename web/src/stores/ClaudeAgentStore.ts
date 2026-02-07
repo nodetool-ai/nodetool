@@ -91,7 +91,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
     try {
       set({ status: "connecting", error: null });
 
-      const sessionId = await window.api.claudeAgent.createSession({
+      const sessionId = await window.api.claudeAgent!.createSession({
         model
       });
 
@@ -140,14 +140,14 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       let currentSessionId = sessionId;
       if (!currentSessionId) {
         const { model } = get();
-        currentSessionId = await window.api.claudeAgent.createSession({
+        currentSessionId = await window.api.claudeAgent!.createSession({
           model
         });
         set({ sessionId: currentSessionId });
       }
 
       // Send message and receive streamed response via IPC
-      const response = await window.api.claudeAgent.sendMessage(
+      const response = await window.api.claudeAgent!.sendMessage(
         currentSessionId,
         text
       );
@@ -156,7 +156,9 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       const newMessages: Message[] = [];
       if (Array.isArray(response)) {
         for (const sdkMsg of response) {
-          const converted = claudeAgentMessageToNodeToolMessage(sdkMsg);
+          const converted = claudeAgentMessageToNodeToolMessage(
+            sdkMsg as Parameters<typeof claudeAgentMessageToNodeToolMessage>[0]
+          );
           if (converted) {
             newMessages.push(converted);
           }
@@ -178,7 +180,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
   stopGeneration: () => {
     const { sessionId } = get();
     if (sessionId && isClaudeAgentAvailable()) {
-      window.api.claudeAgent.closeSession(sessionId).catch((err: unknown) => {
+      window.api.claudeAgent!.closeSession(sessionId).catch((err: unknown) => {
         console.error("Failed to close Claude Agent session:", err);
       });
     }
@@ -188,7 +190,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
   newChat: () => {
     const { sessionId } = get();
     if (sessionId && isClaudeAgentAvailable()) {
-      window.api.claudeAgent.closeSession(sessionId).catch((err: unknown) => {
+      window.api.claudeAgent!.closeSession(sessionId).catch((err: unknown) => {
         console.error("Failed to close Claude Agent session:", err);
       });
     }
