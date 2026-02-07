@@ -4,8 +4,18 @@
  * app backend to avoid CORS; backend returns dynamic_properties and dynamic_outputs.
  */
 
+export interface DynamicInputMetadata {
+  type: string;
+  type_args?: unknown[];
+  optional?: boolean;
+  description?: string;
+  values?: (string | number)[] | null;
+  type_name?: string | null;
+}
+
 export interface ResolvedFalSchema {
   dynamic_properties: Record<string, unknown>;
+  dynamic_inputs?: Record<string, DynamicInputMetadata>;
   dynamic_outputs: Record<
     string,
     { type: string; type_args?: unknown[]; optional?: boolean }
@@ -244,6 +254,7 @@ export async function resolveFalSchemaClient(
   const data = (await res.json()) as {
     endpoint_id?: string;
     dynamic_properties: Record<string, unknown>;
+    dynamic_inputs?: Record<string, DynamicInputMetadata>;
     dynamic_outputs: Record<
       string,
       { type: string; type_args?: unknown[]; optional?: boolean }
@@ -251,6 +262,7 @@ export async function resolveFalSchemaClient(
   };
   return {
     dynamic_properties: data.dynamic_properties ?? {},
+    dynamic_inputs: data.dynamic_inputs ?? {},
     dynamic_outputs: data.dynamic_outputs ?? {},
     endpoint_id: data.endpoint_id
   };

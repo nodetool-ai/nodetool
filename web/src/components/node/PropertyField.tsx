@@ -4,6 +4,7 @@ import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
+import PropertyLabel from "./PropertyLabel";
 import { Slugify, isCollectType } from "../../utils/TypeHandler";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -129,7 +130,23 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           />
         </>
       ) : (
-        <div className="property-spacer" style={{ height: "20px" }} />
+        <div
+          className="property-spacer"
+          style={{
+            marginLeft: 20,
+            minHeight: 20,
+            display: "flex",
+            alignItems: "center"
+          }}
+        >
+          <PropertyLabel
+            id={id}
+            name={property.name}
+            description={property.description ?? undefined}
+            isDynamicProperty={isDynamicProperty ?? false}
+            density="compact"
+          />
+        </div>
       )}
     </div>
   );

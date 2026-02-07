@@ -140,7 +140,7 @@ export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
   },
   {
     key: "fal-dynamic",
-    label: "FAL Dynamic",
+    label: "FalAI",
     nodeType: DYNAMIC_FAL_NODE_TYPE,
     icon: <ApiIcon />,
     gradient:

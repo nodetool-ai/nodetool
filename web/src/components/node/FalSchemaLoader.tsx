@@ -6,7 +6,7 @@ import { TypeMetadata } from "../../stores/ApiTypes";
 import { resolveFalSchemaClient } from "../../utils/falDynamicSchema";
 import { NodeData } from "../../stores/NodeData";
 
-export const DYNAMIC_FAL_NODE_TYPE = "fal.dynamic_schema.DynamicFalSchema";
+export const DYNAMIC_FAL_NODE_TYPE = "fal.dynamic_schema.FalAI";
 
 interface FalSchemaLoaderProps {
   nodeId: string;
@@ -14,7 +14,7 @@ interface FalSchemaLoaderProps {
 }
 
 /**
- * FAL-specific control: "Load schema" button for DynamicFalSchema nodes.
+ * FAL-specific control: "Load schema" button for FalAI nodes.
  * Resolves schema via backend and updates node dynamic_properties / dynamic_outputs.
  */
 export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
@@ -27,7 +27,9 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
 
   const handleLoad = useCallback(async () => {
     const modelInfo =
-      (data.properties?.model_info as string) ?? (data as NodeData & { model_info?: string }).model_info ?? "";
+      (data.properties?.model_info as string) ??
+      (data as NodeData & { model_info?: string }).model_info ??
+      "";
     if (!modelInfo.trim()) {
       setError(
         "Paste OpenAPI JSON, llms.txt, a fal.ai URL, or an endpoint id first."
@@ -55,17 +57,43 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
           ...(meta.type_name != null && { type_name: meta.type_name })
         } as TypeMetadata;
       }
+      const dynamic_inputs: Record<
+        string,
+        TypeMetadata & { description?: string }
+      > = {};
+      for (const [k, v] of Object.entries(resolved.dynamic_inputs ?? {})) {
+        const meta = v as {
+          type: string;
+          optional?: boolean;
+          type_args?: unknown[];
+          description?: string;
+          values?: (string | number)[] | null;
+          type_name?: string | null;
+          min?: number;
+          max?: number;
+        };
+        dynamic_inputs[k] = {
+          type: meta.type,
+          optional: meta.optional ?? false,
+          type_args: Array.isArray(meta.type_args) ? meta.type_args : [],
+          ...(meta.description != null && { description: meta.description }),
+          ...(meta.values != null && { values: meta.values }),
+          ...(meta.type_name != null && { type_name: meta.type_name }),
+          ...(typeof meta.min === "number" && { min: meta.min }),
+          ...(typeof meta.max === "number" && { max: meta.max })
+        };
+      }
       updateNodeData(nodeId, {
         dynamic_properties: resolved.dynamic_properties,
+        dynamic_inputs:
+          Object.keys(dynamic_inputs).length > 0 ? dynamic_inputs : undefined,
         dynamic_outputs,
         ...(resolved.endpoint_id != null && {
           endpoint_id: resolved.endpoint_id
         })
       });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load schema"
-      );
+      setError(err instanceof Error ? err.message : "Failed to load schema");
     } finally {
       setLoading(false);
     }

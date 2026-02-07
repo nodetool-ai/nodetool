@@ -3,8 +3,6 @@ import { Box, Typography } from "@mui/material";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
-import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
-import NodePropertyForm from "../NodePropertyForm";
 import { FalSchemaLoader } from "../FalSchemaLoader";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
@@ -29,7 +27,7 @@ export interface DynamicFalSchemaContentProps {
 }
 
 /**
- * Custom content for the FAL Dynamic Schema node.
+ * Custom content for the FalAI node.
  * Keeps all FAL-specific UI in one place: Load schema, inputs/outputs,
  * and space for future FAL extras (credits, docs link, etc.).
  */
@@ -50,11 +48,6 @@ export const DynamicFalSchemaContent: React.FC<
   workflowId,
   onShowInputs
 }) => {
-  const { handleAddProperty } = useDynamicProperty(
-    id,
-    data.dynamic_properties as Record<string, unknown>
-  );
-
   return (
     <Box
       sx={{
@@ -67,40 +60,67 @@ export const DynamicFalSchemaContent: React.FC<
       }}
     >
       <FalSchemaLoader nodeId={id} data={data} />
-      <NodeInputs
-        id={id}
-        nodeMetadata={nodeMetadata}
-        layout={nodeMetadata.layout}
-        properties={nodeMetadata.properties}
-        nodeType={nodeType}
-        data={data}
-        showHandle={!isConstantNode}
-        hasAdvancedFields={hasAdvancedFields}
-        showAdvancedFields={showAdvancedFields}
-        basicFields={basicFields}
-        onToggleAdvancedFields={onToggleAdvancedFields}
-      />
-      {(nodeMetadata?.is_dynamic || nodeMetadata?.supports_dynamic_outputs) && (
-        <NodePropertyForm
+      <Box
+        className="dynamic-fal-schema-inputs"
+        sx={{
+          flex: "1 1 auto",
+          minHeight: 80,
+          overflow: "auto",
+          display: "flex",
+          flexDirection: "column",
+          paddingLeft: "24px",
+          // Force properties, labels and handles visible (they can be hidden by zoom/other CSS)
+          visibility: "visible",
+          "& .node-inputs": {
+            visibility: "visible"
+          },
+          "& .node-property": {
+            visibility: "visible",
+            opacity: 1
+          },
+          "& .node-property .react-flow__handle": {
+            visibility: "visible",
+            opacity: 1
+          },
+          "& .node-property .property-label": {
+            visibility: "visible",
+            opacity: 1
+          },
+          "& .node-property .property-label label": {
+            visibility: "visible",
+            opacity: 1,
+            color: "var(--palette-text-secondary, inherit)"
+          }
+        }}
+      >
+        <NodeInputs
           id={id}
-          isDynamic={nodeMetadata.is_dynamic}
-          supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
-          dynamicOutputs={data.dynamic_outputs || {}}
-          onAddProperty={handleAddProperty}
+          nodeMetadata={nodeMetadata}
+          layout={nodeMetadata.layout}
+          properties={nodeMetadata.properties}
           nodeType={nodeType}
+          data={data}
+          showHandle={!isConstantNode}
+          hasAdvancedFields={hasAdvancedFields}
+          showAdvancedFields={showAdvancedFields}
+          basicFields={basicFields}
+          onToggleAdvancedFields={onToggleAdvancedFields}
         />
-      )}
+      </Box>
       {!isOutputNode && (
-        <NodeOutputs
-          id={id}
-          outputs={nodeMetadata.outputs}
-          isStreamingOutput={nodeMetadata.is_streaming_output}
-        />
+        <Box sx={{ flexShrink: 0 }}>
+          <NodeOutputs
+            id={id}
+            outputs={nodeMetadata.outputs}
+            isStreamingOutput={nodeMetadata.is_streaming_output}
+          />
+        </Box>
       )}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
-      {/* FAL-specific footer: credits, docs, etc. – extend here later */}
+      {/* FAL-specific footer: credits, model name when loaded */}
       <Box
         sx={{
+          flexShrink: 0,
           mt: 0.5,
           px: 1,
           py: 0.25,
@@ -109,7 +129,8 @@ export const DynamicFalSchemaContent: React.FC<
         }}
       >
         <Typography variant="caption" color="text.secondary">
-          fal.ai · Dynamic endpoint
+          fal.ai
+          {data.endpoint_id && <> · {data.endpoint_id}</>}
         </Typography>
       </Box>
     </Box>

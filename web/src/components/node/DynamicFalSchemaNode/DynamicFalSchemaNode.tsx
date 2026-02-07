@@ -48,7 +48,7 @@ const Toolbar = memo(function Toolbar({
 const FAL_HEADER_COLOR = "#8B5CF6";
 
 /**
- * Dedicated React Flow node for fal.dynamic_schema.DynamicFalSchema.
+ * Dedicated React Flow node for fal.dynamic_schema.FalAI.
  * Full control over layout, styling, and future FAL-specific UI (credits, docs).
  */
 const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
@@ -99,8 +99,14 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [type]
   );
 
+  const headerTitle = useMemo(() => {
+    const base = metadata.title || "Fal AI";
+    return data.endpoint_id ? `${base} · ${data.endpoint_id}` : base;
+  }, [metadata.title, data.endpoint_id]);
+
   return (
     <Container
+      className="dynamic-fal-schema-node"
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -128,7 +134,7 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         selected={selected}
         data={data}
         backgroundColor={FAL_HEADER_COLOR}
-        metadataTitle={metadata.title}
+        metadataTitle={headerTitle}
         hasParent={hasParent}
         iconType={metadata?.outputs?.[0]?.type?.type}
         iconBaseColor={FAL_HEADER_COLOR}
@@ -149,9 +155,11 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         className="node-content-container"
         sx={{
           flex: "1 1 auto",
-          minHeight: 0,
+          minHeight: 120,
           width: "100%",
           overflow: "visible",
+          display: "flex",
+          flexDirection: "column",
           clipPath: "inset(0 -20px)"
         }}
       >
