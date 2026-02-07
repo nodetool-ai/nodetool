@@ -23,6 +23,7 @@ interface RenderNodesProps {
   showFavoriteButton?: boolean;
 }
 
+// Stable utility functions - defined outside component to avoid recreation
 const groupNodes = (nodes: NodeMetadata[]) => {
   const groups: { [key: string]: NodeMetadata[] } = {};
   nodes.forEach((node) => {
@@ -80,6 +81,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     selectedPath: state.selectedPath.join(".")
   }));
 
+  // Memoize grouped nodes to prevent recalculation on every render
+  const groupedNodes = useMemo(() => {
+    return groupNodes(nodes);
+  }, [nodes]);
+
   const searchNodes = useMemo(() => {
     if (searchTerm && groupedSearchResults.length > 0) {
       return groupedSearchResults.flatMap((group) => group.nodes);
@@ -115,9 +121,8 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
     // Otherwise use the original namespace-based grouping
     const seenServices = new Set<string>();
-    const grouped = groupNodes(nodes);
 
-    return Object.entries(grouped).flatMap(
+    return Object.entries(groupedNodes).flatMap(
       ([namespace, nodesInNamespace], namespaceIndex) => {
         const service = getServiceFromNamespace(namespace);
         const isFirstNamespaceForService = !seenServices.has(service);
@@ -178,7 +183,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     );
   }, [
     searchTerm,
-    nodes,
+    groupedNodes,
     groupedSearchResults,
     selectedPath,
     handleDragStart,
