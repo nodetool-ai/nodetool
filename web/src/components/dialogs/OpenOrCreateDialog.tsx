@@ -14,7 +14,8 @@ import {
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
-  Typography
+  Typography,
+  ToggleButtonGroupProps
 } from "@mui/material";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { prettyDate, relativeTime } from "../../utils/formatDateAndTime";
@@ -225,14 +226,13 @@ const OpenOrCreateDialog = () => {
 
   const onClickWorkflow = useCallback(
     (workflow: Workflow) => {
-      // setShouldAutoLayout(true);
       navigate("/editor/" + workflow.id);
     },
     [navigate]
   );
 
   // ORDER
-  const handleOrderChange = (_: any, newOrder: any) => {
+  const handleOrderChange: ToggleButtonGroupProps["onChange"] = (_event, newOrder) => {
     if (newOrder !== null) {
       setWorkflowOrder(newOrder);
     }
@@ -250,10 +250,8 @@ const OpenOrCreateDialog = () => {
     [data?.workflows, settings.workflowOrder]
   );
 
-  // (a, b) =>
-  //   new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   // List view
-  const renderListView = (workflows: any) => (
+  const renderListView = (workflows: Workflow[]) => (
     <Box className="container list" css={listStyles(theme)}>
       {workflows.map((workflow: Workflow, index: number) => (
         <Box
@@ -361,7 +359,7 @@ const OpenOrCreateDialog = () => {
                 <Typography>{error?.message}</Typography>
               </ErrorOutlineRounded>
             )}
-            {data && renderListView(sortedWorkflows)}
+            {data && sortedWorkflows && renderListView(sortedWorkflows)}
           </div>
         </div>
       </DialogContent>
