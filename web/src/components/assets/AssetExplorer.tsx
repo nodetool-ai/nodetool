@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const AssetExplorer: React.FC = () => {
+const AssetExplorer: React.FC = memo(() => {
   const theme = useTheme();
   const { folderFiles } = useAssets();
   const _navigate = useNavigate();
@@ -133,6 +133,8 @@ const AssetExplorer: React.FC = () => {
       </Box>
     </Box>
   );
-};
+});
+
+AssetExplorer.displayName = 'AssetExplorer';
 
 export default memo(AssetExplorer);

@@ -151,9 +151,10 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
 
-  // Optimization: Select only edges connected to this node
+  // Select only edges connected to this node - stable selector function
+  // Using useMemo instead of useCallback to create stable selector
   const connectedEdges = useNodes(
-    useCallback((state) => state.edges.filter(e => e.target === id), [id])
+    useMemo(() => (state) => state.edges.filter(e => e.target === id), [id])
   );
 
   const findNode = useNodes((state) => state.findNode);

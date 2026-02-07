@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -74,7 +75,7 @@ interface AssetGridContentProps {
   onDoubleClick?: (asset: Asset) => void;
 }
 
-const AssetGridContent: React.FC<AssetGridContentProps> = ({
+const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   itemSpacing = 2,
   assets: propAssets,
   isHorizontal,
@@ -386,7 +387,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = ({
       </div>
     </div>
   );
-};
+});
+
+AssetGridContent.displayName = 'AssetGridContent';
 
 // Memoize component to prevent unnecessary re-renders
 // AssetGridContent is used in contexts where parent updates frequently
