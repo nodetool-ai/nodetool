@@ -657,11 +657,14 @@ const TextEditorModal = ({
       if (isCodeEditor && monacoRef.current) {
         const editor = monacoRef.current;
         const selection = editor.getSelection();
-        const range = selection || editor.getModel().getFullModelRange();
-        editor.executeEdits("insert-from-chat", [
-          { range, text, forceMoveMarkers: true }
-        ]);
-        editor.focus();
+        const model = editor.getModel();
+        if (model) {
+          const range = selection || model.getFullModelRange();
+          editor.executeEdits("insert-from-chat", [
+            { range, text, forceMoveMarkers: true }
+          ]);
+          editor.focus();
+        }
       } else {
         insertIntoLexical(text);
       }

@@ -24,6 +24,3 @@ export * from "./types";
 
 // Utils
 export * from "./utils";
-
-// Styles
-export * from "./styles";
