@@ -74,21 +74,30 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isFullscreenAssets
 }) => {
   const { error, folderFilesFiltered } = useAssets();
-  const openAsset = useAssetGridStore((state) => state.openAsset);
-  const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
-  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
-  const selectedFolderId = useAssetGridStore((state) => state.selectedFolderId);
-  const setSelectedAssetIds = useAssetGridStore(
-    (state) => state.setSelectedAssetIds
+  const {
+    openAsset,
+    setOpenAsset,
+    selectedAssetIds,
+    selectedFolderId,
+    setSelectedAssetIds,
+    setRenameDialogOpen,
+    currentAudioAsset,
+    currentFolderId,
+    currentFolder
+  } = useAssetGridStore(
+    (state) => ({
+      openAsset: state.openAsset,
+      setOpenAsset: state.setOpenAsset,
+      selectedAssetIds: state.selectedAssetIds,
+      selectedFolderId: state.selectedFolderId,
+      setSelectedAssetIds: state.setSelectedAssetIds,
+      setRenameDialogOpen: state.setRenameDialogOpen,
+      currentAudioAsset: state.currentAudioAsset,
+      currentFolderId: state.currentFolderId,
+      currentFolder: state.currentFolder
+    }),
+    shallow
   );
-  const setRenameDialogOpen = useAssetGridStore(
-    (state) => state.setRenameDialogOpen
-  );
-  const currentAudioAsset = useAssetGridStore(
-    (state) => state.currentAudioAsset
-  );
-  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
-  const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();
