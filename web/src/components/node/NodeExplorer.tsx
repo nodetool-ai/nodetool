@@ -250,24 +250,33 @@ const NodeExplorer: React.FC = () => {
   }, []);
 
   const handleNodeClick = useCallback(
-    (nodeId: string) => {
-      handleNodeFocus(nodeId);
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeId = event.currentTarget.dataset.nodeId;
+      if (nodeId) {
+        handleNodeFocus(nodeId);
+      }
     },
     [handleNodeFocus]
   );
 
-  const handleNodeClickWrapper = useCallback(
-    (entryNodeId: string) => () => {
-      handleNodeClick(entryNodeId);
-    },
-    [handleNodeClick]
-  );
-
   const handleEditButtonClick = useCallback(
-    (nodeId: string) => () => {
-      handleNodeEdit(nodeId);
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      const nodeId = event.currentTarget.dataset.nodeId;
+      if (nodeId) {
+        handleNodeEdit(nodeId);
+      }
     },
     [handleNodeEdit]
+  );
+
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeId = event.currentTarget.dataset.nodeId;
+      if (nodeId) {
+        handleNodeContextMenu(event, nodeId);
+      }
+    },
+    [handleNodeContextMenu]
   );
 
   return (
@@ -316,10 +325,9 @@ const NodeExplorer: React.FC = () => {
             <ListItem key={entry.node.id} className="node-item" disablePadding>
               <ListItemButton
                 className="node-body"
-                onClick={handleNodeClickWrapper(entry.node.id)}
-                onContextMenu={(event) => {
-                  handleNodeContextMenu(event, entry.node.id);
-                }}
+                data-node-id={entry.node.id}
+                onClick={handleNodeClick}
+                onContextMenu={handleContextMenu}
               >
                 <div className="node-text">
                   <Typography className="node-title" variant="body1">
@@ -336,7 +344,8 @@ const NodeExplorer: React.FC = () => {
                 className="node-edit-button"
                 size="small"
                 aria-label="Edit node"
-                onClick={handleEditButtonClick(entry.node.id)}
+                data-node-id={entry.node.id}
+                onClick={handleEditButtonClick}
               >
                 <NorthEastIcon fontSize="small" />
               </Button>

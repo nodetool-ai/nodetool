@@ -415,9 +415,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       return;
     }
 
-    const selectedIds = new Set(
-      nodes.filter((node) => node.selected).map((node) => node.id)
-    );
+    const selectedIds = new Set<string>();
+    for (const node of nodes) {
+      if (node.selected) {
+        selectedIds.add(node.id);
+      }
+    }
 
     const selectionUpdates: Record<string, boolean> = {};
 
