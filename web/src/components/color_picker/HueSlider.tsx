@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { hsbToRgb, rgbToHex } from "../../utils/colorConversion";
@@ -40,11 +40,11 @@ interface HueSliderProps {
   orientation?: "horizontal" | "vertical";
 }
 
-const HueSlider: React.FC<HueSliderProps> = ({
+const HueSlider = memo(function HueSlider({
   hue,
   onChange,
   orientation = "horizontal"
-}) => {
+}: HueSliderProps) {
   const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -214,6 +214,6 @@ const HueSlider: React.FC<HueSliderProps> = ({
       <div className="hue-cursor" style={cursorStyle} />
     </div>
   );
-};
+});
 
 export default HueSlider;

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { hsbToRgb, rgbToHex } from "../../utils/colorConversion";
@@ -40,12 +40,12 @@ interface SaturationPickerProps {
   onChange: (saturation: number, brightness: number) => void;
 }
 
-const SaturationPicker: React.FC<SaturationPickerProps> = ({
+const SaturationPicker = memo(function SaturationPicker({
   hue,
   saturation,
   brightness,
   onChange
-}) => {
+}: SaturationPickerProps) {
   const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -220,6 +220,6 @@ const SaturationPicker: React.FC<SaturationPickerProps> = ({
       />
     </div>
   );
-};
+});
 
 export default SaturationPicker;

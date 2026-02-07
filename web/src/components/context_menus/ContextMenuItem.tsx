@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { ReactElement, ReactNode } from "react";
+import React, { ReactElement, ReactNode, memo } from "react";
 import { Tooltip, MenuItem } from "@mui/material";
 import { EditorButton } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -87,14 +87,14 @@ const styles = (theme: Theme) =>
     }
   });
 
-const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
+const ContextMenuItem = memo(function ContextMenuItem({
   onClick,
   label,
   IconComponent,
   tooltip,
   addButtonClassName,
   controlElement
-}) => {
+}: ContextMenuItemProps) {
   const theme = useTheme();
   return (
     <div className="context-menu-item" css={styles(theme)}>
@@ -139,6 +139,6 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default ContextMenuItem;
