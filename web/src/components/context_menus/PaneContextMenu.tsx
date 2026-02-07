@@ -96,7 +96,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   );
 
   const addFavoriteNode = useCallback(
-    (nodeType: string, event: React.MouseEvent | undefined) => {
+    (nodeType: string) => (event: React.MouseEvent | undefined) => {
       if (!event) {
         return;
       }
@@ -188,7 +188,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
   );
 
   const handleCreateNode = useCallback(
-    (nodeType: string | null, event?: React.MouseEvent) => {
+    (nodeType: string | null) => (event?: React.MouseEvent) => {
       if (!event || !nodeType) {
         return;
       }
@@ -359,7 +359,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
             return (
               <ContextMenuItem
                 key={favorite.nodeType}
-                onClick={addFavoriteNode.bind(null, favorite.nodeType)}
+                onClick={addFavoriteNode(favorite.nodeType)}
                 label={displayName}
                 IconComponent={
                   <StarIcon
@@ -439,7 +439,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           return (
             <ContextMenuItem
               key={nodeType}
-              onClick={handleCreateNode.bind(null, nodeType)}
+              onClick={handleCreateNode(nodeType)}
               label={option.label}
             />
           );
@@ -472,7 +472,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           return (
             <ContextMenuItem
               key={nodeType}
-              onClick={handleCreateNode.bind(null, nodeType)}
+              onClick={handleCreateNode(nodeType)}
               label={option.label}
             />
           );

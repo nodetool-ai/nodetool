@@ -132,6 +132,10 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
     handleExampleClick(example);
   }, [handleExampleClick]);
 
+  const createExampleClickHandler = useCallback((example: Workflow) => {
+    return () => onExampleClick(example);
+  }, [onExampleClick]);
+
   return (
     <Box className="templates-panel" css={styles(theme)}>
       <Box className="panel-header">
@@ -158,7 +162,7 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
               <Box
                 key={example.id}
                 className="example-card"
-                onClick={onExampleClick.bind(null, example)}
+                onClick={createExampleClickHandler(example)}
               >
                 {loadingExampleId === example.id && (
                   <Box className="loading-overlay">

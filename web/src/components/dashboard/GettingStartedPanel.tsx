@@ -430,11 +430,10 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   }, [secrets]);
 
   // Getting started progress from store (persisted in localStorage)
-  const {
-    progress,
-    setHasCreatedWorkflow,
-    setHasTriedTemplate
-  } = useGettingStartedStore();
+  // Use selective selectors to prevent unnecessary re-renders
+  const progress = useGettingStartedStore((state) => state.progress);
+  const setHasCreatedWorkflow = useGettingStartedStore((state) => state.setHasCreatedWorkflow);
+  const setHasTriedTemplate = useGettingStartedStore((state) => state.setHasTriedTemplate);
 
   const hasCreatedWorkflow = progress.hasCreatedWorkflow;
   const hasTriedTemplate = progress.hasTriedTemplate;

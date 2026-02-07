@@ -27,6 +27,10 @@ const ModelTypeSidebar: React.FC = () => {
     [setSelectedModelType]
   );
 
+  const createModelTypeChangeHandler = useCallback((type: string) => {
+    return () => onModelTypeChange(type);
+  }, [onModelTypeChange]);
+
   const getHuggingFaceLink = useCallback((type: string) => {
     if (!type.startsWith("hf.")) {
       return undefined;
@@ -79,7 +83,7 @@ const ModelTypeSidebar: React.FC = () => {
             <ListItemButton
               className={`model-type-button`}
               selected={isSelected}
-              onClick={onModelTypeChange.bind(null, type)}
+              onClick={createModelTypeChangeHandler(type)}
               sx={{
                   borderRadius: "8px",
                   padding: "8px 12px",

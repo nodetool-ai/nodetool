@@ -284,7 +284,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
   );
 
   const handleUnfavoriteClick = useCallback(
-    (nodeType: string, e: ReactMouseEvent) => {
+    (nodeType: string) => (e: ReactMouseEvent) => {
       handleUnfavorite(nodeType, e);
     },
     [handleUnfavorite]
@@ -363,7 +363,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
                 <IconButton
                   size="small"
                   className="unfavorite-btn"
-                  onClick={handleUnfavoriteClick.bind(null, nodeType)}
+                  onClick={handleUnfavoriteClick(nodeType)}
                   aria-label={`Remove ${displayName} from favorites`}
                 >
                   <StarBorderIcon fontSize="small" />

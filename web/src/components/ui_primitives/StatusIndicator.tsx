@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -62,7 +62,7 @@ const statusColors: Record<StatusType, string> = {
   default: "text.secondary"
 };
 
-export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
+const StatusIndicatorInternal: React.FC<StatusIndicatorProps> = ({
   status,
   label,
   showIcon = true,
@@ -131,4 +131,9 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   return content;
 };
 
+const StatusIndicator = memo(StatusIndicatorInternal);
+
+StatusIndicator.displayName = "StatusIndicator";
+
+export { StatusIndicator };
 export default StatusIndicator;
