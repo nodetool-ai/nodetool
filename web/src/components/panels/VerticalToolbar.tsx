@@ -10,6 +10,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import SvgFileIcon from "../SvgFileIcon";
 
 interface VerticalToolbarProps {
@@ -21,7 +22,8 @@ interface VerticalToolbarProps {
     handleVersionsToggle: () => void;
     handleWorkflowToggle: () => void;
     handleWorkflowAssetsToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets";
+    handleNotesToggle: () => void;
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "notes";
     panelVisible: boolean;
 }
 
@@ -34,6 +36,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handleVersionsToggle,
     handleWorkflowToggle,
     handleWorkflowAssetsToggle,
+    handleNotesToggle,
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
@@ -182,6 +185,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
                     }
                 >
                     <FolderSpecialIcon />
+                </IconButton>
+            </Tooltip>
+
+            {/* Notes Button */}
+            <Tooltip
+                title={
+                    <div className="tooltip-span">
+                        <div className="tooltip-title">Workflow Notes</div>
+                        <div className="tooltip-key">
+                            <kbd>N</kbd>
+                        </div>
+                    </div>
+                }
+                placement="left-start"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+                <IconButton
+                    tabIndex={-1}
+                    onClick={handleNotesToggle}
+                    className={
+                        activeView === "notes" && panelVisible
+                            ? "notes active"
+                            : "notes"
+                    }
+                >
+                    <EditNoteIcon />
                 </IconButton>
             </Tooltip>
 

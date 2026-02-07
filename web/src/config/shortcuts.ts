@@ -524,6 +524,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show or hide Operator panel",
     registerCombo: false
   },
+  {
+    title: "Workflow Notes",
+    slug: "toggleNotes",
+    keyCombo: ["N"],
+    category: "panel",
+    description: "Show or hide Workflow Notes panel",
+    registerCombo: true
+  },
   // K is conflicting with CommandMenu shortcut
   // {
   //   title: "Keyboard Shortcuts",
