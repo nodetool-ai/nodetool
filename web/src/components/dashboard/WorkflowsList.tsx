@@ -133,6 +133,46 @@ const styles = (theme: Theme) =>
     }
   });
 
+// Memoized workflow item to prevent unnecessary re-renders
+const WorkflowItem = memo(function WorkflowItem({
+  workflow,
+  onClick
+}: {
+  workflow: Workflow;
+  onClick: (workflow: Workflow) => void;
+}) {
+  const handleClick = useCallback(() => {
+    onClick(workflow);
+  }, [workflow, onClick]);
+
+  return (
+    <Box
+      className="workflow-item"
+      onClick={handleClick}
+    >
+      <Box
+        className="workflow-thumbnail"
+        sx={{
+          backgroundImage: workflow.thumbnail_url
+            ? `url(${workflow.thumbnail_url})`
+            : undefined
+        }}
+      />
+      <Box className="workflow-info">
+        <Typography className="workflow-name">
+          {workflow.name}
+        </Typography>
+        <Typography className="workflow-description">
+          {truncateString(workflow.description, 100)}
+        </Typography>
+      </Box>
+      <Typography className="workflow-date">
+        {relativeTime(workflow.updated_at)}
+      </Typography>
+    </Box>
+  );
+});
+
 const WorkflowsList: React.FC<WorkflowsListProps> = ({
   sortedWorkflows,
   isLoadingWorkflows,
@@ -146,10 +186,6 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   const onWorkflowClick = useCallback((workflow: Workflow) => {
     handleWorkflowClick(workflow);
   }, [handleWorkflowClick]);
-
-  const createWorkflowClickHandler = useCallback((workflow: Workflow) => {
-    return () => onWorkflowClick(workflow);
-  }, [onWorkflowClick]);
 
   return (
     <div className="workflows-list" css={styles(theme)}>
@@ -194,31 +230,11 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
           </Box>
         ) : (
           sortedWorkflows.map((workflow) => (
-            <Box
+            <WorkflowItem
               key={workflow.id}
-              className="workflow-item"
-              onClick={createWorkflowClickHandler(workflow)}
-            >
-              <Box
-                className="workflow-thumbnail"
-                sx={{
-                  backgroundImage: workflow.thumbnail_url
-                    ? `url(${workflow.thumbnail_url})`
-                    : undefined
-                }}
-              />
-              <Box className="workflow-info">
-                <Typography className="workflow-name">
-                  {workflow.name}
-                </Typography>
-                <Typography className="workflow-description">
-                  {truncateString(workflow.description, 100)}
-                </Typography>
-              </Box>
-              <Typography className="workflow-date">
-                {relativeTime(workflow.updated_at)}
-              </Typography>
-            </Box>
+              workflow={workflow}
+              onClick={onWorkflowClick}
+            />
           ))
         )}
       </Box>

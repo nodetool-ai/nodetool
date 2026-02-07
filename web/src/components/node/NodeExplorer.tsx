@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, memo, useState } from "react";
 import {
   Box,
   Button,
@@ -125,6 +125,48 @@ const styles = (theme: Theme) =>
       padding: "1em"
     }
   });
+
+// Memoized node list item to prevent unnecessary re-renders
+const NodeExplorerItem = memo(function NodeExplorerItem({
+  entry,
+  onClick,
+  onContextMenu,
+  onEdit
+}: {
+  entry: ExplorerEntry;
+  onClick: (nodeId: string) => void;
+  onContextMenu: (event: React.MouseEvent, nodeId: string) => void;
+  onEdit: (nodeId: string) => void;
+}) {
+  return (
+    <ListItem key={entry.node.id} className="node-item" disablePadding>
+      <ListItemButton
+        className="node-body"
+        onClick={() => onClick(entry.node.id)}
+        onContextMenu={(event) => onContextMenu(event, entry.node.id)}
+      >
+        <div className="node-text">
+          <Typography className="node-title" variant="body1">
+            {entry.title}
+          </Typography>
+          {entry.subtitle && (
+            <Typography className="node-subtitle" variant="body2">
+              {entry.subtitle}
+            </Typography>
+          )}
+        </div>
+      </ListItemButton>
+      <Button
+        className="node-edit-button"
+        size="small"
+        aria-label="Edit node"
+        onClick={() => onEdit(entry.node.id)}
+      >
+        <NorthEastIcon fontSize="small" />
+      </Button>
+    </ListItem>
+  );
+});
 
 const NodeExplorer: React.FC = () => {
   const theme = useTheme();
@@ -256,20 +298,6 @@ const NodeExplorer: React.FC = () => {
     [handleNodeFocus]
   );
 
-  const handleNodeClickWrapper = useCallback(
-    (entryNodeId: string) => () => {
-      handleNodeClick(entryNodeId);
-    },
-    [handleNodeClick]
-  );
-
-  const handleEditButtonClick = useCallback(
-    (nodeId: string) => () => {
-      handleNodeEdit(nodeId);
-    },
-    [handleNodeEdit]
-  );
-
   return (
     <Box className="node-explorer" css={styles(theme)}>
       <PanelHeadline
@@ -313,34 +341,13 @@ const NodeExplorer: React.FC = () => {
       ) : (
         <List className="node-list" dense disablePadding>
           {entries.map((entry) => (
-            <ListItem key={entry.node.id} className="node-item" disablePadding>
-              <ListItemButton
-                className="node-body"
-                onClick={handleNodeClickWrapper(entry.node.id)}
-                onContextMenu={(event) => {
-                  handleNodeContextMenu(event, entry.node.id);
-                }}
-              >
-                <div className="node-text">
-                  <Typography className="node-title" variant="body1">
-                    {entry.title}
-                  </Typography>
-                  {entry.subtitle && (
-                    <Typography className="node-subtitle" variant="body2">
-                      {entry.subtitle}
-                    </Typography>
-                  )}
-                </div>
-              </ListItemButton>
-              <Button
-                className="node-edit-button"
-                size="small"
-                aria-label="Edit node"
-                onClick={handleEditButtonClick(entry.node.id)}
-              >
-                <NorthEastIcon fontSize="small" />
-              </Button>
-            </ListItem>
+            <NodeExplorerItem
+              key={entry.node.id}
+              entry={entry}
+              onClick={handleNodeClick}
+              onContextMenu={handleNodeContextMenu}
+              onEdit={handleNodeEdit}
+            />
           ))}
         </List>
       )}
