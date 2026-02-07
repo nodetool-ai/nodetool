@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import { Button } from "@mui/material";
 import type { MouseEvent, CSSProperties } from "react";
+import { useMemo } from "react";
 
 type PanelSide = "left" | "right";
 
@@ -52,20 +53,27 @@ export default function PanelResizeButton({
   const minOffsetVisible = 24;
   const collapsedOffset = 12;
 
-  const dynamicStyle =
-    side === "right"
-      ? {
-          padding: isVisible ? "6px" : "2px",
-          right: isVisible
-            ? `${Math.max(panelSize + edgePaddingVisible, minOffsetVisible)}px`
-            : `${collapsedOffset}px`
-        }
-      : {
-          padding: isVisible ? "6px" : "2px",
-          left: isVisible
-            ? `${Math.max(panelSize + edgePaddingVisible, minOffsetVisible)}px`
-            : `${collapsedOffset}px`
-        };
+  const dynamicStyle = useMemo(() => {
+    const baseStyle = {
+      padding: isVisible ? "6px" : "2px"
+    };
+
+    if (side === "right") {
+      return {
+        ...baseStyle,
+        right: isVisible
+          ? `${Math.max(panelSize + edgePaddingVisible, minOffsetVisible)}px`
+          : `${collapsedOffset}px`
+      };
+    } else {
+      return {
+        ...baseStyle,
+        left: isVisible
+          ? `${Math.max(panelSize + edgePaddingVisible, minOffsetVisible)}px`
+          : `${collapsedOffset}px`
+      };
+    }
+  }, [side, isVisible, panelSize, edgePaddingVisible, minOffsetVisible, collapsedOffset]);
 
   return (
     <Button
