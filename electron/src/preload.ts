@@ -616,6 +616,26 @@ const api = {
     openFolder: (options?: DialogOpenFolderRequest) =>
       ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
   },
+
+  // ============================================================================
+  // claudeAgent: Claude Agent SDK operations
+  // ============================================================================
+  claudeAgent: {
+    /** Create a new Claude Agent session */
+    createSession: (options: { model: string }) =>
+      ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_CREATE_SESSION, options),
+
+    /** Send a message to an active Claude Agent session */
+    sendMessage: (sessionId: string, message: string) =>
+      ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_SEND_MESSAGE, {
+        sessionId,
+        message,
+      }),
+
+    /** Close an active Claude Agent session */
+    closeSession: (sessionId: string) =>
+      ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_CLOSE_SESSION, sessionId),
+  },
 };
 
 contextBridge.exposeInMainWorld("api", api);

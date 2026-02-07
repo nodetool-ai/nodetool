@@ -509,6 +509,15 @@ app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   cleanupTrayEvents();
   closeLogStream();
+
+  // Clean up Claude Agent sessions
+  import("./claudeAgent")
+    .then(({ closeAllClaudeAgentSessions }) => {
+      closeAllClaudeAgentSessions();
+    })
+    .catch(() => {
+      // Best-effort cleanup
+    });
 });
 
 export { mainWindow, isAppQuitting };
