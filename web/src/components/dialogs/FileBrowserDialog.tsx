@@ -207,15 +207,23 @@ function FileBrowserDialog({
 
   // --- Memos (Moved up for usage in effects) ---
 
-  // Filter files
+  // Sort files: Folders first, then files (memoized for performance)
+  const sortedFiles = useMemo(() => {
+    return [...files].sort((a, b) => {
+      if (a.is_dir === b.is_dir) {return a.name.localeCompare(b.name);}
+      return a.is_dir ? -1 : 1;
+    });
+  }, [files]);
+
+  // Filter files (after sorting)
   const filteredFiles = useMemo(() => {
-    if (!searchQuery) {return files;}
+    if (!searchQuery) {return sortedFiles;}
     // Optimization: Convert search query to lowercase once
     const searchQueryLower = searchQuery.toLowerCase();
-    return files.filter((f) =>
+    return sortedFiles.filter((f) =>
       f.name.toLowerCase().includes(searchQueryLower)
     );
-  }, [files, searchQuery]);
+  }, [sortedFiles, searchQuery]);
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => {
@@ -416,12 +424,7 @@ function FileBrowserDialog({
       setIsLoadingFiles(true);
       try {
         const fileList = await fetchFileList(currentPath);
-        // Sort: Folders first, then files
-        const sorted = fileList.sort((a, b) => {
-          if (a.is_dir === b.is_dir) {return a.name.localeCompare(b.name);}
-          return a.is_dir ? -1 : 1;
-        });
-        setFiles(sorted);
+        setFiles(fileList);
       } catch (err) {
         log.error("Failed to load files", err);
       } finally {

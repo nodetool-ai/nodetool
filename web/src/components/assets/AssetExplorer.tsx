@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { memo } from "react";
 import AssetGrid from "./AssetGrid";
 import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const AssetExplorer: React.FC = () => {
+const AssetExplorer: React.FC = memo(() => {
   const theme = useTheme();
   const { folderFiles } = useAssets();
   const _navigate = useNavigate();
@@ -133,6 +133,8 @@ const AssetExplorer: React.FC = () => {
       </Box>
     </Box>
   );
-};
+});
+
+AssetExplorer.displayName = 'AssetExplorer';
 
 export default AssetExplorer;

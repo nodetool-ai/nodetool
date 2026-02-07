@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { TextField, InputAdornment, Box } from "@mui/material";
@@ -55,14 +55,14 @@ interface ColorInputsProps {
   onChange: (hex: string, alpha: number) => void;
 }
 
-const ColorInputs: React.FC<ColorInputsProps> = ({
+const ColorInputs: React.FC<ColorInputsProps> = memo(({
   color,
   alpha,
   mode,
   onChange
 }) => {
   const theme = useTheme();
-  
+
   // Use the extracted color conversion hook
   const { state, handlers } = useColorConversion(color, alpha, onChange);
 
@@ -342,6 +342,8 @@ const ColorInputs: React.FC<ColorInputsProps> = ({
   };
 
   return <Box css={styles(theme)}>{renderInputs()}</Box>;
-};
+});
+
+ColorInputs.displayName = 'ColorInputs';
 
 export default ColorInputs;
