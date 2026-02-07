@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { DATA_TYPES } from "../config/data_types";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -84,7 +84,7 @@ type LogoProps = {
   onClick?: () => void;
 };
 
-const Logo = ({
+const Logo = memo(function Logo({
   width,
   height,
   fontSize,
@@ -93,7 +93,7 @@ const Logo = ({
   singleLine,
   enableText = false,
   onClick
-}: LogoProps) => {
+}: LogoProps) {
   const [rdt, setRdt] = useState(randomDatatype());
   const [hoverColor, setHoverColor] = useState(rdt.color);
   const [textColor, setTextColor] = useState(rdt.textColor);
@@ -148,6 +148,6 @@ const Logo = ({
       )}
     </div>
   );
-};
+});
 
 export default Logo;
