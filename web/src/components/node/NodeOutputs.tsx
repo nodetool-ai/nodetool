@@ -17,8 +17,6 @@ import useMetadataStore from "../../stores/MetadataStore";
 import useDynamicOutput from "../../hooks/nodes/useDynamicOutput";
 import { validateIdentifierName } from "../../utils/identifierValidation";
 
-import isEqual from "lodash/isEqual";
-
 export interface NodeOutputsProps {
   id: string;
   outputs: OutputSlot[];
@@ -233,4 +231,21 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
   );
 };
 
-export default memo(NodeOutputs, isEqual);
+// Optimize memo comparison - only compare props that affect rendering
+// Using shallow comparison instead of deep isEqual for better performance
+const arePropsEqual = (prevProps: NodeOutputsProps, nextProps: NodeOutputsProps) => {
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.isStreamingOutput === nextProps.isStreamingOutput &&
+    prevProps.outputs.length === nextProps.outputs.length &&
+    prevProps.outputs.every((output, i) => {
+      const nextOutput = nextProps.outputs[i];
+      return (
+        output.name === nextOutput.name &&
+        output.type === nextOutput.type
+      );
+    })
+  );
+};
+
+export default memo(NodeOutputs, arePropsEqual);

@@ -137,4 +137,4 @@ const AssetExplorer: React.FC = memo(() => {
 
 AssetExplorer.displayName = 'AssetExplorer';
 
-export default AssetExplorer;
+export default memo(AssetExplorer);
