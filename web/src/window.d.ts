@@ -227,6 +227,27 @@ declare global {
           buttonLabel?: string;
         }) => Promise<{ canceled: boolean; filePaths: string[] }>;
       };
+
+      // Claude Agent SDK operations (available in Electron only)
+      claudeAgent?: {
+        createSession: (options: { model: string }) => Promise<string>;
+        sendMessage: (
+          sessionId: string,
+          message: string
+        ) => Promise<
+          Array<{
+            type: string;
+            uuid: string;
+            session_id: string;
+            text?: string;
+            is_error?: boolean;
+            errors?: string[];
+            subtype?: string;
+            content?: Array<{ type: string; text?: string }>;
+          }>
+        >;
+        closeSession: (sessionId: string) => Promise<void>;
+      };
     };
     process: {
       type: string;

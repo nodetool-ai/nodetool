@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, memo } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import ChatView from "../chat/containers/ChatView";
 import useClaudeAgentStore from "../../stores/ClaudeAgentStore";
-import type { Message, MessageContent } from "../../stores/ApiTypes";
+import type { Message } from "../../stores/ApiTypes";
 import PanelHeadline from "../ui/PanelHeadline";
 
 const containerStyles = css({
