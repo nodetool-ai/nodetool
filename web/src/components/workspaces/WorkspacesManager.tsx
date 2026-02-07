@@ -208,6 +208,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     setDeleteConfirmOpen(true);
   }, []);
 
+  const createDeleteWorkspaceHandler = useCallback((id: string) => {
+    return () => handleDeleteWorkspace(id);
+  }, [handleDeleteWorkspace]);
+
   const handleAddWorkspace = useCallback(() => {
     setIsAdding(true);
   }, []);
@@ -359,6 +363,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     [editName, updateMutation]
   );
 
+  const createUpdateHandler = useCallback((id: string) => {
+    return () => handleUpdate(id);
+  }, [handleUpdate]);
+
   const handleConfirmDelete = useCallback(() => {
     if (workspaceToDelete) {
       deleteMutation.mutate(workspaceToDelete);
@@ -376,6 +384,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     setEditingId(workspace.id);
     setEditName(workspace.name);
   }, []);
+
+  const createStartEditHandler = useCallback((workspace: WorkspaceResponse) => {
+    return () => handleStartEdit(workspace);
+  }, [handleStartEdit]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingId(null);
@@ -483,7 +495,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                         />
                         <IconButton
                           size="small"
-                          onClick={handleUpdate.bind(null, workspace.id)}
+                          onClick={createUpdateHandler(workspace.id)}
                           color="primary"
                         >
                           <CheckIcon />
@@ -538,7 +550,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           <Tooltip title="Edit">
                             <IconButton
                               size="small"
-                              onClick={handleStartEdit.bind(null, workspace)}
+                              onClick={createStartEditHandler(workspace)}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -546,7 +558,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           <Tooltip title="Delete">
                             <IconButton
                               size="small"
-                              onClick={handleDeleteWorkspace.bind(null, workspace.id)}
+                              onClick={createDeleteWorkspaceHandler(workspace.id)}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
