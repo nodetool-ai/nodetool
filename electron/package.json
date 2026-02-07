@@ -61,6 +61,7 @@
     "dmg-license": "^1.0.11"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.37",
     "@eslint/compat": "^1.2.6",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "bufferutil": "^4.0.9",

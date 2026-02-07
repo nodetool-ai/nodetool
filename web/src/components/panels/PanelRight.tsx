@@ -107,6 +107,7 @@ const styles = (theme: Theme) =>
 import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 import JobsPanel from "./jobs/JobsPanel";
 import VerticalToolbar from "./VerticalToolbar";
+import ClaudeAgentPanel from "./ClaudeAgentPanel";
 
 const PanelRight: React.FC = () => {
   const theme = useTheme();
@@ -244,6 +245,8 @@ const PanelRight: React.FC = () => {
                       <WorkflowAssetPanel />
                     </Box>
                   </Box>
+                ) : activeView === "claudeAgent" ? (
+                  <ClaudeAgentPanel />
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -269,6 +272,7 @@ const PanelRight: React.FC = () => {
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
+        handleClaudeAgentToggle={() => handlePanelToggle("claudeAgent")}
         activeView={activeView}
         panelVisible={isVisible}
       />

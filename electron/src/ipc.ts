@@ -882,4 +882,29 @@ export function initializeIpcHandlers(): void {
       return { canceled, filePaths };
     },
   );
+
+  // Claude Agent SDK handlers
+  createIpcMainHandler(
+    IpcChannels.CLAUDE_AGENT_CREATE_SESSION,
+    async (_event, options) => {
+      const { createClaudeAgentSession } = await import("./claudeAgent");
+      return await createClaudeAgentSession(options);
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.CLAUDE_AGENT_SEND_MESSAGE,
+    async (_event, request) => {
+      const { sendClaudeAgentMessage } = await import("./claudeAgent");
+      return await sendClaudeAgentMessage(request.sessionId, request.message);
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.CLAUDE_AGENT_CLOSE_SESSION,
+    async (_event, sessionId) => {
+      const { closeClaudeAgentSession } = await import("./claudeAgent");
+      closeClaudeAgentSession(sessionId);
+    },
+  );
 }

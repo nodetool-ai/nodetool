@@ -203,6 +203,16 @@ declare global {
           options?: DialogOpenFolderRequest,
         ) => Promise<DialogOpenResult>;
       };
+
+      // Claude Agent SDK operations
+      claudeAgent: {
+        createSession: (options: ClaudeAgentSessionOptions) => Promise<string>;
+        sendMessage: (
+          sessionId: string,
+          message: string,
+        ) => Promise<ClaudeAgentMessage[]>;
+        closeSession: (sessionId: string) => Promise<void>;
+      };
     };
 
     // Alias exposed by preload for legacy pages.
@@ -468,6 +478,10 @@ export enum IpcChannels {
   CLIPBOARD_READ_BUFFER = "clipboard-read-buffer",
   CLIPBOARD_GET_CONTENT_INFO = "clipboard-get-content-info",
   FILE_READ_AS_DATA_URL = "file-read-as-data-url",
+  // Claude Agent SDK channels
+  CLAUDE_AGENT_CREATE_SESSION = "claude-agent-create-session",
+  CLAUDE_AGENT_SEND_MESSAGE = "claude-agent-send-message",
+  CLAUDE_AGENT_CLOSE_SESSION = "claude-agent-close-session",
 }
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
@@ -626,6 +640,10 @@ export interface IpcRequest {
   [IpcChannels.CLIPBOARD_READ_BUFFER]: string; // format name
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: void;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string; // filePath
+  // Claude Agent SDK
+  [IpcChannels.CLAUDE_AGENT_CREATE_SESSION]: ClaudeAgentSessionOptions;
+  [IpcChannels.CLAUDE_AGENT_SEND_MESSAGE]: ClaudeAgentSendRequest;
+  [IpcChannels.CLAUDE_AGENT_CLOSE_SESSION]: string; // sessionId
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -704,6 +722,10 @@ export interface IpcResponse {
   [IpcChannels.CLIPBOARD_READ_BUFFER]: string | null; // base64 encoded buffer
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: ClipboardContentInfo;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string | null;
+  // Claude Agent SDK
+  [IpcChannels.CLAUDE_AGENT_CREATE_SESSION]: string; // sessionId
+  [IpcChannels.CLAUDE_AGENT_SEND_MESSAGE]: ClaudeAgentMessage[];
+  [IpcChannels.CLAUDE_AGENT_CLOSE_SESSION]: void;
 }
 
 // Event types for each IPC channel
@@ -800,6 +822,36 @@ export interface PackageInstallRequest {
 
 export interface PackageUninstallRequest {
   repo_id: string;
+}
+
+// Claude Agent SDK types
+export interface ClaudeAgentSessionOptions {
+  model: string;
+}
+
+export interface ClaudeAgentSendRequest {
+  sessionId: string;
+  message: string;
+}
+
+/**
+ * Serializable representation of an SDK message for IPC transport.
+ * Only includes the fields needed for display in the ChatView.
+ */
+export interface ClaudeAgentMessage {
+  type: "assistant" | "user" | "result" | "system" | "status" | "stream_event";
+  uuid: string;
+  session_id: string;
+  /** Text content for assistant and result messages */
+  text?: string;
+  /** Error flag for result messages */
+  is_error?: boolean;
+  /** Error messages for error results */
+  errors?: string[];
+  /** Result subtype */
+  subtype?: string;
+  /** Original message content blocks (for assistant messages) */
+  content?: Array<{ type: string; text?: string }>;
 }
 
 declare module "*.png" {
