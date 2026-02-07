@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { memo, useMemo } from "react";
 import ChatComposer from "../composer/ChatComposer";
 import ChatToolBar from "../controls/ChatToolBar";
 import MobileChatToolbar from "../controls/MobileChatToolbar";
@@ -88,7 +89,7 @@ const ChatInputSection = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const toolbarNode = (!isMobile && showToolbar) ? (
+  const toolbarNode = useMemo(() => (!isMobile && showToolbar) ? (
     <ChatToolBar
       selectedTools={selectedTools}
       onToolsChange={onToolsChange}
@@ -101,7 +102,7 @@ const ChatInputSection = ({
       allowedProviders={allowedProviders}
       embedded={true}
     />
-  ) : null;
+  ) : null, [isMobile, showToolbar, selectedTools, onToolsChange, selectedCollections, onCollectionsChange, selectedModel, onModelChange, agentMode, onAgentModeToggle, allowedProviders]);
 
   return (
     <div className="chat-input-section" css={styles(theme)}>
@@ -135,4 +136,4 @@ const ChatInputSection = ({
   );
 };
 
-export default ChatInputSection;
+export default memo(ChatInputSection);
