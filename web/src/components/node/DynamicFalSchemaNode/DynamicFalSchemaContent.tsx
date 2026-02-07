@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
-import { FalSchemaLoader } from "../FalSchemaLoader";
+import { FalSchemaLoader } from "./FalSchemaLoader";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 
@@ -65,10 +65,9 @@ export const DynamicFalSchemaContent: React.FC<
         sx={{
           flex: "1 1 auto",
           minHeight: 80,
-          overflow: "auto",
+          overflow: "visible",
           display: "flex",
           flexDirection: "column",
-          paddingLeft: "24px",
           // Force properties, labels, handles and input controls visible (override zoom/other CSS)
           visibility: "visible",
           "& .node-inputs": {

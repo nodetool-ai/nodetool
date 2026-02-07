@@ -34,6 +34,7 @@ import FolderPathProperty from "../properties/FolderPathProperty";
 import DocumentProperty from "../properties/DocumentProperty";
 import FontProperty from "../properties/FontProperty";
 import SelectProperty from "../properties/SelectProperty";
+import ImageSizeProperty from "../properties/ImageSizeProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import { useTheme } from "@mui/material/styles";
@@ -158,6 +159,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return ColorProperty;
     case "image":
       return ImageProperty;
+    case "image_size":
+      return ImageSizeProperty;
     case "image_list":
       return ImageListProperty;
     case "video_list":

@@ -105,13 +105,14 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [metadata.title, data.endpoint_id]);
 
   return (
-    <Container
+    <Box
       className="dynamic-fal-schema-node"
       sx={{
         display: "flex",
         flexDirection: "column",
         height: "100%",
         minHeight: 100,
+        padding: "0 !important",
         border: `1px solid ${FAL_HEADER_COLOR}40`,
         borderRadius: "var(--rounded-node)",
         backgroundColor: theme.vars.palette.c_node_bg,
@@ -181,7 +182,7 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           onShowInputs={() => {}}
         />
       </Box>
-    </Container>
+    </Box>
   );
 };
 

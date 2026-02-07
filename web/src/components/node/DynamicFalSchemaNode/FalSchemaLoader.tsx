@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
-import { useNodes } from "../../contexts/NodeContext";
-import { BASE_URL } from "../../stores/BASE_URL";
-import { TypeMetadata } from "../../stores/ApiTypes";
-import { resolveFalSchemaClient } from "../../utils/falDynamicSchema";
-import { NodeData } from "../../stores/NodeData";
+import { useNodes } from "../../../contexts/NodeContext";
+import { BASE_URL } from "../../../stores/BASE_URL";
+import { TypeMetadata } from "../../../stores/ApiTypes";
+import { resolveFalSchemaClient } from "../../../utils/falDynamicSchema";
+import { NodeData } from "../../../stores/NodeData";
 
 export const DYNAMIC_FAL_NODE_TYPE = "fal.dynamic_schema.FalAI";
 
@@ -52,7 +52,9 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
         dynamic_outputs[k] = {
           type: meta.type,
           optional: meta.optional ?? false,
-          type_args: Array.isArray(meta.type_args) ? meta.type_args : [],
+          type_args: (Array.isArray(meta.type_args)
+            ? meta.type_args
+            : []) as TypeMetadata[],
           ...(meta.values != null && { values: meta.values }),
           ...(meta.type_name != null && { type_name: meta.type_name })
         } as TypeMetadata;
@@ -75,7 +77,9 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
         dynamic_inputs[k] = {
           type: meta.type,
           optional: meta.optional ?? false,
-          type_args: Array.isArray(meta.type_args) ? meta.type_args : [],
+          type_args: (Array.isArray(meta.type_args)
+            ? meta.type_args
+            : []) as TypeMetadata[],
           ...(meta.description != null && { description: meta.description }),
           ...(meta.values != null && { values: meta.values }),
           ...(meta.type_name != null && { type_name: meta.type_name }),
