@@ -351,6 +351,107 @@ export async function setupMockApiRoutes(page: Page): Promise<void> {
           expose_as_tool: false,
           supports_dynamic_outputs: false,
           is_streaming_output: false
+        },
+        {
+          title: "Stable Diffusion",
+          description: "Generate images using Stable Diffusion",
+          namespace: "nodetool.image",
+          node_type: "nodetool.image.StableDiffusion",
+          layout: "default",
+          basic_fields: [],
+          is_dynamic: false,
+          properties: [
+            {
+              name: "prompt",
+              type: { type: "str", optional: false, type_args: [] },
+              required: true
+            },
+            {
+              name: "steps",
+              type: { type: "int", optional: false, type_args: [] },
+              required: false
+            },
+            {
+              name: "width",
+              type: { type: "int", optional: false, type_args: [] },
+              required: false
+            },
+            {
+              name: "height",
+              type: { type: "int", optional: false, type_args: [] },
+              required: false
+            }
+          ],
+          outputs: [
+            {
+              name: "image",
+              type: { type: "image", optional: false, type_args: [] }
+            }
+          ],
+          the_model_info: {},
+          recommended_models: [],
+          expose_as_tool: false,
+          supports_dynamic_outputs: false,
+          is_streaming_output: false
+        },
+        {
+          title: "Chat Input",
+          description: "Input for chat messages",
+          namespace: "nodetool.text",
+          node_type: "nodetool.text.ChatInput",
+          layout: "default",
+          basic_fields: [],
+          is_dynamic: false,
+          properties: [
+            {
+              name: "message",
+              type: { type: "str", optional: false, type_args: [] },
+              required: false
+            }
+          ],
+          outputs: [
+            {
+              name: "output",
+              type: { type: "str", optional: false, type_args: [] }
+            }
+          ],
+          the_model_info: {},
+          recommended_models: [],
+          expose_as_tool: false,
+          supports_dynamic_outputs: false,
+          is_streaming_output: false
+        },
+        {
+          title: "Chat Completion",
+          description: "LLM Chat Completion",
+          namespace: "nodetool.llm",
+          node_type: "nodetool.llm.ChatCompletion",
+          layout: "default",
+          basic_fields: [],
+          is_dynamic: false,
+          properties: [
+            {
+              name: "model",
+              type: { type: "str", optional: false, type_args: [] },
+              required: true
+            },
+            {
+              name: "temperature",
+              type: { type: "float", optional: false, type_args: [] },
+              required: false
+            }
+          ],
+          outputs: [
+            {
+              name: "output",
+              type: { type: "str", optional: false, type_args: [] }
+            }
+          ],
+          the_model_info: {},
+          recommended_models: [],
+          expose_as_tool: false,
+          supports_dynamic_outputs: false,
+          is_streaming_output: false
         }
       ])
     });
