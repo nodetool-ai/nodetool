@@ -4,7 +4,7 @@
  * Displays a single version entry in the version history list.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import {
   Box,
   Typography,
@@ -25,6 +25,7 @@ import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow } from "date-fns";
 import { WorkflowVersion } from "../../stores/ApiTypes";
 import { WorkflowMiniPreview } from "./WorkflowMiniPreview";
+import isEqual from "lodash/isEqual";
 
 interface VersionListItemProps {
   version: WorkflowVersion & { save_type: SaveType; size_bytes: number; is_pinned?: boolean };
@@ -80,7 +81,7 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const VersionListItem: React.FC<VersionListItemProps> = ({
+const VersionListItemInternal: React.FC<VersionListItemProps> = ({
   version,
   isSelected,
   isCompareTarget,
@@ -222,3 +223,5 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
     </ListItem>
   );
 };
+
+export const VersionListItem = memo(VersionListItemInternal, isEqual);

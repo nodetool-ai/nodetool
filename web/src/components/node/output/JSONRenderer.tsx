@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -7,6 +7,7 @@ import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
 import Actions from "./Actions";
+import isEqual from "lodash/isEqual";
 
 const jsonStyles = (theme: Theme) =>
   css({
@@ -82,7 +83,7 @@ type JSONRendererProps = {
   showActions?: boolean;
 };
 
-export const JSONRenderer: React.FC<JSONRendererProps> = ({
+const JSONRendererInternal: React.FC<JSONRendererProps> = ({
   value,
   showActions = true
 }) => {
@@ -219,3 +220,5 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
     </div>
   );
 };
+
+export const JSONRenderer = memo(JSONRendererInternal, isEqual);

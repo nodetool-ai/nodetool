@@ -1,11 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
 import { Box, Collapse } from "@mui/material";
 import { ReasoningToggle } from "../../common/ReasoningToggle";
+import isEqual from "lodash/isEqual";
 
 type Props = {
   text: string;
@@ -59,7 +60,7 @@ const parseThinkSections = (input: string): Section[] => {
   return sections;
 };
 
-const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
+const ThinkBlock: React.FC<{ content: string }> = memo(function ThinkBlock({ content }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const handleToggle = useCallback(() => {
@@ -91,9 +92,9 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
       </Collapse>
     </Box>
   );
-};
+});
 
-export const TextRenderer: React.FC<Props> = ({ text, showActions = true }) => {
+const TextRendererInternal: React.FC<Props> = ({ text, showActions = true }) => {
   const theme = useTheme();
   const sections = useMemo(() => parseThinkSections(text), [text]);
   if (!text) {
@@ -118,3 +119,5 @@ export const TextRenderer: React.FC<Props> = ({ text, showActions = true }) => {
     </div>
   );
 };
+
+export const TextRenderer = memo(TextRendererInternal, isEqual);
