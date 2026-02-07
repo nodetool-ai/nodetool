@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, memo } from "react";
 import { StateIconButton } from "../ui_primitives";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 import log from "loglevel";
@@ -89,5 +89,5 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
   );
 };
 
-export default EyedropperButton;
+export default memo(EyedropperButton);
 export { isEyeDropperSupported };
