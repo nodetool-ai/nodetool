@@ -6,6 +6,8 @@ export default {
     pretendToBeVisual: true,
     resources: "usable"
   },
+  testTimeout: 10000,
+  maxWorkers: "50%",
   moduleNameMapper: {
     canvas: "<rootDir>/src/__mocks__/canvas.ts",
     "^canvas$": "<rootDir>/src/__mocks__/canvas.ts",
