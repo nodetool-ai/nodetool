@@ -1,6 +1,6 @@
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Popover,
   PopoverOrigin,
@@ -52,7 +52,7 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   storeHook: ModelMenuStoreHook<TModel>;
 }
 
-export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
+function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
   onClose,
   anchorEl,
@@ -69,10 +69,13 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   // isSmall logic removed as Popover usually not full screen on mobile, but we can keep it if needed.
   // Let's assume desktop-centric for "next to trigger".
 
-  const setSearch = storeHook((s) => s.setSearch);
-  const search = storeHook((s) => s.search);
-  const selectedProvider = storeHook((s) => s.selectedProvider);
-  const setSelectedProvider = storeHook((s) => s.setSelectedProvider);
+  // Combined store selector to reduce re-renders
+  const { setSearch, search, selectedProvider, setSelectedProvider } = storeHook((s) => ({
+    setSearch: s.setSearch,
+    search: s.search,
+    selectedProvider: s.selectedProvider,
+    setSelectedProvider: s.setSelectedProvider
+  }));
 
   const [customView, setCustomView] = useState<"favorites" | "recent" | null>(
     null
@@ -452,3 +455,7 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     </Popover>
   );
 }
+
+export default memo(ModelMenuDialogBase) as <TModel extends ModelSelectorModel>(
+  props: ModelMenuBaseProps<TModel>
+) => JSX.Element;
