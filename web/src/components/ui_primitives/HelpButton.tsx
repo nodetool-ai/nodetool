@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -69,7 +69,7 @@ const getIcon = (variant: HelpIconVariant, fontSize: "small" | "medium" | "inher
   }
 };
 
-export const HelpButton: React.FC<HelpButtonProps> = ({
+export const HelpButton: React.FC<HelpButtonProps> = memo(({
   onClick,
   iconVariant = "helpOutline",
   size = "small",
@@ -81,12 +81,20 @@ export const HelpButton: React.FC<HelpButtonProps> = ({
 }) => {
   const theme = useTheme();
   const iconSize = size === "large" ? "medium" : "small";
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      onClick();
+    },
+    [onClick]
+  );
   
   const button = (
     <IconButton
       className={`help-button nodrag ${active ? "active" : ""} ${className || ""}`}
       size={size}
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       aria-label={tooltip}
     >
@@ -103,8 +111,10 @@ export const HelpButton: React.FC<HelpButtonProps> = ({
       </span>
     );
   }
-  
+
   return <span css={styles(theme)}>{button}</span>;
-};
+});
+
+HelpButton.displayName = "HelpButton";
 
 export default HelpButton;
