@@ -80,7 +80,7 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const VersionListItem: React.FC<VersionListItemProps> = ({
+const VersionListItem: React.FC<VersionListItemProps> = ({
   version,
   isSelected,
   isCompareTarget,
@@ -222,3 +222,8 @@ export const VersionListItem: React.FC<VersionListItemProps> = ({
     </ListItem>
   );
 };
+
+const MemoizedVersionListItem = React.memo(VersionListItem);
+
+export { MemoizedVersionListItem as VersionListItem };
+export default MemoizedVersionListItem;
