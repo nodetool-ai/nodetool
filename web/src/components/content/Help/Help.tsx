@@ -20,9 +20,9 @@ import React, { useState } from "react";
 import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
-import ControlsShortcutsTab from "./ControlsShortcutsTab";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { Dialog } from "../../ui_primitives";
+import ShortcutsListTab from "./ShortcutsListTab";
 
 interface HelpItem {
   text: string;
@@ -257,7 +257,7 @@ const Help = ({
                 onChange={handleChange}
                 aria-label="help tabs"
               >
-                <Tab label="Shortcuts" id="help-tab-0" />
+                <Tab label="List" id="help-tab-0" />
                 <Tab label="Keyboard" id="help-tab-1" />
                 <Tab label="DataTypes" id="help-tab-2" />
               </Tabs>
@@ -280,7 +280,7 @@ const Help = ({
             </div>
             <div className="content">
               <TabPanel value={helpIndex} index={0}>
-                <ControlsShortcutsTab />
+                <ShortcutsListTab shortcuts={NODE_EDITOR_SHORTCUTS} />
               </TabPanel>
               <TabPanel value={helpIndex} index={1}>
                 <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
