@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { memo } from "react";
 import AssetGrid from "./AssetGrid";
 import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -135,4 +135,4 @@ const AssetExplorer: React.FC = () => {
   );
 };
 
-export default AssetExplorer;
+export default memo(AssetExplorer);
