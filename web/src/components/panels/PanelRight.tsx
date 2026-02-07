@@ -107,6 +107,7 @@ const styles = (theme: Theme) =>
 import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 import JobsPanel from "./jobs/JobsPanel";
 import VerticalToolbar from "./VerticalToolbar";
+import { WorkflowNotesPanel } from "../notes/WorkflowNotesPanel";
 
 const PanelRight: React.FC = () => {
   const theme = useTheme();
@@ -244,6 +245,13 @@ const PanelRight: React.FC = () => {
                       <WorkflowAssetPanel />
                     </Box>
                   </Box>
+                ) : activeView === "notes" ? (
+                  currentWorkflowId ? (
+                    <WorkflowNotesPanel
+                      workflowId={currentWorkflowId}
+                      onClose={() => handlePanelToggle("notes")}
+                    />
+                  ) : null
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -269,6 +277,7 @@ const PanelRight: React.FC = () => {
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
+        handleNotesToggle={() => handlePanelToggle("notes")}
         activeView={activeView}
         panelVisible={isVisible}
       />

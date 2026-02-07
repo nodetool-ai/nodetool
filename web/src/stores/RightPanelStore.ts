@@ -12,7 +12,8 @@ export type RightPanelView =
   | "versions"
   | "workflow"
   | "jobs"
-  | "workflowAssets";
+  | "workflowAssets"
+  | "notes";
 
 interface PanelState {
   panelSize: number;
@@ -106,16 +107,16 @@ export const useRightPanelStore = create<ResizePanelState>()(
         const { panel } = get();
         if (panel.activeView === view) {
           if (!panel.isVisible && panel.panelSize < MIN_PANEL_SIZE) {
-            set((state: ResizePanelState) => ({
+            set((_state: ResizePanelState) => ({
               panel: {
-                ...state.panel,
+                ...panel,
                 panelSize: MIN_PANEL_SIZE,
                 isVisible: true
               }
             }));
           } else {
             set((state: ResizePanelState) => ({
-              panel: { ...state.panel, isVisible: !state.panel.isVisible }
+              panel: { ...panel, isVisible: !state.panel.isVisible }
             }));
           }
         } else {
