@@ -367,14 +367,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [id, updateNodeData]);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
-  const isEmptyResult = (obj: any) =>
-    obj && typeof obj === "object" && Object.keys(obj).length === 0;
-  const isOverlayVisible =
-    showResultOverlay && result && !isEmptyResult(result);
-  const hasToggleableResult =
+  const isEmptyResult = (obj: unknown) =>
+    obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
+  const isOverlayVisible: boolean =
+    !!showResultOverlay && !!result && !isEmptyResult(result);
+  const hasToggleableResult: boolean =
     !nodeType.isOutputNode &&
     !nodeType.isConstantNode &&
-    result &&
+    !!result &&
     !isEmptyResult(result);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));

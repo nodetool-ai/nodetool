@@ -14,16 +14,23 @@
 import { create } from "zustand";
 import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
 
+/**
+ * Represents any JSON-serializable value that can be a node result.
+ * Using unknown instead of any for better type safety - consumers should
+ * validate and narrow the type before using.
+ */
+export type NodeResultValue = unknown;
+
 type ResultsStore = {
-  results: Record<string, any>;
-  outputResults: Record<string, any>;
+  results: Record<string, NodeResultValue>;
+  outputResults: Record<string, NodeResultValue>;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
   edges: Record<string, { status: string; counter?: number }>;
   chunks: Record<string, string>;
   tasks: Record<string, Task>;
   toolCalls: Record<string, ToolCallUpdate>;
   planningUpdates: Record<string, PlanningUpdate>;
-  previews: Record<string, any>;
+  previews: Record<string, NodeResultValue>;
   deleteResult: (workflowId: string, nodeId: string) => void;
   clearResults: (workflowId: string) => void;
   clearOutputResults: (workflowId: string) => void;
@@ -47,22 +54,22 @@ type ResultsStore = {
   setPreview: (
     workflowId: string,
     nodeId: string,
-    preview: any,
+    preview: NodeResultValue,
     append?: boolean
   ) => void;
-  getPreview: (workflowId: string, nodeId: string) => any;
+  getPreview: (workflowId: string, nodeId: string) => NodeResultValue | undefined;
   setResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: NodeResultValue,
     append?: boolean
   ) => void;
-  getResult: (workflowId: string, nodeId: string) => any;
-  getOutputResult: (workflowId: string, nodeId: string) => any;
+  getResult: (workflowId: string, nodeId: string) => NodeResultValue | undefined;
+  getOutputResult: (workflowId: string, nodeId: string) => NodeResultValue | undefined;
   setOutputResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: NodeResultValue,
     append?: boolean
   ) => void;
   setTask: (workflowId: string, nodeId: string, task: Task) => void;
@@ -145,7 +152,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   setPreview: (
     workflowId: string,
     nodeId: string,
-    preview: any,
+    preview: NodeResultValue,
     append?: boolean
   ) => {
     if (get().previews[hashKey(workflowId, nodeId)] === undefined || !append) {
@@ -362,18 +369,19 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   setResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: NodeResultValue,
     append?: boolean
   ) => {
     const key = hashKey(workflowId, nodeId);
     if (get().results[key] === undefined || !append) {
       set({ results: { ...get().results, [key]: result } });
     } else {
-      if (Array.isArray(get().results[key])) {
+      const currentResult = get().results[key];
+      if (Array.isArray(currentResult)) {
         set({
           results: {
             ...get().results,
-            [key]: [...get().results[key], result]
+            [key]: [...(currentResult as NodeResultValue[]), result]
           }
         });
       } else {
@@ -423,7 +431,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   setOutputResult: (
     workflowId: string,
     nodeId: string,
-    result: any,
+    result: NodeResultValue,
     append?: boolean
   ) => {
     const key = hashKey(workflowId, nodeId);
@@ -432,11 +440,12 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         outputResults: { ...get().outputResults, [key]: result }
       });
     } else {
-      if (Array.isArray(get().outputResults[key])) {
+      const currentResult = get().outputResults[key];
+      if (Array.isArray(currentResult)) {
         set({
           outputResults: {
             ...get().outputResults,
-            [key]: [...get().outputResults[key], result]
+            [key]: [...(currentResult as NodeResultValue[]), result]
           }
         });
       } else {
