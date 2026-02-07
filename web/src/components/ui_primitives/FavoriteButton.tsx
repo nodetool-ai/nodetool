@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -112,4 +112,4 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
   );
 };
 
-export default FavoriteButton;
+export default memo(FavoriteButton);
