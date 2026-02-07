@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -134,7 +134,7 @@ const getIcon = (variant: BannerVariant) => {
   }
 };
 
-export const WarningBanner: React.FC<WarningBannerProps> = ({
+export const WarningBanner: React.FC<WarningBannerProps> = memo(({
   message,
   description,
   variant = "warning",
@@ -194,6 +194,8 @@ export const WarningBanner: React.FC<WarningBannerProps> = ({
       </Box>
     </Box>
   );
-};
+});
+
+WarningBanner.displayName = "WarningBanner";
 
 export default WarningBanner;
