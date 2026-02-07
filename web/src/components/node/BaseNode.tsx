@@ -424,6 +424,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     updateNode(id, { height: undefined, measured: undefined });
   }, [showAdvancedFields, updateNode, id]);
 
+  const handleNamespaceClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Open nodeMenu at that namespace
+    const namespacePath = metadata.namespace?.split(".") || [];
+    useNodeMenuStore.getState().openNodeMenu({
+      x: e.clientX,
+      y: e.clientY,
+      selectedPath: namespacePath
+    });
+  }, [metadata.namespace]);
+
   // Track error state for node dimension management
   const hasError = useErrorStore((state) =>
     workflow_id !== undefined ? !!state.getError(workflow_id, id) : false
@@ -607,17 +619,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           <Button
             variant="text"
             className="node-namespace nodrag nopan"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              // Open nodeMenu at that namespace
-              const namespacePath = metadata.namespace?.split(".") || [];
-              useNodeMenuStore.getState().openNodeMenu({
-                x: e.clientX,
-                y: e.clientY,
-                selectedPath: namespacePath
-              });
-            }}
+            onClick={handleNamespaceClick}
             sx={{
               position: "absolute",
               bottom: -25,

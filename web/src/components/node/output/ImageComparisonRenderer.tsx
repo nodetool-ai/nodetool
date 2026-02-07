@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, memo } from "react";
 import { ImageComparer } from "../../widgets";
 import { createImageUrl, ImageData } from "../../../utils/imageUtils";
 
@@ -56,5 +56,5 @@ export const ImageComparisonRenderer: React.FC<ImageComparisonRendererProps> = (
   );
 };
 
-export default ImageComparisonRenderer;
+export default memo(ImageComparisonRenderer);
 

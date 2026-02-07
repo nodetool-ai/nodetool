@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { outputStyles } from "./styles";
@@ -16,3 +16,5 @@ export const BooleanRenderer: React.FC<{
     </div>
   );
 };
+
+export default memo(BooleanRenderer);

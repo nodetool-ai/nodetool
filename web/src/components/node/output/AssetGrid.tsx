@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { AssetRef } from "../../../stores/ApiTypes";
 import PreviewImageGrid from "../PreviewImageGrid";
 import { resolveAssetUri } from "./hooks";
@@ -18,3 +18,5 @@ export const AssetGrid: React.FC<Props> = ({ values, onOpenIndex }) => {
     );
   return <PreviewImageGrid images={images} onDoubleClick={onOpenIndex} />;
 };
+
+export default memo(AssetGrid);
