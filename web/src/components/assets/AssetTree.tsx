@@ -120,6 +120,10 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     });
   }, []);
 
+  const createFolderToggleHandler = useCallback((assetId: string) => {
+    return () => handleToggleFolder(assetId);
+  }, [handleToggleFolder]);
+
   const getFileIcon = (contentType: string) => {
     switch (contentType) {
       case "folder":
@@ -188,7 +192,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         {sortedNodes.map((node) => (
           <React.Fragment key={node.id}>
             <ListItemButton
-              onClick={handleToggleFolder.bind(null, node.id)}
+              onClick={createFolderToggleHandler(node.id)}
               style={{ paddingLeft: `${depth * 16}px` }}
             >
               <ListItemIcon

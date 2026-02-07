@@ -241,6 +241,10 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
   const [tagsMenuAnchor, setTagsMenuAnchor] = useState<null | HTMLElement>(null);
 
+  const createToggleTagHandler = useCallback((tag: string) => {
+    return () => toggleTag(tag);
+  }, [toggleTag]);
+
   const handleToggleGraphPreview = useCallback(() => {
     setShowGraphPreview(!showGraphPreview);
   }, [setShowGraphPreview, showGraphPreview]);
@@ -326,7 +330,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 {availableTags.map((tag) => (
                   <MenuItem
                     key={tag}
-                    onClick={toggleTag.bind(null, tag)}
+                    onClick={createToggleTagHandler(tag)}
                     className="tag-menu-item"
                   >
                     {selectedTags.includes(tag) ? (

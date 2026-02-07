@@ -40,6 +40,10 @@ const ConnectionMatchMenu: React.FC = () => {
     closeContextMenu();
   }, [data, closeContextMenu]);
 
+  const createSelectOptionHandler = useCallback((option: ConnectionMatchOption) => {
+    return () => handleSelectOption(option);
+  }, [handleSelectOption]);
+
   if (openMenuType !== "connection-match-menu" || !menuPosition) {
     return null;
   }
@@ -77,7 +81,7 @@ const ConnectionMatchMenu: React.FC = () => {
             }
           }}
           key={option.id}
-          onClick={handleSelectOption.bind(null, option)}
+          onClick={createSelectOptionHandler(option)}
         >
           <ListItemText
             primary={
