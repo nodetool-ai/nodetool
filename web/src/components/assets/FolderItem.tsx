@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { memo } from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { Typography } from "@mui/material";
@@ -165,4 +165,4 @@ const FolderItem: React.FC<FolderItemProps> = ({
   );
 };
 
-export default FolderItem;
+export default memo(FolderItem);
