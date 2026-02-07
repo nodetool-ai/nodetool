@@ -28,10 +28,10 @@ jest.mock("@mui/material", () => ({
   Button: ({ children, onClick, ...props }: any) => (
     <button onClick={onClick} {...props}>{children}</button>
   ),
-  TextField: ({ label, value, children, ...props }: any) => (
+  TextField: ({ label, value, onChange, children, ...props }: any) => (
     <div data-testid="TextField">
       {label && <span className="textfield-label">{label}</span>}
-      <input {...props} value={value || ""} />
+      <input {...props} value={value || ""} onChange={onChange} />
       {children}
     </div>
   ),
