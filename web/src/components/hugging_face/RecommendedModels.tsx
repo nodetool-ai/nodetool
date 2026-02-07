@@ -31,7 +31,7 @@ interface RecommendedModelsProps {
   startDownload: (model: UnifiedModel) => void;
 }
 
-const RecommendedModels: React.FC<RecommendedModelsProps> = ({
+const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
   recommendedModels,
   startDownload
 }) => {
@@ -195,5 +195,8 @@ const RecommendedModels: React.FC<RecommendedModelsProps> = ({
     </>
   );
 };
+
+const RecommendedModels = React.memo(RecommendedModelsInner);
+RecommendedModels.displayName = 'RecommendedModels';
 
 export default RecommendedModels;
