@@ -264,7 +264,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           }}
           propertyIndex={`dynamic-${index}`}
           data={data}
-          showFields={!schemaDefinedInputs}
+          showFields={true}
           showHandle={true}
           tabIndex={-1}
           isDynamicProperty={true}

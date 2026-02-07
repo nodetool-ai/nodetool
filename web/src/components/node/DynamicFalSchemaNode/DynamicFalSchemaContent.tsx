@@ -69,12 +69,16 @@ export const DynamicFalSchemaContent: React.FC<
           display: "flex",
           flexDirection: "column",
           paddingLeft: "24px",
-          // Force properties, labels and handles visible (they can be hidden by zoom/other CSS)
+          // Force properties, labels, handles and input controls visible (override zoom/other CSS)
           visibility: "visible",
           "& .node-inputs": {
             visibility: "visible"
           },
           "& .node-property": {
+            visibility: "visible",
+            opacity: 1
+          },
+          "& .node-property *": {
             visibility: "visible",
             opacity: 1
           },
@@ -90,6 +94,14 @@ export const DynamicFalSchemaContent: React.FC<
             visibility: "visible",
             opacity: 1,
             color: "var(--palette-text-secondary, inherit)"
+          },
+          "& .node-property .property-input-container": {
+            visibility: "visible",
+            opacity: 1
+          },
+          // Hide edit/delete action icons for FAL dynamic inputs
+          "& .action-icons": {
+            display: "none"
           }
         }}
       >
