@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { Typography, Box, Tooltip } from "@mui/material";
 import { EditorButton } from "../ui_primitives";
 import {
@@ -197,15 +197,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   containerWidth = 1200
 }) => {
   const theme = useTheme();
-  // Optimize selection hook to prevent new arrays on every render
-  useMemo(
-    () => results.map((r) => r.id).join(","),
-    [results]
-  );
-
-  const memoizedResults = useMemo(() => results, [results]);
-  const { selectedAssetIds, handleSelectAsset } =
-    useAssetSelection(memoizedResults);
+  const { selectedAssetIds, handleSelectAsset } = useAssetSelection(results);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const globalSearchQuery = useAssetGridStore(
     (state) => state.globalSearchQuery
@@ -229,7 +221,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         // If right-clicking on a non-selected item, select only that item first
         if (!selectedAssetIds.includes(assetId)) {
           setSelectedAssetIds([assetId]);
-          const clicked = memoizedResults.find((a) => a.id === assetId);
+          const clicked = results.find((a) => a.id === assetId);
           setSelectedAssets(clicked ? [clicked] : []);
         }
         openContextMenu(
@@ -245,7 +237,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       selectedAssetIds,
       setSelectedAssetIds,
       setSelectedAssets,
-      memoizedResults
+      results
     ]
   );
 
