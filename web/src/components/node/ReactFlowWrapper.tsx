@@ -411,6 +411,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [activeGradientKeys]
   );
 
+  // Memoize selected node IDs to avoid recalculating on every edge iteration
+  const selectedNodeIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const node of nodes) {
+      if (node.selected) {
+        ids.add(node.id);
+      }
+    }
+    return ids;
+  }, [nodes]);
+
   useEffect(() => {
     if (isSelecting) {
       return;
@@ -420,19 +431,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       return;
     }
 
-    const selectedIds = new Set<string>();
-    for (const node of nodes) {
-      if (node.selected) {
-        selectedIds.add(node.id);
-      }
-    }
-
     const selectionUpdates: Record<string, boolean> = {};
 
     for (const edge of edges) {
       const isEdgeAlreadySelected = Boolean(edge.selected);
       const nodeDrivenSelection =
-        selectedIds.has(edge.source) || selectedIds.has(edge.target);
+        selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target);
       const shouldSelect = isEdgeAlreadySelected || nodeDrivenSelection;
 
       if (isEdgeAlreadySelected !== shouldSelect) {
@@ -443,7 +447,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     if (Object.keys(selectionUpdates).length > 0) {
       setEdgeSelectionState(selectionUpdates);
     }
-  }, [nodes, edges, setEdgeSelectionState, isSelecting]);
+  }, [nodes, edges, setEdgeSelectionState, isSelecting, selectedNodeIds]);
 
   useEffect(() => {
     if (shouldFitToScreen) {
