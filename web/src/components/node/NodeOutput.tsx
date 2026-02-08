@@ -19,6 +19,24 @@ export type NodeOutputProps = {
   isStreamingOutput?: boolean;
 };
 
+const resolveOutputValue = (
+  result: unknown,
+  outputName: string
+): unknown => {
+  if (result === undefined) {
+    return undefined;
+  }
+  if (typeof result === "object" && result !== null) {
+    if (outputName in result) {
+      return (result as Record<string, unknown>)[outputName];
+    }
+    if ("output" in result) {
+      return (result as { output?: unknown }).output;
+    }
+  }
+  return result;
+};
+
 const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }) => {
   const connectType = useConnectionStore((state) => state.connectType);
   const connectDirection = useConnectionStore(
@@ -121,18 +139,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
       }
       const result =
         state.getOutputResult(workflowId, id) ?? state.getResult(workflowId, id);
-      if (result === undefined) {
-        return undefined;
-      }
-      if (typeof result === "object" && result !== null) {
-        if (output.name in result) {
-          return (result as Record<string, unknown>)[output.name];
-        }
-        if ("output" in result) {
-          return (result as { output?: unknown }).output;
-        }
-      }
-      return result;
+      return resolveOutputValue(result, output.name);
     },
     [workflowId, id, output.name]
   );

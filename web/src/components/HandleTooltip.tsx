@@ -101,6 +101,7 @@ const HandleTooltip = memo(function HandleTooltip({
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
 
   const hasRenderableValue = useMemo(() => isRenderableValue(value), [value]);
+  const valueFallbackLabel = value === null ? "null" : "No value";
 
   const handleMouseEnter = useCallback(() => {
     const position = getMousePosition();
@@ -150,7 +151,9 @@ const HandleTooltip = memo(function HandleTooltip({
             {hasRenderableValue ? (
               <OutputRenderer value={value} showTextActions={false} />
             ) : (
-              <div className="handle-tooltip-value-empty">No value</div>
+              <div className="handle-tooltip-value-empty">
+                {valueFallbackLabel}
+              </div>
             )}
           </div>
         )}
