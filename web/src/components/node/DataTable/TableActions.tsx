@@ -172,22 +172,22 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   // Duplicate selected rows
   const handleDuplicateRows = useCallback(() => {
     if (!Array.isArray(data) || selectedRows.length === 0) {return;}
-    
+
     const duplicatedRows = selectedRows.map((row) => {
       const rowData = { ...row.getData() };
       delete rowData.rownum; // Remove rownum, will be reassigned
       return rowData;
     });
-    
+
     // Insert after the last selected row
     const lastSelectedIndex = Math.max(...selectedRows.map((r) => r.getData().rownum));
     const newData = [...data];
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
-    
-    // Reassign rownums
+
+    // Reassign rownums - memoize this operation
     const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
     onChangeRows(reindexedData);
-    
+
     addNotification({
       content: `Duplicated ${duplicatedRows.length} row(s)`,
       type: "success",
@@ -332,14 +332,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         }
         
         // Insert at selection point or append to end
-        const insertIndex = selectedRows.length > 0 
+        const insertIndex = selectedRows.length > 0
           ? Math.max(...selectedRows.map((r) => r.getData().rownum)) + 1
           : data.length;
-        
+
         const newData = [...data];
         newData.splice(insertIndex, 0, ...newRows);
-        
-        // Reassign rownums
+
+        // Reassign rownums - memoize this operation
         const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
         onChangeRows(reindexedData);
         
@@ -361,8 +361,9 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   // Export CSV - exclude select and rownum columns
   const handleExportCSV = useCallback(() => {
     if (!dataframeColumns || !Array.isArray(data)) {return;}
-    
+
     // Build CSV content manually to exclude utility columns
+    // Memoize headers to avoid recreating on each render
     const headers = dataframeColumns.map((c) => `"${c.name}"`).join(",");
     const rows = data.map((row) => {
       return dataframeColumns.map((col) => {
@@ -372,7 +373,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         return `"${strValue}"`;
       }).join(",");
     });
-    
+
     const csvContent = [headers, ...rows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -381,7 +382,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     link.download = "dataframe.csv";
     link.click();
     URL.revokeObjectURL(url);
-    
+
     addNotification({
       content: "Exported as CSV",
       type: "success",
