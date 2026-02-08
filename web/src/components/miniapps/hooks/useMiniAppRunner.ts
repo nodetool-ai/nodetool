@@ -28,28 +28,38 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     return createWorkflowRunnerStore(workflowKey);
   }, [workflowKey]);
 
-  const runWorkflowFromStore = useStore(runnerStore, (state) => state.run);
-  const cancelWorkflowFromStore = useStore(runnerStore, (state) => state.cancel);
-  const runnerState = useStore(runnerStore, (state) => state.state);
-  const statusMessage = useStore(runnerStore, (state) => state.statusMessage);
-  const notifications = useStore(runnerStore, (state) => state.notifications);
+  // Combine multiple store subscriptions into one for better performance
+  const { run: runWorkflowFromStore, cancel: cancelWorkflowFromStore, state: runnerState, statusMessage, notifications } = useStore(
+    runnerStore,
+    (state) => ({
+      run: state.run,
+      cancel: state.cancel,
+      state: state.state,
+      statusMessage: state.statusMessage,
+      notifications: state.notifications
+    })
+  );
   const workflowId = selectedWorkflow?.id;
-  const results = useMiniAppsStore((state) =>
-    workflowId ? state.apps[workflowId]?.results ?? [] : []
-  );
-  const progress = useMiniAppsStore((state) =>
-    workflowId ? state.apps[workflowId]?.progress ?? null : null
-  );
-  const upsertResult = useMiniAppsStore((state) => state.upsertResult);
-  const setProgressState = useMiniAppsStore((state) => state.setProgress);
-  const setLastRunDuration = useMiniAppsStore(
-    (state) => state.setLastRunDuration
-  );
-  const lastRunDuration = useMiniAppsStore((state) =>
-    workflowId ? state.apps[workflowId]?.lastRunDuration ?? null : null
-  );
-  const resetWorkflowState = useMiniAppsStore(
-    (state) => state.resetWorkflowState
+
+  // Combine multiple MiniAppsStore subscriptions into one for better performance
+  const {
+    results,
+    progress,
+    upsertResult,
+    setProgress: setProgressState,
+    setLastRunDuration,
+    lastRunDuration,
+    resetWorkflowState
+  } = useMiniAppsStore(
+    (state) => ({
+      results: workflowId ? state.apps[workflowId]?.results ?? [] : [],
+      progress: workflowId ? state.apps[workflowId]?.progress ?? null : null,
+      upsertResult: state.upsertResult,
+      setProgress: state.setProgress,
+      setLastRunDuration: state.setLastRunDuration,
+      lastRunDuration: workflowId ? state.apps[workflowId]?.lastRunDuration ?? null : null,
+      resetWorkflowState: state.resetWorkflowState
+    })
   );
 
   useEffect(() => {

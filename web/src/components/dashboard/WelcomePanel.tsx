@@ -132,8 +132,13 @@ const WelcomePanel: React.FC = () => {
     })),
     []
   );
-  const settings = useSettingsStore((state) => state.settings);
-  const updateSettings = useSettingsStore((state) => state.updateSettings);
+
+  // Combine multiple SettingsStore subscriptions into one for better performance
+  const { settings, updateSettings } = useSettingsStore((state) => ({
+    settings: state.settings,
+    updateSettings: state.updateSettings
+  }));
+
   const theme = useTheme();
 
   const handleToggleWelcomeOnStartup = useCallback(
