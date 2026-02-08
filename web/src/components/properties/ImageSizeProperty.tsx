@@ -3,13 +3,14 @@ import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "lodash/isEqual";
-import { Box, IconButton, Menu, MenuItem, ListSubheader, TextField, InputAdornment } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
 import { IMAGE_SIZE_PRESETS as PRESETS } from "../../config/constants";
 import Lock from "@mui/icons-material/Lock";
 import LockOpen from "@mui/icons-material/LockOpen";
 import MoreVert from "@mui/icons-material/MoreVert";
-import Search from "@mui/icons-material/Search";
+import SwapHoriz from "@mui/icons-material/SwapHoriz";
 import { useNodes } from "../../contexts/NodeContext";
+import { ImageSizePresetsMenu } from "./ImageSizePresetsMenu";
 
 type ImageSizeValue = {
   width: number;
@@ -35,7 +36,6 @@ const ImageSizeProperty = (props: PropertyProps) => {
   const [locked, setLocked] = useState(false);
   const [aspectRatio, setAspectRatio] = useState(1);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const valueRef = useRef(safeValue);
   valueRef.current = safeValue;
@@ -43,11 +43,6 @@ const ImageSizeProperty = (props: PropertyProps) => {
   lockedRef.current = locked;
   const ratioRef = useRef(aspectRatio);
   ratioRef.current = aspectRatio;
-
-  // No need for aspectRatio state that can get stale, just use safeValue directly in handlers if possible,
-  // or ensure handlers close over the latest safeValue.
-  // Actually, keeping the ratio captured at lock time is standard, but we must ensure
-  // the handlers see it.
 
   useEffect(() => {
     // Keep ratio in sync while NOT locked
@@ -90,7 +85,6 @@ const ImageSizeProperty = (props: PropertyProps) => {
 
   const handleClose = () => {
     setAnchorEl(null);
-    setSearchQuery("");
   };
 
   const handlePresetSelect = (preset: typeof PRESETS[0]) => {
@@ -101,24 +95,14 @@ const ImageSizeProperty = (props: PropertyProps) => {
     handleClose();
   };
 
-  // Group and filter presets
-  const filteredGroupedPresets = useMemo(() => {
-    const query = searchQuery.toLowerCase();
-    const groups: Record<string, typeof PRESETS> = {};
-    
-    PRESETS.forEach(preset => {
-      const match = preset.label.toLowerCase().includes(query) || 
-                   (preset.description?.toLowerCase().includes(query)) ||
-                   (preset.aspectRatio?.toLowerCase().includes(query));
-      
-      if (match) {
-        const category = preset.category || "Other";
-        if (!groups[category]) groups[category] = [];
-        groups[category].push(preset);
-      }
-    });
-    return groups;
-  }, [searchQuery]);
+  const handleSwap = () => {
+    const newWidth = safeValue.height;
+    const newHeight = safeValue.width;
+    onChange({ ...safeValue, width: newWidth, height: newHeight, preset: undefined });
+    if (locked) {
+        setAspectRatio(newWidth / newHeight);
+    }
+  };
 
   // Find matching preset
   const matchedPreset = useMemo(() => {
@@ -176,7 +160,21 @@ const ImageSizeProperty = (props: PropertyProps) => {
         </Box>
 
         <Box className="spacer" sx={{ flex: 1 }} />
-        <Box className="icon-container" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: -2 }}>  
+        <Box className="icon-container" sx={{ display: 'flex', alignItems: 'center', gap: 0, mt: -2 }}>  
+          <IconButton 
+            className="aspect-swap-button"
+            onClick={handleSwap} 
+            size="small" 
+            sx={{ 
+                p: 0.5,
+                color: 'text.secondary',
+                alignSelf: 'center',
+            }}
+            title="Swap Width and Height"
+          >
+            <SwapHoriz sx={{ fontSize: '1.2rem' }} />
+          </IconButton>
+
           <IconButton 
             className="aspect-lock-button"
             onClick={toggleLock} 
@@ -206,97 +204,14 @@ const ImageSizeProperty = (props: PropertyProps) => {
           </IconButton>
         </Box>
 
-        <Menu
-          className="presets-menu"
+        <ImageSizePresetsMenu 
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={handleClose}
-          disableAutoFocusItem
-          
-          MenuListProps={{
-            sx: { padding: 0 }
-          }}
-          PaperProps={{
-            sx: {
-              maxHeight: 450,
-              width: '300px',
-              backgroundColor: 'background.paper',
-              '& .MuiListSubheader-root': {
-                lineHeight: '32px',
-                backgroundColor: '#1E1E1E', 
-                backgroundImage: 'none', 
-                fontWeight: 'bold',
-                color: 'primary.light',
-                position: 'sticky',
-                top: '48px', // Match search box height
-                zIndex: 10,  
-              }
-            }
-          }}
-        >
-          {/* Header/Search Box - Sticky within the list */}
-          <Box className="presets-search-container" sx={{ 
-            p: 1, 
-            position: 'sticky', 
-            top: 0, 
-            backgroundColor: '#1E1E1E', 
-            zIndex: 11, 
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-            height: '48px', 
-            display: 'flex',
-            alignItems: 'center',
-            boxSizing: 'border-box'
-          }}>
-            <TextField
-              className="presets-search-field"
-              fullWidth
-              size="small"
-              placeholder="Search presets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
-              autoFocus
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ fontSize: '1rem' }} />
-                  </InputAdornment>
-                ),
-                sx: { 
-                    fontSize: '0.8125rem',
-                    height: '32px',
-                    '& .MuiInputBase-input': {
-                        py: 0
-                    }
-                }
-              }}
-            />
-          </Box>
-
-          {Object.entries(filteredGroupedPresets).length === 0 ? (
-            <MenuItem disabled sx={{ fontSize: '0.8125rem' }}>No presets found</MenuItem>
-          ) : (
-            Object.entries(filteredGroupedPresets).map(([category, items]) => [
-              <ListSubheader key={category} className="presets-category-header">{category}</ListSubheader>,
-              ...items.map((preset) => (
-                <MenuItem 
-                  className="preset-menu-item"
-                  key={`${preset.width}x${preset.height}-${preset.label}`}
-                  onClick={() => handlePresetSelect(preset)}
-                  selected={safeValue.width === preset.width && safeValue.height === preset.height}
-                  sx={{ py: 0.5, px: 2 }}
-                >
-                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <Box sx={{ fontSize: '0.875rem' }}>{preset.label} {preset.aspectRatio}</Box>
-                    {preset.description && (
-                      <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{preset.description}</Box>
-                    )}
-                  </Box>
-                </MenuItem>
-              ))
-            ])
-          )}
-        </Menu>
+          onSelect={handlePresetSelect}
+          currentWidth={safeValue.width}
+          currentHeight={safeValue.height}
+        />
       </Box>
       {matchedPreset && (
         <Box 
