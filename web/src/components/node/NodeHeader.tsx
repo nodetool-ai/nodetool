@@ -10,7 +10,7 @@ import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
-import { Visibility, InputOutlined } from "@mui/icons-material";
+import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -32,6 +32,8 @@ export interface NodeHeaderProps {
   showInputsButton?: boolean;
   onShowResults?: () => void;
   onShowInputs?: () => void;
+  externalLink?: string;
+  externalLinkTitle?: string;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
@@ -49,7 +51,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showResultButton = false,
   showInputsButton = false,
   onShowResults,
-  onShowInputs
+  onShowInputs,
+  externalLink,
+  externalLinkTitle
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
@@ -241,6 +245,28 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         >
           {metadataTitle}
         </span>
+        {externalLink && (
+          <Tooltip title={externalLinkTitle || "Open link"} arrow enterDelay={TOOLTIP_ENTER_DELAY}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(externalLink, "_blank", "noopener,noreferrer");
+              }}
+              sx={{ 
+                padding: "2px",
+                marginLeft: "2px",
+                color: "rgba(255, 255, 255, 0.4)",
+                "&:hover": {
+                  color: "primary.light",
+                  backgroundColor: "rgba(255, 255, 255, 0.05)"
+                }
+              }}
+            >
+              <OpenInNew sx={{ fontSize: "0.85rem" }} />
+            </IconButton>
+          </Tooltip>
+        )}
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}
