@@ -1,15 +1,12 @@
-import React, { useMemo, useCallback, memo } from "react";
+import React, { useCallback, memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
-import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
+import { OutputSlot } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import isEqual from "lodash/isEqual";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
-import { useNodes } from "../../contexts/NodeContext";
-import useMetadataStore from "../../stores/MetadataStore";
-import { findInputHandle } from "../../utils/handleUtils";
 
 export type NodeOutputProps = {
   id: string;
@@ -19,43 +16,51 @@ export type NodeOutputProps = {
 };
 
 const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }) => {
-  const connectType = useConnectionStore((state) => state.connectType);
-  const connectDirection = useConnectionStore(
-    (state) => state.connectDirection
-  );
-  const connectNodeId = useConnectionStore((state) => state.connectNodeId);
-  const connectHandleId = useConnectionStore((state) => state.connectHandleId);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const findNode = useNodes((state) => state.findNode);
-  const getMetadata = useMetadataStore((state) => state.getMetadata);
 
-  const effectiveConnectType = useMemo<TypeMetadata | null>(() => {
-    if (
-      connectDirection !== "target" ||
-      !connectNodeId ||
-      !connectHandleId ||
-      connectType
-    ) {
-      return connectType;
-    }
-    const targetNode = findNode(connectNodeId);
-    if (!targetNode) {
-      return null;
-    }
-    const metadata = getMetadata(targetNode.type || "");
-    if (!metadata) {
-      return null;
-    }
-    const handle = findInputHandle(targetNode, connectHandleId, metadata);
-    return handle?.type ?? null;
-  }, [
-    connectDirection,
-    connectHandleId,
-    connectNodeId,
-    connectType,
-    findNode,
-    getMetadata
-  ]);
+  const connectionSelector = useCallback(
+    (state: ReturnType<typeof useConnectionStore.getState>) => {
+      const {
+        connectType,
+        connectDirection,
+        connectNodeId,
+        connectHandleId
+      } = state;
+
+      // When dragging from an output (source), we want to dim other outputs ("not-connectable")
+      // but keep the current one active.
+      if (connectDirection === "source") {
+        const isDraggingThis = connectNodeId === id && connectHandleId === output.name;
+        return {
+          isConnectable: true, // Matches original behavior (source handles remain interactable/valid)
+          classConnectable: isDraggingThis ? "is-connectable" : "not-connectable"
+        };
+      }
+
+      // When dragging from an input (target), we check compatibility
+      if (connectDirection === "target" && connectType) {
+        const isCompatible =
+          isConnectableCached(output.type, connectType) && connectNodeId !== id;
+
+        return {
+          isConnectable: isCompatible,
+          classConnectable: isCompatible ? "is-connectable" : "not-connectable"
+        };
+      }
+
+      // Default state (not connecting, or fallback if type missing)
+      return {
+        isConnectable: true,
+        classConnectable: "is-connectable"
+      };
+    },
+    [id, output.name, output.type]
+  );
+
+  const { isConnectable, classConnectable } = useConnectionStore(
+    connectionSelector,
+    isEqual
+  );
 
   const outputContextMenu = useCallback(
     (event: React.MouseEvent, id: string, output: OutputSlot) => {
@@ -74,40 +79,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
     },
     [openContextMenu]
   );
-
-  const isConnectable = useMemo(() => {
-    if (!effectiveConnectType || connectDirection !== "target") {
-      return true;
-    }
-    return (
-      isConnectableCached(output.type, effectiveConnectType) &&
-      connectNodeId !== id
-    );
-  }, [connectDirection, connectNodeId, effectiveConnectType, id, output.type]);
-
-  const classConnectable = useMemo(() => {
-    if (connectDirection === "source") {
-      if (connectNodeId === id && connectHandleId === output.name) {
-        return "is-connectable";
-      }
-      return "not-connectable";
-    }
-    if (!effectiveConnectType || connectDirection !== "target") {
-      return "is-connectable";
-    }
-    return isConnectableCached(output.type, effectiveConnectType) &&
-      connectNodeId !== id
-      ? "is-connectable"
-      : "not-connectable";
-  }, [
-    connectDirection,
-    connectHandleId,
-    connectNodeId,
-    effectiveConnectType,
-    id,
-    output.type,
-    output.name
-  ]);
 
   return (
     <div className="output-handle-container">
