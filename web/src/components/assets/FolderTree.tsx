@@ -80,18 +80,15 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   }, [loadFolderTree, sortBy]);
 
   const renderTree = useCallback((node: AssetTreeNode): React.ReactNode => {
-    const handleOnSelect = (
-      event: React.MouseEvent,
-      node: AssetTreeNode
-    ) => {
-      event.stopPropagation();
-      onSelect(node.id);
-    };
-
     if (!node.id) {
       log.error("Node with undefined id found:", node);
       return null;
     }
+
+    const handleButtonClick = (event: React.MouseEvent) => {
+      event.stopPropagation();
+      onSelect(node.id);
+    };
 
     return (
       <TreeItem
@@ -101,7 +98,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         label={
           <div>
             {node.name}
-            <EditorButton onClick={(e) => handleOnSelect(e, node)} density="compact">{">"}</EditorButton>
+            <EditorButton onClick={handleButtonClick} density="compact">{">"}</EditorButton>
           </div>
         }
       >
