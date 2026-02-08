@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { Box, Paper, InputAdornment } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import { client } from "../../stores/ApiClient";
@@ -9,7 +9,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { createErrorMessage } from "../../utils/errorHandling";
 import { NodeTextField, ToolbarIconButton } from "../ui_primitives";
 
-const WorkflowGenerator: React.FC = () => {
+const WorkflowGenerator: React.FC = memo(() => {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { workflow } = useWorkflowManager((state) => ({
@@ -120,6 +120,7 @@ const WorkflowGenerator: React.FC = () => {
       </Paper>
     </Box>
   );
-};
+});
+WorkflowGenerator.displayName = "WorkflowGenerator";
 
 export default WorkflowGenerator;

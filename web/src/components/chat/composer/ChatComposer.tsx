@@ -2,7 +2,8 @@
 import React, {
   useRef,
   useState,
-  useCallback
+  useCallback,
+  memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Box, Typography, IconButton, Tooltip, Collapse } from "@mui/material";
@@ -33,7 +34,7 @@ interface ChatComposerProps {
   toolbarNode?: React.ReactNode;
 }
 
-const ChatComposer: React.FC<ChatComposerProps> = ({
+const ChatComposer: React.FC<ChatComposerProps> = memo(({
   isLoading,
   isStreaming,
   onSendMessage,
@@ -231,6 +232,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
       </div>
     </div>
   );
-};
+});
+ChatComposer.displayName = "ChatComposer";
 
 export default ChatComposer;
