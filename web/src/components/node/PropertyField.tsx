@@ -54,9 +54,18 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   const metaKeyPressed = useKeyPressedStore((state) =>
     state.isKeyPressed("Meta")
   );
-  const connectType = useConnectionStore((state) => state.connectType);
-  const connectDirection = useConnectionStore((state) => state.connectDirection);
-  const connectNodeId = useConnectionStore((state) => state.connectNodeId);
+
+  // Combine connection store subscriptions into a single selector to reduce re-renders
+  const { connectType, connectDirection, connectNodeId } = useConnectionStore(
+    useMemo(
+      () => (state) => ({
+        connectType: state.connectType,
+        connectDirection: state.connectDirection,
+        connectNodeId: state.connectNodeId
+      }),
+      []
+    )
+  );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const classConnectable = useMemo(() => {
     return connectType &&
