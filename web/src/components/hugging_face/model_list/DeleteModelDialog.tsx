@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Button,
   DialogActions,
@@ -98,7 +98,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     mutationFn: deleteHFModel
   });
 
-  const handleShowInExplorer = async (modelId: string) => {
+  const handleShowInExplorer = useCallback(async (modelId: string) => {
     if (!modelId) { return; }
 
     const model = allModels?.find((m) => m.id === modelId);
@@ -117,7 +117,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         dismissable: true
       });
     }
-  };
+  }, [allModels, addNotification]);
 
   const modelForExplorer = modelId
     ? allModels?.find((m) => m.id === modelId)
@@ -177,6 +177,12 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   const isDeleting =
     (modelId && deletingModels.has(modelId)) || deleteHFModelMutation.isPending;
 
+  const handleShowInExplorerClick = useCallback(() => {
+    if (modelId) {
+      handleShowInExplorer(modelId);
+    }
+  }, [modelId, handleShowInExplorer]);
+
   return (
     <Dialog
       open={!!modelId}
@@ -211,7 +217,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       </DialogContent>
       <DialogActions>
         <Button
-          onClick={() => modelId && handleShowInExplorer(modelId)}
+          onClick={handleShowInExplorerClick}
           disabled={isExplorerDisabled || isDeleting}
         >
           Show in Explorer
