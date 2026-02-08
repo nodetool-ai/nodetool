@@ -209,7 +209,10 @@ const getOutputFromResult = (result: any) => {
   return result;
 };
 
-const hasUnresolvedMemoryUri = (value: any): boolean => {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const hasUnresolvedMemoryUri = (value: unknown): boolean => {
   if (value === null || value === undefined) {
     return false;
   }
@@ -218,21 +221,21 @@ const hasUnresolvedMemoryUri = (value: any): boolean => {
     return value.some((item) => hasUnresolvedMemoryUri(item));
   }
 
-  if (typeof value !== "object") {
+  if (!isRecord(value)) {
     return false;
   }
 
   if ("output" in value) {
-    return hasUnresolvedMemoryUri((value as any).output);
+    return hasUnresolvedMemoryUri(value.output);
   }
 
   if ("value" in value) {
-    return hasUnresolvedMemoryUri((value as any).value);
+    return hasUnresolvedMemoryUri(value.value);
   }
 
   if ("uri" in value) {
-    const uri = (value as any).uri;
-    const data = (value as any).data;
+    const uri = value.uri;
+    const data = value.data;
     if (typeof uri === "string" && uri.startsWith("memory://")) {
       const hasNoData =
         data === undefined ||
@@ -247,7 +250,10 @@ const hasUnresolvedMemoryUri = (value: any): boolean => {
   return false;
 };
 
-export const selectPreviewResult = (preview: any, fallback: any): any => {
+export const selectPreviewResult = (
+  preview: unknown,
+  fallback: unknown
+): unknown => {
   if (preview === null || preview === undefined) {
     return fallback;
   }
