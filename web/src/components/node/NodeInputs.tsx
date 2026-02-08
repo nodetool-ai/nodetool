@@ -205,7 +205,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   });
 
   const dynamicInputs = data?.dynamic_inputs || {};
-  const schemaDefinedInputs = Object.keys(dynamicInputs).length > 0;
+  const _schemaDefinedInputs = Object.keys(dynamicInputs).length > 0;
 
   const dynamicInputElements = Object.entries(dynamicProperties).map(
     ([name], index) => {

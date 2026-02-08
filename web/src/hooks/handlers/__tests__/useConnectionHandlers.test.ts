@@ -28,7 +28,9 @@ jest.mock("../../../stores/ContextMenuStore", () => ({
 // Mock the centralized handle functions
 jest.mock("../../../utils/handleUtils", () => ({
   findOutputHandle: jest.fn(),
-  findInputHandle: jest.fn()
+  findInputHandle: jest.fn(),
+  getAllInputHandles: jest.fn(),
+  getAllOutputHandles: jest.fn()
 }));
 
 // Mock TypeHandler utilities
@@ -38,7 +40,12 @@ jest.mock("../../../utils/TypeHandler", () => ({
   typeToString: jest.fn((type) => type?.type ?? "unknown")
 }));
 
-import { findOutputHandle, findInputHandle } from "../../../utils/handleUtils";
+import {
+  findOutputHandle,
+  findInputHandle,
+  getAllInputHandles,
+  getAllOutputHandles
+} from "../../../utils/handleUtils";
 import { isConnectable } from "../../../utils/TypeHandler";
 
 const mockFindOutputHandle = findOutputHandle as jest.MockedFunction<
@@ -46,6 +53,12 @@ const mockFindOutputHandle = findOutputHandle as jest.MockedFunction<
 >;
 const mockFindInputHandle = findInputHandle as jest.MockedFunction<
   typeof findInputHandle
+>;
+const mockGetAllInputHandles = getAllInputHandles as jest.MockedFunction<
+  typeof getAllInputHandles
+>;
+const mockGetAllOutputHandles = getAllOutputHandles as jest.MockedFunction<
+  typeof getAllOutputHandles
 >;
 const mockIsConnectable = isConnectable as jest.MockedFunction<
   typeof isConnectable
@@ -990,6 +1003,19 @@ describe("useConnectionHandlers", () => {
 
       mockGetMetadata.mockImplementation(() => multiInputMetadata);
 
+      mockGetAllInputHandles.mockReturnValue([
+        {
+          name: "input",
+          type: mockNodeMetadata.properties[0].type,
+          isDynamic: false
+        },
+        {
+          name: "input_two",
+          type: mockNodeMetadata.properties[0].type,
+          isDynamic: false
+        }
+      ]);
+
       mockFindOutputHandle.mockReturnValue({
         name: "output",
         type: mockNodeMetadata.outputs[0].type,
@@ -1073,6 +1099,21 @@ describe("useConnectionHandlers", () => {
       };
 
       mockGetMetadata.mockImplementation(() => multiOutputMetadata);
+
+      mockGetAllOutputHandles.mockReturnValue([
+        {
+          name: "output",
+          type: mockNodeMetadata.outputs[0].type,
+          stream: false,
+          isDynamic: false
+        },
+        {
+          name: "output_two",
+          type: mockNodeMetadata.outputs[0].type,
+          stream: false,
+          isDynamic: false
+        }
+      ]);
 
       mockFindOutputHandle.mockReturnValue({
         name: "output",

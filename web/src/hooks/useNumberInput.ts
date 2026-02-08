@@ -99,7 +99,7 @@ export const useDragHandling = (
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!dragStateRef.current.isDragging) return;
+      if (!dragStateRef.current.isDragging) {return;}
       const p = propsRef.current;
 
       const { dragStartX, currentDragValue, decimalPlaces, lastClientX } =
@@ -148,9 +148,9 @@ export const useDragHandling = (
       //---------------------------------------------------------------------
 
       const baseStep = calculateStep(
-        props.min,
-        props.max,
-        props.inputType || "float"
+        propsRef.current.min,
+        propsRef.current.max,
+        propsRef.current.inputType || "float"
       );
 
       // Use smaller step size when Shift is pressed for finer control
@@ -169,8 +169,8 @@ export const useDragHandling = (
 
         // Step 2: Convert to raw value change
         let rawValueChange: number;
-        if (typeof props.min === "number" && typeof props.max === "number") {
-          const range = props.max - props.min;
+        if (typeof propsRef.current.min === "number" && typeof propsRef.current.max === "number") {
+          const range = propsRef.current.max - propsRef.current.min;
           rawValueChange = visualPercentage * range;
         } else {
           rawValueChange = deltaX * effectiveStep * UNBOUNDED_DRAG_SCALE;
@@ -187,16 +187,16 @@ export const useDragHandling = (
 
       // Apply decimal places and value constraints
       const newDecimalPlaces =
-        props.inputType === "float" ? calculateDecimalPlaces(effectiveStep) : 0;
+        propsRef.current.inputType === "float" ? calculateDecimalPlaces(effectiveStep) : 0;
       if (newDecimalPlaces !== decimalPlaces) {
         dragStateRef.current.decimalPlaces = newDecimalPlaces;
       }
 
       newValue = applyValueConstraints(
         newValue,
-        props.min,
-        props.max,
-        props.inputType || "float",
+        propsRef.current.min,
+        propsRef.current.max,
+        propsRef.current.inputType || "float",
         newDecimalPlaces,
         isWithinDeadZone ? effectiveStep : undefined
       );
