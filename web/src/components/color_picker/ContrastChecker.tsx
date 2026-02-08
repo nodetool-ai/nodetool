@@ -115,7 +115,7 @@ interface ContrastCheckerProps {
   backgroundColor: string; // hex
 }
 
-const ContrastChecker: React.FC<ContrastCheckerProps> = ({
+const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
   foregroundColor,
   backgroundColor
 }) => {
@@ -260,6 +260,8 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({
       </div>
     </Box>
   );
-};
+});
+
+ContrastChecker.displayName = 'ContrastChecker';
 
 export default memo(ContrastChecker);

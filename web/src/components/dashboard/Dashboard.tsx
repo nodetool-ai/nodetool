@@ -93,13 +93,13 @@ const Dashboard: React.FC = () => {
     usePanelStore.getState().setVisibility(false);
   }, []);
 
-  const tryParseModel = (model: string) => {
+  const tryParseModel = useCallback((model: string) => {
     try {
       return JSON.parse(model);
     } catch {
       return DEFAULT_MODEL;
     }
-  };
+  }, []);
 
   const [selectedModel, setSelectedModel] = useState<LanguageModel>(() => {
     const savedModel = localStorage.getItem("selectedModel");

@@ -46,17 +46,19 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
   const getAssetsRecursive = useAssetStore((state) => state.getAssetsRecursive);
-  const folderIcon = <IconForType iconName="folder" />;
-  const imageIcon = <IconForType iconName="image" />;
-  const audioIcon = <IconForType iconName="audio" />;
-  const videoIcon = <IconForType iconName="video" />;
-  const textIcon = <IconForType iconName="text" />;
-  const pdfIcon = <IconForType iconName="pdf" />;
-  const wordIcon = <IconForType iconName="word" />;
-  const excelIcon = <IconForType iconName="excel" />;
-  const powerpointIcon = <IconForType iconName="powerpoint" />;
-  const zipIcon = <IconForType iconName="zip" />;
-  const unknownIcon = <IconForType iconName="unknown" />;
+
+  // Memoize icons to prevent recreation on each render
+  const folderIcon = useMemo(() => <IconForType iconName="folder" />, []);
+  const imageIcon = useMemo(() => <IconForType iconName="image" />, []);
+  const audioIcon = useMemo(() => <IconForType iconName="audio" />, []);
+  const videoIcon = useMemo(() => <IconForType iconName="video" />, []);
+  const textIcon = useMemo(() => <IconForType iconName="text" />, []);
+  const pdfIcon = useMemo(() => <IconForType iconName="pdf" />, []);
+  const wordIcon = useMemo(() => <IconForType iconName="word" />, []);
+  const excelIcon = useMemo(() => <IconForType iconName="excel" />, []);
+  const powerpointIcon = useMemo(() => <IconForType iconName="powerpoint" />, []);
+  const zipIcon = useMemo(() => <IconForType iconName="zip" />, []);
+  const unknownIcon = useMemo(() => <IconForType iconName="unknown" />, []);
 
   const calculateTotalAssets = useCallback((node: Asset): number => {
     if (node.content_type === "folder" && (node as AssetTreeNode).children) {
@@ -124,7 +126,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     return () => handleToggleFolder(assetId);
   }, [handleToggleFolder]);
 
-  const getFileIcon = (contentType: string) => {
+  const getFileIcon = useCallback((contentType: string) => {
     switch (contentType) {
       case "folder":
         return folderIcon;
@@ -163,7 +165,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
           return unknownIcon;
         }
     }
-  };
+  }, [folderIcon, imageIcon, audioIcon, videoIcon, textIcon, pdfIcon, wordIcon, excelIcon, powerpointIcon, zipIcon, unknownIcon]);
 
   const sortNodes = useCallback((nodes: AssetTreeNode[]): AssetTreeNode[] => {
     return [...nodes].sort((a, b) => {
@@ -179,7 +181,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
 
   const sortedAssetTree = useMemo(() => sortNodes(assetTree), [assetTree, sortNodes]);
 
-  const renderAssetTree = (nodes: AssetTreeNode[], depth = 0) => {
+  const renderAssetTree = useCallback((nodes: AssetTreeNode[], depth = 0) => {
     const sortedNodes = sortNodes(nodes);
 
     return (
@@ -237,7 +239,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         ))}
       </List>
     );
-  };
+  }, [sortNodes, closedFolders, createFolderToggleHandler, getFileIcon, theme.vars.palette.grey]);
 
   if (isLoading) {
     return <CircularProgress />;
