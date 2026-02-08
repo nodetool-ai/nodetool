@@ -9,12 +9,12 @@ export function useEditorKeyboardShortcuts(options: {
   const { onToggleFullscreen, onToggleAssistant, onToggleEditorMode } = options;
 
   // Register combos; the hook itself is declarative wrappers around useCombo
-  useCombo(["ctrl", "shift", "f"], onToggleFullscreen, false);
-  useCombo(["meta", "shift", "f"], onToggleFullscreen, false);
-  useCombo(["ctrl", "shift", "a"], onToggleAssistant, false);
-  useCombo(["meta", "shift", "a"], onToggleAssistant, false);
-  useCombo(["ctrl", "shift", "e"], onToggleEditorMode, false);
-  useCombo(["meta", "shift", "e"], onToggleEditorMode, false);
+  useCombo(["Control", "shift", "f"], onToggleFullscreen, false);
+  useCombo(["Meta", "shift", "f"], onToggleFullscreen, false);
+  useCombo(["Control", "shift", "a"], onToggleAssistant, false);
+  useCombo(["Meta", "shift", "a"], onToggleAssistant, false);
+  useCombo(["Control", "shift", "e"], onToggleEditorMode, false);
+  useCombo(["Meta", "shift", "e"], onToggleEditorMode, false);
 
   // No return value; side-effect registration only
   useEffect(() => {}, []);

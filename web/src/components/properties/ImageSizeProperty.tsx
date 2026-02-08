@@ -254,6 +254,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
               placeholder="Search presets..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
               autoFocus
               InputProps={{
                 startAdornment: (
