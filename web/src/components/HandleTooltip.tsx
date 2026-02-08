@@ -31,6 +31,25 @@ const isRenderableValue = (value: unknown): boolean => {
   return true;
 };
 
+const fallbackLabelForValue = (value: unknown): string => {
+  if (value === null) {
+    return "null";
+  }
+  if (value === undefined) {
+    return "No value";
+  }
+  if (typeof value === "string") {
+    return "Empty string";
+  }
+  if (Array.isArray(value)) {
+    return "Empty list";
+  }
+  if (typeof value === "object") {
+    return "Empty object";
+  }
+  return "No value";
+};
+
 /**
  * Checks if a TypeMetadata is a union of float and int (in any order)
  * and returns "number" if so, otherwise returns the formatted type string.
@@ -101,7 +120,10 @@ const HandleTooltip = memo(function HandleTooltip({
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
 
   const hasRenderableValue = useMemo(() => isRenderableValue(value), [value]);
-  const valueFallbackLabel = value === null ? "null" : "No value";
+  const valueFallbackLabel = useMemo(
+    () => fallbackLabelForValue(value),
+    [value]
+  );
 
   const handleMouseEnter = useCallback(() => {
     const position = getMousePosition();
