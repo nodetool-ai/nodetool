@@ -41,11 +41,14 @@ interface ComboOptions {
 const comboCallbacks = new Map<string, ComboOptions>();
 
 const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
-  comboCallbacks.set(combo, options);
+  // Normalize 'ctrl' to 'control' for consistency
+  const normalizedCombo = combo.replace(/\bctrl\b/g, "control");
+  comboCallbacks.set(normalizedCombo, options);
 };
 
 const unregisterComboCallback = (combo: string) => {
-  comboCallbacks.delete(combo);
+  const normalizedCombo = combo.replace(/\bctrl\b/g, "control");
+  comboCallbacks.delete(normalizedCombo);
 };
 
 const executeComboCallbacks = (
@@ -68,13 +71,18 @@ const executeComboCallbacks = (
   // An active callback exists for the pressed keys.
   // Now, check if we should suppress it due to input focus.
   const isInputFocused =
-    activeElement &&
-    (activeElement.tagName === "INPUT" ||
-      activeElement.tagName === "TEXTAREA" ||
-      activeElement.closest('[data-slate-editor="true"]') ||
-      activeElement.closest(".text-editor-container") ||
-      activeElement.closest(".monaco-editor") ||
-      activeElement.closest(".editor-input"));
+    (activeElement &&
+      (activeElement.tagName === "INPUT" ||
+        activeElement.tagName === "TEXTAREA" ||
+        activeElement.closest('[data-slate-editor="true"]') ||
+        activeElement.closest(".text-editor-container") ||
+        activeElement.closest(".monaco-editor") ||
+        activeElement.closest(".editor-input"))) ||
+    (event?.target instanceof HTMLElement &&
+      (event.target.tagName === "INPUT" ||
+        event.target.tagName === "TEXTAREA" ||
+        event.target.closest(".MuiInputBase-input") ||
+        event.target.closest(".MuiTextField-root")));
 
   if (isInputFocused) {
     // --- Input Focus Handling ---
