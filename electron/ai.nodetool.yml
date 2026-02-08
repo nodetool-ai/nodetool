@@ -1,0 +1,62 @@
+app-id: ai.nodetool
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '23.08'
+command: nodetool
+separate-locales: false
+finish-args:
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=x11
+  # Wayland access
+  - --socket=wayland
+  # GPU acceleration
+  - --device=dri
+  # Audio access
+  - --socket=pulseaudio
+  # Network access (for API calls and model downloads)
+  - --share=network
+  # Filesystem access for projects and data
+  - --filesystem=home
+  # Allow communication with external services
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=com.canonical.AppMenu.Registrar
+  # System tray access
+  - --talk-name=org.freedesktop.portal.Desktop
+  # Allow microphone access (for audio recording features)
+  - --device=all
+  # Allow webcam access (for video recording features)
+  - --env=ELECTRON_TRASH=gio
+
+modules:
+  - name: nodetool
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 nodetool.sh /app/bin/nodetool
+      - install -Dm644 ai.nodetool.desktop /app/share/applications/ai.nodetool.desktop
+      - install -Dm644 ai.nodetool.metainfo.xml /app/share/metainfo/ai.nodetool.metainfo.xml
+      - |
+        for size in 16 24 32 48 64 128 256 512; do
+          if [ -f "icons/icon_${size}x${size}.png" ]; then
+            install -Dm644 "icons/icon_${size}x${size}.png" "/app/share/icons/hicolor/${size}x${size}/apps/ai.nodetool.png"
+          fi
+        done
+      - install -Dm644 nodetool-app/* /app/nodetool/ -t
+    sources:
+      - type: file
+        path: ai.nodetool.desktop
+      - type: file
+        path: ai.nodetool.metainfo.xml
+      - type: dir
+        path: linux_icons
+        dest: icons
+      - type: script
+        dest-filename: nodetool.sh
+        commands:
+          - exec /app/nodetool/nodetool "$@"
+      - type: dir
+        path: dist/linux-unpacked
+        dest: nodetool-app

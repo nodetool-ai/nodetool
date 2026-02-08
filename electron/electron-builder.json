@@ -100,9 +100,39 @@
     },
     "linux": {
         "target": [
-            "AppImage"
+            "AppImage",
+            "flatpak"
         ],
-        "category": "Development"
+        "category": "Development",
+        "maintainer": "hello@nodetool.ai",
+        "desktop": {
+            "Name": "Nodetool",
+            "Comment": "Visual Builder for AI Workflows and Agents",
+            "GenericName": "AI Workflow Editor",
+            "Keywords": "AI;Development;Workflow;Node;Editor;Machine Learning;",
+            "Categories": "Development;IDE;",
+            "MimeType": "x-scheme-handler/nodetool;",
+            "StartupWMClass": "Nodetool"
+        }
+    },
+    "flatpak": {
+        "useWaylandFlags": true,
+        "finishArgs": [
+            "--share=ipc",
+            "--socket=x11",
+            "--socket=wayland",
+            "--device=dri",
+            "--socket=pulseaudio",
+            "--share=network",
+            "--filesystem=home",
+            "--talk-name=org.freedesktop.Notifications",
+            "--device=all"
+        ],
+        "runtime": "org.freedesktop.Platform",
+        "runtimeVersion": "23.08",
+        "sdk": "org.freedesktop.Sdk",
+        "base": "org.electronjs.Electron2.BaseApp",
+        "baseVersion": "23.08"
     },
     "nsis": {
         "oneClick": false,
