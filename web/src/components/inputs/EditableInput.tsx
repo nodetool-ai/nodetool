@@ -94,13 +94,14 @@ const EditableInput: React.FC<EditableInputProps> = ({
 
   const inputStyle = useMemo<React.CSSProperties>(
     () => ({
-      position: "absolute",
-      width: isFocused ? `${Math.max(value.length * 12, 50)}px` : "0px",
+      width: isFocused ? `${Math.max(value.length * 10, 40)}px` : "0px",
       color: isFocused ? "inherit" : "transparent",
       backgroundColor: isFocused ? "inherit" : "transparent",
-      opacity: isFocused ? 1 : 0.001,
+      opacity: isFocused ? 1 : 0,
       pointerEvents: isFocused ? "auto" : "none",
-      zIndex: isFocused ? 1 : "auto"
+      zIndex: isFocused ? 1 : -1,
+      border: "none",
+      outline: "none"
     }),
     [isFocused, value.length]
   );

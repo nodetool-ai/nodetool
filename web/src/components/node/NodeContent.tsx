@@ -100,7 +100,11 @@ const NodeContent: React.FC<NodeContentProps> = ({
             onToggleAdvancedFields={onToggleAdvancedFields}
           />
           {!isOutputNode && (
-            <NodeOutputs id={id} outputs={nodeMetadata.outputs} isStreamingOutput={nodeMetadata.is_streaming_output} />
+            <NodeOutputs
+              id={id}
+              outputs={nodeMetadata.outputs}
+              isStreamingOutput={nodeMetadata.is_streaming_output}
+            />
           )}
         </Box>
         <Box
@@ -166,7 +170,13 @@ const NodeContent: React.FC<NodeContentProps> = ({
           nodeType={nodeType}
         />
       )}
-      {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} isStreamingOutput={nodeMetadata.is_streaming_output} />}
+      {!isOutputNode && (
+        <NodeOutputs
+          id={id}
+          outputs={nodeMetadata.outputs}
+          isStreamingOutput={nodeMetadata.is_streaming_output}
+        />
+      )}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </Box>
   );
