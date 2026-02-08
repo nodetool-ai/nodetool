@@ -338,7 +338,7 @@ Download the latest release for your platform from the [NodeTool Releases](https
 - **Windows**: `NodeTool-Setup-x.x.x.exe`
 - **macOS (Intel)**: `NodeTool-x.x.x.dmg`
 - **macOS (Apple Silicon)**: `NodeTool-x.x.x-arm64.dmg`
-- **Linux**: `NodeTool-x.x.x.AppImage`
+- **Linux**: `NodeTool-x.x.x.AppImage` or `NodeTool-x.x.x.deb`
 
 ### Electron vs CLI Feature Comparison
 
