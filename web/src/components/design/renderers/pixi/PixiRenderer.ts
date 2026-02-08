@@ -10,7 +10,13 @@ import {
 } from "pixi.js";
 import type { LayoutCanvasData, LayoutElement, SnapGuide } from "../../types";
 import type { CanvasRenderer, Point, AABB, ExportOptions } from "../CanvasRenderer";
-import { DEFAULT_PIXI_BACKGROUND, parseHexColor, snapToGrid, toRadians } from "./pixiUtils";
+import {
+  DEFAULT_PIXI_BACKGROUND,
+  computeGridStep,
+  parseHexColor,
+  snapToGrid,
+  toRadians
+} from "./pixiUtils";
 
 export interface PixiInteractionHandlers {
   onSelect?: (id: string, event: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) => void;
@@ -48,6 +54,7 @@ export default class PixiRenderer implements CanvasRenderer {
   private gridEnabled = false;
   private gridSize = 10;
   private gridColor = "#e0e0e0";
+  private gridStep = 0;
   private pan: Point = { x: 0, y: 0 };
   private zoom = 1;
   private gridNodes: Graphics[] = [];
@@ -255,12 +262,11 @@ export default class PixiRenderer implements CanvasRenderer {
     }
     const lineColor = parseHexColor(color);
     const grid = new Graphics();
-    const scale = Math.max(this.zoom, 0.01);
-    const minSpacing = 48;
-    let step = size;
-    while (step * scale < minSpacing) {
-      step *= 2;
+    const step = computeGridStep(size, this.zoom);
+    if (this.gridStep !== step || this.gridEnabled !== enabled) {
+      console.info("[PixiRenderer] Grid updated", { enabled, size, step, zoom: this.zoom });
     }
+    this.gridStep = step;
     const width = snapToGrid(this.data.width, size);
     const height = snapToGrid(this.data.height, size);
     for (let x = 0; x <= width; x += step) {
@@ -375,10 +381,21 @@ export default class PixiRenderer implements CanvasRenderer {
     let bounds: Rectangle | null = null;
     this.selection.forEach((id) => {
       const node = this.elementNodes.get(id);
-      if (!node) {
+      if (!node || !this.root) {
         return;
       }
-      const localBounds = node.getBounds(this.root);
+      const globalBounds = node.getBounds(false);
+      const topLeft = this.root.toLocal({ x: globalBounds.x, y: globalBounds.y });
+      const bottomRight = this.root.toLocal({
+        x: globalBounds.x + globalBounds.width,
+        y: globalBounds.y + globalBounds.height
+      });
+      const localBounds = new Rectangle(
+        topLeft.x,
+        topLeft.y,
+        bottomRight.x - topLeft.x,
+        bottomRight.y - topLeft.y
+      );
       if (!bounds) {
         bounds = localBounds.clone();
       } else {
@@ -388,6 +405,12 @@ export default class PixiRenderer implements CanvasRenderer {
     if (!bounds) {
       return;
     }
+    console.debug("[PixiRenderer] Selection bounds", {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height
+    });
     this.selectionOutline
       .rect(bounds.x, bounds.y, bounds.width, bounds.height)
       .stroke({ width: 1, color: 0x4f46e5, alpha: 1 });

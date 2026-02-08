@@ -5,6 +5,8 @@
 Deliver a Pixi.js v8-only canvas editor with the MVP feature set defined below, then layer V2 capabilities without
 reimplementing Pixi-provided geometry, bounds, or event handling.
 
+Reference for structural guidance and feature inspiration: https://github.com/penpot/penpot
+
 ## Scope (checklist)
 
 ### Must have (MVP)
@@ -64,6 +66,14 @@ reimplementing Pixi-provided geometry, bounds, or event handling.
 
 - Which spatial index library to standardize on (or custom R-tree)?
 - Snap threshold defaults and keyboard toggle UX
+
+## Suggested test checklist
+
+- Create a rectangle and select it on the canvas (handles visible and aligned).
+- Drag a handle to resize; drag rotation handle to rotate with 15° snaps.
+- Pan with space+drag; grid and elements should move together.
+- Toggle grid visibility; grid remains centered at different zoom levels.
+- Export PNG and confirm downloaded image renders elements.
 
 ## Architecture (target)
 

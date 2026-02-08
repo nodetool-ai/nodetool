@@ -39,3 +39,19 @@ export const roundToDecimal = (value: number, places: number): number => {
   const factor = 10 ** places;
   return Math.round(value * factor) / factor;
 };
+
+export const computeGridStep = (
+  baseSize: number,
+  zoom: number,
+  minSpacing = 64
+): number => {
+  if (baseSize <= 0) {
+    return minSpacing;
+  }
+  const scale = Math.max(zoom, 0.01);
+  let step = baseSize;
+  while (step * scale < minSpacing) {
+    step *= 2;
+  }
+  return step;
+};
