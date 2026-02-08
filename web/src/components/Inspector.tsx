@@ -63,52 +63,6 @@ const styles = (theme: Theme) =>
       maxHeight: "20vh",
       padding: "0.5em "
     },
-    // ".node-property": {
-    //   display: "flex",
-    //   flexShrink: 0,
-    //   flexDirection: "column",
-    //   margin: 0,
-    //   padding: 0,
-    //   width: "100%",
-    //   minWidth: "180px",
-    //   maxWidth: "300px",
-    //   marginBottom: ".1em"
-    // },
-    // ".node-property .MuiTextField-root textarea": {
-    //   fontSize: theme.fontSizeNormal
-    // },
-    // ".node-property textarea": {
-    //   margin: 0,
-    //   padding: "0.25em",
-    //   backgroundColor: theme.vars.palette.grey[600],
-    //   fontSize: theme.fontSizeSmall,
-    //   minHeight: "1.75em",
-    //   maxHeight: "20em"
-    // },
-    // ".node-property label": {
-    //   fontSize: theme.fontSizeNormal,
-    //   fontFamily: theme.fontFamily1,
-    //   minHeight: "18px",
-    //   userSelect: "none"
-    // },
-    // ".node-property.enum .mui-select": {
-    //   height: "2em",
-    //   backgroundColor: theme.vars.palette.grey[600],
-    //   marginTop: "0.25em",
-    //   padding: "0.5em .5em",
-    //   fontSize: theme.fontSizeSmall
-    // },
-    // ".node-property.enum .property-label": {
-    //   height: "1em"
-    // },
-    // ".node-property.enum label": {
-    //   fontSize: theme.fontSizeNormal,
-    //   fontFamily: theme.fontFamily1,
-    //   transform: "translate(0, 0)"
-    // },
-    // ".node-property.enum .MuiFormControl-root": {
-    //   margin: 0
-    // },
     ".inspector-header": {
       display: "flex",
       flexDirection: "column",
