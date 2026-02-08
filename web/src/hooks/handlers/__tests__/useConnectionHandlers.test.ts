@@ -26,10 +26,14 @@ jest.mock("../../../stores/ContextMenuStore", () => ({
 }));
 
 // Mock the centralized handle functions
-jest.mock("../../../utils/handleUtils", () => ({
-  findOutputHandle: jest.fn(),
-  findInputHandle: jest.fn()
-}));
+jest.mock("../../../utils/handleUtils", () => {
+  const actual = jest.requireActual("../../../utils/handleUtils");
+  return {
+    ...actual,
+    findOutputHandle: jest.fn(),
+    findInputHandle: jest.fn()
+  };
+});
 
 // Mock TypeHandler utilities
 jest.mock("../../../utils/TypeHandler", () => ({

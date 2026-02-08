@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Container, Box } from "@mui/material";
+import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
@@ -72,18 +72,17 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       state.getOutputResult(workflow_id, id) ?? state.getResult(workflow_id, id)
   );
 
-  if (!metadata) {
-    return null;
-  }
-
   const meta = useMemo(
-    () => ({
-      nodeBasicFields: metadata.basic_fields || [],
-      hasAdvancedFields:
-        (metadata.properties?.length ?? 0) >
-        (metadata.basic_fields?.length ?? 0)
-    }),
-    [metadata.basic_fields, metadata.properties?.length]
+    () => {
+        if (!metadata) {return { nodeBasicFields: [], hasAdvancedFields: false };}
+        return {
+            nodeBasicFields: metadata.basic_fields || [],
+            hasAdvancedFields:
+                (metadata.properties?.length ?? 0) >
+                (metadata.basic_fields?.length ?? 0)
+        };
+    },
+    [metadata]
   );
 
   const onToggleAdvancedFields = useCallback(() => {
@@ -100,9 +99,14 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const headerTitle = useMemo(() => {
+    if (!metadata) {return "Fal AI";}
     const base = metadata.title || "Fal AI";
     return data.endpoint_id ? `${base} · ${data.endpoint_id}` : base;
-  }, [metadata.title, data.endpoint_id]);
+  }, [metadata, data.endpoint_id]);
+
+  if (!metadata) {
+    return null;
+  }
 
   return (
     <Box
