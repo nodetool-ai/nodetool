@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Box, Divider } from "@mui/material";
 import {
   AlignHorizontalLeft,
@@ -74,7 +74,7 @@ const renderDivider = (index: number): React.ReactNode => (
   />
 );
 
-const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
+const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   visible,
   onClose,
 }) => {
@@ -239,6 +239,8 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
       })}
     </Box>
   );
-};
+});
+
+SelectionActionToolbar.displayName = 'SelectionActionToolbar';
 
 export default SelectionActionToolbar;

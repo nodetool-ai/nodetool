@@ -4,7 +4,12 @@ import { shallow } from "zustand/shallow";
 import useConnectionStore from "../../stores/ConnectionStore";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { isConnectable, Slugify, typeToString } from "../../utils/TypeHandler";
-import { findOutputHandle, findInputHandle } from "../../utils/handleUtils";
+import {
+  findOutputHandle,
+  findInputHandle,
+  getAllInputHandles,
+  getAllOutputHandles
+} from "../../utils/handleUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -150,7 +155,6 @@ export default function useConnectionHandlers() {
       }
 
       if (
-        isDynamicProperty ||
         isConnectable(
           sourceHandleMetadata.type,
           targetHandleMetadata?.type || {
@@ -292,47 +296,6 @@ export default function useConnectionHandlers() {
           return;
         }
 
-        // Handle dynamic properties case
-        if (nodeMetadata.is_dynamic && connectDirection === "source") {
-          // Use the source node's name as the property name
-          const sourceNodeName =
-            connectNode.data?.title ||
-            connectNode.type?.split(".").pop() ||
-            connectHandleId ||
-            "";
-          const dynamicProps = node.data?.dynamic_properties || {};
-
-          // Find a unique name if the property already exists
-          let propertyName = sourceNodeName;
-          let counter = 1;
-          while (dynamicProps[propertyName]) {
-            propertyName = `${sourceNodeName}_${counter}`;
-            counter++;
-          }
-
-          const newConnection = {
-            source: connectNodeId || "",
-            sourceHandle: connectHandleId || "",
-            target: nodeId,
-            targetHandle: propertyName,
-            className: Slugify(connectType?.type || "")
-          };
-
-          // Create the dynamic property
-          if (!dynamicProps[propertyName]) {
-            const updatedProps = {
-              ...dynamicProps,
-              [propertyName]: ""
-            };
-            updateNodeData(nodeId, {
-              dynamic_properties: updatedProps
-            });
-          }
-
-          handleOnConnect(newConnection);
-          endConnecting();
-          return;
-        }
 
         // Auto-connect for reroute nodes regardless of drop location
         if (nodeMetadata.node_type === REROUTE_NODE_TYPE) {
@@ -380,12 +343,10 @@ export default function useConnectionHandlers() {
         // Generic fallback: pick compatible handle(s)
         if (connectType) {
           if (connectDirection === "source") {
-            const matchingInputs =
-              (nodeMetadata.properties || []).filter(
-                (property) =>
-                  property?.type &&
-                  isConnectable(connectType, property.type, true)
-              ) ?? [];
+            const allInputs = getAllInputHandles(node, nodeMetadata);
+            const matchingInputs = allInputs.filter(
+              (handle) => isConnectable(connectType, handle.type, true)
+            );
 
             if (matchingInputs.length === 1) {
               const matchingInput = matchingInputs[0];
@@ -402,16 +363,15 @@ export default function useConnectionHandlers() {
 
             if (matchingInputs.length > 1) {
               const options: ConnectionMatchOption[] = matchingInputs.map(
-                (property) => ({
-                  id: property.name,
-                  label: property.title || property.name,
-                  description: property.description || undefined,
-                  typeLabel: typeToString(property.type),
+                (handle) => ({
+                  id: handle.name,
+                  label: handle.name,
+                  typeLabel: typeToString(handle.type),
                   connection: {
                     source: connectNodeId || "",
                     sourceHandle: connectHandleId || "",
                     target: nodeId,
-                    targetHandle: property.name
+                    targetHandle: handle.name
                   }
                 })
               );
@@ -420,11 +380,10 @@ export default function useConnectionHandlers() {
               }
             }
           } else if (connectDirection === "target") {
-            const matchingOutputs =
-              (nodeMetadata.outputs || []).filter(
-                (output) =>
-                  output?.type && isConnectable(output.type, connectType, true)
-              ) ?? [];
+            const allOutputs = getAllOutputHandles(node, nodeMetadata);
+            const matchingOutputs = allOutputs.filter(
+              (handle) => isConnectable(handle.type, connectType, true)
+            );
 
             if (matchingOutputs.length === 1) {
               const matchingOutput = matchingOutputs[0];
@@ -441,13 +400,13 @@ export default function useConnectionHandlers() {
 
             if (matchingOutputs.length > 1) {
               const options: ConnectionMatchOption[] = matchingOutputs.map(
-                (output) => ({
-                  id: output.name,
-                  label: output.name,
-                  typeLabel: typeToString(output.type),
+                (handle) => ({
+                  id: handle.name,
+                  label: handle.name,
+                  typeLabel: typeToString(handle.type),
                   connection: {
                     source: nodeId,
-                    sourceHandle: output.name,
+                    sourceHandle: handle.name,
                     target: connectNodeId || "",
                     targetHandle: connectHandleId || ""
                   }
@@ -459,10 +418,62 @@ export default function useConnectionHandlers() {
             }
           }
         }
+
+        // Handle dynamic properties case (if no auto-connection was possible)
+        // Note: For FAL nodes, we only want inputs derived from the schema, so we skip manual creation.
+        if (
+          nodeMetadata.is_dynamic &&
+          connectDirection === "source" &&
+          node.type !== "fal.dynamic_schema.FalAI"
+        ) {
+          // Use the source node's name as the property name
+          const sourceNodeName =
+            connectNode.data?.title ||
+            connectNode.type?.split(".").pop() ||
+            connectHandleId ||
+            "";
+          const dynamicProps = node.data?.dynamic_properties || {};
+
+          // Find a unique name if the property already exists
+          let propertyName = sourceNodeName;
+          let counter = 1;
+          while (dynamicProps[propertyName]) {
+            propertyName = `${sourceNodeName}_${counter}`;
+            counter++;
+          }
+
+          const newConnection = {
+            source: connectNodeId || "",
+            sourceHandle: connectHandleId || "",
+            target: nodeId,
+            targetHandle: propertyName,
+            className: Slugify(connectType?.type || "")
+          };
+
+          // Create the dynamic property
+          if (!dynamicProps[propertyName]) {
+            const updatedProps = {
+              ...dynamicProps,
+              [propertyName]: ""
+            };
+            updateNodeData(nodeId, {
+              dynamic_properties: updatedProps
+            });
+          }
+
+          handleOnConnect(newConnection);
+          endConnecting();
+          return;
+        }
       }
 
-      // targetIsPane: open context menu for output
-      if (!connectionCreated.current && (targetIsPane || targetIsGroup)) {
+      // targetIsPane: open context menu for output (skip during edge reconnection)
+      const { isReconnecting } = useConnectionStore.getState();
+      if (
+        !connectionCreated.current &&
+        !isReconnecting &&
+        (targetIsPane || targetIsGroup)
+      ) {
         if (connectDirection === "source") {
           openContextMenu(
             "output-context-menu",
@@ -476,7 +487,8 @@ export default function useConnectionHandlers() {
         }
         if (connectDirection === "target") {
           // Get min/max/default from ConnectionStore before it gets reset
-          const { connectMin, connectMax, connectDefault } = useConnectionStore.getState();
+          const { connectMin, connectMax, connectDefault } =
+            useConnectionStore.getState();
           openContextMenu(
             "input-context-menu",
             connectNodeId || "",
@@ -487,7 +499,7 @@ export default function useConnectionHandlers() {
             connectHandleId || "",
             undefined,
             undefined,
-            { connectMin, connectMax, connectDefault }  // Pass min/max/default through payload
+            { connectMin, connectMax, connectDefault } // Pass min/max/default through payload
           );
         }
       }

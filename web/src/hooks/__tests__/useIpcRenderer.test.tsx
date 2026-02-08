@@ -17,10 +17,11 @@ describe("useMenuHandler", () => {
     return Wrapper;
   };
 
-  it("throws error when used outside MenuProvider", () => {
+  it("does not throw when used outside MenuProvider (no-op)", () => {
+    const handler = jest.fn();
     expect(() => {
-      renderHook(() => useMenuHandler(jest.fn()));
-    }).toThrow("useMenuHandler must be used within a MenuProvider");
+      renderHook(() => useMenuHandler(handler));
+    }).not.toThrow();
   });
 
   it("registers handler on mount", () => {
@@ -55,13 +56,10 @@ describe("useMenuHandler", () => {
     const handler1 = jest.fn();
     const handler2 = jest.fn();
 
-    const { rerender } = renderHook(
-      ({ handler }) => useMenuHandler(handler),
-      {
-        wrapper: createWrapper(mockContext),
-        initialProps: { handler: handler1 }
-      }
-    );
+    const { rerender } = renderHook(({ handler }) => useMenuHandler(handler), {
+      wrapper: createWrapper(mockContext),
+      initialProps: { handler: handler1 }
+    });
 
     expect(mockContext.registerHandler).toHaveBeenCalledWith(handler1);
     expect(mockContext.registerHandler).toHaveBeenCalledTimes(1);
@@ -78,13 +76,10 @@ describe("useMenuHandler", () => {
     const mockContext = createMockContext();
     const handler = jest.fn();
 
-    const { rerender } = renderHook(
-      ({ handler }) => useMenuHandler(handler),
-      {
-        wrapper: createWrapper(mockContext),
-        initialProps: { handler }
-      }
-    );
+    const { rerender } = renderHook(({ handler }) => useMenuHandler(handler), {
+      wrapper: createWrapper(mockContext),
+      initialProps: { handler }
+    });
 
     expect(mockContext.registerHandler).toHaveBeenCalledTimes(1);
 

@@ -70,12 +70,10 @@ const SETTING_TOOLTIPS: Record<string, string> = {
 
 const RemoteSettings = () => {
   const queryClient = useQueryClient();
-  const {
-    updateSettings,
-    fetchSettings,
-    settingsByGroup: storeSettingsByGroup,
-    settings
-  } = useRemoteSettingsStore();
+  const updateSettings = useRemoteSettingsStore((state) => state.updateSettings);
+  const fetchSettings = useRemoteSettingsStore((state) => state.fetchSettings);
+  const storeSettingsByGroup = useRemoteSettingsStore((state) => state.settingsByGroup);
+  const settings = useRemoteSettingsStore((state) => state.settings);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
   // HuggingFace OAuth state
@@ -189,13 +187,23 @@ const RemoteSettings = () => {
   useEffect(() => {
     const settingsToUse: SettingWithValue[] | undefined = data || settings;
     if (settingsToUse && settingsToUse.length > 0) {
-      const values: Record<string, string> = {};
-      settingsToUse.forEach((setting) => {
-        if ((!setting.is_secret) && setting.value !== null && setting.value !== undefined) {
-          values[setting.env_var] = String(setting.value);
-        }
+      setSettingValues((prev) => {
+        const newValues = { ...prev };
+        let hasChanges = false;
+        settingsToUse.forEach((setting) => {
+          if ((!setting.is_secret) && setting.value !== null && setting.value !== undefined) {
+            const value = String(setting.value);
+            // Only initialize if the key doesn't exist yet
+            if (!(setting.env_var in prev) || prev[setting.env_var] !== value) {
+              if (!(setting.env_var in prev)) {
+                newValues[setting.env_var] = value;
+                hasChanges = true;
+              }
+            }
+          }
+        });
+        return hasChanges ? newValues : prev;
       });
-      setSettingValues(values);
     }
   }, [data, settings]);
 

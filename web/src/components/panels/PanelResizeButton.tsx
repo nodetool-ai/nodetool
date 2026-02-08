@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import { Button } from "@mui/material";
 import type { MouseEvent, CSSProperties } from "react";
+import { memo, useCallback } from "react";
 
 type PanelSide = "left" | "right";
 
@@ -42,7 +43,7 @@ const buttonStyles = css({
   }
 });
 
-export default function PanelResizeButton({
+const PanelResizeButton = memo(function PanelResizeButton({
   side,
   isVisible,
   panelSize,
@@ -51,6 +52,14 @@ export default function PanelResizeButton({
   const edgePaddingVisible = 0;
   const minOffsetVisible = 24;
   const collapsedOffset = 12;
+
+  const handleMouseDown = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      onMouseDown(e);
+    },
+    [onMouseDown]
+  );
 
   const dynamicStyle =
     side === "right"
@@ -73,10 +82,7 @@ export default function PanelResizeButton({
       disableRipple
       css={buttonStyles}
       tabIndex={-1}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-        onMouseDown(e);
-      }}
+      onMouseDown={handleMouseDown}
       style={dynamicStyle as CSSProperties}
       aria-label={side === "right" ? "Resize right panel" : "Resize left panel"}
     >
@@ -84,4 +90,6 @@ export default function PanelResizeButton({
       <div className="resize-handle" />
     </Button>
   );
-}
+});
+
+export default PanelResizeButton;

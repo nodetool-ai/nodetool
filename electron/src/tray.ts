@@ -2,7 +2,7 @@ import { Tray, Menu, app, BrowserWindow, shell } from "electron";
 import path from "path";
 import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
-import { createPackageManagerWindow, createWindow, createLogViewerWindow } from "./window";
+import { createPackageManagerWindow, createWindow, createLogViewerWindow, createSettingsWindow } from "./window";
 import { execSync } from "child_process";
 import { stopServer, initializeBackendServer, isServerRunning, getServerState, isOllamaRunning, isLlamaServerRunning } from "./server";
 import { fetchWorkflows } from "./api";
@@ -388,6 +388,10 @@ async function updateTrayMenu(): Promise<void> {
     {
       label: "Log Viewer",
       click: () => createLogViewerWindow(),
+    },
+    {
+      label: "Settings",
+      click: () => createSettingsWindow(),
     },
     {
       label: "Open Log File",

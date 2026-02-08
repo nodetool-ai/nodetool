@@ -12,7 +12,9 @@ export const ThemeToggle: React.FC = () => {
   };
 
   // Don't render until we have the mode
-  if (!mode) {return null;}
+  if (!mode) {
+    return null;
+  }
 
   return (
     <StateIconButton
@@ -22,7 +24,10 @@ export const ThemeToggle: React.FC = () => {
       size="small"
       color="default"
       sx={{
-        color: "var(--palette-text-primary)"
+        marginLeft: 1,
+        scale: 0.85,
+        color: "var(--palette-text-primary)",
+        border: `1px solid var(--palette-grey-600)`
       }}
     />
   );

@@ -110,7 +110,7 @@ export const useFileHandlers = () => {
     addNode: state.addNode,
     workflow: state.workflow
   }));
-  const { addNotification } = useNotificationStore();
+  const addNotification = useNotificationStore((state) => state.addNotification);
   const { user } = useAuth((auth) => ({ user: auth.user }));
   const createDataframe = useCreateDataframe(createNode, addNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);

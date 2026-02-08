@@ -268,8 +268,8 @@ def main():
     parser.add_argument(
         "--memory-dir",
         type=Path,
-        default=Path(__file__).parent.parent / ".github" / "opencode-memory",
-        help="Path to memory directory (default: .github/opencode-memory)",
+        default=Path(__file__).parent.parent / ".memory",
+        help="Path to memory directory (default: .memory)",
     )
     
     args = parser.parse_args()

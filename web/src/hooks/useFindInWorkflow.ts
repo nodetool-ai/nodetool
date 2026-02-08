@@ -51,24 +51,22 @@ import { NodeData } from "../stores/NodeData";
  * ```
  */
 export const useFindInWorkflow = () => {
-  const {
-    isOpen,
-    searchTerm,
-    results,
-    selectedIndex,
-    openFind,
-    closeFind,
-    setSearchTerm,
-    setResults,
-    setSelectedIndex,
-    navigateNext,
-    navigatePrevious,
-    clearSearch
-  } = useFindInWorkflowStore();
+  const isOpen = useFindInWorkflowStore((state) => state.isOpen);
+  const searchTerm = useFindInWorkflowStore((state) => state.searchTerm);
+  const results = useFindInWorkflowStore((state) => state.results);
+  const selectedIndex = useFindInWorkflowStore((state) => state.selectedIndex);
+  const openFind = useFindInWorkflowStore((state) => state.openFind);
+  const closeFind = useFindInWorkflowStore((state) => state.closeFind);
+  const setSearchTerm = useFindInWorkflowStore((state) => state.setSearchTerm);
+  const setResults = useFindInWorkflowStore((state) => state.setResults);
+  const setSelectedIndex = useFindInWorkflowStore((state) => state.setSelectedIndex);
+  const navigateNext = useFindInWorkflowStore((state) => state.navigateNext);
+  const navigatePrevious = useFindInWorkflowStore((state) => state.navigatePrevious);
+  const clearSearch = useFindInWorkflowStore((state) => state.clearSearch);
 
   const nodes = useNodes((state) => state.nodes);
   const { setCenter, fitView } = useReactFlow();
-  const metadataStore = useMetadataStore();
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getNodeDisplayName = useCallback(
@@ -78,13 +76,13 @@ export const useFindInWorkflow = () => {
         return title;
       }
       const nodeType = node.type ?? "";
-      const metadata = metadataStore.getMetadata(nodeType);
+      const metadata = getMetadata(nodeType);
       if (metadata?.title) {
         return metadata.title;
       }
       return nodeType.split(".").pop() || node.id;
     },
-    [metadataStore]
+    [getMetadata]
   );
 
   const searchNodes = useCallback(

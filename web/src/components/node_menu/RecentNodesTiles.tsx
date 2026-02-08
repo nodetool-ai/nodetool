@@ -227,25 +227,35 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     clearRecentNodes();
   }, [clearRecentNodes]);
 
-  // Get readable node names
-  const getNodeDisplayName = useCallback(
-    (nodeType: string) => {
-      const metadata = getMetadata(nodeType);
-      if (metadata) {
-        return (
-          metadata.title || metadata.node_type.split(".").pop() || nodeType
-        );
-      }
-      return nodeType.split(".").pop() || nodeType;
-    },
-    [getMetadata]
-  );
-
   // Filter out nodes that are already shown in Quick Actions
   const filteredRecentNodes = useMemo(
     () =>
       recentNodes.filter((node) => !QUICK_ACTION_NODE_TYPES.has(node.nodeType)),
     [recentNodes]
+  );
+
+  // Memoize node display names to avoid re-computation on each render
+  const nodeDisplayNames = useMemo(
+    () => {
+      const names = new Map<string, string>();
+      filteredRecentNodes.forEach((recentNode) => {
+        const { nodeType } = recentNode;
+        const metadata = getMetadata(nodeType);
+        if (metadata) {
+          names.set(
+            nodeType,
+            metadata.title || metadata.node_type.split(".").pop() || nodeType
+          );
+        } else {
+          names.set(
+            nodeType,
+            nodeType.split(".").pop() || nodeType
+          );
+        }
+      });
+      return names;
+    },
+    [filteredRecentNodes, getMetadata]
   );
 
   const handleTileClick = useCallback(
@@ -287,7 +297,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
       <div className="tiles-container">
         {filteredRecentNodes.map((recentNode) => {
           const { nodeType } = recentNode;
-          const displayName = getNodeDisplayName(nodeType);
+          const displayName = nodeDisplayNames.get(nodeType) || nodeType;
 
           return (
             <Tooltip

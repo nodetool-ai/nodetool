@@ -117,7 +117,14 @@ export interface StateIconButtonProps {
    * Color variant for the button
    * @default "default"
    */
-  color?: "default" | "primary" | "secondary" | "error" | "warning" | "info" | "success";
+  color?:
+    | "default"
+    | "primary"
+    | "secondary"
+    | "error"
+    | "warning"
+    | "info"
+    | "success";
 }
 
 export const StateIconButton = memo(
@@ -155,8 +162,7 @@ export const StateIconButton = memo(
 
       // Determine loading spinner size based on button size
       const spinnerSize =
-        loadingSize ||
-        (size === "large" ? 24 : size === "medium" ? 20 : 16);
+        loadingSize || (size === "large" ? 24 : size === "medium" ? 20 : 16);
 
       // Display the appropriate icon
       const displayIcon = isLoading ? (
@@ -185,8 +191,13 @@ export const StateIconButton = memo(
           sx={{
             transition: "all 0.15s ease",
             ...(isActive && {
-              color: theme.vars.palette[color]?.main || theme.vars.palette.primary.main,
-              backgroundColor: `${theme.vars.palette[color]?.main || theme.vars.palette.primary.main}1a`
+              color:
+                theme.vars.palette[color]?.main ||
+                theme.vars.palette.primary.main,
+              backgroundColor: `${
+                theme.vars.palette[color]?.main ||
+                theme.vars.palette.primary.main
+              }1a`
             }),
             ...sx
           }}

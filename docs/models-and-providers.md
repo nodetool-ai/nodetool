@@ -81,19 +81,19 @@ NodeTool provides access to high-quality generative AI models through cloud prov
 
 | Model | Provider | Capabilities | Key Features |
 |-------|----------|-------------|--------------|
-| **OpenAI Sora 2 Pro** | OpenAI | T2V/I2V up to 15s | Realistic motion, refined physics, synchronized native audio, 1080p output |
-| **Google Veo 3.1** | Google | T2V/I2V with references | Upgraded realistic motion, extended clip length, multi-image references, native 1080p with synced audio |
-| **xAI Grok Imagine** | xAI | T2V/I2V/T2I | Multimodal text/image to short video with coherent motion and synchronized audio; also text-to-image |
-| **Alibaba Wan 2.6** | Alibaba | Multi-shot T2V/I2V | Affordable 1080p with stable characters and native audio; reference-guided generation |
-| **MiniMax Hailuo 2.3** | MiniMax | High-fidelity T2V/I2V | Expressive characters, complex motion and lighting effects |
-| **Kling 2.6** | Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
+| **OpenAI Sora 2 Pro** | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | T2V/I2V up to 15s | Realistic motion, refined physics, synchronized native audio, 1080p output |
+| **Google Veo 3.1** | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | T2V/I2V with references | Upgraded realistic motion, extended clip length, multi-image references, native 1080p with synced audio |
+| **xAI Grok Imagine** | <img src="assets/icons/xai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> xAI | T2V/I2V/T2I | Multimodal text/image to short video with coherent motion and synchronized audio; also text-to-image |
+| **Alibaba Wan 2.6** | <img src="assets/icons/alibaba.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Alibaba | Multi-shot T2V/I2V | Affordable 1080p with stable characters and native audio; reference-guided generation |
+| **MiniMax Hailuo 2.3** | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | High-fidelity T2V/I2V | Expressive characters, complex motion and lighting effects |
+| **Kling 2.6** | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
 
 ### Top Image Generation Models
 
 | Model | Provider | Capabilities | Key Features |
 |-------|----------|-------------|--------------|
-| **Black Forest Labs FLUX.2** | BFL | T2I with control | Photoreal images, multi-reference consistency, accurate text rendering, flexible control |
-| **Google Nano Banana Pro** | Google | High-res T2I | Sharper 2K output, 4K upscaling, improved text rendering, better character consistency |
+| **Black Forest Labs FLUX.2** | <img src="assets/icons/bfl.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> BFL | T2I with control | Photoreal images, multi-reference consistency, accurate text rendering, flexible control |
+| **Google Nano Banana Pro** | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | High-res T2I | Sharper 2K output, 4K upscaling, improved text rendering, better character consistency |
 
 ### Using These Models
 
@@ -116,6 +116,10 @@ Access these models through NodeTool's **generic nodes**:
 - Point-E: `POINT_E_API_KEY`
 - Meshy AI: `MESHY_API_KEY`
 - Rodin AI: `RODIN_API_KEY`
+
+- <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI Sora 2 Pro: `OPENAI_API_KEY`
+- <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google Veo 3.1: `GEMINI_API_KEY`
+- <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax Hailuo 2.3: `MINIMAX_API_KEY`
 
 **Access via kie.ai (recommended for other models):**
 - xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6, Black Forest Labs FLUX.2, Google Nano Banana Pro
@@ -141,9 +145,9 @@ Access these models through NodeTool's **generic nodes**:
 ### Option 2: Start with Cloud Providers
 
 1. Get an API key from a provider:
-   - [OpenAI](https://platform.openai.com) – GPT-4, DALL-E, Whisper
-   - [Anthropic](https://www.anthropic.com) – Claude models
-   - [Google](https://ai.google.dev) – Gemini models
+   - <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [OpenAI](https://platform.openai.com) – GPT-4, DALL-E, Whisper
+   - <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [Anthropic](https://www.anthropic.com) – Claude models
+   - <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [Google](https://ai.google.dev) – Gemini models
 2. In NodeTool, go to **Settings → Providers**
 3. Paste your API key
 4. Select the provider when using AI nodes

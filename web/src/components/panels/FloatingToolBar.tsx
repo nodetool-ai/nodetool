@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useState, useEffect, useRef } from "react";
 import {
   Fab,
   Box,
@@ -22,6 +22,7 @@ import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { triggerAutosaveForWorkflow } from "../../hooks/useAutosave";
 
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -54,45 +55,125 @@ interface ToolbarButtonProps {
   "aria-label"?: string;
 }
 
-const ToolbarButton: React.FC<ToolbarButtonProps> = memo(function ToolbarButton({
-  icon,
-  tooltip,
-  shortcut,
-  variant = "neutral",
-  className,
-  onClick,
-  disabled,
-  "aria-label": ariaLabel
-}) {
-  const title = shortcut ? getShortcutTooltip(shortcut) : tooltip;
+const ToolbarButton: React.FC<ToolbarButtonProps> = memo(
+  function ToolbarButton({
+    icon,
+    tooltip,
+    shortcut,
+    variant = "neutral",
+    className,
+    onClick,
+    disabled,
+    "aria-label": ariaLabel
+  }) {
+    const title = shortcut ? getShortcutTooltip(shortcut) : tooltip;
 
-  const fabElement = (
-    <Fab
-      className={cn(
-        "floating-action-button",
-        variant,
-        className,
-        disabled && "disabled"
-      )}
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={ariaLabel || tooltip}
-      disableRipple
-    >
-      {icon}
-    </Fab>
-  );
+    const fabElement = (
+      <Fab
+        className={cn(
+          "floating-action-button",
+          variant,
+          className,
+          disabled && "disabled"
+        )}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={ariaLabel || tooltip}
+        disableRipple
+      >
+        {icon}
+      </Fab>
+    );
 
-  return (
-    <Tooltip
-      title={title}
-      enterDelay={TOOLTIP_ENTER_DELAY}
-      placement="top"
-    >
-      {disabled ? <span style={{ display: "inline-flex" }}>{fabElement}</span> : fabElement}
-    </Tooltip>
-  );
-});
+    return (
+      <Tooltip title={title} enterDelay={TOOLTIP_ENTER_DELAY} placement="top">
+        {disabled ? (
+          <span style={{ display: "inline-flex" }}>{fabElement}</span>
+        ) : (
+          fabElement
+        )}
+      </Tooltip>
+    );
+  }
+);
+
+// Format seconds into precise time display
+// Returns text and size key: "smaller" | "tiny" | "tinyer"
+const formatRunningTime = (
+  seconds: number
+): { text: string; sizeKey: "smaller" | "tiny" | "tinyer" } => {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hrs > 0) {
+    // H:MM:SS format
+    const text = `${hrs}:${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
+    return { text, sizeKey: "tinyer" };
+  }
+  if (mins >= 10) {
+    // MM:SS format
+    const text = `${mins}:${secs.toString().padStart(2, "0")}`;
+    return { text, sizeKey: "tiny" };
+  }
+  // M:SS format
+  return {
+    text: `${mins}:${secs.toString().padStart(2, "0")}`,
+    sizeKey: "smaller"
+  };
+};
+
+// Running time display component
+const RunningTime: React.FC<{ isRunning: boolean }> = memo(
+  function RunningTime({ isRunning }) {
+    const theme = useTheme();
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const startTimeRef = useRef<number | null>(null);
+
+    useEffect(() => {
+      if (isRunning) {
+        startTimeRef.current = Date.now();
+        setElapsedSeconds(0);
+
+        const interval = setInterval(() => {
+          if (startTimeRef.current) {
+            const elapsed = Math.floor(
+              (Date.now() - startTimeRef.current) / 1000
+            );
+            setElapsedSeconds(elapsed);
+          }
+        }, 1000);
+
+        return () => clearInterval(interval);
+      } else {
+        startTimeRef.current = null;
+        setElapsedSeconds(0);
+      }
+    }, [isRunning]);
+
+    const { text, sizeKey } = formatRunningTime(elapsedSeconds);
+    const fontSizeMap = {
+      smaller: theme.fontSizeSmaller,
+      tiny: theme.fontSizeTiny,
+      tinyer: theme.fontSizeTinyer
+    };
+
+    return (
+      <span
+        style={{
+          fontSize: fontSizeMap[sizeKey],
+          fontWeight: 600,
+          fontFamily: "monospace",
+          letterSpacing: "-0.5px"
+        }}
+      >
+        {text}
+      </span>
+    );
+  }
+);
 
 const styles = (theme: Theme) =>
   css({
@@ -109,7 +190,7 @@ const styles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.grey[900],
     borderRadius: "16px",
     border: `1px solid ${theme.vars.palette.grey[700]}`,
-    boxShadow: `0 4px 20px rgba(0, 0, 0, 0.1)`,
+    boxShadow: `0 4px 20px ${theme.vars.palette.common.black}1A`,
 
     ".floating-action-button": {
       width: "44px",
@@ -135,19 +216,37 @@ const styles = (theme: Theme) =>
 
     ".floating-action-button.primary": {
       backgroundColor: theme.vars.palette.primary.main,
-      color: "#0B1220",
+      color: theme.vars.palette.primary.contrastText,
       borderRadius: "16px",
-      boxShadow: `0 4px 12px rgba(59, 130, 246, 0.3)`,
+      boxShadow: `0 4px 16px ${theme.vars.palette.success.main}50, 0 0 20px ${theme.vars.palette.success.main}30`,
+      position: "relative",
+      overflow: "visible",
+      transition: "all 0.3s ease",
       "&:hover": {
+        borderRadius: "50%",
         backgroundColor: theme.vars.palette.primary.light,
-        boxShadow: `0 6px 16px rgba(59, 130, 246, 0.4)`
+        boxShadow: `0 6px 20px ${theme.vars.palette.primary.main}60, 0 0 28px ${theme.vars.palette.success.main}40`
       },
       "&.running": {
         backgroundColor: theme.vars.palette.grey[800],
-        color: theme.vars.palette.grey[200],
-        boxShadow: "none",
-        "& svg": {
-          animation: "pulse-scale 1s ease-in-out infinite"
+        color: theme.vars.palette.grey[100],
+        borderRadius: "50%",
+        boxShadow: `0 2px 8px ${theme.vars.palette.common.black}30`,
+        opacity: 1,
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          inset: "-3px",
+          borderRadius: "inherit",
+          padding: "3px",
+          background: `conic-gradient(from 0deg, transparent 40%, ${theme.vars.palette.primary.main} 95%, ${theme.vars.palette.primary.main})`,
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          animation: "border-spin 2s linear infinite",
+          pointerEvents: "none",
+          zIndex: -1
         }
       }
     },
@@ -204,7 +303,7 @@ const styles = (theme: Theme) =>
         animation: "none",
         backgroundColor: theme.vars.palette.info.main,
         color: theme.vars.palette.info.contrastText,
-        boxShadow: `0 6px 16px rgba(0,0,0,.35), 0 0 20px ${theme.vars.palette.info.main}25`
+        boxShadow: `0 6px 16px ${theme.vars.palette.common.black}35, 0 0 20px ${theme.vars.palette.info.main}25`
       },
       "@media (prefers-reduced-motion: reduce)": {
         animation: "none",
@@ -216,20 +315,20 @@ const styles = (theme: Theme) =>
 
     /* Mini app button: vibrant inviting color */
     ".floating-action-button.mini-app": {
-      backgroundColor: "info.main",
-      color: "info.contrastText",
-      borderColor: "info.main",
-      boxShadow: `0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(0,188,212,0.3)`,
+      backgroundColor: theme.vars.palette.info.main,
+      color: theme.vars.palette.info.contrastText,
+      borderColor: theme.vars.palette.info.main,
+      boxShadow: `0 4px 14px ${theme.vars.palette.common.black}35, 0 0 16px ${theme.vars.palette.info.main}30`,
       filter: "saturate(1.1)",
       "&:hover": {
-        backgroundColor: "info.dark",
-        borderColor: "info.dark",
-        boxShadow: `0 6px 18px rgba(0,0,0,.4), 0 0 24px rgba(0,188,212,0.4)`,
+        backgroundColor: theme.vars.palette.info.dark,
+        borderColor: theme.vars.palette.info.dark,
+        boxShadow: `0 6px 18px ${theme.vars.palette.common.black}40, 0 0 24px ${theme.vars.palette.info.main}40`,
         transform: "scale(1.06)"
       }
     },
 
-/* Instant update button: glowing effect when active */
+    /* Instant update button: glowing effect when active */
     ".floating-action-button.instant-update": {
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
@@ -242,7 +341,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.warning.contrastText,
         boxShadow: `0 0 12px ${theme.vars.palette.warning.main}`,
         "&:hover": {
-          backgroundColor: "warning.dark",
+          backgroundColor: theme.vars.palette.warning.dark,
           boxShadow: `0 0 16px ${theme.vars.palette.warning.main}`
         }
       }
@@ -252,6 +351,10 @@ const styles = (theme: Theme) =>
       "0%": { transform: "scale(1)" },
       "50%": { transform: "scale(1.1)" },
       "100%": { transform: "scale(1)" }
+    },
+    "@keyframes border-spin": {
+      "0%": { transform: "rotate(0deg)" },
+      "100%": { transform: "rotate(360deg)" }
     },
     "@keyframes node-menu-attention": {
       "0%, 100%": {
@@ -286,13 +389,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const [advancedMenuAnchor, setAdvancedMenuAnchor] =
     useState<null | HTMLElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const { isRightPanelVisible, rightPanelSize, toggleWorkflowPanel } = useRightPanelStore(
-    (state) => ({
+  const { isRightPanelVisible, rightPanelSize, toggleWorkflowPanel } =
+    useRightPanelStore((state) => ({
       isRightPanelVisible: state.panel.isVisible,
       rightPanelSize: state.panel.panelSize,
       toggleWorkflowPanel: () => state.handleViewChange("workflow")
-    })
-  );
+    }));
   const bottomPanelVisible = useBottomPanelStore(
     (state) => state.panel.isVisible
   );
@@ -306,12 +408,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     setInstantUpdate: state.setInstantUpdate
   }));
 
-  const { visible: isMiniMapVisible, toggleVisible: toggleMiniMap } = useMiniMapStore(
-    (state) => ({
+  const { visible: isMiniMapVisible, toggleVisible: toggleMiniMap } =
+    useMiniMapStore((state) => ({
       visible: state.visible,
       toggleVisible: state.toggleVisible
-    })
-  );
+    }));
 
   const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
     (state) => ({
@@ -323,17 +424,23 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     })
   );
 
-  const { run, isWorkflowRunning, isPaused, isSuspended, cancel, pause, resume } = useWebsocketRunner(
-    (state) => ({
-      run: state.run,
-      isWorkflowRunning: state.state === "running",
-      isPaused: state.state === "paused",
-      isSuspended: state.state === "suspended",
-      cancel: state.cancel,
-      pause: state.pause,
-      resume: state.resume
-    })
-  );
+  const {
+    run,
+    isWorkflowRunning,
+    isPaused,
+    isSuspended,
+    cancel,
+    pause,
+    resume
+  } = useWebsocketRunner((state) => ({
+    run: state.run,
+    isWorkflowRunning: state.state === "running",
+    isPaused: state.state === "paused",
+    isSuspended: state.state === "suspended",
+    cancel: state.cancel,
+    pause: state.pause,
+    resume: state.resume
+  }));
 
   const { getWorkflow: getWorkflowById, saveWorkflow } = useWorkflowManager(
     (state) => ({
@@ -342,8 +449,21 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     })
   );
 
-  const handleRun = useCallback(() => {
+  const handleRun = useCallback(async () => {
     if (!isWorkflowRunning) {
+      // Create a checkpoint version before execution if enabled
+      const autosaveSettings = useSettingsStore.getState().settings.autosave;
+      if (autosaveSettings?.saveBeforeRun) {
+        const w = getWorkflowById(workflow.id);
+        if (w?.graph?.nodes && w.graph.nodes.length > 0) {
+          await triggerAutosaveForWorkflow(workflow.id, w.graph, "checkpoint", {
+            description: "Before execution",
+            force: true,
+            maxVersions: autosaveSettings.maxVersionsPerWorkflow
+          });
+        }
+      }
+
       run({}, workflow, nodes, edges, undefined);
     }
     setTimeout(() => {
@@ -376,7 +496,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
   useCombo(["meta", "enter"], handleRun, true, !isWorkflowRunning);
-  useCombo(["escape"], handleStop, true, isWorkflowRunning || isPaused || isSuspended);
+  useCombo(
+    ["escape"],
+    handleStop,
+    true,
+    isWorkflowRunning || isPaused || isSuspended
+  );
 
   const handleSave = useCallback(() => {
     if (!workflow) {
@@ -587,7 +712,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         />
         <ToolbarButton
           icon={<BoltIcon />}
-          tooltip={instantUpdate ? "Instant Update: ON - Property changes trigger execution" : "Instant Update: OFF - Click to enable"}
+          tooltip={
+            instantUpdate
+              ? "Instant Update: ON - Property changes trigger execution"
+              : "Instant Update: OFF - Click to enable"
+          }
           variant="neutral"
           className={cn("instant-update", instantUpdate && "active")}
           onClick={handleToggleInstantUpdate}
@@ -632,10 +761,17 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         />
 
         <ToolbarButton
-          icon={<PlayArrow />}
+          icon={
+            isWorkflowRunning ? (
+              <RunningTime isRunning={isWorkflowRunning} />
+            ) : (
+              <PlayArrow />
+            )
+          }
           tooltip={isWorkflowRunning ? "Running..." : "Run"}
           shortcut="runWorkflow"
           variant="primary"
+          className={isWorkflowRunning ? "running" : undefined}
           onClick={handleRun}
           disabled={isWorkflowRunning}
           aria-label="Run workflow"
@@ -654,9 +790,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           }
         }}
       >
-        <MenuItem
-          onClick={handleToggleTerminalAndCloseMenu}
-        >
+        <MenuItem onClick={handleToggleTerminalAndCloseMenu}>
           <ListItemIcon>
             <TerminalIcon fontSize="small" />
           </ListItemIcon>
@@ -664,9 +798,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             primary={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
           />
         </MenuItem>
-        <MenuItem
-          onClick={handleEditWorkflowAndCloseMenu}
-        >
+        <MenuItem onClick={handleEditWorkflowAndCloseMenu}>
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
@@ -678,17 +810,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           </ListItemIcon>
           <ListItemText primary="Advanced" />
         </MenuItem>
-        <MenuItem
-          onClick={handleDownloadAndCloseMenu}
-        >
+        <MenuItem onClick={handleDownloadAndCloseMenu}>
           <ListItemIcon>
             <DownloadIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Download JSON" />
         </MenuItem>
-        <MenuItem
-          onClick={handleRunAsAppAndCloseMenu}
-        >
+        <MenuItem onClick={handleRunAsAppAndCloseMenu}>
           <ListItemIcon>
             <RocketLaunchIcon fontSize="small" />
           </ListItemIcon>

@@ -1,0 +1,99 @@
+name: Accessibility Audit
+
+on:
+  schedule:
+    - cron: "0 12 * * 2"  # Tuesdays at noon UTC
+  workflow_dispatch:
+
+jobs:
+  accessibility-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: cd web && npm ci
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
+          prompt: |
+            # Accessibility Audit
+
+            Audit and improve accessibility in NodeTool (React/TypeScript visual AI workflow builder). Target: WCAG 2.1 Level AA.
+
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find accessibility issues
+            2. Fix them
+            3. **Create a Pull Request with your changes**
+            
+            Do NOT just analyze or report findings. You must make fixes and submit a PR.
+
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - Packages: `/web` (React app), `/electron` (desktop)
+            - Memory: `.memory/` contains project context
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing a11y branches
+            2. Read `.memory/features.md` to understand the UI
+
+            ## Audit Areas
+
+            **Keyboard navigation**: All interactive elements reachable via keyboard? Logical tab order? Visible focus indicators? No keyboard traps?
+
+            **Screen readers**: Semantic HTML? ARIA labels on icon buttons and images? Dynamic content announced via `aria-live`?
+
+            **Visual**: Color contrast ≥ 4.5:1? Information not conveyed by color alone? Text resizable to 200%? Reduced-motion support?
+
+            **Forms**: Labels on all inputs? Clear error messages? `aria-invalid` on error fields?
+
+            **Complex UI**: Node editor keyboard navigable? Drag-and-drop has keyboard alternative? Modals trap focus?
+
+            ## Scanning
+            ```bash
+            # Buttons/icons without labels
+            grep -r "<IconButton" --include="*.tsx" web/src | grep -v "aria-label"
+            # Images without alt text
+            grep -r "<img" --include="*.tsx" web/src | grep -v "alt="
+            # Divs acting as buttons
+            grep -r "onClick=" --include="*.tsx" web/src | grep "<div\|<span" | head -20
+            ```
+
+            ## Fix Priority
+            1. Keyboard traps, missing form labels, insufficient contrast
+            2. Missing ARIA labels, non-semantic HTML
+            3. Minor contrast issues, keyboard shortcut enhancements
+
+            ## Quality
+            - `make typecheck && make lint && make test` must all pass
+
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've made your accessibility improvements, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with a clear title and description of what accessibility issues you fixed

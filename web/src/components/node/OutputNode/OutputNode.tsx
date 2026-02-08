@@ -318,9 +318,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
     try {
       const assetFiles = await createAssetFile(outputValue, props.id);
-      for (const { file } of assetFiles) {
-        await createAsset(file);
-      }
+      await Promise.all(assetFiles.map(({ file }) => createAsset(file)));
 
       addNotification({
         type: "success",

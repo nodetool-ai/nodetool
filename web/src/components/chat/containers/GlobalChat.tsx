@@ -25,31 +25,42 @@ import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
-  const status = useGlobalChatStore((s) => s.status);
-  const sendMessage = useGlobalChatStore((s) => s.sendMessage);
-  const progress = useGlobalChatStore((s) => s.progress);
-  const statusMessage = useGlobalChatStore((s) => s.statusMessage);
-  const error = useGlobalChatStore((s) => s.error);
-  const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
-  const threads = useGlobalChatStore((s) => s.threads);
-  const getCurrentMessagesSync = useGlobalChatStore((s) => s.getCurrentMessagesSync);
-  const createNewThread = useGlobalChatStore((s) => s.createNewThread);
-  const switchThread = useGlobalChatStore((s) => s.switchThread);
-  const fetchThread = useGlobalChatStore((s) => s.fetchThread);
-  const stopGeneration = useGlobalChatStore((s) => s.stopGeneration);
-  const agentMode = useGlobalChatStore((s) => s.agentMode);
-  const setAgentMode = useGlobalChatStore((s) => s.setAgentMode);
-  const currentPlanningUpdate = useGlobalChatStore((s) => s.currentPlanningUpdate);
-  const currentTaskUpdate = useGlobalChatStore((s) => s.currentTaskUpdate);
-  const currentTaskUpdateThreadId = useGlobalChatStore((s) => s.currentTaskUpdateThreadId);
-  const lastTaskUpdatesByThread = useGlobalChatStore((s) => s.lastTaskUpdatesByThread);
-  const currentLogUpdate = useGlobalChatStore((s) => s.currentLogUpdate);
-  const threadsLoaded = useGlobalChatStore((s) => s.threadsLoaded);
-  const workflowId = useGlobalChatStore((s) => s.workflowId);
-  const deleteThread = useGlobalChatStore((s) => s.deleteThread);
-  const messageCache = useGlobalChatStore((s) => s.messageCache);
-  const connect = useGlobalChatStore((s) => s.connect);
-  const disconnect = useGlobalChatStore((s) => s.disconnect);
+
+  // Split selectors to minimize re-renders - group by update frequency
+  // Frequently updated values (messages, status, progress)
+  const status = useGlobalChatStore((state) => state.status);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const error = useGlobalChatStore((state) => state.error);
+  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
+
+  // Thread management (changes on thread switch)
+  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const threads = useGlobalChatStore((state) => state.threads);
+  const threadsLoaded = useGlobalChatStore((state) => state.threadsLoaded);
+  const messageCache = useGlobalChatStore((state) => state.messageCache);
+  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
+
+  // Actions (stable references)
+  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const fetchThread = useGlobalChatStore((state) => state.fetchThread);
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
+  const connect = useGlobalChatStore((state) => state.connect);
+  const disconnect = useGlobalChatStore((state) => state.disconnect);
+
+  // Agent mode and settings (change less frequently)
+  const agentMode = useGlobalChatStore((state) => state.agentMode);
+  const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
+
+  // Task updates (change during execution)
+  const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
+  const currentTaskUpdate = useGlobalChatStore((state) => state.currentTaskUpdate);
+  const currentTaskUpdateThreadId = useGlobalChatStore((state) => state.currentTaskUpdateThreadId);
+  const lastTaskUpdatesByThread = useGlobalChatStore((state) => state.lastTaskUpdatesByThread);
+  const workflowId = useGlobalChatStore((state) => state.workflowId);
 
   // Get connection state from WebSocket manager directly
   const [_connectionState, setConnectionState] = useState(
@@ -81,23 +92,31 @@ const GlobalChat: React.FC = () => {
     };
   }, [connect, disconnect]);
 
-  const runningToolCallId = useGlobalChatStore(
-    (s) => s.currentRunningToolCallId
+  const {
+    currentRunningToolCallId: runningToolCallId,
+    currentToolMessage: runningToolMessage,
+    selectedModel,
+    setSelectedModel,
+    selectedTools,
+    setSelectedTools,
+    selectedCollections,
+    setSelectedCollections
+  } = useGlobalChatStore(
+    (state) => ({
+      currentRunningToolCallId: state.currentRunningToolCallId,
+      currentToolMessage: state.currentToolMessage,
+      selectedModel: state.selectedModel,
+      setSelectedModel: state.setSelectedModel,
+      selectedTools: state.selectedTools,
+      setSelectedTools: state.setSelectedTools,
+      selectedCollections: state.selectedCollections,
+      setSelectedCollections: state.setSelectedCollections
+    })
   );
-  const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
 
   // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =
     useThreadsQuery();
-
-  const selectedModel = useGlobalChatStore((s) => s.selectedModel);
-  const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
-  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
-  const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
-  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
-  const setSelectedCollections = useGlobalChatStore(
-    (s) => s.setSelectedCollections
-  );
   const theme = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true); // Sidebar open by default
   const [alertDismissed, setAlertDismissed] = useState(false);

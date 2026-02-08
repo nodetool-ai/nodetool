@@ -24,7 +24,7 @@ type MonacoComponent = (props: {
   options?: Record<string, unknown>;
   width?: string | number;
   height?: string | number;
-  onMount?: (editor: unknown, monaco: unknown) => void;
+  onMount?: (editor: monaco.editor.IStandaloneCodeEditor, monaco: any) => void;
 }) => JSX.Element;
 
 /**
@@ -38,9 +38,9 @@ export type MonacoEditorResult = {
   /** Function to load Monaco editor if not already loaded */
   loadMonacoIfNeeded: () => Promise<void>;
   /** Reference to the Monaco editor instance */
-  monacoRef: React.MutableRefObject<any>;
+  monacoRef: React.MutableRefObject<monaco.editor.IStandaloneCodeEditor | null>;
   /** Callback called when Monaco editor mounts */
-  monacoOnMount: (editor: any) => void;
+  monacoOnMount: (editor: monaco.editor.IStandaloneCodeEditor) => void;
   /** Opens the find panel in the editor */
   handleMonacoFind: () => void;
   /** Formats the document in the editor */
@@ -71,12 +71,12 @@ export function useMonacoEditor(): MonacoEditorResult {
   );
   const [monacoLoadError, setMonacoLoadError] = useState<string | null>(null);
 
-  const monacoRef = useRef<any>(null);
+  const monacoRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   // Use refs to track loading state without causing callback recreation
   const isLoadingRef = useRef(false);
   const isLoadedRef = useRef(false);
 
-  const monacoOnMount = useCallback((editor: any) => {
+  const monacoOnMount = useCallback((editor: monaco.editor.IStandaloneCodeEditor) => {
     monacoRef.current = editor;
   }, []);
 

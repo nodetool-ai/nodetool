@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import {
   InputProps,
   NumberInputState,
@@ -9,7 +9,8 @@ import {
   calculateStep,
   calculateDecimalPlaces,
   calculateSpeedFactor,
-  applyValueConstraints
+  applyValueConstraints,
+  formatFloat
 } from "../components/inputs/NumberInput.utils";
 
 // Multiplier for drag speed when inputs are unbounded.
@@ -93,10 +94,13 @@ export const useDragHandling = (
   setSpeedFactorState: React.Dispatch<React.SetStateAction<number>>
 ) => {
   const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
+  const propsRef = useRef(props);
+  propsRef.current = props;
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!dragStateRef.current.isDragging) {return;}
+      if (!dragStateRef.current.isDragging) return;
+      const p = propsRef.current;
 
       const { dragStartX, currentDragValue, decimalPlaces, lastClientX } =
         dragStateRef.current;
@@ -200,45 +204,44 @@ export const useDragHandling = (
       if (newValue !== currentDragValue) {
         dragStateRef.current.currentDragValue = newValue;
         dragStateRef.current.lastClientX = e.clientX; // reset anchoring only when value actually changes
-        props.onChange(null, newValue);
+        p.onChange(null, newValue);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      // Dependencies are stable or managed by refs
-      props.min,
-      props.max,
-      props.inputType,
-      props.onChange,
       calculateStep,
       calculateDecimalPlaces,
       setInputIsFocused,
       containerRef,
-      setSpeedFactorState
+      setSpeedFactorState,
+      dragStateRef
     ]
   );
 
   const handleMouseUp = useCallback(() => {
     if (dragStateRef.current.isDragging) {
+      const p = propsRef.current;
       const finalValue = dragStateRef.current.currentDragValue;
       dragStateRef.current.isDragging = false;
       // sync final value back to react state
       setState((prev) => ({
         ...prev,
         isDragging: false,
-        localValue: String(finalValue)
+        localValue:
+          p.inputType === "float"
+            ? formatFloat(finalValue)
+            : String(finalValue)
       }));
 
       if (!dragStateRef.current.hasExceededDragThreshold) {
         setInputIsFocused(true);
       } else {
         // Call onChangeComplete when user finishes dragging (only if they actually dragged)
-        if (props.onChangeComplete) {
-          props.onChangeComplete(finalValue);
+        if (p.onChangeComplete) {
+          p.onChangeComplete(finalValue);
         }
       }
     }
-  }, [setInputIsFocused, dragStateRef, setState, props]);
+  }, [setInputIsFocused, dragStateRef, setState]);
 
   return { handleMouseMove, handleMouseUp };
 };

@@ -8,6 +8,7 @@ import {
   SelectionMode,
   ConnectionMode,
   useViewport,
+  useUpdateNodeInternals
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -19,6 +20,10 @@ import { OutputNode } from "../node/OutputNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
+import {
+  DynamicFalSchemaNode,
+  DYNAMIC_FAL_NODE_TYPE
+} from "../node/DynamicFalSchemaNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
@@ -62,7 +67,6 @@ interface ReactFlowWrapperProps {
   active: boolean;
 }
 
-
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
@@ -74,16 +78,32 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 }) => {
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
-  const nodes = useNodes((state) => state.nodes);
-  const edges = useNodes((state) => state.edges);
-  const onEdgesChange = useNodes((state) => state.onEdgesChange);
-  const onEdgeUpdate = useNodes((state) => state.onEdgeUpdate);
-  const shouldFitToScreen = useNodes((state) => state.shouldFitToScreen);
-  const setShouldFitToScreen = useNodes((state) => state.setShouldFitToScreen);
-  const storedViewport = useNodes((state) => state.viewport);
-  const deleteEdge = useNodes((state) => state.deleteEdge);
-  const setEdgeSelectionState = useNodes(
-    (state) => state.setEdgeSelectionState
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const {
+    nodes,
+    edges,
+    onEdgesChange,
+    onEdgeUpdate,
+    shouldFitToScreen,
+    setShouldFitToScreen,
+    storedViewport,
+    deleteEdge,
+    setEdgeSelectionState
+  } = useNodes(
+    useMemo(
+      () => (state) => ({
+        nodes: state.nodes,
+        edges: state.edges,
+        onEdgesChange: state.onEdgesChange,
+        onEdgeUpdate: state.onEdgeUpdate,
+        shouldFitToScreen: state.shouldFitToScreen,
+        setShouldFitToScreen: state.setShouldFitToScreen,
+        storedViewport: state.viewport,
+        deleteEdge: state.deleteEdge,
+        setEdgeSelectionState: state.setEdgeSelectionState
+      }),
+      []
+    )
   );
 
   const [isVisible, setIsVisible] = useState(true);
@@ -91,11 +111,15 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   useEffect(() => {
     setIsVisible(!!storedViewport || nodes.length === 0);
-  }, [workflowId, storedViewport, nodes.length]);
+  }, [workflowId, storedViewport, nodes]);
 
   const reactFlowInstance = useReactFlow();
-  const pendingNodeType = useNodePlacementStore((state) => state.pendingNodeType);
-  const cancelPlacement = useNodePlacementStore((state) => state.cancelPlacement);
+  const pendingNodeType = useNodePlacementStore(
+    (state) => state.pendingNodeType
+  );
+  const cancelPlacement = useNodePlacementStore(
+    (state) => state.cancelPlacement
+  );
   const placementLabel = useNodePlacementStore((state) => state.label);
   const [ghostPosition, setGhostPosition] = useState<{
     x: number;
@@ -180,6 +204,27 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   );
 
   const connecting = useConnectionStore((state) => state.connecting);
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  // Single trigger: connection drag ended or edges changed (add/remove/reconnect).
+  // Wait one frame, then refresh handle positions for all nodes.
+  const prevConnectingRef = useRef(connecting);
+  const prevEdgeCountRef = useRef(edges.length);
+  useEffect(() => {
+    const dragEnded = prevConnectingRef.current && !connecting;
+    const edgesChanged = prevEdgeCountRef.current !== edges.length;
+    prevConnectingRef.current = connecting;
+    prevEdgeCountRef.current = edges.length;
+    if (dragEnded || edgesChanged) {
+      const rafId = requestAnimationFrame(() => {
+        const nodeIds = nodes.map((n) => n.id);
+        if (nodeIds.length > 0) {
+          updateNodeInternals(nodeIds);
+        }
+      });
+      return () => cancelAnimationFrame(rafId);
+    }
+  }, [connecting, edges.length, nodes, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
@@ -230,6 +275,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       "nodetool.output.Output": OutputNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
       "nodetool.control.Reroute": RerouteNode,
+      [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]
@@ -316,27 +362,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const { isConnectionValid } = useConnectionEvents();
 
-  const {
-    handleDoubleClick,
-    handlePaneClick,
-    handlePaneContextMenu
-  } = usePaneEvents({
-    pendingNodeType,
-    placementLabel,
-    reactFlowInstance
-  });
+  const { handleDoubleClick, handlePaneClick, handlePaneContextMenu } =
+    usePaneEvents({
+      pendingNodeType,
+      placementLabel,
+      reactFlowInstance
+    });
 
-  const {
-    handleNodeContextMenu,
-    handleNodesChange
-  } = useNodeEvents();
+  const { handleNodeContextMenu, handleNodesChange } = useNodeEvents();
 
-  const {
-    onEdgeContextMenu,
-    onEdgeUpdateEnd,
-    onEdgeUpdateStart,
-    onEdgeClick
-  } = useEdgeHandlers();
+  const { onEdgeContextMenu, onEdgeUpdateEnd, onEdgeUpdateStart, onEdgeClick } =
+    useEdgeHandlers();
 
   const {
     onSelectionDragStart,
@@ -384,9 +420,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       return;
     }
 
-    const selectedIds = new Set(
-      nodes.filter((node) => node.selected).map((node) => node.id)
-    );
+    const selectedIds = new Set<string>();
+    for (const node of nodes) {
+      if (node.selected) {
+        selectedIds.add(node.id);
+      }
+    }
 
     const selectionUpdates: Record<string, boolean> = {};
 
@@ -432,8 +471,12 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const reactFlowClasses = useMemo(() => {
     const classes = [];
-    if (zoom <= ZOOMED_OUT) { classes.push("zoomed-out"); }
-    if (connecting) { classes.push("is-connecting"); }
+    if (zoom <= ZOOMED_OUT) {
+      classes.push("zoomed-out");
+    }
+    if (connecting) {
+      classes.push("is-connecting");
+    }
     return classes.join(" ");
   }, [zoom, connecting]);
 

@@ -12,13 +12,13 @@ import { CopyButton } from "../../../ui_primitives/CopyButton";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 
 interface CodeBlockProps {
-  node?: any;
+  node?: unknown;
   inline?: boolean;
   className?: string;
   children?: React.ReactNode;
   _isFromPre?: boolean;
   onInsert?: (text: string, language?: string) => void;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const styles = (_theme: Theme) =>
@@ -107,7 +107,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
           language={language}
           PreTag="div"
           customStyle={{
-            // background: "var(--palette-grey-900)",
             fontFamily: '"JetBrains Mono", monospace',
             marginTop: 0,
             padding: "1em",

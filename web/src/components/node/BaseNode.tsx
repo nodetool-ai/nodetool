@@ -5,7 +5,7 @@ import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Node,
   NodeProps,
@@ -21,6 +21,7 @@ import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
+import useErrorStore from "../../stores/ErrorStore";
 import ModelRecommendations from "./ModelRecommendations";
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
@@ -86,8 +87,8 @@ const Toolbar = memo(function Toolbar({
   dragging?: boolean;
 }) {
   const { activeSelect } = useSelect();
-  const selectedCount = useNodes((state) => state.getSelectedNodes().length);
-  
+  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
+
   // Delay showing toolbar to avoid flash when clicking to drag
   const delayedSelected = useDelayedVisibility({
     shouldBeVisible: selected && !dragging,
@@ -95,7 +96,8 @@ const Toolbar = memo(function Toolbar({
   });
 
   // Only show toolbar when exactly one node is selected
-  const isVisible = delayedSelected && !activeSelect && !dragging && selectedCount === 1;
+  const isVisible =
+    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
   return (
     <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
       <NodeToolButtons nodeId={id} />
@@ -192,7 +194,7 @@ const getNodeColors = (metadata: any): string[] => {
   const outputColors = [
     ...new Set(
       metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
-      []
+        []
     )
   ];
   const inputColors = [
@@ -263,6 +265,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
+  const initialRenderRef = useRef(true);
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -275,8 +278,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [type]
   );
   // Status
-  const statusValue = useStatusStore((state) => state.getStatus(workflow_id, id));
-  const status = statusValue && statusValue !== null && typeof statusValue !== 'object' ? statusValue : undefined;
+  const statusValue = useStatusStore((state) =>
+    state.getStatus(workflow_id, id)
+  );
+  const status =
+    statusValue && statusValue !== null && typeof statusValue !== "object"
+      ? statusValue
+      : undefined;
   const isLoading = useMemo(
     () => status === "running" || status === "starting" || status === "booting",
     [status]
@@ -288,10 +296,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     throw new Error("Metadata is not loaded for node type " + type);
   }
 
-  const parentColor = parentId ?
-    (isDarkMode ?
-      hexToRgba("#222", GROUP_COLOR_OPACITY)
-      : hexToRgba("#ccc", GROUP_COLOR_OPACITY)) : null;
+  const parentColor = parentId
+    ? isDarkMode
+      ? hexToRgba("#222", GROUP_COLOR_OPACITY)
+      : hexToRgba("#ccc", GROUP_COLOR_OPACITY)
+    : null;
 
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
@@ -322,7 +331,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Results and rendering
   const result = useResultsStore((state) => {
-    const r = state.getOutputResult(workflow_id, id) || state.getResult(workflow_id, id);
+    const r =
+      state.getOutputResult(workflow_id, id) ||
+      state.getResult(workflow_id, id);
     return r;
   });
 
@@ -356,10 +367,15 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [id, updateNodeData]);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
-  const isEmptyResult = (obj: any) => obj && typeof obj === "object" && Object.keys(obj).length === 0;
-  const isOverlayVisible = showResultOverlay && result && !isEmptyResult(result);
+  const isEmptyResult = (obj: any) =>
+    obj && typeof obj === "object" && Object.keys(obj).length === 0;
+  const isOverlayVisible =
+    showResultOverlay && result && !isEmptyResult(result);
   const hasToggleableResult =
-    !nodeType.isOutputNode && !nodeType.isConstantNode && result && !isEmptyResult(result);
+    !nodeType.isOutputNode &&
+    !nodeType.isConstantNode &&
+    result &&
+    !isEmptyResult(result);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
   const toolCall = useResultsStore((state) =>
@@ -408,6 +424,41 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     updateNode(id, { height: undefined, measured: undefined });
   }, [showAdvancedFields, updateNode, id]);
 
+  const handleNamespaceClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Open nodeMenu at that namespace
+    const namespacePath = metadata.namespace?.split(".") || [];
+    useNodeMenuStore.getState().openNodeMenu({
+      x: e.clientX,
+      y: e.clientY,
+      selectedPath: namespacePath
+    });
+  }, [metadata.namespace]);
+
+  // Track error state for node dimension management
+  const hasError = useErrorStore((state) =>
+    workflow_id !== undefined ? !!state.getError(workflow_id, id) : false
+  );
+
+  // Force node re-measurement when content that affects height changes
+  // (error messages appearing/disappearing, result overlay toggling).
+  // Without this, React Flow's cached handle positions become stale.
+  // Uses requestAnimationFrame to let the DOM settle before React Flow
+  // re-measures, ensuring handle positions are read from final layout.
+  useEffect(() => {
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      return;
+    }
+    // Wait one frame for DOM to settle, then reset measured dimensions
+    // so React Flow re-measures the node and recalculates handle positions
+    const rafId = requestAnimationFrame(() => {
+      updateNode(id, { height: undefined, measured: undefined });
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [hasError, isOverlayVisible, id, updateNode]);
+
   return (
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
@@ -428,8 +479,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         boxShadow: selected
           ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
           : isFocused
-            ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-            : "none",
+          ? `0 0 0 2px ${theme.vars.palette.warning.main}`
+          : "none",
         outline: isFocused
           ? `2px dashed ${theme.vars.palette.warning.main}`
           : "none",
@@ -438,8 +489,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           hasParent && !isLoading
             ? parentColor
             : selected
-              ? "transparent !important"
-              : // theme.vars.palette.c_node_bg
+            ? "transparent !important"
+            : // theme.vars.palette.c_node_bg
               // : "#121212", // Darker background
               theme.vars.palette.c_node_bg, // Darker background
         backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
@@ -449,18 +500,19 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         "--node-primary-color": baseColor || "var(--palette-primary-main)",
         ...(hasToggleableResult
           ? {
-            // Match PreviewNode behavior: show the corner resize handle on hover
-            "& .react-flow__resize-control.nodrag.bottom.right.handle": {
-              opacity: 0,
-              position: "absolute",
-              right: "-8px",
-              bottom: "-9px",
-              transition: "opacity 0.2s"
-            },
-            "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
-              opacity: 1
+              // Match PreviewNode behavior: show the corner resize handle on hover
+              "& .react-flow__resize-control.nodrag.bottom.right.handle": {
+                opacity: 0,
+                position: "absolute",
+                right: "-8px",
+                bottom: "-9px",
+                transition: "opacity 0.2s"
+              },
+              "&:hover .react-flow__resize-control.nodrag.bottom.right.handle":
+                {
+                  opacity: 1
+                }
             }
-          }
           : {})
       }}
     >
@@ -485,9 +537,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
-      {!isOverlayVisible && (getIsElectronDetails().isElectron || !isProduction) && (
-        <ModelRecommendations nodeType={type} />
-      )}
+      {!isOverlayVisible &&
+        (getIsElectronDetails().isElectron || !isProduction) && (
+          <ModelRecommendations nodeType={type} />
+        )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
       <InputNodeNameWarning nodeType={type} name={data.properties?.name} />
       <Box
@@ -557,21 +610,16 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {title && <EditableTitle nodeId={id} title={title} />}
 
       {selected && metadata.namespace && (
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY * 2} title="Open Node Menu here" placement="bottom" arrow>
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+          title="Open Node Menu here"
+          placement="bottom"
+          arrow
+        >
           <Button
             variant="text"
             className="node-namespace nodrag nopan"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              // Open nodeMenu at that namespace
-              const namespacePath = metadata.namespace?.split(".") || [];
-              useNodeMenuStore.getState().openNodeMenu({
-                x: e.clientX,
-                y: e.clientY,
-                selectedPath: namespacePath
-              });
-            }}
+            onClick={handleNamespaceClick}
             sx={{
               position: "absolute",
               bottom: -25,
@@ -603,8 +651,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 };
 
 export default memo(BaseNode, (prevProps, nextProps) => {
-  const prevFocused = useNodeFocusStore.getState().focusedNodeId === prevProps.id;
-  const nextFocused = useNodeFocusStore.getState().focusedNodeId === nextProps.id;
+  const prevFocused =
+    useNodeFocusStore.getState().focusedNodeId === prevProps.id;
+  const nextFocused =
+    useNodeFocusStore.getState().focusedNodeId === nextProps.id;
   return (
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&

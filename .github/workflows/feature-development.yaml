@@ -1,0 +1,91 @@
+name: Feature Development
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  feature-development:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
+          prompt: |
+            # Feature Development
+
+            Develop ONE polished feature for NodeTool (React/TypeScript visual AI workflow builder).
+
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Choose or invent a useful feature to implement
+            2. Develop it completely with tests
+            3. **Create a Pull Request with your feature**
+            
+            Do NOT just plan or prototype. You must implement a complete, tested feature and submit a PR.
+
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - Packages: `/web` (React app), `/electron` (desktop), `/mobile` (React Native)
+            - Backend is a separate Python repo — frontend-only changes here
+            - Memory: `.memory/` contains project context, features list, and known issues
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing feature branches
+            2. Read `.memory/features.md` — ensure your feature doesn't already exist
+            3. Read `.memory/project-context.md` — understand architecture and recent changes
+            4. Read `/AGENTS.md` and `/.github/copilot-instructions.md` for coding patterns
+
+            ## Feature Ideas (or invent your own)
+            - Enhanced keyboard shortcuts or accessibility
+            - Improved node search/filtering
+            - Better error visualization in workflows
+            - Node templates or snippets
+            - Enhanced asset management UI
+            - Visual improvements to node editor
+            - Workflow documentation/comments feature
+
+            ## Quality Standards
+            - TypeScript strict mode, explicit types, no `any`
+            - Functional components with typed props
+            - Selective Zustand subscriptions (not full store)
+            - MUI theme values (not hardcoded colors/spacing)
+            - Tests for new functionality (Jest + React Testing Library)
+            - `make typecheck && make lint && make test` must all pass
+
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've completed your feature, you MUST:
+            1. Commit all your changes (implementation + tests)
+            2. Push your branch
+            3. **Open a Pull Request** with clear title and description explaining what the feature does and why it's useful

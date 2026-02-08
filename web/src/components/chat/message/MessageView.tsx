@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   Message,
   MessageContent,
@@ -56,47 +56,64 @@ export const MessageView: React.FC<
   toolResultsByCallId,
   executionMessagesById
 }) => {
-    const insertIntoEditor = useEditorInsertion();
+  const insertIntoEditor = useEditorInsertion();
 
-    const normalizeExecutionPayload = (rawMessage: Message) => {
-      let executionContent = rawMessage.content as any;
-      let executionEventType = rawMessage.execution_event_type;
+  // Memoize JSON parsing to avoid repeated parsing on every render
+  const { executionContent, executionEventType } = useMemo(() => {
+    let executionContent = message.content as any;
+    let executionEventType = message.execution_event_type;
 
-      if (typeof executionContent === "string") {
-        try {
-          executionContent = JSON.parse(executionContent);
-          if (typeof executionContent === "string") {
-            try {
-              executionContent = JSON.parse(executionContent);
-            } catch {
-              // Keep intermediate string if nested JSON parsing fails.
-            }
+    if (typeof executionContent === "string") {
+      try {
+        executionContent = JSON.parse(executionContent);
+        if (typeof executionContent === "string") {
+          try {
+            executionContent = JSON.parse(executionContent);
+          } catch {
+            // Keep intermediate string if nested JSON parsing fails.
           }
-        } catch {
-          // Keep original string if JSON parsing fails.
         }
+      } catch {
+        // Keep original string if JSON parsing fails.
       }
+    }
 
-      if (
-        !executionEventType &&
-        executionContent &&
-        typeof executionContent === "object" &&
-        "type" in executionContent
-      ) {
-        executionEventType = (executionContent as any).type;
-      }
+    if (
+      !executionEventType &&
+      executionContent &&
+      typeof executionContent === "object" &&
+      "type" in executionContent
+    ) {
+      executionEventType = (executionContent as any).type;
+    }
 
-      return { executionContent, executionEventType };
-    };
+    return { executionContent, executionEventType };
+  }, [message.content, message.execution_event_type]);
 
-    // Handle agent execution messages with consolidation
-    if (message.role === "agent_execution") {
-      const agentExecutionId = message.agent_execution_id;
+  // Memoize handlers to prevent recreation on every render
+  const handleCopy = useCallback(() => {
+    let textToCopy = "";
+    if (typeof message.content === "string") {
+      textToCopy = message.content;
+    } else if (Array.isArray(message.content)) {
+      textToCopy = message.content
+        .filter((c) => c.type === "text")
+        .map((c) => (c as MessageTextContent).text)
+        .join("\n");
+    }
+    return textToCopy;
+  }, [message.content]);
 
-      // If no agent_execution_id, fall back to old behavior
-      if (!agentExecutionId) {
-        const { executionContent, executionEventType } =
-          normalizeExecutionPayload(message);
+  const createToggleHandler = useCallback((key: string) => {
+    return () => onToggleThought(key);
+  }, [onToggleThought]);
+
+  // Handle agent execution messages with consolidation
+  if (message.role === "agent_execution") {
+    const agentExecutionId = message.agent_execution_id;
+
+    // If no agent_execution_id, fall back to old behavior
+    if (!agentExecutionId) {
 
         if (executionEventType === "planning_update") {
           return (
@@ -138,15 +155,12 @@ export const MessageView: React.FC<
         return null;
       }
 
-      const executionMessages = executionMessagesById?.get(agentExecutionId) ?? [];
-      if (executionMessages.length > 0) {
-        return <AgentExecutionView messages={executionMessages} />;
-      }
+    const executionMessages = executionMessagesById?.get(agentExecutionId) ?? [];
+    if (executionMessages.length > 0) {
+      return <AgentExecutionView messages={executionMessages} />;
+    }
 
-      const { executionContent, executionEventType } =
-        normalizeExecutionPayload(message);
-
-      if (executionEventType === "planning_update") {
+    if (executionEventType === "planning_update") {
         return (
           <div className="chat-message-list-item execution-event">
             <PlanningUpdateDisplay planningUpdate={executionContent as PlanningUpdate} />
@@ -205,19 +219,6 @@ export const MessageView: React.FC<
       .filter(Boolean)
       .join(" ");
 
-    const handleCopy = () => {
-      let textToCopy = "";
-      if (typeof message.content === "string") {
-        textToCopy = message.content;
-      } else if (Array.isArray(message.content)) {
-        textToCopy = message.content
-          .filter((c) => c.type === "text")
-          .map((c) => (c as MessageTextContent).text)
-          .join("\n");
-      }
-      return textToCopy;
-    };
-
     const renderTextContent = (content: string, index: string | number) => {
       // Check if content contains Harmony format tokens
       if (hasHarmonyTokens(content)) {
@@ -241,7 +242,7 @@ export const MessageView: React.FC<
                       key={key}
                       thoughtContent={parsedThought.thoughtContent}
                       isExpanded={isExpanded}
-                      onToggle={() => onToggleThought(key)}
+                      onToggle={createToggleHandler(key)}
                       textBefore={parsedThought.textBeforeThought}
                       textAfter={parsedThought.textAfterThought}
                     />
@@ -282,7 +283,7 @@ export const MessageView: React.FC<
           <ThoughtSection
             thoughtContent={parsedThought.thoughtContent}
             isExpanded={isExpanded}
-            onToggle={() => onToggleThought(key)}
+            onToggle={createToggleHandler(key)}
             textBefore={parsedThought.textBeforeThought}
             textAfter={parsedThought.textAfterThought}
           />
@@ -328,6 +329,11 @@ export const MessageView: React.FC<
         (tc as any)?.args && Object.keys((tc as any).args).length > 0;
       const hasDetails = !!hasArgs;
       const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
+
+      const handleToggleOpen = useCallback(() => {
+        setOpen((v) => !v);
+      }, []);
+
       return (
         <Box
           className="tool-call-card"
@@ -350,7 +356,7 @@ export const MessageView: React.FC<
             <Box sx={{ flex: 1 }} />
             {hasDetails && (
               <Tooltip title={open ? "Hide details" : "Show details"}>
-                <IconButton size="small" onClick={() => setOpen((v) => !v)}>
+                <IconButton size="small" onClick={handleToggleOpen}>
                   <ExpandMoreIcon
                     className={`expand-icon${open ? " expanded" : ""}`}
                   />

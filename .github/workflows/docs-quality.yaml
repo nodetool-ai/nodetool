@@ -1,0 +1,92 @@
+name: Documentation Quality
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # Mondays at 6 AM UTC
+  workflow_dispatch:
+
+jobs:
+  docs-quality:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
+          prompt: |
+            # Documentation Quality
+
+            Audit and improve documentation in NodeTool (React/TypeScript visual AI workflow builder).
+
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find documentation issues (outdated, incorrect, missing, or unclear docs)
+            2. Fix them
+            3. **Create a Pull Request with your changes**
+            
+            Do NOT just analyze or report findings. You must make improvements and submit a PR.
+
+            ## Context
+            - Packages: `/web`, `/electron`, `/mobile`
+            - Key docs: `/AGENTS.md`, `/README.md`, `/.github/copilot-instructions.md`, `/web/README.md`, `/web/TESTING.md`
+            - Each package and major directory has its own `AGENTS.md`
+            - Memory: `.memory/` contains project context
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing doc branches
+            2. Read `.memory/project-context.md` for recent changes
+
+            ## Audit Areas
+            - **Accuracy**: Do docs match current code? Fix outdated info.
+            - **Completeness**: Are all features/APIs documented?
+            - **Code examples**: Do they compile and work?
+            - **Links**: Are all links valid?
+            - **Setup instructions**: Are they correct and complete?
+            - **JSDoc**: Do critical functions have documentation?
+
+            ## Priority
+            1. **Fix incorrect docs** that contradict code
+            2. **Fix broken examples** and dead links
+            3. **Add missing docs** for undocumented features
+            4. **Improve clarity** of confusing sections
+
+            ## Guidelines
+            - Be concise — explain "why" not just "what"
+            - Use working code examples
+            - Don't document trivial/obvious code
+            - Remove obsolete information
+
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've made your documentation improvements, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with a clear title and description of what documentation you improved

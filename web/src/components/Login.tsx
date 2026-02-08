@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 import { Box, Typography } from "@mui/material";
 import { EditorButton } from "./ui_primitives";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
@@ -82,13 +82,6 @@ function Login() {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
 
-  const handleButtonClick = useCallback(
-    (url: string) => () => {
-      handleClick(url);
-    },
-    [handleClick]
-  );
-
   return (
     <Box css={styles(theme)}>
       <div className="flex">
@@ -109,7 +102,7 @@ function Login() {
         {linkItems.map((item) => (
           <EditorButton
             key={item.name}
-            onClick={handleButtonClick(item.url)}
+            onClick={() => handleClick(item.url)}
             className="list-button"
             density="normal"
           >
@@ -121,4 +114,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default memo(Login);

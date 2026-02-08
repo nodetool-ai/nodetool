@@ -3,7 +3,10 @@ import { css } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { workflowQueryKey, fetchWorkflowById } from "../../serverState/useWorkflow";
+import {
+  workflowQueryKey,
+  fetchWorkflowById
+} from "../../serverState/useWorkflow";
 import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
@@ -19,7 +22,12 @@ import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvid
 import FloatingToolBar from "../panels/FloatingToolBar";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useAutosave } from "../../hooks/useAutosave";
+import {
+  useAutosave,
+  triggerAutosaveForWorkflow
+} from "../../hooks/useAutosave";
+import { useSettingsStore } from "../../stores/SettingsStore";
+import type { NodeStore } from "../../stores/NodeStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -293,6 +301,37 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     getWorkflow: getWorkflowForAutosave,
     isDirty: getIsDirty
   });
+
+  // Save previous workflow when switching tabs
+  const prevWorkflowIdRef = useRef<string | null>(null);
+  const prevNodeStoreRef = useRef<NodeStore | undefined>(undefined);
+
+  useEffect(() => {
+    const prevId = prevWorkflowIdRef.current;
+    const prevStore = prevNodeStoreRef.current;
+
+    // Update refs for next tab switch
+    prevWorkflowIdRef.current = currentWorkflowId || null;
+    prevNodeStoreRef.current = activeNodeStore;
+
+    // If tab actually changed and we have a previous store, autosave it
+    if (prevId && prevId !== currentWorkflowId && prevStore) {
+      const autosaveSettings = useSettingsStore.getState().settings.autosave;
+      if (!autosaveSettings?.enabled) {return;}
+
+      const prevState = prevStore.getState();
+      if (prevState.workflowIsDirty) {
+        const workflow = prevState.getWorkflow();
+        if (workflow?.graph?.nodes && workflow.graph.nodes.length > 0) {
+          triggerAutosaveForWorkflow(prevId, workflow.graph, "autosave", {
+            description: "Before tab switch",
+            force: true,
+            maxVersions: autosaveSettings.maxVersionsPerWorkflow
+          });
+        }
+      }
+    }
+  }, [currentWorkflowId, activeNodeStore]);
 
   // const electronDetectionDetails = getIsElectronDetails();
   // const isElectron = electronDetectionDetails.isElectron;

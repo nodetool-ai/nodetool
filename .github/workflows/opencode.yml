@@ -1,4 +1,4 @@
-name: opencode
+name: Interactive Assistant
 
 on:
   issue_comment:
@@ -7,25 +7,24 @@ on:
     types: [created]
 
 jobs:
-  opencode:
+  assistant:
     if: |
       contains(github.event.comment.body, ' /oc') ||
       startsWith(github.event.comment.body, '/oc') ||
       contains(github.event.comment.body, ' /opencode') ||
       startsWith(github.event.comment.body, '/opencode')
     runs-on: ubuntu-latest
-    env:
-      ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
     permissions:
       id-token: write
       contents: read
       pull-requests: read
       issues: read
+      actions: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for all branches to enable merging and conflict resolution
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -34,393 +33,85 @@ jobs:
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
-      - name: Install web dependencies
+      - name: Install dependencies
         run: |
-          cd web
-          npm ci
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
 
-      - name: Install electron dependencies
-        run: |
-          cd electron
-          npm ci
-
-      - name: Install mobile dependencies
-        run: |
-          cd mobile
-          npm ci
-
-      - name: Print ZAI_API_KEY length
-        run: 'echo "ZAI_API_KEY length: ${#ZAI_API_KEY}"'
-
-      - name: Pre-flight Quality Check
+      - name: Pre-flight quality check
         id: pre-check
         continue-on-error: true
         run: |
-          echo "## 🔍 Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Checking current codebase quality before OpenCode agent runs..." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          TYPECHECK_EXIT=0
-          LINT_EXIT=0
-          TEST_EXIT=0
-          
-          echo "### TypeScript Type Check" >> $GITHUB_STEP_SUMMARY
-          if make typecheck 2>&1 | tee typecheck-pre.log; then
-            echo "✅ No TypeScript errors" >> $GITHUB_STEP_SUMMARY
-          else
-            TYPECHECK_EXIT=1
-            ERROR_COUNT=$(grep -c "error TS" typecheck-pre.log || echo "0")
-            echo "⚠️ Found $ERROR_COUNT TypeScript error(s)" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ESLint Check" >> $GITHUB_STEP_SUMMARY
-          if make lint 2>&1 | tee lint-pre.log; then
-            echo "✅ No lint errors" >> $GITHUB_STEP_SUMMARY
-          else
-            LINT_EXIT=1
-            ERROR_COUNT=$(grep -c "error" lint-pre.log || echo "0")
-            WARNING_COUNT=$(grep -c "warning" lint-pre.log || echo "0")
-            echo "⚠️ Found $ERROR_COUNT error(s) and $WARNING_COUNT warning(s)" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Test Suite" >> $GITHUB_STEP_SUMMARY
-          if make test 2>&1 | tee test-pre.log; then
-            echo "✅ All tests passing" >> $GITHUB_STEP_SUMMARY
-          else
-            TEST_EXIT=1
-            echo "⚠️ Some tests failing" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Store results for OpenCode agent
+          echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+
+          make typecheck 2>&1 | tee typecheck-pre.log || TYPECHECK_EXIT=1
+          make lint 2>&1 | tee lint-pre.log || LINT_EXIT=1
+          make test 2>&1 | tee test-pre.log || TEST_EXIT=1
+
           echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
           echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
           echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
-          
-          if [ $TYPECHECK_EXIT -ne 0 ] || [ $LINT_EXIT -ne 0 ] || [ $TEST_EXIT -ne 0 ]; then
-            echo "---" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ **Pre-existing quality issues detected.**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The OpenCode agent will be informed and should:" >> $GITHUB_STEP_SUMMARY
-            echo "- Not introduce NEW errors" >> $GITHUB_STEP_SUMMARY
-            echo "- Consider fixing existing errors if relevant" >> $GITHUB_STEP_SUMMARY
-            echo "- Run \`make lint-fix\` to auto-fix lint issues" >> $GITHUB_STEP_SUMMARY
-            echo "- Run \`make check\` before completing work" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ **Codebase quality is clean!**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "OpenCode agent must maintain this quality standard." >> $GITHUB_STEP_SUMMARY
-          fi
 
-      - name: Run opencode
-        uses: sst/opencode/github@latest
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
         with:
-          model: zai-coding-plan/glm-4.7
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,WebFetch,Edit,Read,Replace"
           prompt: |
-            # NodeTool OpenCode Assistant
+            # NodeTool Assistant
 
-            You are helping with NodeTool, a visual AI workflow builder. Users create workflows by connecting nodes—no coding required.
+            Help with NodeTool, a React/TypeScript visual AI workflow builder.
 
-            ## Project Context
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7, TanStack Query
+            - Packages: `/web`, `/electron`, `/mobile` — backend is a separate Python repo
+            - Memory: `.memory/` has project context, features list, known issues, and insights
 
-            **Architecture**: React 18.2 + TypeScript 5.7 + Zustand + ReactFlow + Material-UI v7 + TanStack Query
-            **Packages**: `/web` (React app), `/electron` (desktop wrapper), `/mobile` (React Native)
-            **Backend**: Separate Python repository, not part of this codebase
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing branches
+            2. Read `.memory/features.md` and `.memory/project-context.md`
+            3. Check `.memory/issues/` and `.memory/insights/` for relevant solutions
 
-            ## Key Technologies & Patterns
+            ## Quality Rules
+            - `make typecheck && make lint && make test` must all pass
+            - Use `make lint-fix` to auto-fix many issues
+            - Never make quality worse than before
+            - TypeScript strict: no `any`, use `===`, use `Array.isArray()`
+            - React: selective Zustand subscriptions, useCallback for child props, MUI theme values
 
-            - **State Management**: Zustand stores with temporal (undo/redo) middleware
-            - **Flow Editor**: ReactFlow (@xyflow/react) for node-based editor
-            - **UI Components**: Material-UI (MUI) v7 with emotion for styling
-            - **Testing**: Jest 29 + React Testing Library 16 + Playwright 1.57 for E2E
-            - **Type Safety**: TypeScript strict mode, no `any` types
-
-            ## Avoiding Duplicate Work
-
-            **CRITICAL - Check existing branches FIRST**:
-            1. Run `git branch -a` to see all existing branches
-            2. Check if there's already a branch for this issue/feature
-            3. If a similar branch exists, review its changes first
-            4. Don't create duplicate branches for the same work
-            5. Consider continuing work on an existing branch if appropriate
-
-            ## Memory System
-
-            **Before making changes**, read these files and folders to avoid redundant work:
-            - **`.github/opencode-memory/features.md`** - Complete feature list (MUST READ!)
-            - **`.github/opencode-memory/issues/`** - List folders to see known issues by topic
-              - Check relevant topic folders (e.g., `issues/typescript/`, `issues/testing/`)
-            - **`.github/opencode-memory/insights/`** - List folders for best practices
-            - `.github/opencode-memory/project-context.md` - Recent changes
-
-            **After completing work**, update memory:
-            - **Add ONE LINE to features.md** if you added a user-facing feature
-            - **Create a file in issues/<topic>/`** if you solved a tricky problem
-            - **Create a file in insights/<topic>/`** if you discovered a best practice
-            - **Add ONE LINE to project-context.md** "Recent Changes" (MAX 5 entries, delete oldest): `Feature (date): One line. Files: x, y`
+            ## Your Task
+            Review the issue comment and provide helpful assistance. 
             
-            **Format for new issue files** (create in `issues/<topic>/your-issue.md`):
-            ```markdown
-            # Issue Title
+            **If you make code changes to fix an issue or implement a feature:**
+            1. Make the changes and test them thoroughly
+            2. Commit your changes with a clear message
+            3. Push your branch
+            4. **Create a Pull Request** with a clear description of what you did and why
 
-            **Problem**: One sentence
-
-            **Solution**: One sentence or code snippet
-
-            **Date**: YYYY-MM-DD
-            ```
-            
-            **Keep it minimal** - Only write truly important information that will help future work.
-
-            ## ⚠️ CRITICAL: Quality Guardrails (MANDATORY)
-
-            **BEFORE YOU START**: The workflow has run pre-flight quality checks.
-            - Check the "Pre-Flight Quality Check" step results above
-            - Pre-existing issues: TypeCheck=$TYPECHECK_PRE_EXIT, Lint=$LINT_PRE_EXIT, Test=$TEST_PRE_EXIT
-            - Exit code 0 = passing, non-zero = failing
-            
-            **REQUIRED STEPS FOR EVERY CHANGE**:
-            
-            1. **Auto-fix lint issues first**:
-               ```bash
-               make lint-fix  # Auto-fix many lint issues
-               ```
-            
-            2. **Verify quality checks pass**:
-               ```bash
-               make typecheck  # Must exit 0
-               make lint       # Must exit 0  
-               make test       # Must exit 0
-               ```
-            
-            3. **Fix any errors**:
-               - TypeScript errors: Fix type issues manually
-               - Lint errors: Run `make lint-fix` first, then fix remaining manually
-               - Test failures: Debug and fix failing tests
-            
-            4. **Re-run checks until all pass**:
-               ```bash
-               make check  # Runs all three checks
-               ```
-            
-            **QUALITY GATE RULES**:
-            - ✅ If codebase was clean (all exit 0), it MUST stay clean
-            - ⚠️ If codebase had errors, you MUST NOT introduce NEW errors
-            - 🎯 Bonus: Fix existing errors if related to your work
-            - 🚫 NEVER commit code that breaks type checking, linting, or tests
-            
-            **WORKFLOW WILL FAIL** if you don't meet these requirements!
-
-            ## Code Quality Standards
-
-            ### TypeScript
-            - Use explicit types, never `any`
-            - Use strict equality (`===`) not loose (`==`)
-            - Use `Array.isArray()` for array checks
-            - Throw `Error` objects, not strings
-
-            ### React
-            - Functional components with typed props
-            - Use Zustand selectors to minimize re-renders:
-              ```typescript
-              // ✅ Good
-              const node = useNodeStore(state => state.nodes[nodeId]);
-
-              // ❌ Bad
-              const store = useNodeStore();
-              ```
-            - Use `useCallback` for functions passed to children
-            - Use `useMemo` for expensive calculations only
-
-            ### Testing
-            - Test behavior, not implementation
-            - Use accessible queries (`getByRole`, `getByLabelText`)
-            - Use `userEvent` for interactions
-            - Follow patterns in existing tests
-
-            ### MUI/Styling
-            - Always use theme values:
-              ```typescript
-              <Box sx={{ p: 2, bgcolor: 'primary.main' }}>
-              ```
-
-            ## Making Changes
-
-            1. **Read memory files first** - Check if similar work was done
-            2. **Make minimal changes** - Surgical, focused modifications
-            3. **Follow existing patterns** - Look at similar code
-            4. **Run quality checks early** - `make check` before complex changes
-            5. **Test incrementally** - Don't wait until the end
-            6. **Update memory** - Document solutions and insights
-
-            ## Helpful Commands
-
-            ```bash
-            # Quality checks (run these!)
-            make typecheck lint test  # All three must pass
-            make lint-fix             # Auto-fix many issues
-            make check                # Runs all checks
-
-            # Development
-            cd web && npm start       # Dev server (port 3000)
-            cd web && npm test        # Run tests
-            cd web && npm run test:e2e  # E2E tests (auto-starts backend)
-            ```
-
-            ## Important Files
-
-            - `/AGENTS.md` - Complete project documentation
-            - `/.github/copilot-instructions.md` - Detailed coding patterns
-            - `/web/README.md` - Web app setup
-            - `/web/TESTING.md` - Testing guide
-            - `/Makefile` - Build commands
-
-            ## Remember
-
-            - **Quality first**: All checks must pass
-            - **Be surgical**: Minimal, focused changes
-            - **Learn and document**: Update memory with insights
-            - **Follow patterns**: Consistency matters
-            - **Test thoroughly**: Validate your changes
-
-            Now, review the issue comment and provide helpful assistance!
-
-      - name: Post-change Quality Verification
+      - name: Post-change verification
         if: always()
-        id: post-check
         run: |
-          echo "## 🔍 Post-Change Quality Verification" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Verifying quality after OpenCode agent completed..." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          TYPECHECK_EXIT=0
-          LINT_EXIT=0
-          TEST_EXIT=0
-          
-          echo "### TypeScript Type Check" >> $GITHUB_STEP_SUMMARY
-          if make typecheck 2>&1 | tee typecheck-post.log; then
-            echo "✅ No TypeScript errors" >> $GITHUB_STEP_SUMMARY
-          else
-            TYPECHECK_EXIT=1
-            ERROR_COUNT=$(grep -c "error TS" typecheck-post.log || echo "0")
-            echo "❌ Found $ERROR_COUNT TypeScript error(s)" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View Errors</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -50 typecheck-post.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ESLint Check" >> $GITHUB_STEP_SUMMARY
-          if make lint 2>&1 | tee lint-post.log; then
-            echo "✅ No lint errors" >> $GITHUB_STEP_SUMMARY
-          else
-            LINT_EXIT=1
-            ERROR_COUNT=$(grep -c "error" lint-post.log || echo "0")
-            WARNING_COUNT=$(grep -c "warning" lint-post.log || echo "0")
-            echo "❌ Found $ERROR_COUNT error(s) and $WARNING_COUNT warning(s)" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View Errors</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -50 lint-post.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Test Suite" >> $GITHUB_STEP_SUMMARY
-          if make test 2>&1 | tee test-post.log; then
-            echo "✅ All tests passing" >> $GITHUB_STEP_SUMMARY
-          else
-            TEST_EXIT=1
-            echo "❌ Some tests failing" >> $GITHUB_STEP_SUMMARY
-            echo "<details><summary>View Failures</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            tail -50 test-post.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Compare with pre-check
-          QUALITY_DEGRADED=false
-          
-          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
-            echo "🔴 **NEW TypeScript errors introduced!**" >> $GITHUB_STEP_SUMMARY
-            QUALITY_DEGRADED=true
-          fi
-          
-          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
-            echo "🔴 **NEW lint errors introduced!**" >> $GITHUB_STEP_SUMMARY
-            QUALITY_DEGRADED=true
-          fi
-          
-          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
-            echo "🔴 **NEW test failures introduced!**" >> $GITHUB_STEP_SUMMARY
-            QUALITY_DEGRADED=true
-          fi
-          
-          if [ "$QUALITY_DEGRADED" = true ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "❌ **QUALITY GATE FAILED: Code quality degraded!**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The changes introduced NEW quality issues." >> $GITHUB_STEP_SUMMARY
-            echo "Please fix these issues before merging." >> $GITHUB_STEP_SUMMARY
-            exit 1
-          elif [ $TYPECHECK_EXIT -ne 0 ] || [ $LINT_EXIT -ne 0 ] || [ $TEST_EXIT -ne 0 ]; then
-            echo "⚠️ **Quality issues remain (but no new ones introduced)**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Consider fixing these pre-existing issues." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ **ALL QUALITY CHECKS PASSED!**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Code is ready for review." >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "## Post-Change Verification" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
 
-      - name: Comment on failure
-        if: failure() && steps.post-check.conclusion == 'failure'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const message = `## ⚠️ Quality Gate Failed
-            
-            The OpenCode changes introduced quality issues that must be fixed:
-            
-            - Check the workflow run for details
-            - Review TypeScript, lint, and test errors
-            - Run \`make lint-fix\` to auto-fix lint issues
-            - Fix remaining errors manually
-            - Ensure \`make check\` passes before committing
-            
-            [View Workflow Run](${context.payload.repository.html_url}/actions/runs/${context.runId})`;
-            
-            if (context.eventName === 'issue_comment') {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: message
-              });
-            } else if (context.eventName === 'pull_request_review_comment') {
-              await github.rest.pulls.createReviewComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number,
-                body: message,
-                commit_id: context.payload.pull_request.head.sha,
-                path: context.payload.comment.path,
-                position: context.payload.comment.position
-              });
-            }
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "🔴 NEW TypeScript errors!" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "🔴 NEW lint errors!" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "🔴 NEW test failures!" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          echo "✅ Quality maintained" >> $GITHUB_STEP_SUMMARY

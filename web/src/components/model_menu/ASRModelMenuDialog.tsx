@@ -13,7 +13,7 @@ export interface ASRModelMenuDialogProps {
   anchorEl?: HTMLElement | null;
 }
 
-export default function ASRModelMenuDialog({
+function ASRModelMenuDialog({
   open,
   onClose,
   onModelChange,
@@ -33,3 +33,5 @@ export default function ASRModelMenuDialog({
     />
   );
 }
+
+export default React.memo(ASRModelMenuDialog);

@@ -1,166 +1,46 @@
-# Stores Directory Guide
+# Stores Guidelines
 
-**Navigation**: [Root AGENTS.md](../../../AGENTS.md) → [Web AGENTS.md](../AGENTS.md) → **Stores**
+**Navigation**: [Root AGENTS.md](../../../AGENTS.md) → [Web](../AGENTS.md) → **Stores**
 
-This guide helps AI agents understand the state management stores in NodeTool's web application. The application uses Zustand for state management.
+Also see: **[Zustand Best Practices](./ZUSTAND_BEST_PRACTICES.md)**
 
-## Related Documentation
-- [Contexts Guide](../contexts/AGENTS.md) - React contexts that wrap stores
-- [Hooks Guide](../hooks/AGENTS.md) - Hooks that access stores
-- [ServerState Guide](../serverState/AGENTS.md) - TanStack Query for server state
-- [Components Guide](../components/AGENTS.md) - Components using stores
-- **[Zustand Best Practices](./ZUSTAND_BEST_PRACTICES.md) - Comprehensive guide for writing Zustand stores**
+## Rules
 
----
+- Each store must focus on a single domain (e.g., assets, nodes, UI panels).
+- Define a TypeScript interface for all store state and actions.
+- Use selectors to subscribe to only the needed state — avoid subscribing to entire stores.
+- Use `shallow` equality for object selections to prevent unnecessary re-renders.
+- Define actions within the store alongside state.
+- Use `persist` middleware for settings that should survive page refreshes.
+- Use `temporal` (zundo) middleware for stores that need undo/redo.
+- Keep state updates immutable. Use Immer middleware for complex nested updates.
 
-## Core API and Types
-
-- `ApiClient.ts`: Client for making API requests to the NodeTool backend
-- `ApiTypes.ts`: TypeScript type definitions for API data structures
-
-## Application State Stores
-
-### UI State
-
-- `AppHeaderStore.ts`: Manages the application header state
-- `PanelStore.ts`: Controls panel visibility and dimensions
-- `BottomPanelStore.ts`: Manages bottom panel state (logs, results, terminal)
-- `RightPanelStore.ts`: Manages right panel state (inspector, assistant)
-- `ContextMenuStore.ts`: Manages context menu visibility and position
-- `KeyPressedStore.ts`: Tracks keyboard input state
-- `StatusStore.ts`: Manages application status messages
-- `NotificationStore.ts`: Handles notification system
-- `SettingsStore.ts`: Application settings and preferences
-- `RemoteSettingStore.ts`: Remote settings synchronization
-- `LayoutStore.ts`: Manages dockview layout persistence
-- `GettingStartedStore.ts`: Manages getting started screen state
-- `FindInWorkflowStore.ts`: Manages find in workflow search state
-
-### Assets Management
-
-- `AssetStore.ts`: Central store for asset management
-- `AssetGridStore.ts`: Controls asset grid view state
-- `FileStore.ts`: Handles file operations
-- `MetadataStore.ts`: Manages asset metadata
-
-### Node and Workflow Management
-
-- `NodeStore.ts`: Central store for node graph state
-- `NodeData.ts`: Data structures for node types and properties
-- `NodeMenuStore.ts`: Controls node selection menu state
-- `NodeFocusStore.ts`: Manages keyboard navigation focus state (Tab/Arrow key navigation)
-- `NodePlacementStore.ts`: Manages node placement state and collision avoidance
-- `ConnectableNodesStore.ts`: Manages node connection possibilities
-- `ConnectionStore.ts`: Handles node connections and edges
-- `ResultsStore.ts`: Stores node execution results
-- `WorkflowRunner.ts`: Controls workflow execution
-- `WorkflowManagerStore.ts`: Manages workflow context and multiple open workflows
-- `WorkflowActionsStore.ts`: Provides workflow action handlers (create, open, save, delete)
-- `WorkflowListViewStore.ts`: Manages workflow list view state
-- `VersionHistoryStore.ts`: Manages workflow version history
-- `ExecutionTimeStore.ts`: Tracks node execution timing for performance monitoring
-- `MiniAppsStore.ts`: Manages mini app state and workflows
-- `MiniMapStore.ts`: Manages minimap visibility and state
-- `FavoriteNodesStore.ts`: Manages favorite nodes for quick access
-- `FavoriteWorkflowsStore.ts`: Manages favorite workflows
-- `RecentNodesStore.ts`: Tracks recently used nodes
-- `InspectedNodeStore.ts`: Manages inspected node state
-
-### Model Management
-
-- `ModelStore.ts`: Manages AI model definitions and state
-- `ModelDownloadStore.ts`: Handles model download operations
-- `ModelManagerStore.ts`: Manages model manager UI state
-- `ModelMenuStore.ts`: Manages model selection menu state
-- `ModelFiltersStore.ts`: Manages model filtering options
-- `ModelPreferencesStore.ts`: Manages model preference settings
-- `HfCacheStatusStore.ts`: Manages HuggingFace cache status and monitoring
-
-### Session and System State
-
-- `SessionStateStore.ts`: Manages user session state
-- `LogStore.ts`: Application logging system
-- `ErrorStore.ts`: Error handling and reporting
-- `UpdatesStore.ts`: Manages application updates
-- `SecretsStore.ts`: Manages API keys and secrets securely
-- `AudioQueueStore.ts`: Manages audio generation task queue
-- `WorkspaceManagerStore.ts`: Manages workspace state and organization
-
-## Utility Functions
-
-- `customEquality.ts`: Custom equality functions for state updates
-- `formatNodeDocumentation.ts`: Formats node documentation for display
-- `fuseOptions.ts`: Configuration for Fuse.js fuzzy search
-- `uuidv4.ts`: UUID generation utility
-- `useAuth.ts`: Authentication hooks
-
-## ReactFlow Integration
-
-- `graphNodeToReactFlowNode.ts`: Converts graph nodes to ReactFlow format
-- `reactFlowNodeToGraphNode.ts`: Converts ReactFlow nodes to graph format
-- `graphEdgeToReactFlowEdge.ts`: Converts graph edges to ReactFlow format
-- `reactFlowEdgeToGraphEdge.ts`: Converts ReactFlow edges to graph format
-- `workflowUpdates.ts`: Handles workflow update operations
-
-## Store Architecture
-
-The stores follow these design patterns:
-
-1. **Zustand Pattern**: Each store is a Zustand store with actions and state
-2. **Atomic State**: State is divided into focused domains
-3. **Selectors**: Components use selectors to access only needed state
-4. **Actions**: State modifications happen through defined action functions
-
-## Store Usage Patterns
-
-### Creating a store with Zustand
+## Patterns
 
 ```typescript
-// Example store pattern
-import create from "zustand";
+// ✅ Good — selective subscription
+const nodes = useNodeStore(state => state.nodes);
+const addNode = useNodeStore(state => state.addNode);
 
-interface StoreState {
-  // State properties
-  count: number;
-
-  // Actions
-  increment: () => void;
-  decrement: () => void;
-}
-
-const useCountStore = create<StoreState>((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
-  decrement: () => set((state) => ({ count: state.count - 1 }))
-}));
+// ❌ Bad — subscribes to entire store, causes unnecessary re-renders
+const store = useNodeStore();
 ```
-
-### Using a store in components
 
 ```typescript
-// Example usage in a component
-import React from "react";
-import { useNodeStore } from "../stores/NodeStore";
-
-const NodeComponent = () => {
-  // Select only needed state
-  const nodes = useNodeStore((state) => state.nodes);
-  const addNode = useNodeStore((state) => state.addNode);
-
-  // Component implementation
-};
+// ✅ Good — shallow equality for multi-value selection
+const { selectedAssets, searchTerm } = useAssetGridStore(
+  state => ({ selectedAssets: state.selectedAssets, searchTerm: state.searchTerm }),
+  shallow
+);
 ```
 
-## Key Store Relationships
+## Testing
 
-- `NodeStore` is the central store for the node editor
-- `WorkflowRunner` manages the execution of workflows
-- `AssetStore` handles all asset operations
-- `ModelStore` manages AI model definitions and state
+```bash
+cd web
+npm test -- --testPathPattern=stores  # Store tests only
+```
 
-## Store Initialization Flow
-
-1. Stores are initialized at application startup
-2. Initial state is loaded from localStorage where applicable
-3. Stores connect to API services for data fetching
-4. Real-time updates are managed through WebSocket connections
+- Place tests in `__tests__/` subdirectories.
+- Test actions and derived state, not internal implementation.
+- Mock API calls and external dependencies.

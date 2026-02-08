@@ -1,4 +1,4 @@
-# NodeTool: Visual AI Workflow Builder
+# NodeTool: Visual Builder for AI Workflows and Agents
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
 [![Downloads](https://img.shields.io/github/downloads/nodetool-ai/nodetool/total?color=3fb950)](https://github.com/nodetool-ai/nodetool/releases)
@@ -7,34 +7,41 @@
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 
-**Build AI workflows visually. Run them anywhere.**
+[![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://nodetool.ai)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
+[![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
 
-NodeTool is open-source software for creating AI workflows without code. Drag and drop nodes to generate images, process documents, analyze data, and automate tasks. Run models on your machine or use cloud APIs.
+NodeTool is an open-source visual programming tool for building AI workflows. Connect LLMs, real-time systems, build AI agents and generate media through a drag-and-drop node interface.
 
 ![Screenshot](screen2.png)
 
 ## Why NodeTool
 
-- **Visual editing**: Connect nodes by dragging lines between them
-- **Run anywhere**: Your laptop, a server, or the cloud
-- **Private by default**: Models run on your hardware unless you choose otherwise
-- **See it happen**: Watch results appear as your workflow runs
+- **Node-based visual interface**: Connect nodes by dragging lines between them for AI workflow orchestration
+- **Run anywhere**: Your laptop, a server, or the cloud - local execution engine for macOS, Windows, and Linux
+- **Local-first AI**: Run models entirely on your machine with support for local LLMs via Ollama, MLX, and GGML/GGUF formats
+- **Streaming**: Real-time workflow execution with async data streams
+- **Build AI agents**: Create LLM agents with tool use and secure code execution
+- **Type-safe connections**: Ensure compatibility between node inputs and outputs
 
 ## What You Can Do
 
-- Work with text, images, audio, and video
-- Run models locally on Apple Silicon, NVIDIA GPUs, or CPU (works offline)
-- Access 500,000+ models from HuggingFace
-- Use cloud APIs: OpenAI, Anthropic, Gemini, OpenRouter, Kie, Fal, MiniMax, Replicate
-- Deploy to RunPod, Google Cloud Run, or your own infrastructure
-- Manage and organize your media files
+- **Multimodal AI**: Process text, images, video, and audio
+- **Run locally**: Apple Silicon (M1+), NVIDIA GPUs, or CPU (works offline)
+- **Access models**: 500,000+ models from HuggingFace
+- **Cloud APIs**: OpenAI, Anthropic, Gemini, OpenRouter, Kie, Fal, MiniMax, Replicate
+- **Secure Code execution**: Execute code in secure containers
+- **Build RAG systems**: Vector database integration for semantic search
+- **Deploy anywhere**: Docker, RunPod, Google Cloud Run
+- **Extend with Python**: Build custom nodes
 
-## Common Uses
+**Common applications**: LLM agents with tool use, creative pipelines, RAG systems, generative media, document processing, and data transformation.
 
-- Generate and edit images, videos, and audio
-- Build RAG systems, extract text, search documents
-- Transform data, create charts, generate reports
-- Create AI agents that plan and execute tasks
+## How NodeTool Compares
+
+**vs ComfyUI**: While ComfyUI focuses on media generation workflows, NodeTool extends the node-based concept to general AI workflows including LLM agents, real-time streaming and RAG systems.
+
+**vs n8n**: While n8n is a general workflow automation tool for business processes and API integrations, NodeTool is specialized for AI workloads with native support for model management, local LLMs, multimodal, RAG and secure code execution.
 
 ## Cloud Models
 
@@ -52,15 +59,11 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 
 | Platform | Get It | Requirements |
 | :--- | :--- | :--- |
-| **Windows** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 20GB space |
-| **macOS** | [Download](https://nodetool.ai) | M1+ Apple Silicon |
-| **Linux** | [Download](https://nodetool.ai) | NVIDIA GPU recommended |
+| **Windows** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 4GB+ VRAM (local AI), 20GB space |
+| **macOS** | [Download](https://nodetool.ai) | M1+ Apple Silicon, 16GB+ RAM (local AI) |
+| **Linux** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 4GB+ VRAM (local AI) |
 
-**Running AI locally needs:**
-
-- **Apple Silicon**: 16GB+ RAM for text/audio, 24GB+ for images
-- **Windows/Linux**: 4GB+ VRAM for text/audio, 8GB+ for images, 12GB+ for video
-- **Cloud only**: No GPU needed—just use API services
+*Cloud-only usage requires no GPU—just use API services.*
 
 ______________________________________________________________________
 

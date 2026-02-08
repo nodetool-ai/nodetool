@@ -158,6 +158,46 @@ function createLogViewerWindow(): BrowserWindow {
 }
 
 /**
+ * Creates a window that opens the Settings page
+ * Loads: pages/settings.html
+ * @returns {BrowserWindow} The created window instance
+ */
+function createSettingsWindow(): BrowserWindow {
+  const window = new BrowserWindow({
+    width: 600,
+    height: 500,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      devTools: true,
+      webSecurity: true,
+    },
+  });
+
+  window.setBackgroundColor("#111111");
+  window.loadFile(path.join("dist-web", "pages", "settings.html"));
+
+  window.webContents.on("before-input-event", (_event, input) => {
+    if (
+      (input.control || input.meta) &&
+      input.shift &&
+      input.key.toLowerCase() === "i"
+    ) {
+      if (window.webContents.isDevToolsOpened()) {
+        window.webContents.closeDevTools();
+      } else {
+        window.webContents.openDevTools();
+      }
+    }
+  });
+
+  initializePermissionHandlers();
+
+  return window;
+}
+
+/**
  * Set permission handlers for Electron sessions.
  */
 function initializePermissionHandlers(): void {
@@ -303,6 +343,7 @@ export {
   createWindow,
   createPackageManagerWindow,
   createLogViewerWindow,
+  createSettingsWindow,
   forceQuit,
   handleActivation,
 };

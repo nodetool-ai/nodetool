@@ -292,9 +292,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
     try {
       const assetFiles = await createAssetFile(previewOutput, props.id);
-      for (const { file } of assetFiles) {
-        await createAsset(file);
-      }
+      await Promise.all(assetFiles.map(({ file }) => createAsset(file)));
 
       addNotification({
         type: "success",

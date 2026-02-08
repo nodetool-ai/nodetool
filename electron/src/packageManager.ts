@@ -14,6 +14,7 @@ import {
 } from "./types";
 import * as https from "https";
 import { getTorchIndexUrl } from "./torchPlatformCache";
+import { fileExists } from "./utils";
 
 /**
  * Package Manager Module
@@ -521,6 +522,15 @@ async function runUvCommand(
   const pythonPath = getPythonPath();
   const command = [uvPath, ...args];
 
+  // Check if uv executable exists before attempting to spawn
+  const uvExists = await fileExists(uvPath);
+  if (!uvExists) {
+    const errorMsg = `Python environment not properly installed: uv executable not found at ${uvPath}. ` +
+      `Please use "Reinstall environment" to set up the Python environment correctly.`;
+    logMessage(errorMsg, "error");
+    throw new Error(errorMsg);
+  }
+
   return new Promise((resolve, reject) => {
     logMessage(`Running uv command: ${command.join(" ")}`);
 
@@ -579,7 +589,15 @@ async function runUvCommand(
     });
 
     process.on("error", (error) => {
-      reject(new Error(`Failed to run command: ${error.message}`));
+      // Provide a more helpful error message for ENOENT
+      if (error.message.includes("ENOENT")) {
+        reject(new Error(
+          `Python environment not properly installed: could not run uv at ${uvPath}. ` +
+          `Please use "Reinstall environment" to fix this issue.`
+        ));
+      } else {
+        reject(new Error(`Failed to run command: ${error.message}`));
+      }
     });
   });
 }
@@ -668,7 +686,9 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     }
 
     const packageSpec = `${packageName}==${latestVersion}`;
-    logMessage(`Installing ${packageSpec} with Nodetool extra index`);
+    const message = `Installing ${packageName} v${latestVersion}...`;
+    logMessage(message);
+    emitServerLog(message);
 
     const args = [
       "pip",
@@ -757,7 +777,9 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     }
 
     const packageSpec = `${packageName}==${latestVersion}`;
-    logMessage(`Updating to ${packageSpec} with Nodetool extra index (forcing reinstall)`);
+    const message = `Updating ${packageName} to v${latestVersion}...`;
+    logMessage(message);
+    emitServerLog(message);
 
     const args = [
       "pip",
@@ -934,7 +956,9 @@ export async function installExpectedPackages(): Promise<{
     try {
       const packageSpec = `${packageName}==${expectedVersion}`;
 
-      logMessage(`Installing ${packageSpec} with Nodetool extra index`);
+      const message = `Installing ${packageName} v${expectedVersion}...`;
+      logMessage(message);
+      emitServerLog(message);
 
       const args = [
         "pip",
@@ -956,7 +980,9 @@ export async function installExpectedPackages(): Promise<{
       }
 
       await runUvCommand(args);
-      logMessage(`Successfully installed ${packageSpec}`);
+      const successMessage = `Successfully installed ${packageName} v${expectedVersion}`;
+      logMessage(successMessage);
+      emitServerLog(successMessage);
 
       packagesUpdated++;
     } catch (error: any) {

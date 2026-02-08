@@ -143,6 +143,10 @@ export const DownloadProgress: React.FC<{
 
   const theme = useTheme();
 
+  const handleCancelDownload = useCallback(() => {
+    cancelDownload(name);
+  }, [name, cancelDownload]);
+
   // Track current time for stall detection
   const [now, setNow] = useState(Date.now());
 
@@ -516,7 +520,7 @@ export const DownloadProgress: React.FC<{
           </Box>
           <Tooltip title="Stop the current download. You can restart it later.">
             <Button
-              onClick={cancelDownload.bind(null, name)}
+              onClick={handleCancelDownload}
               variant="contained"
               style={{
                 color: theme.vars.palette.primary.contrastText,

@@ -1,0 +1,97 @@
+name: Research
+
+on:
+  schedule:
+    - cron: "0 16 * * 4"  # Thursdays at 4 PM UTC
+  workflow_dispatch:
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
+          prompt: |
+            # Research & Prototyping
+
+            Explore and prototype an experimental feature for NodeTool (React/TypeScript visual AI workflow builder).
+
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Choose an experimental feature or concept to explore
+            2. Build a working prototype
+            3. **Create a Pull Request with your prototype**
+            
+            Do NOT just research or analyze. You must build something tangible and submit a PR.
+
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - Packages: `/web`, `/electron`, `/mobile`
+            - Frontend-only repo — backend is separate Python repo
+            - Memory: `.memory/` contains project context and feature list
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing research branches
+            2. Read `.memory/features.md` — ensure your idea doesn't already exist
+            3. Read `.memory/project-context.md` — understand architecture
+
+            ## Research Areas
+            - AI-assisted workflow generation or smart node recommendations
+            - Visual debugging and breakpoints for workflows
+            - Workflow version diffing
+            - Advanced node grouping/nesting
+            - Real-time data flow visualization
+            - Plugin system for custom nodes
+            - Collaborative editing capabilities
+            - Privacy-preserving workflow sharing
+
+            ## Evaluation Criteria
+            - **Feasible** with frontend-only changes?
+            - **Impactful** for users/developers/researchers?
+            - **Aligned** with visual-first, privacy-first philosophy?
+            - **Performant** at scale?
+
+            ## Approach
+            1. Start with smallest useful version (MVP)
+            2. Follow existing code patterns
+            3. Mark experimental features clearly
+            4. `make typecheck && make lint && make test` must all pass
+
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've built your prototype, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with:
+               - The prototype implementation
+               - Description of what was explored, key findings, and potential next steps

@@ -14,7 +14,7 @@ export interface VideoModelMenuDialogProps {
   anchorEl?: HTMLElement | null;
 }
 
-export default function VideoModelMenuDialog({
+function VideoModelMenuDialog({
   open,
   onClose,
   onModelChange,
@@ -35,3 +35,5 @@ export default function VideoModelMenuDialog({
     />
   );
 }
+
+export default React.memo(VideoModelMenuDialog);

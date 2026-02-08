@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { Typography } from "@mui/material";
 import { relativeTime } from "../../../utils/formatDateAndTime";
 import { ThreadItemProps } from "../types/thread.types";
 import { DeleteButton } from "../../ui_primitives";
 
-export const ThreadItem: React.FC<ThreadItemProps> = ({
-  threadId: _threadId,
+const ThreadItemBase: React.FC<ThreadItemProps> = ({
+  threadId,
   thread,
   isSelected,
   onSelect,
   onDelete,
-  getPreview,
+  previewText,
   showDate = true
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -19,24 +19,24 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
     setIsDeleting(true);
     // Wait for animation to complete before actually deleting
     setTimeout(() => {
-      onDelete();
+      onDelete(threadId);
     }, 300); // Match the CSS animation duration
   };
 
   return (
     <li
       className={`thread-item ${isSelected ? "selected" : ""} ${isDeleting ? "deleting" : ""}`}
-      onClick={onSelect}
+      onClick={() => onSelect(threadId)}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onSelect();
+          onSelect(threadId);
         }
       }}
     >
       <Typography className="thread-title">
-        {thread.title || getPreview()}
+        {thread.title || previewText}
       </Typography>
       {showDate && (
         <Typography className="date">
@@ -49,19 +49,21 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
           handleDelete();
         }}
       />
-      {/* <IconButton
-        className="delete-button"
-        size="small"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        data-microtip-position="left"
-        aria-label="Delete conversation"
-        role="button"
-      >
-        <DeleteIcon />
-      </IconButton> */}
     </li>
   );
 };
+
+export const ThreadItem = memo(ThreadItemBase, (prevProps, nextProps) => {
+  return (
+    prevProps.threadId === nextProps.threadId &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.previewText === nextProps.previewText &&
+    prevProps.showDate === nextProps.showDate &&
+    prevProps.thread.title === nextProps.thread.title &&
+    // Check both potential update fields
+    ((prevProps.thread as any).updated_at || prevProps.thread.updatedAt) ===
+    ((nextProps.thread as any).updated_at || nextProps.thread.updatedAt)
+  );
+});
+
+export default ThreadItem;

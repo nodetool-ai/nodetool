@@ -14,6 +14,8 @@ type ConnectionStore = {
   connectMin: number | null;
   connectMax: number | null;
   connectDefault: unknown;
+  /** True while an existing edge is being reconnected (redragged). */
+  isReconnecting: boolean;
   startConnecting: (
     node: Node<NodeData>,
     handleId: string,
@@ -21,6 +23,7 @@ type ConnectionStore = {
     metadata: NodeMetadata
   ) => void;
   endConnecting: () => void;
+  setIsReconnecting: (value: boolean) => void;
 };
 
 const useConnectionStore = create<ConnectionStore>((set) => ({
@@ -32,6 +35,7 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
   connectMin: null,
   connectMax: null,
   connectDefault: undefined,
+  isReconnecting: false,
 
   /**
    * Handle the end event of a connection between two nodes.
@@ -46,8 +50,13 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
       connectHandleId: null,
       connectMin: null,
       connectMax: null,
-      connectDefault: undefined
+      connectDefault: undefined,
+      isReconnecting: false
     });
+  },
+
+  setIsReconnecting: (value: boolean) => {
+    set({ isReconnecting: value });
   },
 
   /**
@@ -80,9 +89,9 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     if (handleType === "target") {
       const inputHandle = findInputHandle(node, handleId, metadata);
       const connectType = inputHandle?.type;
-      
+
       // Get min/max/default from the property metadata if available
-      const property = metadata.properties.find(p => p.name === handleId);
+      const property = metadata.properties.find((p) => p.name === handleId);
       const connectMin = property?.min ?? null;
       const connectMax = property?.max ?? null;
       const connectDefault = property?.default;

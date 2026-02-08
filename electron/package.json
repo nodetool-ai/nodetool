@@ -1,6 +1,6 @@
 {
   "name": "nodetool-electron",
-  "version": "0.6.3-rc.12",
+  "version": "0.6.3-rc.18",
   "description": "node-based AI development tool",
   "homepage": "https://nodetool.ai",
   "main": "dist-electron/main.js",
@@ -23,9 +23,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e": "xvfb-run -a playwright test",
+    "test:e2e:ui": "xvfb-run -a playwright test --ui",
+    "test:e2e:headed": "xvfb-run -a playwright test --headed"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",

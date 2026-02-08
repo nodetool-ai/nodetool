@@ -28,10 +28,10 @@ jest.mock("@mui/material", () => ({
   Button: ({ children, onClick, ...props }: any) => (
     <button onClick={onClick} {...props}>{children}</button>
   ),
-  TextField: ({ label, value, children, ...props }: any) => (
+  TextField: ({ label, value, onChange, children, ...props }: any) => (
     <div data-testid="TextField">
       {label && <span className="textfield-label">{label}</span>}
-      <input {...props} value={value || ""} />
+      <input {...props} value={value || ""} onChange={onChange} />
       {children}
     </div>
   ),
@@ -89,7 +89,23 @@ describe("RemoteSettingsMenu", () => {
     jest.clearAllMocks();
     queryClient.clear();
 
-    mockUseRemoteSettingsStore.mockReturnValue(mockRemoteSettingsStore as any);
+    // Mock useRemoteSettingsStore to handle both selector and non-selector calls
+    mockUseRemoteSettingsStore.mockImplementation((selector?) => {
+      if (typeof selector === "function") {
+        // Handle selector calls
+        const storeState = {
+          ...mockRemoteSettingsStore,
+          settings: [],
+          settingsByGroup: new Map(),
+          isLoading: false,
+          error: null
+        };
+        return selector(storeState);
+      }
+      // Handle non-selector calls (backward compatibility)
+      return mockRemoteSettingsStore as any;
+    });
+
     mockUseNotificationStore.mockReturnValue(mockNotificationStore as any);
 
     mockRemoteSettingsStore.fetchSettings.mockResolvedValue([]);

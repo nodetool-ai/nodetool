@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, memo } from "react";
+import React, { useCallback, useEffect, useState, memo, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -15,10 +15,65 @@ import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { useAssetStore } from "../../stores/AssetStore";
 
+interface AssetTableRowProps {
+  asset: Asset;
+  onRemove: (asset: Asset) => void;
+}
+
+const AssetTableRow: React.FC<AssetTableRowProps> = memo(({ asset, onRemove }) => {
+  const handleRemove = useCallback(() => {
+    onRemove(asset);
+  }, [asset, onRemove]);
+
+  return (
+    <TableRow>
+      <TableCell>
+        {asset.name} ({asset.content_type})
+      </TableCell>
+      <TableCell>
+        <Button
+          variant="outlined"
+          onClick={handleRemove}
+        >
+          Remove
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+});
+AssetTableRow.displayName = "AssetTableRow";
+
 export type AssetTableProps = {
   assetIds: string[];
   onChange: (assetIds: string[]) => void;
 };
+
+interface AssetTableRowProps {
+  asset: Asset;
+  onRemove: (asset: Asset) => void;
+}
+
+const AssetTableRow = memo(function AssetTableRow({
+  asset,
+  onRemove
+}: AssetTableRowProps) {
+  const handleRemove = useCallback(() => {
+    onRemove(asset);
+  }, [asset, onRemove]);
+
+  return (
+    <TableRow>
+      <TableCell>
+        {asset.name} ({asset.content_type})
+      </TableCell>
+      <TableCell>
+        <Button variant="outlined" onClick={handleRemove}>
+          Remove
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+});
 
 const AssetTable: React.FC<AssetTableProps> = (props) => {
   const { assetIds, onChange } = props;
@@ -41,13 +96,6 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     [onChange, assets]
   );
 
-  const handleAssetRemoveClick = useCallback(
-    (asset: Asset) => {
-      handleRemoveAsset(asset);
-    },
-    [handleRemoveAsset]
-  );
-
   const { onDrop, onDragOver, uploading } = useFileDrop({
     uploadAsset: true,
     onChangeAsset: (asset: Asset) => {
@@ -57,6 +105,15 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     },
     type: "all",
   });
+
+  const dropZoneStyle = useMemo(() => ({
+    border: 1,
+    borderStyle: "dotted" as const,
+    height: 60,
+    display: "flex" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  }), []);
 
   return (
     <TableContainer component={Paper}>
@@ -69,19 +126,11 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
         </TableHead>
         <TableBody>
           {assets.map((asset, index) => (
-            <TableRow key={index}>
-              <TableCell>
-                {asset.name} ({asset.content_type})
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="outlined"
-                  onClick={() => handleAssetRemoveClick(asset)}
-                >
-                  Remove
-                </Button>
-              </TableCell>
-            </TableRow>
+            <AssetTableRow
+              key={asset.id || index}
+              asset={asset}
+              onRemove={handleAssetRemoveClick}
+            />
           ))}
           <TableRow key="last">
             <TableCell>
@@ -91,14 +140,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
                 <Box
                   onDragOver={onDragOver}
                   onDrop={onDrop}
-                  sx={{
-                    border: 1,
-                    borderStyle: "dotted",
-                    height: 60,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                  sx={dropZoneStyle}
                 >
                   Drop file here
                 </Box>
