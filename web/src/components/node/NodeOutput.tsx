@@ -10,12 +10,35 @@ import HandleTooltip from "../HandleTooltip";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findInputHandle } from "../../utils/handleUtils";
+import useResultsStore from "../../stores/ResultsStore";
 
 export type NodeOutputProps = {
   id: string;
   output: OutputSlot;
   isDynamic?: boolean;
   isStreamingOutput?: boolean;
+};
+
+/**
+ * Resolve a node output value from results in a three-step fallback order:
+ * 1) named output property, 2) generic "output" field, 3) raw result.
+ */
+const resolveOutputValue = (
+  result: unknown,
+  outputName: string
+): unknown => {
+  if (result === undefined) {
+    return undefined;
+  }
+  if (typeof result === "object" && result !== null) {
+    if (outputName in result) {
+      return (result as Record<string, unknown>)[outputName];
+    }
+    if ("output" in result) {
+      return (result as { output?: unknown }).output;
+    }
+  }
+  return result;
 };
 
 const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }) => {
@@ -28,6 +51,10 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const findNode = useNodes((state) => state.findNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const workflowId = useMemo(
+    () => findNode(id)?.data.workflow_id,
+    [findNode, id]
+  );
 
   const effectiveConnectType = useMemo<TypeMetadata | null>(() => {
     if (
@@ -109,6 +136,20 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
     output.name
   ]);
 
+  const selectOutputValue = useCallback(
+    (state: ReturnType<typeof useResultsStore.getState>) => {
+      if (!workflowId) {
+        return undefined;
+      }
+      const result =
+        state.getOutputResult(workflowId, id) ?? state.getResult(workflowId, id);
+      return resolveOutputValue(result, output.name);
+    },
+    [workflowId, id, output.name]
+  );
+
+  const outputValue = useResultsStore(selectOutputValue);
+
   return (
     <div className="output-handle-container">
       <HandleTooltip
@@ -117,6 +158,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
         className={classConnectable}
         handlePosition="right"
         isStreamingOutput={isStreamingOutput}
+        value={outputValue}
       >
         <Handle
           type="source"

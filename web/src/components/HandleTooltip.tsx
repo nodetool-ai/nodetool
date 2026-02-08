@@ -1,14 +1,66 @@
-import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { colorForType, textColorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
 import { getMousePosition } from "../utils/MousePosition";
 import { TypeMetadata } from "../stores/ApiTypes";
+import OutputRenderer from "./node/OutputRenderer";
 
 const LEFT_OFFSET_X = -32;
 const RIGHT_OFFSET_X = 32;
 const Y_OFFSET = -20;
-const ENTER_DELAY = 600;
+export const HANDLE_TOOLTIP_ENTER_DELAY = 600;
+
+/**
+ * Determine whether a tooltip value should render an OutputRenderer preview.
+ * Treats undefined, null, empty strings, empty arrays, and empty objects as non-renderable.
+ */
+const isRenderableValue = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return false;
+  }
+  if (typeof value === "string" && value.trim() === "") {
+    return false;
+  }
+  if (Array.isArray(value) && value.length === 0) {
+    return false;
+  }
+  if (
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
+  ) {
+    return false;
+  }
+  return true;
+};
+
+/**
+ * Provide a friendly label for empty or null values in handle tooltips.
+ * Returns specific labels for null, empty strings, lists, and objects.
+ */
+const fallbackLabelForValue = (value: unknown): string => {
+  if (value === null) {
+    return "null";
+  }
+  if (value === undefined) {
+    return "No value";
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed === "") {
+      return value.length > 0 ? "Whitespace only" : "Empty string";
+    }
+    return "No value";
+  }
+  if (Array.isArray(value)) {
+    return "Empty list";
+  }
+  if (typeof value === "object") {
+    return "Empty object";
+  }
+  return "No value";
+};
 
 /**
  * Checks if a TypeMetadata is a union of float and int (in any order)
@@ -41,6 +93,7 @@ type HandleTooltipProps = {
   handlePosition: "left" | "right";
   isStreamingOutput?: boolean;
   isCollectInput?: boolean;
+  value?: unknown;
 };
 
 const HandleTooltip = memo(function HandleTooltip({
@@ -50,7 +103,8 @@ const HandleTooltip = memo(function HandleTooltip({
   children,
   handlePosition,
   isStreamingOutput,
-  isCollectInput
+  isCollectInput,
+  value
 }: HandleTooltipProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -77,13 +131,19 @@ const HandleTooltip = memo(function HandleTooltip({
   // since both float and int use the same color
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
 
+  const hasRenderableValue = useMemo(() => isRenderableValue(value), [value]);
+  const valueFallbackLabel = useMemo(
+    () => fallbackLabelForValue(value),
+    [value]
+  );
+
   const handleMouseEnter = useCallback(() => {
     const position = getMousePosition();
-    // Start a timer; show tooltip only after ENTER_DELAY ms
+    // Start a timer; show tooltip only after HANDLE_TOOLTIP_ENTER_DELAY ms
     showTimerRef.current = window.setTimeout(() => {
       setTooltipPosition(position);
       setShowTooltip(true);
-    }, ENTER_DELAY);
+    }, HANDLE_TOOLTIP_ENTER_DELAY);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
@@ -120,6 +180,17 @@ const HandleTooltip = memo(function HandleTooltip({
         <div className="handle-tooltip-type">
           {displayType}
         </div>
+        {value !== undefined && (
+          <div className="handle-tooltip-value">
+            {hasRenderableValue ? (
+              <OutputRenderer value={value} showTextActions={false} />
+            ) : (
+              <div className="handle-tooltip-value-empty">
+                {valueFallbackLabel}
+              </div>
+            )}
+          </div>
+        )}
         {isStreamingOutput && (
           <div className="handle-tooltip-info">
             Streaming output - emits values continuously during execution

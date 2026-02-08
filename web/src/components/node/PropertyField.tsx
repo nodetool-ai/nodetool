@@ -102,6 +102,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             className={classConnectable}
             handlePosition="left"
             isCollectInput={isCollectHandle}
+            value={value}
           >
             <Handle
               type="target"
