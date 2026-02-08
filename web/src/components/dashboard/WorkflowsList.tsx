@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import {
   Box,
@@ -143,13 +143,24 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
 }) => {
   const theme = useTheme();
 
-  const onWorkflowClick = useCallback((workflow: Workflow) => {
-    handleWorkflowClick(workflow);
-  }, [handleWorkflowClick]);
+  // Memoize the workflow box sx prop to avoid creating new objects
+  const workflowControlsBoxSx = useMemo(() => ({
+    display: "flex",
+    gap: 2,
+    alignItems: "center"
+  }), []);
 
-  const createWorkflowClickHandler = useCallback((workflow: Workflow) => {
-    return () => onWorkflowClick(workflow);
-  }, [onWorkflowClick]);
+  // Single click handler that uses the workflow from the event
+  // This avoids creating N callback functions for N workflows on every render
+  const handleWorkflowItemClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const workflowId = event.currentTarget.getAttribute('data-workflow-id');
+    if (workflowId) {
+      const workflow = sortedWorkflows.find(w => w.id === workflowId);
+      if (workflow) {
+        handleWorkflowClick(workflow);
+      }
+    }
+  }, [sortedWorkflows, handleWorkflowClick]);
 
   return (
     <div className="workflows-list" css={styles(theme)}>
@@ -159,7 +170,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
         </Typography>
         <Box
           className="workflow-controls"
-          sx={{ display: "flex", gap: 2, alignItems: "center" }}
+          sx={workflowControlsBoxSx}
         >
           <ToggleButtonGroup
             className="sort-toggle"
@@ -197,7 +208,8 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <Box
               key={workflow.id}
               className="workflow-item"
-              onClick={createWorkflowClickHandler(workflow)}
+              data-workflow-id={workflow.id}
+              onClick={handleWorkflowItemClick}
             >
               <Box
                 className="workflow-thumbnail"
