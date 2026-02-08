@@ -137,3 +137,39 @@ TORCH_PLATFORM=rocm6.2 npm start
 ```
 
 Valid: `cu118`, `cu124`, `cu128`, `cu129`, `rocm5.2`, `rocm5.7`, `rocm6.2`, `rocm6.4`, `directml`, `xpu`, `mps`, `cpu`
+
+## Building for Distribution
+
+### Standard Builds
+
+```bash
+npm run build        # Build and package for current platform
+npm run dist         # Create distribution packages
+```
+
+Outputs to `dist/` directory.
+
+### Linux Packaging
+
+**AppImage (default):**
+```bash
+npm run dist         # Creates AppImage in dist/
+```
+
+**Flatpak:**
+```bash
+npm run dist         # Creates both AppImage and Flatpak
+```
+
+The Flatpak package provides sandboxed distribution for Linux with:
+- Consistent runtime across distributions
+- Automatic dependency management
+- Easy installation via Flatpak
+
+For detailed Flatpak information, see [FLATPAK.md](FLATPAK.md).
+
+### Supported Platforms
+
+- **Linux**: AppImage, Flatpak
+- **macOS**: DMG, ZIP (x64, arm64)
+- **Windows**: NSIS installer
