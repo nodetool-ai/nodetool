@@ -32,15 +32,19 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
   );
 
   // Helper function to update both selectedAssetIds and selectedAssets efficiently
+  // Uses assetIndexMap for O(1) lookups instead of O(n) find()
   const updateSelection = useCallback(
     (assetIds: string[]) => {
       setSelectedAssetIds(assetIds);
       const selectedAssets = assetIds
-        .map((id) => sortedAssets.find((asset) => asset.id === id))
+        .map((id) => {
+          const index = assetIndexMap.get(id);
+          return index !== undefined ? sortedAssets[index] : null;
+        })
         .filter(Boolean) as Asset[];
       setSelectedAssets(selectedAssets);
     },
-    [setSelectedAssetIds, setSelectedAssets, sortedAssets]
+    [setSelectedAssetIds, setSelectedAssets, sortedAssets, assetIndexMap]
   );
 
   const handleSelectAsset = useCallback(
@@ -55,7 +59,9 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
         ? assetIndexMap.get(lastSelectedAssetId) ?? -1
         : -1;
 
-      const selectedAsset = sortedAssets.find((asset) => asset.id === assetId);
+      // Use assetIndexMap for O(1) lookup instead of O(n) find()
+      const assetIndex = assetIndexMap.get(assetId);
+      const selectedAsset = assetIndex !== undefined ? sortedAssets[assetIndex] : undefined;
       const isAudio = selectedAsset?.content_type.match("audio") !== null;
 
       if (shiftKeyPressed && lastSelectedIndex !== -1) {

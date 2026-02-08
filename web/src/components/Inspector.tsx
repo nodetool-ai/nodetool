@@ -262,6 +262,18 @@ const Inspector: React.FC = () => {
     [multiNodeIds, updateNodeProperties]
   );
 
+  // Memoize callbacks for each property to prevent unnecessary re-renders
+  const multiPropertyChangeHandlers = useMemo(() => {
+    const handlers = new Map<string, (value: any) => void>();
+    sharedProperties.forEach((property) => {
+      handlers.set(
+        property.name,
+        (newValue: any) => handleMultiPropertyChange(property.name, newValue)
+      );
+    });
+    return handlers;
+  }, [sharedProperties, handleMultiPropertyChange]);
+
   // Define selectedNode and metadata early so callbacks can reference them
   const selectedNode = selectedNodes[0] || null;
   const metadata = selectedNode
@@ -362,8 +374,9 @@ const Inspector: React.FC = () => {
                       nodeType="inspector"
                       data={nodesWithMetadata[0].node.data}
                       layout=""
-                      onValueChange={(newValue) =>
-                        handleMultiPropertyChange(property.name, newValue)
+                      onValueChange={
+                        multiPropertyChangeHandlers.get(property.name) ||
+                        (() => {})
                       }
                     />
                   </div>

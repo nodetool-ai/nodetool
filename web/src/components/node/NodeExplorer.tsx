@@ -357,4 +357,4 @@ const NodeExplorer: React.FC = () => {
   );
 };
 
-export default NodeExplorer;
+export default React.memo(NodeExplorer);
