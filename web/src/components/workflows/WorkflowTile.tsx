@@ -18,7 +18,7 @@ interface WorkflowTileProps {
   onDoubleClickWorkflow: (workflow: Workflow) => void;
   onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
   onSelect: (workflow: Workflow) => void;
-  onDelete: (e: any, workflow: Workflow) => void;
+  onDelete: (e: React.MouseEvent, workflow: Workflow) => void;
 }
 
 const addBreaks = (text: string) => {
