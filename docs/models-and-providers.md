@@ -8,6 +8,22 @@ This guide explains AI models in NodeTool and how to choose between local and cl
 
 ---
 
+## What Are AI Models?
+
+An AI **model** is a trained program for a specific task:
+
+| Model Type | Function | Example |
+|------------|----------|---------|
+| **Language Model (LLM)** | Text generation | Stories, Q&A, summarization |
+| **Image Model** | Image generation/editing | Artwork, photos, variations |
+| **Speech Model** | Speech↔text conversion | Transcription, text-to-speech |
+| **Vision Model** | Image understanding | Photo descriptions, OCR |
+| **3D Model** | 3D asset generation | Product mockups, AR/VR assets |
+
+Models come pre-trained. Select one for your task.
+
+---
+
 ## Local vs. Cloud
 
 NodeTool runs AI models locally or through cloud APIs.
@@ -49,6 +65,18 @@ Combine local and cloud:
 
 NodeTool provides access to high-quality generative AI models through cloud providers:
 
+### Top 3D Generation Models
+
+| Model | Provider | Capabilities | Key Features |
+|-------|----------|-------------|--------------|
+| **Hunyuan3D V2/3.0** | Hunyuan | T2M/I2M | High-quality 3D meshes and textures |
+| **Trellis 2** | Trellis | T2M/I2M | Consistent geometry with textured output |
+| **TripoSR** | Tripo | I2M | Fast image-to-3D reconstruction |
+| **Shap-E** | OpenAI | T2M/I2M | Text or image prompt to 3D assets |
+| **Point-E** | OpenAI | T2M | Point cloud generation |
+| **Meshy AI** | Meshy | T2M/I2M | Textured mesh generation |
+| **Rodin AI** | Rodin | T2M/I2M | High fidelity 3D creation |
+
 ### Top Video Generation Models
 
 | Model | Provider | Capabilities | Key Features |
@@ -73,10 +101,22 @@ Access these models through NodeTool's **generic nodes**:
 
 1. **For Video**: Use `nodetool.video.TextToVideo` or `nodetool.video.ImageToVideo`
 2. **For Images**: Use `nodetool.image.TextToImage`
+3. **For 3D**: Use `nodetool.3d.TextTo3D` or `nodetool.3d.ImageTo3D`
 3. **Select Provider**: Click the model dropdown in the node properties
 4. **Configure API**: Add provider API keys in `Settings → Providers`
 
 **Direct NodeTool API Key Support:**
+- OpenAI Sora 2 Pro: `OPENAI_API_KEY`
+- Google Veo 3.1: `GEMINI_API_KEY`
+- MiniMax Hailuo 2.3: `MINIMAX_API_KEY`
+- Hunyuan3D V2/3.0: `HUNYUAN3D_API_KEY`
+- Trellis 2: `TRELLIS_API_KEY`
+- TripoSR: `TRIPO_API_KEY`
+- Shap-E: `SHAP_E_API_KEY`
+- Point-E: `POINT_E_API_KEY`
+- Meshy AI: `MESHY_API_KEY`
+- Rodin AI: `RODIN_API_KEY`
+
 - <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI Sora 2 Pro: `OPENAI_API_KEY`
 - <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google Veo 3.1: `GEMINI_API_KEY`
 - <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax Hailuo 2.3: `MINIMAX_API_KEY`
