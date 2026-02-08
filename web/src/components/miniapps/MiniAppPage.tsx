@@ -169,7 +169,8 @@ const MiniAppPage: React.FC = () => {
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
-  const { isVisible, panelSize } = usePanelStore((state) => state.panel);
+  const isVisible = usePanelStore((state) => state.panel.isVisible);
+  const panelSize = usePanelStore((state) => state.panel.panelSize);
   const leftOffset = isVisible ? panelSize : 50;
 
   // Check for custom HTML app
