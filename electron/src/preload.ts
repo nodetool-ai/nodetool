@@ -27,6 +27,7 @@ import {
   SystemDirectory,
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
+  ClaudeAgentSessionOptions,
 } from "./types.d";
 
 // ============================================================================
@@ -622,7 +623,7 @@ const api = {
   // ============================================================================
   claudeAgent: {
     /** Create a new Claude Agent session */
-    createSession: (options: { model: string }) =>
+    createSession: (options: ClaudeAgentSessionOptions) =>
       ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_CREATE_SESSION, options),
 
     /** Send a message to an active Claude Agent session */
@@ -635,6 +636,68 @@ const api = {
     /** Close an active Claude Agent session */
     closeSession: (sessionId: string) =>
       ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_CLOSE_SESSION, sessionId),
+
+    /** Subscribe to streaming messages from the Claude Agent */
+    onStreamMessage: createEventSubscription(
+      IpcChannels.CLAUDE_AGENT_STREAM_MESSAGE,
+    ),
+  },
+
+  // ============================================================================
+  // frontendTools: Frontend tools for Claude Agent integration
+  // ============================================================================
+  frontendTools: {
+    /** Get the manifest of available frontend tools */
+    getManifest: (sessionId: string) =>
+      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_GET_MANIFEST, {
+        sessionId,
+      }),
+
+    /** Call a frontend tool and return its result */
+    call: (
+      sessionId: string,
+      toolCallId: string,
+      name: string,
+      args: unknown,
+    ) =>
+      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_CALL, {
+        sessionId,
+        toolCallId,
+        name,
+        args,
+      }),
+
+    /** Subscribe to tool abort events */
+    onAbort: createEventSubscription(IpcChannels.FRONTEND_TOOLS_ABORT),
+  },
+
+  // ============================================================================
+  // ipc: Low-level IPC methods for registering handlers
+  // ============================================================================
+  ipc: {
+    /** Invoke a main-process IPC handler */
+    invoke: (channel: string, ...args: unknown[]) =>
+      ipcRenderer.invoke(channel, ...args),
+
+    /** Send an event to the main process */
+    send: (channel: string, ...args: unknown[]) =>
+      ipcRenderer.send(channel, ...args),
+
+    /** Register a listener for IPC send events from the main process */
+    on: (
+      channel: string,
+      listener: (event: Electron.IpcRendererEvent, ...args: unknown[]) => void,
+    ) => {
+      ipcRenderer.on(channel, listener);
+    },
+
+    /** Remove a listener for IPC send events */
+    off: (
+      channel: string,
+      listener: (...args: unknown[]) => void,
+    ) => {
+      ipcRenderer.removeListener(channel, listener);
+    },
   },
 };
 

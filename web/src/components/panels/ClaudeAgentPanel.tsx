@@ -1,11 +1,23 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, memo } from "react";
-import { Box, Typography, Button } from "@mui/material";
+import React, { useCallback, useMemo, memo, useEffect } from "react";
+import {
+  Box,
+  Typography,
+  Button,
+  FormControl,
+  Select,
+  MenuItem,
+  Tooltip
+} from "@mui/material";
 import ChatView from "../chat/containers/ChatView";
 import useClaudeAgentStore from "../../stores/ClaudeAgentStore";
-import type { Message } from "../../stores/ApiTypes";
+import type { Message, WorkspaceResponse } from "../../stores/ApiTypes";
 import PanelHeadline from "../ui/PanelHeadline";
+import WorkspaceSelect from "../workspaces/WorkspaceSelect";
+import { useQuery } from "@tanstack/react-query";
+import { client } from "../../stores/ApiClient";
+import { createErrorMessage } from "../../utils/errorHandling";
 
 const containerStyles = css({
   flex: 1,
@@ -34,6 +46,22 @@ const containerStyles = css({
     ".compose-message": {
       margin: "0 .5em 0 0"
     }
+  },
+  ".claude-session-controls": {
+    display: "grid",
+    gridTemplateColumns: "minmax(220px, 1fr) minmax(180px, 1fr) auto",
+    gap: "8px",
+    alignItems: "center",
+    marginBottom: "8px"
+  },
+  ".claude-session-select .MuiSelect-select": {
+    paddingTop: "10px",
+    paddingBottom: "10px"
+  },
+  "@media (max-width: 980px)": {
+    ".claude-session-controls": {
+      gridTemplateColumns: "1fr"
+    }
   }
 });
 
@@ -47,6 +75,16 @@ const placeholderStyles = css({
   padding: "24px",
   textAlign: "center"
 });
+
+const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
+  const { data, error } = await client.GET("/api/workspaces/", {
+    params: { query: { limit: 100 } }
+  });
+  if (error) {
+    throw createErrorMessage(error, "Failed to load workspaces");
+  }
+  return data.workspaces;
+};
 
 /**
  * ClaudeAgentPanel provides a chat interface for interacting with the
@@ -64,10 +102,17 @@ const ClaudeAgentPanel: React.FC = () => {
     error,
     isAvailable,
     sendMessage,
-    stopGeneration,
-    newChat,
-    createSession
-  } = useClaudeAgentStore(
+      stopGeneration,
+      newChat,
+      createSession,
+      startNewSession,
+      resumeSession,
+      sessionHistory,
+      sessionId,
+      workspaceId,
+      workspacePath,
+      setWorkspaceContext
+    } = useClaudeAgentStore(
     useMemo(
       () => (state) => ({
         status: state.status,
@@ -77,11 +122,34 @@ const ClaudeAgentPanel: React.FC = () => {
         sendMessage: state.sendMessage,
         stopGeneration: state.stopGeneration,
         newChat: state.newChat,
-        createSession: state.createSession
+        createSession: state.createSession,
+        startNewSession: state.startNewSession,
+        resumeSession: state.resumeSession,
+        sessionHistory: state.sessionHistory,
+        sessionId: state.sessionId,
+        workspaceId: state.workspaceId,
+        workspacePath: state.workspacePath,
+        setWorkspaceContext: state.setWorkspaceContext
       }),
       []
     )
   );
+  const { data: workspaces } = useQuery({
+    queryKey: ["workspaces"],
+    queryFn: fetchWorkspaces
+  });
+  const hasRunningSession = Boolean(sessionId);
+
+  useEffect(() => {
+    if (!workspaces || workspaceId) {
+      return;
+    }
+    const defaultWorkspace =
+      workspaces.find((workspace) => workspace.is_default) ?? workspaces[0];
+    if (defaultWorkspace) {
+      setWorkspaceContext(defaultWorkspace.id, defaultWorkspace.path);
+    }
+  }, [workspaces, workspaceId, setWorkspaceContext]);
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
@@ -104,6 +172,35 @@ const ClaudeAgentPanel: React.FC = () => {
     });
   }, [createSession]);
 
+  const handleCreateNewSession = useCallback(() => {
+    startNewSession().catch((err) => {
+      console.error("Failed to create new Claude Agent session:", err);
+    });
+  }, [startNewSession]);
+
+  const handleWorkspaceChange = useCallback(
+    (selectedWorkspaceId: string | undefined) => {
+      const selectedWorkspace = workspaces?.find(
+        (workspace) => workspace.id === selectedWorkspaceId
+      );
+      setWorkspaceContext(
+        selectedWorkspace?.id ?? null,
+        selectedWorkspace?.path ?? null
+      );
+    },
+    [workspaces, setWorkspaceContext]
+  );
+
+  const handleResumeSession = useCallback(
+    async (targetSessionId: string) => {
+      if (!targetSessionId) {
+        return;
+      }
+      await resumeSession(targetSessionId);
+    },
+    [resumeSession]
+  );
+
   // Map store status to ChatView status
   const chatStatus = useMemo(() => {
     switch (status) {
@@ -113,6 +210,8 @@ const ClaudeAgentPanel: React.FC = () => {
         return "connecting" as const;
       case "connected":
         return "connected" as const;
+      case "loading":
+        return "loading" as const;
       case "streaming":
         return "streaming" as const;
       case "error":
@@ -159,22 +258,69 @@ const ClaudeAgentPanel: React.FC = () => {
           Start a conversation with the Claude Agent SDK. Messages are processed
           through a local Claude Code session.
         </Typography>
-        {status === "disconnected" && (
+        {status === "disconnected" && !hasRunningSession && (
           <Button
             variant="outlined"
             size="small"
             onClick={handleStartSession}
+            disabled={!workspacePath}
           >
             Start Session
           </Button>
         )}
       </Box>
     );
-  }, [isAvailable, error, status, handleStartSession]);
+  }, [isAvailable, error, status, handleStartSession, hasRunningSession, workspacePath]);
+
+  const previousSessions = useMemo(
+    () => sessionHistory.filter((entry) => entry.id !== sessionId),
+    [sessionHistory, sessionId]
+  );
 
   return (
     <Box css={containerStyles} className="claude-agent-panel">
       <PanelHeadline title="Claude Agent" />
+      <Box className="claude-session-controls">
+        <WorkspaceSelect
+          value={workspaceId ?? undefined}
+          onChange={handleWorkspaceChange}
+          disabled={hasRunningSession}
+        />
+        <FormControl size="small" className="claude-session-select">
+          <Select
+            value=""
+            displayEmpty
+            onChange={(event) => {
+              const nextSessionId = event.target.value;
+              if (typeof nextSessionId === "string") {
+                handleResumeSession(nextSessionId).catch((err) => {
+                  console.error("Failed to resume Claude Agent session:", err);
+                });
+              }
+            }}
+            renderValue={() => "Resume previous session"}
+            disabled={!isAvailable || previousSessions.length === 0}
+          >
+            {previousSessions.map((entry) => (
+              <MenuItem key={entry.id} value={entry.id}>
+                {entry.id}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Tooltip title="Create a new Claude session in this workspace">
+          <span>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleCreateNewSession}
+              disabled={!isAvailable || !workspacePath}
+            >
+              New Session
+            </Button>
+          </span>
+        </Tooltip>
+      </Box>
       <ChatView
         status={chatStatus}
         progress={0}

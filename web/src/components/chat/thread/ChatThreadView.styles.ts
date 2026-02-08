@@ -219,16 +219,20 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-card": {
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: 12,
-      background: theme.vars.palette.action.hover,
-      padding: "4px 8px",
-      marginBottom: 2
+      border: "none",
+      borderRadius: 4,
+      background: "transparent",
+      padding: "1px 2px",
+      marginBottom: 0
+    },
+
+    ".tool-call-card.running .tool-call-name": {
+      color: theme.vars.palette.info.main
     },
 
     ".chat-message.tool-calls-only": {
-      marginBottom: "0.4em",
-      padding: "0.25em 0"
+      marginBottom: "0.15em",
+      padding: "0.1em 0"
     },
 
     ".chat-message.tool-calls-only .tool-call-card:last-child": {
@@ -238,22 +242,31 @@ export const createStyles = (theme: Theme) => ({
     ".tool-call-header": {
       display: "flex",
       alignItems: "center",
-      gap: 6
+      gap: 4,
+      lineHeight: 1.25
     },
 
-    ".tool-chip": {
+    ".tool-call-name": {
+      fontSize: "0.75rem",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
-      borderColor: theme.vars.palette.divider
+      whiteSpace: "nowrap"
     },
 
     ".tool-message": {
+      fontSize: "0.72rem",
       color: theme.vars.palette.text.secondary
+    },
+
+    ".tool-expand-button": {
+      padding: 2,
+      marginRight: -2
     },
 
     ".expand-icon": {
       transition: "transform 0.15s ease",
-      color: theme.vars.palette.text.disabled
+      color: theme.vars.palette.text.disabled,
+      fontSize: 16
     },
 
     ".expand-icon.expanded": {
@@ -261,12 +274,14 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-section-title": {
-      color: theme.vars.palette.text.disabled
+      color: theme.vars.palette.text.disabled,
+      display: "block",
+      marginBottom: 2
     },
 
     ".pretty-json": {
       margin: 0,
-      padding: "8px 10px",
+      padding: "4px 6px",
       background: theme.vars.palette.background.default,
       borderRadius: 6,
       color: theme.vars.palette.text.secondary,

@@ -96,13 +96,15 @@ interface WorkspaceSelectProps {
   label?: string;
   helperText?: string;
   fullWidth?: boolean;
+  disabled?: boolean;
 }
 
 const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
   function WorkspaceSelect({
     value,
     onChange,
-    fullWidth = true
+    fullWidth = true,
+    disabled = false
   }) {
     const theme = useTheme();
 
@@ -167,6 +169,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
           className="workspace-select"
           value={value || ""}
           onChange={handleChange}
+          disabled={disabled}
           displayEmpty
           size="small"
           renderValue={renderSelectedValue}
@@ -249,4 +252,3 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
 WorkspaceSelect.displayName = "WorkspaceSelect";
 
 export default WorkspaceSelect;
-

@@ -6,13 +6,15 @@ import { Box } from "@mui/material";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import isEqual from "lodash/isEqual";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
 import { Workflow, WorkflowVersion, Node as GraphNode, Edge as GraphEdge } from "../../stores/ApiTypes";
+import useMetadataStore from "../../stores/MetadataStore";
+import { setFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 
 
 // icons
@@ -127,7 +129,76 @@ const PanelRight: React.FC = () => {
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
-  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+  const {
+    currentWorkflowId,
+    getWorkflow,
+    addWorkflow,
+    removeWorkflow,
+    getNodeStore,
+    updateWorkflow,
+    saveWorkflow,
+    getCurrentWorkflow,
+    setCurrentWorkflowId,
+    fetchWorkflow,
+    newWorkflow,
+    createNew,
+    searchTemplates,
+    copy,
+  } = useWorkflowManager((state) => ({
+    currentWorkflowId: state.currentWorkflowId,
+    getWorkflow: state.getWorkflow,
+    addWorkflow: state.addWorkflow,
+    removeWorkflow: state.removeWorkflow,
+    getNodeStore: state.getNodeStore,
+    updateWorkflow: state.updateWorkflow,
+    saveWorkflow: state.saveWorkflow,
+    getCurrentWorkflow: state.getCurrentWorkflow,
+    setCurrentWorkflowId: state.setCurrentWorkflowId,
+    fetchWorkflow: state.fetchWorkflow,
+    newWorkflow: state.newWorkflow,
+    createNew: state.createNew,
+    searchTemplates: state.searchTemplates,
+    copy: state.copy,
+  }));
+  const nodeMetadata = useMetadataStore((state) => state.metadata);
+
+  useEffect(() => {
+    setFrontendToolRuntimeState({
+      nodeMetadata,
+      currentWorkflowId,
+      getWorkflow,
+      addWorkflow,
+      removeWorkflow,
+      getNodeStore,
+      updateWorkflow,
+      saveWorkflow,
+      getCurrentWorkflow,
+      setCurrentWorkflowId,
+      fetchWorkflow: async (id: string) => {
+        await fetchWorkflow(id);
+      },
+      newWorkflow,
+      createNew,
+      searchTemplates,
+      copy,
+    });
+  }, [
+    nodeMetadata,
+    currentWorkflowId,
+    getWorkflow,
+    addWorkflow,
+    removeWorkflow,
+    getNodeStore,
+    updateWorkflow,
+    saveWorkflow,
+    getCurrentWorkflow,
+    setCurrentWorkflowId,
+    fetchWorkflow,
+    newWorkflow,
+    createNew,
+    searchTemplates,
+    copy,
+  ]);
 
   const handleRestoreVersion = async (version: WorkflowVersion) => {
     if (!activeNodeStore || !currentWorkflowId) {

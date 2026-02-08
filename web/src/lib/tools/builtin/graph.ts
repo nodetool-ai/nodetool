@@ -1,10 +1,12 @@
+import { z } from "zod";
 import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
 import { optionalWorkflowIdSchemaCompact, resolveWorkflowId } from "./workflow";
 
 type GraphNodeInput = {
   id: string;
-  type: string;
+  type?: string;
+  node_type?: string;
   data?: Record<string, any>;
   position?: { x: number; y: number };
 };
@@ -37,50 +39,74 @@ function assertNumber(value: any, message: string): asserts value is number {
 FrontendToolRegistry.register({
   name: "ui_graph",
   description: "Add nodes/edges to the current workflow graph.",
-  parameters: {
-    type: "object",
-    properties: {
-      nodes: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            id: { type: "string" },
-            type: { type: "string" },
-            data: { type: "object", additionalProperties: true },
-            position: {
-              type: "object",
-              properties: { x: { type: "number" }, y: { type: "number" } },
-              required: ["x", "y"]
-            }
-          },
-          required: ["id", "type"]
-        }
-      },
-      edges: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            id: { type: "string" },
-            source: { type: "string" },
-            target: { type: "string" },
-            sourceHandle: { type: "string" },
-            targetHandle: { type: "string" }
-          },
-          required: ["source", "target"]
-        }
-      },
-      w: optionalWorkflowIdSchemaCompact
-    },
-    required: []
-  },
+  hidden: true,
+  parameters: z.object({
+    nodes: z
+      .union([
+        z.array(
+          z.object({
+            id: z.string(),
+            type: z.string().optional(),
+            node_type: z.string().optional(),
+            data: z.record(z.string(), z.any()).optional(),
+            position: z
+              .object({
+                x: z.number(),
+                y: z.number()
+              })
+              .optional()
+          })
+        ),
+        z.record(z.string(),
+          z.object({
+            id: z.string(),
+            type: z.string().optional(),
+            node_type: z.string().optional(),
+            data: z.record(z.string(), z.any()).optional(),
+            position: z
+              .object({
+                x: z.number(),
+                y: z.number()
+              })
+              .optional()
+          })
+        )
+      ])
+      .optional(),
+    edges: z
+      .union([
+        z.array(
+          z.object({
+            id: z.string().optional(),
+            source: z.string(),
+            target: z.string(),
+            sourceHandle: z.string().optional(),
+            targetHandle: z.string().optional()
+          })
+        ),
+        z.record(z.string(),
+          z.object({
+            id: z.string().optional(),
+            source: z.string(),
+            target: z.string(),
+            sourceHandle: z.string().optional(),
+            targetHandle: z.string().optional()
+          })
+        )
+      ])
+      .optional(),
+    w: optionalWorkflowIdSchemaCompact
+  }),
   async execute(
     {
       nodes,
       edges,
       w
-    }: { nodes?: GraphNodeInput[]; edges?: GraphEdgeInput[]; w?: string | null },
+    }: {
+      nodes?: GraphNodeInput[] | GraphNodeInput;
+      edges?: GraphEdgeInput[] | GraphEdgeInput;
+      w?: string | null;
+    },
     ctx
   ) {
     const state = ctx.getState();
@@ -91,13 +117,69 @@ FrontendToolRegistry.register({
     const addedNodeIds: string[] = [];
     const addedEdgeIds: string[] = [];
 
-    for (const node of (nodes ?? []) as any[]) {
+    const normalizeNodeInput = (value: unknown): GraphNodeInput[] => {
+      if (!value) {
+        return [];
+      }
+      if (Array.isArray(value)) {
+        return value as GraphNodeInput[];
+      }
+      if (typeof value === "object") {
+        const asRecord = value as Record<string, unknown>;
+        if (
+          typeof asRecord.id === "string" &&
+          (typeof asRecord.type === "string" ||
+            typeof asRecord.node_type === "string")
+        ) {
+          return [asRecord as GraphNodeInput];
+        }
+        return Object.values(asRecord).filter(
+          (item): item is GraphNodeInput =>
+            item != null &&
+            typeof item === "object" &&
+            typeof (item as { id?: unknown }).id === "string",
+        );
+      }
+      return [];
+    };
+
+    const normalizeEdgeInput = (value: unknown): GraphEdgeInput[] => {
+      if (!value) {
+        return [];
+      }
+      if (Array.isArray(value)) {
+        return value as GraphEdgeInput[];
+      }
+      if (typeof value === "object") {
+        const asRecord = value as Record<string, unknown>;
+        if (
+          typeof asRecord.source === "string" &&
+          typeof asRecord.target === "string"
+        ) {
+          return [asRecord as GraphEdgeInput];
+        }
+        return Object.values(asRecord).filter(
+          (item): item is GraphEdgeInput =>
+            item != null &&
+            typeof item === "object" &&
+            typeof (item as { source?: unknown }).source === "string" &&
+            typeof (item as { target?: unknown }).target === "string",
+        );
+      }
+      return [];
+    };
+
+    const normalizedNodes = normalizeNodeInput(nodes);
+    const normalizedEdges = normalizeEdgeInput(edges);
+
+    for (const node of normalizedNodes as any[]) {
       assertObject(node, "Invalid node");
       assertString(node.id, "Node missing id");
-      assertString(node.type, "Node missing type");
+      const nodeType = typeof node.type === "string" ? node.type : node.node_type;
+      assertString(nodeType, "Node missing type");
 
-      const metadata = state.nodeMetadata[node.type];
-      if (!metadata) {throw new Error(`Node type not found: ${node.type}`);}
+      const metadata = state.nodeMetadata[nodeType];
+      if (!metadata) {throw new Error(`Node type not found: ${nodeType}`);}
 
       const rawData = (node.data ?? {}) as Record<string, any>;
       const properties = (rawData.properties ?? {}) as Record<string, any>;
@@ -129,7 +211,7 @@ FrontendToolRegistry.register({
 
       nodeStore.addNode({
         id: node.id,
-        type: node.type,
+        type: nodeType,
         position,
         parentId: "",
         selected: false,
@@ -143,7 +225,7 @@ FrontendToolRegistry.register({
       addedNodeIds.push(node.id);
     }
 
-    for (const edge of (edges ?? []) as any[]) {
+    for (const edge of normalizedEdges as any[]) {
       assertObject(edge, "Invalid edge");
       assertString(edge.source, "Edge missing source");
       assertString(edge.target, "Edge missing target");

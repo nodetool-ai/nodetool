@@ -8,6 +8,7 @@ import {
 } from "electron";
 import fs from "fs/promises";
 import path from "path";
+import { randomUUID } from "node:crypto";
 import {
   getServerState,
   openLogFile,
@@ -77,6 +78,63 @@ export type IpcOnceHandler<T extends keyof IpcEvents> = (
 
 // Channels that should have their payloads redacted for security
 const SENSITIVE_CHANNELS = ["clipboard:write-text", "clipboard:read-text"];
+const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
+
+function requestRendererEvent<T>(
+  event: Electron.IpcMainInvokeEvent,
+  requestChannel: string,
+  responseChannel: string,
+  requestPayload: Record<string, unknown>,
+): Promise<T> {
+  const requestId = randomUUID();
+
+  return new Promise<T>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      ipcMain.removeListener(responseChannel, onResponse);
+      reject(
+        new Error(`Timed out waiting for renderer response on ${responseChannel}`),
+      );
+    }, FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS);
+
+    const onResponse = (
+      responseEvent: Electron.IpcMainEvent,
+      response: { requestId?: string; error?: string; result?: T; manifest?: T },
+    ) => {
+      if (responseEvent.sender !== event.sender) {
+        return;
+      }
+      if (!response || response.requestId !== requestId) {
+        return;
+      }
+
+      clearTimeout(timeout);
+      ipcMain.removeListener(responseChannel, onResponse);
+
+      if (response.error) {
+        reject(new Error(response.error));
+        return;
+      }
+
+      if ("result" in response && response.result !== undefined) {
+        resolve(response.result);
+        return;
+      }
+
+      if ("manifest" in response && response.manifest !== undefined) {
+        resolve(response.manifest);
+        return;
+      }
+
+      reject(new Error(`Renderer response for ${responseChannel} had no payload`));
+    };
+
+    ipcMain.on(responseChannel, onResponse);
+    event.sender.send(requestChannel, {
+      requestId,
+      ...requestPayload,
+    });
+  });
+}
 
 /**
  * Type-safe wrapper for IPC main handlers with logging
@@ -894,9 +952,16 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(
     IpcChannels.CLAUDE_AGENT_SEND_MESSAGE,
-    async (_event, request) => {
-      const { sendClaudeAgentMessage } = await import("./claudeAgent");
-      return await sendClaudeAgentMessage(request.sessionId, request.message);
+    async (event, request) => {
+      const { sendClaudeAgentMessageStreaming } = await import("./claudeAgent");
+      // Use streaming - messages will be sent via IPC events as they arrive
+      await sendClaudeAgentMessageStreaming(
+        request.sessionId,
+        request.message,
+        event.sender,
+      );
+      // Return empty array since messages are streamed via events
+      return [];
     },
   );
 
@@ -905,6 +970,56 @@ export function initializeIpcHandlers(): void {
     async (_event, sessionId) => {
       const { closeClaudeAgentSession } = await import("./claudeAgent");
       closeClaudeAgentSession(sessionId);
+    },
+  );
+
+  // Frontend tools handlers
+  // Get the frontend tools manifest from the renderer
+  createIpcMainHandler(
+    IpcChannels.FRONTEND_TOOLS_GET_MANIFEST,
+    async (event, request) => {
+      logMessage(`Getting frontend tools manifest for session: ${request.sessionId}`);
+      const result = await requestRendererEvent<IpcResponse[IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]>(
+        event,
+        IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST,
+        IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_RESPONSE,
+        {
+          sessionId: request.sessionId,
+        },
+      );
+      return result;
+    },
+  );
+
+  // Call a frontend tool in the renderer process
+  createIpcMainHandler(
+    IpcChannels.FRONTEND_TOOLS_CALL,
+    async (event, request) => {
+      logMessage(
+        `Calling frontend tool: ${request.name} for session: ${request.sessionId}`
+      );
+      const result = await requestRendererEvent<IpcResponse[IpcChannels.FRONTEND_TOOLS_CALL]>(
+        event,
+        IpcChannels.FRONTEND_TOOLS_CALL_REQUEST,
+        IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE,
+        {
+          sessionId: request.sessionId,
+          toolCallId: request.toolCallId,
+          name: request.name,
+          args: request.args,
+        },
+      );
+      return result;
+    },
+  );
+
+  // Abort any running frontend tool calls for a session
+  createIpcMainHandler(
+    IpcChannels.FRONTEND_TOOLS_ABORT,
+    async (event, sessionId) => {
+      logMessage(`Aborting frontend tools for session: ${sessionId}`);
+      // Notify the renderer to abort any running tool calls
+      event.sender.send(IpcChannels.FRONTEND_TOOLS_ABORT, { sessionId });
     },
   );
 }
