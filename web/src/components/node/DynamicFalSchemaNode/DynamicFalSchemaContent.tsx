@@ -46,7 +46,7 @@ export const DynamicFalSchemaContent: React.FC<
   onToggleAdvancedFields,
   status,
   workflowId,
-  onShowInputs
+  onShowInputs: _onShowInputs
 }) => {
   return (
     <Box

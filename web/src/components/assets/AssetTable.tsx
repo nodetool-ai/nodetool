@@ -48,33 +48,6 @@ export type AssetTableProps = {
   onChange: (assetIds: string[]) => void;
 };
 
-interface AssetTableRowProps {
-  asset: Asset;
-  onRemove: (asset: Asset) => void;
-}
-
-const AssetTableRow = memo(function AssetTableRow({
-  asset,
-  onRemove
-}: AssetTableRowProps) {
-  const handleRemove = useCallback(() => {
-    onRemove(asset);
-  }, [asset, onRemove]);
-
-  return (
-    <TableRow>
-      <TableCell>
-        {asset.name} ({asset.content_type})
-      </TableCell>
-      <TableCell>
-        <Button variant="outlined" onClick={handleRemove}>
-          Remove
-        </Button>
-      </TableCell>
-    </TableRow>
-  );
-});
-
 const AssetTable: React.FC<AssetTableProps> = (props) => {
   const { assetIds, onChange } = props;
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -129,7 +102,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
             <AssetTableRow
               key={asset.id || index}
               asset={asset}
-              onRemove={handleAssetRemoveClick}
+              onRemove={handleRemoveAsset}
             />
           ))}
           <TableRow key="last">

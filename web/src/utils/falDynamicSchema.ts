@@ -26,7 +26,7 @@ export interface ResolvedFalSchema {
 function sanitizeEndpointId(value: string): string {
   return value
     .trim()
-    .replace(/[)\]\}>.,;:]+$/, "")
+    .replace(/[)\]}>.,;:]+$/, "")
     .trim();
 }
 
@@ -36,7 +36,7 @@ function sanitizeEndpointId(value: string): string {
  */
 export function modelInfoToEndpointId(modelInfo: string): string | null {
   const raw = (modelInfo ?? "").trim();
-  if (!raw) return null;
+  if (!raw) {return null;}
 
   // Already looks like endpoint id (e.g. "fal-ai/flux-2/klein/4b/base/edit")
   if (raw.includes("/") && !raw.includes(" ") && !raw.startsWith("http")) {
@@ -70,7 +70,7 @@ function resolveRef(
   openapi: Record<string, unknown>,
   ref: string
 ): Record<string, unknown> | null {
-  if (!ref.startsWith("#/")) return null;
+  if (!ref.startsWith("#/")) {return null;}
   const parts = ref.slice(2).split("/");
   let current: unknown = openapi;
   for (const part of parts) {
@@ -79,7 +79,7 @@ function resolveRef(
       typeof current !== "object" ||
       Array.isArray(current)
     )
-      return null;
+      {return null;}
     current = (current as Record<string, unknown>)[part];
   }
   return typeof current === "object" &&
@@ -93,7 +93,7 @@ function resolveSchema(
   openapi: Record<string, unknown>,
   schema: Record<string, unknown> | null
 ): Record<string, unknown> | null {
-  if (!schema || typeof schema !== "object") return null;
+  if (!schema || typeof schema !== "object") {return null;}
   const ref = schema["$ref"];
   if (typeof ref === "string") {
     const resolved = resolveRef(openapi, ref);
@@ -101,22 +101,22 @@ function resolveSchema(
   }
   const oneOf = schema.oneOf as Record<string, unknown>[] | undefined;
   if (Array.isArray(oneOf) && oneOf.length)
-    return resolveSchema(openapi, oneOf[0]);
+    {return resolveSchema(openapi, oneOf[0]);}
   const anyOf = schema.anyOf as Record<string, unknown>[] | undefined;
   if (Array.isArray(anyOf) && anyOf.length)
-    return resolveSchema(openapi, anyOf[0]);
+    {return resolveSchema(openapi, anyOf[0]);}
   return schema;
 }
 
-function extractInputSchema(
+function _extractInputSchema(
   openapi: Record<string, unknown>
 ): Record<string, unknown> | null {
   const paths = openapi.paths as Record<string, unknown> | undefined;
-  if (!paths) return null;
+  if (!paths) {return null;}
   for (const pathKey of Object.keys(paths)) {
     const methods = paths[pathKey] as Record<string, unknown> | undefined;
     const post = methods?.post as Record<string, unknown> | undefined;
-    if (!post?.requestBody) continue;
+    if (!post?.requestBody) {continue;}
     const content = (post.requestBody as Record<string, unknown>).content as
       | Record<string, unknown>
       | undefined;
@@ -124,61 +124,63 @@ function extractInputSchema(
       | Record<string, unknown>
       | undefined;
     const schema = json?.schema as Record<string, unknown> | undefined;
-    if (schema) return resolveSchema(openapi, schema);
+    if (schema) {return resolveSchema(openapi, schema);}
   }
   return null;
 }
 
 function isQueueStatusSchema(schema: Record<string, unknown>): boolean {
   const title = String(schema.title ?? "").toLowerCase();
-  if (title === "queuestatus") return true;
+  if (title === "queuestatus") {return true;}
   const props = schema.properties as Record<string, unknown> | undefined;
   return Boolean(props && "status" in props && "request_id" in props);
 }
 
-function extractOutputSchema(
+function _extractOutputSchema(
   openapi: Record<string, unknown>
 ): Record<string, unknown> | null {
   const paths = openapi.paths as Record<string, unknown> | undefined;
-  if (!paths) return null;
+  if (!paths) {return null;}
   let candidate: Record<string, unknown> | null = null;
   for (const pathKey of Object.keys(paths)) {
     const methods = paths[pathKey] as Record<string, unknown> | undefined;
     const get = methods?.get as Record<string, unknown> | undefined;
-    if (!get?.responses) continue;
+    if (!get?.responses) {continue;}
     const responses = get.responses as Record<string, unknown>;
     const ok =
       responses["200"] ??
       (responses[200] as Record<string, unknown> | undefined);
-    if (!ok?.content) continue;
-    const content = ok.content as Record<string, unknown>;
+    if (!ok) {continue;}
+    const okResponse = ok as Record<string, unknown>;
+    if (!okResponse?.content) {continue;}
+    const content = okResponse.content as Record<string, unknown>;
     const json = content["application/json"] as
       | Record<string, unknown>
       | undefined;
     const schema = json?.schema as Record<string, unknown> | undefined;
-    if (!schema) continue;
+    if (!schema) {continue;}
     const resolved = resolveSchema(openapi, schema);
-    if (!resolved) continue;
-    if (pathKey.endsWith("/requests/{request_id}")) return resolved;
-    if (!isQueueStatusSchema(resolved)) candidate = resolved;
+    if (!resolved) {continue;}
+    if (pathKey.endsWith("/requests/{request_id}")) {return resolved;}
+    if (!isQueueStatusSchema(resolved)) {candidate = resolved;}
   }
   return candidate;
 }
 
-function defaultForProp(
+function _defaultForProp(
   prop: Record<string, unknown>,
   required: boolean
 ): unknown {
-  if (prop.default !== undefined) return prop.default;
+  if (prop.default !== undefined) {return prop.default;}
   const type = prop.type as string | undefined;
-  if (type === "string") return required ? "" : undefined;
-  if (type === "integer" || type === "number") return required ? 0 : undefined;
-  if (type === "boolean") return false;
-  if (type === "array") return [];
+  if (type === "string") {return required ? "" : undefined;}
+  if (type === "integer" || type === "number") {return required ? 0 : undefined;}
+  if (type === "boolean") {return false;}
+  if (type === "array") {return [];}
   return undefined;
 }
 
-function inferOutputType(
+function _inferOutputType(
   prop: Record<string, unknown>,
   name: string
 ): { type: string; type_args?: unknown[]; optional?: boolean } {
@@ -187,19 +189,19 @@ function inferOutputType(
   if (props && "url" in props) {
     const n = name.toLowerCase();
     if (n.includes("video") || n.includes("gif"))
-      return { type: "video", optional: false };
+      {return { type: "video", optional: false };}
     if (n.includes("audio") || n.includes("voice"))
-      return { type: "audio", optional: false };
+      {return { type: "audio", optional: false };}
     if (n.includes("image") || n.includes("mask"))
-      return { type: "image", optional: false };
+      {return { type: "image", optional: false };}
     return { type: "any", optional: false };
   }
-  if (type === "array") return { type: "list", type_args: [], optional: false };
-  if (type === "boolean") return { type: "bool", optional: false };
-  if (type === "integer") return { type: "int", optional: false };
-  if (type === "number") return { type: "float", optional: false };
-  if (type === "string") return { type: "str", optional: false };
-  if (type === "object") return { type: "dict", optional: false };
+  if (type === "array") {return { type: "list", type_args: [], optional: false };}
+  if (type === "boolean") {return { type: "bool", optional: false };}
+  if (type === "integer") {return { type: "int", optional: false };}
+  if (type === "number") {return { type: "float", optional: false };}
+  if (type === "string") {return { type: "str", optional: false };}
+  if (type === "object") {return { type: "dict", optional: false };}
   return { type: "any", optional: false };
 }
 
