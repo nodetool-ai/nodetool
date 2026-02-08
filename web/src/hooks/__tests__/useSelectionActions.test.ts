@@ -7,6 +7,7 @@ const mockSurroundWithGroup = jest.fn();
 
 jest.mock("../../contexts/NodeContext", () => ({
   useNodes: jest.fn(),
+  useNodeStoreRef: jest.fn(),
   useTemporalNodes: jest.fn(() => ({
     pause: jest.fn(),
     resume: jest.fn()
@@ -17,7 +18,7 @@ jest.mock("../nodes/useSurroundWithGroup", () => ({
   useSurroundWithGroup: jest.fn(() => mockSurroundWithGroup)
 }));
 
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 
 describe("useSelectionActions", () => {
   const defaultNodes = [
@@ -55,6 +56,14 @@ describe("useSelectionActions", () => {
         toggleBypassSelected: jest.fn()
       })
     );
+    
+    // Mock useNodeStoreRef to return a store with getState
+    (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+      getState: () => ({
+        nodes: defaultNodes,
+        edges: []
+      })
+    });
   });
 
   describe("alignLeft", () => {
@@ -205,6 +214,14 @@ describe("useSelectionActions", () => {
           getSelectedNodes: () => testNodes
         })
       );
+      
+      // Update the store mock for this test
+      (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+        getState: () => ({
+          nodes: testNodes,
+          edges: []
+        })
+      });
 
       const { result } = renderHook(() => useSelectionActions());
       result.current.distributeHorizontal();
@@ -299,6 +316,14 @@ describe("useSelectionActions", () => {
           getSelectedNodes: () => testNodes
         })
       );
+      
+      // Update the store mock for this test
+      (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+        getState: () => ({
+          nodes: testNodes,
+          edges: []
+        })
+      });
 
       const { result } = renderHook(() => useSelectionActions());
       result.current.distributeVertical();
@@ -361,6 +386,14 @@ describe("useSelectionActions", () => {
           getSelectedNodes: () => testNodes
         })
       );
+      
+      // Update the store mock for this test
+      (useNodeStoreRef as unknown as jest.Mock).mockReturnValue({
+        getState: () => ({
+          nodes: testNodes,
+          edges: []
+        })
+      });
 
       const { result } = renderHook(() => useSelectionActions());
       result.current.duplicateSelected();

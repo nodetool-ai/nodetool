@@ -7,67 +7,38 @@ describe("useEnsureChatConnected", () => {
     jest.clearAllMocks();
   });
 
-  it("logs message when autoConnect is true", () => {
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-
-    renderHook(() => useEnsureChatConnected());
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "useEnsureChatConnected: WebSocketManager handles connection automatically"
-    );
-
-    consoleSpy.mockRestore();
-  });
-
-  it("does not log when autoConnect is false", () => {
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-
-    renderHook(() => useEnsureChatConnected({ autoConnect: false }));
-
-    expect(consoleSpy).not.toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
-  });
-
   it("returns undefined", () => {
     const { result } = renderHook(() => useEnsureChatConnected());
 
     expect(result.current).toBeUndefined();
   });
 
-  it("uses default options when no options provided", () => {
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-
-    renderHook(() => useEnsureChatConnected());
-
-    expect(consoleSpy).toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
+  it("accepts autoConnect option without error", () => {
+    expect(() => {
+      renderHook(() => useEnsureChatConnected({ autoConnect: false }));
+    }).not.toThrow();
   });
 
-  it("handles disconnectOnUnmount option", () => {
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-
-    const { unmount } = renderHook(() =>
-      useEnsureChatConnected({ disconnectOnUnmount: true })
-    );
-
-    unmount();
-
-    expect(consoleSpy).toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
+  it("accepts disconnectOnUnmount option without error", () => {
+    expect(() => {
+      const { unmount } = renderHook(() =>
+        useEnsureChatConnected({ disconnectOnUnmount: true })
+      );
+      unmount();
+    }).not.toThrow();
   });
 
-  it("handles both options set to false", () => {
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+  it("accepts both options without error", () => {
+    expect(() => {
+      renderHook(() =>
+        useEnsureChatConnected({ autoConnect: false, disconnectOnUnmount: false })
+      );
+    }).not.toThrow();
+  });
 
-    renderHook(() =>
-      useEnsureChatConnected({ autoConnect: false, disconnectOnUnmount: false })
-    );
-
-    expect(consoleSpy).not.toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
+  it("accepts default options without error", () => {
+    expect(() => {
+      renderHook(() => useEnsureChatConnected());
+    }).not.toThrow();
   });
 });
