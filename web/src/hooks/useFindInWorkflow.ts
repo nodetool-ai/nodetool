@@ -51,20 +51,18 @@ import { NodeData } from "../stores/NodeData";
  * ```
  */
 export const useFindInWorkflow = () => {
-  const {
-    isOpen,
-    searchTerm,
-    results,
-    selectedIndex,
-    openFind,
-    closeFind,
-    setSearchTerm,
-    setResults,
-    setSelectedIndex,
-    navigateNext,
-    navigatePrevious,
-    clearSearch
-  } = useFindInWorkflowStore();
+  const isOpen = useFindInWorkflowStore((state) => state.isOpen);
+  const searchTerm = useFindInWorkflowStore((state) => state.searchTerm);
+  const results = useFindInWorkflowStore((state) => state.results);
+  const selectedIndex = useFindInWorkflowStore((state) => state.selectedIndex);
+  const openFind = useFindInWorkflowStore((state) => state.openFind);
+  const closeFind = useFindInWorkflowStore((state) => state.closeFind);
+  const setSearchTerm = useFindInWorkflowStore((state) => state.setSearchTerm);
+  const setResults = useFindInWorkflowStore((state) => state.setResults);
+  const setSelectedIndex = useFindInWorkflowStore((state) => state.setSelectedIndex);
+  const navigateNext = useFindInWorkflowStore((state) => state.navigateNext);
+  const navigatePrevious = useFindInWorkflowStore((state) => state.navigatePrevious);
+  const clearSearch = useFindInWorkflowStore((state) => state.clearSearch);
 
   const nodes = useNodes((state) => state.nodes);
   const { setCenter, fitView } = useReactFlow();

@@ -26,62 +26,41 @@ const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
 
-  // Combine related selectors to reduce subscription count
-  const {
-    status,
-    sendMessage,
-    progress,
-    statusMessage,
-    error,
-    currentThreadId,
-    threads,
-    getCurrentMessagesSync,
-    createNewThread,
-    switchThread,
-    fetchThread,
-    stopGeneration,
-    agentMode,
-    setAgentMode,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentTaskUpdateThreadId,
-    lastTaskUpdatesByThread,
-    currentLogUpdate,
-    threadsLoaded,
-    workflowId,
-    deleteThread,
-    messageCache,
-    connect,
-    disconnect
-  } = useGlobalChatStore(
-    (state) => ({
-      status: state.status,
-      sendMessage: state.sendMessage,
-      progress: state.progress,
-      statusMessage: state.statusMessage,
-      error: state.error,
-      currentThreadId: state.currentThreadId,
-      threads: state.threads,
-      getCurrentMessagesSync: state.getCurrentMessagesSync,
-      createNewThread: state.createNewThread,
-      switchThread: state.switchThread,
-      fetchThread: state.fetchThread,
-      stopGeneration: state.stopGeneration,
-      agentMode: state.agentMode,
-      setAgentMode: state.setAgentMode,
-      currentPlanningUpdate: state.currentPlanningUpdate,
-      currentTaskUpdate: state.currentTaskUpdate,
-      currentTaskUpdateThreadId: state.currentTaskUpdateThreadId,
-      lastTaskUpdatesByThread: state.lastTaskUpdatesByThread,
-      currentLogUpdate: state.currentLogUpdate,
-      threadsLoaded: state.threadsLoaded,
-      workflowId: state.workflowId,
-      deleteThread: state.deleteThread,
-      messageCache: state.messageCache,
-      connect: state.connect,
-      disconnect: state.disconnect
-    })
-  );
+  // Split selectors to minimize re-renders - group by update frequency
+  // Frequently updated values (messages, status, progress)
+  const status = useGlobalChatStore((state) => state.status);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const error = useGlobalChatStore((state) => state.error);
+  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
+
+  // Thread management (changes on thread switch)
+  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const threads = useGlobalChatStore((state) => state.threads);
+  const threadsLoaded = useGlobalChatStore((state) => state.threadsLoaded);
+  const messageCache = useGlobalChatStore((state) => state.messageCache);
+  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
+
+  // Actions (stable references)
+  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const fetchThread = useGlobalChatStore((state) => state.fetchThread);
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
+  const connect = useGlobalChatStore((state) => state.connect);
+  const disconnect = useGlobalChatStore((state) => state.disconnect);
+
+  // Agent mode and settings (change less frequently)
+  const agentMode = useGlobalChatStore((state) => state.agentMode);
+  const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
+
+  // Task updates (change during execution)
+  const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
+  const currentTaskUpdate = useGlobalChatStore((state) => state.currentTaskUpdate);
+  const currentTaskUpdateThreadId = useGlobalChatStore((state) => state.currentTaskUpdateThreadId);
+  const lastTaskUpdatesByThread = useGlobalChatStore((state) => state.lastTaskUpdatesByThread);
+  const workflowId = useGlobalChatStore((state) => state.workflowId);
 
   // Get connection state from WebSocket manager directly
   const [_connectionState, setConnectionState] = useState(

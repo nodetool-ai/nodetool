@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -65,7 +65,7 @@ const styles = (theme: Theme, animate: boolean) => css`
   }
 `;
 
-export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
+const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
   count,
   max = 99,
   color = "error",
@@ -112,4 +112,9 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   );
 };
 
+const NotificationBadge = memo(NotificationBadgeInternal);
+
+NotificationBadge.displayName = "NotificationBadge";
+
+export { NotificationBadge };
 export default NotificationBadge;

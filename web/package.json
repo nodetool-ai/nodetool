@@ -1,6 +1,6 @@
 {
   "name": "nodetool",
-  "version": "0.6.3-rc.17",
+  "version": "0.6.3-rc.18",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -117,10 +117,10 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "check": "tsc && eslint src && jest",
-    "test": "jest",
-    "test:summary": "jest --reporters=\"summary\"",
+    "test": "jest --forceExit",
+    "test:summary": "jest --reporters=\"summary\" --forceExit",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "jest --coverage --forceExit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

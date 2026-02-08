@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, forwardRef, useState } from "react";
+import { memo, useCallback, forwardRef, useState, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -180,24 +180,31 @@ const SearchResultItem = memo(
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
-      // Parse description and tags
-      const { description, tags } = formatNodeDocumentation(
-        node.description,
-        searchTerm,
-        node.searchInfo
+      // Parse description and tags - memoize to avoid re-computation on every render
+      const { description, tags } = useMemo(
+        () => formatNodeDocumentation(
+          node.description,
+          searchTerm,
+          node.searchInfo
+        ),
+        [node.description, searchTerm, node.searchInfo]
       );
 
-      // Find matching tags by comparing with search term
-      const searchLower = searchTerm.toLowerCase();
-      const matchingTags = searchTerm 
-        ? tags.filter((tag) => tag.toLowerCase().includes(searchLower))
-        : [];
+      // Find matching tags by comparing with search term - memoize
+      const matchingTags = useMemo(() => {
+        if (!searchTerm) {return [];}
+        const searchLower = searchTerm.toLowerCase();
+        return tags.filter((tag) => tag.toLowerCase().includes(searchLower));
+      }, [searchTerm, tags]);
 
-      // Truncate description if too long
-      const truncatedDescription =
-        description.length > MAX_DESCRIPTION_LENGTH
-          ? description.substring(0, MAX_DESCRIPTION_LENGTH) + "..."
-          : description;
+      // Truncate description if too long - memoize
+      const truncatedDescription = useMemo(
+        () =>
+          description.length > MAX_DESCRIPTION_LENGTH
+            ? description.substring(0, MAX_DESCRIPTION_LENGTH) + "..."
+            : description,
+        [description]
+      );
 
       const [isExpanded, setIsExpanded] = useState(false);
 

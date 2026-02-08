@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState, useEffect, useRef, MouseEventHandler } from "react";
+import React, { useState, useEffect, useRef, MouseEventHandler, useCallback, memo } from "react";
 import { Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
 
@@ -67,7 +67,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
     }
   }, []);
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+  const handleWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
     // event.preventDefault(); // > Unable to preventDefault inside passive event listener invocation.
     const scaleChange = event.deltaY * -0.003;
     const rect = imageRef.current?.getBoundingClientRect();
@@ -85,16 +85,16 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
       setZoom(newZoom);
       setTranslate({ x: translateX, y: translateY });
     }
-  };
+  }, [zoom, translate]);
 
-  const handleMouseDown = (event: React.MouseEvent<HTMLImageElement>) => {
+  const handleMouseDown = useCallback((event: React.MouseEvent<HTMLImageElement>) => {
     event.preventDefault();
     imageRef.current?.style.setProperty("cursor", "grabbing");
     const { clientX, clientY } = event;
     setPosition({ x: clientX, y: clientY });
-  };
+  }, []);
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLImageElement>) => {
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLImageElement>) => {
     if (event.buttons !== 1) {return;}
     const { clientX, clientY } = event;
     const deltaX = clientX - position.x;
@@ -137,42 +137,43 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
     });
 
     setPosition({ x: clientX, y: clientY });
-  };
+  }, [position, zoom]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     imageRef.current?.style.setProperty("cursor", "grab");
-  };
+  }, []);
 
-  const handleDoubleClick: React.MouseEventHandler<HTMLImageElement> = (
-    event
-  ) => {
-    event.preventDefault();
+  const handleDoubleClick: React.MouseEventHandler<HTMLImageElement> = useCallback(
+    (event) => {
+      event.preventDefault();
 
-    const rect = imageRef.current?.getBoundingClientRect();
-    if (rect) {
-      const mouseX = event.clientX;
-      const mouseY = event.clientY;
-      const imgCenterX = rect.left + rect.width / 2;
-      const imgCenterY = rect.top + rect.height / 2;
-      const offsetX = mouseX - imgCenterX;
-      const offsetY = mouseY - imgCenterY;
-      const newZoom = Math.min(maxZoom, zoom * 2);
-      const zoomRatio = newZoom / zoom;
-      const translateX = translate.x + offsetX * (1 - zoomRatio);
-      const translateY = translate.y + offsetY * (1 - zoomRatio);
+      const rect = imageRef.current?.getBoundingClientRect();
+      if (rect) {
+        const mouseX = event.clientX;
+        const mouseY = event.clientY;
+        const imgCenterX = rect.left + rect.width / 2;
+        const imgCenterY = rect.top + rect.height / 2;
+        const offsetX = mouseX - imgCenterX;
+        const offsetY = mouseY - imgCenterY;
+        const newZoom = Math.min(maxZoom, zoom * 2);
+        const zoomRatio = newZoom / zoom;
+        const translateX = translate.x + offsetX * (1 - zoomRatio);
+        const translateY = translate.y + offsetY * (1 - zoomRatio);
 
-      setZoom(newZoom);
-      setTranslate({ x: translateX, y: translateY });
-    }
-  };
+        setZoom(newZoom);
+        setTranslate({ x: translateX, y: translateY });
+      }
+    },
+    [zoom, translate]
+  );
 
-  const handleRightClick: MouseEventHandler<HTMLImageElement> = (event) => {
+  const handleRightClick: MouseEventHandler<HTMLImageElement> = useCallback((event) => {
     event.preventDefault();
     event.stopPropagation();
     setPosition({ x: 0, y: 0 });
     setTranslate({ x: 0, y: 0 });
     setZoom(1);
-  };
+  }, []);
 
   return (
     <div css={viewerStyles} className="image-viewer">
@@ -218,4 +219,4 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
   );
 };
 
-export default ImageViewer;
+export default memo(ImageViewer);

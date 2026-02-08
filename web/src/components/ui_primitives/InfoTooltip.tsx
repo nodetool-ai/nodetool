@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -94,7 +94,7 @@ const getIcon = (variant: InfoTooltipProps["iconVariant"], fontSize: "small" | "
   }
 };
 
-export const InfoTooltip: React.FC<InfoTooltipProps> = ({
+export const InfoTooltip: React.FC<InfoTooltipProps> = memo(({
   content,
   title,
   iconVariant = "infoOutlined",
@@ -107,16 +107,19 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (mode === "popover") {
-      setAnchorEl(event.currentTarget);
-    }
-  };
-  
-  const handleClose = () => {
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (mode === "popover") {
+        setAnchorEl(event.currentTarget);
+      }
+    },
+    [mode]
+  );
+
+  const handleClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
   
   const iconSize = size === "large" ? "medium" : "small";
   const icon = getIcon(iconVariant, iconSize);
@@ -207,6 +210,8 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
       </Popover>
     </div>
   );
-};
+});
+
+InfoTooltip.displayName = "InfoTooltip";
 
 export default InfoTooltip;

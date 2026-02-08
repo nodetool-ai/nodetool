@@ -1,1 +1,0 @@
-export { ThoughtSection } from "./ThoughtSection";

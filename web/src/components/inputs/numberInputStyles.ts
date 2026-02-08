@@ -14,8 +14,8 @@ export const numberInputStyles = (theme: Theme) =>
       cursor: "ew-resize !important",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.primary.main,
-      marginBottom: 0 // Remove margin to prevent flex container imbalance
+      color: theme.vars.palette.primary.light,
+      marginBottom: 0
     },
 
     // Highlight when the owning PropertyInput is marked as changed.

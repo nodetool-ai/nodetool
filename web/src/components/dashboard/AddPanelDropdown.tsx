@@ -38,6 +38,10 @@ const AddPanelDropdown: React.FC<AddPanelDropdownProps> = ({
     handleClose();
   }, [onAddPanel, handleClose]);
 
+  const createAddPanelHandler = useCallback((panelId: string) => {
+    return () => handleAddPanel(panelId);
+  }, [handleAddPanel]);
+
   if (availablePanels.length === 0) {
     return null;
   }
@@ -65,7 +69,7 @@ const AddPanelDropdown: React.FC<AddPanelDropdownProps> = ({
         }}
       >
         {availablePanels.map((panel) => (
-          <MenuItem key={panel.id} onClick={handleAddPanel.bind(null, panel.id)}>
+          <MenuItem key={panel.id} onClick={createAddPanelHandler(panel.id)}>
             <ListItemText>{panel.title}</ListItemText>
           </MenuItem>
         ))}

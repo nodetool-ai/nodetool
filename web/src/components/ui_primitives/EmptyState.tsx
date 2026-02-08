@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -87,7 +87,7 @@ const defaultContent: Record<EmptyStateVariant, { icon: React.ReactNode; title: 
   }
 };
 
-export const EmptyState: React.FC<EmptyStateProps> = ({
+export const EmptyState: React.FC<EmptyStateProps> = memo(({
   variant = "empty",
   icon,
   title,
@@ -130,6 +130,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       )}
     </Box>
   );
-};
+});
+
+EmptyState.displayName = "EmptyState";
 
 export default EmptyState;
