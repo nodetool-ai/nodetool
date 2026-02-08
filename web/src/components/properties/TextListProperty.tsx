@@ -225,6 +225,13 @@ const TextListProperty = (props: PropertyProps) => {
     [texts, props]
   );
 
+  // Create memoized click handlers for each text item to prevent unnecessary re-renders
+  const removeButtonClickHandlers = useMemo(
+    () =>
+      texts.map((_, index) => () => handleRemoveText(index)),
+    [texts, handleRemoveText]
+  );
+
   // Extract filename from URI
   const getFilename = useCallback((uri: string) => {
     try {
@@ -476,7 +483,7 @@ const TextListProperty = (props: PropertyProps) => {
               <Tooltip title="Remove text file">
                 <IconButton
                   className="remove-button"
-                  onClick={() => handleRemoveText(index)}
+                  onClick={removeButtonClickHandlers[index]}
                   size="small"
                   aria-label="Remove text file"
                 >

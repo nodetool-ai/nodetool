@@ -75,6 +75,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
           type_name?: string | null;
           min?: number;
           max?: number;
+          default?: unknown;
         };
         dynamic_inputs[k] = {
           ...meta,

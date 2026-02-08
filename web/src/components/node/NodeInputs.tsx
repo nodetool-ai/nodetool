@@ -152,10 +152,10 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
 
-  // Select only edges connected to this node - stable selector function
-  // Using useMemo instead of useCallback to create stable selector
-  const connectedEdges = useNodes(
-    useMemo(() => (state) => state.edges.filter(e => e.target === id), [id])
+  const edges = useNodes((state) => state.edges);
+  const connectedEdges = useMemo(
+    () => edges.filter((e) => e.target === id),
+    [edges, id]
   );
 
   const findNode = useNodes((state) => state.findNode);
@@ -205,7 +205,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   });
 
   const dynamicInputs = data?.dynamic_inputs || {};
-  const schemaDefinedInputs = Object.keys(dynamicInputs).length > 0;
 
   const dynamicInputElements = Object.entries(dynamicProperties).map(
     ([name], index) => {
@@ -261,7 +260,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
             required: false,
             ...(description != null && { description }),
             ...(inputMeta?.min != null && { min: inputMeta.min }),
-            ...(inputMeta?.max != null && { max: inputMeta.max })
+            ...(inputMeta?.max != null && { max: inputMeta.max }),
+            ...(inputMeta?.default !== undefined && { default: inputMeta.default })
           }}
           propertyIndex={`dynamic-${index}`}
           data={data}

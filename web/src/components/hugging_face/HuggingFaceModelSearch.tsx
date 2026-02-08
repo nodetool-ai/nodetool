@@ -93,6 +93,10 @@ const HuggingFaceModelSearch: React.FC = () => {
     setSelectedModel(modelId);
   }, []);
 
+  const handleCardClick = useCallback((modelId: string) => {
+    return () => handleModelSelect(modelId);
+  }, [handleModelSelect]);
+
   return (
     <div css={styles(theme)}>
       <form onSubmit={handleSubmit}>
@@ -127,7 +131,7 @@ const HuggingFaceModelSearch: React.FC = () => {
             >
               <Card
                 className="model-card"
-                onClick={() => handleModelSelect(model.id)}
+                onClick={handleCardClick(model.id)}
                 variant={selectedModel === model.id ? "outlined" : "elevation"}
               >
                 <CardContent className="card-content">

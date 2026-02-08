@@ -22,8 +22,6 @@ export function useEnsureChatConnected(
     }
 
     // Connection is handled automatically by GlobalWebSocketManager
-    // Just log for debugging
-    console.log("useEnsureChatConnected: WebSocketManager handles connection automatically");
 
     return () => {
       if (disconnectOnUnmount) {

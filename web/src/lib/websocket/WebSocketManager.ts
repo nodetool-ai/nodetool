@@ -208,10 +208,12 @@ export class WebSocketManager extends EventEmitter {
   private setupEventHandlers(): void {
     if (!this.ws) {return;}
 
-    this.ws.onopen = this.handleOpen.bind(this);
-    this.ws.onmessage = this.handleMessage.bind(this);
-    this.ws.onerror = this.handleError.bind(this);
-    this.ws.onclose = this.handleClose.bind(this);
+    // Assign handlers directly (already bound as class methods)
+    // This avoids creating new function references on each call
+    this.ws.onopen = () => this.handleOpen();
+    this.ws.onmessage = (event) => this.handleMessage(event);
+    this.ws.onerror = (event) => this.handleError(event);
+    this.ws.onclose = (event) => this.handleClose(event);
   }
 
   private handleOpen(): void {

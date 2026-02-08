@@ -388,4 +388,4 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   );
 };
 
-export default WorkflowMiniPreview;
+export default React.memo(WorkflowMiniPreview);

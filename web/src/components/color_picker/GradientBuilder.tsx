@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -386,4 +386,4 @@ const GradientBuilder: React.FC<GradientBuilderProps> = ({
   );
 };
 
-export default GradientBuilder;
+export default memo(GradientBuilder);

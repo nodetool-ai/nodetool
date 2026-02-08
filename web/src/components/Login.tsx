@@ -69,6 +69,30 @@ const styles = (theme: Theme) =>
     }
   });
 
+interface LinkButtonProps {
+  name: string;
+  url: string;
+  onClick: (url: string) => void;
+}
+
+const LinkButton = memo(({ name, url, onClick }: LinkButtonProps) => {
+  const handleClick = useCallback(() => {
+    onClick(url);
+  }, [url, onClick]);
+
+  return (
+    <EditorButton
+      onClick={handleClick}
+      className="list-button"
+      density="normal"
+    >
+      {name}
+    </EditorButton>
+  );
+});
+
+LinkButton.displayName = "LinkButton";
+
 function Login() {
   const theme = useTheme();
   const linkItems = [
@@ -100,14 +124,12 @@ function Login() {
       <GoogleAuthButton />
       <div className="button-group">
         {linkItems.map((item) => (
-          <EditorButton
+          <LinkButton
             key={item.name}
-            onClick={() => handleClick(item.url)}
-            className="list-button"
-            density="normal"
-          >
-            {item.name}
-          </EditorButton>
+            name={item.name}
+            url={item.url}
+            onClick={handleClick}
+          />
         ))}
       </div>
     </Box>
