@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { Dialog } from "../ui_primitives";
 
@@ -16,7 +16,7 @@ interface ConfirmDialogProps {
   alert?: boolean;
 }
 
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+const ConfirmDialog: React.FC<ConfirmDialogProps> = memo(function ConfirmDialog({
   open,
   onClose,
   onConfirm,
@@ -27,7 +27,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   notificationMessage,
   notificationType = "info",
   alert
-}) => {
+}) {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -56,6 +56,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       cancelText={cancelText}
     />
   );
-};
+});
+
+ConfirmDialog.displayName = "ConfirmDialog";
 
 export default ConfirmDialog;

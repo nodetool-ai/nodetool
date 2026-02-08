@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, memo } from "react";
 import { Button, Typography, Tooltip, SxProps, Theme } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
@@ -16,7 +16,7 @@ interface ModelSelectButtonProps {
   sx?: SxProps<Theme>;
 }
 
-const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
+const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
   ({
     label,
     secondaryLabel,
@@ -168,7 +168,7 @@ const ModelSelectButton = forwardRef<HTMLButtonElement, ModelSelectButtonProps>(
       </Tooltip>
     );
   }
-);
+));
 
 ModelSelectButton.displayName = "ModelSelectButton";
 

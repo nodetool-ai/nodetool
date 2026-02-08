@@ -5,6 +5,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
+import { memo } from "react";
 
 interface NodeResizeHandleProps {
   minWidth: number;
@@ -49,11 +50,11 @@ const styles = (theme: Theme) =>
     }
   });
 
-const NodeResizeHandle: React.FC<NodeResizeHandleProps> = ({
+const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResizeHandle({
   minWidth,
   minHeight,
   onResize
-}) => {
+}) {
   const theme = useTheme();
   return (
     <Box className="node-resize-handle" css={styles(theme)}>
@@ -66,6 +67,6 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = ({
       </NodeResizeControl>
     </Box>
   );
-};
+});
 
 export default NodeResizeHandle;
