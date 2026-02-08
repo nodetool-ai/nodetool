@@ -225,7 +225,7 @@ const formatMessageContent = (content: Message["content"]): string => {
           case "text":
             return typedItem.text ?? "";
           case "thought":
-            return typedItem.text ? `> Thought: ${typedItem.text}` : "";
+            return typedItem.text ? `**Thought:** ${typedItem.text}` : "";
           case "image_url":
             return typedItem.image?.uri
               ? `![image](${typedItem.image.uri})`
