@@ -219,16 +219,18 @@ describe("GlobalChatStore", () => {
     }
   });
 
-  it("exportThread downloads thread JSON and notifies", () => {
-    const link = {
-      href: "",
-      download: "",
-      click: jest.fn()
-    };
+  it("exportThread downloads thread exports and notifies", () => {
+    const links: Array<{ href: string; download: string; click: jest.Mock }> = [];
     const createElementSpy = jest
       .spyOn(document, "createElement")
-      .mockReturnValue(link as unknown as HTMLAnchorElement);
+      .mockImplementation(() => {
+        const link = { href: "", download: "", click: jest.fn() };
+        links.push(link);
+        return link as unknown as HTMLAnchorElement;
+      });
     const addNotification = jest.fn();
+    const createObjectURLMock = URL.createObjectURL as jest.Mock;
+    createObjectURLMock.mockClear();
 
     useNotificationStore.setState({
       notifications: [],
@@ -266,13 +268,26 @@ describe("GlobalChatStore", () => {
       }
     }) as any);
 
-    store.getState().exportThread(threadId);
+    store.getState().exportThread(threadId, "json");
+    store.getState().exportThread(threadId, "markdown");
 
-    expect(link.click).toHaveBeenCalled();
-    expect(URL.createObjectURL).toHaveBeenCalled();
+    expect(links[0]?.click).toHaveBeenCalled();
+    expect(links[1]?.click).toHaveBeenCalled();
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(2);
+    expect(createObjectURLMock.mock.calls[0]?.[0]?.type).toBe("application/json");
+    expect(createObjectURLMock.mock.calls[1]?.[0]?.type).toBe("text/markdown");
+    expect(links[0]?.download).toBe("Export Test.json");
+    expect(links[1]?.download).toBe("Export Test.md");
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        content: "Conversation exported",
+        content: "Conversation exported as JSON",
+        type: "success",
+        alert: true
+      })
+    );
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: "Conversation exported as Markdown",
         type: "success",
         alert: true
       })

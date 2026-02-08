@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { Typography } from "@mui/material";
+import {
+  Typography,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
+} from "@mui/material";
+import DataObjectIcon from "@mui/icons-material/DataObject";
+import ArticleIcon from "@mui/icons-material/Article";
 import { relativeTime } from "../../../utils/formatDateAndTime";
 import { ThreadItemProps } from "../types/thread.types";
 import { DeleteButton, DownloadButton } from "../../ui_primitives";
@@ -15,6 +23,8 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
   showDate = true
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
+  const isExportMenuOpen = Boolean(exportAnchorEl);
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -22,6 +32,19 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
     setTimeout(() => {
       onDelete();
     }, 300); // Match the CSS animation duration
+  };
+
+  const handleExportMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setExportAnchorEl(event.currentTarget);
+  };
+
+  const handleExportMenuClose = () => {
+    setExportAnchorEl(null);
+  };
+
+  const handleExport = (format: "json" | "markdown") => {
+    handleExportMenuClose();
+    onExport?.(format);
   };
 
   return (
@@ -54,11 +77,33 @@ export const ThreadItem: React.FC<ThreadItemProps> = ({
         <DownloadButton
           onClick={(e) => {
             e.stopPropagation();
-            onExport();
+            handleExportMenuOpen(e);
           }}
           tooltip="Export conversation"
           iconVariant="file"
         />
+      )}
+      {onExport && (
+        <Menu
+          anchorEl={exportAnchorEl}
+          open={isExportMenuOpen}
+          onClose={handleExportMenuClose}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <MenuItem onClick={() => handleExport("json")}>
+            <ListItemIcon>
+              <DataObjectIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Export JSON</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => handleExport("markdown")}>
+            <ListItemIcon>
+              <ArticleIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Export Markdown</ListItemText>
+          </MenuItem>
+        </Menu>
       )}
       {/* <IconButton
         className="delete-button"

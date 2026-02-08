@@ -145,7 +145,7 @@ export interface GlobalChatState {
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
-  exportThread: (threadId: string) => void;
+  exportThread: (threadId: string, format?: "json" | "markdown") => void;
   setLastUsedThreadId: (threadId: string | null) => void;
   getCurrentMessages: () => Message[];
   getCurrentMessagesSync: () => Message[];
@@ -178,6 +178,123 @@ function buildDefaultLanguageModel(): LanguageModel {
     name: DEFAULT_MODEL
   };
 }
+
+type ExportThreadPayload = {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages: Message[];
+};
+
+// Fallback content shape for unexpected message payloads.
+type MessageContentItemBase = {
+  type?: string;
+  text?: string | null;
+  image?: { uri?: string | null };
+  audio?: { uri?: string | null };
+  video?: { uri?: string | null };
+  document?: { uri?: string | null };
+  [key: string]: unknown;
+};
+
+type MessageContentItem =
+  | { type: "text"; text?: string | null }
+  | { type: "thought"; text?: string | null }
+  | { type: "image_url"; image?: { uri?: string | null } }
+  | { type: "audio"; audio?: { uri?: string | null } }
+  | { type: "video"; video?: { uri?: string | null } }
+  | { type: "document"; document?: { uri?: string | null } }
+  | MessageContentItemBase;
+
+const formatMessageContent = (content: Message["content"]): string => {
+  if (content == null) {
+    return "";
+  }
+  if (typeof content === "string") {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => {
+        if (!item || typeof item !== "object") {
+          return "";
+        }
+        const typedItem = item as MessageContentItem;
+        switch (typedItem.type) {
+          case "text":
+            return typedItem.text ?? "";
+          case "thought":
+            return typedItem.text ? `\n> Thought: ${typedItem.text}\n` : "";
+          case "image_url":
+            return typedItem.image?.uri
+              ? `![image](${typedItem.image.uri})`
+              : "[image]";
+          case "audio":
+            return typedItem.audio?.uri
+              ? `[audio](${typedItem.audio.uri})`
+              : "[audio]";
+          case "video":
+            return typedItem.video?.uri
+              ? `[video](${typedItem.video.uri})`
+              : "[video]";
+          case "document":
+            return typedItem.document?.uri
+              ? `[document](${typedItem.document.uri})`
+              : "[document]";
+          default:
+            return JSON.stringify(typedItem, null, 2);
+        }
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  return JSON.stringify(content, null, 2);
+};
+
+const formatThreadMarkdown = (payload: ExportThreadPayload): string => {
+  const header = `# ${payload.title}`;
+  const meta = [
+    `- Created: ${payload.created_at}`,
+    `- Updated: ${payload.updated_at}`
+  ];
+  const body = payload.messages.length
+    ? payload.messages
+        .map((message) => {
+          const role = message.role ?? "unknown";
+          const roleLabel = role
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (char) => char.toUpperCase());
+          const name = message.name ? ` (${message.name})` : "";
+          const timestamp = message.created_at ? `*${message.created_at}*` : "";
+          const content = formatMessageContent(message.content);
+          return [
+            `## ${roleLabel}${name}`,
+            timestamp,
+            content || "_(no content)_"
+          ]
+            .filter(Boolean)
+            .join("\n");
+        })
+        .join("\n\n")
+    : "_No messages in this conversation._";
+
+  return [header, "", ...meta, "", body].join("\n");
+};
+
+const exportFormats = {
+  json: {
+    type: "application/json",
+    extension: "json",
+    getContent: (payload: ExportThreadPayload) =>
+      JSON.stringify(payload, null, 2)
+  },
+  markdown: {
+    type: "text/markdown",
+    extension: "md",
+    getContent: formatThreadMarkdown
+  }
+} as const;
 
 const useGlobalChatStore = create<GlobalChatState>()(
   persist<GlobalChatState>(
@@ -761,7 +878,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           throw error;
         }
       },
-      exportThread: (threadId: string) => {
+      exportThread: (threadId: string, format: "json" | "markdown" = "json") => {
         const { threads, messageCache } = get();
         const thread = threads[threadId];
         const messages = messageCache[threadId] || [];
@@ -776,31 +893,34 @@ const useGlobalChatStore = create<GlobalChatState>()(
           return;
         }
 
-        const payload = {
-          id: thread.id,
-          title: thread.title ?? "Conversation",
-          created_at: thread.created_at,
-          updated_at: thread.updated_at,
-          messages
-        };
-
         try {
-          const blob = new Blob([JSON.stringify(payload, null, 2)], {
-            type: "application/json"
-          });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
+          const payload = {
+            id: thread.id,
+            title: thread.title ?? "Conversation",
+            created_at: thread.created_at,
+            updated_at: thread.updated_at,
+            messages
+          };
           const safeTitle = (payload.title || "conversation").replace(
             /[\\/:*?"<>|]/g,
             "_"
           );
-          link.download = `${safeTitle}.json`;
+          const exportFormat = exportFormats[format];
+          const blob = new Blob([exportFormat.getContent(payload)], {
+            type: exportFormat.type
+          });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.download = `${safeTitle}.${exportFormat.extension}`;
           link.href = url;
           link.click();
           URL.revokeObjectURL(url);
 
           addNotification({
-            content: "Conversation exported",
+            content:
+              format === "markdown"
+                ? "Conversation exported as Markdown"
+                : "Conversation exported as JSON",
             type: "success",
             alert: true
           });

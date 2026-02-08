@@ -293,8 +293,8 @@ const GlobalChat: React.FC = () => {
   );
 
   const handleExportThread = useCallback(
-    (id: string) => {
-      exportThread(id);
+    (id: string, format: "json" | "markdown") => {
+      exportThread(id, format);
     },
     [exportThread]
   );

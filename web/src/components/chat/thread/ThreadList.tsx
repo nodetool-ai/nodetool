@@ -40,7 +40,11 @@ const ThreadList: React.FC<ThreadListProps> = ({
           isSelected={singleId === currentThreadId}
           onSelect={() => onSelectThread(singleId)}
           onDelete={() => onDeleteThread(singleId)}
-          onExport={onExportThread ? () => onExportThread(singleId) : undefined}
+          onExport={
+            onExportThread
+              ? (format) => onExportThread(singleId, format)
+              : undefined
+          }
           getPreview={() => getThreadPreview(singleId)}
           showDate={true}
         />
@@ -74,7 +78,11 @@ const ThreadList: React.FC<ThreadListProps> = ({
             isSelected={threadId === currentThreadId}
             onSelect={() => onSelectThread(threadId)}
             onDelete={() => onDeleteThread(threadId)}
-            onExport={onExportThread ? () => onExportThread(threadId) : undefined}
+            onExport={
+              onExportThread
+                ? (format) => onExportThread(threadId, format)
+                : undefined
+            }
             getPreview={() => getThreadPreview(threadId)}
             showDate={false}
           />

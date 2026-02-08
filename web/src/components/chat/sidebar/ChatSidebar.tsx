@@ -23,7 +23,7 @@ interface ChatSidebarProps {
     onNewChat: () => void;
     onSelectThread: (id: string) => void;
     onDeleteThread: (id: string) => void;
-    onExportThread: (id: string) => void;
+    onExportThread: (id: string, format: "json" | "markdown") => void;
     getThreadPreview: (id: string) => string;
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;

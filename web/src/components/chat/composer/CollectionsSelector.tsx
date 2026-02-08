@@ -281,7 +281,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
             >
               Loading collections...
             </Typography>
-          ) : !collections?.collections.length ? (
+          ) : !collections?.collections?.length ? (
             <Box sx={{ p: 2, color: theme.vars.palette.text.secondary }}>
               <Typography variant="body2" sx={{ mb: 1 }}>
                 No collections available
