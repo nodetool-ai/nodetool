@@ -7,6 +7,7 @@ import useMetadataStore from "../stores/MetadataStore";
 import { NodeMetadata } from "../stores/ApiTypes";
 import useResultsStore from "../stores/ResultsStore";
 import useErrorStore from "../stores/ErrorStore";
+import { shallow } from "zustand/shallow";
 
 interface NodeConnectionInfo {
   totalInputs: number;
@@ -71,9 +72,13 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
   const edges = useEdges();
   // Subscribe to getMetadata method only - this is a stable reference
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const currentWorkflowId = useNodes((state) => state.workflow?.id ?? "");
+
+  // Subscribe to entire results/errors but filter in useMemo
+  // This is acceptable because the useMemo will prevent re-computation
+  // when irrelevant results/errors change
   const results = useResultsStore((state) => state.results);
   const errors = useErrorStore((state) => state.errors);
-  const currentWorkflowId = useNodes((state) => state.workflow?.id ?? "");
 
   const nodesInfo = useMemo(() => {
     return selectedNodes.map((node) => {
