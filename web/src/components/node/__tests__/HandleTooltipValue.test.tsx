@@ -72,6 +72,53 @@ const renderTooltip = async (element: HTMLElement, user: ReturnType<typeof userE
   });
 };
 
+const renderInputTooltip = async (
+  value: unknown,
+  user: ReturnType<typeof userEvent.setup>
+) => {
+  const { container } = render(
+    <PropertyField
+      id="node-1"
+      value={value}
+      nodeType="test"
+      propertyIndex="0"
+      property={{
+        name: "prompt",
+        type: { type: "string", type_args: [], optional: false },
+        required: false
+      }}
+      showFields={false}
+      showHandle={true}
+      data={{
+        properties: {},
+        dynamic_properties: {},
+        workflow_id: "workflow-1",
+        selectable: true
+      }}
+    />
+  );
+
+  const wrapper = container.querySelector(".handle-tooltip-wrapper") as HTMLElement;
+  expect(wrapper).toBeInTheDocument();
+
+  await renderTooltip(wrapper, user);
+};
+
+const createOutputNode = () => {
+  const node: Node<NodeData> = {
+    id: "node-1",
+    type: "test",
+    position: { x: 0, y: 0 },
+    data: {
+      properties: {},
+      dynamic_properties: {},
+      workflow_id: "workflow-1",
+      selectable: true
+    }
+  };
+  return createNodeStore(node);
+};
+
 describe("HandleTooltip value rendering", () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -88,34 +135,21 @@ describe("HandleTooltip value rendering", () => {
 
   it("shows the input value in the handle tooltip", async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    const { container } = render(
-      <PropertyField
-        id="node-1"
-        value="Hello input"
-        nodeType="test"
-        propertyIndex="0"
-        property={{
-          name: "prompt",
-          type: { type: "string", type_args: [], optional: false },
-          required: false
-        }}
-        showFields={false}
-        showHandle={true}
-        data={{
-          properties: {},
-          dynamic_properties: {},
-          workflow_id: "workflow-1",
-          selectable: true
-        }}
-      />
-    );
-
-    const wrapper = container.querySelector(".handle-tooltip-wrapper") as HTMLElement;
-    expect(wrapper).toBeInTheDocument();
-
-    await renderTooltip(wrapper, user);
+    await renderInputTooltip("Hello input", user);
 
     expect(screen.getByText("Hello input")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["", "Empty string"],
+    [[], "Empty list"],
+    [{}, "Empty object"],
+    [null, "null"]
+  ])("shows fallback label for %p", async (value, label) => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    await renderInputTooltip(value, user);
+
+    expect(screen.getByText(label)).toBeInTheDocument();
   });
 
   it("shows the output value in the handle tooltip", async () => {
@@ -123,20 +157,7 @@ describe("HandleTooltip value rendering", () => {
     useResultsStore
       .getState()
       .setOutputResult("workflow-1", "node-1", { greeting: "Hello output" });
-
-    const node: Node<NodeData> = {
-      id: "node-1",
-      type: "test",
-      position: { x: 0, y: 0 },
-      data: {
-        properties: {},
-        dynamic_properties: {},
-        workflow_id: "workflow-1",
-        selectable: true
-      }
-    };
-
-    const store = createNodeStore(node);
+    const store = createOutputNode();
 
     const { container } = render(
       <NodeProvider createStore={() => store}>
@@ -157,5 +178,61 @@ describe("HandleTooltip value rendering", () => {
     await renderTooltip(wrapper, user);
 
     expect(screen.getByText("Hello output")).toBeInTheDocument();
+  });
+
+  it("uses output field fallback when named output is missing", async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    useResultsStore
+      .getState()
+      .setOutputResult("workflow-1", "node-1", { output: "Fallback output" });
+    const store = createOutputNode();
+
+    const { container } = render(
+      <NodeProvider createStore={() => store}>
+        <NodeOutput
+          id="node-1"
+          output={{
+            name: "greeting",
+            type: { type: "string", type_args: [], optional: false },
+            stream: false
+          }}
+        />
+      </NodeProvider>
+    );
+
+    const wrapper = container.querySelector(".handle-tooltip-wrapper") as HTMLElement;
+    expect(wrapper).toBeInTheDocument();
+
+    await renderTooltip(wrapper, user);
+
+    expect(screen.getByText("Fallback output")).toBeInTheDocument();
+  });
+
+  it("uses raw result when output is a primitive", async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    useResultsStore
+      .getState()
+      .setOutputResult("workflow-1", "node-1", "Raw result");
+    const store = createOutputNode();
+
+    const { container } = render(
+      <NodeProvider createStore={() => store}>
+        <NodeOutput
+          id="node-1"
+          output={{
+            name: "greeting",
+            type: { type: "string", type_args: [], optional: false },
+            stream: false
+          }}
+        />
+      </NodeProvider>
+    );
+
+    const wrapper = container.querySelector(".handle-tooltip-wrapper") as HTMLElement;
+    expect(wrapper).toBeInTheDocument();
+
+    await renderTooltip(wrapper, user);
+
+    expect(screen.getByText("Raw result")).toBeInTheDocument();
   });
 });
