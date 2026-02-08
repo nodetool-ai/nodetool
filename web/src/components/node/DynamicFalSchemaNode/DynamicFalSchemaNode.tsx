@@ -101,7 +101,8 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const headerTitle = useMemo(() => {
     const base = metadata.title || "Fal AI";
-    return data.endpoint_id ? `${base} · ${data.endpoint_id}` : base;
+    const endpointId = data.endpoint_id?.replace("fal-ai/", "");
+    return endpointId ? `${base} · ${endpointId}` : base;
   }, [metadata.title, data.endpoint_id]);
 
   return (
@@ -144,6 +145,8 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         showInputsButton={false}
         onShowResults={() => {}}
         onShowInputs={() => {}}
+        externalLink={data.endpoint_id ? `https://fal.ai/models/${data.endpoint_id}` : undefined}
+        externalLinkTitle="View on fal.ai"
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={statusValue} />
