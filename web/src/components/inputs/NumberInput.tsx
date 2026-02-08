@@ -325,16 +325,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
       onContextMenu={handleContextMenu}
       tabIndex={-1}
     >
-      <EditableInput
-        value={state.localValue}
-        onChange={handleValueChange}
-        onBlur={() => handleBlur(true)}
-        onFocus={handleInputFocus}
-        isDefault={state.isDefault}
-        tabIndex={props.tabIndex}
-        onFocusChange={setInputIsFocused}
-        shouldFocus={inputIsFocused}
-      />
       <div id={props.id} className="slider-value nodrag" tabIndex={-1}>
         {props.hideLabel ? null : (
           <PropertyLabel
@@ -344,13 +334,25 @@ const NumberInput: React.FC<InputProps> = (props) => {
             showTooltip={!state.isDragging}
           />
         )}
-        {!inputIsFocused && (
-          <DisplayValue
-            value={props.value}
-            isFloat={props.inputType === "float"}
-            decimalPlaces={state.decimalPlaces}
+        <div className="value-container">
+          <EditableInput
+            value={state.localValue}
+            onChange={handleValueChange}
+            onBlur={() => handleBlur(true)}
+            onFocus={handleInputFocus}
+            isDefault={state.isDefault}
+            tabIndex={props.tabIndex}
+            onFocusChange={setInputIsFocused}
+            shouldFocus={inputIsFocused}
           />
-        )}
+          {!inputIsFocused && (
+            <DisplayValue
+              value={props.value}
+              isFloat={props.inputType === "float"}
+              decimalPlaces={state.decimalPlaces}
+            />
+          )}
+        </div>
       </div>
       {sliderVisible &&
         typeof props.min === "number" &&

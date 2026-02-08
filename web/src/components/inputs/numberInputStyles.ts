@@ -15,7 +15,7 @@ export const numberInputStyles = (theme: Theme) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.primary.main,
-      marginBottom: "10px"
+      marginBottom: 0 // Remove margin to prevent flex container imbalance
     },
 
     // Highlight when the owning PropertyInput is marked as changed.
@@ -36,13 +36,22 @@ export const numberInputStyles = (theme: Theme) =>
 
     ".slider-value": {
       display: "flex",
-      justifyContent: "space-between",
+      justifyContent: "flex-start",
       alignItems: "center",
+      gap: "8px",
       outline: "none !important",
       width: "100%",
       marginBottom: 0,
       minHeight: "18px",
       marginTop: "-1px"
+    },
+
+    ".value-container": {
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+      minWidth: "30px",
+      minHeight: "20px" // Ensure stable height
     },
 
     ".slider-value .property-label": {
@@ -74,8 +83,8 @@ export const numberInputStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      lineHeight: "1.2em",
-      textAlign: "right",
+      lineHeight: "20px", // Match container height
+      textAlign: "left",
       flexShrink: 0,
       minWidth: "30px"
     },
@@ -86,23 +95,19 @@ export const numberInputStyles = (theme: Theme) =>
     },
 
     ".edit-value": {
-      position: "absolute",
       outline: "none",
-      color: theme.vars.palette.grey[100], // Match display value color
-      backgroundColor: "transparent", // Transparent background to blend in
+      color: theme.vars.palette.grey[100] + " !important",
+      backgroundColor: "transparent",
       border: "none",
       borderRadius: 0,
-      fontFamily: theme.fontFamily2, // Match display value font
-      fontSize: theme.fontSizeSmall, // Match display value font size
-      lineHeight: "1.2em", // Match display value line height
-      height: "auto", // Let it size naturally
-      top: 0, // Align with the top of the container/display value
-      right: 0,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
+      lineHeight: "20px", // Match container height exactly
       margin: 0,
       padding: 0,
-      textAlign: "right",
+      textAlign: "left",
       maxWidth: "100px",
-      zIndex: 10 // Ensure it's above the display value
+      zIndex: 10
     },
 
     ".editable-input-container": {
