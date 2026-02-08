@@ -15,34 +15,6 @@ import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { useAssetStore } from "../../stores/AssetStore";
 
-interface AssetTableRowProps {
-  asset: Asset;
-  onRemove: (asset: Asset) => void;
-}
-
-const AssetTableRow: React.FC<AssetTableRowProps> = memo(({ asset, onRemove }) => {
-  const handleRemove = useCallback(() => {
-    onRemove(asset);
-  }, [asset, onRemove]);
-
-  return (
-    <TableRow>
-      <TableCell>
-        {asset.name} ({asset.content_type})
-      </TableCell>
-      <TableCell>
-        <Button
-          variant="outlined"
-          onClick={handleRemove}
-        >
-          Remove
-        </Button>
-      </TableCell>
-    </TableRow>
-  );
-});
-AssetTableRow.displayName = "AssetTableRow";
-
 export type AssetTableProps = {
   assetIds: string[];
   onChange: (assetIds: string[]) => void;
@@ -74,6 +46,7 @@ const AssetTableRow = memo(function AssetTableRow({
     </TableRow>
   );
 });
+AssetTableRow.displayName = "AssetTableRow";
 
 const AssetTable: React.FC<AssetTableProps> = (props) => {
   const { assetIds, onChange } = props;
@@ -82,12 +55,12 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
 
   useEffect(() => {
     const promises = assetIds.map((assetId) => getAsset(assetId));
-    Promise.all(promises).then((assets) => {
-      setAssets(assets.filter((a) => a !== null) as Asset[]);
+    Promise.all(promises).then((loadedAssets) => {
+      setAssets(loadedAssets.filter((a) => a !== null) as Asset[]);
     });
   }, [getAsset, assetIds]);
 
-  const handleRemoveAsset = useCallback(
+  const handleAssetRemoveClick = useCallback(
     (asset: Asset) => {
       const newAssets = assets.filter((a) => a.id !== asset.id);
       setAssets(newAssets);
