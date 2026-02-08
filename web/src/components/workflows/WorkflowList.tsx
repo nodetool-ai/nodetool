@@ -231,16 +231,27 @@ const WorkflowList = () => {
     [navigate, location.pathname]
   );
 
+  // Memoize workflow name lookup map to avoid recalculating on every duplicateWorkflow call
+  const workflowNamesMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    workflows.forEach((w) => {
+      const baseName = w.name.replace(/ \(\d+\)$/, "");
+      if (!map.has(baseName)) {
+        map.set(baseName, []);
+      }
+      map.get(baseName)!.push(w.name);
+    });
+    return map;
+  }, [workflows]);
+
   const duplicateWorkflow = useCallback(
     async (event: React.MouseEvent, workflow: Workflow) => {
       event.stopPropagation();
       const workflowRequest = await copyWorkflow(workflow);
       const baseName = workflow.name.replace(/ \(\d+\)$/, "");
-      const existingNames = workflows
-        .filter((w) => w.name.startsWith(baseName))
-        .map((w) => w.name);
+      const existingNames = workflowNamesMap.get(baseName) || [];
       let highestNumber = 0;
-      const regex = new RegExp(`^${baseName} \\((\\d+)\\)$`);
+      const regex = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\((\\d+)\\)$`);
       existingNames.forEach((name) => {
         const match = name.match(regex);
         if (match && match[1]) {
@@ -255,7 +266,7 @@ const WorkflowList = () => {
       const newWorkflow = await createWorkflow(workflowRequest);
       navigate(`/editor/${newWorkflow.id}`);
     },
-    [copyWorkflow, createWorkflow, workflows, navigate]
+    [copyWorkflow, createWorkflow, workflowNamesMap, navigate]
   );
 
   const handleEdit = useCallback((workflow: Workflow) => {
