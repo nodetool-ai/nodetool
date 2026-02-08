@@ -10,6 +10,7 @@ export const numberInputStyles = (theme: Theme) =>
   css({
     "&.number-input": {
       display: "block",
+      position: "relative",
       cursor: "ew-resize !important",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
@@ -87,20 +88,21 @@ export const numberInputStyles = (theme: Theme) =>
     ".edit-value": {
       position: "absolute",
       outline: "none",
-      color: theme.vars.palette.grey[0],
-      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[100], // Match display value color
+      backgroundColor: "transparent", // Transparent background to blend in
       border: "none",
       borderRadius: 0,
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmall,
-      lineHeight: "1.5em",
-      height: "12px",
-      top: "2px",
+      fontFamily: theme.fontFamily2, // Match display value font
+      fontSize: theme.fontSizeSmall, // Match display value font size
+      lineHeight: "1.2em", // Match display value line height
+      height: "auto", // Let it size naturally
+      top: 0, // Align with the top of the container/display value
       right: 0,
       margin: 0,
       padding: 0,
       textAlign: "right",
-      maxWidth: "100px"
+      maxWidth: "100px",
+      zIndex: 10 // Ensure it's above the display value
     },
 
     ".editable-input-container": {
