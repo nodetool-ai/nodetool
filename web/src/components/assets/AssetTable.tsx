@@ -20,29 +20,6 @@ interface AssetTableRowProps {
   onRemove: (asset: Asset) => void;
 }
 
-const AssetTableRow: React.FC<AssetTableRowProps> = memo(({ asset, onRemove }) => {
-  const handleRemove = useCallback(() => {
-    onRemove(asset);
-  }, [asset, onRemove]);
-
-  return (
-    <TableRow>
-      <TableCell>
-        {asset.name} ({asset.content_type})
-      </TableCell>
-      <TableCell>
-        <Button
-          variant="outlined"
-          onClick={handleRemove}
-        >
-          Remove
-        </Button>
-      </TableCell>
-    </TableRow>
-  );
-});
-AssetTableRow.displayName = "AssetTableRow";
-
 export type AssetTableProps = {
   assetIds: string[];
   onChange: (assetIds: string[]) => void;
@@ -129,7 +106,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
             <AssetTableRow
               key={asset.id || index}
               asset={asset}
-              onRemove={handleAssetRemoveClick}
+              onRemove={handleRemoveAsset}
             />
           ))}
           <TableRow key="last">
