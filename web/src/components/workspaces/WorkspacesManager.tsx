@@ -418,6 +418,23 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     setIsFileBrowserOpen(false);
   }, []);
 
+  // Memoized handlers for form inputs to prevent re-renders
+  const handleNewNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewName(e.target.value);
+  }, []);
+
+  const handleNewPathChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewPath(e.target.value);
+  }, []);
+
+  const handleIsDefaultChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsDefault(e.target.checked);
+  }, []);
+
+  const handleEditNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditName(e.target.value);
+  }, []);
+
   return (
     <>
       <Dialog
@@ -480,7 +497,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                         <TextField
                           size="small"
                           value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
+                          onChange={handleEditNameChange}
                           placeholder="Workspace name"
                           autoFocus
                           fullWidth
@@ -587,7 +604,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     size="small"
                     label="Name"
                     value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
+                    onChange={handleNewNameChange}
                     placeholder="My Workspace"
                     fullWidth
                     autoFocus
@@ -597,7 +614,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                       size="small"
                       label="Path"
                       value={newPath}
-                      onChange={(e) => setNewPath(e.target.value)}
+                      onChange={handleNewPathChange}
                       placeholder="/path/to/folder"
                       fullWidth
                     />
@@ -613,7 +630,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     control={
                       <Checkbox
                         checked={isDefault}
-                        onChange={(e) => setIsDefault(e.target.checked)}
+                        onChange={handleIsDefaultChange}
                         size="small"
                       />
                     }

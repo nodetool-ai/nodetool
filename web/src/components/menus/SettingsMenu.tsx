@@ -122,14 +122,47 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     return unsubscribe;
   }, []);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
     setMenuOpen(true, newValue);
-  };
+  }, [setMenuOpen]);
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setMenuOpen(!isMenuOpen);
-  };
+  }, [isMenuOpen, setMenuOpen]);
+
+  // Memoized handlers for settings controls to prevent re-renders
+  const handleShowWelcomeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setShowWelcomeOnStartup(e.target.checked);
+  }, [setShowWelcomeOnStartup]);
+
+  const handleSelectNodesOnDragChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectNodesOnDrag(e.target.checked ?? false);
+  }, [setSelectNodesOnDrag]);
+
+  const handleSoundNotificationsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSoundNotifications(e.target.checked ?? true);
+  }, [setSoundNotifications]);
+
+  const handleGridSnapChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setGridSnap(Number(e.target.value));
+  }, [setGridSnap]);
+
+  const handleConnectionSnapChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setConnectionSnap(Number(e.target.value));
+  }, [setConnectionSnap]);
+
+  const handlePanControlsChange = useCallback((e: any) => {
+    setPanControls(e.target.value);
+  }, [setPanControls]);
+
+  const handleSelectionModeChange = useCallback((e: any) => {
+    setSelectionMode(e.target.value);
+  }, [setSelectionMode]);
+
+  const handleTimeFormatChange = useCallback((e: any) => {
+    setTimeFormat(e.target.value === "12h" ? "12h" : "24h");
+  }, [setTimeFormat]);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -442,9 +475,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </InputLabel>
                           <Switch
                             checked={!!settings.showWelcomeOnStartup}
-                            onChange={(e) =>
-                              setShowWelcomeOnStartup(e.target.checked)
-                            }
+                            onChange={handleShowWelcomeChange}
                             inputProps={{ "aria-label": id }}
                           />
                         </FormControl>
@@ -465,9 +496,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                               }
                             }}
                             checked={!!settings.selectNodesOnDrag}
-                            onChange={(e) =>
-                              setSelectNodesOnDrag(e.target.checked ?? false)
-                            }
+                            onChange={handleSelectNodesOnDragChange}
                             inputProps={{ "aria-label": id }}
                           />
                         </FormControl>
@@ -493,9 +522,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 }
                               }}
                               checked={!!settings.soundNotifications}
-                              onChange={(e) =>
-                                setSoundNotifications(e.target.checked ?? true)
-                              }
+                              onChange={handleSoundNotificationsChange}
                               inputProps={{ "aria-label": id }}
                             />
                           </FormControl>
@@ -676,7 +703,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             labelId={id}
                             value={settings.panControls}
                             variant="standard"
-                            onChange={(e) => setPanControls(e.target.value)}
+                            onChange={handlePanControlsChange}
                           >
                             <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
                             <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
@@ -705,7 +732,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             labelId={id}
                             value={settings.selectionMode}
                             variant="standard"
-                            onChange={(e) => setSelectionMode(e.target.value)}
+                            onChange={handleSelectionModeChange}
                           >
                             <MenuItem value={"full"}>Full</MenuItem>
                             <MenuItem value={"partial"}>Partial</MenuItem>
@@ -741,7 +768,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           id="grid-snap-input"
                           label="Grid Snap Precision"
                           value={settings.gridSnap}
-                          onChange={(e) => setGridSnap(Number(e.target.value))}
+                          onChange={handleGridSnapChange}
                           variant="standard"
                         />
                         <Typography className="description">
@@ -765,9 +792,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           id="connection-snap-input"
                           label="Connection Snap Range"
                           value={settings.connectionSnap}
-                          onChange={(e) =>
-                            setConnectionSnap(Number(e.target.value))
-                          }
+                          onChange={handleConnectionSnapChange}
                           variant="standard"
                         />
                         <Typography className="description">
@@ -788,11 +813,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             labelId={id}
                             value={settings.timeFormat}
                             variant="standard"
-                            onChange={(e) =>
-                              setTimeFormat(
-                                e.target.value === "12h" ? "12h" : "24h"
-                              )
-                            }
+                            onChange={handleTimeFormatChange}
                           >
                             <MenuItem value={"12h"}>12h</MenuItem>
                             <MenuItem value={"24h"}>24h</MenuItem>
