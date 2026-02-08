@@ -486,4 +486,7 @@ const Inspector: React.FC = () => {
   );
 };
 
-export default Inspector;
+export default React.memo(Inspector, (_prevProps, _nextProps) => {
+  // Inspector has no props, so always prevent re-render
+  return true;
+});
