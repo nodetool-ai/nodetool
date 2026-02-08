@@ -27,10 +27,12 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
   const connectNodeId = useConnectionStore((state) => state.connectNodeId);
   const connectHandleId = useConnectionStore((state) => state.connectHandleId);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const node = useNodes((state) => state.findNode(id));
   const findNode = useNodes((state) => state.findNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const workflowId = node?.data.workflow_id;
+  const workflowId = useMemo(
+    () => findNode(id)?.data.workflow_id,
+    [findNode, id]
+  );
 
   const effectiveConnectType = useMemo<TypeMetadata | null>(() => {
     if (
