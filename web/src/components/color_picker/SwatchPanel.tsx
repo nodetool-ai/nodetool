@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -108,10 +108,10 @@ interface SwatchPanelProps {
   onColorSelect: (color: string) => void;
 }
 
-const SwatchPanel: React.FC<SwatchPanelProps> = ({
+const SwatchPanel = memo(function SwatchPanel({
   currentColor,
   onColorSelect
-}) => {
+}: SwatchPanelProps) {
   const theme = useTheme();
   const [presetsMenuAnchor, setPresetsMenuAnchor] = useState<HTMLElement | null>(null);
   const [swatchMenuAnchor, setSwatchMenuAnchor] = useState<{
@@ -356,6 +356,6 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
       </Menu>
     </Box>
   );
-};
+});
 
 export default SwatchPanel;

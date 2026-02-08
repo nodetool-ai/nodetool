@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
 import {
   Dialog,
   DialogActions,
@@ -21,7 +21,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 
-const AssetCreateFolderConfirmation: React.FC = () => {
+const AssetCreateFolderConfirmation = memo(function AssetCreateFolderConfirmation() {
   const setDialogOpen = useAssetGridStore(
     (state) => state.setCreateFolderDialogOpen
   );
@@ -301,6 +301,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       )}
     </>
   );
-};
+});
 
 export default AssetCreateFolderConfirmation;

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, memo } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -191,7 +191,7 @@ interface ColorPickerModalProps {
   contrastBackgroundColor?: string;
 }
 
-const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
+const ColorPickerModal = memo(function ColorPickerModal({
   color: initialColor,
   alpha: initialAlpha = 1,
   onChange,
@@ -199,7 +199,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   showGradient = true,
   showContrast = true,
   contrastBackgroundColor = "#ffffff"
-}) => {
+}: ColorPickerModalProps) {
   const theme = useTheme();
   const addRecentColor = useColorPickerStore((state) => state.addRecentColor);
   const preferredColorMode = useColorPickerStore((state) => state.preferredColorMode);
@@ -490,6 +490,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   );
 
   return ReactDOM.createPortal(content, document.body);
-};
+});
 
 export default ColorPickerModal;

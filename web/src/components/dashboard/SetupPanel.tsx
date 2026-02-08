@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { Typography, Box } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { css } from "@emotion/react";
@@ -46,7 +46,7 @@ const panelStyles = (theme: any) =>
     }
   });
 
-const SetupPanel: React.FC = () => {
+const SetupPanel = memo(function SetupPanel() {
   const theme = useTheme();
   const shouldShowLocalModels =
     getIsElectronDetails().isElectron || !isProduction;
@@ -99,6 +99,6 @@ const SetupPanel: React.FC = () => {
       </div>
     </Box>
   );
-};
+});
 
 export default SetupPanel;

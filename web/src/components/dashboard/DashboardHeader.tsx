@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { Box } from "@mui/material";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -22,13 +22,13 @@ const styles = (_theme: Theme) =>
     gap: "0.5rem"
   });
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({ children }) => {
+const DashboardHeader = memo(function DashboardHeader({ children }: DashboardHeaderProps) {
   const theme = useTheme();
   return (
     <Box className="dashboard-header" css={styles(theme)}>
       {children}
     </Box>
   );
-};
+});
 
 export default DashboardHeader;

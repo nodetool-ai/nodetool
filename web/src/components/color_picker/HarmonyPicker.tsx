@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, Typography, Tooltip } from "@mui/material";
@@ -78,12 +78,12 @@ interface HarmonyPickerProps {
   onHarmonyChange?: (type: HarmonyType) => void;
 }
 
-const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
+const HarmonyPicker = memo(function HarmonyPicker({
   color,
   onColorSelect,
   selectedHarmony,
   onHarmonyChange
-}) => {
+}: HarmonyPickerProps) {
   const theme = useTheme();
   const harmonyInfo = useMemo(() => getHarmonyInfo(), []);
 
@@ -159,6 +159,6 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
       ))}
     </Box>
   );
-};
+});
 
 export default HarmonyPicker;
