@@ -52,6 +52,13 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   if (p.includes("openai")) {return "OPENAI_API_KEY";}
   if (p.includes("anthropic")) {return "ANTHROPIC_API_KEY";}
   if (p.includes("gemini") || p.includes("google")) {return "GEMINI_API_KEY";}
+  if (p.includes("meshy")) {return "MESHY_API_KEY";}
+  if (p.includes("rodin")) {return "RODIN_API_KEY";}
+  if (p.includes("trellis")) {return "TRELLIS_API_KEY";}
+  if (p.includes("tripo")) {return "TRIPO_API_KEY";}
+  if (p.includes("hunyuan3d")) {return "HUNYUAN3D_API_KEY";}
+  if (p.includes("shap_e") || p.includes("shap-e")) {return "SHAP_E_API_KEY";}
+  if (p.includes("point_e") || p.includes("point-e")) {return "POINT_E_API_KEY";}
   if (p.includes("huggingface") || p.includes("hf_")) {return "HF_TOKEN";}
   if (p.includes("replicate")) {return "REPLICATE_API_TOKEN";}
   if (p.includes("fal")) {return "FAL_API_KEY";}
