@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -358,4 +358,4 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
   );
 };
 
-export default SwatchPanel;
+export default memo(SwatchPanel);

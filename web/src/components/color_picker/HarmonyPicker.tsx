@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, Typography, Tooltip } from "@mui/material";
@@ -161,4 +161,4 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
   );
 };
 
-export default HarmonyPicker;
+export default memo(HarmonyPicker);
