@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import {
@@ -207,7 +207,7 @@ const categories = [
 
 type CategoryId = typeof categories[number]["id"];
 
-const LayoutTest: React.FC = () => {
+const LayoutTest: React.FC = memo(function LayoutTest() {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState<CategoryId>("action");
   const { mode, setMode } = useColorScheme();
@@ -1214,6 +1214,6 @@ const LayoutTest: React.FC = () => {
       </div>
     </Box>
   );
-};
+});
 
 export default LayoutTest;
