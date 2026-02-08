@@ -20,8 +20,8 @@ export type NodeOutputProps = {
 };
 
 /**
- * Resolve a node output value from results by checking a named output first,
- * then falling back to a generic "output" field, and finally returning the raw result.
+ * Resolve a node output value from results in a three-step fallback order:
+ * 1) named output property, 2) generic "output" field, 3) raw result.
  */
 const resolveOutputValue = (
   result: unknown,

@@ -10,8 +10,6 @@ import useResultsStore from "../../../stores/ResultsStore";
 import type { NodeData } from "../../../stores/NodeData";
 import type { NodeStore } from "../../../stores/NodeStore";
 
-const mockOpenContextMenu = jest.fn();
-
 jest.mock("@xyflow/react", () => {
   const actual = jest.requireActual("@xyflow/react");
   return {
@@ -31,7 +29,7 @@ jest.mock("@xyflow/react", () => {
 jest.mock("../../../stores/ContextMenuStore", () => ({
   __esModule: true,
   default: (selector: (state: { openContextMenu: jest.Mock }) => unknown) =>
-    selector({ openContextMenu: mockOpenContextMenu })
+    selector({ openContextMenu: jest.fn() })
 }));
 
 jest.mock("../../../config/data_types", () => ({
