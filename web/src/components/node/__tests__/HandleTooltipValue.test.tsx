@@ -62,7 +62,7 @@ const createNodeStore = (node: Node<NodeData>): NodeStore => {
   return nodeStore;
 };
 
-const renderTooltip = async (element: HTMLElement, user: ReturnType<typeof userEvent.setup>) => {
+const showTooltip = async (element: HTMLElement, user: ReturnType<typeof userEvent.setup>) => {
   await user.hover(element);
   act(() => {
     jest.advanceTimersByTime(HANDLE_TOOLTIP_ENTER_DELAY);
@@ -98,7 +98,7 @@ const renderInputTooltip = async (
   const wrapper = container.querySelector(".handle-tooltip-wrapper") as HTMLElement;
   expect(wrapper).toBeInTheDocument();
 
-  await renderTooltip(wrapper, user);
+  await showTooltip(wrapper, user);
 };
 
 const createOutputNode = () => {
@@ -172,7 +172,7 @@ describe("HandleTooltip value rendering", () => {
     const wrapper = container.querySelector(".handle-tooltip-wrapper") as HTMLElement;
     expect(wrapper).toBeInTheDocument();
 
-    await renderTooltip(wrapper, user);
+    await showTooltip(wrapper, user);
 
     expect(screen.getByText("Hello output")).toBeInTheDocument();
   });
@@ -200,7 +200,7 @@ describe("HandleTooltip value rendering", () => {
     const wrapper = container.querySelector(".handle-tooltip-wrapper") as HTMLElement;
     expect(wrapper).toBeInTheDocument();
 
-    await renderTooltip(wrapper, user);
+    await showTooltip(wrapper, user);
 
     expect(screen.getByText("Fallback output")).toBeInTheDocument();
   });
@@ -228,7 +228,7 @@ describe("HandleTooltip value rendering", () => {
     const wrapper = container.querySelector(".handle-tooltip-wrapper") as HTMLElement;
     expect(wrapper).toBeInTheDocument();
 
-    await renderTooltip(wrapper, user);
+    await showTooltip(wrapper, user);
 
     expect(screen.getByText("Raw result")).toBeInTheDocument();
   });

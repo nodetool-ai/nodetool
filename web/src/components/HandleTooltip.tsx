@@ -51,7 +51,7 @@ const fallbackLabelForValue = (value: unknown): string => {
     if (trimmed === "") {
       return value.length > 0 ? "Whitespace only" : "Empty string";
     }
-    return trimmed;
+    return "No value";
   }
   if (Array.isArray(value)) {
     return "Empty list";
@@ -139,7 +139,7 @@ const HandleTooltip = memo(function HandleTooltip({
 
   const handleMouseEnter = useCallback(() => {
     const position = getMousePosition();
-    // Start a timer; show tooltip only after ENTER_DELAY ms
+    // Start a timer; show tooltip only after HANDLE_TOOLTIP_ENTER_DELAY ms
     showTimerRef.current = window.setTimeout(() => {
       setTooltipPosition(position);
       setShowTooltip(true);
