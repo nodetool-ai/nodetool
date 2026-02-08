@@ -187,6 +187,9 @@ type ExportThreadPayload = {
   messages: Message[];
 };
 
+const THOUGHT_LABEL = "**Thought:**";
+const UNSUPPORTED_CONTENT_LABEL = "[unsupported content]";
+
 // Fallback content shape for unexpected message payloads.
 type MessageContentItemBase = {
   type?: string;
@@ -225,7 +228,7 @@ const formatMessageContent = (content: Message["content"]): string => {
           case "text":
             return typedItem.text ?? "";
           case "thought":
-            return typedItem.text ? `**Thought:** ${typedItem.text}` : "";
+            return typedItem.text ? `${THOUGHT_LABEL} ${typedItem.text}` : "";
           case "image_url":
             return typedItem.image?.uri
               ? `![image](${typedItem.image.uri})`
@@ -245,7 +248,7 @@ const formatMessageContent = (content: Message["content"]): string => {
           default:
             return typedItem.type
               ? `[${typedItem.type}]`
-              : "[unsupported content]";
+              : UNSUPPORTED_CONTENT_LABEL;
         }
       })
       .filter(Boolean)
