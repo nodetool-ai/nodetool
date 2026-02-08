@@ -74,6 +74,7 @@ Reference for structural guidance and feature inspiration: https://github.com/pe
 - Pan with space+drag; grid and elements should move together.
 - Toggle grid visibility; grid remains centered at different zoom levels.
 - Export PNG and confirm downloaded image renders elements.
+- Edit X/Y in the properties panel and confirm handles update position.
 
 ## Architecture (target)
 

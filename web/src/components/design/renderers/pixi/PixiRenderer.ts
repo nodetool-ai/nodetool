@@ -221,10 +221,12 @@ export default class PixiRenderer implements CanvasRenderer {
     }
     this.renderDocument();
     this.setGrid(this.gridEnabled, this.gridSize, this.gridColor);
+    this.renderSelection();
   }
 
   setSelection(elementIds: string[]): void {
     this.selection = new Set(elementIds);
+    console.debug("[PixiRenderer] Selection updated", { count: this.selection.size });
     this.renderSelection();
   }
 
