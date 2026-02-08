@@ -189,7 +189,7 @@ type ExportThreadPayload = {
 
 const MARKDOWN_THOUGHT_PREFIX = "**Thought:**";
 const MARKDOWN_UNSUPPORTED_PLACEHOLDER = "[unsupported content]";
-const DEFAULT_ROLE_LABEL = "Unknown";
+const DEFAULT_ROLE_LABEL = "Unspecified Role";
 const EMPTY_MESSAGE_PLACEHOLDER = "_(no content)_";
 const EMPTY_CONVERSATION_MESSAGE = "_No messages in this conversation._";
 
@@ -227,6 +227,13 @@ const formatMessageContent = (content: Message["content"]): string => {
           return "";
         }
         const typedItem = item as MessageContentItem;
+        const formatUnknownContent = (type?: string) => {
+          const typeLabel =
+            typeof type === "string" && type.trim().length > 0 ? type : null;
+          return typeLabel
+            ? `[${typeLabel}]`
+            : MARKDOWN_UNSUPPORTED_PLACEHOLDER;
+        };
         switch (typedItem.type) {
           case "text":
             return typedItem.text ?? "";
@@ -251,16 +258,7 @@ const formatMessageContent = (content: Message["content"]): string => {
               ? `[document](${typedItem.document.uri})`
               : "[document]";
           default:
-            {
-              const typeLabel =
-                typeof typedItem.type === "string" &&
-                typedItem.type.trim().length > 0
-                  ? typedItem.type
-                  : null;
-              return typeLabel
-                ? `[${typeLabel}]`
-                : MARKDOWN_UNSUPPORTED_PLACEHOLDER;
-            }
+            return formatUnknownContent(typedItem.type);
         }
       })
       .filter(Boolean)
