@@ -11,7 +11,6 @@ const fetchJobAssets = async (jobId: string) => {
       }
     }
   });
-  console.log("data", data);
 
   if (error) {
     throw createErrorMessage(error, "Failed to fetch job assets");
