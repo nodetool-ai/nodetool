@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, memo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -49,9 +49,9 @@ interface AssetDeleteConfirmationProps {
   assets: string[];
 }
 
-const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
+const AssetDeleteConfirmation = memo(function AssetDeleteConfirmation({
   assets
-}) => {
+}: AssetDeleteConfirmationProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [totalAssets, setTotalAssets] = useState(0);
   const [folderCount, setFolderCount] = useState(0);
@@ -228,6 +228,6 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       />
     </Dialog>
   );
-};
+});
 
 export default AssetDeleteConfirmation;

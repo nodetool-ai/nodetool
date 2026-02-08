@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, memo } from "react";
 import { StateIconButton } from "../ui_primitives";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 import log from "loglevel";
@@ -33,10 +33,10 @@ const isEyeDropperSupported = (): boolean => {
   return typeof window !== "undefined" && "EyeDropper" in window;
 };
 
-const EyedropperButton: React.FC<EyedropperButtonProps> = ({
+const EyedropperButton = memo(function EyedropperButton({
   onColorPicked,
   disabled = false
-}) => {
+}: EyedropperButtonProps) {
   const [isPicking, setIsPicking] = useState(false);
   const isSupported = isEyeDropperSupported();
 
@@ -87,7 +87,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
       })}
     />
   );
-};
+});
 
 export default EyedropperButton;
 export { isEyeDropperSupported };

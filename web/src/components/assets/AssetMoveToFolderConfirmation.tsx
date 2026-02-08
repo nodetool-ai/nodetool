@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, memo } from "react";
 import {
   Dialog,
   DialogActions,
@@ -21,10 +21,9 @@ interface AssetMoveToFolderConfirmationProps {
   assets: string[];
 }
 
-const AssetMoveToFolderConfirmation: React.FC<
-  AssetMoveToFolderConfirmationProps
-> = (props) => {
-  const { assets } = props;
+const AssetMoveToFolderConfirmation = memo(function AssetMoveToFolderConfirmation({
+  assets
+}: AssetMoveToFolderConfirmationProps) {
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
@@ -113,6 +112,6 @@ const AssetMoveToFolderConfirmation: React.FC<
       </DialogActions>
     </Dialog>
   );
-};
+});
 
 export default AssetMoveToFolderConfirmation;

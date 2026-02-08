@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, memo } from "react";
 import {
   Dialog,
   DialogActions,
@@ -23,10 +23,9 @@ interface AssetRenameConfirmationProps {
   assets: string[];
 }
 
-const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
-  props
-) => {
-  const { assets } = props;
+const AssetRenameConfirmation = memo(function AssetRenameConfirmation({
+  assets
+}: AssetRenameConfirmationProps) {
   const setDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
   const dialogOpen = useAssetGridStore((state) => state.renameDialogOpen);
   const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
@@ -248,6 +247,6 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       )}
     </>
   );
-};
+});
 
 export default AssetRenameConfirmation;
