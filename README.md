@@ -61,7 +61,7 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 | :--- | :--- | :--- |
 | **Windows** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 4GB+ VRAM (local AI), 20GB space |
 | **macOS** | [Download](https://nodetool.ai) | M1+ Apple Silicon, 16GB+ RAM (local AI) |
-| **Linux** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 4GB+ VRAM (local AI) |
+| **Linux** | [Download](https://nodetool.ai) • [Flatpak](electron/FLATPAK.md) | NVIDIA GPU recommended, 4GB+ VRAM (local AI) |
 
 *Cloud-only usage requires no GPU—just use API services.*
 
