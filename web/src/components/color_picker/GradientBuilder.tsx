@@ -107,7 +107,7 @@ const DEFAULT_GRADIENT: GradientValue = {
   ]
 };
 
-const GradientBuilder: React.FC<GradientBuilderProps> = ({
+const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
   gradient = DEFAULT_GRADIENT,
   onChange,
   currentColor
@@ -384,6 +384,8 @@ const GradientBuilder: React.FC<GradientBuilderProps> = ({
       <div className="css-output">{cssOutput}</div>
     </Box>
   );
-};
+});
+
+GradientBuilder.displayName = 'GradientBuilder';
 
 export default GradientBuilder;

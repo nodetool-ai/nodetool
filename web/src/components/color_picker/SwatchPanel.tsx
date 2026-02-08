@@ -108,7 +108,7 @@ interface SwatchPanelProps {
   onColorSelect: (color: string) => void;
 }
 
-const SwatchPanel: React.FC<SwatchPanelProps> = ({
+const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
   currentColor,
   onColorSelect
 }) => {
@@ -356,6 +356,8 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
       </Menu>
     </Box>
   );
-};
+});
+
+SwatchPanel.displayName = 'SwatchPanel';
 
 export default SwatchPanel;
