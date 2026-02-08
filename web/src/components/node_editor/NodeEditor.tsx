@@ -45,6 +45,7 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import NavigationModeIndicator from "./NavigationModeIndicator";
 
 declare global {
   interface Window {
@@ -169,6 +170,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 redo={() => nodeHistory.redo()}
                 reactFlowWrapper={reactFlowWrapperRef}
               />
+              <NavigationModeIndicator />
               <FindInWorkflowDialog workflowId={workflowId} />
               <Modal
                 open={showShortcuts}
