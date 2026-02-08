@@ -72,8 +72,13 @@ const styles = (theme: Theme) =>
 
 const Dashboard: React.FC = () => {
   const theme = useTheme();
-  const settings = useSettingsStore((state) => state.settings);
-  const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
+
+  // Combine multiple SettingsStore subscriptions into one for better performance
+  const { settings, setWorkflowOrder } = useSettingsStore((state) => ({
+    settings: state.settings,
+    setWorkflowOrder: state.setWorkflowOrder
+  }));
+
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
   // const [availablePanels, setAvailablePanels] = useState<any[]>([]);
   const [availablePanels, setAvailablePanels] = useState<PanelInfo[]>([]);
