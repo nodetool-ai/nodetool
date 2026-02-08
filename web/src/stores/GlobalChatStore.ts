@@ -225,7 +225,7 @@ const formatMessageContent = (content: Message["content"]): string => {
           case "text":
             return typedItem.text ?? "";
           case "thought":
-            return typedItem.text ? `\n> Thought: ${typedItem.text}\n` : "";
+            return typedItem.text ? `> Thought: ${typedItem.text}` : "";
           case "image_url":
             return typedItem.image?.uri
               ? `![image](${typedItem.image.uri})`
@@ -243,7 +243,9 @@ const formatMessageContent = (content: Message["content"]): string => {
               ? `[document](${typedItem.document.uri})`
               : "[document]";
           default:
-            return JSON.stringify(typedItem, null, 2);
+            return typedItem.type
+              ? `[${typedItem.type}]`
+              : "[unsupported content]";
         }
       })
       .filter(Boolean)
