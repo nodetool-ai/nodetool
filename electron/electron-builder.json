@@ -100,7 +100,8 @@
     },
     "linux": {
         "target": [
-            "AppImage"
+            "AppImage",
+            "deb"
         ],
         "category": "Development"
     },
