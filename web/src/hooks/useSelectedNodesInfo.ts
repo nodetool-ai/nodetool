@@ -7,7 +7,6 @@ import useMetadataStore from "../stores/MetadataStore";
 import { NodeMetadata } from "../stores/ApiTypes";
 import useResultsStore from "../stores/ResultsStore";
 import useErrorStore from "../stores/ErrorStore";
-import { shallow } from "zustand/shallow";
 
 interface NodeConnectionInfo {
   totalInputs: number;
