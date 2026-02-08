@@ -25,6 +25,15 @@ interface ClaudeAgentMessage {
   errors?: string[];
   subtype?: string;
   content?: Array<{ type: string; text?: string }>;
+  /** Tool calls in OpenAI-style format for NodeTool UI compatibility */
+  tool_calls?: Array<{
+    id: string;
+    type: string;
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }>;
 }
 
 /**
@@ -47,6 +56,25 @@ export function claudeAgentMessageToNodeToolMessage(
       if (contents.length === 0) {
         contents.push({ type: "text", text: "" });
       }
+
+      // Convert OpenAI-style tool_calls to NodeTool format
+      const toolCalls =
+        msg.tool_calls && msg.tool_calls.length > 0
+          ? msg.tool_calls.map((tc) => {
+              let args: Record<string, unknown> = {};
+              try {
+                args = JSON.parse(tc.function.arguments);
+              } catch {
+                // If parsing fails, leave args empty
+              }
+              return {
+                id: tc.id,
+                name: tc.function.name,
+                args,
+              };
+            })
+          : undefined;
+
       return {
         type: "message",
         id: msg.uuid,
@@ -55,7 +83,8 @@ export function claudeAgentMessageToNodeToolMessage(
         created_at: new Date().toISOString(),
         thread_id: msg.session_id,
         provider: "anthropic",
-        model: "claude-agent"
+        model: "claude-agent",
+        ...(toolCalls ? { tool_calls: toolCalls } : {}),
       };
     }
 

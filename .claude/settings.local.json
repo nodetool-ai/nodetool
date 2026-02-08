@@ -18,7 +18,8 @@
       "Bash(git commit:*)",
       "Bash(git merge-head:*)",
       "Bash(make:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(git rebase:*)"
     ],
     "deny": [],
     "ask": []

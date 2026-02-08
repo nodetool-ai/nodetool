@@ -1,14 +1,13 @@
+import { z } from "zod";
 import type { FrontendToolState } from "../frontendTools";
 
-export const optionalWorkflowIdSchema = {
-  anyOf: [{ type: "string" }, { type: "null" }],
-  description:
-    "Optional workflow id; when omitted/null, the current workflow is used."
-} as const;
+export const optionalWorkflowIdSchema = z
+  .string()
+  .nullable()
+  .optional()
+  .describe("Optional workflow id; when omitted/null, the current workflow is used.");
 
-export const optionalWorkflowIdSchemaCompact = {
-  anyOf: [{ type: "string" }, { type: "null" }]
-} as const;
+export const optionalWorkflowIdSchemaCompact = z.string().nullable().optional();
 
 export function resolveWorkflowId(
   state: FrontendToolState,
