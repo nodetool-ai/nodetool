@@ -127,6 +127,17 @@ function InputProperty(props: PropertyProps) {
 export function getComponentForProperty(
   property: Property
 ): React.ComponentType<PropertyProps> {
+  // If property has predefined values, treat it as an enum/select 
+  // regardless of base type (often comes as 'str' from dynamic schemas)
+  const hasValues = (property.type.values && property.type.values.length > 0) || 
+                    (property.type.type_args?.[0]?.values && property.type.type_args[0].values.length > 0) ||
+                    ((property as any).values && (property as any).values.length > 0) ||
+                    ((property as any).enum && (property as any).enum.length > 0);
+  
+  if (hasValues) {
+    return EnumProperty;
+  }
+
   if (property.json_schema_extra?.type) {
     return componentForType(property.json_schema_extra.type as string);
   } else {
@@ -229,10 +240,8 @@ function handleUnionType(
   return getComponentForProperty({
     ...property,
     type: {
+      ...property.type,
       type: reducedType,
-      optional: property.type.optional,
-      type_args: property.type.type_args,
-      type_name: property.type.type_name
     }
   });
 }

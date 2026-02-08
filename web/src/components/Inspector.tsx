@@ -487,11 +487,9 @@ const Inspector: React.FC = () => {
                     id={selectedNode.id}
                     value={value}
                     property={{
+                      ...dynamicInputMeta,
                       name,
                       type: resolvedType,
-                      description: dynamicInputMeta?.description,
-                      min: dynamicInputMeta?.min,
-                      max: dynamicInputMeta?.max
                     } as any}
                     propertyIndex={`dynamic-${index}`}
                     showHandle={false}
