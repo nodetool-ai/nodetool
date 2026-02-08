@@ -23,6 +23,7 @@ import ErrorBoundary from "./ErrorBoundary";
 import PanelLeft from "./components/panels/PanelLeft";
 import PanelRight from "./components/panels/PanelRight";
 import PanelBottom from "./components/panels/PanelBottom";
+import WorkflowErrorDrawer from "./components/panels/WorkflowErrorDrawer";
 import { CircularProgress } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
@@ -281,6 +282,7 @@ function getRoutes() {
                 <TabsNodeEditor />
                 <PanelRight />
                 <PanelBottom />
+                <WorkflowErrorDrawer />
                 <Alert />
               </div>
             </>

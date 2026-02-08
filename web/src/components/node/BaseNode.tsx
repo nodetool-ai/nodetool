@@ -19,6 +19,7 @@ import { Button, Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
+import { ErrorBadge } from "./ErrorBadge";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useErrorStore from "../../stores/ErrorStore";
@@ -519,6 +520,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
       {/* {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />} */}
       <NodeResizeHandle minWidth={150} minHeight={150} />
+      <ErrorBadge nodeId={id} workflowId={workflow_id} />
       <NodeHeader
         id={id}
         selected={selected}

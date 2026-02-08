@@ -11,6 +11,7 @@ import SettingsMenu from "../menus/SettingsMenu";
 import SystemStatsDisplay from "./SystemStats";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
+import ErrorPanelButton from "./ErrorPanelButton";
 import { isProduction } from "../../stores/ApiClient";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -55,6 +56,7 @@ const RightSideButtons: React.FC = () => {
         </>
       )}
       <NotificationButton />
+      <ErrorPanelButton />
       <Help open={helpOpen} handleClose={handleCloseHelp} />
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
