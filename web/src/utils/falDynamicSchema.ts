@@ -26,7 +26,7 @@ export interface ResolvedFalSchema {
 function sanitizeEndpointId(value: string): string {
   return value
     .trim()
-    .replace(/[)\]\}>.,;:]+$/, "")
+    .replace(/[)\]}>.,;:]+$/, "")
     .trim();
 }
 
