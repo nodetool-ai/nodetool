@@ -286,8 +286,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
     // effect dependency array minimal and prevents re-running this effect on every
     // render while dragging (which previously caused listener churn and could
     // contribute to deep update loops).
-    const moveHandler = handleMouseMove;
-    const upHandler = handleMouseUp;
+    const moveHandler = (e: MouseEvent) => handleMouseMove(e);
+    const upHandler = () => handleMouseUp();
 
     document.addEventListener("mousemove", moveHandler);
     document.addEventListener("mouseup", upHandler);
@@ -296,8 +296,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       document.removeEventListener("mousemove", moveHandler);
       document.removeEventListener("mouseup", upHandler);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isDragging]);
+  }, [state.isDragging, handleMouseMove, handleMouseUp]);
 
   // Track mouse position during drag
   useEffect(() => {
@@ -325,16 +324,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
       onContextMenu={handleContextMenu}
       tabIndex={-1}
     >
-      <EditableInput
-        value={state.localValue}
-        onChange={handleValueChange}
-        onBlur={() => handleBlur(true)}
-        onFocus={handleInputFocus}
-        isDefault={state.isDefault}
-        tabIndex={props.tabIndex}
-        onFocusChange={setInputIsFocused}
-        shouldFocus={inputIsFocused}
-      />
       <div id={props.id} className="slider-value nodrag" tabIndex={-1}>
         {props.hideLabel ? null : (
           <PropertyLabel
@@ -344,13 +333,25 @@ const NumberInput: React.FC<InputProps> = (props) => {
             showTooltip={!state.isDragging}
           />
         )}
-        {!inputIsFocused && (
-          <DisplayValue
-            value={props.value}
-            isFloat={props.inputType === "float"}
-            decimalPlaces={state.decimalPlaces}
+        <div className="value-container">
+          <EditableInput
+            value={state.localValue}
+            onChange={handleValueChange}
+            onBlur={() => handleBlur(true)}
+            onFocus={handleInputFocus}
+            isDefault={state.isDefault}
+            tabIndex={props.tabIndex}
+            onFocusChange={setInputIsFocused}
+            shouldFocus={inputIsFocused}
           />
-        )}
+          {!inputIsFocused && (
+            <DisplayValue
+              value={props.value}
+              isFloat={props.inputType === "float"}
+              decimalPlaces={state.decimalPlaces}
+            />
+          )}
+        </div>
       </div>
       {sliderVisible &&
         typeof props.min === "number" &&
@@ -380,6 +381,8 @@ export default memo(NumberInput, (prevProps, nextProps) => {
     prevProps.inputType === nextProps.inputType &&
     prevProps.hideLabel === nextProps.hideLabel &&
     prevProps.showSlider === nextProps.showSlider &&
-    prevProps.changed === nextProps.changed
+    prevProps.changed === nextProps.changed &&
+    prevProps.onChange === nextProps.onChange &&
+    prevProps.onChangeComplete === nextProps.onChangeComplete
   );
 });

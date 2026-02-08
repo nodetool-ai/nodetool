@@ -16,6 +16,8 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import KeyboardVoiceIcon from "@mui/icons-material/KeyboardVoice";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
+import ApiIcon from "@mui/icons-material/Api";
+import { DYNAMIC_FAL_NODE_TYPE } from "../node/DynamicFalSchemaNode";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -135,6 +137,20 @@ export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
     hoverShadow:
       "0 8px 24px rgba(14, 165, 233, 0.35), 0 0 16px rgba(56, 189, 248, 0.25)",
     iconColor: "#e0f2fe"
+  },
+  {
+    key: "fal-dynamic",
+    label: "FalAI",
+    nodeType: DYNAMIC_FAL_NODE_TYPE,
+    icon: <ApiIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(124, 58, 237, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(139, 92, 246, 0.6), rgba(167, 139, 250, 0.5))",
+    shadow: "0 4px 12px rgba(139, 92, 246, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(139, 92, 246, 0.35), 0 0 16px rgba(167, 139, 250, 0.25)",
+    iconColor: "#e9d5ff"
   }
 ];
 
