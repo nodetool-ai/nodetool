@@ -25,6 +25,7 @@ export type PropertyFieldProps = {
   isInspector?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  hideActionIcons?: boolean;
   data: NodeData;
   onValueChange?: (value: any) => void;
 };
@@ -43,6 +44,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   isInspector,
   tabIndex,
   isDynamicProperty,
+  hideActionIcons,
   data,
   onValueChange
 }) => {
@@ -125,6 +127,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             isInspector={isInspector}
             tabIndex={tabIndex}
             isDynamicProperty={isDynamicProperty}
+            hideActionIcons={hideActionIcons}
             data={data}
             onValueChange={onValueChange}
           />

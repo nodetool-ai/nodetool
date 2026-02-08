@@ -447,18 +447,22 @@ const Inspector: React.FC = () => {
             {/* Dynamic properties, if any */}
             {Object.entries(selectedNode.data.dynamic_properties || {}).map(
               ([name, value], index) => {
-                // Infer type from incoming edge
+                // Infer type from incoming edge or dynamic_inputs metadata
                 const incoming = edges.find(
                   (edge) =>
                     edge.target === selectedNode.id &&
                     edge.targetHandle === name
                 );
-                let resolvedType: TypeMetadata = {
+
+                const dynamicInputMeta = selectedNode.data.dynamic_inputs?.[name];
+
+                let resolvedType: TypeMetadata = (dynamicInputMeta as TypeMetadata) || {
                   type: "any",
                   type_args: [],
                   optional: false
                 } as any;
-                if (incoming) {
+
+                if (incoming && !dynamicInputMeta) {
                   const sourceNode = findNode(incoming.source);
                   if (sourceNode) {
                     const sourceMeta = getMetadata(sourceNode.type || "");
@@ -474,12 +478,19 @@ const Inspector: React.FC = () => {
                     }
                   }
                 }
+
+                const isFalNode = selectedNode.type === "fal.dynamic_schema.FalAI";
+
                 return (
                   <PropertyField
                     key={`inspector-dynamic-${name}-${selectedNode.id}`}
                     id={selectedNode.id}
                     value={value}
-                    property={{ name, type: resolvedType } as any}
+                    property={{
+                      name,
+                      type: resolvedType,
+                      description: dynamicInputMeta?.description
+                    } as any}
                     propertyIndex={`dynamic-${index}`}
                     showHandle={false}
                     isInspector={true}
@@ -487,6 +498,7 @@ const Inspector: React.FC = () => {
                     data={selectedNode.data}
                     layout=""
                     isDynamicProperty={true}
+                    hideActionIcons={isFalNode}
                   />
                 );
               }
