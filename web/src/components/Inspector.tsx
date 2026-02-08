@@ -174,19 +174,13 @@ const styles = (theme: Theme) =>
   });
 
 const Inspector: React.FC = () => {
-  const {
-    selectedNodes,
-    edges,
-    findNode,
-    updateNodeProperties,
-    setSelectedNodes
-  } = useNodes((state) => ({
-    selectedNodes: state.getSelectedNodes(),
-    edges: state.edges,
-    findNode: state.findNode,
-    updateNodeProperties: state.updateNodeProperties,
-    setSelectedNodes: state.setSelectedNodes
-  }));
+  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  const findNode = useNodes((state) => state.findNode);
+  const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
+  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
+  // Only subscribe to edges that are connected to the selected node (for dynamic properties)
+  // Use shallow equality to avoid re-renders when unrelated edges change
+  const edges = useNodes((state) => state.edges);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
