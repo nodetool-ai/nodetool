@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useState, memo } from "react";
+import React, { useCallback, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -219,6 +219,90 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
     [handleLoadPreset]
   );
 
+  // Memoize recent colors rendering to prevent unnecessary re-renders
+  const recentColorsContent = useMemo(() => {
+    if (recentColors.length === 0) {
+      return <Typography className="empty-message">No recent colors</Typography>;
+    }
+
+    return recentColors.map((color, index) => (
+      <Tooltip key={index} title={color}>
+        <div
+          className="color-swatch"
+          style={{ backgroundColor: color }}
+          onClick={handleRecentColorClick(color)}
+        />
+      </Tooltip>
+    ));
+  }, [recentColors, handleRecentColorClick]);
+
+  // Memoize saved swatches rendering
+  const savedSwatchesContent = useMemo(() => {
+    return swatches.map((swatch) => (
+      <Tooltip key={swatch.id} title={swatch.name || swatch.color}>
+        <div
+          className="color-swatch"
+          style={{ backgroundColor: swatch.color }}
+          onClick={handleSwatchColorClick(swatch.color)}
+          onContextMenu={(e) => handleSwatchContextMenu(e, swatch.id)}
+        />
+      </Tooltip>
+    ));
+  }, [swatches, handleSwatchColorClick, handleSwatchContextMenu]);
+
+  // Memoize user palettes rendering
+  const userPalettesContent = useMemo(() => {
+    if (palettes.length === 0) {
+      return null;
+    }
+
+    return palettes.map((palette) => (
+      <div key={palette.id} className="palette-section">
+        <div className="palette-header">
+          <Typography className="palette-name">{palette.name}</Typography>
+          <IconButton size="small" onClick={handlePaletteRemove(palette.id)}>
+            <DeleteIcon sx={{ fontSize: 12 }} />
+          </IconButton>
+        </div>
+        <div className="color-grid">
+          {palette.colors.map((color, index) => (
+            <Tooltip key={index} title={color}>
+              <div
+                className="color-swatch"
+                style={{ backgroundColor: color }}
+                onClick={handlePaletteColorClick(color)}
+              />
+            </Tooltip>
+          ))}
+        </div>
+      </div>
+    ));
+  }, [palettes, handlePaletteRemove, handlePaletteColorClick]);
+
+  // Memoize preset palettes menu items
+  const presetPalettesContent = useMemo(() => {
+    return PRESET_PALETTES.map((palette) => (
+      <MenuItem key={palette.id} onClick={handleLoadPresetPalette(palette)}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography variant="body2">{palette.name}</Typography>
+          <Box sx={{ display: "flex", gap: 0.25 }}>
+            {palette.colors.slice(0, 6).map((color, i) => (
+              <Box
+                key={i}
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 0.5,
+                  backgroundColor: color
+                }}
+              />
+            ))}
+          </Box>
+        </Box>
+      </MenuItem>
+    ));
+  }, [handleLoadPresetPalette]);
+
   return (
     <Box css={styles(theme)}>
       {/* Recent Colors */}
@@ -234,19 +318,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
           )}
         </div>
         <div className="color-grid">
-          {recentColors.length > 0 ? (
-            recentColors.map((color, index) => (
-              <Tooltip key={index} title={color}>
-                <div
-                  className="color-swatch"
-                  style={{ backgroundColor: color }}
-                  onClick={handleRecentColorClick(color)}
-                />
-              </Tooltip>
-            ))
-          ) : (
-            <Typography className="empty-message">No recent colors</Typography>
-          )}
+          {recentColorsContent}
         </div>
       </div>
 
@@ -256,16 +328,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
           <Typography className="section-title">Saved</Typography>
         </div>
         <div className="color-grid">
-          {swatches.map((swatch) => (
-            <Tooltip key={swatch.id} title={swatch.name || swatch.color}>
-              <div
-                className="color-swatch"
-                style={{ backgroundColor: swatch.color }}
-                onClick={handleSwatchColorClick(swatch.color)}
-                onContextMenu={(e) => handleSwatchContextMenu(e, swatch.id)}
-              />
-            </Tooltip>
-          ))}
+          {savedSwatchesContent}
           <Tooltip title="Save current color">
             <div className="add-swatch-button" onClick={handleAddSwatch}>
               <AddIcon sx={{ fontSize: 16 }} />
@@ -280,27 +343,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
           <div className="section-header">
             <Typography className="section-title">Palettes</Typography>
           </div>
-          {palettes.map((palette) => (
-            <div key={palette.id} className="palette-section">
-              <div className="palette-header">
-                <Typography className="palette-name">{palette.name}</Typography>
-                <IconButton size="small" onClick={handlePaletteRemove(palette.id)}>
-                  <DeleteIcon sx={{ fontSize: 12 }} />
-                </IconButton>
-              </div>
-              <div className="color-grid">
-                {palette.colors.map((color, index) => (
-                  <Tooltip key={index} title={color}>
-                    <div
-                      className="color-swatch"
-                      style={{ backgroundColor: color }}
-                      onClick={handlePaletteColorClick(color)}
-                    />
-                  </Tooltip>
-                ))}
-              </div>
-            </div>
-          ))}
+          {userPalettesContent}
         </div>
       )}
 
@@ -321,26 +364,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
           open={Boolean(presetsMenuAnchor)}
           onClose={handlePresetsMenuClose}
         >
-          {PRESET_PALETTES.map((palette) => (
-            <MenuItem key={palette.id} onClick={handleLoadPresetPalette(palette)}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="body2">{palette.name}</Typography>
-                <Box sx={{ display: "flex", gap: 0.25 }}>
-                  {palette.colors.slice(0, 6).map((color, i) => (
-                    <Box
-                      key={i}
-                      sx={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: 0.5,
-                        backgroundColor: color
-                      }}
-                    />
-                  ))}
-                </Box>
-              </Box>
-            </MenuItem>
-          ))}
+          {presetPalettesContent}
         </Menu>
       </div>
 

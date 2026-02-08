@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { Box, Paper, InputAdornment } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import { client } from "../../stores/ApiClient";
@@ -122,4 +122,7 @@ const WorkflowGenerator: React.FC = () => {
   );
 };
 
-export default WorkflowGenerator;
+const WorkflowGeneratorMemo = memo(WorkflowGenerator);
+WorkflowGeneratorMemo.displayName = "WorkflowGenerator";
+
+export default WorkflowGeneratorMemo;
