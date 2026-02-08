@@ -306,6 +306,7 @@ export type PropertyInputProps = {
   isInspector?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  hideActionIcons?: boolean;
   onValueChange?: (value: any) => void;
 };
 
@@ -319,6 +320,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   controlKeyPressed,
   tabIndex,
   isDynamicProperty,
+  hideActionIcons,
   isInspector,
   onValueChange
 }: PropertyInputProps) => {
@@ -554,7 +556,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       onDoubleClick={handleDoubleClick}
     >
       {inputField}
-      {isDynamicProperty && (
+      {isDynamicProperty && !hideActionIcons && (
         <div className="action-icons">
           <Edit
             className="action-icon"
