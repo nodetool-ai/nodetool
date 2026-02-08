@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import DynamicOutputItem from "./DynamicOutputItem";
 import { Property, OutputSlot } from "../../stores/ApiTypes";
 import {
@@ -51,16 +51,23 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
     required: false
   }));
 
-  const dynamicOutputs: OutputItem[] = Object.entries(
-    node?.data?.dynamic_outputs || {}
-  ).map(([name, typeMetadata]) => ({
-    name,
-    type: typeMetadata,
-    isDynamic: true,
-    required: false
-  }));
+  const dynamicOutputs: OutputItem[] = useMemo(
+    () =>
+      Object.entries(node?.data?.dynamic_outputs || {}).map(
+        ([name, typeMetadata]) => ({
+          name,
+          type: typeMetadata,
+          isDynamic: true,
+          required: false
+        })
+      ),
+    [node?.data?.dynamic_outputs]
+  );
 
-  const allOutputs: OutputItem[] = [...staticOutputs, ...dynamicOutputs];
+  const allOutputs: OutputItem[] = useMemo(
+    () => [...staticOutputs, ...dynamicOutputs],
+    [staticOutputs, dynamicOutputs]
+  );
 
   const onStartEdit = useCallback(
     (name: string) => {
