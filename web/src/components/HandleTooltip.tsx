@@ -11,6 +11,26 @@ const RIGHT_OFFSET_X = 32;
 const Y_OFFSET = -20;
 const ENTER_DELAY = 600;
 
+const isRenderableValue = (value: unknown): boolean => {
+  if (value === undefined || value === null) {
+    return false;
+  }
+  if (typeof value === "string" && value.trim() === "") {
+    return false;
+  }
+  if (Array.isArray(value) && value.length === 0) {
+    return false;
+  }
+  if (
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value).length === 0
+  ) {
+    return false;
+  }
+  return true;
+};
+
 /**
  * Checks if a TypeMetadata is a union of float and int (in any order)
  * and returns "number" if so, otherwise returns the formatted type string.
@@ -80,25 +100,7 @@ const HandleTooltip = memo(function HandleTooltip({
   // since both float and int use the same color
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
 
-  const hasRenderableValue = useMemo(() => {
-    if (value === undefined || value === null) {
-      return false;
-    }
-    if (typeof value === "string" && value.trim() === "") {
-      return false;
-    }
-    if (Array.isArray(value) && value.length === 0) {
-      return false;
-    }
-    if (
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      Object.keys(value).length === 0
-    ) {
-      return false;
-    }
-    return true;
-  }, [value]);
+  const hasRenderableValue = useMemo(() => isRenderableValue(value), [value]);
 
   const handleMouseEnter = useCallback(() => {
     const position = getMousePosition();

@@ -114,31 +114,30 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
     output.name
   ]);
 
-  const outputValue = useResultsStore(
-    useMemo(
-      () => (state) => {
-        if (!workflowId) {
-          return undefined;
+  const selectOutputValue = useCallback(
+    (state: ReturnType<typeof useResultsStore.getState>) => {
+      if (!workflowId) {
+        return undefined;
+      }
+      const result =
+        state.getOutputResult(workflowId, id) ?? state.getResult(workflowId, id);
+      if (result === undefined) {
+        return undefined;
+      }
+      if (typeof result === "object" && result !== null) {
+        if (output.name in result) {
+          return (result as Record<string, unknown>)[output.name];
         }
-        const result =
-          state.getOutputResult(workflowId, id) ??
-          state.getResult(workflowId, id);
-        if (result === undefined) {
-          return undefined;
+        if ("output" in result) {
+          return (result as { output?: unknown }).output;
         }
-        if (typeof result === "object" && result !== null) {
-          if (output.name in result) {
-            return (result as Record<string, unknown>)[output.name];
-          }
-          if ("output" in result) {
-            return (result as { output?: unknown }).output;
-          }
-        }
-        return result;
-      },
-      [workflowId, id, output.name]
-    )
+      }
+      return result;
+    },
+    [workflowId, id, output.name]
   );
+
+  const outputValue = useResultsStore(selectOutputValue);
 
   return (
     <div className="output-handle-container">
