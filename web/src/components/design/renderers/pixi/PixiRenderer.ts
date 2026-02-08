@@ -91,6 +91,7 @@ export default class PixiRenderer implements CanvasRenderer {
     this.selectionOutline = new Graphics();
     this.selectionHandles = new Container();
 
+    this.root.sortableChildren = true;
     this.elementContainer.sortableChildren = true;
     this.elementContainer.eventMode = "static";
     this.elementContainer.interactiveChildren = true;
@@ -100,6 +101,11 @@ export default class PixiRenderer implements CanvasRenderer {
     this.selectionHandles.eventMode = "passive";
     this.selectionHandles.interactiveChildren = true;
     this.root.interactiveChildren = true;
+
+    this.gridContainer.zIndex = 0;
+    this.elementContainer.zIndex = 1;
+    this.selectionContainer.zIndex = 2;
+    this.guidesContainer.zIndex = 3;
 
     this.root.addChild(this.gridContainer);
     this.root.addChild(this.elementContainer);
@@ -250,7 +256,7 @@ export default class PixiRenderer implements CanvasRenderer {
     const lineColor = parseHexColor(color);
     const grid = new Graphics();
     const scale = Math.max(this.zoom, 0.01);
-    const minSpacing = 32;
+    const minSpacing = 48;
     let step = size;
     while (step * scale < minSpacing) {
       step *= 2;
