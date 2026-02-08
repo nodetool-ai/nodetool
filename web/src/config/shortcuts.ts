@@ -198,6 +198,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Exit fullscreen mode",
     registerCombo: false
   },
+  {
+    title: "Open Help",
+    slug: "openHelp",
+    keyCombo: ["Control", "Shift", "?"],
+    category: "panel",
+    description: "Open Help dialog with keyboard shortcuts",
+    registerCombo: true
+  },
   // ---------- NODES -------------------------------------------------------
   {
     title: "Copy",
