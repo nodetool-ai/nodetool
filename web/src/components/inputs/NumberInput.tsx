@@ -286,8 +286,8 @@ const NumberInput: React.FC<InputProps> = (props) => {
     // effect dependency array minimal and prevents re-running this effect on every
     // render while dragging (which previously caused listener churn and could
     // contribute to deep update loops).
-    const moveHandler = handleMouseMove;
-    const upHandler = handleMouseUp;
+    const moveHandler = (e: MouseEvent) => handleMouseMove(e);
+    const upHandler = () => handleMouseUp();
 
     document.addEventListener("mousemove", moveHandler);
     document.addEventListener("mouseup", upHandler);
@@ -296,8 +296,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       document.removeEventListener("mousemove", moveHandler);
       document.removeEventListener("mouseup", upHandler);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isDragging]);
+  }, [state.isDragging, handleMouseMove, handleMouseUp]);
 
   // Track mouse position during drag
   useEffect(() => {
@@ -382,6 +381,8 @@ export default memo(NumberInput, (prevProps, nextProps) => {
     prevProps.inputType === nextProps.inputType &&
     prevProps.hideLabel === nextProps.hideLabel &&
     prevProps.showSlider === nextProps.showSlider &&
-    prevProps.changed === nextProps.changed
+    prevProps.changed === nextProps.changed &&
+    prevProps.onChange === nextProps.onChange &&
+    prevProps.onChangeComplete === nextProps.onChangeComplete
   );
 });

@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState, useEffect } from "react";
+import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
@@ -36,36 +36,52 @@ const ImageSizeProperty = (props: PropertyProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const valueRef = useRef(safeValue);
+  valueRef.current = safeValue;
+  const lockedRef = useRef(locked);
+  lockedRef.current = locked;
+  const ratioRef = useRef(aspectRatio);
+  ratioRef.current = aspectRatio;
+
+  // No need for aspectRatio state that can get stale, just use safeValue directly in handlers if possible,
+  // or ensure handlers close over the latest safeValue.
+  // Actually, keeping the ratio captured at lock time is standard, but we must ensure
+  // the handlers see it.
+
   useEffect(() => {
-    if (safeValue.width && safeValue.height) {
+    // Keep ratio in sync while NOT locked
+    if (!locked && safeValue.width && safeValue.height) {
         setAspectRatio(safeValue.width / safeValue.height);
     }
-  }, []); 
+  }, [safeValue.width, safeValue.height, locked]); 
 
   const toggleLock = () => {
-    if (!locked) {
+    // Ensure we have current ratio right when locking
+    if (!locked && safeValue.width && safeValue.height) {
         setAspectRatio(safeValue.width / safeValue.height);
     }
     setLocked(!locked);
   };
 
   const handleWidthChange = useCallback((_: any, val: number) => {
-    if (locked) {
-        const newHeight = Math.round(val / aspectRatio);
-        onChange({ ...safeValue, width: val, height: newHeight, preset: undefined });
+    const current = valueRef.current;
+    if (lockedRef.current) {
+        const newHeight = Math.round(val / ratioRef.current);
+        onChange({ ...current, width: val, height: newHeight, preset: undefined });
     } else {
-        onChange({ ...safeValue, width: val, preset: undefined });
+        onChange({ ...current, width: val, preset: undefined });
     }
-  }, [onChange, safeValue, locked, aspectRatio]);
+  }, [onChange]);
 
   const handleHeightChange = useCallback((_: any, val: number) => {
-    if (locked) {
-        const newWidth = Math.round(val * aspectRatio);
-        onChange({ ...safeValue, height: val, width: newWidth, preset: undefined });
+    const current = valueRef.current;
+    if (lockedRef.current) {
+        const newWidth = Math.round(val * ratioRef.current);
+        onChange({ ...current, height: val, width: newWidth, preset: undefined });
     } else {
-        onChange({ ...safeValue, height: val, preset: undefined });
+        onChange({ ...current, height: val, preset: undefined });
     }
-  }, [onChange, safeValue, locked, aspectRatio]);
+  }, [onChange]);
 
   const handlePresetClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
