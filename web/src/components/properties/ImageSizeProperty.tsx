@@ -103,153 +103,176 @@ const ImageSizeProperty = (props: PropertyProps) => {
     return groups;
   }, [searchQuery]);
 
+  // Find matching preset
+  const matchedPreset = useMemo(() => {
+    return PRESETS.find(p => p.width === safeValue.width && p.height === safeValue.height);
+  }, [safeValue.width, safeValue.height]);
+
   if (isConnected) {
     return null;
   }
 
   return (
-    <Box className="image-size-property" sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', mt: 0.5 }}>
-      <Box className="width-input-container" sx={{ width: '70px', mr: 4 }}>
-        <NumberInput 
-            id={`${nodeId}-${property.name}-width`}
-            nodeId={nodeId}
-            name="W"
-            value={safeValue.width}
-            onChange={handleWidthChange}
-            min={1}
-            inputType="int"
-            size="small"
-            tabIndex={tabIndex}
-            hideLabel={false}
-        />
-      </Box>
-      
-      <Box className="height-input-container" sx={{ width: '70px' }}>
-        <NumberInput 
-            id={`${nodeId}-${property.name}-height`}
-            nodeId={nodeId}
-            name="H"
-            value={safeValue.height}
-            onChange={handleHeightChange}
-            min={1}
-            inputType="int"
-            size="small"
-            tabIndex={tabIndex}
-            hideLabel={false}
-        />
-      </Box>
-
-      <Box sx={{ flex: 1 }} />
-
-      <IconButton 
-        className="aspect-lock-button"
-        onClick={toggleLock} 
-        size="small" 
-        sx={{ 
-            p: 0.5,
-            color: locked ? 'primary.main' : 'text.secondary',
-            alignSelf: 'center',
-        }}
-        title={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
-      >
-        {locked ? <Lock sx={{ fontSize: '1rem' }} /> : <LockOpen sx={{ fontSize: '1rem' }} />}
-      </IconButton>
-
-      <IconButton 
-        className="presets-menu-button"
-        onClick={handlePresetClick}
-        size="small"
-        sx={{ 
-            p: 0.5,
-            color: 'text.secondary',
-            alignSelf: 'center',
-        }}
-        title="Presets"
-      >
-        <MoreVert sx={{ fontSize: '1.2rem' }} />
-      </IconButton>
-
-      <Menu
-        className="presets-menu"
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleClose}
-        disableAutoFocusItem
-        PaperProps={{
-          sx: {
-            maxHeight: 450,
-            width: '300px',
-            backgroundColor: 'background.paper',
-            '& .MuiList-root': {
-              paddingTop: 0
-            },
-            '& .MuiListSubheader-root': {
-              lineHeight: '32px',
-              backgroundColor: '#1E1E1E', // Match theme background exactly
-              backgroundImage: 'none', // Remove gradients that might cause transparency issues
-              fontWeight: 'bold',
-              color: 'primary.light',
-              position: 'sticky',
-              top: '56px', // Align below the search box
-              zIndex: 10,  // Higher z-index to stay above menu items
-            }
-          }
-        }}
-      >
-        <Box className="presets-search-container" sx={{ 
-          p: 1, 
-          position: 'sticky', 
-          top: 0, 
-          backgroundColor: '#1E1E1E', 
-          zIndex: 11, 
-          borderBottom: '1px solid rgba(255,255,255,0.1)' 
-        }}>
-          <TextField
-            className="presets-search-field"
-            fullWidth
-            size="small"
-            placeholder="Search presets..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            autoFocus
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search sx={{ fontSize: '1rem' }} />
-                </InputAdornment>
-              ),
-              sx: { fontSize: '0.8125rem' }
-            }}
+    <Box className="image-size-property-container" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      <Box className="image-size-property" sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', mt: 0.5 }}>
+        <Box className="width-input-container" sx={{ width: '70px', mr: 4 }}>
+          <NumberInput 
+              id={`${nodeId}-${property.name}-width`}
+              nodeId={nodeId}
+              name="W"
+              value={safeValue.width}
+              onChange={handleWidthChange}
+              min={1}
+              inputType="int"
+              size="small"
+              tabIndex={tabIndex}
+              hideLabel={false}
           />
         </Box>
-        <Box className="presets-list-container" sx={{ mt: 0 }}>
-          {Object.entries(filteredGroupedPresets).length === 0 ? (
-            <MenuItem disabled sx={{ fontSize: '0.8125rem' }}>No presets found</MenuItem>
-          ) : (
-            Object.entries(filteredGroupedPresets).map(([category, items]) => (
-              <Box key={category} className="presets-category-group">
-                <ListSubheader className="presets-category-header">{category}</ListSubheader>
-                {items.map((preset) => (
-                  <MenuItem 
-                    className="preset-menu-item"
-                    key={`${preset.width}x${preset.height}-${preset.label}`}
-                    onClick={() => handlePresetSelect(preset)}
-                    selected={safeValue.width === preset.width && safeValue.height === preset.height}
-                    sx={{ py: 0.5 }}
-                  >
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                      <Box sx={{ fontSize: '0.875rem' }}>{preset.label} ({preset.aspectRatio})</Box>
-                      {preset.description && (
-                        <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{preset.description}</Box>
-                      )}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Box>
-            ))
-          )}
+        
+        <Box className="height-input-container" sx={{ width: '70px' }}>
+          <NumberInput 
+              id={`${nodeId}-${property.name}-height`}
+              nodeId={nodeId}
+              name="H"
+              value={safeValue.height}
+              onChange={handleHeightChange}
+              min={1}
+              inputType="int"
+              size="small"
+              tabIndex={tabIndex}
+              hideLabel={false}
+          />
         </Box>
-      </Menu>
+
+        <Box className="spacer" sx={{ flex: 1 }} />
+        <Box className="icon-container" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: -2 }}>  
+          <IconButton 
+            className="aspect-lock-button"
+            onClick={toggleLock} 
+            size="small" 
+            sx={{ 
+                p: 0.5,
+                color: locked ? 'primary.main' : 'text.secondary',
+                alignSelf: 'center',
+            }}
+            title={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
+          >
+            {locked ? <Lock sx={{ fontSize: '1rem' }} /> : <LockOpen sx={{ fontSize: '1rem' }} />}
+          </IconButton>
+
+          <IconButton 
+            className="presets-menu-button"
+            onClick={handlePresetClick}
+            size="small"
+            sx={{ 
+                p: 0.5,
+                color: 'text.secondary',
+                alignSelf: 'center',
+            }}
+            title="Presets"
+          >
+            <MoreVert sx={{ fontSize: '1.2rem' }} />
+          </IconButton>
+        </Box>
+
+        <Menu
+          className="presets-menu"
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleClose}
+          disableAutoFocusItem
+          PaperProps={{
+            sx: {
+              maxHeight: 450,
+              width: '300px',
+              backgroundColor: 'background.paper',
+              '& .MuiList-root': {
+                paddingTop: 0
+              },
+              '& .MuiListSubheader-root': {
+                lineHeight: '32px',
+                backgroundColor: '#1E1E1E', // Match theme background exactly
+                backgroundImage: 'none', // Remove gradients that might cause transparency issues
+                fontWeight: 'bold',
+                color: 'primary.light',
+                position: 'sticky',
+                top: '56px', // Align below the search box
+                zIndex: 10,  // Higher z-index to stay above menu items
+              }
+            }
+          }}
+        >
+          <Box className="presets-search-container" sx={{ 
+            p: 1, 
+            position: 'sticky', 
+            top: 0, 
+            backgroundColor: '#1E1E1E', 
+            zIndex: 11, 
+            borderBottom: '1px solid rgba(255,255,255,0.1)' 
+          }}>
+            <TextField
+              className="presets-search-field"
+              fullWidth
+              size="small"
+              placeholder="Search presets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ fontSize: '1rem' }} />
+                  </InputAdornment>
+                ),
+                sx: { fontSize: '0.8125rem' }
+              }}
+            />
+          </Box>
+          <Box className="presets-list-container" sx={{ mt: 0 }}>
+            {Object.entries(filteredGroupedPresets).length === 0 ? (
+              <MenuItem disabled sx={{ fontSize: '0.8125rem' }}>No presets found</MenuItem>
+            ) : (
+              Object.entries(filteredGroupedPresets).map(([category, items]) => (
+                <Box key={category} className="presets-category-group">
+                  <ListSubheader className="presets-category-header">{category}</ListSubheader>
+                  {items.map((preset) => (
+                    <MenuItem 
+                      className="preset-menu-item"
+                      key={`${preset.width}x${preset.height}-${preset.label}`}
+                      onClick={() => handlePresetSelect(preset)}
+                      selected={safeValue.width === preset.width && safeValue.height === preset.height}
+                      sx={{ py: 0.5 }}
+                    >
+                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ fontSize: '0.875rem' }}>{preset.label} ({preset.aspectRatio})</Box>
+                        {preset.description && (
+                          <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{preset.description}</Box>
+                        )}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Box>
+              ))
+            )}
+          </Box>
+        </Menu>
+      </Box>
+      {matchedPreset && (
+        <Box 
+            className="matched-preset-label"
+            sx={{ 
+                fontSize: 'var(--fontSizeTiny)', 
+                color: 'text.secondary', 
+                mt: -0.5,
+                lineHeight: 1,
+                userSelect: 'none',
+                pointerEvents: 'none'
+            }}
+        >
+          {matchedPreset.label}
+        </Box>
+      )}
     </Box>
   );
 };

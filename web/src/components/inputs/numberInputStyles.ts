@@ -79,14 +79,20 @@ export const numberInputStyles = (theme: Theme) =>
     // },
 
     ".slider-value .value": {
-      position: "relative",
+      display: "flex", // Use flex to match input
+      alignItems: "center", // Center text vertically
       color: theme.vars.palette.grey[100],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      lineHeight: "20px", // Match container height
+      lineHeight: "20px",
+      height: "20px",
       textAlign: "left",
       flexShrink: 0,
-      minWidth: "30px"
+      minWidth: "30px",
+      letterSpacing: "normal",
+      fontWeight: 400,
+      padding: 0,
+      marginTop: "-6px"
     },
 
     // Changed state: value differs from default
@@ -95,6 +101,8 @@ export const numberInputStyles = (theme: Theme) =>
     },
 
     ".edit-value": {
+      display: "flex",
+      alignItems: "center",
       outline: "none",
       color: theme.vars.palette.grey[100] + " !important",
       backgroundColor: "transparent",
@@ -102,12 +110,18 @@ export const numberInputStyles = (theme: Theme) =>
       borderRadius: 0,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      lineHeight: "20px", // Match container height exactly
-      margin: 0,
-      padding: 0,
+      lineHeight: "20px !important",
+      height: "20px !important",
+      marginLeft: "1.25em !important",
+      marginTop: "-6px !important",
+      padding: "0 !important",
       textAlign: "left",
       maxWidth: "100px",
-      zIndex: 10
+      zIndex: 10,
+      letterSpacing: "normal",
+      fontWeight: 400,
+      appearance: "none",
+      boxShadow: "none"
     },
 
     ".editable-input-container": {
