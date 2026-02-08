@@ -23,11 +23,12 @@ import { useNodes } from "../../contexts/NodeContext";
 /**
  * Maps a type to the corresponding input and constant node type paths.
  * Returns null for types that don't have corresponding nodes.
+ * sourceHandle is optional - defaults to "output" if not specified.
  */
 const getNodePathsForType = (
   typeName: string
-): { inputPath: string; constantPath: string } | null => {
-  const mapping: Record<string, { inputPath: string; constantPath: string }> = {
+): { inputPath: string; constantPath: string; sourceHandle?: string } | null => {
+  const mapping: Record<string, { inputPath: string; constantPath: string; sourceHandle?: string }> = {
     str: {
       inputPath: "nodetool.input.StringInput",
       constantPath: "nodetool.constant.String"
@@ -96,6 +97,12 @@ const getNodePathsForType = (
     embedding_model: {
       inputPath: "nodetool.input.EmbeddingModelInput",
       constantPath: "nodetool.constant.EmbeddingModelConstant"
+    },
+    // Size types
+    image_size: {
+      inputPath: "nodetool.input.ImageSizeInput",
+      constantPath: "nodetool.constant.ImageSize",
+      sourceHandle: "image_size"
     }
   };
   return mapping[typeName] ?? null;
@@ -288,7 +295,7 @@ const InputContextMenu: React.FC = () => {
         id: generateEdgeId(),
         source: newNode.id,
         target: nodeId || "",
-        sourceHandle: "output",
+        sourceHandle: nodePaths?.sourceHandle ?? "output",
         targetHandle: handleId,
         type: "default",
         className: Slugify(type?.type || "")
@@ -306,7 +313,8 @@ const InputContextMenu: React.FC = () => {
       handleId,
       type,
       isEnumType,
-      setEdges
+      setEdges,
+      nodePaths?.sourceHandle
     ]
   );
 
