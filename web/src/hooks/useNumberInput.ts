@@ -213,7 +213,10 @@ export const useDragHandling = (
       setInputIsFocused,
       containerRef,
       setSpeedFactorState,
-      dragStateRef
+      dragStateRef,
+      props.max,
+      props.min,
+      props.inputType
     ]
   );
 
