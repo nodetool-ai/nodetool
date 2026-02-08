@@ -56,6 +56,7 @@ import {
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 
 import log from "loglevel";
 import Alert from "./components/node_editor/Alert";
@@ -334,6 +335,17 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
+/**
+ * GlobalShortcutsHandler
+ *
+ * Internal component that registers global keyboard shortcuts.
+ * Must be rendered inside KeyboardProvider to access key listeners.
+ */
+const GlobalShortcutsHandler = () => {
+  useGlobalShortcuts();
+  return null;
+};
+
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
 
@@ -359,6 +371,7 @@ const AppWrapper = () => {
             <MenuProvider>
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
+                  <GlobalShortcutsHandler />
                   {status === "pending" && (
                     <div
                       style={{
