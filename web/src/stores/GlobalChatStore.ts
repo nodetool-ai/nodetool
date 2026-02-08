@@ -251,9 +251,16 @@ const formatMessageContent = (content: Message["content"]): string => {
               ? `[document](${typedItem.document.uri})`
               : "[document]";
           default:
-            return typedItem.type
-              ? `[${typedItem.type}]`
-              : MARKDOWN_UNSUPPORTED_PLACEHOLDER;
+            {
+              const typeLabel =
+                typeof typedItem.type === "string" &&
+                typedItem.type.trim().length > 0
+                  ? typedItem.type
+                  : null;
+              return typeLabel
+                ? `[${typeLabel}]`
+                : MARKDOWN_UNSUPPORTED_PLACEHOLDER;
+            }
         }
       })
       .filter(Boolean)
