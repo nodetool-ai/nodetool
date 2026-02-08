@@ -174,13 +174,16 @@ const Select: React.FC<SelectProps> = ({
     });
   }, [options, fuseOptions]);
 
+  // Memoize filtered options to avoid recomputation on every render
+  const filteredOptions = useMemo(() => {
+    return searchQuery
+      ? fuse.search(searchQuery).map(({ item }) => item)
+      : options;
+  }, [searchQuery, fuse, options]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (activeSelect !== id) {return;}
-
-      const filteredOptions = searchQuery
-        ? fuse.search(searchQuery).map(({ item }) => item)
-        : options;
 
       switch (e.key) {
         case "ArrowDown":
@@ -210,9 +213,7 @@ const Select: React.FC<SelectProps> = ({
     [
       activeSelect,
       id,
-      searchQuery,
-      options,
-      fuse,
+      filteredOptions,
       highlightedIndex,
       handleOptionClick,
       close
@@ -288,10 +289,7 @@ const Select: React.FC<SelectProps> = ({
           }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {(searchQuery
-            ? fuse.search(searchQuery).map(({ item }) => item)
-            : options
-          ).map((option, index) => (
+          {filteredOptions.map((option, index) => (
             <li
               key={option.value}
               className={`option ${
