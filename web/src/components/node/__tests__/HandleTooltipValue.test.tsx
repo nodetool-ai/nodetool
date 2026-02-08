@@ -9,6 +9,7 @@ import { NodeProvider } from "../../../contexts/NodeContext";
 import useResultsStore from "../../../stores/ResultsStore";
 import type { NodeData } from "../../../stores/NodeData";
 import type { NodeStore } from "../../../stores/NodeStore";
+import { HANDLE_TOOLTIP_ENTER_DELAY } from "../../HandleTooltip";
 
 jest.mock("@xyflow/react", () => {
   const actual = jest.requireActual("@xyflow/react");
@@ -52,7 +53,7 @@ jest.mock("../OutputRenderer", () => ({
   default: ({ value }: { value: unknown }) => <div>{String(value)}</div>
 }));
 
-const tooltipDelay = 600;
+const tooltipDelay = HANDLE_TOOLTIP_ENTER_DELAY;
 
 const createNodeStore = (node: Node<NodeData>): NodeStore => {
   const store = create(() => ({

@@ -9,7 +9,7 @@ import OutputRenderer from "./node/OutputRenderer";
 const LEFT_OFFSET_X = -32;
 const RIGHT_OFFSET_X = 32;
 const Y_OFFSET = -20;
-const ENTER_DELAY = 600;
+export const HANDLE_TOOLTIP_ENTER_DELAY = 600;
 
 /**
  * Determine whether a tooltip value should render an OutputRenderer preview.
@@ -37,7 +37,7 @@ const isRenderableValue = (value: unknown): boolean => {
 
 /**
  * Provide a friendly label for empty or null values in handle tooltips.
- * Returns specific labels for empty strings, lists, and objects.
+ * Returns specific labels for null, empty strings, lists, and objects.
  */
 const fallbackLabelForValue = (value: unknown): string => {
   if (value === null) {
@@ -50,7 +50,7 @@ const fallbackLabelForValue = (value: unknown): string => {
     if (value.trim() === "") {
       return value.length > 0 ? "Whitespace only" : "Empty string";
     }
-    return "Empty string";
+    return "No value";
   }
   if (Array.isArray(value)) {
     return "Empty list";
@@ -142,7 +142,7 @@ const HandleTooltip = memo(function HandleTooltip({
     showTimerRef.current = window.setTimeout(() => {
       setTooltipPosition(position);
       setShowTooltip(true);
-    }, ENTER_DELAY);
+    }, HANDLE_TOOLTIP_ENTER_DELAY);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
