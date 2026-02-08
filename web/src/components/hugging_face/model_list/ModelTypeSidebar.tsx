@@ -40,6 +40,10 @@ const ModelTypeSidebar: React.FC = () => {
     return `https://huggingface.co/models?pipeline_tag=${pipelineTag}`;
   }, []);
 
+  const handleLinkClick = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
+  }, []);
+
   return (
     <List className="model-type-list" sx={{ padding: 0 }}>
       {modelTypes
@@ -67,7 +71,7 @@ const ModelTypeSidebar: React.FC = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       size="small"
-                      onClick={(event) => event.stopPropagation()}
+                      onClick={handleLinkClick}
                       sx={{ 
                         color: isSelected ? theme.vars.palette.text.primary : "inherit",
                         opacity: 0.7,
