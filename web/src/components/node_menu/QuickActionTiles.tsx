@@ -368,7 +368,7 @@ const tileStyles = (theme: Theme) =>
       overflow: "hidden",
       border: "1px solid rgba(255, 255, 255, 0.06)",
       transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-      minHeight: "80px",
+      minHeight: "30px",
       background: "rgba(255, 255, 255, 0.02)",
       "&::before": {
         content: '""',
@@ -416,7 +416,7 @@ const tileStyles = (theme: Theme) =>
         }
       },
       "& .tile-label": {
-        fontSize: "0.65rem"
+        fontSize: "var(--fontSizeNormal)"
       }
     },
     ".tile-icon": {
