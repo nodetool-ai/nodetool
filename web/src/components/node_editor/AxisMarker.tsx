@@ -1,7 +1,7 @@
-import React from "react";
+import React, { memo } from "react";
 import { Viewport, useOnViewportChange } from "@xyflow/react";
 
-const AxisMarker: React.FC = () => {
+const AxisMarker: React.FC = memo(function AxisMarker() {
   const horizontalLineRef = React.useRef<HTMLDivElement>(null);
   const verticalLineRef = React.useRef<HTMLDivElement>(null);
 
@@ -41,6 +41,8 @@ const AxisMarker: React.FC = () => {
       />
     </>
   );
-};
+});
+
+AxisMarker.displayName = "AxisMarker";
 
 export default AxisMarker;

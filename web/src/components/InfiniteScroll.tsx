@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, ReactNode } from 'react';
+import React, { useEffect, useCallback, useRef, ReactNode, memo } from 'react';
 
 interface InfiniteScrollProps {
     next: () => void | Promise<unknown>;
@@ -9,14 +9,14 @@ interface InfiniteScrollProps {
     className?: string;
 }
 
-const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
+const InfiniteScroll: React.FC<InfiniteScrollProps> = memo(function InfiniteScroll({
     next,
     hasMore,
     loader,
     children,
     threshold = 100,
     className = '',
-}) => {
+}) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const handleScroll = useCallback(() => {
@@ -46,6 +46,6 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = ({
             {hasMore && loader}
         </div >
     );
-};
+});
 
 export default InfiniteScroll;
