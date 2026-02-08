@@ -46,6 +46,7 @@ export const DynamicFalSchemaContent: React.FC<
   onToggleAdvancedFields,
   status,
   workflowId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onShowInputs
 }) => {
   return (
