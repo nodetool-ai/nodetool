@@ -10,6 +10,7 @@ import HandleTooltip from "../HandleTooltip";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findInputHandle } from "../../utils/handleUtils";
+import useResultsStore from "../../stores/ResultsStore";
 
 export type NodeOutputProps = {
   id: string;
@@ -26,8 +27,10 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
   const connectNodeId = useConnectionStore((state) => state.connectNodeId);
   const connectHandleId = useConnectionStore((state) => state.connectHandleId);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const node = useNodes((state) => state.findNode(id));
   const findNode = useNodes((state) => state.findNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const workflowId = node?.data.workflow_id;
 
   const effectiveConnectType = useMemo<TypeMetadata | null>(() => {
     if (
@@ -109,6 +112,32 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
     output.name
   ]);
 
+  const outputValue = useResultsStore(
+    useMemo(
+      () => (state) => {
+        if (!workflowId) {
+          return undefined;
+        }
+        const result =
+          state.getOutputResult(workflowId, id) ??
+          state.getResult(workflowId, id);
+        if (result === undefined) {
+          return undefined;
+        }
+        if (typeof result === "object" && result !== null) {
+          if (output.name in result) {
+            return (result as Record<string, unknown>)[output.name];
+          }
+          if ("output" in result) {
+            return (result as { output?: unknown }).output;
+          }
+        }
+        return result;
+      },
+      [workflowId, id, output.name]
+    )
+  );
+
   return (
     <div className="output-handle-container">
       <HandleTooltip
@@ -117,6 +146,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
         className={classConnectable}
         handlePosition="right"
         isStreamingOutput={isStreamingOutput}
+        value={outputValue}
       >
         <Handle
           type="source"

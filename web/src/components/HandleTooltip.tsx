@@ -1,9 +1,10 @@
-import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { memo, useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { colorForType, textColorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
 import { getMousePosition } from "../utils/MousePosition";
 import { TypeMetadata } from "../stores/ApiTypes";
+import OutputRenderer from "./node/OutputRenderer";
 
 const LEFT_OFFSET_X = -32;
 const RIGHT_OFFSET_X = 32;
@@ -41,6 +42,7 @@ type HandleTooltipProps = {
   handlePosition: "left" | "right";
   isStreamingOutput?: boolean;
   isCollectInput?: boolean;
+  value?: unknown;
 };
 
 const HandleTooltip = memo(function HandleTooltip({
@@ -50,7 +52,8 @@ const HandleTooltip = memo(function HandleTooltip({
   children,
   handlePosition,
   isStreamingOutput,
-  isCollectInput
+  isCollectInput,
+  value
 }: HandleTooltipProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -76,6 +79,26 @@ const HandleTooltip = memo(function HandleTooltip({
   // Use "float" for color when displaying "number" (float|int union), 
   // since both float and int use the same color
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
+
+  const hasRenderableValue = useMemo(() => {
+    if (value === undefined || value === null) {
+      return false;
+    }
+    if (typeof value === "string" && value.trim() === "") {
+      return false;
+    }
+    if (Array.isArray(value) && value.length === 0) {
+      return false;
+    }
+    if (
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length === 0
+    ) {
+      return false;
+    }
+    return true;
+  }, [value]);
 
   const handleMouseEnter = useCallback(() => {
     const position = getMousePosition();
@@ -120,6 +143,15 @@ const HandleTooltip = memo(function HandleTooltip({
         <div className="handle-tooltip-type">
           {displayType}
         </div>
+        {value !== undefined && (
+          <div className="handle-tooltip-value">
+            {hasRenderableValue ? (
+              <OutputRenderer value={value} showTextActions={false} />
+            ) : (
+              <div className="handle-tooltip-value-empty">No value</div>
+            )}
+          </div>
+        )}
         {isStreamingOutput && (
           <div className="handle-tooltip-info">
             Streaming output - emits values continuously during execution

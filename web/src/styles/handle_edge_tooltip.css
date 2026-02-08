@@ -376,7 +376,7 @@ ul.multi-outputs li::marker {
   text-align: center;
   padding: 0.4em;
   visibility: visible;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .handle-tooltip-name {
@@ -388,6 +388,7 @@ ul.multi-outputs li::marker {
   padding: 0.25em 0.5em;
   margin-bottom: 0.2em;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .handle-tooltip-type {
@@ -401,6 +402,25 @@ ul.multi-outputs li::marker {
   border-radius: 0.4em;
   padding: 0.2em 0.5em;
   line-height: 1;
+  white-space: nowrap;
+}
+
+.handle-tooltip-value {
+  margin-top: 0.4em;
+  max-width: 240px;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.handle-tooltip-value .output {
+  max-height: 190px;
+  overflow: hidden;
+}
+
+.handle-tooltip-value-empty {
+  font-size: var(--fontSizeSmall);
+  font-style: italic;
+  opacity: 0.9;
 }
 
 .handle-tooltip-streaming,
