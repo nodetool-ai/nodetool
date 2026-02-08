@@ -5,6 +5,8 @@ Existing features in NodeTool. **Read before adding new features to avoid duplic
 Format: `- **Feature Name**: Brief description`
 
 Last updated: 2026-01-19
+- **Visual Keyboard Navigation Mode (2026-02-08)**: Added navigation mode indicator with visual feedback showing keyboard shortcuts for node navigation (Tab, Shift+Tab, Alt+Arrows, Enter, Esc)
+
 
 - **Store JSDoc Documentation (2026-01-19)**: Added module-level JSDoc to ResultsStore, AssetStore, and StatusStore for consistent documentation across all critical stores
 
@@ -36,7 +38,7 @@ Last updated: 2026-01-19
 - **Find in Workflow**: Search for nodes by name, type, or properties
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
-- **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
+- **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes. Enhanced with visual navigation mode indicator showing available keyboard shortcuts.
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
