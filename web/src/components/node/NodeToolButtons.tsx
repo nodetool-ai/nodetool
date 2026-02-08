@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useReactFlow, Node } from "@xyflow/react";
 import {
@@ -405,4 +405,4 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   );
 };
 
-export default NodeToolButtons;
+export default memo(NodeToolButtons);

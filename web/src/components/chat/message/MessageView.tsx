@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, memo } from "react";
 import {
   Message,
   MessageContent,
@@ -300,8 +300,8 @@ export const MessageView: React.FC<
       | Array<MessageTextContent | MessageImageContent>
       | string;
 
-    // Pretty JSON helper
-    const PrettyJson: React.FC<{ value: any }> = ({ value }) => {
+    // Pretty JSON helper - memoized to prevent recreation on every render
+    const PrettyJson: React.FC<{ value: any }> = memo(({ value }) => {
       const text = useMemo(() => {
         try {
           if (typeof value === "string") {
@@ -314,12 +314,13 @@ export const MessageView: React.FC<
         }
       }, [value]);
       return <pre className="pretty-json">{text}</pre>;
-    };
+    });
+    PrettyJson.displayName = "PrettyJson";
 
     const ToolCallCard: React.FC<{
       tc: ToolCall;
       result?: { name?: string | null; content: any };
-    }> = ({ tc, result: _result }) => {
+    }> = memo(({ tc, result: _result }) => {
       const [open, setOpen] = useState(false);
       const runningToolCallId = useGlobalChatStore(
         (s) => s.currentRunningToolCallId
@@ -377,7 +378,8 @@ export const MessageView: React.FC<
           </Collapse>
         </Box>
       );
-    };
+    });
+    ToolCallCard.displayName = "ToolCallCard";
 
     // Format timestamp for display
     const formatTime = (dateStr?: string | null) => {

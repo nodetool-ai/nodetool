@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, memo, useState } from "react";
 import {
   Box,
   Button,
@@ -357,4 +357,4 @@ const NodeExplorer: React.FC = () => {
   );
 };
 
-export default NodeExplorer;
+export default memo(NodeExplorer);
