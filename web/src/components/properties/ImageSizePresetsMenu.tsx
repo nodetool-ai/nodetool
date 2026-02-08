@@ -38,9 +38,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
       
       if (match) {
         const category = preset.category || "Other";
-        if (!groups[category]) {
-          groups[category] = [];
-        }
+        if (!groups[category]) {groups[category] = [];}
         groups[category].push(preset);
       }
     });

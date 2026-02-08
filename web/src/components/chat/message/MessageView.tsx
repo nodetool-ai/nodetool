@@ -48,7 +48,7 @@ interface MessageViewProps {
 
 export const MessageView: React.FC<
   MessageViewProps & { componentStyles?: any }
-> = ({
+> = React.memo(({
   message,
   expandedThoughts,
   onToggleThought,
@@ -301,7 +301,7 @@ export const MessageView: React.FC<
       | string;
 
     // Pretty JSON helper
-    const PrettyJson: React.FC<{ value: any }> = ({ value }) => {
+    const PrettyJson: React.FC<{ value: any }> = React.memo(({ value }) => {
       const text = useMemo(() => {
         try {
           if (typeof value === "string") {
@@ -314,12 +314,13 @@ export const MessageView: React.FC<
         }
       }, [value]);
       return <pre className="pretty-json">{text}</pre>;
-    };
+    });
+    PrettyJson.displayName = "PrettyJson";
 
     const ToolCallCard: React.FC<{
       tc: ToolCall;
       result?: { name?: string | null; content: any };
-    }> = ({ tc, result: _result }) => {
+    }> = React.memo(({ tc, result: _result }) => {
       const [open, setOpen] = useState(false);
       const runningToolCallId = useGlobalChatStore(
         (s) => s.currentRunningToolCallId
@@ -377,7 +378,8 @@ export const MessageView: React.FC<
           </Collapse>
         </Box>
       );
-    };
+    });
+    ToolCallCard.displayName = "ToolCallCard";
 
     // Format timestamp for display
     const formatTime = (dateStr?: string | null) => {
@@ -446,4 +448,6 @@ export const MessageView: React.FC<
         )}
       </div>
     );
-  };
+});
+
+MessageView.displayName = "MessageView";
