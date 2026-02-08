@@ -209,6 +209,56 @@ const getOutputFromResult = (result: any) => {
   return result;
 };
 
+const hasUnresolvedMemoryUri = (value: any): boolean => {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((item) => hasUnresolvedMemoryUri(item));
+  }
+
+  if (typeof value !== "object") {
+    return false;
+  }
+
+  if ("output" in value) {
+    return hasUnresolvedMemoryUri((value as any).output);
+  }
+
+  if ("value" in value) {
+    return hasUnresolvedMemoryUri((value as any).value);
+  }
+
+  if ("uri" in value) {
+    const uri = (value as any).uri;
+    const data = (value as any).data;
+    if (typeof uri === "string" && uri.startsWith("memory://")) {
+      const hasNoData =
+        data === undefined ||
+        data === null ||
+        (typeof data === "string" && data.length === 0) ||
+        (Array.isArray(data) && data.length === 0) ||
+        (data instanceof Uint8Array && data.length === 0);
+      return hasNoData;
+    }
+  }
+
+  return false;
+};
+
+export const selectPreviewResult = (preview: any, fallback: any): any => {
+  if (preview === null || preview === undefined) {
+    return fallback;
+  }
+
+  if (hasUnresolvedMemoryUri(preview)) {
+    return fallback ?? preview;
+  }
+
+  return preview;
+};
+
 const getCopySource = (value: any): any => {
   if (value === null || value === undefined) {
     return value;
@@ -267,8 +317,15 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const hasParent = props.parentId !== undefined;
   const [isContentFocused, setIsContentFocused] = useState(false);
 
-  const result = useResultsStore((state) =>
+  const previewResult = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
+  );
+  const nodeResult = useResultsStore((state) =>
+    state.getResult(props.data.workflow_id, props.id)
+  );
+  const result = useMemo(
+    () => selectPreviewResult(previewResult, nodeResult),
+    [previewResult, nodeResult]
   );
 
   const previewOutput = useMemo(() => getOutputFromResult(result), [result]);
