@@ -19,6 +19,10 @@ export type NodeOutputProps = {
   isStreamingOutput?: boolean;
 };
 
+/**
+ * Resolve a node output value from results by checking a named output first,
+ * then falling back to a generic "output" field, and finally returning the raw result.
+ */
 const resolveOutputValue = (
   result: unknown,
   outputName: string

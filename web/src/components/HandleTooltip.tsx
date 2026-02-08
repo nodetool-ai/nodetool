@@ -11,6 +11,10 @@ const RIGHT_OFFSET_X = 32;
 const Y_OFFSET = -20;
 const ENTER_DELAY = 600;
 
+/**
+ * Determine whether a tooltip value should render an OutputRenderer preview.
+ * Treats undefined, null, empty strings, empty arrays, and empty objects as non-renderable.
+ */
 const isRenderableValue = (value: unknown): boolean => {
   if (value === undefined || value === null) {
     return false;
@@ -31,6 +35,10 @@ const isRenderableValue = (value: unknown): boolean => {
   return true;
 };
 
+/**
+ * Provide a friendly label for empty or null values in handle tooltips.
+ * Returns specific labels for empty strings, lists, and objects.
+ */
 const fallbackLabelForValue = (value: unknown): string => {
   if (value === null) {
     return "null";
