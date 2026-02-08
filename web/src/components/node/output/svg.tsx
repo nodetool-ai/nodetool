@@ -28,15 +28,15 @@ const convertStyleStringToObject = (
 };
 
 const renderSvgElement = (value: SVGElement): React.ReactElement => {
-  const attributes = value.attributes || ({} as any);
+  const attributes = value.attributes || {};
   const style = attributes.style
     ? convertStyleStringToObject(attributes.style)
     : undefined;
-  const svgProps: any = {
+  const svgProps: Record<string, unknown> = {
     ...value.attributes,
     className: attributes.class,
-    xmlSpace: (attributes as any)["xml:space"],
-    xmlLang: (attributes as any)["xml:lang"],
+    xmlSpace: (attributes as Record<string, unknown>)["xml:space"],
+    xmlLang: (attributes as Record<string, unknown>)["xml:lang"],
     style
   };
 
