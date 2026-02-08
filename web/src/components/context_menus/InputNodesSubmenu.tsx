@@ -33,19 +33,44 @@ const InputNodesSubmenu: React.FC<InputNodesSubmenuProps> = ({
   closeContextMenu
 }) => {
   const addInputNode = React.useCallback(
-    (nodeType: string, event: React.MouseEvent | undefined) => {
+    (nodeType: string, event?: React.MouseEvent<HTMLElement>) => {
       if (!event) {return;}
       const metadata = useMetadataStore
         .getState()
         .getMetadata(`nodetool.nodes.nodetool.input.${nodeType}`);
       if (metadata) {
-        const position = getPosition(event);
+        const position = getPosition(event as React.MouseEvent);
         const newNode = createNode(metadata, position);
         addNode(newNode);
       }
       closeContextMenu();
     },
     [createNode, addNode, getPosition, closeContextMenu]
+  );
+
+  const handleStringInput = React.useCallback(
+    (e?: React.MouseEvent<HTMLElement>) => addInputNode("StringInput", e),
+    [addInputNode]
+  );
+
+  const handleFloatInput = React.useCallback(
+    (e?: React.MouseEvent<HTMLElement>) => addInputNode("FloatInput", e),
+    [addInputNode]
+  );
+
+  const handleIntegerInput = React.useCallback(
+    (e?: React.MouseEvent<HTMLElement>) => addInputNode("IntegerInput", e),
+    [addInputNode]
+  );
+
+  const handleChatInput = React.useCallback(
+    (e?: React.MouseEvent<HTMLElement>) => addInputNode("ChatInput", e),
+    [addInputNode]
+  );
+
+  const handleImageInput = React.useCallback(
+    (e?: React.MouseEvent<HTMLElement>) => addInputNode("ImageInput", e),
+    [addInputNode]
   );
 
   return (
@@ -63,31 +88,31 @@ const InputNodesSubmenu: React.FC<InputNodesSubmenuProps> = ({
       }}
     >
       <ContextMenuItem
-        onClick={(e) => addInputNode("StringInput", e)}
+        onClick={handleStringInput}
         label="String Input"
         IconComponent={<TextFieldsIcon />}
         tooltip="Add a string input node"
       />
       <ContextMenuItem
-        onClick={(e) => addInputNode("FloatInput", e)}
+        onClick={handleFloatInput}
         label="Float Input"
         IconComponent={<NumbersIcon />}
         tooltip="Add a float input node"
       />
       <ContextMenuItem
-        onClick={(e) => addInputNode("IntegerInput", e)}
+        onClick={handleIntegerInput}
         label="Integer Input"
         IconComponent={<NumbersIcon />}
         tooltip="Add an integer input node"
       />
       <ContextMenuItem
-        onClick={(e) => addInputNode("ChatInput", e)}
+        onClick={handleChatInput}
         label="Chat Input"
         IconComponent={<ChatIcon />}
         tooltip="Add a chat input node"
       />
       <ContextMenuItem
-        onClick={(e) => addInputNode("ImageInput", e)}
+        onClick={handleImageInput}
         label="Image Input"
         IconComponent={<ImageIcon />}
         tooltip="Add an image input node"

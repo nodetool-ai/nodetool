@@ -401,4 +401,5 @@ jobs:
           tag_name: ${{ github.ref_name }}
           files: |
             electron/dist/*.AppImage
+            electron/dist/*.flatpak
             electron/dist/latest-linux.yml
