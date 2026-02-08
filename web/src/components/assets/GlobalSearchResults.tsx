@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import { Typography, Box, Tooltip } from "@mui/material";
 import { EditorButton } from "../ui_primitives";
 import {
@@ -29,6 +29,165 @@ interface GlobalSearchResultsProps {
   onNavigateToFolder?: (folderId: string, folderPath: string) => void;
   containerWidth?: number;
 }
+
+interface SearchResultItemProps {
+  asset: AssetWithPath;
+  isSelected: boolean;
+  showDetails: boolean;
+  selectedAssetIds: string[];
+  onDragStart: (e: React.DragEvent, asset: AssetWithPath) => void;
+  onDragEnd: () => void;
+  onSelectAsset: (assetId: string) => void;
+  onAssetDoubleClick?: (asset: AssetWithPath) => void;
+  onContextMenu: (e: React.MouseEvent, assetId?: string) => void;
+  onNavigateToFolder?: (folderId: string, folderPath: string) => void;
+  formatDate: (dateString: string) => string;
+  getAssetType: (contentType: string) => string;
+}
+
+const SearchResultItem = memo(function SearchResultItem({
+  asset,
+  isSelected,
+  showDetails,
+  onDragStart,
+  onDragEnd,
+  onSelectAsset,
+  onAssetDoubleClick,
+  onContextMenu,
+  onNavigateToFolder,
+  formatDate,
+  getAssetType
+}: SearchResultItemProps) {
+  const assetType = getAssetType(asset.content_type);
+  const assetSize = asset.size;
+  const hasVisualContent =
+    (assetType === "image" || assetType === "video") &&
+    asset.get_url &&
+    asset.get_url !== "/images/placeholder.png";
+
+  const handleDragStart = useCallback((e: React.DragEvent) => {
+    onDragStart(e, asset);
+  }, [asset, onDragStart]);
+
+  const handleDragEnd = useCallback(() => {
+    onDragEnd();
+  }, [onDragEnd]);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelectAsset(asset.id);
+  }, [asset.id, onSelectAsset]);
+
+  const handleDoubleClick = useCallback(() => {
+    onAssetDoubleClick?.(asset);
+  }, [asset, onAssetDoubleClick]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    onContextMenu(e, asset.id);
+  }, [asset.id, onContextMenu]);
+
+  const handleNavigateClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onNavigateToFolder?.(asset.folder_id, asset.folder_path);
+  }, [asset, onNavigateToFolder]);
+
+  return (
+    <div
+      className={`global-search-result-item search-result-item ${isSelected ? "selected global-search-selected" : ""}`}
+      draggable={true}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+      onContextMenu={handleContextMenu}
+      data-testid={`global-search-result-${asset.id}`}
+      data-asset-id={asset.id}
+      data-asset-name={asset.name}
+    >
+      {hasVisualContent ? (
+        <div
+          className="global-search-result-thumbnail result-item-thumbnail"
+          style={{
+            backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+          }}
+          title={`${asset.content_type} thumbnail`}
+          data-testid="global-search-result-thumbnail"
+        />
+      ) : (
+        <div className="global-search-result-icon result-item-icon">
+          <IconForType
+            iconName={assetType}
+            showTooltip={false}
+            containerStyle={{
+              width: "32px",
+              height: "32px",
+              transform: "scale(0.85)"
+            }}
+          />
+        </div>
+      )}
+
+      <div className="global-search-result-content result-item-content">
+        <div
+          className="global-search-result-name result-item-name"
+          data-testid="global-search-result-name"
+        >
+          {asset.name}
+          {asset.duration && (
+            <span className="global-search-result-duration result-duration">
+              {" "}
+              ({secondsToHMS(asset.duration)})
+            </span>
+          )}
+        </div>
+
+        {showDetails && (
+          <div className="global-search-result-details result-item-details">
+            {assetSize && assetSize > 0 && (
+              <span className="global-search-result-size">
+                {formatFileSize(assetSize)}
+              </span>
+            )}
+            <span className="global-search-result-date">
+              {formatDate(asset.created_at)}
+            </span>
+            <span className="global-search-result-type">
+              {asset.content_type.split("/")[1] || ""}
+            </span>
+          </div>
+        )}
+
+        <div className="global-search-result-location result-item-location">
+          <div
+            className="global-search-folder-breadcrumb folder-breadcrumb"
+            data-testid="global-search-folder-path"
+          >
+            <FolderIcon
+              fontSize="small"
+              className="global-search-folder-icon"
+            />
+            <span className="global-search-folder-path">
+              {asset.folder_path}
+            </span>
+          </div>
+          {onNavigateToFolder && (
+            <Tooltip title="Go to folder">
+              <EditorButton
+                className="global-search-navigate-btn folder-navigate-btn"
+                density="compact"
+                variant="text"
+                startIcon={<NavigateIcon fontSize="small" />}
+                onClick={handleNavigateClick}
+                data-testid="global-search-navigate-folder"
+                data-folder-id={asset.folder_id}
+              />
+            </Tooltip>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
 
 const styles = (theme: Theme) =>
   css({
@@ -300,17 +459,17 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     clearDrag();
   }, [clearDrag]);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
-  };
+  }, []);
 
-  const getAssetType = (contentType: string) => {
+  const getAssetType = useCallback((contentType: string) => {
     return contentType.split("/")[0] || "other";
-  };
+  }, []);
 
-  // Determine which columns to show based on container width
-  const showDetails = containerWidth > 600;
+  // Memoize which columns to show based on container width
+  const showDetails = useMemo(() => containerWidth > 600, [containerWidth]);
 
   if (results.length === 0) {
     return (
@@ -380,128 +539,27 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
           className="global-search-results-content search-results-content"
           data-testid="global-search-results-list"
         >
-          {results.map((asset) => {
-            const isSelected = selectedAssetIds.includes(asset.id);
-            const assetType = getAssetType(asset.content_type);
-            const assetSize = asset.size;
-            const hasVisualContent =
-              (assetType === "image" || assetType === "video") &&
-              asset.get_url &&
-              asset.get_url !== "/images/placeholder.png";
-
-            return (
-              <div
-                key={asset.id}
-                className={`global-search-result-item search-result-item ${isSelected ? "selected global-search-selected" : ""
-                  }`}
-                draggable={true}
-                onDragStart={(e) => handleDragStart(e, asset)}
-                onDragEnd={handleDragEnd}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelectAsset(asset.id);
-                }}
-                onDoubleClick={() => onAssetDoubleClick?.(asset)}
-                onContextMenu={(e) => handleContextMenu(e, asset.id)}
-                data-testid={`global-search-result-${asset.id}`}
-                data-asset-id={asset.id}
-                data-asset-name={asset.name}
-              >
-                {hasVisualContent ? (
-                  <div
-                    className="global-search-result-thumbnail result-item-thumbnail"
-                    style={{
-                      backgroundImage: `url(${asset.thumb_url || asset.get_url
-                        })`
-                    }}
-                    title={`${asset.content_type} thumbnail`}
-                    data-testid="global-search-result-thumbnail"
-                  />
-                ) : (
-                  <div className="global-search-result-icon result-item-icon">
-                    <IconForType
-                      iconName={assetType}
-                      showTooltip={false}
-                      containerStyle={{
-                        width: "32px",
-                        height: "32px",
-                        transform: "scale(0.85)"
-                      }}
-                    />
-                  </div>
-                )}
-
-                <div className="global-search-result-content result-item-content">
-                  <div
-                    className="global-search-result-name result-item-name"
-                    data-testid="global-search-result-name"
-                  >
-                    {asset.name}
-                    {asset.duration && (
-                      <span className="global-search-result-duration result-duration">
-                        {" "}
-                        ({secondsToHMS(asset.duration)})
-                      </span>
-                    )}
-                  </div>
-
-                  {showDetails && (
-                    <div className="global-search-result-details result-item-details">
-                      {assetSize && assetSize > 0 && (
-                        <span className="global-search-result-size">
-                          {formatFileSize(assetSize)}
-                        </span>
-                      )}
-                      <span className="global-search-result-date">
-                        {formatDate(asset.created_at)}
-                      </span>
-                      <span className="global-search-result-type">
-                        {asset.content_type.split("/")[1] || ""}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="global-search-result-location result-item-location">
-                    <div
-                      className="global-search-folder-breadcrumb folder-breadcrumb"
-                      data-testid="global-search-folder-path"
-                    >
-                      <FolderIcon
-                        fontSize="small"
-                        className="global-search-folder-icon"
-                      />
-                      <span className="global-search-folder-path">
-                        {asset.folder_path}
-                      </span>
-                    </div>
-                    {onNavigateToFolder && (
-                      <Tooltip title="Go to folder">
-                        <EditorButton
-                          className="global-search-navigate-btn folder-navigate-btn"
-                          density="compact"
-                          variant="text"
-                          startIcon={<NavigateIcon fontSize="small" />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onNavigateToFolder(
-                              asset.folder_id,
-                              asset.folder_path
-                            );
-                          }}
-                          data-testid="global-search-navigate-folder"
-                          data-folder-id={asset.folder_id}
-                        ></EditorButton>
-                      </Tooltip>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {results.map((asset) => (
+            <SearchResultItem
+              key={asset.id}
+              asset={asset}
+              isSelected={selectedAssetIds.includes(asset.id)}
+              showDetails={showDetails}
+              selectedAssetIds={selectedAssetIds}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onSelectAsset={handleSelectAsset}
+              onAssetDoubleClick={onAssetDoubleClick}
+              onContextMenu={handleContextMenu}
+              onNavigateToFolder={onNavigateToFolder}
+              formatDate={formatDate}
+              getAssetType={getAssetType}
+            />
+          ))}
         </div>
       </div>
     </Box>
   );
 };
 
-export default GlobalSearchResults;
+export default memo(GlobalSearchResults);
