@@ -444,21 +444,27 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         }
 
         if (isDynamicProperty) {
-          // For dynamic properties, get default from metadata
+          // For dynamic properties, get default from metadata or the property object itself
           const nodeMetadata = metadata?.[node.type as string];
+          let defaultValue = property.default;
+
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === property.name
             );
-            if (propertyDef && node.data.dynamic_properties) {
-              const updatedDynamicProperties = {
-                ...node.data.dynamic_properties,
-                [property.name]: propertyDef.default
-              };
-              updateNodeData(id, {
-                dynamic_properties: updatedDynamicProperties
-              });
+            if (propertyDef) {
+              defaultValue = propertyDef.default;
             }
+          }
+
+          if (defaultValue !== undefined && node.data.dynamic_properties) {
+            const updatedDynamicProperties = {
+              ...node.data.dynamic_properties,
+              [property.name]: defaultValue
+            };
+            updateNodeData(id, {
+              dynamic_properties: updatedDynamicProperties
+            });
           }
         } else {
           // For regular properties, get default from metadata or property

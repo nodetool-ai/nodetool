@@ -55,6 +55,10 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
 
   const dragStartY = useRef(0);
   const startHeight = useRef(0);
+  const dragHandlersRef = useRef<{
+    handleMouseMove?: ((e: MouseEvent) => void);
+    handleMouseUp?: (() => void);
+  }>({});
 
   const handleResizeMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -70,7 +74,10 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
       const handleMouseUp = () => {
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
+        dragHandlersRef.current = {};
       };
+
+      dragHandlersRef.current = { handleMouseMove, handleMouseUp };
 
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
@@ -86,6 +93,14 @@ export function useModalResize(options: UseModalResizeOptions = {}) {
         (saveHeightToStorage as any).cancel?.();
       } catch {
         /* empty */
+      }
+      // Clean up any remaining drag event listeners on unmount
+      const { handleMouseMove, handleMouseUp } = dragHandlersRef.current;
+      if (handleMouseMove) {
+        document.removeEventListener("mousemove", handleMouseMove);
+      }
+      if (handleMouseUp) {
+        document.removeEventListener("mouseup", handleMouseUp);
       }
     };
   }, [saveHeightToStorage]);

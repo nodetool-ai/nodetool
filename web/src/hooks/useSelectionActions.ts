@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
 /**
@@ -78,23 +78,14 @@ const getNodeHeight = (node: { measured?: { height?: number } }) =>
   node.measured?.height ?? 0;
 
 export const useSelectionActions = (): SelectionActionsReturn => {
-  const {
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
-    getSelectedNodes,
-    deleteNode,
-    toggleBypassSelected
-  } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    setNodes: state.setNodes,
-    setEdges: state.setEdges,
-    getSelectedNodes: state.getSelectedNodes,
-    deleteNode: state.deleteNode,
-    toggleBypassSelected: state.toggleBypassSelected
-  }));
+  // Use store ref to avoid subscribing to entire nodes/edges arrays
+  // Only subscribe to the functions we need
+  const setNodes = useNodes((state) => state.setNodes);
+  const setEdges = useNodes((state) => state.setEdges);
+  const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
+  const deleteNode = useNodes((state) => state.deleteNode);
+  const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
+  const store = useNodeStoreRef();
   const surroundWithGroup = useSurroundWithGroup();
 
   const alignLeft = useCallback(() => {
@@ -106,6 +97,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const leftMostX = Math.min(...selectedNodes.map((n) => n.position.x));
     const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
+    const { nodes } = store.getState();
     setNodes(
       nodes.map((node) => {
         if (selectedIds.has(node.id)) {
@@ -114,7 +106,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, nodes, setNodes]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignCenter = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -131,6 +123,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
+    const { nodes } = store.getState();
     setNodes(
       nodes.map((node) => {
         if (selectedIds.has(node.id)) {
@@ -143,7 +136,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, nodes, setNodes]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignRight = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -159,6 +152,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
+    const { nodes } = store.getState();
     setNodes(
       nodes.map((node) => {
         if (selectedIds.has(node.id)) {
@@ -171,7 +165,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, nodes, setNodes]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignTop = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -182,6 +176,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const topMostY = Math.min(...selectedNodes.map((n) => n.position.y));
     const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
+    const { nodes } = store.getState();
     setNodes(
       nodes.map((node) => {
         if (selectedIds.has(node.id)) {
@@ -190,7 +185,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, nodes, setNodes]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignMiddle = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -207,6 +202,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
+    const { nodes } = store.getState();
     setNodes(
       nodes.map((node) => {
         if (selectedIds.has(node.id)) {
@@ -219,7 +215,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, nodes, setNodes]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const alignBottom = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -233,6 +229,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
+    const { nodes } = store.getState();
     setNodes(
       nodes.map((node) => {
         if (selectedIds.has(node.id)) {
@@ -245,7 +242,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, nodes, setNodes]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const distributeHorizontal = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -270,6 +267,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       currentX += getNodeWidth(node) + HORIZONTAL_SPACING;
     });
 
+    const { nodes } = store.getState();
     setNodes(
       nodes.map((node) => {
         const newX = positionMap.get(node.id);
@@ -279,7 +277,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, nodes, setNodes]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const distributeVertical = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -304,6 +302,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       currentY += getNodeHeight(node) + VERTICAL_SPACING;
     });
 
+    const { nodes } = store.getState();
     setNodes(
       nodes.map((node) => {
         const newY = positionMap.get(node.id);
@@ -313,7 +312,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         return node;
       })
     );
-  }, [getSelectedNodes, nodes, setNodes]);
+  }, [getSelectedNodes, setNodes, store]);
 
   const deleteSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
@@ -348,6 +347,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       };
     });
 
+    // Get current state from store
+    const { nodes, edges } = store.getState();
+
     // Create new edges for duplicated nodes (only for edges where both nodes are duplicated)
     const selectedNodeIds = selectedNodes.map((n) => n.id);
     const newEdges = edges
@@ -373,7 +375,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     // Update state using NodeStore (not ReactFlow directly)
     setNodes([...updatedNodes, ...newNodes]);
     setEdges([...edges, ...newEdges]);
-  }, [getSelectedNodes, nodes, edges, setNodes, setEdges]);
+  }, [getSelectedNodes, setNodes, setEdges, store]);
 
   const groupSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();

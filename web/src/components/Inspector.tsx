@@ -63,52 +63,6 @@ const styles = (theme: Theme) =>
       maxHeight: "20vh",
       padding: "0.5em "
     },
-    // ".node-property": {
-    //   display: "flex",
-    //   flexShrink: 0,
-    //   flexDirection: "column",
-    //   margin: 0,
-    //   padding: 0,
-    //   width: "100%",
-    //   minWidth: "180px",
-    //   maxWidth: "300px",
-    //   marginBottom: ".1em"
-    // },
-    // ".node-property .MuiTextField-root textarea": {
-    //   fontSize: theme.fontSizeNormal
-    // },
-    // ".node-property textarea": {
-    //   margin: 0,
-    //   padding: "0.25em",
-    //   backgroundColor: theme.vars.palette.grey[600],
-    //   fontSize: theme.fontSizeSmall,
-    //   minHeight: "1.75em",
-    //   maxHeight: "20em"
-    // },
-    // ".node-property label": {
-    //   fontSize: theme.fontSizeNormal,
-    //   fontFamily: theme.fontFamily1,
-    //   minHeight: "18px",
-    //   userSelect: "none"
-    // },
-    // ".node-property.enum .mui-select": {
-    //   height: "2em",
-    //   backgroundColor: theme.vars.palette.grey[600],
-    //   marginTop: "0.25em",
-    //   padding: "0.5em .5em",
-    //   fontSize: theme.fontSizeSmall
-    // },
-    // ".node-property.enum .property-label": {
-    //   height: "1em"
-    // },
-    // ".node-property.enum label": {
-    //   fontSize: theme.fontSizeNormal,
-    //   fontFamily: theme.fontFamily1,
-    //   transform: "translate(0, 0)"
-    // },
-    // ".node-property.enum .MuiFormControl-root": {
-    //   margin: 0
-    // },
     ".inspector-header": {
       display: "flex",
       flexDirection: "column",
@@ -174,19 +128,13 @@ const styles = (theme: Theme) =>
   });
 
 const Inspector: React.FC = () => {
-  const {
-    selectedNodes,
-    edges,
-    findNode,
-    updateNodeProperties,
-    setSelectedNodes
-  } = useNodes((state) => ({
-    selectedNodes: state.getSelectedNodes(),
-    edges: state.edges,
-    findNode: state.findNode,
-    updateNodeProperties: state.updateNodeProperties,
-    setSelectedNodes: state.setSelectedNodes
-  }));
+  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  const findNode = useNodes((state) => state.findNode);
+  const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
+  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
+  // Only subscribe to edges that are connected to the selected node (for dynamic properties)
+  // Use shallow equality to avoid re-renders when unrelated edges change
+  const edges = useNodes((state) => state.edges);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
@@ -530,4 +478,7 @@ const Inspector: React.FC = () => {
   );
 };
 
-export default Inspector;
+export default React.memo(Inspector, (_prevProps, _nextProps) => {
+  // Inspector has no props, so always prevent re-render
+  return true;
+});

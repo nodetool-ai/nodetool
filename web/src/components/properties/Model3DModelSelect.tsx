@@ -49,8 +49,8 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
 
   // Filter models by task if specified
   const filteredModels = useMemo(() => {
-    if (!models) return [];
-    if (!task) return models;
+    if (!models) {return [];}
+    if (!task) {return models;}
     return models.filter((m) => 
       m.supported_tasks?.includes(task) || 
       m.supported_tasks?.length === 0

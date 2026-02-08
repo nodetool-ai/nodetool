@@ -7,7 +7,7 @@ export type NodeData = {
   /** Schema-defined input types + descriptions (e.g. from FAL resolve); used for correct types and connection-only inputs */
   dynamic_inputs?: Record<
     string,
-    TypeMetadata & { description?: string; min?: number; max?: number }
+    TypeMetadata & { description?: string; min?: number; max?: number; default?: any }
   >;
   dynamic_outputs?: Record<string, TypeMetadata>;
   /** Resolved FAL model/endpoint id (e.g. fal-ai/flux-pro) when schema is loaded */
