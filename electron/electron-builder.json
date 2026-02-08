@@ -106,13 +106,15 @@
         "category": "Development",
         "maintainer": "hello@nodetool.ai",
         "desktop": {
-            "Name": "Nodetool",
-            "Comment": "Visual Builder for AI Workflows and Agents",
-            "GenericName": "AI Workflow Editor",
-            "Keywords": "AI;Development;Workflow;Node;Editor;Machine Learning;",
-            "Categories": "Development;IDE;",
-            "MimeType": "x-scheme-handler/nodetool;",
-            "StartupWMClass": "Nodetool"
+            "entry": {
+                "Name": "Nodetool",
+                "Comment": "Visual Builder for AI Workflows and Agents",
+                "GenericName": "AI Workflow Editor",
+                "Keywords": "AI;Development;Workflow;Node;Editor;Machine Learning;",
+                "Categories": "Development;IDE;",
+                "MimeType": "x-scheme-handler/nodetool;",
+                "StartupWMClass": "Nodetool"
+            }
         }
     },
     "flatpak": {
