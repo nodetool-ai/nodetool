@@ -48,7 +48,7 @@ const styles = (_theme: Theme) =>
     }
   });
 
-const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
+const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
   content,
   onInsertCode
 }) => {
@@ -89,6 +89,8 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
       </ReactMarkdown>
     </div>
   );
-};
+});
+
+ChatMarkdown.displayName = "ChatMarkdown";
 
 export default ChatMarkdown;

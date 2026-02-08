@@ -14,7 +14,7 @@ interface MessageContentRendererProps {
   index: number;
 }
 
-export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
+export const MessageContentRenderer: React.FC<MessageContentRendererProps> = React.memo(({
   content,
   renderTextContent,
   index
@@ -128,4 +128,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
     default:
       return null;
   }
-};
+});
+
+MessageContentRenderer.displayName = "MessageContentRenderer";
