@@ -13,7 +13,7 @@ interface ThoughtSectionProps {
   textAfter?: string;
 }
 
-export const ThoughtSection: React.FC<ThoughtSectionProps> = ({
+export const ThoughtSection: React.FC<ThoughtSectionProps> = React.memo(({
   thoughtContent,
   isExpanded,
   onToggle,
@@ -59,4 +59,6 @@ export const ThoughtSection: React.FC<ThoughtSectionProps> = ({
       </div>
     </>
   );
-};
+});
+
+ThoughtSection.displayName = "ThoughtSection";
