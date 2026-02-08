@@ -71,8 +71,8 @@ const ModelProperty = (props: PropertyProps) => {
     [modelType]
   );
 
-  const renderModelSelect = () => {
-    // Map node type to task-specific filters for generic nodes
+  // Memoize task calculations to avoid recalculation on every render
+  const { imageTask, videoTask, model3dTask } = useMemo(() => {
     const imageTask =
       props.nodeType === "nodetool.image.TextToImage"
         ? ("text_to_image" as const)
@@ -85,6 +85,17 @@ const ModelProperty = (props: PropertyProps) => {
         : props.nodeType === "nodetool.video.ImageToVideo"
           ? ("image_to_video" as const)
           : undefined;
+    const model3dTask =
+      props.nodeType === "nodetool.model3d.TextTo3D"
+        ? ("text_to_3d" as const)
+        : props.nodeType === "nodetool.model3d.ImageTo3D"
+          ? ("image_to_3d" as const)
+          : undefined;
+    return { imageTask, videoTask, model3dTask };
+  }, [props.nodeType]);
+
+  // Memoize model select component to avoid recreation on every render
+  const modelSelectComponent = useMemo(() => {
     if (modelType.startsWith("comfy.")) {
       if (props.nodeType.startsWith("comfy.loaders.")) {
         return (
@@ -140,12 +151,6 @@ const ModelProperty = (props: PropertyProps) => {
         />
       );
     } else if (modelType === "model_3d_model") {
-      const model3dTask =
-        props.nodeType === "nodetool.model3d.TextTo3D"
-          ? ("text_to_3d" as const)
-          : props.nodeType === "nodetool.model3d.ImageTo3D"
-            ? ("image_to_3d" as const)
-            : undefined;
       return (
         <Model3DModelSelect
           onChange={props.onChange}
@@ -170,7 +175,7 @@ const ModelProperty = (props: PropertyProps) => {
       );
     }
     return null;
-  };
+  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask]);
 
   return (
     <div className={`model-property ${modelClass}`} css={styles(theme)}>
@@ -179,7 +184,7 @@ const ModelProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {!isConnected && renderModelSelect()}
+      {!isConnected && modelSelectComponent}
     </div>
   );
 };

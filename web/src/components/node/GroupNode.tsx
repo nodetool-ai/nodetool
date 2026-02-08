@@ -170,7 +170,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     (state) => state.state === "running"
   );
   const run = useWebsocketRunner((state) => state.run);
-  const runWorkflow = useCallback(() => {
+
+  // Memoize group nodes and edges to avoid recalculation on every render
+  const { groupNodes, groupEdges } = useMemo(() => {
     // Filter nodes that belong to this group
     const groupNodes = nodes.filter(
       (node) => node.id === props.id || node.parentId === props.id
@@ -183,8 +185,12 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         groupNodes.find((node) => node.id === edge.target)
     );
 
+    return { groupNodes, groupEdges };
+  }, [nodes, edges, props.id]);
+
+  const runWorkflow = useCallback(() => {
     run({}, workflow, groupNodes, groupEdges);
-  }, [nodes, edges, run, workflow, props.id]);
+  }, [run, workflow, groupNodes, groupEdges]);
 
   // Get child nodes of this group
   const childNodes = useMemo(() => {
