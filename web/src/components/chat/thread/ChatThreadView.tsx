@@ -51,17 +51,18 @@ const SPACER_RECALC_DEBOUNCE_MS = 100;
 
 // Dynamic scroll spacer component that adapts to content and viewport
 // Purpose: Provide enough space at the bottom so the last user message can be scrolled to the top
+// Memoized to prevent unnecessary re-renders during scrolling
 interface DynamicScrollSpacerProps {
   lastUserMessageRef: React.RefObject<HTMLDivElement>;
   bottomRef: React.RefObject<HTMLDivElement>;
   scrollHost: HTMLElement | null;
 }
 
-const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
+const DynamicScrollSpacer = memo(function DynamicScrollSpacer({
   lastUserMessageRef,
   bottomRef,
   scrollHost
-}) => {
+}: DynamicScrollSpacerProps) {
   const [spacerHeight, setSpacerHeight] = useState(0);
   const prevSpacerHeightRef = useRef(0);
   const spacerRef = useRef<HTMLDivElement>(null);
@@ -154,17 +155,20 @@ const DynamicScrollSpacer: React.FC<DynamicScrollSpacerProps> = ({
     };
   }, [scrollHost, lastUserMessageRef, bottomRef]);
 
+  // Memoize the spacer style to avoid creating new objects
+  const spacerStyle = useMemo(() => ({
+    height: `${spacerHeight}px`,
+    flexShrink: 0
+  }), [spacerHeight]);
+
   return (
     <div
       ref={spacerRef}
       className="scroll-spacer"
-      style={{
-        height: `${spacerHeight}px`,
-        flexShrink: 0
-      }}
+      style={spacerStyle}
     />
   );
-};
+});
 
 // Define props for the memoized list content component
 interface MemoizedMessageListContentProps
