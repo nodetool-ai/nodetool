@@ -431,7 +431,7 @@ const tileStyles = (theme: Theme) =>
       }
     },
     ".tile-label": {
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       textAlign: "center",
       lineHeight: 1.3,
