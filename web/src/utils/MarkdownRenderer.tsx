@@ -8,12 +8,12 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Dialog, IconButton, Tooltip } from "@mui/material";
+import { Box, IconButton, Tooltip } from "@mui/material";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { getShortcutTooltip } from "../config/shortcuts";
-import { CopyButton } from "../components/ui_primitives";
+import { CopyButton, Dialog } from "../components/ui_primitives";
 
 interface MarkdownRendererProps {
   content: string;

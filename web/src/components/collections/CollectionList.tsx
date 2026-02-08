@@ -156,7 +156,6 @@ const CollectionList = () => {
                 mt: 2,
                 borderRadius: 2,
                 p: 1,
-                backgroundColor: "var(--palette-background-default)",
                 boxShadow: (theme) =>
                   theme.palette.mode === "dark"
                     ? "0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)"
@@ -177,9 +176,9 @@ const CollectionList = () => {
                     deleteMutation={
                       {
                         isPending: false,
-                        mutate: () => {},
-                        mutateAsync: async () => {},
-                        reset: () => {},
+                        mutate: () => { },
+                        mutateAsync: async () => { },
+                        reset: () => { },
                         context: undefined,
                         data: undefined,
                         error: null,

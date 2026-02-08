@@ -1,14 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useState, useMemo } from "react";
+import { memo, useCallback, useState, useMemo, useRef, ChangeEvent } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip, Button } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import isEqual from "lodash/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
@@ -28,20 +27,6 @@ const styles = (theme: Theme) =>
     },
     ".property-label": {
       marginBottom: "5px"
-    },
-    ".native-picker-button": {
-      color: theme.vars.palette.grey[500],
-      backgroundColor: "transparent",
-      minWidth: "unset",
-      transition: "all 0.2s ease",
-      marginBottom: "4px",
-      "&:hover": {
-        color: theme.vars.palette.primary.main,
-        backgroundColor: theme.vars.palette.action.hover
-      },
-      "& svg": {
-        fontSize: "1.2rem"
-      }
     },
     ".video-grid": {
       display: "grid",
@@ -191,6 +176,7 @@ const VideoListProperty = (props: PropertyProps) => {
   );
   
   const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddVideos = useCallback(
     (newVideos: VideoItem[]) => {
@@ -363,27 +349,79 @@ const VideoListProperty = (props: PropertyProps) => {
     }
   }, [uploadAsset, handleAddVideos]);
 
+  // Handle files from browser file input
+  const handleBrowserFilePicker = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  // Handle file input change (browser fallback)
+  const handleFileInputChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter((file) =>
+      file.type.startsWith("video/")
+    );
+    if (files.length === 0) {
+      return;
+    }
+
+    const uploadPromises = files.map(
+      (file) =>
+        new Promise<VideoItem>((resolve, reject) => {
+          uploadAsset({
+            file,
+            onCompleted: (asset: Asset) => {
+              const uri = asset.get_url;
+              if (!uri) {
+                reject(new Error("Asset URL is missing"));
+                return;
+              }
+              resolve({ uri, type: "video" });
+            },
+            onFailed: (error: string) => {
+              reject(new Error(error));
+            }
+          });
+        })
+    );
+
+    try {
+      const newVideos = await Promise.all(uploadPromises);
+      handleAddVideos(newVideos);
+    } catch (error) {
+      console.error("Failed to upload videos:", error);
+    }
+
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [uploadAsset, handleAddVideos]);
+
+  // Handle dropzone click - use native dialog in Electron, file input in browser
+  const handleDropzoneClick = useCallback(() => {
+    if (isElectron && window.api?.dialog?.openFile) {
+      handleNativeFilePicker();
+    } else {
+      handleBrowserFilePicker();
+    }
+  }, [handleNativeFilePicker, handleBrowserFilePicker]);
+
   return (
     <div className="video-list-property" css={styles(theme)}>
+      {/* Hidden file input for browser fallback */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        hidden
+        multiple
+        accept="video/*,.mp4,.avi,.mov,.wmv,.flv,.webm,.mkv"
+        onChange={handleFileInputChange}
+      />
+
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
         id={id}
       />
-
-      {/* Native file picker for Electron */}
-      {isElectron && (
-        <Tooltip title="Select video files from your computer">
-          <Button
-            className="native-picker-button"
-            variant="text"
-            onClick={handleNativeFilePicker}
-          >
-            <FolderOpenIcon />
-            Select videos
-          </Button>
-        </Tooltip>
-      )}
       
       {/* Video Grid */}
       {videos.length > 0 && (
@@ -415,14 +453,17 @@ const VideoListProperty = (props: PropertyProps) => {
       )}
 
       {/* Dropzone */}
-      <div
-        className={`dropzone ${isDragOver ? "drag-over" : ""}`}
-        onDragOver={onDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={onDrop}
-      >
-        <p>Drop videos here</p>
-      </div>
+      <Tooltip title="Click to select videos or drag and drop">
+        <div
+          className={`dropzone ${isDragOver ? "drag-over" : ""}`}
+          onClick={handleDropzoneClick}
+          onDragOver={onDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={onDrop}
+        >
+          <p>Click or drop videos here</p>
+        </div>
+      </Tooltip>
     </div>
   );
 };

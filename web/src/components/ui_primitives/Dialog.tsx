@@ -100,6 +100,11 @@ export interface DialogProps extends Omit<MuiDialogProps, "title" | "content"> {
    * Additional props for DialogActionButtons
    */
   actionButtonsProps?: Partial<DialogActionButtonsProps>;
+  /**
+   * Minimum width for the dialog
+   * @default "400px"
+   */
+  minWidth?: string | number;
 }
 
 /**
@@ -125,6 +130,7 @@ export const Dialog = memo(
         cancelDisabled,
         destructive,
         actionButtonsProps,
+        minWidth,
         className,
         ...dialogProps
       },
@@ -152,9 +158,24 @@ export const Dialog = memo(
           onClose={onClose}
           css={dialogStyles(theme)}
           className={`dialog ${className ?? ""}`}
-          // Inline style for consistency with existing dialogs and DialogStyles
-          style={{ minWidth: "100%", minHeight: "100%" }}
           aria-labelledby={title ? "dialog-title" : undefined}
+          slotProps={{
+            backdrop: {
+              style: {
+                backdropFilter: theme.vars.palette.glass.blur,
+                backgroundColor: theme.vars.palette.glass.backgroundDialog
+              }
+            },
+            paper: {
+              style: {
+                borderRadius: "16px",
+                background: theme.vars.palette.background.paper,
+                backdropFilter: `${theme.vars.palette.glass.blur} saturate(180%)`,
+                border: `1px solid ${theme.vars.palette.divider}`,
+                minWidth: minWidth ?? "min(400px, 100vw - 32px)"
+              }
+            }
+          }}
           {...dialogProps}
         >
           {title && (

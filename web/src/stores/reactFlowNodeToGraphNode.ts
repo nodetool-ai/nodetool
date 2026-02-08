@@ -16,8 +16,22 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     bypassed: node.data.bypassed || false
   };
 
-  // Persist explicit vertical resize (NodeResizeControl writes to node.style.height)
-  if (
+  // Persist explicit user resize dimensions
+  // ReactFlow's applyNodeChanges sets node.width/height (top-level) when user resizes via NodeResizeControl
+  // Also check node.style.width/height for initial load values from graphNodeToReactFlowNode
+  if (typeof node.width === "number") {
+    ui_properties.width = node.width;
+  } else if (
+    node.style &&
+    "width" in node.style &&
+    typeof (node.style as any).width === "number"
+  ) {
+    ui_properties.width = (node.style as any).width;
+  }
+
+  if (typeof node.height === "number") {
+    ui_properties.height = node.height;
+  } else if (
     node.style &&
     "height" in node.style &&
     typeof (node.style as any).height === "number"
@@ -27,7 +41,9 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
 
   if (node.type === "nodetool.group.Loop") {
     ui_properties.selectable = false;
-    ui_properties.height = node.measured?.height;
+    if (ui_properties.height === undefined) {
+      ui_properties.height = node.measured?.height;
+    }
   }
 
   if (
@@ -35,7 +51,9 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     node.type === "nodetool.workflows.base_node.Group" ||
     node.type === "nodetool.workflows.base_node.Preview"
   ) {
-    ui_properties.height = node.measured?.height;
+    if (ui_properties.height === undefined) {
+      ui_properties.height = node.measured?.height;
+    }
   }
 
   return {

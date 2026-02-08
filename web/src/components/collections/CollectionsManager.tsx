@@ -3,7 +3,6 @@ import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Dialog,
   DialogContent,
   DialogTitle,
   IconButton
@@ -12,6 +11,7 @@ import React, { memo } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import CollectionList from "./CollectionList";
 import PanelHeadline from "../ui/PanelHeadline";
+import { Dialog } from "../ui_primitives";
 
 const fadeIn = keyframes`
   from {
@@ -38,28 +38,6 @@ const styles = (theme: Theme) =>
       overflow: "auto",
       padding: "0 1em"
     },
-    ".dialog-title": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      margin: 0,
-      padding: theme.spacing(3, 4),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backdropFilter: "blur(20px) saturate(180%)"
-    },
-    ".close-button": {
-      position: "absolute",
-      right: theme.spacing(2),
-      top: theme.spacing(2),
-      color: theme.vars.palette.text.secondary,
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        backgroundColor: theme.vars.palette.action.hover,
-        transform: "rotate(90deg)"
-      }
-    }
   });
 
 interface CollectionsManagerProps {
@@ -78,34 +56,7 @@ const CollectionsManager: React.FC<CollectionsManagerProps> = ({
       open={open}
       onClose={onClose}
       fullWidth
-      maxWidth="md"
-      sx={{
-        "& .MuiDialog-paper": {
-          width: "80vw",
-          minWidth: "600px",
-          maxWidth: "900px",
-          height: "85vh",
-          margin: "auto",
-          borderRadius: theme.vars.rounded.dialog,
-          border: `1px solid ${theme.vars.palette.grey[700]}`,
-          backgroundColor: theme.vars.palette.glass.backgroundDialogContent,
-          backdropFilter: "blur(40px) saturate(180%)"
-        }
-      }}
-      slotProps={{
-        backdrop: {
-          style: {
-            backdropFilter: theme.vars.palette.glass.blur,
-            backgroundColor: theme.vars.palette.glass.backgroundDialog
-          }
-        },
-        paper: {
-          style: {
-            borderRadius: theme.vars.rounded.dialog,
-            background: theme.vars.palette.glass.backgroundDialogContent
-          }
-        }
-      }}
+      maxWidth="lg"
     >
       <DialogTitle className="dialog-title" css={styles(theme)}>
         <PanelHeadline

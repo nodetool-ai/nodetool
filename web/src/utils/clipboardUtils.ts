@@ -8,6 +8,20 @@ import log from "loglevel";
 import type {} from "../window.d";
 
 /**
+ * Make a URL absolute if it's relative.
+ * Required for fetch() to work correctly.
+ */
+function makeAbsoluteUrl(url: string): string {
+  if (!url) {
+    return url;
+  }
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:") || url.startsWith("data:")) {
+    return url;
+  }
+  return `${window.location.origin}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
+/**
  * Determines the appropriate clipboard operation based on asset content type
  */
 export function getClipboardType(
@@ -96,8 +110,10 @@ async function copyImageToClipboard(url: string): Promise<void> {
 
     // Only fetch if it's not already a data URL
     if (!url.startsWith("data:")) {
+      // Make URL absolute for fetch to work
+      const absoluteUrl = makeAbsoluteUrl(url);
       // Fetch the image as a blob to avoid CORS issues
-      const response = await fetch(url);
+      const response = await fetch(absoluteUrl);
       const blob = await response.blob();
 
       // Convert blob to data URL
@@ -141,7 +157,8 @@ async function copyHtmlToClipboard(
 ): Promise<void> {
   try {
     // Fetch the HTML content
-    const response = await fetch(url);
+    const absoluteUrl = makeAbsoluteUrl(url);
+    const response = await fetch(absoluteUrl);
     const htmlContent = await response.text();
 
     if (window.api.clipboard?.writeHTML) {
@@ -169,19 +186,20 @@ async function copyTextToClipboard(
 ): Promise<void> {
   try {
     let textContent: string;
+    const absoluteUrl = makeAbsoluteUrl(url);
 
     // For video/audio, copy the URL and metadata
     if (contentType.startsWith("video/") || contentType.startsWith("audio/")) {
       const mediaType = contentType.startsWith("video/") ? "Video" : "Audio";
-      textContent = assetName ? `${mediaType}: ${assetName}\nURL: ${url}` : url;
+      textContent = assetName ? `${mediaType}: ${assetName}\nURL: ${absoluteUrl}` : absoluteUrl;
     } else {
       // For text files, fetch and copy the content
       try {
-        const response = await fetch(url);
+        const response = await fetch(absoluteUrl);
         textContent = await response.text();
       } catch {
         // If fetch fails, just copy the URL
-        textContent = url;
+        textContent = absoluteUrl;
       }
     }
 

@@ -1,12 +1,11 @@
 import React, { useMemo } from "react";
 import {
-  Dialog,
   DialogContent,
   DialogTitle,
   Link,
   Typography
 } from "@mui/material";
-import { CloseButton } from "../ui_primitives";
+import { CloseButton, Dialog } from "../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { useTheme } from "@mui/material/styles";

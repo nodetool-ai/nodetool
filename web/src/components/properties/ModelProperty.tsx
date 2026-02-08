@@ -8,6 +8,7 @@ import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import isEqual from "lodash/isEqual";
 import { memo, useMemo } from "react";
 import LanguageModelSelect from "./LanguageModelSelect";
+import EmbeddingModelSelect from "./EmbeddingModelSelect";
 import ImageModelSelect from "./ImageModelSelect";
 import TTSModelSelect from "./TTSModelSelect";
 import ASRModelSelect from "./ASRModelSelect";
@@ -96,6 +97,13 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType === "language_model") {
       return (
         <LanguageModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+        />
+      );
+    } else if (modelType === "embedding_model") {
+      return (
+        <EmbeddingModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
         />

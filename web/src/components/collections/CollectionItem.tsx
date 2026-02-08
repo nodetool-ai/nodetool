@@ -6,9 +6,11 @@ import {
   CircularProgress,
   LinearProgress,
   Tooltip,
-  Button
+  Button,
+  Box
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -41,7 +43,7 @@ const IndexingProgress = memo(function IndexingProgress({
 }: {
   indexProgress: CollectionItemProps["indexProgress"];
 }) {
-  if (!indexProgress) {return null;}
+  if (!indexProgress) { return null; }
 
   return (
     <>
@@ -143,39 +145,47 @@ const CollectionItem = ({
     },
     [updateMutation, queryClient]
   );
-  
+
   const handleDeleteClick = useCallback(() => {
     onDelete(collection.name);
   }, [onDelete, collection.name]);
-  
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     onDragOver(e, collection.name);
   }, [onDragOver, collection.name]);
-  
+
   const handleEditWorkflow = useCallback(() => {
     setIsEditingWorkflow(true);
   }, []);
-  
+
   const handleBlurWorkflow = useCallback(() => {
     setIsEditingWorkflow(false);
   }, []);
-  
+
   const listItemSx = useMemo(() => ({
     borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
-    cursor: "copy",
     ...(dragOverCollection === collection.name && {
+      backgroundColor: "rgba(var(--mui-palette-primary-mainChannel) / 0.08)",
       borderStyle: "dashed",
       borderWidth: 2,
-      borderColor: "primary.main"
+      borderColor: "primary.main",
+      borderRadius: 1,
+      m: 0.5,
+      width: "calc(100% - 8px)",
+      "& > :not(.drop-zone-overlay)": {
+        opacity: 0.1,
+        filter: "blur(1px)"
+      }
     }),
-    transition: "all 0.2s",
+    transition: "all 0.2s ease-in-out",
     display: "flex",
     flexDirection: "column",
     gap: 2,
     py: 2.5,
-    px: 3
+    px: 3,
+    position: "relative"
   }), [dragOverCollection, collection.name]);
-  
+
   const containerStyle = useMemo(() => ({
     display: "flex",
     alignItems: "center",
@@ -201,7 +211,7 @@ const CollectionItem = ({
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending &&
-              deleteMutation.variables === collection.name ? (
+                deleteMutation.variables === collection.name ? (
                 <CircularProgress size={20} />
               ) : (
                 <DeleteIcon sx={{ fontSize: "1rem" }} />
@@ -211,6 +221,37 @@ const CollectionItem = ({
         </Tooltip>
       }
     >
+      {dragOverCollection === collection.name && (
+        <Box
+          className="drop-zone-overlay"
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "transparent",
+            pointerEvents: "none",
+            zIndex: 1
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              color: "primary.main",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              pointerEvents: "none",
+              textShadow: "0 0 10px rgba(var(--mui-palette-primary-mainChannel) / 0.2)"
+            }}
+          >
+            <UploadFileIcon sx={{ fontSize: "1.5rem" }} />
+            Drop files to upload
+          </Typography>
+        </Box>
+      )}
       <div style={containerStyle}>
         <Tooltip title={`Collection: ${collection.name}`}>
           <Typography
