@@ -25,15 +25,17 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleLoad = useCallback(async () => {
-    const modelInfo =
-      (data.properties?.model_info as string) ??
+  const modelInfo =
+    ((data.properties?.model_info as string) ??
       (data as NodeData & { model_info?: string }).model_info ??
-      "";
-    if (!modelInfo.trim()) {
-      setError(
-        "Paste OpenAPI JSON, llms.txt, a fal.ai URL, or an endpoint id first."
-      );
+      "").trim();
+
+  // Auto-load once if modelInfo is present but schema is not (fully) loaded
+  const [autoLoadAttempted, setAutoLoadAttempted] = useState(false);
+
+  const handleLoad = useCallback(async () => {
+    if (!modelInfo) {
+      setError("Node definition not found.");
       return;
     }
     setError(null);
@@ -101,7 +103,21 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [nodeId, data, updateNodeData]);
+  }, [nodeId, modelInfo, updateNodeData]);
+
+  React.useEffect(() => {
+    // If we have an endpoint_id, it was successfully resolved via backend
+    const isResolved = !!data.endpoint_id;
+    if (modelInfo && !isResolved && !loading && !error && !autoLoadAttempted) {
+      setAutoLoadAttempted(true);
+      handleLoad();
+    }
+  }, [modelInfo, data.endpoint_id, loading, error, autoLoadAttempted, handleLoad]);
+
+  // Reset attempt if modelInfo changes
+  React.useEffect(() => {
+    setAutoLoadAttempted(false);
+  }, [modelInfo]);
 
   return (
     <Box sx={{ px: 1, pt: 0.5, pb: 0.5 }}>

@@ -41,34 +41,34 @@ export type PresetOption = {
 
 export const IMAGE_SIZE_PRESETS: PresetOption[] = [
     // SD (Standard Definition)
-    { label: "NTSC (SD)", width: 720, height: 480, aspectRatio: "3:2", category: "SD", description: "720x480 (North America)" },
-    { label: "PAL (SD)", width: 720, height: 576, aspectRatio: "5:4", category: "SD", description: "720x576 (Europe/Asia)" },
+    { label: "NTSC SD", width: 720, height: 480, aspectRatio: "3:2", category: "SD", description: "720x480 North America" },
+    { label: "PAL SD", width: 720, height: 576, aspectRatio: "5:4", category: "SD", description: "720x576 Europe Asia" },
 
     // HD (High Definition)
-    { label: "720p (HD)", width: 1280, height: 720, aspectRatio: "16:9", category: "HD", description: "1280x720 (HD Ready)" },
-    { label: "1080p (Full HD)", width: 1920, height: 1080, aspectRatio: "16:9", category: "HD", description: "1920x1080" },
+    { label: "720p HD", width: 1280, height: 720, aspectRatio: "16:9", category: "HD", description: "1280x720 HD Ready" },
+    { label: "1080p Full HD", width: 1920, height: 1080, aspectRatio: "16:9", category: "HD", description: "1920x1080" },
 
     // 2K
-    { label: "DCI 2K (Cinema)", width: 2048, height: 1080, aspectRatio: "1.9:1", category: "2K", description: "2048x1080" },
-    { label: "QHD (2K)", width: 2560, height: 1440, aspectRatio: "16:9", category: "2K", description: "2560x1440 (1440p)" },
+    { label: "DCI 2K Cinema", width: 2048, height: 1080, aspectRatio: "1.9:1", category: "2K", description: "2048x1080" },
+    { label: "QHD 2K", width: 2560, height: 1440, aspectRatio: "16:9", category: "2K", description: "2560x1440 1440p" },
 
     // UHD/4K
     { label: "4K UHD", width: 3840, height: 2160, aspectRatio: "16:9", category: "UHD/4K", description: "3840x2160" },
-    { label: "DCI 4K (Cinema)", width: 4096, height: 2160, aspectRatio: "1.9:1", category: "UHD/4K", description: "4096x2160" },
+    { label: "DCI 4K Cinema", width: 4096, height: 2160, aspectRatio: "1.9:1", category: "UHD/4K", description: "4096x2160" },
 
     // 5K
     { label: "iMac 5K", width: 5120, height: 2880, aspectRatio: "16:9", category: "5K", description: "5120x2880" },
 
     // 6K
-    { label: "Cinema 6K (RED/BMPCC)", width: 6144, height: 3160, aspectRatio: "1.94:1", category: "6K", description: "6144x3160" },
-    { label: "Canon R5C (6K)", width: 6016, height: 3200, aspectRatio: "1.88:1", category: "6K", description: "6016x3200" },
+    { label: "Cinema 6K RED BMPCC", width: 6144, height: 3160, aspectRatio: "1.94:1", category: "6K", description: "6144x3160" },
+    { label: "Canon R5C 6K", width: 6016, height: 3200, aspectRatio: "1.88:1", category: "6K", description: "6016x3200" },
 
     // 8K
     { label: "8K UHD", width: 7680, height: 4320, aspectRatio: "16:9", category: "8K", description: "7680x4320" },
-    { label: "8K DCI (Cinema)", width: 8192, height: 4320, aspectRatio: "1.9:1", category: "8K", description: "8192x4320" },
+    { label: "8K DCI Cinema", width: 8192, height: 4320, aspectRatio: "1.9:1", category: "8K", description: "8192x4320" },
 
     // Vertical Video
-    { label: "9:16 (Social Media)", width: 1080, height: 1920, aspectRatio: "9:16", category: "Vertical Video", description: "1080x1920" },
+    { label: "9:16 Social Media", width: 1080, height: 1920, aspectRatio: "9:16", category: "Vertical Video", description: "1080x1920" },
     { label: "4K Vertical", width: 2160, height: 3840, aspectRatio: "9:16", category: "Vertical Video", description: "2160x3840" },
 
     // Specialty Ratios

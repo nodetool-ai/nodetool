@@ -113,7 +113,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
   }
 
   return (
-    <Box className="image-size-property-container" sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+    <Box className="image-size-property-container" sx={{ display: 'flex', flexDirection: 'column', width: '100%', overflow: "hidden" }}>
       <Box className="image-size-property" sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', mt: 0.5 }}>
         <Box className="width-input-container" sx={{ width: '70px', mr: 4 }}>
           <NumberInput 
@@ -182,34 +182,40 @@ const ImageSizeProperty = (props: PropertyProps) => {
           open={Boolean(anchorEl)}
           onClose={handleClose}
           disableAutoFocusItem
+          
+          MenuListProps={{
+            sx: { padding: 0 }
+          }}
           PaperProps={{
             sx: {
               maxHeight: 450,
               width: '300px',
               backgroundColor: 'background.paper',
-              '& .MuiList-root': {
-                paddingTop: 0
-              },
               '& .MuiListSubheader-root': {
                 lineHeight: '32px',
-                backgroundColor: '#1E1E1E', // Match theme background exactly
-                backgroundImage: 'none', // Remove gradients that might cause transparency issues
+                backgroundColor: '#1E1E1E', 
+                backgroundImage: 'none', 
                 fontWeight: 'bold',
                 color: 'primary.light',
                 position: 'sticky',
-                top: '56px', // Align below the search box
-                zIndex: 10,  // Higher z-index to stay above menu items
+                top: '48px', // Match search box height
+                zIndex: 10,  
               }
             }
           }}
         >
+          {/* Header/Search Box - Sticky within the list */}
           <Box className="presets-search-container" sx={{ 
             p: 1, 
             position: 'sticky', 
             top: 0, 
             backgroundColor: '#1E1E1E', 
             zIndex: 11, 
-            borderBottom: '1px solid rgba(255,255,255,0.1)' 
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            height: '48px', 
+            display: 'flex',
+            alignItems: 'center',
+            boxSizing: 'border-box'
           }}>
             <TextField
               className="presets-search-field"
@@ -225,37 +231,40 @@ const ImageSizeProperty = (props: PropertyProps) => {
                     <Search sx={{ fontSize: '1rem' }} />
                   </InputAdornment>
                 ),
-                sx: { fontSize: '0.8125rem' }
+                sx: { 
+                    fontSize: '0.8125rem',
+                    height: '32px',
+                    '& .MuiInputBase-input': {
+                        py: 0
+                    }
+                }
               }}
             />
           </Box>
-          <Box className="presets-list-container" sx={{ mt: 0 }}>
-            {Object.entries(filteredGroupedPresets).length === 0 ? (
-              <MenuItem disabled sx={{ fontSize: '0.8125rem' }}>No presets found</MenuItem>
-            ) : (
-              Object.entries(filteredGroupedPresets).map(([category, items]) => (
-                <Box key={category} className="presets-category-group">
-                  <ListSubheader className="presets-category-header">{category}</ListSubheader>
-                  {items.map((preset) => (
-                    <MenuItem 
-                      className="preset-menu-item"
-                      key={`${preset.width}x${preset.height}-${preset.label}`}
-                      onClick={() => handlePresetSelect(preset)}
-                      selected={safeValue.width === preset.width && safeValue.height === preset.height}
-                      sx={{ py: 0.5 }}
-                    >
-                      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Box sx={{ fontSize: '0.875rem' }}>{preset.label} ({preset.aspectRatio})</Box>
-                        {preset.description && (
-                          <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{preset.description}</Box>
-                        )}
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Box>
+
+          {Object.entries(filteredGroupedPresets).length === 0 ? (
+            <MenuItem disabled sx={{ fontSize: '0.8125rem' }}>No presets found</MenuItem>
+          ) : (
+            Object.entries(filteredGroupedPresets).map(([category, items]) => [
+              <ListSubheader key={category} className="presets-category-header">{category}</ListSubheader>,
+              ...items.map((preset) => (
+                <MenuItem 
+                  className="preset-menu-item"
+                  key={`${preset.width}x${preset.height}-${preset.label}`}
+                  onClick={() => handlePresetSelect(preset)}
+                  selected={safeValue.width === preset.width && safeValue.height === preset.height}
+                  sx={{ py: 0.5, px: 2 }}
+                >
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ fontSize: '0.875rem' }}>{preset.label} {preset.aspectRatio}</Box>
+                    {preset.description && (
+                      <Box sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{preset.description}</Box>
+                    )}
+                  </Box>
+                </MenuItem>
               ))
-            )}
-          </Box>
+            ])
+          )}
         </Menu>
       </Box>
       {matchedPreset && (
@@ -270,7 +279,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
                 pointerEvents: 'none'
             }}
         >
-          {matchedPreset.label}
+          {matchedPreset.label} {matchedPreset.aspectRatio}
         </Box>
       )}
     </Box>
