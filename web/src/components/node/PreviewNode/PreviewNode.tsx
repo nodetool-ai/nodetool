@@ -209,8 +209,25 @@ const getOutputFromResult = (result: any) => {
   return result;
 };
 
+type PreviewResultValue =
+  | Record<string, unknown>
+  | Array<unknown>
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isEmptyData = (data: unknown): boolean =>
+  data === undefined ||
+  data === null ||
+  (typeof data === "string" && data.length === 0) ||
+  (Array.isArray(data) && data.length === 0) ||
+  (data instanceof Uint8Array && data.length === 0) ||
+  (isRecord(data) && Object.keys(data).length === 0);
 
 const hasUnresolvedMemoryUri = (value: unknown): boolean => {
   if (value === null || value === undefined) {
@@ -237,13 +254,7 @@ const hasUnresolvedMemoryUri = (value: unknown): boolean => {
     const uri = value.uri;
     const data = value.data;
     if (typeof uri === "string" && uri.startsWith("memory://")) {
-      const hasNoData =
-        data === undefined ||
-        data === null ||
-        (typeof data === "string" && data.length === 0) ||
-        (Array.isArray(data) && data.length === 0) ||
-        (data instanceof Uint8Array && data.length === 0);
-      return hasNoData;
+      return isEmptyData(data);
     }
   }
 
@@ -251,9 +262,9 @@ const hasUnresolvedMemoryUri = (value: unknown): boolean => {
 };
 
 export const selectPreviewResult = (
-  preview: unknown,
-  fallback: unknown
-): unknown => {
+  preview: PreviewResultValue,
+  fallback: PreviewResultValue
+): PreviewResultValue => {
   if (preview === null || preview === undefined) {
     return fallback;
   }
@@ -325,10 +336,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   const previewResult = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
-  );
+  ) as PreviewResultValue;
   const nodeResult = useResultsStore((state) =>
     state.getResult(props.data.workflow_id, props.id)
-  );
+  ) as PreviewResultValue;
   const result = useMemo(
     () => selectPreviewResult(previewResult, nodeResult),
     [previewResult, nodeResult]
