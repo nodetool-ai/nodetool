@@ -47,10 +47,11 @@ const fallbackLabelForValue = (value: unknown): string => {
     return "No value";
   }
   if (typeof value === "string") {
-    if (value.trim() === "") {
+    const trimmed = value.trim();
+    if (trimmed === "") {
       return value.length > 0 ? "Whitespace only" : "Empty string";
     }
-    return "No value";
+    return trimmed;
   }
   if (Array.isArray(value)) {
     return "Empty list";

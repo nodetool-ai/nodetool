@@ -53,8 +53,6 @@ jest.mock("../OutputRenderer", () => ({
   default: ({ value }: { value: unknown }) => <div>{String(value)}</div>
 }));
 
-const tooltipDelay = HANDLE_TOOLTIP_ENTER_DELAY;
-
 const createNodeStore = (node: Node<NodeData>): NodeStore => {
   const store = create(() => ({
     findNode: (nodeId: string) => (nodeId === node.id ? node : undefined)
@@ -67,7 +65,7 @@ const createNodeStore = (node: Node<NodeData>): NodeStore => {
 const renderTooltip = async (element: HTMLElement, user: ReturnType<typeof userEvent.setup>) => {
   await user.hover(element);
   act(() => {
-    jest.advanceTimersByTime(tooltipDelay);
+    jest.advanceTimersByTime(HANDLE_TOOLTIP_ENTER_DELAY);
   });
 };
 
