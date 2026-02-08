@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Viewport } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -6,12 +6,32 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 export function useReactFlowEvents() {
   const setViewport = useNodes((state) => state.setViewport);
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
+  const viewportTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setViewportRef = useRef(setViewport);
+
+  useEffect(() => {
+    setViewportRef.current = setViewport;
+  }, [setViewport]);
+
+  useEffect(() => {
+    return () => {
+      if (viewportTimeoutRef.current) {
+        clearTimeout(viewportTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleMoveEnd = useCallback(
     (event: any, viewport: Viewport) => {
-      setViewport(viewport);
+      if (viewportTimeoutRef.current) {
+        clearTimeout(viewportTimeoutRef.current);
+      }
+      viewportTimeoutRef.current = setTimeout(() => {
+        setViewportRef.current(viewport);
+        viewportTimeoutRef.current = null;
+      }, 100);
     },
-    [setViewport]
+    []
   );
 
   const handleOnMoveStart = useCallback(
