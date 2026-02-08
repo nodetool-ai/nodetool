@@ -2,7 +2,7 @@
  * used to test MUI components
  */
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Autocomplete,
   Button,
@@ -29,6 +29,11 @@ function Inputs() {
   const [radioValue, setRadioValue] = useState("option1");
   const [selectValue, setSelectValue] = useState("");
   const [toggleValue, setToggleValue] = useState(false);
+
+  // Memoize toggle handler to prevent unnecessary re-renders
+  const handleToggleChange = useCallback(() => {
+    setToggleValue((prev) => !prev);
+  }, []);
 
   return (
     <div style={{ padding: "20px" }}>
@@ -82,7 +87,7 @@ function Inputs() {
       <ToggleButtonGroup
         value={toggleValue}
         exclusive
-        onChange={() => setToggleValue(!toggleValue)}
+        onChange={handleToggleChange}
       >
         <ToggleButton value={true}>Toggle On</ToggleButton>
         <ToggleButton value={false}>Toggle Off</ToggleButton>

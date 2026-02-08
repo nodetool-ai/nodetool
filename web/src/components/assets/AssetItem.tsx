@@ -327,7 +327,12 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
   const handleAudioClick = useCallback(() => {
     onSetCurrentAudioAsset?.(asset);
-  }, [onSetCurrentAudioAsset, asset]);
+  }, [asset, onSetCurrentAudioAsset]);
+
+  // Memoize click handler to prevent unnecessary re-renders
+  const handleItemClick = useCallback(() => {
+    handleClick(onSelect, onClickParent, isParent);
+  }, [handleClick, onSelect, onClickParent, isParent]);
 
   const handleDoubleClickWithStop = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -349,7 +354,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       onDragStart={handleDrag}
       onDragEnd={handleDragEnd}
       onDoubleClick={handleDoubleClickWithStop}
-      onClick={() => handleClick(onSelect, onClickParent, isParent)}
+      onClick={handleItemClick}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
