@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import {
   oneDark,
   oneLight
@@ -28,7 +28,7 @@ const styles = (_theme: Theme) =>
     }
   });
 
-export const CodeBlock: React.FC<CodeBlockProps> = ({
+export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   node,
   inline,
   className,
@@ -48,6 +48,20 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
     }
   }, [onInsert, codeContent, match]);
 
+  // Memoize theme customization to avoid recreating on every render
+  // Must be called before any conditional returns
+  const customizedTheme = useMemo(() => {
+    const codeTheme = isDarkMode ? oneDark : oneLight;
+    return {
+      ...codeTheme,
+      'pre[class*="language-"]': {
+        ...codeTheme['pre[class*="language-"]'],
+        margin: 0,
+        borderRadius: 0
+      }
+    };
+  }, [isDarkMode]);
+
   let renderAsBlock = false;
 
   if (inline === false) {
@@ -65,15 +79,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
 
   if (renderAsBlock) {
     const language = match ? match[1] : "plaintext";
-    const codeTheme = isDarkMode ? oneDark : oneLight;
-    const customizedTheme = {
-      ...codeTheme,
-      'pre[class*="language-"]': {
-        ...codeTheme['pre[class*="language-"]'],
-        margin: 0,
-        borderRadius: 0
-      }
-    };
 
     return (
       <div css={styles(_theme)} className="code-block-container">
@@ -131,4 +136,14 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
       </code>
     );
   }
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if children, className, or inline changes
+  return (
+    prevProps.children === nextProps.children &&
+    prevProps.className === nextProps.className &&
+    prevProps.inline === nextProps.inline &&
+    prevProps._isFromPre === nextProps._isFromPre
+  );
+});
+
+CodeBlock.displayName = "CodeBlock";

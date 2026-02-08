@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { memo, useMemo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -48,47 +48,59 @@ const styles = (_theme: Theme) =>
     }
   });
 
-const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
+const ChatMarkdown: React.FC<ChatMarkdownProps> = memo(({
   content,
   onInsertCode
 }) => {
   const _theme = useTheme();
+
+  // Memoize the anchor renderer to prevent unnecessary re-renders
+  const renderAnchor = useCallback(({ node, ...props }: any) => {
+    const { href, children } = props;
+    const isAudio =
+      href &&
+      (href.toLowerCase().endsWith(".mp3") ||
+        href.toLowerCase().endsWith(".wav") ||
+        href.toLowerCase().endsWith(".ogg") ||
+        href.toLowerCase().endsWith(".m4a") ||
+        href.toLowerCase().endsWith(".webm"));
+
+    if (isAudio && href) {
+      return (
+        <span css={{ display: "inline-flex", alignItems: "center", gap: "8px", verticalAlign: "middle" }}>
+          <audio controls src={href} css={{ height: "32px" }} />
+          <a {...props} target="_blank" rel="noopener noreferrer">
+            {children}
+          </a>
+        </span>
+      );
+    }
+    return <a {...props} target="_blank" rel="noopener noreferrer" />;
+  }, []);
+
+  // Memoize components to prevent unnecessary re-renders
+  const components = useMemo(() => ({
+    code: (props: any) => <CodeBlock {...props} onInsert={onInsertCode} />,
+    pre: (props: any) => <PreRenderer {...props} onInsert={onInsertCode} />,
+    a: renderAnchor
+  }), [onInsertCode, renderAnchor]);
+
   return (
     <div css={styles(_theme)} className="markdown markdown-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
-        components={{
-          code: (props) => <CodeBlock {...props} onInsert={onInsertCode} />,
-          pre: (props) => <PreRenderer {...props} onInsert={onInsertCode} />,
-          a: ({ node, ...props }) => {
-            const { href, children } = props;
-            const isAudio =
-              href &&
-              (href.toLowerCase().endsWith(".mp3") ||
-                href.toLowerCase().endsWith(".wav") ||
-                href.toLowerCase().endsWith(".ogg") ||
-                href.toLowerCase().endsWith(".m4a") ||
-                href.toLowerCase().endsWith(".webm"));
-
-            if (isAudio && href) {
-              return (
-                <span css={{ display: "inline-flex", alignItems: "center", gap: "8px", verticalAlign: "middle" }}>
-                  <audio controls src={href} css={{ height: "32px" }} />
-                  <a {...props} target="_blank" rel="noopener noreferrer">
-                    {children}
-                  </a>
-                </span>
-              );
-            }
-            return <a {...props} target="_blank" rel="noopener noreferrer" />;
-          }
-        }}
+        components={components}
       >
         {content || ""}
       </ReactMarkdown>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if content changes
+  return prevProps.content === nextProps.content;
+});
+
+ChatMarkdown.displayName = "ChatMarkdown";
 
 export default ChatMarkdown;

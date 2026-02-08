@@ -365,7 +365,7 @@ const OpenOrCreateDialog = () => {
                 <Typography>{error?.message}</Typography>
               </ErrorOutlineRounded>
             )}
-            {data && sortedWorkflows && renderListView(sortedWorkflows)}
+            {data && sortedWorkflows && renderListView()}
           </div>
         </div>
       </DialogContent>
