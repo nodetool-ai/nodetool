@@ -187,8 +187,11 @@ type ExportThreadPayload = {
   messages: Message[];
 };
 
-const THOUGHT_LABEL = "**Thought:**";
-const UNSUPPORTED_CONTENT_LABEL = "[unsupported content]";
+const MARKDOWN_THOUGHT_PREFIX = "**Thought:**";
+const MARKDOWN_UNSUPPORTED_PLACEHOLDER = "[unsupported content]";
+const DEFAULT_ROLE_LABEL = "Unknown";
+const EMPTY_MESSAGE_PLACEHOLDER = "_(no content)_";
+const EMPTY_CONVERSATION_MESSAGE = "_No messages in this conversation._";
 
 // Fallback content shape for unexpected message payloads.
 type MessageContentItemBase = {
@@ -228,7 +231,9 @@ const formatMessageContent = (content: Message["content"]): string => {
           case "text":
             return typedItem.text ?? "";
           case "thought":
-            return typedItem.text ? `${THOUGHT_LABEL} ${typedItem.text}` : "";
+            return typedItem.text
+              ? `${MARKDOWN_THOUGHT_PREFIX} ${typedItem.text}`
+              : "";
           case "image_url":
             return typedItem.image?.uri
               ? `![image](${typedItem.image.uri})`
@@ -248,7 +253,7 @@ const formatMessageContent = (content: Message["content"]): string => {
           default:
             return typedItem.type
               ? `[${typedItem.type}]`
-              : UNSUPPORTED_CONTENT_LABEL;
+              : MARKDOWN_UNSUPPORTED_PLACEHOLDER;
         }
       })
       .filter(Boolean)
@@ -266,7 +271,7 @@ const formatThreadMarkdown = (payload: ExportThreadPayload): string => {
   const body = payload.messages.length
     ? payload.messages
         .map((message) => {
-          const role = message.role ?? "unknown";
+          const role = message.role ?? DEFAULT_ROLE_LABEL;
           const roleLabel = role
             .replace(/_/g, " ")
             .replace(/\b\w/g, (char) => char.toUpperCase());
@@ -276,13 +281,13 @@ const formatThreadMarkdown = (payload: ExportThreadPayload): string => {
           return [
             `## ${roleLabel}${name}`,
             timestamp,
-            content || "_(no content)_"
+            content || EMPTY_MESSAGE_PLACEHOLDER
           ]
             .filter(Boolean)
             .join("\n");
         })
         .join("\n\n")
-    : "_No messages in this conversation._";
+    : EMPTY_CONVERSATION_MESSAGE;
 
   return [header, "", ...meta, "", body].join("\n");
 };
