@@ -362,6 +362,12 @@ jobs:
             ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
             ${{ env.DIST_DIR }}/latest.yml
 
+      - name: Install Flatpak
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+
       - name: Build Electron (macOS/Linux)
         if: matrix.os != 'windows-latest'
         shell: bash
