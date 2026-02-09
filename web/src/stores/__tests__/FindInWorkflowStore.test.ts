@@ -1,5 +1,5 @@
 import { act } from "@testing-library/react";
-import { useFindInWorkflowStore, FindResult } from "../FindInWorkflowStore";
+import { useFindInWorkflowStore, FindResult, SearchFilters } from "../FindInWorkflowStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../NodeData";
 
@@ -230,6 +230,71 @@ describe("FindInWorkflowStore", () => {
       expect(useFindInWorkflowStore.getState().searchTerm).toBe("");
       expect(useFindInWorkflowStore.getState().results).toEqual([]);
       expect(useFindInWorkflowStore.getState().selectedIndex).toBe(0);
+    });
+  });
+
+  describe("filters", () => {
+    it("initializes with empty filters", () => {
+      expect(useFindInWorkflowStore.getState().filters).toEqual({});
+      expect(useFindInWorkflowStore.getState().showFilters).toBe(false);
+    });
+
+    it("sets filters", () => {
+      const newFilters: SearchFilters = {
+        typeCategory: "image",
+        connectionState: "connected"
+      };
+
+      act(() => {
+        useFindInWorkflowStore.getState().setFilters(newFilters);
+      });
+
+      expect(useFindInWorkflowStore.getState().filters).toEqual(newFilters);
+    });
+
+    it("updates individual filter", () => {
+      act(() => {
+        useFindInWorkflowStore.getState().updateFilter("typeCategory", "text");
+      });
+
+      expect(useFindInWorkflowStore.getState().filters.typeCategory).toBe("text");
+
+      act(() => {
+        useFindInWorkflowStore.getState().updateFilter("connectionState", "disconnected");
+      });
+
+      expect(useFindInWorkflowStore.getState().filters.typeCategory).toBe("text");
+      expect(useFindInWorkflowStore.getState().filters.connectionState).toBe("disconnected");
+    });
+
+    it("toggles filters visibility", () => {
+      expect(useFindInWorkflowStore.getState().showFilters).toBe(false);
+
+      act(() => {
+        useFindInWorkflowStore.getState().toggleFilters();
+      });
+
+      expect(useFindInWorkflowStore.getState().showFilters).toBe(true);
+
+      act(() => {
+        useFindInWorkflowStore.getState().toggleFilters();
+      });
+
+      expect(useFindInWorkflowStore.getState().showFilters).toBe(false);
+    });
+
+    it("clears individual filter by setting to undefined", () => {
+      act(() => {
+        useFindInWorkflowStore.getState().updateFilter("typeCategory", "image");
+      });
+
+      expect(useFindInWorkflowStore.getState().filters.typeCategory).toBe("image");
+
+      act(() => {
+        useFindInWorkflowStore.getState().updateFilter("typeCategory", undefined);
+      });
+
+      expect(useFindInWorkflowStore.getState().filters.typeCategory).toBeUndefined();
     });
   });
 });

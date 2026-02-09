@@ -7,11 +7,27 @@ export interface FindResult {
   matchIndex: number;
 }
 
+/**
+ * Filter options for advanced workflow search
+ */
+export interface SearchFilters {
+  /** Filter by node type category (e.g., "image", "text", "audio") */
+  typeCategory?: string;
+  /** Filter by connection state */
+  connectionState?: "connected" | "disconnected" | "any";
+  /** Filter by execution state */
+  executionState?: "success" | "error" | "running" | "pending" | "any";
+  /** Filter by bypass state */
+  bypassState?: "bypassed" | "active" | "any";
+}
+
 interface FindInWorkflowState {
   isOpen: boolean;
   searchTerm: string;
   results: FindResult[];
   selectedIndex: number;
+  filters: SearchFilters;
+  showFilters: boolean;
 
   openFind: () => void;
   closeFind: () => void;
@@ -21,6 +37,12 @@ interface FindInWorkflowState {
   navigateNext: () => void;
   navigatePrevious: () => void;
   clearSearch: () => void;
+  setFilters: (filters: SearchFilters) => void;
+  toggleFilters: () => void;
+  updateFilter: <K extends keyof SearchFilters>(
+    key: K,
+    value: SearchFilters[K]
+  ) => void;
 }
 
 export const useFindInWorkflowStore = create<FindInWorkflowState>((set, get) => ({
@@ -28,6 +50,8 @@ export const useFindInWorkflowStore = create<FindInWorkflowState>((set, get) => 
   searchTerm: "",
   results: [],
   selectedIndex: 0,
+  filters: {},
+  showFilters: false,
 
   openFind: () => set({ isOpen: true, searchTerm: "", results: [], selectedIndex: 0 }),
   closeFind: () => set({ isOpen: false, searchTerm: "", results: [], selectedIndex: 0 }),
@@ -51,5 +75,21 @@ export const useFindInWorkflowStore = create<FindInWorkflowState>((set, get) => 
     const newIndex = selectedIndex > 0 ? selectedIndex - 1 : results.length - 1;
     set({ selectedIndex: newIndex });
   },
-  clearSearch: () => set({ searchTerm: "", results: [], selectedIndex: 0 })
+  clearSearch: () => set({ searchTerm: "", results: [], selectedIndex: 0 }),
+
+  setFilters: (filters: SearchFilters) => set({ filters }),
+
+  toggleFilters: () => set((state) => ({ showFilters: !state.showFilters })),
+
+  updateFilter: <K extends keyof SearchFilters>(
+    key: K,
+    value: SearchFilters[K]
+  ) => {
+    set((state) => ({
+      filters: {
+        ...state.filters,
+        [key]: value
+      }
+    }));
+  }
 }));

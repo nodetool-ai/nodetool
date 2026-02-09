@@ -1,23 +1,31 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
+import { useFindInWorkflowStore, SearchFilters } from "../stores/FindInWorkflowStore";
 import { useNodes } from "../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../stores/MetadataStore";
-import { Node } from "@xyflow/react";
+import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
 /**
  * Hook to implement "Find in Workflow" functionality.
- * 
+ *
  * Provides search capabilities for finding nodes within the current workflow.
  * Supports searching by node name, node type, or node ID with debounced
  * input and keyboard navigation through results.
- * 
+ *
+ * Advanced filters allow searching by:
+ * - Type category (image, text, audio, etc.)
+ * - Connection state (connected/disconnected)
+ * - Execution state (success/error/running/pending)
+ * - Bypass state (bypassed/active)
+ *
  * @returns Object containing:
  *   - isOpen: Whether the find dialog is open
  *   - searchTerm: Current search term
  *   - results: Array of matching nodes with indices
  *   - selectedIndex: Currently selected result index
+ *   - filters: Current active filters
+ *   - showFilters: Whether filters panel is visible
  *   - totalCount: Total number of matching results
  *   - openFind: Function to open the find dialog
  *   - closeFind: Function to close the find dialog
@@ -29,23 +37,31 @@ import { NodeData } from "../stores/NodeData";
  *   - clearSearch: Clear search term and results
  *   - selectNode: Programmatically select a result by index
  *   - getNodeDisplayName: Get display name for a node
- * 
+ *   - setFilters: Set all filters at once
+ *   - updateFilter: Update a single filter
+ *   - toggleFilters: Toggle filters panel visibility
+ *
  * @example
  * ```typescript
- * const { 
- *   isOpen, 
- *   openFind, 
- *   performSearch, 
+ * const {
+ *   isOpen,
+ *   openFind,
+ *   performSearch,
  *   results,
- *   goToSelected 
+ *   filters,
+ *   updateFilter,
+ *   goToSelected
  * } = useFindInWorkflow();
- * 
+ *
  * // Open find dialog
  * openFind();
- * 
+ *
  * // Search for nodes
  * performSearch("text");
- * 
+ *
+ * // Filter by type
+ * updateFilter("typeCategory", "image");
+ *
  * // Navigate to result
  * goToSelected();
  * ```
@@ -55,6 +71,8 @@ export const useFindInWorkflow = () => {
   const searchTerm = useFindInWorkflowStore((state) => state.searchTerm);
   const results = useFindInWorkflowStore((state) => state.results);
   const selectedIndex = useFindInWorkflowStore((state) => state.selectedIndex);
+  const filters = useFindInWorkflowStore((state) => state.filters);
+  const showFilters = useFindInWorkflowStore((state) => state.showFilters);
   const openFind = useFindInWorkflowStore((state) => state.openFind);
   const closeFind = useFindInWorkflowStore((state) => state.closeFind);
   const setSearchTerm = useFindInWorkflowStore((state) => state.setSearchTerm);
@@ -63,8 +81,12 @@ export const useFindInWorkflow = () => {
   const navigateNext = useFindInWorkflowStore((state) => state.navigateNext);
   const navigatePrevious = useFindInWorkflowStore((state) => state.navigatePrevious);
   const clearSearch = useFindInWorkflowStore((state) => state.clearSearch);
+  const setFilters = useFindInWorkflowStore((state) => state.setFilters);
+  const updateFilter = useFindInWorkflowStore((state) => state.updateFilter);
+  const toggleFilters = useFindInWorkflowStore((state) => state.toggleFilters);
 
   const nodes = useNodes((state) => state.nodes);
+  const edges = useNodes((state) => state.edges);
   const { setCenter, fitView } = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -83,6 +105,71 @@ export const useFindInWorkflow = () => {
       return nodeType.split(".").pop() || node.id;
     },
     [getMetadata]
+  );
+
+  /**
+   * Check if a node matches the current connection state filter
+   */
+  const matchesConnectionFilter = useCallback(
+    (node: Node<NodeData>, edges: Edge[], filter: SearchFilters["connectionState"]): boolean => {
+      if (!filter || filter === "any") {
+        return true;
+      }
+
+      const hasConnections = edges.some(
+        (edge) => edge.source === node.id || edge.target === node.id
+      );
+
+      return filter === "connected" ? hasConnections : !hasConnections;
+    },
+    []
+  );
+
+  /**
+   * Check if a node matches the current execution state filter
+   */
+  const matchesExecutionFilter = useCallback(
+    (node: Node<NodeData>, filter: SearchFilters["executionState"]): boolean => {
+      if (!filter || filter === "any") {
+        return true;
+      }
+
+      // For now, always return true since execution_state is not in NodeData
+      // This can be enhanced later if execution state tracking is added
+      return true;
+    },
+    []
+  );
+
+  /**
+   * Check if a node matches the current bypass state filter
+   */
+  const matchesBypassFilter = useCallback(
+    (node: Node<NodeData>, filter: SearchFilters["bypassState"]): boolean => {
+      if (!filter || filter === "any") {
+        return true;
+      }
+
+      const isBypassed = node.data?.bypassed === true;
+
+      return filter === "bypassed" ? isBypassed : !isBypassed;
+    },
+    []
+  );
+
+  /**
+   * Check if a node matches the current type category filter
+   */
+  const matchesTypeCategoryFilter = useCallback(
+    (node: Node<NodeData>, filter: string | undefined): boolean => {
+      if (!filter) {
+        return true;
+      }
+
+      const nodeType = node.type ?? "";
+      return nodeType.toLowerCase().startsWith(filter.toLowerCase());
+    },
+    []
   );
 
   const searchNodes = useCallback(
@@ -115,17 +202,54 @@ export const useFindInWorkflow = () => {
 
   const performSearch = useCallback(
     (term: string) => {
-      if (!term.trim()) {
-        setResults([]);
-        return;
-      }
+      // Get base matches from text search
+      // If no search term and no filters, return empty
+      const hasActiveFilters =
+        filters.typeCategory !== undefined ||
+        (filters.connectionState !== undefined && filters.connectionState !== "any") ||
+        (filters.executionState !== undefined && filters.executionState !== "any") ||
+        (filters.bypassState !== undefined && filters.bypassState !== "any");
 
-      const matchingNodes = searchNodes(term, nodes);
+      let matchingNodes = !term.trim() && !hasActiveFilters
+        ? []
+        : !term.trim()
+          ? nodes
+          : searchNodes(term, nodes);
+
+      // Apply filters
+      matchingNodes = matchingNodes.filter((node) => {
+        if (
+          !matchesConnectionFilter(node, edges, filters.connectionState)
+        ) {
+          return false;
+        }
+        if (!matchesExecutionFilter(node, filters.executionState)) {
+          return false;
+        }
+        if (!matchesBypassFilter(node, filters.bypassState)) {
+          return false;
+        }
+        if (!matchesTypeCategoryFilter(node, filters.typeCategory)) {
+          return false;
+        }
+        return true;
+      });
+
       setResults(
         matchingNodes.map((node, index) => ({ node, matchIndex: index }))
       );
     },
-    [nodes, searchNodes, setResults]
+    [
+      nodes,
+      edges,
+      filters,
+      searchNodes,
+      setResults,
+      matchesConnectionFilter,
+      matchesExecutionFilter,
+      matchesBypassFilter,
+      matchesTypeCategoryFilter
+    ]
   );
 
   const debouncedSearch = useCallback(
@@ -197,6 +321,8 @@ export const useFindInWorkflow = () => {
     searchTerm,
     results,
     selectedIndex,
+    filters,
+    showFilters,
     totalCount: results.length,
     openFind,
     closeFind,
@@ -207,6 +333,9 @@ export const useFindInWorkflow = () => {
     navigatePrevious,
     clearSearch,
     selectNode,
-    getNodeDisplayName
+    getNodeDisplayName,
+    setFilters,
+    updateFilter,
+    toggleFilters
   };
 };
