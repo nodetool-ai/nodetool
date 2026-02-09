@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
@@ -247,4 +247,4 @@ const AssetItemContextMenu = () => {
   );
 };
 
-export default AssetItemContextMenu;
+export default memo(AssetItemContextMenu);

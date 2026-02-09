@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, memo } from "react";
 import {
   Node,
   Edge,
@@ -225,4 +225,4 @@ const ChatView = ({
   );
 };
 
-export default ChatView;
+export default memo(ChatView);
