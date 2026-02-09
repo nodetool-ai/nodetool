@@ -370,6 +370,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const internalScrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
+  const scrollRafId = useRef<number | null>(null);
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
   }>({});
@@ -420,31 +421,51 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     }
   }, [scrollContainer]);
 
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollRafId.current) {
+        cancelAnimationFrame(scrollRafId.current);
+      }
+    };
+  }, []);
+
   const handleScroll = useCallback(() => {
     lastUserScrollTimeRef.current = Date.now();
     // User manually scrolling clears the "scrolled to user message" state
     scrolledToUserMessageRef.current = false;
-    const element = scrollHost;
-    if (!element) { return; }
 
-    const calculatedIsNearBottom =
-      element.scrollHeight - element.scrollTop - element.clientHeight <
-      SCROLL_THRESHOLD;
-
-    const previousUserHasScrolledUp = userHasScrolledUpRef.current;
-    if (!calculatedIsNearBottom && !userHasScrolledUpRef.current) {
-      userHasScrolledUpRef.current = true;
-    } else if (calculatedIsNearBottom && userHasScrolledUpRef.current) {
-      userHasScrolledUpRef.current = false;
+    if (scrollRafId.current) {
+      return;
     }
 
-    if (userHasScrolledUpRef.current !== previousUserHasScrolledUp) {
-      const shouldBeVisible =
-        !isNearBottomRef.current && userHasScrolledUpRef.current;
-      if (shouldBeVisible !== showScrollToBottomButton) {
-        setShowScrollToBottomButton(shouldBeVisible);
+    scrollRafId.current = requestAnimationFrame(() => {
+      scrollRafId.current = null;
+      // Throttling scroll handling to the next animation frame prevents
+      // excessive layout reflows (caused by reading scrollTop/scrollHeight)
+      // during rapid scrolling events.
+      const element = scrollHost;
+      if (!element) { return; }
+
+      const calculatedIsNearBottom =
+        element.scrollHeight - element.scrollTop - element.clientHeight <
+        SCROLL_THRESHOLD;
+
+      const previousUserHasScrolledUp = userHasScrolledUpRef.current;
+      if (!calculatedIsNearBottom && !userHasScrolledUpRef.current) {
+        userHasScrolledUpRef.current = true;
+      } else if (calculatedIsNearBottom && userHasScrolledUpRef.current) {
+        userHasScrolledUpRef.current = false;
       }
-    }
+
+      if (userHasScrolledUpRef.current !== previousUserHasScrolledUp) {
+        const shouldBeVisible =
+          !isNearBottomRef.current && userHasScrolledUpRef.current;
+        if (shouldBeVisible !== showScrollToBottomButton) {
+          setShowScrollToBottomButton(shouldBeVisible);
+        }
+      }
+    });
   }, [showScrollToBottomButton, scrollHost]);
 
   useEffect(() => {
