@@ -166,6 +166,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
                 size="small"
                 onClick={sendQueuedNow}
                 disabled={!onStop}
+                aria-label="Send now"
                 sx={{
                   color: "primary.main",
                   "&:hover": { backgroundColor: theme.vars.palette.primary.main + "20" }
@@ -178,6 +179,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
               <IconButton
                 size="small"
                 onClick={cancelQueued}
+                aria-label="Cancel queued message"
                 sx={{
                   color: "text.secondary",
                   "&:hover": { color: "error.main" }

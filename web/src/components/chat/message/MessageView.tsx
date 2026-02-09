@@ -357,7 +357,7 @@ export const MessageView: React.FC<
             <Box sx={{ flex: 1 }} />
             {hasDetails && (
               <Tooltip title={open ? "Hide details" : "Show details"}>
-                <IconButton size="small" onClick={handleToggleOpen}>
+                <IconButton size="small" onClick={handleToggleOpen} aria-label={open ? "Hide details" : "Show details"}>
                   <ExpandMoreIcon
                     className={`expand-icon${open ? " expanded" : ""}`}
                   />

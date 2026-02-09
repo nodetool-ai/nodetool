@@ -103,6 +103,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <IconButton
                         onClick={handleOpen}
                         size="small"
+                        aria-label="Open sidebar"
                         sx={{
                             color: theme.vars.palette.text.secondary,
                             "&:hover": {
@@ -118,6 +119,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     <IconButton
                         onClick={handleNewChat}
                         size="small"
+                        aria-label="New chat"
                         sx={{
                             color: theme.vars.palette.text.secondary,
                             "&:hover": {
@@ -168,6 +170,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         <IconButton
                             onClick={handleClose}
                             size="small"
+                            aria-label="Collapse sidebar"
                             sx={{
                                 color: theme.vars.palette.text.secondary,
                                 "&:hover": {
@@ -225,6 +228,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         <IconButton
                             onClick={handleNewChat}
                             size="small"
+                            aria-label="New chat"
                             sx={{
                                 backgroundColor: theme.vars.palette.grey[800],
                                 color: theme.vars.palette.common.white,
