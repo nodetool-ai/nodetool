@@ -100,8 +100,7 @@
     },
     "linux": {
         "target": [
-            "AppImage",
-            "flatpak"
+            "AppImage"
         ],
         "category": "Development",
         "maintainer": "hello@nodetool.ai",

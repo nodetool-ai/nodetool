@@ -65,7 +65,7 @@ jobs:
     env:
       DEBUG: electron-builder
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
+
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -86,9 +86,6 @@ jobs:
       - name: Validate conda lock resources
         shell: bash
         run: bash scripts/verify-env-locks.sh
-
-      - name: Install Snapcraft
-        uses: samuelmeuli/action-snapcraft@v3
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -362,15 +359,6 @@ jobs:
             ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
             ${{ env.DIST_DIR }}/latest.yml
 
-      - name: Install Flatpak
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder
-          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
-          flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//23.08
-
       - name: Build Electron (macOS/Linux)
         if: matrix.os != 'windows-latest'
         shell: bash
@@ -410,5 +398,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           files: |
             electron/dist/*.AppImage
-            electron/dist/*.flatpak
             electron/dist/latest-linux.yml
