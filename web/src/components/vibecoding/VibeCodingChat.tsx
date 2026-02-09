@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, memo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Box, Typography, Chip } from "@mui/material";
@@ -239,6 +239,14 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
     [sendMessage]
   );
 
+  // Memoized template click handler creator to avoid inline arrow functions
+  const createTemplateClickHandler = useCallback(
+    (template: Template) => {
+      return () => handleTemplateClick(template);
+    },
+    [handleTemplateClick]
+  );
+
   // Map session status to ChatView status
   const chatStatus = useMemo(() => {
     if (isStreaming) {
@@ -303,7 +311,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
               key={template.id}
               label={template.name}
               size="small"
-              onClick={() => handleTemplateClick(template)}
+              onClick={createTemplateClickHandler(template)}
               clickable
               variant="outlined"
             />
@@ -328,4 +336,4 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   );
 };
 
-export default VibeCodingChat;
+export default memo(VibeCodingChat);

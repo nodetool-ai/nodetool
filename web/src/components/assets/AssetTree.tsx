@@ -73,20 +73,25 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     return 1;
   }, []);
 
+  // Memoize the tree processing logic to avoid recreating the function on every render
+  const processAssetTree = useCallback((nodes: Asset[]): AssetTreeNode[] => {
+    return nodes.map((node) => ({
+      ...node,
+      totalAssets: calculateTotalAssets(node),
+      children: (node as AssetTreeNode).children?.map((child) => ({
+        ...child,
+        totalAssets: calculateTotalAssets(child)
+      }))
+    }));
+  }, [calculateTotalAssets]);
+
   useEffect(() => {
     const fetchAssetTree = async () => {
       setIsLoading(true);
       onLoading(true);
       try {
         const result = await getAssetsRecursive(folderId);
-        const treeWithTotals: AssetTreeNode[] = result.map((node) => ({
-          ...node,
-          totalAssets: calculateTotalAssets(node),
-          children: (node as AssetTreeNode).children?.map((child) => ({
-            ...child,
-            totalAssets: calculateTotalAssets(child)
-          }))
-        }));
+        const treeWithTotals = processAssetTree(result);
         setAssetTree(treeWithTotals);
         const total = treeWithTotals.reduce(
           (sum, node) => sum + node.totalAssets,
@@ -107,7 +112,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   }, [
     folderId,
     getAssetsRecursive,
-    calculateTotalAssets,
+    processAssetTree,
     onTotalAssetsCalculated,
     onLoading
   ]);

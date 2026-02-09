@@ -296,6 +296,11 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     hideMenu();
   }, [createConnectableNode, hideMenu]);
 
+  // Memoized handler creator to avoid inline arrow functions in the map
+  const createNodeClickHandler = useCallback((nodeMetadata: NodeMetadata) => {
+    return () => handleNodeClick(nodeMetadata);
+  }, [handleNodeClick]);
+
   // Empty callback for onDragStart - prevents new function creation on each render
   const handleDragStart = useCallback(() => {}, []);
 
@@ -440,7 +445,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                       key={nodeMetadata.node_type}
                       node={nodeMetadata}
                       onDragStart={handleDragStart}
-                      onClick={() => handleNodeClick(nodeMetadata)}
+                      onClick={createNodeClickHandler(nodeMetadata)}
                     />
                   </div>
                 </Tooltip>

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, memo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -223,6 +223,19 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
     onClose?.();
   }, [handleSave, onClose]);
 
+  // Memoized handlers for dialog actions to avoid inline arrow functions
+  const handleShowClearDialog = useCallback(() => {
+    setShowClearDialog(true);
+  }, []);
+
+  const handleHideClearDialog = useCallback(() => {
+    setShowClearDialog(false);
+  }, []);
+
+  const handleHideDiscardDialog = useCallback(() => {
+    setShowDiscardDialog(false);
+  }, []);
+
   return (
     <Box css={styles}>
       {/* Header */}
@@ -242,7 +255,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
                 size="small"
                 color="error"
                 startIcon={<DeleteOutlineIcon />}
-                onClick={() => setShowClearDialog(true)}
+                onClick={handleShowClearDialog}
                 disabled={isSaving}
               >
                 Clear App
@@ -286,7 +299,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
       {/* Discard Changes Dialog */}
       <Dialog
         open={showDiscardDialog}
-        onClose={() => setShowDiscardDialog(false)}
+        onClose={handleHideDiscardDialog}
       >
         <DialogTitle>Unsaved Changes</DialogTitle>
         <DialogContent>
@@ -296,7 +309,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowDiscardDialog(false)}>Cancel</Button>
+          <Button onClick={handleHideDiscardDialog}>Cancel</Button>
           <Button onClick={handleDiscardAndClose} color="error">
             Discard Changes
           </Button>
@@ -311,7 +324,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
       </Dialog>
 
       {/* Clear App Dialog */}
-      <Dialog open={showClearDialog} onClose={() => setShowClearDialog(false)}>
+      <Dialog open={showClearDialog} onClose={handleHideClearDialog}>
         <DialogTitle>Remove Custom App?</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -320,7 +333,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowClearDialog(false)}>Cancel</Button>
+          <Button onClick={handleHideClearDialog}>Cancel</Button>
           <Button onClick={handleClearApp} color="error" disabled={isSaving}>
             Remove App
           </Button>
@@ -342,4 +355,4 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
   );
 };
 
-export default VibeCodingPanel;
+export default memo(VibeCodingPanel);
