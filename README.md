@@ -135,9 +135,20 @@ ______________________________________________________________________
 cd electron && npm test && npm run lint
 cd web && npm test && npm run lint
 
-# End-to-end (needs backend)
+# End-to-end tests
+# Web e2e (needs backend server)
 cd web && npm run test:e2e
+
+# Electron e2e (requires xvfb on Linux headless)
+cd electron && npm run test:e2e
 ```
+
+**Prerequisites for E2E tests:**
+- Web tests require Playwright browsers: `cd web && npx playwright install chromium`
+- Electron tests require:
+  - Built Electron app: `cd electron && npm run vite:build && npx tsc`
+  - Playwright browsers: `cd electron && npx playwright install chromium`
+  - On Linux headless: xvfb (test scripts handle this automatically)
 
 ## Contributing
 
