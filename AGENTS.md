@@ -183,8 +183,8 @@ npm run test:e2e           # Automatically starts servers
 
 ## Technologies
 
-- **React 18.2**, **TypeScript 5.7**, **Vite 6**
-- **MUI v7** + Emotion, **Zustand 4.5**, **ReactFlow 12.8**
-- **TanStack Query v5**, **React Router v7**
-- **Jest 29** + React Testing Library 16, **Playwright** for E2E
+- **React 18.2.0**, **TypeScript 5.7.2**, **Vite 6.4.1**
+- **MUI v7.2.0** + Emotion, **Zustand 4.5.7**, **ReactFlow 12.10.0**
+- **TanStack Query v5.62.3**, **React Router v7.12.0**
+- **Jest 29.7.0** + React Testing Library 16.1.0, **Playwright** for E2E
 - **Electron** for desktop
