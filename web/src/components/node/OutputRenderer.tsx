@@ -221,53 +221,55 @@ const useDraggableScroll = () => {
   const isDragging = useRef(false);
   const startY = useRef(0);
   const scrollTop = useRef(0);
+  const isDraggingState = useRef(false);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!scrollRef.current) {
-      return;
-    }
-    isDragging.current = true;
-    startY.current = e.clientY;
-    scrollTop.current = scrollRef.current.scrollTop;
-    scrollRef.current.style.cursor = "grabbing";
-  }, []);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handleMouseMoveRef = useRef((e: MouseEvent) => {
     if (!isDragging.current || !scrollRef.current) {
       return;
     }
     e.preventDefault();
     const deltaY = e.clientY - startY.current;
     scrollRef.current.scrollTop = scrollTop.current - deltaY;
-  }, []);
+  });
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUpRef = useRef(() => {
     if (!scrollRef.current) {
       return;
     }
     isDragging.current = false;
+    isDraggingState.current = false;
     scrollRef.current.style.cursor = "grab";
-  }, []);
+  });
 
+  // Set up global listeners once
   useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
-    const handleGlobalMouseUp = () => handleMouseUp();
+    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMoveRef.current(e);
+    const handleGlobalMouseUp = () => handleMouseUpRef.current();
 
-    if (isDragging.current) {
-      document.addEventListener("mousemove", handleGlobalMouseMove);
-      document.addEventListener("mouseup", handleGlobalMouseUp);
-    }
+    document.addEventListener("mousemove", handleGlobalMouseMove);
+    document.addEventListener("mouseup", handleGlobalMouseUp);
 
     return () => {
       document.removeEventListener("mousemove", handleGlobalMouseMove);
       document.removeEventListener("mouseup", handleGlobalMouseUp);
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, []); // Empty deps - listeners set up once and check refs internally
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!scrollRef.current) {
+      return;
+    }
+    isDragging.current = true;
+    isDraggingState.current = true;
+    startY.current = e.clientY;
+    scrollTop.current = scrollRef.current.scrollTop;
+    scrollRef.current.style.cursor = "grabbing";
+  }, []);
 
   return {
     scrollRef,
     handleMouseDown,
-    isDragging: isDragging.current
+    isDragging: isDraggingState.current
   };
 };
 
