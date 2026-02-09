@@ -22,7 +22,7 @@ jobs:
     
     # Use Flatpak-capable container
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-23.08
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
       options: --privileged
     
     steps:
@@ -45,9 +45,9 @@ jobs:
         with:
           path: |
             ~/.local/share/flatpak
-          key: flatpak-sdk-${{ runner.os }}-23.08-${{ hashFiles('electron/ai.nodetool.flatpak.yml') }}
+          key: flatpak-sdk-${{ runner.os }}-24.08-${{ hashFiles('electron/ai.nodetool.NodeTool.flatpak.yml') }}
           restore-keys: |
-            flatpak-sdk-${{ runner.os }}-23.08-
+            flatpak-sdk-${{ runner.os }}-24.08-
             flatpak-sdk-${{ runner.os }}-
       
       - name: Cache node_modules
@@ -67,14 +67,14 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           
           # Install required runtime and SDK
-          flatpak install --user -y flathub org.freedesktop.Platform//23.08
-          flatpak install --user -y flathub org.freedesktop.Sdk//23.08
-          flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//23.08
+          flatpak install --user -y flathub org.freedesktop.Platform//24.08
+          flatpak install --user -y flathub org.freedesktop.Sdk//24.08
+          flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08
       
       - name: Validate Flatpak manifest
         run: |
           # Check manifest syntax
-          if ! flatpak-builder --show-manifest electron/ai.nodetool.flatpak.yml > /dev/null 2>&1; then
+          if ! flatpak-builder --show-manifest electron/ai.nodetool.NodeTool.flatpak.yml > /dev/null 2>&1; then
             echo "ERROR: Flatpak manifest validation failed"
             exit 1
           fi
@@ -93,7 +93,7 @@ jobs:
             --force-clean \
             --repo=flatpak-repo \
             build-dir \
-            electron/ai.nodetool.flatpak.yml
+            electron/ai.nodetool.NodeTool.flatpak.yml
           
           # Check build success
           if [ $? -ne 0 ]; then
@@ -115,7 +115,7 @@ jobs:
           flatpak build-bundle \
             flatpak-repo \
             "${BUNDLE_NAME}" \
-            ai.nodetool \
+            ai.nodetool.NodeTool \
             stable
           
           # Verify bundle was created
@@ -159,5 +159,5 @@ jobs:
           echo "# Download the artifact from GitHub Actions" >> $GITHUB_STEP_SUMMARY
           echo "# Then install with:" >> $GITHUB_STEP_SUMMARY
           echo "flatpak install --user ${{ steps.bundle.outputs.bundle_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "flatpak run ai.nodetool" >> $GITHUB_STEP_SUMMARY
+          echo "flatpak run ai.nodetool.NodeTool" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

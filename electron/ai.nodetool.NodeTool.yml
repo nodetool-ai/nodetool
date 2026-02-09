@@ -1,9 +1,9 @@
-app-id: ai.nodetool
+app-id: ai.nodetool.NodeTool
 runtime: org.freedesktop.Platform
-runtime-version: '23.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 base: org.electronjs.Electron2.BaseApp
-base-version: '23.08'
+base-version: '24.08'
 command: nodetool
 separate-locales: false
 finish-args:
@@ -36,20 +36,20 @@ modules:
     buildsystem: simple
     build-commands:
       - install -Dm755 nodetool.sh /app/bin/nodetool
-      - install -Dm644 ai.nodetool.desktop /app/share/applications/ai.nodetool.desktop
-      - install -Dm644 ai.nodetool.metainfo.xml /app/share/metainfo/ai.nodetool.metainfo.xml
+      - install -Dm644 ai.nodetool.NodeTool.desktop /app/share/applications/ai.nodetool.NodeTool.desktop
+      - install -Dm644 ai.nodetool.NodeTool.metainfo.xml /app/share/metainfo/ai.nodetool.NodeTool.metainfo.xml
       - |
         for size in 16 24 32 48 64 128 256 512; do
           if [ -f "icons/icon_${size}x${size}.png" ]; then
-            install -Dm644 "icons/icon_${size}x${size}.png" "/app/share/icons/hicolor/${size}x${size}/apps/ai.nodetool.png"
+            install -Dm644 "icons/icon_${size}x${size}.png" "/app/share/icons/hicolor/${size}x${size}/apps/ai.nodetool.NodeTool.png"
           fi
         done
       - install -Dm644 nodetool-app/* /app/nodetool/ -t
     sources:
       - type: file
-        path: ai.nodetool.desktop
+        path: ai.nodetool.NodeTool.desktop
       - type: file
-        path: ai.nodetool.metainfo.xml
+        path: ai.nodetool.NodeTool.metainfo.xml
       - type: dir
         path: linux_icons
         dest: icons

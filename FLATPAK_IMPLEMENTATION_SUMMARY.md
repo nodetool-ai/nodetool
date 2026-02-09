@@ -30,7 +30,7 @@ This implementation successfully removes Flatpak and Snap from the release workf
 **Features:**
 - ✅ Triggers: `workflow_dispatch` and `push to main`
 - ✅ Non-blocking: Independent job, failures don't affect releases
-- ✅ Container: `ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-23.08`
+- ✅ Container: `ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08`
 - ✅ Privileged mode: Required for Flatpak builds
 - ✅ Build from source: Uses checked-out repository
 - ✅ No secrets required: Build-only mode
@@ -50,13 +50,13 @@ This implementation successfully removes Flatpak and Snap from the release workf
 8. Upload artifact
 9. Generate build summary
 
-### 4. Flatpak Manifest (`electron/ai.nodetool.flatpak.yml`)
+### 4. Flatpak Manifest (`electron/ai.nodetool.NodeTool.flatpak.yml`)
 
 **Specifications:**
-- App ID: `ai.nodetool` (stable)
-- Runtime: `org.freedesktop.Platform 23.08`
-- SDK: `org.freedesktop.Sdk 23.08`
-- Base: `org.electronjs.Electron2.BaseApp 23.08`
+- App ID: `ai.nodetool.NodeTool` (stable)
+- Runtime: `org.freedesktop.Platform 24.08`
+- SDK: `org.freedesktop.Sdk 24.08`
+- Base: `org.electronjs.Electron2.BaseApp 24.08`
 - Architecture: `x86_64` (initially)
 - Branch: `stable`
 
@@ -149,9 +149,9 @@ Each permission is documented with justification in the manifest.
 ### Flatpak Manifest ✅
 - ✅ Exists in-repo
 - ✅ Version-controlled
-- ✅ Declares stable application ID (ai.nodetool)
-- ✅ Declares explicit runtime (org.freedesktop.Platform 23.08)
-- ✅ Declares explicit SDK (org.freedesktop.Sdk 23.08)
+- ✅ Declares stable application ID (ai.nodetool.NodeTool)
+- ✅ Declares explicit runtime (org.freedesktop.Platform 24.08)
+- ✅ Declares explicit SDK (org.freedesktop.Sdk 24.08)
 - ✅ Declares architecture explicitly (x86_64)
 
 ### Electron Build Integration ✅
@@ -270,7 +270,7 @@ See `electron/FLATHUB_PUBLISHING.md` for:
   release.yaml (MODIFIED)       - Removed Flatpak and Snap
 
 electron/
-  ai.nodetool.flatpak.yml (NEW) - Flatpak manifest
+  ai.nodetool.NodeTool.flatpak.yml (NEW) - Flatpak manifest
   flatpak-wrapper.sh (NEW)      - Launcher script
   FLATPAK.md (UPDATED)          - Comprehensive documentation
   FLATHUB_PUBLISHING.md (NEW)   - Phase-2 publishing spec

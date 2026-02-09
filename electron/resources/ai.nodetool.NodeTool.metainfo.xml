@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>ai.nodetool</id>
+  <id>ai.nodetool.NodeTool</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>AGPL-3.0-only</project_license>
   <name>Nodetool</name>
@@ -24,7 +24,7 @@
       <li>Cloud API integration: OpenAI, Anthropic, Gemini, and more</li>
     </ul>
   </description>
-  <launchable type="desktop-id">ai.nodetool.desktop</launchable>
+  <launchable type="desktop-id">ai.nodetool.NodeTool.desktop</launchable>
   <url type="homepage">https://nodetool.ai</url>
   <url type="bugtracker">https://github.com/nodetool-ai/nodetool/issues</url>
   <url type="help">https://docs.nodetool.ai</url>
