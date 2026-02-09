@@ -66,6 +66,9 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
   // Use the extracted color conversion hook
   const { state, handlers } = useColorConversion(color, alpha, onChange);
 
+  // Memoize static styles to prevent recreation on every render
+  const widthStyle = React.useMemo(() => ({ width: "80px" }), []);
+
   const renderInputs = () => {
     switch (mode) {
       case "hex":
@@ -95,7 +98,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
                 )
               }}
               inputProps={{ min: 0, max: 100 }}
-              style={{ width: "80px" }}
+              style={widthStyle}
             />
           </div>
         );
