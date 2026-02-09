@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, memo, useMemo } from "react";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -298,6 +298,17 @@ const AssetActions = ({
     }
   }, [setAssetItemSize]);
 
+  const loadingIndicatorStyle = useMemo(() => ({
+    position: "absolute" as const,
+    right: "4em",
+    top: "1.4em",
+    left: "unset",
+    "& span": {
+      height: "1em !important",
+      width: "1em !important"
+    }
+  }), []);
+
   const handleCreateFolder = useCallback(() => {
     setCreateFolderAnchor(null);
     createFolder(currentFolder?.id || "", createFolderName).then(() => {
@@ -361,16 +372,7 @@ const AssetActions = ({
         {isLoading && (
           <Box
             className={`loading-indicator ${isLoading ? "loading" : ""}`}
-            sx={{
-              position: "absolute",
-              right: "4em",
-              top: "1.4em",
-              left: "unset",
-              "& span": {
-                height: "1em !important",
-                width: "1em !important"
-              }
-            }}
+            sx={loadingIndicatorStyle}
           >
             <CircularProgress />
           </Box>
@@ -493,4 +495,6 @@ const AssetActions = ({
   );
 };
 
-export default AssetActions;
+AssetActions.displayName = "AssetActions";
+
+export default memo(AssetActions);
