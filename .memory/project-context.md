@@ -33,7 +33,7 @@ const store = useNodeStore();  // ❌ causes re-renders
 
 ## Critical Files
 
-`/AGENTS.md`, `/.github/copilot-instructions.md`, `/web/README.md`, `/web/TESTING.md`, `/Makefile`
+`/AGENTS.md`, `/.github/copilot-instructions.md`, `/web/src/AGENTS.md`, `/web/TESTING.md`, `/Makefile`
 
 ## Gotchas
 
