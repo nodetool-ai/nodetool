@@ -39,6 +39,60 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     setImageDimensions(null);
   }, [imageUrl]);
 
+  // Memoize style objects to prevent recreation on every render
+  const containerStyle = useMemo(() => ({
+    position: "relative" as const,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    height: "100%",
+    minHeight: "80px"
+  }), []);
+
+  const actionsStyle = useMemo(() => ({
+    position: "absolute" as const,
+    top: 4,
+    right: 40, // Leave space for history button in parent ResultOverlay
+    zIndex: 10,
+    display: "flex",
+    gap: "4px",
+    opacity: 0,
+    transition: "opacity 0.2s ease"
+  }), []);
+
+  const iconButtonStyle = useMemo(() => ({
+    width: 24,
+    height: 24,
+    padding: "4px",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    color: "#fff",
+    borderRadius: "4px",
+    "&:hover": {
+      backgroundColor: "rgba(0, 0, 0, 0.85)"
+    },
+    "& svg": {
+      fontSize: 14
+    }
+  }), []);
+
+  const imageStyle = useMemo(() => ({
+    width: "100%",
+    height: "100%",
+    objectFit: "contain" as const,
+    borderRadius: "4px",
+    cursor: "pointer"
+  }), []);
+
+  // Memoize event handlers to prevent recreation on every render
+  const handleCloseViewer = useCallback(() => {
+    setOpenViewer(false);
+  }, []);
+
+  const handleDoubleClick = useCallback(() => {
+    setOpenViewer(true);
+  }, []);
+
 
 
   const styles = css({
@@ -102,34 +156,17 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     <div
       css={styles}
       className="image-output"
-      style={{
-        position: "relative",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        width: "100%",
-        height: "100%",
-        minHeight: "80px"
-      }}
+      style={containerStyle}
     >
       <AssetViewer
         contentType="image/*"
         url={imageUrl}
         open={openViewer}
-        onClose={() => setOpenViewer(false)}
+        onClose={handleCloseViewer}
       />
       <div
         className="image-view-actions"
-        style={{
-          position: "absolute",
-          top: 4,
-          right: 40, // Leave space for history button in parent ResultOverlay
-          zIndex: 10,
-          display: "flex",
-          gap: "4px",
-          opacity: 0,
-          transition: "opacity 0.2s ease"
-        }}
+        style={actionsStyle}
       >
         <CopyAssetButton
           contentType="image/png"
@@ -139,20 +176,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
           <IconButton
             size="small"
             onClick={handleDownload}
-            sx={{
-              width: 24,
-              height: 24,
-              padding: "4px",
-              backgroundColor: "rgba(0, 0, 0, 0.6)",
-              color: "#fff",
-              borderRadius: "4px",
-              "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.85)"
-              },
-              "& svg": {
-                fontSize: 14
-              }
-            }}
+            sx={iconButtonStyle}
           >
             <DownloadIcon />
           </IconButton>
@@ -161,20 +185,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
           <IconButton
             size="small"
             onClick={handleOpenInViewer}
-            sx={{
-              width: 24,
-              height: 24,
-              padding: "4px",
-              backgroundColor: "rgba(0, 0, 0, 0.6)",
-              color: "#fff",
-              borderRadius: "4px",
-              "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.85)"
-              },
-              "& svg": {
-                fontSize: 14
-              }
-            }}
+            sx={iconButtonStyle}
           >
             <OpenInNewIcon />
           </IconButton>
@@ -185,14 +196,8 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         src={imageUrl}
         alt=""
         onLoad={handleImageLoad}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "contain",
-          borderRadius: "4px",
-          cursor: "pointer"
-        }}
-        onDoubleClick={() => setOpenViewer(true)}
+        style={imageStyle}
+        onDoubleClick={handleDoubleClick}
         draggable={false}
       />
       {imageDimensions && (
