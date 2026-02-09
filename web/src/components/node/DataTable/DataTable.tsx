@@ -5,7 +5,8 @@ import React, {
   useRef,
   useState,
   useMemo,
-  useCallback
+  useCallback,
+  memo
 } from "react";
 import {
   TabulatorFull as Tabulator,
@@ -24,6 +25,7 @@ import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
+import isEqual from "lodash/isEqual";
 
 /**
  * Formatter for datetime columns
@@ -327,4 +329,14 @@ const DataTable: React.FC<DataTableProps> = ({
   );
 };
 
-export default DataTable;
+DataTable.displayName = "DataTable";
+
+export default memo(DataTable, (prevProps, nextProps) => {
+  // Deep comparison for dataframe object
+  return (
+    prevProps.editable === nextProps.editable &&
+    prevProps.isModalMode === nextProps.isModalMode &&
+    prevProps.searchFilter === nextProps.searchFilter &&
+    isEqual(prevProps.dataframe, nextProps.dataframe)
+  );
+});
