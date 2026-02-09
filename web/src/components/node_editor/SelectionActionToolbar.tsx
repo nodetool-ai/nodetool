@@ -78,7 +78,8 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   visible,
   onClose,
 }) => {
-  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
+  const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
   const selectionActions = useSelectionActions();
 
   const canAlign = selectedNodes.length >= 2;

@@ -128,7 +128,8 @@ const styles = (theme: Theme) =>
   });
 
 const Inspector: React.FC = () => {
-  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
+  const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
   const findNode = useNodes((state) => state.findNode);
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);

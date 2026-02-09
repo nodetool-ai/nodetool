@@ -39,7 +39,7 @@ describe("SelectionActionToolbar", () => {
     jest.clearAllMocks();
     (useNodes as unknown as jest.Mock).mockImplementation((sel: any) =>
       sel({
-        getSelectedNodes: () => [
+        nodes: [
           { id: "1", position: { x: 0, y: 0 }, selected: true },
           { id: "2", position: { x: 100, y: 0 }, selected: true },
           { id: "3", position: { x: 200, y: 0 }, selected: true }

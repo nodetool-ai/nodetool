@@ -212,6 +212,12 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const listRef = useRef<List>(null);
 
+  // Keep track of selected IDs in a ref to avoid recreating renderRow when selection changes
+  const selectedAssetIdsRef = useRef(selectedAssetIds);
+  useEffect(() => {
+    selectedAssetIdsRef.current = selectedAssetIds;
+  }, [selectedAssetIds]);
+
   // Memoize asset signature for change detection
   useMemo(
     () =>
@@ -359,6 +365,13 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
     }
   }, [virtualListItems.length, expandedTypes]);
 
+  // Force re-render when selection changes to update selected state
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.resetAfterIndex(0);
+    }
+  }, [selectedAssetIds]);
+
   // Render a single row in the virtualized list
   const renderRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const item = virtualListItems[index];
@@ -403,7 +416,8 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
 
     // Render asset item
     const { asset } = item.data;
-    const isSelected = selectedAssetIds.includes(asset.id);
+    // Use ref to avoid recreating renderRow when selection changes
+    const isSelected = selectedAssetIdsRef.current.includes(asset.id);
     const isFolder = asset.content_type === "folder";
     const assetSize = asset.size;
     const hasVisualContent =
@@ -487,7 +501,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
         )}
       </div>
     );
-  }, [virtualListItems, selectedAssetIds, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback]);
+  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback]);
 
   if (assets.length === 0) {
     return (
