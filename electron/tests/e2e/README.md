@@ -107,6 +107,18 @@ This directory contains end-to-end tests for the NodeTool Electron desktop appli
 
 ## Running the Tests
 
+### Prerequisites
+
+**Important**: On Linux headless environments (including CI), Electron requires a display server. The test scripts automatically use `xvfb-run` to provide this. If running tests manually on Linux without a display:
+
+```bash
+# Install xvfb if not present
+sudo apt-get install xvfb
+
+# Tests scripts automatically handle xvfb
+npm run test:e2e
+```
+
 ### All Tests
 ```bash
 cd electron
@@ -120,6 +132,13 @@ npx playwright test app-loads.spec.ts
 npx playwright test python-server.spec.ts
 npx playwright test ipc-handlers.spec.ts      # NEW
 npx playwright test window-management.spec.ts # NEW
+```
+
+**Note**: If running individual tests with `npx playwright test` on Linux headless environments, you may need to prefix with `xvfb-run`:
+
+```bash
+cd electron
+xvfb-run -a npx playwright test app-loads.spec.ts
 ```
 
 ### With UI Mode (Recommended for Development)
