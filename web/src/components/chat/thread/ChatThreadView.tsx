@@ -461,12 +461,10 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       if (userHasScrolledUpRef.current !== previousUserHasScrolledUp) {
         const shouldBeVisible =
           !isNearBottomRef.current && userHasScrolledUpRef.current;
-        if (shouldBeVisible !== showScrollToBottomButton) {
-          setShowScrollToBottomButton(shouldBeVisible);
-        }
+        setShowScrollToBottomButton(shouldBeVisible);
       }
     });
-  }, [showScrollToBottomButton, scrollHost]);
+  }, [scrollHost]);
 
   useEffect(() => {
     if (!scrollHost) {
