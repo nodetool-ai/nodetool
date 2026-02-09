@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState, useEffect, useRef, MouseEventHandler, useCallback, memo } from "react";
+import React, { useState, useEffect, useRef, MouseEventHandler, useCallback, memo, useMemo } from "react";
 import { Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
 
@@ -175,19 +175,31 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
     setZoom(1);
   }, []);
 
+  // Memoize style objects to prevent recreation on every render
+  const containerStyle = useMemo(() => ({
+    margin: "0",
+    height: "100%",
+    width: "100%",
+    top: "0",
+    display: "block" as const
+  }), []);
+
+  const imageStyle = useMemo(() => ({
+    position: "absolute" as const,
+    transform: `translate(0px, 0px)`,
+    cursor: "grab" as const,
+    objectFit: "contain" as const,
+    width: "100%",
+    height: "100%"
+  }), []);
+
   return (
     <div css={viewerStyles} className="image-viewer">
       <div className="image-info">
         <Typography variant="body2">{`${imageWidth} x ${imageHeight}`}</Typography>
       </div>
       <div
-        style={{
-          margin: "0",
-          height: "100%",
-          width: "100%",
-          top: "0",
-          display: "block"
-        }}
+        style={containerStyle}
         onMouseMove={handleMouseMove}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
@@ -205,14 +217,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
               setImageHeight(imageRef.current.naturalHeight);
             }
           }}
-          style={{
-            position: "absolute",
-            transform: `translate(0px, 0px)`,
-            cursor: "grab",
-            objectFit: "contain",
-            width: "100%",
-            height: "100%"
-          }}
+          style={imageStyle}
         />
       </div>
     </div>

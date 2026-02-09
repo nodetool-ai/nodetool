@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, Global } from "@emotion/react";
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useState, useMemo } from "react";
 import { DATA_TYPES, IconForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
@@ -123,6 +123,29 @@ const TypeFilter = memo(({
     setOutputHover(false);
   };
 
+  // Memoize inline styles to prevent recreation on every render
+  const resetFilterStyle = useMemo(() => ({
+    color: theme.vars.palette.primary.main
+  }), [theme.vars.palette.primary.main]);
+
+  const subheaderSx = useMemo(() => ({
+    cursor: "pointer" as const,
+    pointerEvents: "auto" as const,
+    userSelect: "none" as const,
+    display: "flex",
+    alignItems: "center",
+    backgroundColor: theme.vars.palette.action.hover,
+    "&:hover": { backgroundColor: theme.vars.palette.action.selected }
+  }), [theme.vars.palette.action.hover, theme.vars.palette.action.selected]);
+
+  const menuItemSx = useCallback((show: boolean) => ({
+    display: show ? ("flex" as const) : ("none" as const)
+  }), []);
+
+  const listItemIconSx = useMemo(() => ({
+    minWidth: 18
+  }), []);
+
   const typeFilterStyles = (theme: Theme) =>
     css({
       "&": {
@@ -238,7 +261,7 @@ const TypeFilter = memo(({
               onClose={handleInputClose}
             >
               <MenuItem
-                style={{ color: theme.vars.palette.primary.main }}
+                style={resetFilterStyle}
                 value=""
               >
                 RESET FILTER
@@ -246,18 +269,10 @@ const TypeFilter = memo(({
               {/* Nodetool section header */}
               <ListSubheader
                 onMouseDown={toggleNodetoolInput}
-                sx={{
-                  cursor: "pointer",
-                  pointerEvents: "auto",
-                  userSelect: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  backgroundColor: theme.vars.palette.action.hover,
-                  "&:hover": { backgroundColor: theme.vars.palette.action.selected }
-                }}
+                sx={subheaderSx}
                 disableSticky
               >
-                <ListItemIcon sx={{ minWidth: 18 }}>
+                <ListItemIcon sx={listItemIconSx}>
                   {showNodetoolInput ? (
                     <ExpandLessIcon fontSize="small" />
                   ) : (
@@ -271,7 +286,7 @@ const TypeFilter = memo(({
                   key={option.value}
                   value={option.value}
                   className={`${option.value} type-filter-item nodetool-type`}
-                  sx={{ display: showNodetoolInput ? "flex" : "none" }}
+                  sx={menuItemSx(showNodetoolInput)}
                 >
                   <ListItemIcon>
                     <IconForType
@@ -287,19 +302,11 @@ const TypeFilter = memo(({
               {comfyTypes.length > 0 && [
                 <ListSubheader
                   onMouseDown={toggleComfyInput}
-                  sx={{
-                    cursor: "pointer",
-                    pointerEvents: "auto",
-                    userSelect: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    backgroundColor: theme.vars.palette.action.hover,
-                    "&:hover": { backgroundColor: theme.vars.palette.action.selected }
-                  }}
+                  sx={subheaderSx}
                   key="comfy-header-input"
                   disableSticky
                 >
-                  <ListItemIcon sx={{ minWidth: 18 }}>
+                  <ListItemIcon sx={listItemIconSx}>
                     {showComfyInput ? (
                       <ExpandLessIcon fontSize="small" />
                     ) : (
@@ -313,7 +320,7 @@ const TypeFilter = memo(({
                     key={option.value}
                     value={option.value}
                     className={`${option.value} type-filter-item comfy-type`}
-                    sx={{ display: showComfyInput ? "flex" : "none" }}
+                    sx={menuItemSx(showComfyInput)}
                   >
                     <ListItemIcon>
                       <IconForType
@@ -359,7 +366,7 @@ const TypeFilter = memo(({
               onClose={handleOutputClose}
             >
               <MenuItem
-                style={{ color: theme.vars.palette.primary.main }}
+                style={resetFilterStyle}
                 value=""
               >
                 RESET FILTER
@@ -367,18 +374,10 @@ const TypeFilter = memo(({
               {/* Nodetool section header */}
               <ListSubheader
                 onMouseDown={toggleNodetoolOutput}
-                sx={{
-                  cursor: "pointer",
-                  pointerEvents: "auto",
-                  userSelect: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  backgroundColor: theme.vars.palette.action.hover,
-                  "&:hover": { backgroundColor: theme.vars.palette.action.selected }
-                }}
+                sx={subheaderSx}
                 disableSticky
               >
-                <ListItemIcon sx={{ minWidth: 18 }}>
+                <ListItemIcon sx={listItemIconSx}>
                   {showNodetoolOutput ? (
                     <ExpandLessIcon fontSize="small" />
                   ) : (
@@ -392,7 +391,7 @@ const TypeFilter = memo(({
                   key={option.value}
                   value={option.value}
                   className={`${option.value} type-filter-item nodetool-type`}
-                  sx={{ display: showNodetoolOutput ? "flex" : "none" }}
+                  sx={menuItemSx(showNodetoolOutput)}
                 >
                   <ListItemIcon>
                     <IconForType
@@ -408,19 +407,11 @@ const TypeFilter = memo(({
               {comfyTypes.length > 0 && [
                 <ListSubheader
                   onMouseDown={toggleComfyOutput}
-                  sx={{
-                    cursor: "pointer",
-                    pointerEvents: "auto",
-                    userSelect: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    backgroundColor: theme.vars.palette.action.hover,
-                    "&:hover": { backgroundColor: theme.vars.palette.action.selected }
-                  }}
+                  sx={subheaderSx}
                   key="comfy-header-output"
                   disableSticky
                 >
-                  <ListItemIcon sx={{ minWidth: 18 }}>
+                  <ListItemIcon sx={listItemIconSx}>
                     {showComfyOutput ? (
                       <ExpandLessIcon fontSize="small" />
                     ) : (
@@ -434,7 +425,7 @@ const TypeFilter = memo(({
                     key={option.value}
                     value={option.value}
                     className={`${option.value} type-filter-item comfy-type`}
-                    sx={{ display: showComfyOutput ? "flex" : "none" }}
+                    sx={menuItemSx(showComfyOutput)}
                   >
                     <ListItemIcon>
                       <IconForType
