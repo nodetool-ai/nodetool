@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { uuidv4 } from "./uuidv4";
 import log from "loglevel";
-// import { persist } from "zustand/middleware";
 export type NotificationType =
   | "info"
   | "debug"

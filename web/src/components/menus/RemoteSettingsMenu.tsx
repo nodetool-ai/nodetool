@@ -79,9 +79,6 @@ const RemoteSettings = () => {
   // HuggingFace OAuth state
   const [hfOAuthLoading, setHfOAuthLoading] = useState(false);
 
-  // Google OAuth state
-  // const [googleOAuthLoading, setGoogleOAuthLoading] = useState(false);
-
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings
@@ -111,30 +108,6 @@ const RemoteSettings = () => {
 
   const isConnected = !!((hfTokenData as any)?.tokens && (hfTokenData as any).tokens.length > 0);
 
-  // Poll for Google OAuth completion
-  /*
-  const { data: googleTokenData, isError: isGoogleTokenError } = useQuery({
-    queryKey: ["google-oauth-token"],
-    queryFn: async () => {
-      const { data, error } = await (client as any).GET("/api/oauth/google/tokens");
-      if (error) {
-        throw new Error("Failed to fetch Google token");
-      }
-      return data;
-    },
-    refetchInterval: (query: any) => {
-      const data = query?.state?.data || query;
-      if (googleOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
-        return 2000;
-      }
-      return false;
-    },
-    retry: true
-  });
-  */
-
-  // const isGoogleConnected = !!((googleTokenData as any)?.tokens && (googleTokenData as any).tokens.length > 0);
-
   // Handle OAuth completion side effects
   useEffect(() => {
     if (hfOAuthLoading) {
@@ -155,29 +128,6 @@ const RemoteSettings = () => {
       }
     }
   }, [hfOAuthLoading, isConnected, isHfTokenError, addNotification]);
-
-  // Handle Google OAuth completion side effects
-  /*
-  useEffect(() => {
-    if (googleOAuthLoading) {
-      if (isGoogleConnected) {
-        setGoogleOAuthLoading(false);
-        addNotification({
-          content: "Successfully connected to Google",
-          type: "success",
-          alert: true
-        });
-      } else if (isGoogleTokenError) {
-        setGoogleOAuthLoading(false);
-        addNotification({
-          content: "Failed to check Google connection",
-          type: "error",
-          alert: true
-        });
-      }
-    }
-  }, [googleOAuthLoading, isGoogleConnected, isGoogleTokenError, addNotification]);
-  */
 
   const [settingValues, setSettingValues] = useState<Record<string, string>>(
     {}
