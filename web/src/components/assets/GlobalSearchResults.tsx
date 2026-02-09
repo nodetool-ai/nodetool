@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { useCallback, memo, useMemo } from "react";
 import { Typography, Box, Tooltip } from "@mui/material";
 import { EditorButton } from "../ui_primitives";
 import {
@@ -215,6 +215,17 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
+  // Memoize static styles to prevent recreation on every render
+  const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: "0.5em" }), []);
+  const spinnerStyle = useMemo(() => ({
+    width: "20px",
+    height: "20px",
+    border: "2px solid " + "var(--palette-grey-500)",
+    borderTop: "2px solid var(--palette-grey-100)",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite"
+  }), []);
+
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, assetId?: string) => {
       event.preventDefault();
@@ -337,18 +348,11 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
           >
             {isSearching ? (
               <div
-                style={{ display: "flex", alignItems: "center", gap: "0.5em" }}
+                style={flexCenterStyle}
               >
                 <div
                   className="search-spinner"
-                  style={{
-                    width: "20px",
-                    height: "20px",
-                    border: "2px solid var(--palette-grey-500)",
-                    borderTop: "2px solid var(--palette-grey-100)",
-                    borderRadius: "50%",
-                    animation: "spin 1s linear infinite"
-                  }}
+                  style={spinnerStyle}
                 ></div>
                 <Typography>Searching...</Typography>
               </div>
@@ -506,4 +510,4 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   );
 };
 
-export default GlobalSearchResults;
+export default memo(GlobalSearchResults);
