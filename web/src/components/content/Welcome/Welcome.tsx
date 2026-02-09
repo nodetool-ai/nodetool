@@ -235,6 +235,15 @@ const Welcome = () => {
   const theme = useTheme();
   const [tabValue, setTabValue] = useState<TabValue>(TabValue.Overview);
 
+  // Memoize static styles to prevent recreation on every render
+  const headerLeftStyle = useMemo(() => ({ display: "flex", alignItems: "center" }), []);
+  const logoStyle = useMemo(() => ({
+    width: "28px",
+    height: "28px",
+    marginRight: "1em"
+  }), []);
+  const subtitleStyle = useMemo(() => ({ marginLeft: "1em" }), []);
+
   const handleTabChange = (event: React.SyntheticEvent, newValue: TabValue) => {
     setTabValue(newValue);
   };
@@ -340,17 +349,13 @@ const Welcome = () => {
       <div className="header">
         <Box
           className="header-left"
-          style={{ display: "flex", alignItems: "center" }}
+          style={headerLeftStyle}
         >
           <img
             className="logo-image"
             src="/logo.png"
             alt="NodeTool"
-            style={{
-              width: "28px",
-              height: "28px",
-              marginRight: "1em"
-            }}
+            style={logoStyle}
           />
           <Typography className="panel-title" variant="h2">
             NodeTool
@@ -358,9 +363,7 @@ const Welcome = () => {
           <Typography
             variant="subtitle1"
             className="subtitle"
-            style={{
-              marginLeft: "1em"
-            }}
+            style={subtitleStyle}
           >
             Open-Source Visual Agent Builder
           </Typography>
