@@ -65,7 +65,6 @@ jobs:
     env:
       DEBUG: electron-builder
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -365,7 +364,7 @@ jobs:
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder,@malept/flatpak-bundler
+          DEBUG: electron-builder
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
