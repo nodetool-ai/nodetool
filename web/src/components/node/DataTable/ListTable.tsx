@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
 import {
   TabulatorFull as Tabulator,
   CellComponent,
@@ -14,6 +14,7 @@ import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { tableStyles } from "../../../styles/TableStyles";
 import TableActions from "./TableActions";
 import { useTheme } from "@mui/material/styles";
+import isEqual from "lodash/isEqual";
 
 export type ListDataType = "int" | "string" | "datetime" | "float";
 export type ListTableProps = {
@@ -206,4 +207,13 @@ const ListTable: React.FC<ListTableProps> = ({
   );
 };
 
-export default ListTable;
+ListTable.displayName = "ListTable";
+
+export default memo(ListTable, (prevProps, nextProps) => {
+  // Compare primitive props
+  return (
+    prevProps.data_type === nextProps.data_type &&
+    prevProps.editable === nextProps.editable &&
+    isEqual(prevProps.data, nextProps.data)
+  );
+});
