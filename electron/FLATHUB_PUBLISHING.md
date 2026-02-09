@@ -28,9 +28,9 @@ Before Phase 2 can begin, the following must be in place:
 ### Repository Structure
 
 ```
-flathub/ai.nodetool (new repository)
-├── ai.nodetool.yml              # Manifest (based on current)
-├── ai.nodetool.appdata.xml      # Copy from metainfo
+flathub/ai.nodetool.NodeTool (new repository)
+├── ai.nodetool.NodeTool.yml              # Manifest (based on current)
+├── ai.nodetool.NodeTool.appdata.xml      # Copy from metainfo
 ├── flathub.json                 # Flathub metadata
 ├── patches/                     # Any required patches
 └── README.md                    # Flathub-specific docs
@@ -109,7 +109,7 @@ build-commands:
 
 ### 3. Metadata Enhancement
 
-Update `ai.nodetool.metainfo.xml`:
+Update `ai.nodetool.NodeTool.metainfo.xml`:
 - Add OARS content rating details
 - Add more screenshot URLs
 - Include update contact information
@@ -164,20 +164,20 @@ Add to repository secrets:
 ### Step 1: Create Flathub Repository
 
 1. Fork https://github.com/flathub/flathub
-2. Create pull request to add `ai.nodetool` to the list
+2. Create pull request to add `ai.nodetool.NodeTool` to the list
 3. Wait for approval and repository creation
-4. Repository will be at: https://github.com/flathub/ai.nodetool
+4. Repository will be at: https://github.com/flathub/ai.nodetool.NodeTool
 
 ### Step 2: Initial Submission
 
 1. Clone the new repository:
    ```bash
-   git clone https://github.com/flathub/ai.nodetool.git
+   git clone https://github.com/flathub/ai.nodetool.NodeTool.git
    ```
 
 2. Copy and adapt manifest:
    ```bash
-   cp electron/ai.nodetool.flatpak.yml ai.nodetool/ai.nodetool.yml
+   cp electron/ai.nodetool.NodeTool.flatpak.yml ai.nodetool.NodeTool/ai.nodetool.NodeTool.yml
    # Modify for Flathub (use release tarballs)
    ```
 
@@ -193,11 +193,11 @@ Add to repository secrets:
 
 4. Test build locally:
    ```bash
-   flatpak-builder --user --install --force-clean build ai.nodetool.yml
-   flatpak run ai.nodetool
+   flatpak-builder --user --install --force-clean build ai.nodetool.NodeTool.yml
+   flatpak run ai.nodetool.NodeTool
    ```
 
-5. Submit pull request to `flathub/ai.nodetool`
+5. Submit pull request to `flathub/ai.nodetool.NodeTool`
 
 ### Step 3: Review Process
 
@@ -225,10 +225,10 @@ Add to repository secrets:
 ### Step 4: Approval and Publication
 
 Once approved:
-- PR is merged to `flathub/ai.nodetool`
+- PR is merged to `flathub/ai.nodetool.NodeTool`
 - Flathub buildbot automatically builds
 - App appears on Flathub within 24-48 hours
-- Users can install via: `flatpak install flathub ai.nodetool`
+- Users can install via: `flatpak install flathub ai.nodetool.NodeTool`
 
 ---
 
@@ -274,7 +274,7 @@ jobs:
       - name: Update Flathub manifest
         run: |
           # Clone Flathub repo
-          git clone https://github.com/flathub/ai.nodetool.git flathub-repo
+          git clone https://github.com/flathub/ai.nodetool.NodeTool.git flathub-repo
           cd flathub-repo
           
           # Update version and checksums
@@ -299,18 +299,18 @@ jobs:
 
 Users get updates via:
 ```bash
-flatpak update ai.nodetool
+flatpak update ai.nodetool.NodeTool
 ```
 
 Flathub checks for:
-1. New commits to `flathub/ai.nodetool`
+1. New commits to `flathub/ai.nodetool.NodeTool`
 2. Manifest changes
 3. Rebuilds automatically
 4. Publishes to repository
 
 ### Version Management
 
-**Stable channel**: Main branch of `flathub/ai.nodetool`
+**Stable channel**: Main branch of `flathub/ai.nodetool.NodeTool`
 - Only release tags
 - Follows semantic versioning
 - Conservative update cadence
@@ -380,11 +380,11 @@ For Flathub submission, each permission must be justified:
 
 ```bash
 # 1. Build from manifest
-flatpak-builder --user --force-clean build ai.nodetool.yml
+flatpak-builder --user --force-clean build ai.nodetool.NodeTool.yml
 
 # 2. Install and run
-flatpak-builder --user --install build ai.nodetool.yml
-flatpak run ai.nodetool
+flatpak-builder --user --install build ai.nodetool.NodeTool.yml
+flatpak run ai.nodetool.NodeTool
 
 # 3. Test functionality
 # - Create a workflow
@@ -394,8 +394,8 @@ flatpak run ai.nodetool
 # - Test audio/video
 
 # 4. Validate metadata
-appstreamcli validate ai.nodetool.metainfo.xml
-desktop-file-validate ai.nodetool.desktop
+appstreamcli validate ai.nodetool.NodeTool.metainfo.xml
+desktop-file-validate ai.nodetool.NodeTool.desktop
 
 # 5. Check icons
 for size in 16 24 32 48 64 128 256 512; do
@@ -409,8 +409,8 @@ Add to CI:
 ```yaml
 - name: Test Flatpak installation
   run: |
-    flatpak-builder --user --install build ai.nodetool.yml
-    flatpak run --command=sh ai.nodetool -c "ls /app/nodetool"
+    flatpak-builder --user --install build ai.nodetool.NodeTool.yml
+    flatpak run --command=sh ai.nodetool.NodeTool -c "ls /app/nodetool"
 ```
 
 ---
@@ -419,7 +419,7 @@ Add to CI:
 
 ### Flathub Dashboard
 
-Monitor at: https://flathub.org/apps/details/ai.nodetool
+Monitor at: https://flathub.org/apps/details/ai.nodetool.NodeTool
 
 Metrics:
 - Install counts
@@ -451,7 +451,7 @@ Metrics:
 Phase 2 is complete when:
 
 ✅ App is published on Flathub  
-✅ Users can install via `flatpak install flathub ai.nodetool`  
+✅ Users can install via `flatpak install flathub ai.nodetool.NodeTool`  
 ✅ Automatic updates work  
 ✅ GPG signing is operational  
 ✅ Build automation is in place  

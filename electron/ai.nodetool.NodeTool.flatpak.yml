@@ -8,13 +8,13 @@
 # - Build from source, not prebuilt AppImages
 # - x86_64 architecture support
 
-app-id: ai.nodetool
+app-id: ai.nodetool.NodeTool
 branch: stable
 runtime: org.freedesktop.Platform
-runtime-version: '23.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 base: org.electronjs.Electron2.BaseApp
-base-version: '23.08'
+base-version: '24.08'
 command: nodetool
 
 # Supported architectures - x86_64 only initially
@@ -101,15 +101,15 @@ modules:
       - install -Dm755 electron/flatpak-wrapper.sh /app/bin/nodetool
       
       # Install desktop integration files
-      - install -Dm644 electron/resources/ai.nodetool.desktop /app/share/applications/ai.nodetool.desktop
-      - install -Dm644 electron/resources/ai.nodetool.metainfo.xml /app/share/metainfo/ai.nodetool.metainfo.xml
+      - install -Dm644 electron/resources/ai.nodetool.NodeTool.desktop /app/share/applications/ai.nodetool.NodeTool.desktop
+      - install -Dm644 electron/resources/ai.nodetool.NodeTool.metainfo.xml /app/share/metainfo/ai.nodetool.NodeTool.metainfo.xml
       
       # Install icons
       - |
         for size in 16 24 32 48 64 128 256 512; do
           if [ -f "electron/resources/linux_icons/icon_${size}x${size}.png" ]; then
             install -Dm644 "electron/resources/linux_icons/icon_${size}x${size}.png" \
-              "/app/share/icons/hicolor/${size}x${size}/apps/ai.nodetool.png"
+              "/app/share/icons/hicolor/${size}x${size}/apps/ai.nodetool.NodeTool.png"
           fi
         done
     

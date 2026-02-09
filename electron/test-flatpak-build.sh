@@ -52,19 +52,19 @@ echo "📦 Step 2: Installing Flatpak runtimes (user install)..."
 echo "  This may take a few minutes on first run..."
 echo ""
 
-echo "  Installing org.freedesktop.Platform//23.08..."
-if flatpak install --user -y flathub org.freedesktop.Platform//23.08 2>&1 | grep -v "already installed" || true; then
-    echo "  ✓ org.freedesktop.Platform//23.08 installed"
+echo "  Installing org.freedesktop.Platform//24.08..."
+if flatpak install --user -y flathub org.freedesktop.Platform//24.08 2>&1 | grep -v "already installed" || true; then
+    echo "  ✓ org.freedesktop.Platform//24.08 installed"
 fi
 
-echo "  Installing org.freedesktop.Sdk//23.08..."
-if flatpak install --user -y flathub org.freedesktop.Sdk//23.08 2>&1 | grep -v "already installed" || true; then
-    echo "  ✓ org.freedesktop.Sdk//23.08 installed"
+echo "  Installing org.freedesktop.Sdk//24.08..."
+if flatpak install --user -y flathub org.freedesktop.Sdk//24.08 2>&1 | grep -v "already installed" || true; then
+    echo "  ✓ org.freedesktop.Sdk//24.08 installed"
 fi
 
-echo "  Installing org.electronjs.Electron2.BaseApp//23.08..."
-if flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//23.08 2>&1 | grep -v "already installed" || true; then
-    echo "  ✓ org.electronjs.Electron2.BaseApp//23.08 installed"
+echo "  Installing org.electronjs.Electron2.BaseApp//24.08..."
+if flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08 2>&1 | grep -v "already installed" || true; then
+    echo "  ✓ org.electronjs.Electron2.BaseApp//24.08 installed"
 fi
 echo ""
 
