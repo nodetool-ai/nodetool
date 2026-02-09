@@ -26,7 +26,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
 import { getShortcutTooltip } from "../../config/shortcuts";
-// import { isMac } from "../../utils/platform";
 
 // Icons
 import LayoutIcon from "@mui/icons-material/ViewModule";

@@ -50,8 +50,6 @@ const StringProperty = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  // const focusHandler = useFocusPan(nodeId);
-  // const handleFocus = isInspector ? () => {} : focusHandler;
   const { isConnected, stringInputConfig } = useNodes(
     useCallback(
       (state) => {

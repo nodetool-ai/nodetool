@@ -13,12 +13,8 @@ import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import LexicalPlugins from "../textEditor/LexicalEditor";
-// import { convertSlateToLexical } from "../textEditor/editorUtils";
 import {
   EditorState
-  // $getRoot,
-  // $createParagraphNode,
-  // $createTextNode
 } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";

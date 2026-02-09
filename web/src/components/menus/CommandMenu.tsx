@@ -174,7 +174,6 @@ const ViewCommands = memo(function ViewCommands() {
 const NodeCommands = memo(function NodeCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const reactFlowWrapper = useCommandMenu((state) => state.reactFlowWrapper);
-  // const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const { width: reactFlowWidth, height: reactFlowHeight } = useMemo(
     () =>
       reactFlowWrapper.current?.getBoundingClientRect() ?? {
@@ -212,15 +211,10 @@ const NodeCommands = memo(function NodeCommands() {
               enterDelay={0}
               leaveDelay={0}
               TransitionProps={{ timeout: 0 }}
-              // open={hoveredItem === meta.title}
             >
               <Command.Item
                 key={idx}
                 onSelect={() => executeAndClose(() => handleCreateNode(meta))}
-                // onMouseEnter={() => setHoveredItem(meta.title)}
-                // onMouseLeave={() => setHoveredItem(null)}
-                // onFocus={() => setHoveredItem(meta.title)}
-                // onBlur={() => setHoveredItem(null)}
               >
                 {meta.title}
               </Command.Item>

@@ -10,7 +10,6 @@ import "../../../styles/markdown/nodetool-markdown.css";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import "../../../styles/markdown/github-markdown-dark.css";
-// import "../../../styles/markdown/github-markdown-light.css";
 
 interface ChatMarkdownProps {
   content: string;
