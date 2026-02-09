@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useCombo } from "../../stores/KeyPressedStore";
 
 export function useEditorKeyboardShortcuts(options: {
@@ -15,9 +14,6 @@ export function useEditorKeyboardShortcuts(options: {
   useCombo(["Meta", "shift", "a"], onToggleAssistant, false);
   useCombo(["Control", "shift", "e"], onToggleEditorMode, false);
   useCombo(["Meta", "shift", "e"], onToggleEditorMode, false);
-
-  // No return value; side-effect registration only
-  useEffect(() => {}, []);
 }
 
 
