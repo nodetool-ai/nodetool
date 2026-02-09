@@ -166,32 +166,39 @@ const WelcomePanel: React.FC = () => {
     );
   }, []);
 
+  // Memoize Fuse options to avoid recreation on every search
+  const fuseOptions = useMemo(() => ({
+    keys: [
+      { name: "title", weight: 0.4 },
+      { name: "content", weight: 0.6 }
+    ],
+    includeMatches: true,
+    ignoreLocation: true,
+    threshold: 0.2,
+    distance: 100,
+    shouldSort: true,
+    includeScore: true,
+    minMatchCharLength: 2,
+    useExtendedSearch: true,
+    tokenize: true,
+    matchAllTokens: false
+  }), []);
+
+  // Memoize search entries to avoid recreation on every search
+  const searchEntries = useMemo(() =>
+    sections.map((section) => ({
+      ...section,
+      content: extractText(section.content)
+    })),
+    [sections]
+  );
+
+  // Memoize Fuse instance
+  const fuse = useMemo(() => new Fuse(searchEntries, fuseOptions), [searchEntries, fuseOptions]);
+
   const performSearch = useCallback(
     (searchTerm: string) => {
       if (searchTerm.length > 1) {
-        const fuseOptions = {
-          keys: [
-            { name: "title", weight: 0.4 },
-            { name: "content", weight: 0.6 }
-          ],
-          includeMatches: true,
-          ignoreLocation: true,
-          threshold: 0.2,
-          distance: 100,
-          shouldSort: true,
-          includeScore: true,
-          minMatchCharLength: 2,
-          useExtendedSearch: true,
-          tokenize: true,
-          matchAllTokens: false
-        };
-
-        const entries = sections.map((section) => ({
-          ...section,
-          content: extractText(section.content)
-        }));
-
-        const fuse = new Fuse(entries, fuseOptions);
         const filteredData = fuse
           .search(searchTerm)
           .map((result) => result.item);
@@ -200,7 +207,7 @@ const WelcomePanel: React.FC = () => {
       }
       return searchTerm.length === 0 ? sections : [];
     },
-    [sections]
+    [fuse, sections]
   );
 
   const filteredSections = useMemo(
