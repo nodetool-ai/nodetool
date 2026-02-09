@@ -65,26 +65,32 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
   const handleToggle = useCallback(() => {
     setOpen((v) => !v);
   }, []);
+
+  // Memoize sx props to prevent recreation on every render
+  const containerBoxStyle = useMemo(() => ({
+    my: 1,
+    borderRadius: 1,
+    overflow: "hidden"
+  }), []);
+
+  const reasoningContentStyle = useMemo(() => ({
+    padding: "0 0.5em",
+    margin: 0,
+    lineHeight: 1.2,
+    fontSize: theme.vars.fontSizeSmaller,
+    fontFamily: theme.vars.fontFamily2,
+    color: theme.vars.palette.text.secondary
+  }), [theme.vars.fontSizeSmaller, theme.vars.fontFamily2, theme.vars.palette.text.secondary]);
+
   return (
     <Box
-      sx={{
-        my: 1,
-        borderRadius: 1,
-        overflow: "hidden"
-      }}
+      sx={containerBoxStyle}
     >
       <ReasoningToggle isOpen={open} onToggle={handleToggle} />
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Box
           className="reasoning-content"
-          sx={{
-            padding: "0 0.5em",
-            margin: 0,
-            lineHeight: 1.2,
-            fontSize: theme.vars.fontSizeSmaller,
-            fontFamily: theme.vars.fontFamily2,
-            color: theme.vars.palette.text.secondary
-          }}
+          sx={reasoningContentStyle}
         >
           <MaybeMarkdown text={content} />
         </Box>
