@@ -10,6 +10,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
+import DescriptionIcon from "@mui/icons-material/Description";
 import SvgFileIcon from "../SvgFileIcon";
 
 interface VerticalToolbarProps {
@@ -21,7 +22,8 @@ interface VerticalToolbarProps {
     handleVersionsToggle: () => void;
     handleWorkflowToggle: () => void;
     handleWorkflowAssetsToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets";
+    handleDocumentationToggle: () => void;
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "documentation";
     panelVisible: boolean;
 }
 
@@ -34,6 +36,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handleVersionsToggle,
     handleWorkflowToggle,
     handleWorkflowAssetsToggle,
+    handleDocumentationToggle,
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
@@ -182,6 +185,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
                     }
                 >
                     <FolderSpecialIcon />
+                </IconButton>
+            </Tooltip>
+
+            {/* Documentation Button */}
+            <Tooltip
+                title={
+                    <div className="tooltip-span">
+                        <div className="tooltip-title">Documentation</div>
+                        <div className="tooltip-key">
+                            <kbd>D</kbd>
+                        </div>
+                    </div>
+                }
+                placement="left-start"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+                <IconButton
+                    tabIndex={-1}
+                    onClick={handleDocumentationToggle}
+                    className={
+                        activeView === "documentation" && panelVisible
+                            ? "documentation active"
+                            : "documentation"
+                    }
+                >
+                    <DescriptionIcon />
                 </IconButton>
             </Tooltip>
 
