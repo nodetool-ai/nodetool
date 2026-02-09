@@ -4,90 +4,136 @@
 
 Nodetool can be packaged and distributed as a Flatpak application for Linux systems. Flatpak provides a sandboxed environment with consistent dependencies across different Linux distributions.
 
-## Building the Flatpak Package
+**Important**: As of the latest release, Flatpak builds are **independent from the main release workflow** and are built through a dedicated CI pipeline that does not block releases.
+
+## CI Build System
+
+### Automated Builds
+
+Flatpak packages are automatically built by the [Flatpak CI workflow](.github/workflows/flatpak-ci.yml) which:
+
+- Runs on every push to `main` branch
+- Can be manually triggered via workflow_dispatch
+- Does NOT block GitHub releases
+- Produces downloadable artifacts for testing
+- Runs in isolation from AppImage and macOS builds
+
+### Workflow Features
+
+- **Non-blocking**: Build failures do not affect releases
+- **Independent**: No dependencies on other build workflows
+- **Containerized**: Runs in Flatpak-capable container (`ghcr.io/flathub-infra/flatpak-github-actions`)
+- **Cached**: SDKs, runtimes, and node_modules are cached for faster builds
+- **Secure**: No signing keys required for CI builds
+
+### Downloading CI Builds
+
+1. Go to [Actions tab](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml)
+2. Click on a successful workflow run
+3. Download the artifact (e.g., `nodetool-abc12345-x86_64.flatpak`)
+4. Install locally:
+   ```bash
+   flatpak install --user nodetool-abc12345-x86_64.flatpak
+   flatpak run ai.nodetool
+   ```
+
+## Building Locally
 
 ### Prerequisites
 
-- Node.js (LTS version)
-- npm
-- electron-builder
-- flatpak-builder (optional, for manual builds)
+- Flatpak and flatpak-builder installed
+- Required runtimes:
+  ```bash
+  flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  flatpak install --user -y flathub org.freedesktop.Platform//23.08
+  flatpak install --user -y flathub org.freedesktop.Sdk//23.08
+  flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//23.08
+  ```
 
-### Building with electron-builder
-
-The easiest way to build the Flatpak package is through electron-builder:
-
-```bash
-cd electron
-npm install
-npm run build  # This will build both AppImage and Flatpak
-```
-
-The Flatpak package will be created in the `electron/dist` directory.
-
-### Configuration Files
-
-The following files are used for Flatpak packaging:
-
-- **electron-builder.json**: Contains the Flatpak target and configuration
-- **ai.nodetool.desktop**: Desktop entry file for Linux integration
-- **ai.nodetool.metainfo.xml**: AppStream metadata for app stores
-- **ai.nodetool.yml**: Flatpak manifest (alternative build method)
-
-## Installing the Flatpak
-
-### From Local Build
+### Build from Source
 
 ```bash
-# Install the built Flatpak
-flatpak install --user ./electron/dist/ai.nodetool-*.flatpak
+# Clone the repository
+git clone https://github.com/nodetool-ai/nodetool.git
+cd nodetool
 
-# Run the application
-flatpak run ai.nodetool
+# Build Flatpak
+flatpak-builder \
+  --user \
+  --install-deps-from=flathub \
+  --force-clean \
+  --repo=flatpak-repo \
+  build-dir \
+  electron/ai.nodetool.flatpak.yml
+
+# Create bundle
+flatpak build-bundle flatpak-repo nodetool.flatpak ai.nodetool stable
+
+# Install
+flatpak install --user nodetool.flatpak
 ```
 
-### Permissions
+## Flatpak Manifest
 
-The Flatpak package is configured with the following permissions:
+The Flatpak manifest ([`electron/ai.nodetool.flatpak.yml`](ai.nodetool.flatpak.yml)) defines:
 
-- **Network access**: For API calls and model downloads
-- **Filesystem access**: Home directory for project files
-- **GPU acceleration**: For AI workloads
-- **Audio/Video**: For multimedia processing features
-- **X11/Wayland**: For GUI display
-
-## Flatpak Runtime
-
-The application uses:
+### Runtime and SDK
 
 - **Runtime**: org.freedesktop.Platform 23.08
 - **SDK**: org.freedesktop.Sdk 23.08
 - **Base**: org.electronjs.Electron2.BaseApp 23.08
+- **Architecture**: x86_64 (aarch64 support planned)
 
-## Publishing to Flathub
+### Permissions
 
-To publish Nodetool on Flathub:
+The manifest explicitly declares minimum required permissions:
 
-1. Fork the [Flathub repository](https://github.com/flathub/flathub)
-2. Create a new repository for `ai.nodetool`
-3. Submit the `ai.nodetool.yml` manifest
-4. Follow the [Flathub submission guidelines](https://docs.flathub.org/docs/for-app-authors/submission/)
+#### Display and Graphics
+- `--share=ipc` - Inter-process communication
+- `--socket=x11` - X11 display server
+- `--socket=wayland` - Wayland display server
+- `--device=dri` - GPU acceleration for AI workloads
 
-## Troubleshooting
+#### Audio/Video
+- `--socket=pulseaudio` - Audio input/output
+- `--device=all` - Camera and microphone access for multimedia features
 
-### Build Issues
+#### Network and Storage
+- `--share=network` - API calls, model downloads, backend communication
+- `--filesystem=home` - User projects, workflows, and configuration files
 
-If the Flatpak build fails:
+#### System Integration
+- `--talk-name=org.freedesktop.Notifications` - Desktop notifications
+- `--talk-name=org.kde.StatusNotifierWatcher` - System tray (KDE)
+- `--talk-name=com.canonical.AppMenu.Registrar` - Menu bar (Ubuntu)
+- `--talk-name=org.freedesktop.portal.Desktop` - Desktop portals
 
-1. Ensure all prerequisites are installed
-2. Check that icon files exist in `electron/resources/linux_icons/`
-3. Verify the desktop and metainfo files are properly formatted
+### Build Process
 
-### Runtime Issues
+The manifest builds NodeTool from source:
 
-If the app doesn't start:
+1. Checks out the repository
+2. Builds the web frontend (`web/`)
+3. Builds the Electron application (`electron/`)
+4. Downloads micromamba for Python environment
+5. Compiles TypeScript
+6. Packages everything into `/app/nodetool`
+7. Installs desktop integration files
+8. Creates launcher script
+
+## Configuration Files
+
+- **[`electron/ai.nodetool.flatpak.yml`](ai.nodetool.flatpak.yml)**: Main Flatpak manifest
+- **[`electron/flatpak-wrapper.sh`](flatpak-wrapper.sh)**: Launcher script
+- **[`electron/resources/ai.nodetool.desktop`](resources/ai.nodetool.desktop)**: Desktop entry
+- **[`electron/resources/ai.nodetool.metainfo.xml`](resources/ai.nodetool.metainfo.xml)**: AppStream metadata
+
+## Running the Application
 
 ```bash
+# Run the application
+flatpak run ai.nodetool
+
 # Run with verbose logging
 flatpak run --verbose ai.nodetool
 
@@ -95,8 +141,135 @@ flatpak run --verbose ai.nodetool
 journalctl --user -xe | grep nodetool
 ```
 
+## Publishing to Flathub (Future)
+
+The current setup is build-only. To publish to Flathub in the future:
+
+1. **Create Flathub repository**
+   - Fork the [Flathub repository](https://github.com/flathub/flathub)
+   - Create a new repository for `ai.nodetool`
+
+2. **Submit manifest**
+   - Copy `electron/ai.nodetool.flatpak.yml` to the Flathub repo
+   - Update sources to point to release tarballs
+   - Add GPG signing configuration
+
+3. **Follow submission guidelines**
+   - Review [Flathub submission guidelines](https://docs.flathub.org/docs/for-app-authors/submission/)
+   - Submit pull request to Flathub
+   - Address review feedback
+
+4. **Set up signing**
+   - Generate GPG key for signing
+   - Add signing configuration to CI workflow
+   - Store GPG key in GitHub Secrets
+
+## Troubleshooting
+
+### Build Issues
+
+**Problem**: Flatpak build fails with permission errors
+```bash
+# Solution: Run in privileged container or with sudo
+sudo flatpak-builder --user ...
+```
+
+**Problem**: Missing dependencies
+```bash
+# Solution: Install all required runtimes
+flatpak install --user -y flathub org.freedesktop.Platform//23.08
+flatpak install --user -y flathub org.freedesktop.Sdk//23.08
+flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//23.08
+```
+
+**Problem**: Build fails on manifest validation
+```bash
+# Solution: Validate manifest syntax
+flatpak-builder --show-manifest electron/ai.nodetool.flatpak.yml
+```
+
+### Runtime Issues
+
+**Problem**: Application doesn't start
+```bash
+# Check if runtime is installed
+flatpak list --runtime
+
+# Reinstall if needed
+flatpak install --user -y flathub org.freedesktop.Platform//23.08
+
+# Run with verbose logging
+flatpak run --verbose ai.nodetool
+```
+
+**Problem**: Permission denied errors
+```bash
+# Check current permissions
+flatpak info --show-permissions ai.nodetool
+
+# Override permissions if needed (not recommended)
+flatpak override --user --filesystem=home ai.nodetool
+```
+
+### CI Issues
+
+**Problem**: CI workflow fails
+- Check the [Actions tab](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) for logs
+- Workflow failures do NOT block releases or other builds
+- Review build logs for specific errors
+
+**Problem**: Artifacts not found
+- Ensure workflow completed successfully
+- Check retention period (default: 30 days)
+- Look for artifacts in the workflow run page
+
+## Development
+
+### Testing Changes Locally
+
+```bash
+# Make changes to the manifest
+vim electron/ai.nodetool.flatpak.yml
+
+# Test build locally
+flatpak-builder --force-clean build-dir electron/ai.nodetool.flatpak.yml
+
+# Install and test
+flatpak-builder --user --install --force-clean build-dir electron/ai.nodetool.flatpak.yml
+flatpak run ai.nodetool
+```
+
+### Validating the Manifest
+
+```bash
+# Validate syntax
+flatpak-builder --show-manifest electron/ai.nodetool.flatpak.yml
+
+# Check for common issues
+flatpak run --command=sh org.freedesktop.Sdk//23.08
+```
+
 ## Additional Resources
 
-- [electron-builder Flatpak docs](https://www.electron.build/configuration/flatpak)
-- [Flatpak documentation](https://docs.flatpak.org/)
-- [Flathub submission guide](https://docs.flathub.org/)
+- [Flatpak Documentation](https://docs.flatpak.org/)
+- [Electron BaseApp](https://github.com/flathub/org.electronjs.Electron2.BaseApp)
+- [Flathub Submission Guide](https://docs.flathub.org/)
+- [Flatpak Builder Documentation](https://docs.flatpak.org/en/latest/flatpak-builder.html)
+
+## Architecture Notes
+
+### Why Independent from Release Workflow?
+
+1. **Non-blocking**: Flatpak builds can fail without affecting releases
+2. **Faster releases**: No need to wait for Flatpak build
+3. **Independent testing**: Flatpak builds can be tested separately
+4. **Easier maintenance**: Changes to Flatpak don't affect other platforms
+5. **Flexible cadence**: Flatpak can be built on every commit to main
+
+### Future Enhancements
+
+- **Multi-architecture**: Add aarch64 support
+- **Flathub publishing**: Automate submission to Flathub
+- **Repository signing**: Add GPG signing for security
+- **Auto-updates**: Integrate with Flatpak update mechanism
+- **Beta channel**: Separate stable/beta builds
