@@ -168,13 +168,18 @@ const VideoListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `video-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
-  
+
+  // Use selectors for asset grid store to avoid full store subscriptions
+  const filteredAssets = useAssetGridStore((state) => state.filteredAssets);
+  const globalSearchResults = useAssetGridStore((state) => state.globalSearchResults);
+  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
+
   // Convert value to array of VideoItem, flattening nested arrays
   const videos: VideoItem[] = useMemo(
     () => flattenVideoItems(props.value),
     [props.value]
   );
-  
+
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -210,10 +215,25 @@ const VideoListProperty = (props: PropertyProps) => {
         // Handle multiple assets
         if (dragData.type === "assets-multiple") {
           const selectedIds = dragData.payload as string[];
-          const { filteredAssets, globalSearchResults, selectedAssets } = useAssetGridStore.getState();
-          const potentialAssets = [...filteredAssets, ...globalSearchResults, ...(selectedAssets || [])];
-          const foundAssets = potentialAssets.filter(a => selectedIds.includes(a.id));
-          const uniqueAssets = Array.from(new Map(foundAssets.map(item => [item.id, item])).values());
+          // Optimize: Use Set for O(1) lookup and single-pass iteration
+          const selectedIdsSet = new Set(selectedIds);
+          const uniqueAssets = [];
+          const seenIds = new Set<string>();
+
+          // Single pass through all potential assets
+          for (const asset of [
+            ...filteredAssets,
+            ...globalSearchResults,
+            ...(selectedAssets || [])
+          ]) {
+            if (
+              selectedIdsSet.has(asset.id) &&
+              !seenIds.has(asset.id)
+            ) {
+              uniqueAssets.push(asset);
+              seenIds.add(asset.id);
+            }
+          }
 
           uniqueAssets.forEach(asset => {
             if (asset.get_url && asset.content_type?.startsWith("video/")) {
@@ -281,7 +301,7 @@ const VideoListProperty = (props: PropertyProps) => {
         console.error("Failed to upload videos:", error);
       }
     },
-    [uploadAsset, handleAddVideos]
+    [uploadAsset, handleAddVideos, filteredAssets, globalSearchResults, selectedAssets]
   );
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
