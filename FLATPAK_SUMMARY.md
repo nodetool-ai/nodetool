@@ -6,16 +6,16 @@ This PR adds comprehensive Flatpak support for Nodetool on Linux, providing a sa
 
 ### New Files
 
-1. **electron/resources/ai.nodetool.desktop**
+1. **electron/resources/ai.nodetool.NodeTool.desktop**
    - Desktop entry file for Linux integration
    - Provides menu entry, icon, and application metadata
 
-2. **electron/resources/ai.nodetool.metainfo.xml**
+2. **electron/resources/ai.nodetool.NodeTool.metainfo.xml**
    - AppStream metadata file
    - Required for app stores and software centers
    - Contains application description, screenshots, and release information
 
-3. **electron/ai.nodetool.yml**
+3. **electron/ai.nodetool.NodeTool.yml**
    - Flatpak manifest file
    - Alternative build method using flatpak-builder
    - Defines runtime, SDK, and permissions
@@ -62,9 +62,9 @@ When running `npm run build` in the electron directory, electron-builder will no
 The Flatpak package includes:
 
 **Runtime & SDK:**
-- org.freedesktop.Platform 23.08
-- org.freedesktop.Sdk 23.08
-- org.electronjs.Electron2.BaseApp 23.08
+- org.freedesktop.Platform 24.08
+- org.freedesktop.Sdk 24.08
+- org.electronjs.Electron2.BaseApp 24.08
 
 **Permissions:**
 - Network access (for API calls and model downloads)
@@ -81,7 +81,7 @@ Users can install the Flatpak in several ways:
 1. **From local file:**
    ```bash
    flatpak install --user Nodetool-*.flatpak
-   flatpak run ai.nodetool
+   flatpak run ai.nodetool.NodeTool
    ```
 
 2. **From GitHub releases:**
@@ -91,7 +91,7 @@ Users can install the Flatpak in several ways:
 
 3. **Future: From Flathub** (when submitted)
    ```bash
-   flatpak install flathub ai.nodetool
+   flatpak install flathub ai.nodetool.NodeTool
    ```
 
 ## Benefits
@@ -124,8 +124,8 @@ npm run build
 ./validate-flatpak.sh
 
 # Test installation
-flatpak install --user dist/ai.nodetool-*.flatpak
-flatpak run ai.nodetool
+flatpak install --user dist/ai.nodetool.NodeTool-*.flatpak
+flatpak run ai.nodetool.NodeTool
 ```
 
 ## CI/CD Integration

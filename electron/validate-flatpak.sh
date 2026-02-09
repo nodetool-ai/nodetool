@@ -18,9 +18,9 @@ echo "📋 Checking required files..."
 
 required_files=(
     "electron-builder.json"
-    "resources/ai.nodetool.desktop"
-    "resources/ai.nodetool.metainfo.xml"
-    "ai.nodetool.yml"
+    "resources/ai.nodetool.NodeTool.desktop"
+    "resources/ai.nodetool.NodeTool.metainfo.xml"
+    "ai.nodetool.NodeTool.yml"
     "resources/icon.png"
 )
 
@@ -84,17 +84,17 @@ if command -v python3 &> /dev/null; then
         exit 1
     fi
     
-    if python3 -c "import yaml; yaml.safe_load(open('ai.nodetool.yml'))" 2>/dev/null; then
-        echo "  ✓ ai.nodetool.yml is valid YAML"
+    if python3 -c "import yaml; yaml.safe_load(open('ai.nodetool.NodeTool.yml'))" 2>/dev/null; then
+        echo "  ✓ ai.nodetool.NodeTool.yml is valid YAML"
     else
-        echo "  ✗ ai.nodetool.yml has syntax errors"
+        echo "  ✗ ai.nodetool.NodeTool.yml has syntax errors"
         exit 1
     fi
     
-    if python3 -c "import xml.etree.ElementTree as ET; ET.parse('resources/ai.nodetool.metainfo.xml')" 2>/dev/null; then
-        echo "  ✓ ai.nodetool.metainfo.xml is valid XML"
+    if python3 -c "import xml.etree.ElementTree as ET; ET.parse('resources/ai.nodetool.NodeTool.metainfo.xml')" 2>/dev/null; then
+        echo "  ✓ ai.nodetool.NodeTool.metainfo.xml is valid XML"
     else
-        echo "  ✗ ai.nodetool.metainfo.xml has syntax errors"
+        echo "  ✗ ai.nodetool.NodeTool.metainfo.xml has syntax errors"
         exit 1
     fi
 else

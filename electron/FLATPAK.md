@@ -34,7 +34,7 @@ Flatpak packages are automatically built by the [Flatpak CI workflow](.github/wo
 4. Install locally:
    ```bash
    flatpak install --user nodetool-abc12345-x86_64.flatpak
-   flatpak run ai.nodetool
+   flatpak run ai.nodetool.NodeTool
    ```
 
 ## Building Locally
@@ -45,9 +45,9 @@ Flatpak packages are automatically built by the [Flatpak CI workflow](.github/wo
 - Required runtimes:
   ```bash
   flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  flatpak install --user -y flathub org.freedesktop.Platform//23.08
-  flatpak install --user -y flathub org.freedesktop.Sdk//23.08
-  flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//23.08
+  flatpak install --user -y flathub org.freedesktop.Platform//24.08
+  flatpak install --user -y flathub org.freedesktop.Sdk//24.08
+  flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08
   ```
 
 ### Build from Source
@@ -64,10 +64,10 @@ flatpak-builder \
   --force-clean \
   --repo=flatpak-repo \
   build-dir \
-  electron/ai.nodetool.flatpak.yml
+  electron/ai.nodetool.NodeTool.flatpak.yml
 
 # Create bundle
-flatpak build-bundle flatpak-repo nodetool.flatpak ai.nodetool stable
+flatpak build-bundle flatpak-repo nodetool.flatpak ai.nodetool.NodeTool stable
 
 # Install
 flatpak install --user nodetool.flatpak
@@ -75,13 +75,13 @@ flatpak install --user nodetool.flatpak
 
 ## Flatpak Manifest
 
-The Flatpak manifest ([`electron/ai.nodetool.flatpak.yml`](ai.nodetool.flatpak.yml)) defines:
+The Flatpak manifest ([`electron/ai.nodetool.NodeTool.flatpak.yml`](ai.nodetool.NodeTool.flatpak.yml)) defines:
 
 ### Runtime and SDK
 
-- **Runtime**: org.freedesktop.Platform 23.08
-- **SDK**: org.freedesktop.Sdk 23.08
-- **Base**: org.electronjs.Electron2.BaseApp 23.08
+- **Runtime**: org.freedesktop.Platform 24.08
+- **SDK**: org.freedesktop.Sdk 24.08
+- **Base**: org.electronjs.Electron2.BaseApp 24.08
 - **Architecture**: x86_64 (aarch64 support planned)
 
 ### Permissions
@@ -123,19 +123,19 @@ The manifest builds NodeTool from source:
 
 ## Configuration Files
 
-- **[`electron/ai.nodetool.flatpak.yml`](ai.nodetool.flatpak.yml)**: Main Flatpak manifest
+- **[`electron/ai.nodetool.NodeTool.flatpak.yml`](ai.nodetool.NodeTool.flatpak.yml)**: Main Flatpak manifest
 - **[`electron/flatpak-wrapper.sh`](flatpak-wrapper.sh)**: Launcher script
-- **[`electron/resources/ai.nodetool.desktop`](resources/ai.nodetool.desktop)**: Desktop entry
-- **[`electron/resources/ai.nodetool.metainfo.xml`](resources/ai.nodetool.metainfo.xml)**: AppStream metadata
+- **[`electron/resources/ai.nodetool.NodeTool.desktop`](resources/ai.nodetool.NodeTool.desktop)**: Desktop entry
+- **[`electron/resources/ai.nodetool.NodeTool.metainfo.xml`](resources/ai.nodetool.NodeTool.metainfo.xml)**: AppStream metadata
 
 ## Running the Application
 
 ```bash
 # Run the application
-flatpak run ai.nodetool
+flatpak run ai.nodetool.NodeTool
 
 # Run with verbose logging
-flatpak run --verbose ai.nodetool
+flatpak run --verbose ai.nodetool.NodeTool
 
 # Check logs
 journalctl --user -xe | grep nodetool
@@ -147,10 +147,10 @@ The current setup is build-only. To publish to Flathub in the future:
 
 1. **Create Flathub repository**
    - Fork the [Flathub repository](https://github.com/flathub/flathub)
-   - Create a new repository for `ai.nodetool`
+   - Create a new repository for `ai.nodetool.NodeTool`
 
 2. **Submit manifest**
-   - Copy `electron/ai.nodetool.flatpak.yml` to the Flathub repo
+   - Copy `electron/ai.nodetool.NodeTool.flatpak.yml` to the Flathub repo
    - Update sources to point to release tarballs
    - Add GPG signing configuration
 
@@ -177,15 +177,15 @@ sudo flatpak-builder --user ...
 **Problem**: Missing dependencies
 ```bash
 # Solution: Install all required runtimes
-flatpak install --user -y flathub org.freedesktop.Platform//23.08
-flatpak install --user -y flathub org.freedesktop.Sdk//23.08
-flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//23.08
+flatpak install --user -y flathub org.freedesktop.Platform//24.08
+flatpak install --user -y flathub org.freedesktop.Sdk//24.08
+flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08
 ```
 
 **Problem**: Build fails on manifest validation
 ```bash
 # Solution: Validate manifest syntax
-flatpak-builder --show-manifest electron/ai.nodetool.flatpak.yml
+flatpak-builder --show-manifest electron/ai.nodetool.NodeTool.flatpak.yml
 ```
 
 ### Runtime Issues
@@ -196,19 +196,19 @@ flatpak-builder --show-manifest electron/ai.nodetool.flatpak.yml
 flatpak list --runtime
 
 # Reinstall if needed
-flatpak install --user -y flathub org.freedesktop.Platform//23.08
+flatpak install --user -y flathub org.freedesktop.Platform//24.08
 
 # Run with verbose logging
-flatpak run --verbose ai.nodetool
+flatpak run --verbose ai.nodetool.NodeTool
 ```
 
 **Problem**: Permission denied errors
 ```bash
 # Check current permissions
-flatpak info --show-permissions ai.nodetool
+flatpak info --show-permissions ai.nodetool.NodeTool
 
 # Override permissions if needed (not recommended)
-flatpak override --user --filesystem=home ai.nodetool
+flatpak override --user --filesystem=home ai.nodetool.NodeTool
 ```
 
 ### CI Issues
@@ -229,24 +229,24 @@ flatpak override --user --filesystem=home ai.nodetool
 
 ```bash
 # Make changes to the manifest
-vim electron/ai.nodetool.flatpak.yml
+vim electron/ai.nodetool.NodeTool.flatpak.yml
 
 # Test build locally
-flatpak-builder --force-clean build-dir electron/ai.nodetool.flatpak.yml
+flatpak-builder --force-clean build-dir electron/ai.nodetool.NodeTool.flatpak.yml
 
 # Install and test
-flatpak-builder --user --install --force-clean build-dir electron/ai.nodetool.flatpak.yml
-flatpak run ai.nodetool
+flatpak-builder --user --install --force-clean build-dir electron/ai.nodetool.NodeTool.flatpak.yml
+flatpak run ai.nodetool.NodeTool
 ```
 
 ### Validating the Manifest
 
 ```bash
 # Validate syntax
-flatpak-builder --show-manifest electron/ai.nodetool.flatpak.yml
+flatpak-builder --show-manifest electron/ai.nodetool.NodeTool.flatpak.yml
 
 # Check for common issues
-flatpak run --command=sh org.freedesktop.Sdk//23.08
+flatpak run --command=sh org.freedesktop.Sdk//24.08
 ```
 
 ## Additional Resources

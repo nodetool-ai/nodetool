@@ -26,15 +26,15 @@ After analyzing the @malept/flatpak-bundler source code and the workflow logs, w
 **Before:**
 ```yaml
 sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-sudo flatpak install -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
-sudo flatpak install -y flathub org.electronjs.Electron2.BaseApp//23.08
+sudo flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+sudo flatpak install -y flathub org.electronjs.Electron2.BaseApp//24.08
 ```
 
 **After:**
 ```yaml
 flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --user -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
-flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//23.08
+flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08
 ```
 
 **Why this fixes it:**
@@ -115,11 +115,11 @@ Push the changes and monitor the GitHub Actions workflow:
 
 1. **Runtime Installation:**
    ```
-   Installing org.freedesktop.Platform//23.08...
+   Installing org.freedesktop.Platform//24.08...
    ✓ Installation complete
-   Installing org.freedesktop.Sdk//23.08...
+   Installing org.freedesktop.Sdk//24.08...
    ✓ Installation complete
-   Installing org.electronjs.Electron2.BaseApp//23.08...
+   Installing org.electronjs.Electron2.BaseApp//24.08...
    ✓ Installation complete
    ```
 
@@ -204,7 +204,7 @@ While system install with `sudo` technically works, it can cause issues:
    - Would require the bundler to download runtimes (slower)
    - Current solution is simpler
 
-2. **Use flatpak-builder directly**: Skip @malept/flatpak-bundler and use ai.nodetool.yml
+2. **Use flatpak-builder directly**: Skip @malept/flatpak-bundler and use ai.nodetool.NodeTool.yml
    - Would require rewriting the build process
    - electron-builder integration is more maintainable
 
