@@ -1,0 +1,163 @@
+name: Flatpak CI
+
+# Triggers: workflow_dispatch and push to main (non-blocking)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'electron/**'
+      - 'web/**'
+      - '.github/workflows/flatpak-ci.yml'
+
+# No special permissions required for build-only mode
+permissions:
+  contents: read
+
+jobs:
+  build-flatpak:
+    name: Build Flatpak
+    runs-on: ubuntu-latest
+    
+    # Use Flatpak-capable container
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-23.08
+      options: --privileged
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history for proper versioning
+          fetch-depth: 0
+      
+      - name: Set up build environment
+        run: |
+          # Display environment info
+          echo "Building Flatpak for commit: ${GITHUB_SHA:0:8}"
+          echo "Branch: ${GITHUB_REF_NAME}"
+          flatpak --version
+          flatpak-builder --version
+      
+      - name: Cache Flatpak SDK and runtime
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/flatpak
+          key: flatpak-sdk-${{ runner.os }}-23.08-${{ hashFiles('electron/ai.nodetool.flatpak.yml') }}
+          restore-keys: |
+            flatpak-sdk-${{ runner.os }}-23.08-
+            flatpak-sdk-${{ runner.os }}-
+      
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            web/node_modules
+            electron/node_modules
+            ~/.npm
+          key: node-modules-${{ runner.os }}-${{ hashFiles('web/package-lock.json', 'electron/package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+      
+      - name: Install Flatpak dependencies
+        run: |
+          # Add Flathub repository
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          
+          # Install required runtime and SDK
+          flatpak install --user -y flathub org.freedesktop.Platform//23.08
+          flatpak install --user -y flathub org.freedesktop.Sdk//23.08
+          flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//23.08
+      
+      - name: Validate Flatpak manifest
+        run: |
+          # Check manifest syntax
+          if ! flatpak-builder --show-manifest electron/ai.nodetool.flatpak.yml > /dev/null 2>&1; then
+            echo "ERROR: Flatpak manifest validation failed"
+            exit 1
+          fi
+          echo "Manifest validation passed"
+      
+      - name: Build Flatpak
+        id: build
+        run: |
+          # Create build directory
+          mkdir -p build-dir
+          
+          # Build Flatpak
+          flatpak-builder \
+            --user \
+            --install-deps-from=flathub \
+            --force-clean \
+            --repo=flatpak-repo \
+            build-dir \
+            electron/ai.nodetool.flatpak.yml
+          
+          # Check build success
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Flatpak build failed"
+            exit 1
+          fi
+          
+          echo "Flatpak build completed successfully"
+      
+      - name: Create Flatpak bundle
+        id: bundle
+        run: |
+          # Generate artifact name with commit SHA and architecture
+          COMMIT_SHA="${GITHUB_SHA:0:8}"
+          ARCH="x86_64"
+          BUNDLE_NAME="nodetool-${COMMIT_SHA}-${ARCH}.flatpak"
+          
+          # Create bundle from repository
+          flatpak build-bundle \
+            flatpak-repo \
+            "${BUNDLE_NAME}" \
+            ai.nodetool \
+            stable
+          
+          # Verify bundle was created
+          if [ ! -f "${BUNDLE_NAME}" ]; then
+            echo "ERROR: Failed to create Flatpak bundle"
+            exit 1
+          fi
+          
+          # Get bundle size
+          BUNDLE_SIZE=$(du -h "${BUNDLE_NAME}" | cut -f1)
+          echo "Bundle created: ${BUNDLE_NAME} (${BUNDLE_SIZE})"
+          
+          # Set output for artifact upload
+          echo "bundle_name=${BUNDLE_NAME}" >> $GITHUB_OUTPUT
+          echo "bundle_path=${BUNDLE_NAME}" >> $GITHUB_OUTPUT
+      
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.bundle.outputs.bundle_name }}
+          path: ${{ steps.bundle.outputs.bundle_path }}
+          retention-days: 30
+          if-no-files-found: error
+      
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## Flatpak Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${GITHUB_SHA:0:8}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${GITHUB_REF_NAME}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.bundle.outputs.bundle_name }}" != "" ]; then
+            echo "- **Artifact**: ${{ steps.bundle.outputs.bundle_name }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installation" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# Download the artifact from GitHub Actions" >> $GITHUB_STEP_SUMMARY
+          echo "# Then install with:" >> $GITHUB_STEP_SUMMARY
+          echo "flatpak install --user ${{ steps.bundle.outputs.bundle_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "flatpak run ai.nodetool" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
