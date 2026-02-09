@@ -107,6 +107,7 @@ const styles = (theme: Theme) =>
 import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 import JobsPanel from "./jobs/JobsPanel";
 import VerticalToolbar from "./VerticalToolbar";
+import { WorkflowDocumentationPanel } from "../workflow_documentation";
 
 const PanelRight: React.FC = () => {
   const theme = useTheme();
@@ -244,6 +245,17 @@ const PanelRight: React.FC = () => {
                       <WorkflowAssetPanel />
                     </Box>
                   </Box>
+                ) : activeView === "documentation" ? (
+                  <Box
+                    className="documentation-panel"
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      overflow: "hidden"
+                    }}
+                  >
+                    <WorkflowDocumentationPanel workflowId={currentWorkflowId || ""} />
+                  </Box>
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -269,6 +281,7 @@ const PanelRight: React.FC = () => {
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
+        handleDocumentationToggle={() => handlePanelToggle("documentation")}
         activeView={activeView}
         panelVisible={isVisible}
       />
