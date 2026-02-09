@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Button,
   Menu,
@@ -111,14 +111,17 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     [handleLayoutSelect]
   );
 
+  // Memoize button sx prop to prevent unnecessary re-renders
+  const buttonSx = useMemo(() => ({
+    padding: "0.2em 0.5em",
+    border: 0
+  }), []);
+
   return (
     <div>
       <Button
         className="layout-menu-button"
-        sx={{
-          padding: "0.2em 0.5em",
-          border: 0
-        }}
+        sx={buttonSx}
         onClick={handleClick}
         variant="outlined"
         startIcon={<Layers />}
