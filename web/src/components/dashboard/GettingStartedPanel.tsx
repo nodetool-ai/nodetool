@@ -540,12 +540,12 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
       <Box className="panel-header">
         <RocketLaunchIcon className="header-icon" />
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
+          <Typography variant="h6" sx={useMemo(() => ({ fontWeight: 600, fontSize: "1.1rem" }), [])}>
             Getting Started
           </Typography>
           <Typography
             variant="body2"
-            sx={{ color: "text.secondary", fontSize: "0.85rem" }}
+            sx={useMemo(() => ({ color: "text.secondary", fontSize: "0.85rem" }), [])}
           >
             {progressPercentage < 100
               ? "Complete these steps to get up and running"

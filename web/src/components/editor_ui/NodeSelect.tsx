@@ -11,7 +11,7 @@
   * - `density`: Controls compact vs normal sizing
   */
 
- import React, { forwardRef } from "react";
+ import React, { forwardRef, useMemo } from "react";
  import {
    Select,
    SelectProps,
@@ -84,6 +84,34 @@
        scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeTiny;
      const height = density === "compact" ? 24 : 28;
 
+     // Memoize sx prop to prevent unnecessary re-renders
+     const selectSx = useMemo(() => ({
+       fontSize,
+       height,
+       // Semantic: changed state - shows right border indicator
+       ...(changed && {
+         "& .MuiOutlinedInput-notchedOutline": {
+           borderRightWidth: 2,
+           borderRightColor: theme.vars.palette.primary.main
+         },
+         "&:hover .MuiOutlinedInput-notchedOutline": {
+           borderRightWidth: 2,
+           borderRightColor: theme.vars.palette.primary.main
+         },
+         "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+           borderRightWidth: 2,
+           borderRightColor: theme.vars.palette.primary.main
+         }
+       }),
+       // Semantic: invalid state - shows error border (preserves changed right border)
+       ...(invalid && {
+         "& .MuiOutlinedInput-notchedOutline": {
+           borderColor: theme.vars.palette.error.main
+         }
+       }),
+       ...sx
+     }), [fontSize, height, changed, invalid, theme, sx]);
+
      return (
        <FormControl
          fullWidth
@@ -122,32 +150,7 @@
                list: editorUiClasses.menuList
              }
            }}
-           sx={{
-             fontSize,
-             height,
-             // Semantic: changed state - shows right border indicator
-             ...(changed && {
-               "& .MuiOutlinedInput-notchedOutline": {
-                 borderRightWidth: 2,
-                 borderRightColor: theme.vars.palette.primary.main
-               },
-               "&:hover .MuiOutlinedInput-notchedOutline": {
-                 borderRightWidth: 2,
-                 borderRightColor: theme.vars.palette.primary.main
-               },
-               "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                 borderRightWidth: 2,
-                 borderRightColor: theme.vars.palette.primary.main
-               }
-             }),
-             // Semantic: invalid state - shows error border (preserves changed right border)
-             ...(invalid && {
-               "& .MuiOutlinedInput-notchedOutline": {
-                 borderColor: theme.vars.palette.error.main
-               }
-             }),
-             ...sx
-           }}
+           sx={selectSx}
            {...props}
          >
            {children}
