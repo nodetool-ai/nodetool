@@ -550,6 +550,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                             size="small"
                             className="remove-btn"
                             onClick={() => handleToggleNode(node.node_type)}
+                            aria-label={`Remove ${node.title}`}
                             sx={{ color: theme.vars.palette.grey[500] }}
                           >
                             <Close sx={{ fontSize: "var(--fontSizeSmall)" }} />
