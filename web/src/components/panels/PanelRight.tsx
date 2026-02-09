@@ -23,6 +23,7 @@ import PanelHeadline from "../ui/PanelHeadline";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version"; import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
+import WorkflowNotesPanel from "./WorkflowNotesPanel";
 
 const TOOLBAR_WIDTH = 50;
 const HEADER_HEIGHT = 77;
@@ -244,6 +245,13 @@ const PanelRight: React.FC = () => {
                       <WorkflowAssetPanel />
                     </Box>
                   </Box>
+                ) : activeView === "notes" ? (
+                  currentWorkflowId ? (
+                    <WorkflowNotesPanel
+                      workflowId={currentWorkflowId}
+                      onClose={() => handlePanelToggle("notes")}
+                    />
+                  ) : null
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -269,6 +277,7 @@ const PanelRight: React.FC = () => {
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
+        handleNotesToggle={() => handlePanelToggle("notes")}
         activeView={activeView}
         panelVisible={isVisible}
       />
