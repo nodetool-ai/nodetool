@@ -208,6 +208,9 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   const setSelectedAssets = useAssetGridStore(
     (state) => state.setSelectedAssets
   );
+  const selectedAssets = useAssetGridStore(
+    (state) => state.selectedAssets
+  );
   const { isSearching } = useAssetSearch();
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
@@ -280,8 +283,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       // Create and set drag image using the unified utility
       // For global search, we might not have all selected assets in store correctly or they might be from different queries.
       // But we can try to use store or just minimal info.
-      const allSelectedAssets = useAssetGridStore.getState().selectedAssets || [];
-      const dragImage = createAssetDragImage(asset, assetIds.length, allSelectedAssets);
+      const dragImage = createAssetDragImage(asset, assetIds.length, selectedAssets || []);
       document.body.appendChild(dragImage);
       e.dataTransfer.setDragImage(dragImage, 10, 10);
       setTimeout(() => document.body.removeChild(dragImage), 0);
@@ -293,7 +295,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         metadata: { count: assetIds.length, sourceId: asset.id }
       });
     },
-    [selectedAssetIds, handleSelectAsset, setActiveDrag]
+    [selectedAssetIds, handleSelectAsset, setActiveDrag, selectedAssets]
   );
 
   const handleDragEnd = useCallback(() => {
