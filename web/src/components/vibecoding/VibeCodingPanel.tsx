@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  IconButton,
   Tooltip,
   Typography,
   Snackbar,
@@ -18,7 +17,7 @@ import {
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import CloseIcon from "@mui/icons-material/Close";
+import { CloseButton } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import { client } from "../../stores/ApiClient";
@@ -272,9 +271,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
             {isSaving ? "Saving..." : "Save"}
           </Button>
           {onClose && (
-            <IconButton size="small" onClick={handleClose}>
-              <CloseIcon />
-            </IconButton>
+            <CloseButton onClick={handleClose} />
           )}
         </div>
       </div>

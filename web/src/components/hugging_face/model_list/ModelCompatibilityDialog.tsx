@@ -10,11 +10,10 @@ import {
   ListItem,
   Chip,
   Box,
-  IconButton,
   Stack
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Dialog } from "../../ui_primitives";
+import { Dialog, CloseButton } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
 import type {
@@ -25,7 +24,6 @@ import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { CopyButton } from "../../ui_primitives";
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import TerminalRoundedIcon from "@mui/icons-material/TerminalRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 
@@ -284,9 +282,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
                 {model.repo_id || model.name}
               </Typography>
             </Box>
-            <IconButton onClick={onClose} size="small" sx={{ color: "text.disabled", "&:hover": { color: "text.primary" } }}>
-              <CloseRoundedIcon fontSize="small" />
-            </IconButton>
+            <CloseButton onClick={onClose} sx={{ color: "text.disabled", "&:hover": { color: "text.primary" } }} />
           </Stack>
         </DialogTitle>
 

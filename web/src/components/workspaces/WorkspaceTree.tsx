@@ -10,16 +10,13 @@ import { createErrorMessage } from "../../utils/errorHandling";
 import {
   Box,
   Typography,
-  Button,
-  IconButton,
-  Tooltip
+  Button
 } from "@mui/material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import SettingsIcon from "@mui/icons-material/Settings";
+import { RefreshButton, SettingsButton } from "../ui_primitives";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
 import WorkspaceSelect from "./WorkspaceSelect";
@@ -389,11 +386,11 @@ const WorkspaceTree: React.FC = () => {
       <PanelHeadline
         title="Workspace Explorer"
         actions={
-          <Tooltip title="Refresh">
-            <IconButton onClick={handleRefresh} size="small">
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
+          <RefreshButton
+            onClick={handleRefresh}
+            tooltip="Refresh"
+            tooltipPlacement="bottom"
+          />
         }
       />
 
@@ -403,15 +400,11 @@ const WorkspaceTree: React.FC = () => {
           value={workspaceId ?? undefined}
           onChange={handleWorkspaceChange}
         />
-        <Tooltip title="Manage Workspaces">
-          <IconButton
-            className="settings-button"
-            size="small"
-            onClick={handleManageWorkspace}
-          >
-            <SettingsIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <SettingsButton
+          className="settings-button"
+          onClick={handleManageWorkspace}
+          tooltip="Manage Workspaces"
+        />
       </div>
 
       {selectedFilePath && !selectedFilePath.includes("/loading") && (
