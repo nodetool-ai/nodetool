@@ -26,7 +26,7 @@
  * />
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTheme } from "@mui/material/styles";
@@ -111,7 +111,7 @@ export interface LabeledToggleProps {
   nodrag?: boolean;
 }
 
-export const LabeledToggle: React.FC<LabeledToggleProps> = ({
+export const LabeledToggle: React.FC<LabeledToggleProps> = memo(({
   isOpen,
   onToggle,
   showLabel,
@@ -226,6 +226,8 @@ export const LabeledToggle: React.FC<LabeledToggleProps> = ({
   }
 
   return content;
-};
+});
+
+LabeledToggle.displayName = "LabeledToggle";
 
 export default LabeledToggle;

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -126,7 +126,7 @@ const styles = (theme: Theme) => css`
   }
 `;
 
-export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
+export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = memo(({
   label,
   icon,
   onClick,
@@ -178,6 +178,8 @@ export const MenuItemPrimitive: React.FC<MenuItemPrimitiveProps> = ({
       {dividerAfter && <Divider sx={{ my: 0.5 }} />}
     </div>
   );
-};
+});
+
+MenuItemPrimitive.displayName = "MenuItemPrimitive";
 
 export default MenuItemPrimitive;
