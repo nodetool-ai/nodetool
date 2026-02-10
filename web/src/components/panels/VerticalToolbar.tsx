@@ -1,6 +1,10 @@
 import { memo } from "react";
-import { Tooltip, IconButton, Divider } from "@mui/material";
+import { Tooltip, IconButton, Divider, SxProps } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+
+// Memoized styles to prevent object creation on each render
+const spacerStyle = { flexGrow: 1 } as const;
+const dividerSx: SxProps = { my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" };
 
 // icons
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
@@ -186,10 +190,10 @@ const VerticalToolbar = memo(function VerticalToolbar({
             </Tooltip>
 
             {/* Spacer to push runtime section to bottom */}
-            <div style={{ flexGrow: 1 }} />
+            <div style={spacerStyle} />
 
             {/* Divider between workflow tools and runtime section */}
-            <Divider sx={{ my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" }} />
+            <Divider sx={dividerSx} />
 
             {/* Runtime Section - Logs and Jobs */}
             {/* Logs Button */}

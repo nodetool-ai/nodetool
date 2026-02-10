@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, memo } from "react";
 import {
   Box,
   Chip,
@@ -119,7 +119,7 @@ const containerStyles = (theme: Theme) =>
 
 const SEVERITIES: Severity[] = ["info", "warning", "error"];
 
-const LogPanel: React.FC = () => {
+const LogPanel: React.FC = memo(function LogPanel() {
   const theme = useTheme();
   const logs = useLogsStore((s) => s.logs);
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
@@ -224,6 +224,6 @@ const LogPanel: React.FC = () => {
       <LogsTable rows={filtered} height={undefined} showTimestampColumn={false} />
     </Box>
   );
-};
+});
 
 export default LogPanel;
