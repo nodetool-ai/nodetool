@@ -198,7 +198,6 @@ const WorkflowList = () => {
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
-      console.log("handleOpenWorkflow", workflow, location.pathname);
       if (location.pathname.startsWith("/apps/")) {
         navigate("/apps/" + workflow.id);
         usePanelStore.getState().setVisibility(false);
