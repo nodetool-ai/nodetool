@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Box, IconButton, Tooltip, Typography, Collapse, Button } from "@mui/material";
@@ -18,7 +18,7 @@ interface MiniAppSidePanelProps {
   isRunning?: boolean;
 }
 
-const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
+const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
   workflow,
   isRunning = false
 }) => {
@@ -281,6 +281,8 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
       />
     </Box>
   );
-};
+});
+
+MiniAppSidePanel.displayName = 'MiniAppSidePanel';
 
 export default MiniAppSidePanel;

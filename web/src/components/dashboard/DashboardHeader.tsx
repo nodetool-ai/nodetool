@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -18,13 +18,15 @@ const styles = (_theme: Theme) =>
     zIndex: 10
   });
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({ children }) => {
+const DashboardHeader: React.FC<DashboardHeaderProps> = memo(({ children }) => {
   const theme = useTheme();
   return (
     <FlexRow className="dashboard-header" gap={2} align="flex-start" justify="flex-end" css={styles(theme)}>
       {children}
     </FlexRow>
   );
-};
+});
+
+DashboardHeader.displayName = 'DashboardHeader';
 
 export default DashboardHeader;
