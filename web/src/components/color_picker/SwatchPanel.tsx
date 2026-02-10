@@ -119,14 +119,31 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
     swatchId: string;
   } | null>(null);
 
-  const recentColors = useColorPickerStore((state) => state.recentColors);
-  const swatches = useColorPickerStore((state) => state.swatches);
-  const palettes = useColorPickerStore((state) => state.palettes);
-  const addSwatch = useColorPickerStore((state) => state.addSwatch);
-  const removeSwatch = useColorPickerStore((state) => state.removeSwatch);
-  const clearRecentColors = useColorPickerStore((state) => state.clearRecentColors);
-  const addPalette = useColorPickerStore((state) => state.addPalette);
-  const removePalette = useColorPickerStore((state) => state.removePalette);
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const {
+    recentColors,
+    swatches,
+    palettes,
+    addSwatch,
+    removeSwatch,
+    clearRecentColors,
+    addPalette,
+    removePalette
+  } = useColorPickerStore(
+    useCallback(
+      (state) => ({
+        recentColors: state.recentColors,
+        swatches: state.swatches,
+        palettes: state.palettes,
+        addSwatch: state.addSwatch,
+        removeSwatch: state.removeSwatch,
+        clearRecentColors: state.clearRecentColors,
+        addPalette: state.addPalette,
+        removePalette: state.removePalette
+      }),
+      []
+    )
+  );
 
   const handleAddSwatch = useCallback(() => {
     addSwatch(currentColor);
