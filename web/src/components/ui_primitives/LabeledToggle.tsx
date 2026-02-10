@@ -26,7 +26,7 @@
  * />
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTheme } from "@mui/material/styles";
@@ -111,7 +111,7 @@ export interface LabeledToggleProps {
   nodrag?: boolean;
 }
 
-export const LabeledToggle: React.FC<LabeledToggleProps> = ({
+const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
   isOpen,
   onToggle,
   showLabel,
@@ -144,6 +144,39 @@ export const LabeledToggle: React.FC<LabeledToggleProps> = ({
     [onToggle]
   );
 
+  // Memoize expand icon button styles
+  const expandButtonSx = useMemo(() => ({
+    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+    transition: "transform 0.2s",
+    padding: size === "small" ? 0.5 : 1
+  }), [isOpen, size]);
+
+  // Memoize icon box styles
+  const iconBoxSx = useMemo(() => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 0.5,
+    color: isOpen
+      ? theme.vars.palette.text.primary
+      : theme.vars.palette.text.secondary,
+    transition: "color 0.2s"
+  }), [isOpen, theme]);
+
+  // Memoize container styles
+  const containerSx = useMemo(() => ({
+    display: "flex",
+    alignItems: "center",
+    width: "fit-content",
+    gap: 1,
+    px: 1,
+    py: 0.5,
+    cursor: disabled ? "default" : "pointer",
+    userSelect: "none",
+    opacity: disabled ? 0.5 : 1,
+    transition: "opacity 0.2s",
+    ...sx
+  }), [disabled, sx]);
+
   // Render the expand/collapse icon if enabled
   const expandIconNode = showExpandIcon ? (
     <IconButton
@@ -154,11 +187,7 @@ export const LabeledToggle: React.FC<LabeledToggleProps> = ({
         "labeled-toggle-expand",
         nodrag && editorClassNames.nodrag
       )}
-      sx={{
-        transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-        transition: "transform 0.2s",
-        padding: size === "small" ? 0.5 : 1
-      }}
+      sx={expandButtonSx}
       aria-label={labelText}
     >
       {expandIcon || <ExpandMoreIcon fontSize="inherit" />}
@@ -169,15 +198,7 @@ export const LabeledToggle: React.FC<LabeledToggleProps> = ({
   const iconNode = icon ? (
     <Box
       component="span"
-      sx={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 0.5,
-        color: isOpen
-          ? theme.vars.palette.text.primary
-          : theme.vars.palette.text.secondary,
-        transition: "color 0.2s"
-      }}
+      sx={iconBoxSx}
     >
       {icon}
     </Box>
@@ -192,19 +213,7 @@ export const LabeledToggle: React.FC<LabeledToggleProps> = ({
         nodrag && editorClassNames.nodrag,
         className
       )}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        width: "fit-content",
-        gap: 1,
-        px: 1,
-        py: 0.5,
-        cursor: disabled ? "default" : "pointer",
-        userSelect: "none",
-        opacity: disabled ? 0.5 : 1,
-        transition: "opacity 0.2s",
-        ...sx
-      }}
+      sx={containerSx}
       onClick={disabled ? undefined : handleToggle}
     >
       {expandIconNode}
@@ -227,5 +236,9 @@ export const LabeledToggle: React.FC<LabeledToggleProps> = ({
 
   return content;
 };
+
+export const LabeledToggle = memo(LabeledToggleInternal);
+
+LabeledToggle.displayName = "LabeledToggle";
 
 export default LabeledToggle;
