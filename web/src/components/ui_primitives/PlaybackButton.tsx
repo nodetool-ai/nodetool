@@ -218,6 +218,7 @@ export const PlaybackButton = memo(
               className
             )}
             onClick={handleClick}
+            aria-label={getTooltip()}
             tabIndex={-1}
             sx={{
               ...getSizeStyles(),

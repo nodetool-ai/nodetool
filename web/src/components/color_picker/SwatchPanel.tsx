@@ -133,7 +133,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
   }, [addSwatch, currentColor]);
 
   const handleSwatchContextMenu = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>, swatchId: string) => {
+    (e: React.MouseEvent<HTMLButtonElement>, swatchId: string) => {
       e.preventDefault();
       setSwatchMenuAnchor({ element: e.currentTarget, swatchId });
     },
@@ -237,10 +237,12 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
           {recentColors.length > 0 ? (
             recentColors.map((color, index) => (
               <Tooltip key={index} title={color}>
-                <div
+                <button
+                  type="button"
                   className="color-swatch"
                   style={{ backgroundColor: color }}
                   onClick={handleRecentColorClick(color)}
+                  aria-label={`Select color ${color}`}
                 />
               </Tooltip>
             ))
@@ -258,18 +260,25 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
         <div className="color-grid">
           {swatches.map((swatch) => (
             <Tooltip key={swatch.id} title={swatch.name || swatch.color}>
-              <div
+              <button
+                type="button"
                 className="color-swatch"
                 style={{ backgroundColor: swatch.color }}
                 onClick={handleSwatchColorClick(swatch.color)}
                 onContextMenu={(e) => handleSwatchContextMenu(e, swatch.id)}
+                aria-label={`Select color ${swatch.name || swatch.color}`}
               />
             </Tooltip>
           ))}
           <Tooltip title="Save current color">
-            <div className="add-swatch-button" onClick={handleAddSwatch}>
+            <button
+              type="button"
+              className="add-swatch-button"
+              onClick={handleAddSwatch}
+              aria-label="Save current color"
+            >
               <AddIcon sx={{ fontSize: 16 }} />
-            </div>
+            </button>
           </Tooltip>
         </div>
       </div>
@@ -291,10 +300,12 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
               <div className="color-grid">
                 {palette.colors.map((color, index) => (
                   <Tooltip key={index} title={color}>
-                    <div
+                    <button
+                      type="button"
                       className="color-swatch"
                       style={{ backgroundColor: color }}
                       onClick={handlePaletteColorClick(color)}
+                      aria-label={`Select color ${color} from ${palette.name}`}
                     />
                   </Tooltip>
                 ))}

@@ -112,6 +112,7 @@ export const CloseButton = memo(
           <IconButton
             ref={ref}
             tabIndex={-1}
+            aria-label={tooltip}
             className={cn(
               "close-button",
               nodrag && editorClassNames.nodrag,

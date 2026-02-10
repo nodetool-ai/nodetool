@@ -184,7 +184,13 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
 
   return (
     <div className="step-result-container" css={styles(theme)}>
-      <div className="step-result-header" onClick={handleToggle}>
+      <button
+        type="button"
+        className="step-result-header"
+        onClick={handleToggle}
+        aria-expanded={expanded}
+        aria-controls="step-result-content"
+      >
         <CheckCircleOutlineIcon className="step-result-icon" />
         <Typography className="step-result-title">
           Step Completed
@@ -196,9 +202,9 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
           expandTooltip="Show details"
           collapseTooltip="Hide details"
         />
-      </div>
+      </button>
       <Collapse in={expanded}>
-        <div className="step-result-content">
+        <div id="step-result-content" className="step-result-content">
           <Typography className="result-type-label">{resultType}</Typography>
           <pre className="result-value">{displayValue}</pre>
         </div>

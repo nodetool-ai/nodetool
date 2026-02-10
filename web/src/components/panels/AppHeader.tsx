@@ -290,7 +290,12 @@ const AppHeader: React.FC = memo(function AppHeader() {
         <div className="navigate" style={{ WebkitAppRegion: "no-drag" } as any}>
           {/* Logo - clicks to Dashboard */}
           <Tooltip title="Go to Dashboard" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
-            <div className="logo-container" onClick={handleLogoClick}>
+            <button
+              type="button"
+              className="logo-container"
+              onClick={handleLogoClick}
+              aria-label="Go to Dashboard"
+            >
               <Logo
                 small
                 width="20px"
@@ -298,7 +303,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
                 fontSize="1em"
                 borderRadius="4px"
               />
-            </div>
+            </button>
           </Tooltip>
           {/* Mode Pills - Editor, Chat, Dashboard */}
           <ModePills currentPath={path} />

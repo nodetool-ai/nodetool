@@ -245,13 +245,16 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
   
   return (
     <div style={style}>
-      <div
+      <button
+        type="button"
         className={`row row-${r.severity}${isExpanded ? " expanded" : ""}`}
         style={{
           gridTemplateColumns: data.columns,
           borderLeftColor: colors.text
         }}
         onClick={() => data.toggleExpand(rowKey, index)}
+        aria-expanded={isExpanded}
+        aria-label={`Toggle log entry: ${r.content.slice(0, 100)}${r.content.length > 100 ? "..." : ""}`}
       >
         <Tooltip
           title={timeTooltip}
@@ -276,10 +279,11 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
           />
           {r.data !== undefined && r.data !== null && (
             <>
-              <IconButton 
-                size="small" 
+              <IconButton
+                size="small"
                 onClick={handleClick}
                 sx={{ padding: "2px" }}
+                aria-label="View log data"
               >
                 <DataObjectIcon fontSize="inherit" />
               </IconButton>
@@ -316,7 +320,7 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
             </>
           )}
         </div>
-      </div>
+      </button>
     </div>
   );
 });
@@ -482,10 +486,11 @@ export const LogsTable: React.FC<LogsTableProps> = ({
       
       {showScrollButton && (
         <Tooltip title="Scroll to latest">
-          <IconButton 
-            className="scroll-to-bottom" 
+          <IconButton
+            className="scroll-to-bottom"
             onClick={scrollToBottom}
             size="small"
+            aria-label="Scroll to latest logs"
           >
             <KeyboardArrowDownIcon />
           </IconButton>

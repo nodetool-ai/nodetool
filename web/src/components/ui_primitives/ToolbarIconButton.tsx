@@ -136,6 +136,7 @@ export const ToolbarIconButton = memo(
             )}
             size={size}
             tabIndex={-1}
+            aria-label={typeof tooltip === "string" ? tooltip : "Button"}
             sx={{
               ...variantStyles,
               ...(active && {

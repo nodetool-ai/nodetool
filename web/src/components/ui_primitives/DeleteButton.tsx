@@ -135,6 +135,7 @@ export const DeleteButton = memo(
           <IconButton
             ref={ref}
             tabIndex={-1}
+            aria-label={typeof tooltip === "string" ? tooltip : "Delete"}
             className={cn(
               "delete-button",
               nodrag && editorClassNames.nodrag,

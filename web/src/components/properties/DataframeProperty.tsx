@@ -263,7 +263,7 @@ const DataframeProperty = ({
         {isHovered && (
           <div className="dataframe-action-buttons">
             <Tooltip title="Open Editor" placement="bottom">
-              <IconButton size="small" onClick={toggleExpand}>
+              <IconButton size="small" onClick={toggleExpand} aria-label="Open dataframe editor">
                 <OpenInFullIcon />
               </IconButton>
             </Tooltip>

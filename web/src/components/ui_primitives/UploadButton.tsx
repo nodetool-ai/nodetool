@@ -157,6 +157,7 @@ export const UploadButton = memo(
               <Button
                 ref={ref}
                 tabIndex={-1}
+                aria-label={tooltip}
                 className={cn(
                   "upload-button",
                   nodrag && editorClassNames.nodrag,
@@ -188,6 +189,7 @@ export const UploadButton = memo(
               <IconButton
                 ref={ref}
                 tabIndex={-1}
+                aria-label={tooltip}
                 className={cn(
                   "upload-button",
                   nodrag && editorClassNames.nodrag,

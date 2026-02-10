@@ -177,6 +177,7 @@ export const StateIconButton = memo(
         <IconButton
           ref={ref}
           tabIndex={-1}
+          aria-label={typeof tooltip === "string" ? tooltip : isLoading ? "Loading..." : "Button"}
           className={cn(
             "state-icon-button",
             isActive && "active",

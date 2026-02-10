@@ -121,6 +121,7 @@ export const SettingsButton = memo(
           <IconButton
             ref={ref}
             tabIndex={-1}
+            aria-label={tooltip}
             className={cn(
               "settings-button",
               nodrag && editorClassNames.nodrag,

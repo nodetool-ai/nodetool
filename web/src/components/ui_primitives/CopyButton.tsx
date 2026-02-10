@@ -174,6 +174,7 @@ export const CopyButton = memo(
           <IconButton
             ref={ref}
             tabIndex={-1}
+            aria-label={tooltipText}
             className={cn(
               "copy-button",
               nodrag && editorClassNames.nodrag,

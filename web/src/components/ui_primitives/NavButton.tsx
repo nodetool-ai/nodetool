@@ -166,6 +166,7 @@ export const NavButton = memo(
                 className
               )}
               tabIndex={-1}
+              aria-label={tooltipText}
               sx={baseStyles}
               onClick={props.onClick}
               disabled={props.disabled}

@@ -153,6 +153,7 @@ export const RefreshButton = memo(
               )}
               disabled={disabled || isLoading}
               tabIndex={-1}
+              aria-label={isLoading ? "Refreshing..." : tooltip}
               sx={{
                 ...getSizeStyles(),
                 color: theme.vars.palette.grey[300],

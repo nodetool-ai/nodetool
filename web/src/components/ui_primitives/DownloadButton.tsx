@@ -131,6 +131,7 @@ export const DownloadButton = memo(
             <Button
               ref={ref}
               tabIndex={-1}
+              aria-label={tooltip}
               className={cn(
                 "download-button",
                 nodrag && editorClassNames.nodrag,
@@ -165,6 +166,7 @@ export const DownloadButton = memo(
           <IconButton
             ref={ref}
             tabIndex={-1}
+            aria-label={tooltip}
             className={cn(
               "download-button",
               nodrag && editorClassNames.nodrag,

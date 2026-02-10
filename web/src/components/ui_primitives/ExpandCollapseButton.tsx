@@ -138,6 +138,7 @@ export const ExpandCollapseButton = memo(
               className
             )}
             tabIndex={-1}
+            aria-label={tooltip}
             sx={{
               ...getSizeStyles(),
               color: theme.vars.palette.grey[300],
