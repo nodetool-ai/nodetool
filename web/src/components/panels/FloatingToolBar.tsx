@@ -403,9 +403,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     (state) => state.handleViewChange
   );
 
-  const { instantUpdate, setInstantUpdate } = useSettingsStore((state) => ({
+  const { instantUpdate, setInstantUpdate, autosave } = useSettingsStore((state) => ({
     instantUpdate: state.settings.instantUpdate,
-    setInstantUpdate: state.setInstantUpdate
+    setInstantUpdate: state.setInstantUpdate,
+    autosave: state.settings.autosave
   }));
 
   const { visible: isMiniMapVisible, toggleVisible: toggleMiniMap } =
@@ -452,14 +453,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const handleRun = useCallback(async () => {
     if (!isWorkflowRunning) {
       // Create a checkpoint version before execution if enabled
-      const autosaveSettings = useSettingsStore.getState().settings.autosave;
-      if (autosaveSettings?.saveBeforeRun) {
+      if (autosave?.saveBeforeRun) {
         const w = getWorkflowById(workflow.id);
         if (w?.graph?.nodes && w.graph.nodes.length > 0) {
           await triggerAutosaveForWorkflow(workflow.id, w.graph, "checkpoint", {
             description: "Before execution",
             force: true,
-            maxVersions: autosaveSettings.maxVersionsPerWorkflow
+            maxVersions: autosave.maxVersionsPerWorkflow
           });
         }
       }
@@ -479,7 +479,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     nodes,
     edges,
     getWorkflowById,
-    saveWorkflow
+    saveWorkflow,
+    autosave
   ]);
 
   const handleStop = useCallback(() => {
