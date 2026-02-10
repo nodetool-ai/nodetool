@@ -13,8 +13,6 @@ import { useSelectConnected } from "../../hooks/useSelectConnected";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
-// import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-// import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
@@ -180,18 +178,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           </div>
         }
       />
-      {/* <ContextMenuItem
-        onClick={() => handleCollapseAll(false)}
-        label="Collapse"
-        IconComponent={<UnfoldLessIcon />}
-        tooltip=""
-      />
-      <ContextMenuItem
-        onClick={() => handleExpandAll(false)}
-        label="Expand"
-        IconComponent={<UnfoldMoreIcon />}
-        tooltip=""
-      /> */}
       {selectedNodes?.length > 1 && (
         <ContextMenuItem
           onClick={handleAlignNodesFalse}

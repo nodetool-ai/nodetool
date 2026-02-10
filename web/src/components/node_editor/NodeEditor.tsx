@@ -20,7 +20,6 @@ import "../../styles/properties.css";
 import "../../styles/interactions.css";
 import "../../styles/special_nodes.css";
 import "../../styles/handle_edge_tooltip.css";
-// import "../../styles/collapsed.css";
 
 //hooks
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -122,14 +121,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
 
   return (
     <>
-      {/* {missingModelRepos.length > 0 && (
-        <ModelDownloadDialog
-          open={missingModelRepos.length > 0}
-          repos={missingModelRepos}
-          repoPaths={missingModelFiles}
-          onClose={clearMissingModels}
-        />
-      )} */}
       {showDocumentation && selectedNodeType && (
         <DraggableNodeDocumentation
           nodeType={selectedNodeType}
