@@ -9,7 +9,7 @@
  * - `changed`: Shows visual indicator when value differs from default
  */
 
-import React, { forwardRef, useMemo } from "react";
+import React, { forwardRef, useMemo, memo } from "react";
 import { Switch, SwitchProps } from "@mui/material";
 import { useEditorScope } from "./EditorUiContext";
 import { editorUiClasses } from "../../constants/editorUiClasses";
@@ -78,3 +78,8 @@ export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
 );
 
 NodeSwitch.displayName = "NodeSwitch";
+
+const NodeSwitchMemo = memo(NodeSwitch);
+NodeSwitchMemo.displayName = "NodeSwitch";
+
+export default NodeSwitchMemo;
