@@ -34,7 +34,10 @@ import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { useTheme } from "@mui/material/styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
-import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
+import {
+  getShortcuts
+} from "../../config/shortcuts";
+// import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
 import CommandMenu from "../menus/CommandMenu";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
@@ -197,7 +200,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                     overflow: "hidden"
                   }}
                 >
-                  <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+                  <KeyboardShortcutsView shortcuts={getShortcuts()} />
                 </Box>
               </Modal>
             </>

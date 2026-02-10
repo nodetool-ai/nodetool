@@ -19,7 +19,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { useState } from "react";
 import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
-import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
+import { getShortcuts } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { Dialog } from "../../ui_primitives";
@@ -283,7 +283,7 @@ const Help = ({
                 <ControlsShortcutsTab />
               </TabPanel>
               <TabPanel value={helpIndex} index={1}>
-                <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+                <KeyboardShortcutsView shortcuts={getShortcuts()} />
               </TabPanel>
               <TabPanel value={helpIndex} index={2}>
                 <DataTypesList

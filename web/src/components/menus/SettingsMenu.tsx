@@ -34,6 +34,8 @@ import SecretsMenu from "./SecretsMenu";
 import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
+import KeyboardShortcutsSettings from "./KeyboardShortcutsSettings";
+import { getKeyboardShortcutsSidebarSections } from "./keyboardShortcutsSidebarUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -362,6 +364,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   <Tab label="Folders" id="settings-tab-2" />
                   <Tab label="API Secrets" id="settings-tab-3" />
                   <Tab label="About" id="settings-tab-4" />
+                  <Tab label="Keyboard Shortcuts" id="settings-tab-5" />
                 </Tabs>
               </div>
 
@@ -380,7 +383,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             ? getSecretsSidebarSections()
                             : settingsTab === 4
                               ? getAboutSidebarSections()
-                              : []
+                              : settingsTab === 5
+                                ? getKeyboardShortcutsSidebarSections()
+                                : []
                   }
                   onSectionClick={scrollToSection}
                 />
@@ -900,6 +905,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   </TabPanel>
                   <TabPanel value={settingsTab} index={4}>
                     <AboutMenu />
+                  </TabPanel>
+                  <TabPanel value={settingsTab} index={5}>
+                    <KeyboardShortcutsSettings searchQuery="" selectedCategory={activeSection === "all" ? undefined : activeSection} />
                   </TabPanel>
                 </div>
               </div>

@@ -763,3 +763,52 @@ export const SHORTCUT_CATEGORIES: Record<Shortcut["category"], string> = {
   editor: "Node Editor",
   assets: "Asset Viewer"
 };
+
+/**
+ * Get shortcuts with user customizations applied.
+ * This function should be used instead of directly accessing NODE_EDITOR_SHORTCUTS
+ * to ensure user customizations are respected throughout the app.
+ * 
+ * @returns Array of shortcuts with custom key combinations applied
+ * 
+ * @example
+ * ```typescript
+ * import { getShortcuts } from '../config/shortcuts';
+ * 
+ * const shortcuts = getShortcuts();
+ * // Returns shortcuts with any user customizations applied
+ * ```
+ */
+export const getShortcuts = (): Shortcut[] => {
+  // Try to get custom shortcuts from store
+  // This uses dynamic access to avoid circular dependencies
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const storeModule = require('../stores/KeyboardShortcutsStore');
+    if (storeModule?.useKeyboardShortcutsStore) {
+      return storeModule.useKeyboardShortcutsStore.getState().getAllShortcuts();
+    }
+  } catch {
+    // If store is not available, return defaults
+  }
+  return NODE_EDITOR_SHORTCUTS;
+};
+
+/**
+ * Get a specific shortcut by slug with user customizations applied.
+ * 
+ * @param slug - The shortcut slug to look up
+ * @returns The shortcut with customizations, or undefined if not found
+ * 
+ * @example
+ * ```typescript
+ * import { getShortcutBySlug } from '../config/shortcuts';
+ * 
+ * const copyShortcut = getShortcutBySlug('copy');
+ * // Returns: { title: "Copy", slug: "copy", keyCombo: ["Control", "C"], ... }
+ * ```
+ */
+export const getShortcutBySlug = (slug: string): Shortcut | undefined => {
+  return getShortcuts().find((s) => s.slug === slug);
+};
+

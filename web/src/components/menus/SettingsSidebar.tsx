@@ -9,7 +9,7 @@ interface SidebarItem {
   label: string;
 }
 
-interface SidebarSection {
+export interface SidebarSection {
   category: string;
   items: SidebarItem[];
 }

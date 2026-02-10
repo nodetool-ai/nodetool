@@ -3,7 +3,7 @@ import {
   registerComboCallback,
   unregisterComboCallback
 } from "../stores/KeyPressedStore";
-import { NODE_EDITOR_SHORTCUTS } from "../config/shortcuts";
+import { getShortcuts } from "../config/shortcuts";
 import { getIsElectronDetails } from "../utils/browser";
 import { getMousePosition } from "../utils/MousePosition";
 import { useNodes, useTemporalNodes } from "../contexts/NodeContext";
@@ -633,7 +633,10 @@ export const useNodeEditorShortcuts = (
   useEffect(() => {
     const registered: string[] = [];
 
-    NODE_EDITOR_SHORTCUTS.forEach((sc) => {
+    // Use getShortcuts() to include user customizations
+    const shortcuts = getShortcuts();
+
+    shortcuts.forEach((sc) => {
       if (!sc.registerCombo) {
         return;
       }
