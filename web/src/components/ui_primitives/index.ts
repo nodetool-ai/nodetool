@@ -168,3 +168,46 @@ export {
   useEditorScope
 } from "../editor_ui/EditorUiContext";
 export type { EditorUiScope } from "../editor_ui/EditorUiContext";
+
+// Layout primitives
+export { FlexColumn } from "./FlexColumn";
+export type { FlexColumnProps } from "./FlexColumn";
+
+export { FlexRow } from "./FlexRow";
+export type { FlexRowProps } from "./FlexRow";
+
+export { Stack } from "./Stack";
+export type { StackProps } from "./Stack";
+
+export { Container } from "./Container";
+export type { ContainerProps } from "./Container";
+
+// Surface primitives
+export { Card } from "./Card";
+export type { CardProps } from "./Card";
+
+export { Panel } from "./Panel";
+export type { PanelProps } from "./Panel";
+
+// Typography primitives
+export { Text } from "./Text";
+export type { TextProps } from "./Text";
+
+export { Label } from "./Label";
+export type { LabelProps } from "./Label";
+
+export { Caption } from "./Caption";
+export type { CaptionProps } from "./Caption";
+
+// Spacing utilities
+export {
+  SPACING,
+  GAP,
+  PADDING,
+  MARGIN,
+  getSpacingPx,
+  createPadding,
+  createMargin,
+  resolveSpacing
+} from "./spacing";
+export type { SpacingValue } from "./spacing";
