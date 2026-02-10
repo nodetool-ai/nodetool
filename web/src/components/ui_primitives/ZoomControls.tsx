@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -61,7 +61,7 @@ export interface ZoomControlsProps {
   className?: string;
 }
 
-export const ZoomControls: React.FC<ZoomControlsProps> = ({
+export const ZoomControls: React.FC<ZoomControlsProps> = memo(({
   zoom,
   onZoomChange,
   minZoom = 0.1,
@@ -141,6 +141,8 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
       )}
     </Box>
   );
-};
+});
+
+ZoomControls.displayName = "ZoomControls";
 
 export default ZoomControls;
