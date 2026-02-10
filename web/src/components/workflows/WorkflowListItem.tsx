@@ -12,7 +12,7 @@ import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
-import { FavoriteButton, EditButton, EditorButton } from "../ui_primitives";
+import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text } from "../ui_primitives";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -150,18 +150,17 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     const hasGraph = !showGraphPreview && workflow.graph && (workflow.graph.nodes?.length > 0 || workflow.graph.edges?.length > 0);
 
     return (
-      <Box sx={{ width: hasGraph ? 320 : "auto", maxWidth: 320, padding: "1em" }}>
-        <Typography sx={{ fontSize: "var(--fontSizeNormal)", fontWeight: 500, mb: 0.5 }}>
+      <FlexColumn gap={1} sx={{ width: hasGraph ? 320 : "auto", maxWidth: 320, padding: "1em" }}>
+        <Text size="normal" weight={500}>
           {workflow.name}
-        </Typography>
+        </Text>
         {hasDescription && (
-          <Typography
-            sx={{ fontSize: "var(--fontSizeSmall)", color: "grey.100", mb: 1, mt: 1 }}>
+          <Text size="small" color="secondary" sx={{ mt: 1 }}>
             {workflow.description}
-          </Typography>
+          </Text>
         )}
         {hasTags && (
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: "4px", mt: 1 }}>
+          <FlexRow gap={0.5} sx={{ flexWrap: "wrap", mt: 1 }}>
             {workflow.tags!.map((tag) => (
               <Typography
                 key={tag}
@@ -179,7 +178,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
                 {tag}
               </Typography>
             ))}
-          </Box>
+          </FlexRow>
         )}
         {hasGraph && (
           <Box sx={{ 
@@ -196,7 +195,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             />
           </Box>
         )}
-      </Box>
+      </FlexColumn>
     );
   }, [workflow, showGraphPreview]);
 
