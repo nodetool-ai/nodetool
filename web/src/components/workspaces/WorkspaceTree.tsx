@@ -390,7 +390,6 @@ const WorkspaceTree: React.FC = () => {
             onClick={handleRefresh}
             tooltip="Refresh"
             tooltipPlacement="bottom"
-            nodrag={false}
           />
         }
       />
@@ -405,7 +404,6 @@ const WorkspaceTree: React.FC = () => {
           className="settings-button"
           onClick={handleManageWorkspace}
           tooltip="Manage Workspaces"
-          nodrag={false}
         />
       </div>
 

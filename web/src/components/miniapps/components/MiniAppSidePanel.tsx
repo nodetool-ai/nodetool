@@ -225,7 +225,6 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
                 expanded={showGraph}
                 onClick={handleToggleGraph}
                 iconVariant="chevron"
-                nodrag={false}
               />
             </div>
             <Collapse in={showGraph}>

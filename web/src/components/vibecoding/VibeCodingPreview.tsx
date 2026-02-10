@@ -145,7 +145,6 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
             tooltip="Refresh Preview"
             tooltipPlacement="bottom"
             disabled={!html}
-            nodrag={false}
           />
           <Tooltip title="Open in New Tab">
             <IconButton size="small" onClick={handleOpenInNew} disabled={!html}>
