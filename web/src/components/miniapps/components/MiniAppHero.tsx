@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Theme } from "@mui/material/styles";
 import {
   Button,
@@ -32,7 +32,7 @@ interface MiniAppHeroProps {
   showWorkflowControls?: boolean;
 }
 
-const MiniAppHero: React.FC<MiniAppHeroProps> = ({
+const MiniAppHero: React.FC<MiniAppHeroProps> = memo(({
   workflows,
   selectedWorkflowId,
   onWorkflowChange,
@@ -115,6 +115,8 @@ const MiniAppHero: React.FC<MiniAppHeroProps> = ({
       </div>
     </header>
   );
-};
+});
+
+MiniAppHero.displayName = 'MiniAppHero';
 
 export default MiniAppHero;

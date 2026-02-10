@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, memo } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -501,4 +501,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   return ReactDOM.createPortal(content, document.body);
 };
 
-export default ColorPickerModal;
+ColorPickerModal.displayName = 'ColorPickerModal';
+
+export default memo(ColorPickerModal);
