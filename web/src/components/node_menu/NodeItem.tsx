@@ -149,6 +149,44 @@ const NodeItem = memo(
         [node.node_type, isFavorite, toggleFavorite, addNotification]
       );
 
+      // Memoize inline styles to prevent recreation on every render
+      const nodeButtonStyle = useMemo(
+        () => ({
+          cursor: "pointer" as const,
+          display: "flex",
+          alignItems: "center",
+          flex: 1,
+          gap: "0.5em",
+          position: "relative" as const,
+          minHeight: "34px",
+          paddingLeft: showCheckbox ? "24px" : undefined
+        }),
+        [showCheckbox]
+      );
+
+      const checkboxContainerStyle = useMemo(
+        () => ({
+          position: "absolute" as const,
+          left: "4px",
+          width: "20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }),
+        []
+      );
+
+      const iconContainerStyle = useMemo(
+        () => ({
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5em",
+          flex: 1,
+          minWidth: 0
+        }),
+        []
+      );
+
       return (
         <div
           ref={ref}
@@ -167,28 +205,10 @@ const NodeItem = memo(
           <div
             className="node-button"
             onClick={handleClick}
-            style={{
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              flex: 1,
-              gap: "0.5em",
-              position: "relative",
-              minHeight: "34px",
-              paddingLeft: showCheckbox ? "24px" : undefined
-            }}
+            style={nodeButtonStyle}
           >
             {showCheckbox && (
-              <div
-                style={{
-                  position: "absolute",
-                  left: "4px",
-                  width: "20px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}
-              >
+              <div style={checkboxContainerStyle}>
                 {isSelected && (
                   <CheckIcon
                     sx={{
@@ -210,15 +230,7 @@ const NodeItem = memo(
                   tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", maxWidth: 350, padding: "16px" } }
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5em",
-                    flex: 1,
-                    minWidth: 0
-                  }}
-                >
+                <div style={iconContainerStyle}>
                   <IconForType
                     iconName={outputType}
                     containerStyle={{
@@ -258,15 +270,7 @@ const NodeItem = memo(
                 </div>
               </Tooltip>
             ) : (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5em",
-                  flex: 1,
-                  minWidth: 0
-                }}
-              >
+              <div style={iconContainerStyle}>
                 <IconForType
                   iconName={outputType}
                   containerStyle={{
