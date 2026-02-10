@@ -56,4 +56,4 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
   );
 };
 
-export default TaskView;
+export default React.memo(TaskView);

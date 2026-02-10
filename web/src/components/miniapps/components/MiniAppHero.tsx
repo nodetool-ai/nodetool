@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Theme } from "@mui/material/styles";
 import {
   Button,
@@ -43,6 +43,15 @@ const MiniAppHero: React.FC<MiniAppHeroProps> = ({
   progress,
   showWorkflowControls = true
 }) => {
+  const progressSx = useMemo(
+    () => ({
+      backgroundColor: "transparent",
+      "& .MuiLinearProgress-bar": {
+        backgroundColor: (theme: Theme) => theme.vars.palette.c_highlight
+      }
+    }),
+    []
+  );
   return (
     <header className="hero glass-card">
       {showWorkflowControls && (
@@ -103,13 +112,7 @@ const MiniAppHero: React.FC<MiniAppHeroProps> = ({
           <LinearProgress
             variant="determinate"
             value={(progress.current / progress.total) * 100}
-            sx={{
-              backgroundColor: "transparent",
-              "& .MuiLinearProgress-bar": {
-                backgroundColor: (theme: Theme) =>
-                  theme.vars.palette.c_highlight
-              }
-            }}
+            sx={progressSx}
           />
         )}
       </div>
@@ -117,4 +120,4 @@ const MiniAppHero: React.FC<MiniAppHeroProps> = ({
   );
 };
 
-export default MiniAppHero;
+export default React.memo(MiniAppHero);
