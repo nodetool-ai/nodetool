@@ -21,23 +21,44 @@ import { useCollectionStore } from "../../stores/CollectionStore";
 import { DialogActionButtons } from "../ui_primitives";
 
 const CollectionList = () => {
-  const collections = useCollectionStore((state) => state.collections);
-  const isLoading = useCollectionStore((state) => state.isLoading);
-  const error = useCollectionStore((state) => state.error);
-  const deleteTarget = useCollectionStore((state) => state.deleteTarget);
-  const showForm = useCollectionStore((state) => state.showForm);
-  const dragOverCollection = useCollectionStore((state) => state.dragOverCollection);
-  const indexProgress = useCollectionStore((state) => state.indexProgress);
-  const indexErrors = useCollectionStore((state) => state.indexErrors);
-  const setDeleteTarget = useCollectionStore((state) => state.setDeleteTarget);
-  const setShowForm = useCollectionStore((state) => state.setShowForm);
-  const setIndexErrors = useCollectionStore((state) => state.setIndexErrors);
-  const fetchCollections = useCollectionStore((state) => state.fetchCollections);
-  const confirmDelete = useCollectionStore((state) => state.confirmDelete);
-  const cancelDelete = useCollectionStore((state) => state.cancelDelete);
-  const storeHandleDragOver = useCollectionStore((state) => state.handleDragOver);
-  const storeHandleDragLeave = useCollectionStore((state) => state.handleDragLeave);
-  const storeHandleDrop = useCollectionStore((state) => state.handleDrop);
+  // Group related state to reduce selector calls
+  const {
+    collections,
+    isLoading,
+    error,
+    deleteTarget,
+    showForm,
+    dragOverCollection,
+    indexProgress,
+    indexErrors,
+    setDeleteTarget,
+    setShowForm,
+    setIndexErrors,
+    fetchCollections,
+    confirmDelete,
+    cancelDelete,
+    handleDragOver: storeHandleDragOver,
+    handleDragLeave: storeHandleDragLeave,
+    handleDrop: storeHandleDrop
+  } = useCollectionStore((state) => ({
+    collections: state.collections,
+    isLoading: state.isLoading,
+    error: state.error,
+    deleteTarget: state.deleteTarget,
+    showForm: state.showForm,
+    dragOverCollection: state.dragOverCollection,
+    indexProgress: state.indexProgress,
+    indexErrors: state.indexErrors,
+    setDeleteTarget: state.setDeleteTarget,
+    setShowForm: state.setShowForm,
+    setIndexErrors: state.setIndexErrors,
+    fetchCollections: state.fetchCollections,
+    confirmDelete: state.confirmDelete,
+    cancelDelete: state.cancelDelete,
+    handleDragOver: state.handleDragOver,
+    handleDragLeave: state.handleDragLeave,
+    handleDrop: state.handleDrop
+  }));
 
   useEffect(() => {
     fetchCollections();
