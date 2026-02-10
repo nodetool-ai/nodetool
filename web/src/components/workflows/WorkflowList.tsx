@@ -24,14 +24,13 @@ import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
+import { FlexColumn, FlexRow } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
     "&": {
       margin: "0px",
-      height: "100%",
-      display: "flex",
-      flexDirection: "column"
+      height: "100%"
     },
 
     ".toolbar-header": {
@@ -44,16 +43,6 @@ const styles = (theme: Theme) =>
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
 
-    ".loading-indicator": {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      flexDirection: "column",
-      height: "45vh",
-      width: "100%",
-      gap: "0.75em",
-      color: theme.vars.palette.grey[0]
-    },
     ".status": {
       margin: "0.5em 0.75em 0 0.75em",
       color: theme.vars.palette.grey[300]
@@ -76,16 +65,6 @@ const styles = (theme: Theme) =>
       padding: 0,
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.grey[200]
-    },
-
-    ".empty-state": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "0.5em",
-      padding: "2em 1em",
-      color: theme.vars.palette.grey[300]
     }
   });
 
@@ -323,15 +302,12 @@ const WorkflowList = () => {
           availableTags={availableTags}
         />
       )}
-      <div css={styles(theme)}>
-        <div
+      <FlexColumn gap={0} fullHeight css={styles(theme)}>
+        <FlexRow
           className="toolbar-header"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75em",
-            justifyContent: "space-between"
-          }}
+          align="center"
+          gap={3}
+          justify="space-between"
         >
           <WorkflowToolbar
             setFilterValue={setFilterValue}
@@ -348,20 +324,20 @@ const WorkflowList = () => {
             onToggleFavorites={handleToggleFavorites}
             availableTags={availableTags}
           />
-        </div>
+        </FlexRow>
         <div className="status">
           {isLoading && (
-            <div className="loading-indicator">
+            <FlexColumn gap={3} justify="center" align="center" sx={{ height: "45vh", width: "100%", color: theme.vars.palette.grey[0] }}>
               <CircularProgress />
               <Typography variant="h4">Loading Workflows</Typography>
-            </div>
+            </FlexColumn>
           )}
           {isError && (
-            <div style={{ display: "flex", gap: "1em", alignItems: "center" }}>
+            <FlexRow gap={4} align="center">
               <ErrorOutlineRounded />
               <Typography>{error?.message}</Typography>
               <Typography>No workflows found.</Typography>
-            </div>
+            </FlexRow>
           )}
           {showFavoritesOnly && workflows.length === 0 && !isLoading && !isError && (
             <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
@@ -371,7 +347,7 @@ const WorkflowList = () => {
         </div>
         <div className="workflow-items">
           {!isLoading && !isError && workflows.length === 0 ? (
-            <div className="empty-state">
+            <FlexColumn gap={2} align="center" justify="center" sx={{ padding: "2em 1em", color: theme.vars.palette.grey[300] }}>
               {data?.workflows && data.workflows.length > 0 ? (
                 <>
                   <Typography variant="h6">No matching workflows</Typography>
@@ -393,7 +369,7 @@ const WorkflowList = () => {
                   </Typography>
                 </>
               )}
-            </div>
+            </FlexColumn>
           ) : (
             <WorkflowListView
               workflows={workflows}
@@ -409,7 +385,7 @@ const WorkflowList = () => {
             />
           )}
         </div>
-      </div>
+      </FlexColumn>
     </>
   );
 };
