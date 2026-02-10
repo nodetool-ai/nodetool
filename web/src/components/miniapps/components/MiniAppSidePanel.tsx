@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Box, IconButton, Tooltip, Typography, Collapse, Button } from "@mui/material";
@@ -50,6 +50,15 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
   }, []);
 
   const panelWidth = 360;
+
+  // Memoize inline styles that depend on theme to prevent object creation on each render
+  const panelSectionMarginStyle = useMemo(() => ({
+    marginTop: theme.spacing(1)
+  }), [theme]);
+
+  const vibeCodingSectionMarginStyle = useMemo(() => ({
+    marginTop: theme.spacing(2)
+  }), [theme]);
 
   const styles = css({
     ".side-panel-toggle": {
@@ -207,7 +216,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
           </Typography>
 
           {/* Workflow Graph Section */}
-          <div className="panel-section" style={{ marginTop: theme.spacing(1) }}>
+          <div className="panel-section" style={panelSectionMarginStyle}>
             <div
               className="panel-section-header"
               onClick={handleToggleGraph}
@@ -230,7 +239,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
           </div>
 
           {/* VibeCoding Button */}
-          <div className="panel-section" style={{ marginTop: theme.spacing(2) }}>
+          <div className="panel-section" style={vibeCodingSectionMarginStyle}>
             <Button
               variant="outlined"
               startIcon={<AutoFixHighIcon />}

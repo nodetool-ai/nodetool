@@ -21,7 +21,7 @@ import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
@@ -492,14 +492,15 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
 });
 
 const RunWorkflowButton = memo(function RunWorkflowButton() {
-  const { workflow, nodes, edges } = useNodes((state) => ({
-    workflow: state.workflow,
-    nodes: state.nodes,
-    edges: state.edges
-  }));
+  // Subscribe to workflow only (stable reference), not nodes/edges arrays
+  // This prevents re-renders when nodes/edges change
+  const workflow = useNodes((state) => state.workflow);
+  // Get the store reference to access current state without subscribing
+  const nodeStore = useNodeStoreRef();
+  // Get the run function from websocket runner
+  const run = useWebsocketRunner((state) => state.run);
 
-  const { run, state, isWorkflowRunning } = useWebsocketRunner((state) => ({
-    run: state.run,
+  const { state, isWorkflowRunning } = useWebsocketRunner((state) => ({
     state: state.state,
     isWorkflowRunning: state.state === "running"
   }));
@@ -511,7 +512,8 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
 
   const handleRun = useCallback(() => {
     if (!isWorkflowRunning) {
-      run({}, workflow, nodes, edges);
+      // Access current state directly when running, not in render
+      run({}, workflow, nodeStore.getState().nodes, nodeStore.getState().edges);
     }
     setTimeout(() => {
       const w = getWorkflow(workflow.id);
@@ -523,8 +525,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
     isWorkflowRunning,
     run,
     workflow,
-    nodes,
-    edges,
+    nodeStore,
     getWorkflow,
     saveWorkflow
   ]);
