@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -52,7 +52,7 @@ export interface ProgressBarProps extends Omit<LinearProgressProps, "variant"> {
   className?: string;
 }
 
-export const ProgressBar: React.FC<ProgressBarProps> = ({
+export const ProgressBar: React.FC<ProgressBarProps> = memo(({
   value,
   label,
   showValue = true,
@@ -93,6 +93,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       />
     </Box>
   );
-};
+});
+
+ProgressBar.displayName = "ProgressBar";
 
 export default ProgressBar;

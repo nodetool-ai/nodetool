@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -52,7 +52,7 @@ export interface TagButtonProps {
   className?: string;
 }
 
-export const TagButton: React.FC<TagButtonProps> = ({
+export const TagButton: React.FC<TagButtonProps> = memo(({
   label,
   selected = false,
   onClick,
@@ -101,6 +101,8 @@ export const TagButton: React.FC<TagButtonProps> = ({
   }
 
   return content;
-};
+});
+
+TagButton.displayName = "TagButton";
 
 export default TagButton;
