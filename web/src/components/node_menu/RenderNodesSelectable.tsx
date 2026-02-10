@@ -271,7 +271,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
 
   // No-op drag start for selection mode
   const handleDragStart = useCallback(
-    (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
+    (node: NodeMetadata, event: React.DragEvent<HTMLDivElement>) => {
       if (showCheckboxes) {
         event.preventDefault();
         return;
@@ -306,12 +306,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     [onNodeClick, showCheckboxes, onToggleSelection]
   );
 
-  const handleNodeClickWrapper = useCallback(
-    (node: NodeMetadata) => () => {
-      handleNodeClick(node);
-    },
-    [handleNodeClick]
-  );
+  const selectedNodeTypesSet = useMemo(() => {
+    return new Set(selectedNodeTypes);
+  }, [selectedNodeTypes]);
 
   const { selectedPath } = useNodeMenuStore((state) => ({
     selectedPath: state.selectedPath.join(".")
@@ -324,7 +321,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       const allInNamespace = nodesByNamespaceAll[namespace] || [];
       const total = allInNamespace.length;
       const selected = allInNamespace.filter((n) =>
-        selectedNodeTypes.includes(n.node_type)
+        selectedNodeTypesSet.has(n.node_type)
       ).length;
       return {
         total,
@@ -333,7 +330,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         indeterminate: selected > 0 && selected < total
       };
     },
-    [nodesByNamespaceAll, selectedNodeTypes]
+    [nodesByNamespaceAll, selectedNodeTypesSet]
   );
 
   const toggleNamespace = useCallback(
@@ -423,11 +420,11 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                         <NodeItem
                           key={node.node_type}
                           node={node}
-                          onDragStart={handleDragStart(node)}
+                          onDragStart={handleDragStart}
                           onDragEnd={handleDragEnd}
-                          onClick={handleNodeClickWrapper(node)}
+                          onClick={handleNodeClick}
                           showCheckbox={showCheckboxes}
-                          isSelected={selectedNodeTypes.includes(node.node_type)}
+                          isSelected={selectedNodeTypesSet.has(node.node_type)}
                           onToggleSelection={onToggleSelection}
                           showDescriptionTooltip={true}
                         />
@@ -446,9 +443,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       handleDragStart,
       handleDragEnd,
       showCheckboxes,
-      selectedNodeTypes,
+      selectedNodeTypesSet,
       onToggleSelection,
-      handleNodeClickWrapper,
+      handleNodeClick,
       computeNamespaceSelectionState,
       toggleNamespace
     ]
@@ -559,11 +556,11 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                     <NodeItem
                       key={node.node_type}
                       node={node}
-                      onDragStart={handleDragStart(node)}
+                      onDragStart={handleDragStart}
                       onDragEnd={handleDragEnd}
-                      onClick={handleNodeClickWrapper(node)}
+                      onClick={handleNodeClick}
                       showCheckbox={showCheckboxes}
-                      isSelected={selectedNodeTypes.includes(node.node_type)}
+                      isSelected={selectedNodeTypesSet.has(node.node_type)}
                       onToggleSelection={onToggleSelection}
                       showDescriptionTooltip={true}
                     />
@@ -582,9 +579,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     selectedPath,
     handleDragStart,
     handleDragEnd,
-    handleNodeClickWrapper,
+    handleNodeClick,
     showCheckboxes,
-    selectedNodeTypes,
+    selectedNodeTypesSet,
     onToggleSelection,
     computeNamespaceSelectionState,
     toggleNamespace,

@@ -274,7 +274,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     >
       <Box
         ref={nodeRef}
-        sx={{ minWidth: "800px", maxHeight: menuHeight }}
+        sx={{ minWidth: "980px", maxHeight: menuHeight }}
         className="floating-node-menu"
         css={memoizedStyles}
       >

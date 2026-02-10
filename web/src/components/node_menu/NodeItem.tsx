@@ -15,9 +15,12 @@ import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 
 interface NodeItemProps {
   node: NodeMetadata;
-  onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragStart: (
+    node: NodeMetadata,
+    event: React.DragEvent<HTMLDivElement>
+  ) => void;
   onDragEnd?: () => void;
-  onClick: () => void;
+  onClick: (node: NodeMetadata) => void;
   showCheckbox?: boolean;
   isSelected?: boolean;
   onToggleSelection?: (nodeType: string) => void;
@@ -124,10 +127,10 @@ const NodeItem = memo(
             e.preventDefault();
             onToggleSelection(node.node_type);
           } else {
-            onClick();
+            onClick(node);
           }
         },
-        [showCheckbox, onToggleSelection, node.node_type, onClick]
+        [showCheckbox, onToggleSelection, node, onClick]
       );
 
       const handleFavoriteClick = useCallback(
@@ -156,7 +159,7 @@ const NodeItem = memo(
           onMouseEnter={onMouseEnter}
           onDragStart={(e) => {
             if (!showCheckbox) {
-              onDragStart(e);
+              onDragStart(node, e);
             }
           }}
           onDragEnd={onDragEnd}
@@ -171,6 +174,7 @@ const NodeItem = memo(
               flex: 1,
               gap: "0.5em",
               position: "relative",
+              minHeight: "34px",
               paddingLeft: showCheckbox ? "24px" : undefined
             }}
           >
@@ -236,7 +240,15 @@ const NodeItem = memo(
                       height: "15px"
                     }}
                   />
-                  <Typography fontSize="small">
+                  <Typography
+                    fontSize="small"
+                    sx={{
+                      lineHeight: 1.3,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
+                    }}
+                  >
                     <HighlightText
                       text={node.title}
                       query={searchTerm}
@@ -276,7 +288,15 @@ const NodeItem = memo(
                     height: "15px"
                   }}
                 />
-                <Typography fontSize="small">
+                <Typography
+                  fontSize="small"
+                  sx={{
+                    lineHeight: 1.3,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis"
+                  }}
+                >
                   <HighlightText
                     text={node.title}
                     query={searchTerm}

@@ -24,7 +24,7 @@ const namespacePanelStyles = (theme: Theme) =>
     "&": {
       width: "200px",
       marginRight: "0.5em",
-      marginLeft: "0.75em",
+      marginLeft: "0.5em",
       position: "relative",
       transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
     },
@@ -45,7 +45,7 @@ const namespacePanelStyles = (theme: Theme) =>
       height: "100%",
       maxHeight: "calc(min(750px, 80vh))",
       paddingRight: "0.75em",
-      paddingLeft: "0.75em",
+      paddingLeft: "0.65em",
       borderRadius: "12px",
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.action.hover,
@@ -94,14 +94,15 @@ const namespacePanelStyles = (theme: Theme) =>
     },
     "& .namespaces .list-item": {
       cursor: "pointer",
-      padding: ".5em 1em",
+      padding: "0.42em 0.95em",
       backgroundColor: "transparent",
       fontFamily: theme.fontFamily1,
       fontSize: "0.9rem",
       fontWeight: 400,
+      lineHeight: 1.2,
       transition: "all 0.2s ease",
       overflow: "hidden",
-      margin: "2px",
+      margin: "1px 2px",
       borderRadius: "8px",
       borderLeft: "3px solid transparent"
     },
