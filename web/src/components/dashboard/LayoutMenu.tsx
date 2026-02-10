@@ -27,11 +27,22 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isSaveDialogOpen, setSaveDialogOpen] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState("");
-  const layouts = useLayoutStore((state) => state.layouts);
-  const activeLayoutId = useLayoutStore((state) => state.activeLayoutId);
-  const addLayout = useLayoutStore((state) => state.addLayout);
-  const setActiveLayoutId = useLayoutStore((state) => state.setActiveLayoutId);
-  const updateActiveLayout = useLayoutStore((state) => state.updateActiveLayout);
+
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const { layouts, activeLayoutId, addLayout, setActiveLayoutId, updateActiveLayout } =
+    useLayoutStore(
+      useCallback(
+        (state) => ({
+          layouts: state.layouts,
+          activeLayoutId: state.activeLayoutId,
+          addLayout: state.addLayout,
+          setActiveLayoutId: state.setActiveLayoutId,
+          updateActiveLayout: state.updateActiveLayout
+        }),
+        []
+      )
+    );
+
   const open = Boolean(anchorEl);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
