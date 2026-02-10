@@ -43,8 +43,10 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import KeyboardShortcutHints from "./KeyboardShortcutHints";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { useKeyboardShortcutHints } from "../../hooks/useKeyboardShortcutHints";
 
 declare global {
   interface Window {
@@ -120,6 +122,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     shallow
   );
 
+  // Keyboard shortcut hints - context-aware hints based on selection
+  const { hintSlugs, isVisible: hintsVisible } = useKeyboardShortcutHints();
+
   return (
     <>
       {/* {missingModelRepos.length > 0 && (
@@ -162,6 +167,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 visible={selectedNodes.length >= 2}
               />
               <NodeInfoPanel />
+              {hintsVisible && (
+                <KeyboardShortcutHints
+                  shortcutSlugs={hintSlugs}
+                  position="bottom-right"
+                  animated
+                />
+              )}
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
