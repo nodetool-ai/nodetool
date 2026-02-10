@@ -4,26 +4,6 @@ title: "Models & Providers"
 description: "AI models and local vs cloud options."
 ---
 
-This guide explains AI models in NodeTool and how to choose between local and cloud execution.
-
----
-
-## What Are AI Models?
-
-An AI **model** is a trained program for a specific task:
-
-| Model Type | Function | Example |
-|------------|----------|---------|
-| **Language Model (LLM)** | Text generation | Stories, Q&A, summarization |
-| **Image Model** | Image generation/editing | Artwork, photos, variations |
-| **Speech Model** | Speech↔text conversion | Transcription, text-to-speech |
-| **Vision Model** | Image understanding | Photo descriptions, OCR |
-| **3D Model** | 3D asset generation | Product mockups, AR/VR assets |
-
-Models come pre-trained. Select one for your task.
-
----
-
 ## Local vs. Cloud
 
 NodeTool runs AI models locally or through cloud APIs.
@@ -36,7 +16,7 @@ NodeTool runs AI models locally or through cloud APIs.
 - 📶 **Offline** – Works without internet
 
 **Cons:**
-- 💾 **Requires space** – 4-15 GB per model
+- 💾 **Requires space** – 4-20 GB per model
 - ⚡ **Needs hardware** – Faster with GPU
 - ⏳ **Initial download** – One-time setup
 
@@ -86,7 +66,7 @@ NodeTool provides access to high-quality generative AI models through cloud prov
 | **xAI Grok Imagine** | <img src="assets/icons/xai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> xAI | T2V/I2V/T2I | Multimodal text/image to short video with coherent motion and synchronized audio; also text-to-image |
 | **Alibaba Wan 2.6** | <img src="assets/icons/alibaba.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Alibaba | Multi-shot T2V/I2V | Affordable 1080p with stable characters and native audio; reference-guided generation |
 | **MiniMax Hailuo 2.3** | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | High-fidelity T2V/I2V | Expressive characters, complex motion and lighting effects |
-| **Kling 2.6** | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
+| **Kling 4.0** | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
 
 ### Top Image Generation Models
 
@@ -105,29 +85,16 @@ Access these models through NodeTool's **generic nodes**:
 3. **Select Provider**: Click the model dropdown in the node properties
 4. **Configure API**: Add provider API keys in `Settings → Providers`
 
-**Direct NodeTool API Key Support:**
-- OpenAI Sora 2 Pro: `OPENAI_API_KEY`
-- Google Veo 3.1: `GEMINI_API_KEY`
-- MiniMax Hailuo 2.3: `MINIMAX_API_KEY`
-- Hunyuan3D V2/3.0: `HUNYUAN3D_API_KEY`
-- Trellis 2: `TRELLIS_API_KEY`
-- TripoSR: `TRIPO_API_KEY`
-- Shap-E: `SHAP_E_API_KEY`
-- Point-E: `POINT_E_API_KEY`
-- Meshy AI: `MESHY_API_KEY`
-- Rodin AI: `RODIN_API_KEY`
-
-- <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI Sora 2 Pro: `OPENAI_API_KEY`
-- <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google Veo 3.1: `GEMINI_API_KEY`
-- <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax Hailuo 2.3: `MINIMAX_API_KEY`
-
-**Access via kie.ai (recommended for other models):**
-- xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6, Black Forest Labs FLUX.2, Google Nano Banana Pro
+**Access via kie.ai (recommended for broad model support):**
+Many of these models are available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers.
 - Configure using `KIE_API_KEY` in `Settings → Providers`
+
+**Access via fal.ai:**
+- Configure using `FAL_API_KEY` in `Settings → Providers`
+
 
 > **Cost Considerations**: Cloud models typically charge per generation. Check each provider's pricing before extensive use. Local models are free after download but require capable hardware.
 
-> **Alternative Access**: Many of these models are available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers. For models without direct NodeTool API key support (xAI, Alibaba, Kling), kie.ai is the recommended access method.
 
 ---
 
@@ -145,7 +112,7 @@ Access these models through NodeTool's **generic nodes**:
 ### Option 2: Start with Cloud Providers
 
 1. Get an API key from a provider:
-   - <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [OpenAI](https://platform.openai.com) – GPT-4, DALL-E, Whisper
+   - <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [OpenAI](https://platform.openai.com) – GPT, Whisper, Sora
    - <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [Anthropic](https://www.anthropic.com) – Claude models
    - <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [Google](https://ai.google.dev) – Gemini models
 2. In NodeTool, go to **Settings → Providers**
@@ -153,28 +120,6 @@ Access these models through NodeTool's **generic nodes**:
 4. Select the provider when using AI nodes
 
 ---
-
-## Understanding Model Names
-
-Model names can look confusing, but they follow patterns:
-
-| Name Part | Meaning | Example |
-|-----------|---------|---------|
-| **Base name** | The model family | GPT, Llama, Flux |
-| **Number** | Version/size | GPT-4, Llama-3 |
-| **Size indicator** | Capability level | mini, small, large |
-| **Quantization** | Compression level | Q4, Q8 (lower = smaller file) |
-
-**Example:** `llama-3-8b-instruct-Q4` means:
-- Llama version 3
-- 8 billion parameters (medium size)
-- Instruction-tuned (follows directions well)
-- Q4 quantization (compressed to save space)
-
-**Don't memorize this** – NodeTool's Model Manager shows compatible models for each task.
-
----
-
 ## Detailed Guides
 
 ### General
@@ -191,39 +136,3 @@ Model names can look confusing, but they follow patterns:
 ### Advanced
 - **[Proxy & Self-Hosted](proxy.md)** – Secure deployments
 - **[Deployment Guide](deployment.md)** – Cloud infrastructure
-
----
-
-## Quick Reference: Common Tasks
-
-### "I want to generate text"
-- **Local:** Install GPT-OSS or Llama model
-- **Cloud:** Use OpenAI GPT-4 or Anthropic Claude
-
-### "I want to create images"
-- **Local:** Install Flux or Stable Diffusion
-- **Cloud:** Use OpenAI DALL-E or Fal.ai
-
-### "I want to transcribe audio"
-- **Local:** Install Whisper (recommended for privacy)
-- **Cloud:** Use OpenAI Whisper API
-
-### "I want to understand images"
-- **Local:** Install a Vision model (Llava, Qwen-VL)
-- **Cloud:** Use GPT-4 Vision or Claude with images
-
----
-
-## FAQ
-
-**Q: Do I need a powerful computer?**  
-A: For local models, a GPU helps but isn't required. Cloud providers work on any computer.
-
-**Q: How much do cloud models cost?**  
-A: Typically $0.001-0.03 per task. Most providers offer free credits.
-
-**Q: Can I switch models later?**  
-A: Yes. Use the **Model** button on any AI node to change models without rebuilding the workflow.
-
-**Q: Local or cloud?**  
-A: Depends on your needs. Try both.

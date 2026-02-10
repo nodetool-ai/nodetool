@@ -46,13 +46,13 @@ pip install -r requirements-dev.txt
 ```bash
 cp .env.example .env.development.local
 echo "AUTH_PROVIDER=static" >> .env.development.local
-echo "WORKER_AUTH_TOKEN=$(openssl rand -base64 32)" >> .env.development.local
+echo "SERVER_AUTH_TOKEN=$(openssl rand -base64 32)" >> .env.development.local
 ```
 
 ### 3. Start services
 
 ```bash
-nodetool serve --reload
+nodetool serve --mode private --auth-provider static --reload
 ```
 
 ### 4. Add proxy (TLS + auth)
@@ -64,15 +64,16 @@ nodetool serve --reload
 
 ```bash
 curl https://your-domain/health
-curl -H "Authorization: Bearer $WORKER_AUTH_TOKEN" https://your-domain/v1/models
+curl -H "Authorization: Bearer $SERVER_AUTH_TOKEN" https://your-domain/v1/models
 ```
 
 ### 6. Run a workflow remotely
 
 ```bash
-curl -H "Authorization: Bearer $WORKER_AUTH_TOKEN" \
-  -X POST https://your-domain/api/workflows/<workflow_id>/run?stream=true \
-  -d '{"params":{}}'
+curl -H "Authorization: Bearer $SERVER_AUTH_TOKEN" \
+  -X POST https://your-domain/workflows/<workflow_id>/run \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 **Next steps:** See [Self-Hosted Deployment](self_hosted.md) for proxy configuration details and [Security Hardening](security-hardening.md) for production best practices.
@@ -97,7 +98,7 @@ Create an image or use the provided RunPod template (see `docker/`).
 ### 2. Set secrets
 
 In the RunPod console, set:
-- `WORKER_AUTH_TOKEN` — your authentication token
+- `SERVER_AUTH_TOKEN` — your authentication token
 - `AUTH_PROVIDER=static`
 - Any provider API keys you need (OpenAI, Anthropic, etc.)
 
@@ -126,8 +127,9 @@ curl -H "Authorization: Bearer $RUNPOD_API_KEY" \
 
 ```bash
 curl -H "Authorization: Bearer $RUNPOD_API_KEY" \
-  -X POST "https://api.runpod.ai/v2/<endpoint>/api/workflows/<workflow_id>/run?stream=true" \
-  -d '{"params":{}}'
+  -X POST "https://api.runpod.ai/v2/<endpoint>/workflows/<workflow_id>/run" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 **Next steps:** See [RunPod Testing Guide](runpod_testing_guide.md) for testing workflows and the [Deployment Guide](deployment.md#runpod-deployments) for configuration options.
@@ -158,7 +160,7 @@ gcloud run deploy nodetool \
   --image gcr.io/<project>/nodetool:latest \
   --allow-unauthenticated=false \
   --port 7777 \
-  --set-env-vars AUTH_PROVIDER=static,WORKER_AUTH_TOKEN=$(openssl rand -base64 32)
+  --set-env-vars AUTH_PROVIDER=static,SERVER_AUTH_TOKEN=$(openssl rand -base64 32)
 ```
 
 ### 3. Set secrets
@@ -170,15 +172,16 @@ gcloud run deploy nodetool \
 
 ```bash
 curl https://<service-url>/health
-curl -H "Authorization: Bearer $WORKER_AUTH_TOKEN" https://<service-url>/v1/models
+curl -H "Authorization: Bearer $SERVER_AUTH_TOKEN" https://<service-url>/v1/models
 ```
 
 ### 5. Run a workflow
 
 ```bash
-curl -H "Authorization: Bearer $WORKER_AUTH_TOKEN" \
-  -X POST "https://<service-url>/api/workflows/<workflow_id>/run?stream=true" \
-  -d '{"params":{}}'
+curl -H "Authorization: Bearer $SERVER_AUTH_TOKEN" \
+  -X POST "https://<service-url>/workflows/<workflow_id>/run" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 **Next steps:** See the [Deployment Guide](deployment.md#google-cloud-run-deployments) for detailed GCP configuration options.

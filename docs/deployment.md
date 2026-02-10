@@ -7,6 +7,8 @@ title: "Deployment Guide"
 
 NodeTool supports multiple deployment targets driven by a single `deployment.yaml` configuration. The `nodetool deploy` command family builds container images, applies configuration, and manages the lifecycle of remote services across self-hosted hosts, RunPod serverless, and Google Cloud Run.
 
+For a practical full runbook (desktop, public, private, Docker/Podman, and workflow sync verification), see [End-to-End Deployment Guide](deployment-e2e-guide.md).
+
 ---
 
 ## Quick Reference: What Do You Want to Do?
@@ -189,14 +191,14 @@ The RunPod deployer (`src/nodetool/deploy/deploy_to_runpod.py`) builds an AMD64 
 
 ## Self-Hosted Deployments
 
-Self-hosted targets pair a NodeTool worker container with the Docker-aware proxy described in [Self-Hosted Deployment](self_hosted.md) and [Proxy Reference](proxy.md). Deployment state tracks the running container ID, generated bearer tokens, and hashed proxy configuration to avoid redundant restarts.
+Self-hosted targets pair a NodeTool server container with the Docker-aware proxy described in [Self-Hosted Deployment](self_hosted.md) and [Proxy Reference](proxy.md). Deployment state tracks the running container ID, generated bearer tokens, and hashed proxy configuration to avoid redundant restarts.
 
 **Quick checklist**
 
 - Populate `host`, `ssh.user`, and image fields in `deployment.yaml`  
 - Configure proxy services (port 80/443 by default) with TLS certificates or ACME settings  
 - Mount persistent volumes (workspace, caches) through the `services[].volumes` map  
-- Provide `worker_auth_token` or let the proxy generate one on first deploy
+- Provide `server_auth_token` or let the proxy generate one on first deploy
 
 Apply with `nodetool deploy apply <name>`; the deployer copies proxy files, restarts containers when configuration changes, and runs health checks before reporting success.
 

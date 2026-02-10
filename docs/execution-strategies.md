@@ -20,7 +20,7 @@ Use `ENV=test` to automatically select in-memory storage and test-ready defaults
 - Enabled by default for local development.
 - Shares process memory; best for lightweight notebook-style workflows.
 - Configure max concurrency via `THREAD_POOL_SIZE` (fallback to CPU count).
-- Avoid blocking calls in hot paths; prefer async nodes or background workers.
+- Avoid blocking calls in hot paths; prefer async nodes or background servers.
 
 ## Subprocess Execution
 
@@ -48,7 +48,7 @@ Use `ENV=test` to automatically select in-memory storage and test-ready defaults
 - Require auth (`AUTH_PROVIDER=static` or `supabase`) in shared environments.
 - Disable terminal WebSocket in production (`NODETOOL_ENABLE_TERMINAL_WS` unset).
 - Ensure proxy TLS termination for all non-public endpoints.
-- Rotate worker and proxy tokens via your secrets manager.
+- Rotate server and proxy tokens via your secrets manager.
 - For Docker, never mount the host Docker socket into jobs; prefer a thin supervisor.
 
 ## Testing

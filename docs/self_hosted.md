@@ -18,7 +18,7 @@ Self-hosted deployments now manage two key containers:
    - Terminates HTTP/HTTPS traffic.
    - Authenticates every request (Bearer token).
    - Talks to the Docker socket to start/stop service containers on demand.
-2. **Service container(s)** – e.g. the NodeTool worker image (`nodetool`), which
+2. **Service container(s)** – e.g. the NodeTool server image (`nodetool`), which
    run only when traffic arrives.
 
 `nodetool deploy apply <deployment>` orchestrates everything: it renders the
@@ -125,7 +125,7 @@ Service-specific overrides use `PROXY_SERVICE_<SERVICE_NAME>_<KEY>`.
 
 ## Deployment Model (`deployment.yaml`)
 
-Self-hosted deployments declare both the worker container and the proxy. Example:
+Self-hosted deployments declare both the server container and the proxy. Example:
 
 ```yaml
 deployments:
@@ -141,7 +141,7 @@ deployments:
     container:
       name: nodetool-localhost
       port: 9001
-    worker_auth_token: <optional>
+    server_auth_token: <optional>
     proxy:
       image: nodetool-proxy:latest
       listen_http: 80
@@ -177,7 +177,7 @@ deployments:
 
 Key points:
 
-- `worker_auth_token` is reused as the proxy bearer token if `proxy.bearer_token`
+- `server_auth_token` is reused as the proxy bearer token if `proxy.bearer_token`
   is omitted. Otherwise the deployer generates a `proxy_bearer_token` and stores
   it in the deployment state.
 - Volume mappings support either string or dict syntax. Dicts allow explicit
@@ -187,15 +187,15 @@ Key points:
 
 ## Persistent Storage
 
-- **Workspace** (`paths.workspace`) – mounted read/write into the worker as
+- **Workspace** (`paths.workspace`) – mounted read/write into the server as
   `/workspace`. Place your SQLite database here (e.g. `DB_PATH=/workspace/nodetool.db`).
-- **Hugging Face cache** (`paths.hf_cache`) – mounted read-only into the worker
+- **Hugging Face cache** (`paths.hf_cache`) – mounted read-only into the server
   as `/hf-cache`. Update `HF_HOME` accordingly.
 - Add additional storage by extending `volumes` per service.
 
 ## Deployment Steps
 
-1. Build images (proxy + worker):
+1. Build images (proxy + server):
 
    ```bash
     docker build -f docker/proxy/Dockerfile -t nodetool-proxy:latest .
@@ -268,8 +268,8 @@ Key points:
 | --- | --- | --- |
 | Proxy container exits immediately | Config parse failure or missing `/var/run/docker.sock` | Inspect container logs and `<workspace>/proxy/proxy.yaml`; ensure the socket is mounted |
 | `/status` always `not_created` | Service container failed to start (bad image/env) | Check proxy logs for Docker errors, and `docker logs <service>` |
-| `401 Unauthorized` when running workflows | Bearer token mismatch | Ensure `proxy.bearer_token` matches `worker_auth_token`; re-apply deployment to sync |
-| Curl reset or 500 during long responses | Upstream closed stream mid-response | Inspect worker logs; proxy now buffers entire response but upstream must complete the body |
+| `401 Unauthorized` when running workflows | Bearer token mismatch | Ensure `proxy.bearer_token` matches `server_auth_token`; re-apply deployment to sync |
+| Curl reset or 500 during long responses | Upstream closed stream mid-response | Inspect server logs; proxy now buffers entire response but upstream must complete the body |
 | ACME challenge fails | ACME webroot not shared/mounted | Mount the same host directory into the proxy container and certbot |
 | Need different cache/DB location | Adjust `paths.workspace` / `paths.hf_cache` and update volume bindings + env vars (e.g. `DB_PATH`, `HF_HOME`) |
 
@@ -281,7 +281,7 @@ Key points:
 - `nodetool deploy workflows list <name>` – enumerate available workflows before running them.
 
 With these steps your self-hosted environment deploys a slim proxy container as
-the public entrypoint, keeps the worker private, and persists all important data
+the public entrypoint, keeps the server private, and persists all important data
 on host volumes.
 
 ## Related Documentation
