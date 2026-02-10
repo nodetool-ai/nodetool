@@ -10,7 +10,7 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import React, { forwardRef, useMemo } from "react";
+import React, { forwardRef, useMemo, memo } from "react";
 import { Slider, SliderProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
@@ -107,3 +107,8 @@ export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
 );
 
 NodeSlider.displayName = "NodeSlider";
+
+const NodeSliderMemo = memo(NodeSlider);
+NodeSliderMemo.displayName = "NodeSlider";
+
+export default NodeSliderMemo;

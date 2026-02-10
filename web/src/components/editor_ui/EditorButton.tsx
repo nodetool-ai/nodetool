@@ -9,7 +9,7 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, memo } from "react";
 import { Button, ButtonProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
@@ -64,3 +64,8 @@ export const EditorButton = forwardRef<HTMLButtonElement, EditorButtonProps>(
 );
 
 EditorButton.displayName = "EditorButton";
+
+const EditorButtonMemo = memo(EditorButton);
+EditorButtonMemo.displayName = "EditorButton";
+
+export default EditorButtonMemo;

@@ -11,7 +11,7 @@
   * - `density`: Controls compact vs normal sizing
   */
 
- import React, { forwardRef, useMemo } from "react";
+ import React, { forwardRef, useMemo, memo } from "react";
  import {
    Select,
    SelectProps,
@@ -160,7 +160,12 @@
    }
  );
 
- NodeSelect.displayName = "NodeSelect";
+NodeSelect.displayName = "NodeSelect";
+
+const NodeSelectMemo = memo(NodeSelect);
+NodeSelectMemo.displayName = "NodeSelect";
+
+export default NodeSelectMemo;
 
  export interface NodeMenuItemProps extends MenuItemProps {
    /**
@@ -178,7 +183,7 @@
   *   <NodeMenuItem value="option1">Option 1</NodeMenuItem>
   * </NodeSelect>
   */
- export const NodeMenuItem = forwardRef<HTMLLIElement, NodeMenuItemProps>(
+ const NodeMenuItem = forwardRef<HTMLLIElement, NodeMenuItemProps>(
    ({ className, sx, ...props }, ref) => {
      return (
        <MenuItem
@@ -191,4 +196,9 @@
    }
  );
 
-  NodeMenuItem.displayName = "NodeMenuItem";
+NodeMenuItem.displayName = "NodeMenuItem";
+
+const NodeMenuItemMemo = memo(NodeMenuItem);
+NodeMenuItemMemo.displayName = "NodeMenuItem";
+
+export { NodeMenuItemMemo as NodeMenuItem };
