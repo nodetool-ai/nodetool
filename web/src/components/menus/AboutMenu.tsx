@@ -8,6 +8,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
 import { isElectron } from "../../stores/ApiClient";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { FlexRow, Text, Caption } from "../ui_primitives";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
 // We use a local copy to avoid type export complexity
@@ -47,11 +48,10 @@ const InfoRow: React.FC<{
   };
 
   return (
-    <Box
+    <FlexRow
+      justify="space-between"
+      align="flex-start"
       sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
         padding: "0.5em 0",
         borderBottom: `1px solid ${theme.vars.palette.divider}`,
         "&:last-child": {
@@ -59,35 +59,32 @@ const InfoRow: React.FC<{
         }
       }}
     >
-      <Typography
+      <Caption
         sx={{
-          color: theme.vars.palette.text.secondary,
           minWidth: "140px",
           flexShrink: 0
         }}
       >
         {label}
-      </Typography>
-      <Box
+      </Caption>
+      <FlexRow
+        gap={2}
+        align="center"
         sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5em",
           flex: 1,
           justifyContent: "flex-end",
           textAlign: "right"
         }}
       >
-        <Typography
+        <Text
+          size="small"
           sx={{
-            color: theme.vars.palette.text.primary,
             wordBreak: "break-all",
-            fontFamily: "monospace",
-            fontSize: "0.9em"
+            fontFamily: "monospace"
           }}
         >
           {value || "N/A"}
-        </Typography>
+        </Text>
         {copyable && value && (
           <ContentCopyIcon
             sx={{
@@ -101,8 +98,8 @@ const InfoRow: React.FC<{
             onClick={handleCopy}
           />
         )}
-      </Box>
-    </Box>
+      </FlexRow>
+    </FlexRow>
   );
 };
 
