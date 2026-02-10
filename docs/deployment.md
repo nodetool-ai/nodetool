@@ -15,11 +15,11 @@ For a practical full runbook (desktop, public, private, Docker/Podman, and workf
 
 | I want to... | What you need |
 |--------------|---------------|
-| **Run NodeTool on my own server** | → [Self-Hosted Deployment](#self-hosted-deployments) with proxy |
-| **Deploy to RunPod for GPU access** | → [RunPod Deployment](#runpod-deployments) with Docker + RunPod API key |
-| **Deploy to Google Cloud Run** | → [GCP Deployment](#google-cloud-run-deployments) with gcloud CLI |
-| **Use Supabase for auth/storage** | → [Supabase Integration](#using-supabase) |
-| **Set up TLS/HTTPS** | → See [Self-Hosted](#self-hosted-deployments) or [Proxy Reference](proxy.md) |
+| **Run NodeTool on my own server** | → [Self-Hosted Deployment](self-hosted-deployment.md) |
+| **Deploy to RunPod for GPU access** | → [RunPod Deployment](runpod-deployment.md) |
+| **Deploy to Google Cloud Run** | → [Google Cloud Run Deployment](gcp-deployment.md) |
+| **Use Supabase for auth/storage** | → [Supabase Deployment Integration](supabase-deployment.md) |
+| **Set up TLS/HTTPS** | → See [Self-Hosted Deployment](self-hosted-deployment.md) |
 | **Configure environment variables** | → [Deployment Configuration](#deployment-configuration) |
 
 ---
@@ -28,19 +28,25 @@ For a practical full runbook (desktop, public, private, Docker/Podman, and workf
 
 ### I want to deploy NodeTool to my own server
 
-1. **Set up your configuration** — create a `deployment.yaml`:
+1. **Pull the base image first**:
+   ```bash
+   docker pull ghcr.io/nodetool-ai/nodetool:latest
+   ```
+2. **Set up your configuration**:
    ```bash
    nodetool deploy init
-   nodetool deploy add my-server --type self-hosted
+   nodetool deploy add my-server 
    ```
-2. **Configure host details** — edit `~/.config/nodetool/deployment.yaml` with your host, SSH user, and image settings
-3. **Build and deploy**:
+3. **Configure** 
+   - image name: `ghcr.io/nodetool-ai/nodetool`
+   - image tag: `latest`
+4. **Build and deploy**:
    ```bash
    nodetool deploy apply my-server
    ```
-4. **Verify**: `nodetool deploy status my-server`
+5. **Verify**: `nodetool deploy status my-server`
 
-See [Self-Hosted Deployments](#self-hosted-deployments) for full details.
+See [Self-Hosted Deployment](self-hosted-deployment.md) for full details.
 
 ### I want to run workflows on GPU via RunPod
 
@@ -56,7 +62,7 @@ See [Self-Hosted Deployments](#self-hosted-deployments) for full details.
    nodetool deploy apply my-runpod
    ```
 
-See [RunPod Deployments](#runpod-deployments) for full details.
+See [RunPod Deployment](runpod-deployment.md) for full details.
 
 ### I want to deploy to Google Cloud
 
@@ -71,7 +77,7 @@ See [RunPod Deployments](#runpod-deployments) for full details.
    nodetool deploy apply my-gcp
    ```
 
-See [GCP Deployments](#google-cloud-run-deployments) for full details.
+See [Google Cloud Run Deployment](gcp-deployment.md) for full details.
 
 ### I want to use Supabase for authentication and storage
 
@@ -87,7 +93,7 @@ See [GCP Deployments](#google-cloud-run-deployments) for full details.
    ```
 4. **Deploy**: `nodetool deploy apply <name>`
 
-See [Using Supabase](#using-supabase) for full details.
+See [Supabase Deployment Integration](supabase-deployment.md) for full details.
 
 ---
 
@@ -96,8 +102,11 @@ See [Using Supabase](#using-supabase) for full details.
 1. **Initialize configuration**  
 
    ```bash
+   # For Docker targets, ensure the image is present locally first
+   docker pull ghcr.io/nodetool-ai/nodetool:latest
+
    nodetool deploy init
-   nodetool deploy add <name>
+   nodetool deploy add <name> --type docker
    ```  
 
    These commands scaffold `deployment.yaml` using the schema defined in `src/nodetool/config/deployment.py`. Each entry specifies a `type` (`self-hosted`, `runpod`, or `gcp`), container image details, environment variables, and target-specific options.
@@ -137,108 +146,11 @@ See [Using Supabase](#using-supabase) for full details.
 
 Store secrets (API keys, tokens) in `secrets.yaml` or environment variables; the deployer merges them at runtime without writing them to disk.
 
-## RunPod Deployments
+## Deployment Types
 
-The RunPod deployer (`src/nodetool/deploy/deploy_to_runpod.py`) builds an AMD64 Docker image, pushes it to your registry, and optionally creates RunPod templates/endpoints through GraphQL.
+Deployment-type details live on dedicated pages:
 
-**Requirements**
-
-- Docker (with Buildx for multi-arch builds) and registry credentials  
-- `RUNPOD_API_KEY` in the environment  
-- Optional: tuned GPU constraints (`gpu_types`, `gpu_count`, `idle_timeout`, etc.)
-
-**Key configuration fields**
-
-- `template_id` / `endpoint_id` – existing resources to update (or leave empty to create)  
-- `compute_type`, `gpu_types`, `gpu_count` – choose CPU/GPU fleets  
-- `workers_min` / `workers_max` – autoscaling bounds  
-- `env` – runtime settings exposed to the container
-
-**CLI shortcuts**
-
-- `nodetool deploy apply <name>` – orchestrates build → push → template/endpoint updates  
-- `nodetool deploy logs <name>` – streams RunPod logs (requires endpoint ID in deployment state)  
-- `nodetool deploy destroy <name>` – tears down templates/endpoints (leaves images untouched)
-
-## Google Cloud Run Deployments
-
-`src/nodetool/deploy/deploy_to_gcp.py` and `google_cloud_run_api.py` manage the Cloud Run flow:
-
-1. Validate gcloud authentication, project, and enabled APIs  
-2. Build/push the container to Artifact Registry or GCR  
-3. Deploy or update the Cloud Run service
-
-**Requirements**
-
-- Docker and Google Cloud SDK (`gcloud`) authenticated  
-- `GOOGLE_CLOUD_PROJECT` (and optionally `GOOGLE_APPLICATION_CREDENTIALS`)  
-- Enabled services: Cloud Run, Artifact Registry or Container Registry, Cloud Build (if used)
-
-**Key configuration fields**
-
-- `service_name`, `region`, `registry` – Cloud Run identifiers  
-- `cpu`, `memory`, `gpu_type`, `gpu_count` – resource allocation  
-- `min_instances`, `max_instances`, `concurrency`, `timeout` – scaling behavior  
-- `service_account` – runtime identity (required for private resources)  
-- `gcs_bucket` / `gcs_mount_path` – attach Cloud Storage volumes if needed  
-- `allow_unauthenticated` – set to true for public endpoints (omit to require IAM auth)
-
-**Operational commands**
-
-- `nodetool deploy status <name>` – shows the current Cloud Run URL and revision  
-- `nodetool deploy logs <name>` – tails Cloud Run logs via `gcloud`  
-- `nodetool deploy destroy <name>` – deletes the Cloud Run service
-
-## Self-Hosted Deployments
-
-Self-hosted targets pair a NodeTool server container with the Docker-aware proxy described in [Self-Hosted Deployment](self-hosted-deployment.md) and [Proxy Reference](proxy.md). Deployment state tracks the running container ID, generated bearer tokens, and hashed proxy configuration to avoid redundant restarts.
-
-**Quick checklist**
-
-- Populate `host`, `ssh.user`, and image fields in `deployment.yaml`  
-- Configure proxy services (port 80/443 by default) with TLS certificates or ACME settings  
-- Mount persistent volumes (workspace, caches) through the `services[].volumes` map  
-- Provide `server_auth_token` or let the proxy generate one on first deploy
-
-Apply with `nodetool deploy apply <name>`; the deployer copies proxy files, restarts containers when configuration changes, and runs health checks before reporting success.
-
-## Using Supabase
-
-Supabase can provide both authentication and object storage in your deployment.
-
-1) Configure environment variables in your deployment target:
-
-```
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-service-role-key
-ASSET_BUCKET=assets
-# Optional for temporary assets
-ASSET_TEMP_BUCKET=assets-temp
-
-# Select authentication provider (none|local|static|supabase)
-AUTH_PROVIDER=supabase
-```
-
-2) Create the buckets in Supabase Storage (e.g. `assets`, `assets-temp`).
-
-- For direct public URLs, set the buckets to public in the Supabase dashboard.
-- For private buckets, extend the adapter to sign URLs or front with a proxy that performs signing.
-
-3) Deploy and verify:
-
-- Logs should show “Using Supabase storage for asset storage”.
-- Run a workflow that saves an image/dataframe and confirm links resolve under `…/storage/v1/object/public/<bucket>/…`.
-- If using Supabase auth (`AUTH_PROVIDER=supabase`), send `Authorization: Bearer <supabase_jwt>`.
-
-Notes:
-
-- If S3 variables are set alongside Supabase, NodeTool prefers Supabase when `SUPABASE_URL`/`SUPABASE_KEY` are present.
-- For local development without Supabase/S3, NodeTool uses the filesystem backend.
-
-## Related Documentation
-
-- [Self-Hosted Deployment](self-hosted-deployment.md) – proxy architecture and container layout  
-- [Proxy Reference](proxy.md) – on-demand routing, TLS, and command usage  
-- [CLI Reference](cli.md) – command summaries  
-- [Configuration Guide](configuration.md) – environment, settings, and secret management  
-- [Storage Guide](storage.md) – persistent storage options for deployments
+- [Self-Hosted Deployment](self-hosted-deployment)
+- [RunPod Deployment](runpod-deployment)
+- [Google Cloud Run Deployment](gcp-deployment)
+- [Supabase Deployment Integration](supabase-deployment)

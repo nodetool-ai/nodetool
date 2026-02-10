@@ -93,11 +93,18 @@ deployments:
 
 This walkthrough matches a common local setup flow:
 
-1. Add a docker deployment interactively.
-2. Review the generated deployment.
-3. Apply deployment and validate health.
-4. Sync workflows.
-5. Run a synced workflow on the deployed instance.
+1. Pull the Docker image.
+2. Add a docker deployment interactively.
+3. Review the generated deployment.
+4. Apply deployment and validate health.
+5. Sync workflows.
+6. Run a synced workflow on the deployed instance.
+
+### 0. Pull the Image First
+
+```bash
+docker pull ghcr.io/nodetool-ai/nodetool:latest
+```
 
 ### 1. Add Local Docker Deployment
 
@@ -109,8 +116,8 @@ Use these values (or your own):
 
 - Deployment type: `docker`
 - Host address: `localhost`
-- Docker image name: `nodetool`
-- Docker image tag: `local`
+- Docker image name: `ghcr.io/nodetool-ai/nodetool`
+- Docker image tag: `latest`
 - Container name: `nodetool`
 - Port: `8000`
 - GPU/workflows assignment: optional
@@ -131,7 +138,7 @@ nodetool deploy show local
 You should see:
 
 - `Type: DeploymentType.DOCKER`
-- `Image: nodetool:local`
+- `Image: ghcr.io/nodetool-ai/nodetool:latest`
 - `Workspace: $HOME/.nodetool-workspace`
 - `HF Cache: $HOME/.cache/huggingface/hub`
 - endpoint URL at `http://localhost:8000`
