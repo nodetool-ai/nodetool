@@ -74,11 +74,12 @@ Runs the FastAPI backend server for the NodeTool platform. This serves the REST 
 
 - `--host` (default `127.0.0.1`) — bind address (use `0.0.0.0` for all interfaces).
 - `--port` (default `7777`) — listen port.
+- `--mode` (`desktop`, `public`, `private`) — runtime mode (default `desktop`, or `private` with `--production`).
+- `--auth-provider` (`none`, `local`, `static`, `multi_user`, `supabase`) — authentication backend.
 - `--static-folder` — path to folder containing static web assets (e.g., compiled React UI).
 - `--force-fp16` — force FP16 precision for ComfyUI integrations if available (GPU optimization).
 - `--reload` — enable auto-reload on file changes (development only).
 - `--production` — enable production mode (stricter validation, optimizations).
-- `--remote-auth` — enable remote authentication (Supabase-backed auth).
 - `--verbose` / `-v` — enable DEBUG-level logging for troubleshooting.
 
 **Examples:**
@@ -90,8 +91,8 @@ nodetool serve --reload --verbose
 # Production server with static assets
 nodetool serve --production --static-folder ./web/dist --host 0.0.0.0 --port 7777
 
-# Development with remote auth
-nodetool serve --remote-auth --verbose
+# Public mode with Supabase auth
+nodetool serve --mode public --auth-provider supabase --verbose
 ```
 
 ### `nodetool run`
@@ -127,37 +128,6 @@ cat run_request.json | nodetool run --stdin
 
 # With custom user and auth token
 nodetool run workflow_abc123 --user-id user123 --auth-token sk-token
-```
-
-### `nodetool worker`
-
-Starts a deployable worker process with OpenAI-compatible endpoints. This is used for running NodeTool as a backend service with chat/completion API support.
-
-**Options:**
-
-- `--host` (default `0.0.0.0`) — bind address (listen on all interfaces for deployments).
-- `--port` (default `7777`) — listen port.
-- `--remote-auth` — require Supabase-backed authentication.
-- `--default-model` (default `gpt-oss:20b`) — fallback model when client doesn't specify one.
-- `--provider` (default `ollama`) — provider for the default model (e.g., `openai`, `anthropic`, `ollama`).
-- `--tools` — comma-separated list of tools to enable (e.g., `google_search,browser`).
-- `--workflow` — one or more workflow JSON files to register with the worker.
-- `--verbose` / `-v` — enable DEBUG-level logging.
-
-**Examples:**
-
-```bash
-# Basic worker with default Ollama model
-nodetool worker
-
-# Worker with custom model and tools
-nodetool worker --default-model gpt-4 --provider openai --tools google_search,browser
-
-# Worker with custom workflows
-nodetool worker --workflow workflow1.json --workflow workflow2.json --host 0.0.0.0 --port 8080
-
-# Deployable worker with auth
-nodetool worker --remote-auth --host 0.0.0.0 --port 7777
 ```
 
 ## Chat Client
@@ -646,7 +616,7 @@ Stream logs from a deployment.
 
 ```bash
 nodetool deploy logs my-deployment --follow
-nodetool deploy logs my-deployment --service worker --tail 50
+nodetool deploy logs my-deployment --service server --tail 50
 ```
 
 #### `nodetool deploy destroy`

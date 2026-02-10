@@ -17,7 +17,7 @@ Slice an image into a grid of tiles.
     Use cases:
     - Prepare large images for processing in smaller chunks
     - Create image puzzles or mosaic effects
-    - Distribute image processing tasks across multiple workers
+    - Distribute image processing tasks across multiple servers
 
 ## Properties
 

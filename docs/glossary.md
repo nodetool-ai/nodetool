@@ -105,13 +105,13 @@ How NodeTool runs your workflow – either in the same process, a separate subpr
 
 ## Infrastructure
 
-### Worker
-The background process that actually runs your workflows. Workers connect to the server and execute jobs.
+### Server
+The background process that actually runs your workflows. Servers connect to the server and execute jobs.
 
-*Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (often via `nodetool serve` or `nodetool worker`).*
+*Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (often via `nodetool serve` or `nodetool serve --mode private`).*
 
 ### API Server
-The backend service that handles requests, manages workflows, and coordinates workers.
+The backend service that handles requests, manages workflows, and coordinates servers.
 
 *Technical: FastAPI server handling REST endpoints such as `/v1/chat/completions` and `/api/workflows`.*
 

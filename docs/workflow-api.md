@@ -8,7 +8,7 @@ title: "Workflow API Guide"
 NodeTool exposes workflow endpoints in two places:
 
 - The **Editor API** (`nodetool serve`) uses `/api/workflows` for CRUD and query operations backing the local app.  
-- The **Worker API** (`nodetool worker`) uses `/workflows` and `/workflows/{id}/run` for deployed workflow execution.
+- The **Server API** (`nodetool serve --mode private`) uses `/workflows` and `/workflows/{id}/run` for deployed workflow execution.
 
 This page collects the basics from the project README. See [API Reference](api-reference.md#unified-endpoint-matrix) for
 the canonical endpoint matrix and auth requirements. When `AUTH_PROVIDER` is `static` or `supabase`, include
@@ -60,7 +60,7 @@ const outputs = await response.json();
 
 The streaming API provides real-time job updates. See the WebSocket runner in
 [`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a complete example used by the
-bundled runner UI (`../workflow_runner/index.html`). On deployed workers, use `/workflows/{id}/run/stream` for SSE
+bundled runner UI (`../workflow_runner/index.html`). On deployed servers, use `/workflows/{id}/run/stream` for SSE
 streaming; on the Editor API, prefer the WebSocket `/predict` endpoint for long-running jobs.
 
 Updates include:

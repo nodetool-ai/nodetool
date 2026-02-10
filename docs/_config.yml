@@ -54,6 +54,7 @@ header_pages:
   - models-and-providers.md
   - global-chat-agents.md
   - deployment.md
+  - deployment-e2e-guide.md
   - storage.md
   - api-reference.md
   - developer/index.md

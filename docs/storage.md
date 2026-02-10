@@ -99,7 +99,7 @@ Workflows interact with storage through the `ProcessingContext` helper:
 - **Missing asset URLs** – confirm `ASSET_DOMAIN` or `NODETOOL_API_URL` is set; the API uses these to build absolute URLs.
 - **S3 authentication errors** – verify credentials and endpoint configuration in settings/secrets; run `nodetool settings show --secrets`.
 - **Local file permissions** – ensure the configured asset folder is writable by the user running the service (especially in Docker).
-- **Docker jobs cannot access assets** – mount the asset directory into the worker container and ensure `Environment.get_asset_folder()` points to the mounted path.
+- **Docker jobs cannot access assets** – mount the asset directory into the server container and ensure `Environment.get_asset_folder()` points to the mounted path.
 
 ## Related Documentation
 

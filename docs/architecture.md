@@ -10,7 +10,7 @@ NodeTool's architecture is designed around three core principles that directly i
 
 1. **Streaming-first execution** – See results as they generate, not after everything completes. Cancel long-running jobs without waiting. Perfect for interactive debugging and user-facing applications.
 
-2. **Unified runtime** – The same workflow JSON runs in desktop app, headless worker, RunPod endpoint, or Cloud Run service. No platform-specific code. No rewrites when scaling.
+2. **Unified runtime** – The same workflow JSON runs in desktop app, headless server, RunPod endpoint, or Cloud Run service. No platform-specific code. No rewrites when scaling.
 
 3. **Pluggable execution strategies** – Run nodes in threads (fast iteration), subprocesses (isolation), or Docker containers (deployment). Switch strategies without changing your workflow.
 
