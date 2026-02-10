@@ -4,7 +4,9 @@ Existing features in NodeTool. **Read before adding new features to avoid duplic
 
 Format: `- **Feature Name**: Brief description`
 
-Last updated: 2026-01-19
+Last updated: 2026-02-10
+
+- **Minimap Type-Based Coloring (2026-02-10)**: Enhanced minimap with color-by-node-type mode, configurable via settings popover; includes interactive legend showing Input (blue), Constant (purple), Processing (slate), Group (indigo), Comment (green), and Output (amber) nodes
 
 - **Store JSDoc Documentation (2026-01-19)**: Added module-level JSDoc to ResultsStore, AssetStore, and StatusStore for consistent documentation across all critical stores
 
@@ -30,7 +32,8 @@ Last updated: 2026-01-19
 - **Zoom & Pan**: Navigation controls for large workflows
 - **Viewport Status Indicator**: Real-time zoom percentage with zoom presets (25%-200%), zoom in/out buttons, and fit view
 - **Zoom Presets**: Quick access to common zoom levels (25%, 50%, 75%, 100%, 150%, 200%) via dropdown menu and keyboard shortcuts
-- **Minimap**: Overview minimap for workflow navigation
+- **Minimap**: Overview minimap for workflow navigation with configurable color modes (default or type-based coloring)
+- **Minimap Type Colors**: Optional color-by-type display with interactive legend showing node categories (Input, Constant, Processing, Group, Comment, Output)
 - **Multi-Select**: Select and manipulate multiple nodes simultaneously
 - **Copy/Paste**: Copy and paste nodes within and across workflows
 - **Find in Workflow**: Search for nodes by name, type, or properties

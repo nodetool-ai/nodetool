@@ -9,7 +9,11 @@ import {
   adjustHue,
   adjustLightness,
   createLinearGradient,
-  simulateOpacity
+  simulateOpacity,
+  NodeTypeCategory,
+  getNodeTypeCategory,
+  getNodeCategoryColor,
+  createMinimapNodeColorFn
 } from "../ColorUtils";
 
 describe("ColorUtils", () => {
@@ -272,6 +276,195 @@ describe("ColorUtils", () => {
     it("should handle named colors", () => {
       const result = simulateOpacity("red", 0.5, "white");
       expect(result).toBe("#ff8080");
+    });
+  });
+
+  describe("getNodeTypeCategory", () => {
+    it("should categorize input nodes correctly", () => {
+      expect(getNodeTypeCategory("nodetool.input.StringInput")).toBe(
+        NodeTypeCategory.Input
+      );
+      expect(getNodeTypeCategory("nodetool.input.ImageInput")).toBe(
+        NodeTypeCategory.Input
+      );
+      expect(getNodeTypeCategory("nodetool.input.IntegerInput")).toBe(
+        NodeTypeCategory.Input
+      );
+    });
+
+    it("should categorize constant nodes correctly", () => {
+      expect(getNodeTypeCategory("nodetool.constant.String")).toBe(
+        NodeTypeCategory.Constant
+      );
+      expect(getNodeTypeCategory("nodetool.constant.Image")).toBe(
+        NodeTypeCategory.Constant
+      );
+      expect(getNodeTypeCategory("nodetool.constant.Integer")).toBe(
+        NodeTypeCategory.Constant
+      );
+    });
+
+    it("should categorize group nodes correctly", () => {
+      expect(
+        getNodeTypeCategory("nodetool.workflows.base_node.Group")
+      ).toBe(NodeTypeCategory.Group);
+      expect(getNodeTypeCategory("some.Group.Node")).toBe(
+        NodeTypeCategory.Group
+      );
+    });
+
+    it("should categorize comment nodes correctly", () => {
+      expect(
+        getNodeTypeCategory("nodetool.workflows.base_node.Comment")
+      ).toBe(NodeTypeCategory.Comment);
+      expect(getNodeTypeCategory("some.Comment.Node")).toBe(
+        NodeTypeCategory.Comment
+      );
+    });
+
+    it("should categorize output nodes correctly", () => {
+      expect(getNodeTypeCategory("nodetool.output.ImageOutput")).toBe(
+        NodeTypeCategory.Output
+      );
+      expect(getNodeTypeCategory("some.Output.Node")).toBe(
+        NodeTypeCategory.Output
+      );
+    });
+
+    it("should categorize undefined type as processing", () => {
+      expect(getNodeTypeCategory(undefined)).toBe(
+        NodeTypeCategory.Processing
+      );
+    });
+
+    it("should categorize other nodes as processing", () => {
+      expect(getNodeTypeCategory("nodetool.image.Resize")).toBe(
+        NodeTypeCategory.Processing
+      );
+      expect(getNodeTypeCategory("nodetool.text.Process")).toBe(
+        NodeTypeCategory.Processing
+      );
+    });
+  });
+
+  describe("getNodeCategoryColor", () => {
+    it("should return correct colors for light mode", () => {
+      expect(getNodeCategoryColor(NodeTypeCategory.Input, false)).toBe(
+        "#3b82f6"
+      ); // Blue
+      expect(getNodeCategoryColor(NodeTypeCategory.Constant, false)).toBe(
+        "#8b5cf6"
+      ); // Purple
+      expect(getNodeCategoryColor(NodeTypeCategory.Processing, false)).toBe(
+        "#64748b"
+      ); // Slate
+      expect(getNodeCategoryColor(NodeTypeCategory.Group, false)).toBe(
+        "#6366f1"
+      ); // Indigo
+      expect(getNodeCategoryColor(NodeTypeCategory.Comment, false)).toBe(
+        "#22c55e"
+      ); // Green
+      expect(getNodeCategoryColor(NodeTypeCategory.Output, false)).toBe(
+        "#f59e0b"
+      ); // Amber
+    });
+
+    it("should return correct colors for dark mode", () => {
+      expect(getNodeCategoryColor(NodeTypeCategory.Input, true)).toBe(
+        "#60a5fa"
+      ); // Lighter blue
+      expect(getNodeCategoryColor(NodeTypeCategory.Constant, true)).toBe(
+        "#a78bfa"
+      ); // Lighter purple
+      expect(getNodeCategoryColor(NodeTypeCategory.Processing, true)).toBe(
+        "#94a3b8"
+      ); // Lighter slate
+      expect(getNodeCategoryColor(NodeTypeCategory.Group, true)).toBe(
+        "#818cf8"
+      ); // Lighter indigo
+      expect(getNodeCategoryColor(NodeTypeCategory.Comment, true)).toBe(
+        "#4ade80"
+      ); // Lighter green
+      expect(getNodeCategoryColor(NodeTypeCategory.Output, true)).toBe(
+        "#fbbf24"
+      ); // Lighter amber
+    });
+  });
+
+  describe("createMinimapNodeColorFn", () => {
+    it("should use primary color for selected nodes in default mode", () => {
+      const primaryColor = "#ff0000";
+      const fn = createMinimapNodeColorFn(false, false, primaryColor);
+
+      expect(fn({ type: "nodetool.input.StringInput", selected: true })).toBe(
+        primaryColor
+      );
+      expect(
+        fn({ type: "nodetool.constant.String", selected: true })
+      ).toBe(primaryColor);
+    });
+
+    it("should use primary color for selected nodes in type mode", () => {
+      const primaryColor = "#ff0000";
+      const fn = createMinimapNodeColorFn(false, true, primaryColor);
+
+      expect(fn({ type: "nodetool.input.StringInput", selected: true })).toBe(
+        primaryColor
+      );
+    });
+
+    it("should color nodes by type in type mode", () => {
+      const fn = createMinimapNodeColorFn(false, true, "#ff0000");
+
+      // Input nodes should be blue in light mode
+      expect(
+        fn({ type: "nodetool.input.StringInput", selected: false })
+      ).toBe("#3b82f6");
+
+      // Constant nodes should be purple
+      expect(
+        fn({ type: "nodetool.constant.String", selected: false })
+      ).toBe("#8b5cf6");
+
+      // Processing nodes should be slate
+      expect(
+        fn({ type: "nodetool.image.Resize", selected: false })
+      ).toBe("#64748b");
+    });
+
+    it("should use default colors in default mode", () => {
+      const fn = createMinimapNodeColorFn(false, false, "#ff0000");
+
+      // Only special nodes get colors in default mode
+      expect(
+        fn({ type: "nodetool.workflows.base_node.Group", selected: false })
+      ).toBe("#818cf8");
+
+      expect(
+        fn({ type: "nodetool.workflows.base_node.Comment", selected: false })
+      ).toBe("#22c55e");
+
+      // Other nodes get default slate color
+      expect(
+        fn({ type: "nodetool.input.StringInput", selected: false })
+      ).toBe("#64748b");
+    });
+
+    it("should use dark mode colors when isDarkMode is true", () => {
+      const fn = createMinimapNodeColorFn(true, true, "#ff0000");
+
+      expect(
+        fn({ type: "nodetool.input.StringInput", selected: false })
+      ).toBe("#60a5fa"); // Lighter blue in dark mode
+
+      expect(
+        fn({ type: "nodetool.constant.String", selected: false })
+      ).toBe("#a78bfa"); // Lighter purple in dark mode
+    });
+
+    it("should handle undefined node types", () => {
+      const fn = createMinimapNodeColorFn(false, true, "#ff0000");
+      expect(fn({ type: undefined, selected: false })).toBe("#64748b"); // Processing color
     });
   });
 });
