@@ -583,15 +583,9 @@ const TemplateGrid = memo(function TemplateGrid() {
               >
                 <li>
                   <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open(
-                        "https://discord.gg/WmQTWZRcYE",
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
+                    href="https://discord.gg/WmQTWZRcYE"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{ color: "var(--palette-info-light)" }}
                   >
                     Join our Discord
@@ -599,15 +593,9 @@ const TemplateGrid = memo(function TemplateGrid() {
                 </li>
                 <li>
                   <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open(
-                        "https://forum.nodetool.ai",
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
+                    href="https://forum.nodetool.ai"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{ color: "var(--palette-info-light)" }}
                   >
                     Join the Nodetool Forum
