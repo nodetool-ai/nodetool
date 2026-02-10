@@ -13,14 +13,13 @@ import {
   Tooltip,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
-  CircularProgress
+  ListItemSecondaryAction
 } from "@mui/material";
 import {
   Restore as RestoreIcon,
-  Delete as DeleteIcon,
   Compare as CompareIcon
 } from "@mui/icons-material";
+import { DeleteButton, LoadingSpinner } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow } from "date-fns";
 import { WorkflowVersion } from "../../stores/ApiTypes";
@@ -202,7 +201,7 @@ const VersionListItem: React.FC<VersionListItemProps> = ({
               </IconButton>
             </Tooltip>
           ) : isRestoring ? (
-            <CircularProgress size={20} />
+            <LoadingSpinner size="small" />
           ) : (
             <>
               <Tooltip title="Restore this version">
@@ -210,11 +209,10 @@ const VersionListItem: React.FC<VersionListItemProps> = ({
                   <RestoreIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Delete version">
-                <IconButton size="small" onClick={handleDelete}>
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <DeleteButton
+                onClick={handleDelete}
+                tooltip="Delete version"
+              />
             </>
           )}
         </Box>
