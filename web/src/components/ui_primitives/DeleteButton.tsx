@@ -7,7 +7,7 @@
  * <DeleteButton onClick={handleDelete} tooltip="Delete item" />
  */
 
-import React, { memo, forwardRef, useCallback, ReactNode } from "react";
+import React, { memo, forwardRef, useCallback, useMemo, ReactNode } from "react";
 import { IconButton, Tooltip } from "@mui/material";
 import TrashIcon from "../../icons/trash.svg?react";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -104,6 +104,17 @@ export const DeleteButton = memo(
       const iconSize =
         buttonSize === "small" ? 18 : buttonSize === "medium" ? 20 : 24;
 
+      const buttonSx = useMemo(() => ({
+        color: "inherit",
+        transition: "all 0.15s ease-in-out",
+        "&:hover": {
+          color: theme.vars.palette.error.main,
+          backgroundColor: "rgba(244, 67, 54, 0.08)",
+          transform: "scale(1.1)"
+        },
+        ...sx
+      }), [theme, sx]);
+
       const renderIcon = () => {
         if (iconVariant === "clear") {
           return <ClearIcon fontSize={buttonSize} />;
@@ -132,16 +143,7 @@ export const DeleteButton = memo(
             onClick={handleClick}
             disabled={disabled}
             size={buttonSize}
-            sx={{
-              color: "inherit",
-              transition: "all 0.15s ease-in-out",
-              "&:hover": {
-                color: theme.vars.palette.error.main,
-                backgroundColor: "rgba(244, 67, 54, 0.08)",
-                transform: "scale(1.1)"
-              },
-              ...sx
-            }}
+            sx={buttonSx}
           >
             {renderIcon()}
           </IconButton>

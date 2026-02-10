@@ -352,4 +352,6 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
   );
 };
 
-export default MiniWorkflowGraph;
+MiniWorkflowGraph.displayName = 'MiniWorkflowGraph';
+
+export default React.memo(MiniWorkflowGraph);

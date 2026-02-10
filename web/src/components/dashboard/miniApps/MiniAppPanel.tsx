@@ -99,6 +99,15 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
 
   const clearResults = useMiniAppsStore((state) => state.clearResults);
 
+  const handleWorkflowSelect = useCallback((e: unknown) => {
+    const value = typeof e === "object" && e !== null && "target" in e
+      ? (e.target as { value: string }).value
+      : null;
+    if (value) {
+      onWorkflowSelect?.(value);
+    }
+  }, [onWorkflowSelect]);
+
   const { nodes: workflowNodes, edges: workflowEdges } = useMemo(() => {
     if (!workflow?.graph) {
       return {
@@ -206,7 +215,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
             labelId="workflow-select-label"
             value=""
             label="Workflow"
-            onChange={(e) => onWorkflowSelect?.(e.target.value)}
+            onChange={handleWorkflowSelect}
           >
             {(() => {
               const items = Array.isArray(workflowsData) 
@@ -296,4 +305,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
   );
 };
 
-export default MiniAppPanel;
+MiniAppPanel.displayName = 'MiniAppPanel';
+
+export default React.memo(MiniAppPanel);

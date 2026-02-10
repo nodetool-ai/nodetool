@@ -238,4 +238,6 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
   );
 };
 
-export default MiniAppResults;
+MiniAppResults.displayName = 'MiniAppResults';
+
+export default React.memo(MiniAppResults);
