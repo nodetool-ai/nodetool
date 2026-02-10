@@ -155,6 +155,23 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
+
+  // Memoize store selector function to prevent re-renders
+  const storeSelector = useCallback(
+    (state: any) => ({
+      connectableNodes: state.getConnectableNodes(),
+      typeMetadata: state.typeMetadata,
+      filterType: state.filterType,
+      isVisible: state.isVisible,
+      menuPosition: state.menuPosition,
+      hideMenu: state.hideMenu,
+      sourceHandle: state.sourceHandle,
+      targetHandle: state.targetHandle,
+      nodeId: state.nodeId
+    }),
+    []
+  );
+
   const {
     connectableNodes,
     typeMetadata,
@@ -165,17 +182,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     sourceHandle,
     targetHandle,
     nodeId
-  } = useConnectableNodesStore((state) => ({
-    connectableNodes: state.getConnectableNodes(),
-    typeMetadata: state.typeMetadata,
-    filterType: state.filterType,
-    isVisible: state.isVisible,
-    menuPosition: state.menuPosition,
-    hideMenu: state.hideMenu,
-    sourceHandle: state.sourceHandle,
-    targetHandle: state.targetHandle,
-    nodeId: state.nodeId
-  }));
+  } = useConnectableNodesStore(storeSelector);
 
   const filteredNodes = useMemo(
     () =>
