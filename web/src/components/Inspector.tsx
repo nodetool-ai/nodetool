@@ -133,13 +133,24 @@ const Inspector: React.FC = () => {
   const findNode = useNodes((state) => state.findNode);
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
-  // Only subscribe to edges that are connected to the selected node (for dynamic properties)
-  // Use shallow equality to avoid re-renders when unrelated edges change
-  const edges = useNodes((state) => state.edges);
+
+  // Optimize: Only subscribe to edges that are connected to selected nodes to avoid re-renders
+  // when unrelated edges change. This is especially important for dynamic properties lookup.
+  const selectedNodeIds = useMemo(
+    () => new Set(selectedNodes.map((node) => node.id)),
+    [selectedNodes]
+  );
+  const edges = useNodes((state) =>
+    state.edges.filter(
+      (edge) =>
+        selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)
+    )
+  );
+
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
-  const inspectorStyles = styles(theme);
+  const inspectorStyles = useMemo(() => styles(theme), [theme]);
   const nodesWithMetadata = useMemo(
     () =>
       selectedNodes

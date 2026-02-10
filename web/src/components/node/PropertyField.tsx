@@ -81,6 +81,22 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     return isCollectType(property.type);
   }, [property.type]);
 
+  // Memoize inline styles to prevent recreation on every render
+  const handlePopupStyle = useMemo(
+    () => ({ position: "absolute" as const, left: "0" }),
+    []
+  );
+
+  const propertySpacerStyle = useMemo(
+    () => ({
+      marginLeft: 20,
+      minHeight: 20,
+      display: "flex" as const,
+      alignItems: "center" as const
+    }),
+    []
+  );
+
   const handleContextMenu = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
@@ -101,10 +117,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   return (
     <div className={`node-property ${Slugify(property.type.type)}`}>
       {showHandle && (
-        <div
-          className="handle-popup"
-          style={{ position: "absolute", left: "0" }}
-        >
+        <div className="handle-popup" style={handlePopupStyle}>
           <HandleTooltip
             typeMetadata={property.type}
             paramName={property.name}
@@ -142,15 +155,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           />
         </>
       ) : (
-        <div
-          className="property-spacer"
-          style={{
-            marginLeft: 20,
-            minHeight: 20,
-            display: "flex",
-            alignItems: "center"
-          }}
-        >
+        <div className="property-spacer" style={propertySpacerStyle}>
           <PropertyLabel
             id={id}
             name={property.name}
