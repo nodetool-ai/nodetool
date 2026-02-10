@@ -50,7 +50,7 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 - **Local model execution** (`/docs/index.md:109-113`): "All workflows, assets, and models execute on your machine for maximum privacy. Use MLX, llama.cpp, Whisper, and Flux locally. Store assets on disk or Supabase buckets you control. Disable outbound traffic entirely if needed."
 - **No telemetry** (`/docs/README.md:24`): "No telemetry. No tracking. Your data is yours."
 - **AGPL-3.0 license** (`/docs/README.md:12`, `/docs/index.md:163-168`): Open source, inspectable codebase
-- **Self-hosted deployment** (`/docs/self_hosted.md:14-22`): Full control over proxy, server containers, and data storage
+- **Self-hosted deployment** (`/docs/self-hosted-deployment.md:14-22`): Full control over proxy, server containers, and data storage
 - **Authentication options** (`/docs/getting-started.md:38-41`): Local-only mode for fully offline operation
 
 **Example Use Cases:**
@@ -224,7 +224,7 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 **Evidence:**
 - `/docs/README.md:22-24`: "Local First", "Private", "No telemetry"
 - `/docs/index.md:102-113`: Local-only mode section
-- `/docs/self_hosted.md`: Self-hosted deployment guide
+- `/docs/self-hosted-deployment.md`: Self-hosted deployment guide
 - `/docs/security-hardening.md`: Security documentation
 
 ---
@@ -283,7 +283,7 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 
 **Issue:** Documentation explains features but doesn't provide systematic debugging approaches for common workflow failures.
 
-**Evidence:** Troubleshooting scattered across files (e.g., `/docs/self_hosted.md:266-275`) but no unified guide.
+**Evidence:** Troubleshooting scattered across files (e.g., `/docs/self-hosted-deployment.md:266-275`) but no unified guide.
 
 **Recommendation:**
 - Create `/docs/troubleshooting.md` with:
