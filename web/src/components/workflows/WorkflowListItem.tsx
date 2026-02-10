@@ -117,6 +117,38 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     [handleNameChange]
   );
 
+  const handleCheckboxClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      onSelect(workflow);
+    },
+    [onSelect, workflow]
+  );
+
+  const handleInputFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  }, []);
+
+  const handleInputClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  const inputStyle = useMemo(
+    () => ({
+      background: "transparent",
+      border: "1px solid var(--palette-primary-main)",
+      borderRadius: "4px",
+      color: "inherit",
+      padding: "4px 8px",
+      fontSize: "inherit",
+      fontWeight: 500,
+      lineHeight: "2em",
+      width: "calc(100% - 140px)",
+      outline: "none"
+    }),
+    []
+  );
+
   useEffect(() => {
     setActions({ onEdit, onDuplicate: onDuplicateWorkflow, onDelete, onOpenAsApp });
     return () => clearActions();
@@ -217,10 +249,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           className="checkbox"
           size="small"
           checked={isSelected}
-          onClick={(e) => {
-            e.preventDefault();
-            onSelect(workflow);
-          }}
+          onClick={handleCheckboxClick}
         />
       )}
       <Box className="preview-container" sx={{ flexGrow: 1, width: "100%", mr: 0 }}>
@@ -238,22 +267,11 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             type="text"
             defaultValue={workflow.name}
             autoFocus
-            onFocus={(e) => e.target.select()}
+            onFocus={handleInputFocus}
             onBlur={handleNameBlur}
             onKeyDown={handleNameKeyDown}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--palette-primary-main)",
-              borderRadius: "4px",
-              color: "inherit",
-              padding: "4px 8px",
-              fontSize: "inherit",
-              fontWeight: 500,
-              lineHeight: "2em",
-              width: "calc(100% - 140px)",
-              outline: "none"
-            }}
+            onClick={handleInputClick}
+            style={inputStyle}
           />
         ) : (
           <Typography

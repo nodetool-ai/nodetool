@@ -13,7 +13,6 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { HighlightText } from "../ui_primitives/HighlightText";
-import { FlexColumn, FlexRow, Text } from "../ui_primitives";
 import isEqual from "lodash/isEqual";
 
 interface NodeInfoProps {
@@ -24,11 +23,26 @@ interface NodeInfoProps {
 
 const nodeInfoStyles = (theme: Theme) =>
   css({
+    display: "flex",
+    flexDirection: "column",
     overflowY: "auto",
+    gap: ".5em",
+    padding: "0.75em 1em 1em 1em",
     maxHeight: "55vh",
     position: "relative",
     ".node-title": {
-      color: theme.vars.palette.text.primary
+      color: theme.vars.palette.text.primary,
+      marginBottom: "0.25em"
+    },
+    ".title-container": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      minHeight: "1em"
+    },
+    ".status-container": {
+      display: "flex",
+      alignItems: "center"
     },
     h4: {
       color: theme.vars.palette.text.secondary
@@ -54,6 +68,7 @@ const nodeInfoStyles = (theme: Theme) =>
       fontSize: "0.95rem",
       color: theme.vars.palette.text.primary,
       whiteSpace: "pre-wrap",
+      marginBottom: "1em",
       lineHeight: "1.6",
       display: "block",
       "& span": {
@@ -107,6 +122,9 @@ const nodeInfoStyles = (theme: Theme) =>
         }
       }
     },
+    ".inputs-outputs": {
+      paddingBottom: "1em"
+    },
     ".inputs-outputs h4": {
       fontFamily: theme.fontFamily2,
       fontSize: "0.85rem",
@@ -114,6 +132,12 @@ const nodeInfoStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.5px"
+    },
+    ".inputs, .outputs": {
+      display: "flex",
+      justifyContent: "space-between",
+      flexDirection: "column",
+      gap: 0
     },
     ".inputs-outputs .item": {
       padding: ".25em 0 .25em .5em",
@@ -200,61 +224,55 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     [setSearchTerm]
   );
 
-  const createTagClickHandler = useCallback(
-    (tag: string) => {
-      return () => handleTagClick(tag);
-    },
-    [handleTagClick]
-  );
-
-  const renderTags = useCallback((tags: string = "") => {
+  const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag, index) => (
       <span
-        onClick={createTagClickHandler(tag.trim())}
+        onClick={() => {
+          handleTagClick(tag.trim());
+        }}
         key={index}
         className="tag"
       >
         {tag.trim()}
       </span>
     ));
-  }, [createTagClickHandler]);
+  };
 
   const theme = useTheme();
   return (
-    <FlexColumn gap={2} padding="0.75em 1em 1em 1em" css={nodeInfoStyles(theme)} style={{ width: menuWidth }}>
-      <FlexRow justify="space-between" align="flex-start" sx={{ minHeight: "1em" }}>
-        <Text className="node-title">
+    <div css={nodeInfoStyles(theme)} style={{ width: menuWidth }}>
+      <div className="title-container">
+        <Typography className="node-title">
           {titleizeString(nodeMetadata.title)}
-        </Text>
-      </FlexRow>
-      
-      {replicateStatus !== "unknown" && (
-        <FlexRow align="center">
+        </Typography>
+      </div>
+      <div
+        className="status-container"
+        style={{ minHeight: replicateStatus !== "unknown" ? "1em" : "0" }}
+      >
+        {replicateStatus !== "unknown" && (
           <Typography className={`replicate-status ${replicateStatus}`}>
             {replicateStatus}
           </Typography>
-        </FlexRow>
-      )}
-      
+        )}
+      </div>
       <div className="node-description">
-        <HighlightText 
-          text={description.description} 
-          query={searchTerm} 
+        <HighlightText
+          text={description.description}
+          query={searchTerm}
           matchStyle="primary"
         />
       </div>
-      
       <Typography className="node-tags">
         {renderTags(description.tags.join(", "))}
       </Typography>
-      
       <Typography component="div" className="node-usecases">
         {description.useCases.raw && (
           <>
             <h4>Use cases</h4>
-            <HighlightText 
-              text={description.useCases.raw} 
-              query={searchTerm} 
+            <HighlightText
+              text={description.useCases.raw}
+              query={searchTerm}
               matchStyle="primary"
               isBulletList={true}
             />
@@ -277,8 +295,8 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       <Divider sx={{ opacity: 0.5, margin: "1em 0" }} />
 
       {showConnections && (
-        <FlexColumn gap={0} sx={{ paddingBottom: "1em" }}>
-          <FlexColumn gap={0} className="inputs">
+        <div className="inputs-outputs">
+          <div className="inputs">
             <Typography variant="h4">Inputs</Typography>
             {nodeMetadata.properties.map((property) => (
               <div key={property.name} className="item">
@@ -311,8 +329,8 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                 </Tooltip>
               </div>
             ))}
-          </FlexColumn>
-          <FlexColumn gap={0} className="outputs">
+          </div>
+          <div className="outputs">
             <Typography variant="h4">Outputs</Typography>
             {nodeMetadata.outputs.map((property) => (
               <div key={property.name} className="item">
@@ -333,10 +351,10 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                 </Tooltip>
               </div>
             ))}
-          </FlexColumn>
-        </FlexColumn>
+          </div>
+        </div>
       )}
-    </FlexColumn>
+    </div>
   );
 };
 
