@@ -5,7 +5,7 @@ title: "Deployment Journeys"
 
 
 
-This page provides step-by-step walkthroughs for common deployment goals. For reference material, see the [Deployment Guide](deployment.md), [Self-Hosted Deployment](self_hosted.md), and [Proxy Reference](proxy.md).
+This page provides step-by-step walkthroughs for common deployment goals. For reference material, see the [Deployment Guide](deployment.md), [Self-Hosted Deployment](self-hosted-deployment.md), and [Proxy Reference](proxy.md).
 
 ---
 
@@ -76,7 +76,7 @@ curl -H "Authorization: Bearer $SERVER_AUTH_TOKEN" \
   -d '{}'
 ```
 
-**Next steps:** See [Self-Hosted Deployment](self_hosted.md) for proxy configuration details and [Security Hardening](security-hardening.md) for production best practices.
+**Next steps:** See [Self-Hosted Deployment](self-hosted-deployment.md) for proxy configuration details and [Security Hardening](security-hardening.md) for production best practices.
 
 ---
 
@@ -191,7 +191,7 @@ curl -H "Authorization: Bearer $SERVER_AUTH_TOKEN" \
 ## Related Guides
 
 - [Deployment Guide](deployment.md) — CLI commands and `deployment.yaml` reference
-- [Self-Hosted Deployment](self_hosted.md) — proxy architecture and Docker configuration
+- [Self-Hosted Deployment](self-hosted-deployment.md) — proxy architecture and Docker configuration
 - [Security Hardening](security-hardening.md) — production security checklist
 - [Proxy Reference](proxy.md) — proxy configuration fields and TLS setup
 - [RunPod Testing Guide](runpod_testing_guide.md) — testing RunPod deployments

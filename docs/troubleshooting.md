@@ -442,4 +442,4 @@ Include these details when asking for help:
 - [Workflow Editor](workflow-editor.md) – Using the visual editor
 - [Key Concepts](key-concepts.md) – Understanding nodes and connections
 - [Deployment Guide](deployment.md) – Production deployment troubleshooting
-- [Self-Hosted Deployment](self_hosted.md) – Self-hosted specific issues
+- [Self-Hosted Deployment](self-hosted-deployment.md) – Self-hosted specific issues

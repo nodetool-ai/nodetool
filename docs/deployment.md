@@ -191,7 +191,7 @@ The RunPod deployer (`src/nodetool/deploy/deploy_to_runpod.py`) builds an AMD64 
 
 ## Self-Hosted Deployments
 
-Self-hosted targets pair a NodeTool server container with the Docker-aware proxy described in [Self-Hosted Deployment](self_hosted.md) and [Proxy Reference](proxy.md). Deployment state tracks the running container ID, generated bearer tokens, and hashed proxy configuration to avoid redundant restarts.
+Self-hosted targets pair a NodeTool server container with the Docker-aware proxy described in [Self-Hosted Deployment](self-hosted-deployment.md) and [Proxy Reference](proxy.md). Deployment state tracks the running container ID, generated bearer tokens, and hashed proxy configuration to avoid redundant restarts.
 
 **Quick checklist**
 
@@ -237,7 +237,7 @@ Notes:
 
 ## Related Documentation
 
-- [Self-Hosted Deployment](self_hosted.md) – proxy architecture and container layout  
+- [Self-Hosted Deployment](self-hosted-deployment.md) – proxy architecture and container layout  
 - [Proxy Reference](proxy.md) – on-demand routing, TLS, and command usage  
 - [CLI Reference](cli.md) – command summaries  
 - [Configuration Guide](configuration.md) – environment, settings, and secret management  

@@ -40,7 +40,7 @@ Use this page as a quick checklist before exposing NodeTool beyond your laptop. 
 - [Authentication](authentication.md)
 - [Configuration Guide](configuration.md)
 - [Deployment Journeys](deployment-journeys.md)
-- [Self-Hosted Deployment](self_hosted.md)
+- [Self-Hosted Deployment](self-hosted-deployment.md)
 - [Proxy Reference](proxy.md)
 - [Docker Resource Management](docker-resource-management.md)
 - [Storage](storage.md)
