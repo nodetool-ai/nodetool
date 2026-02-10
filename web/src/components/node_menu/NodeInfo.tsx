@@ -25,19 +25,14 @@ const nodeInfoStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    width: "100%",
-    minWidth: 0,
-    boxSizing: "border-box",
     overflowY: "auto",
-    gap: "0.35em",
-    padding: "0.65em 0.9em 0.9em 0.9em",
+    gap: ".5em",
+    padding: "0.75em 1em 1em 1em",
     maxHeight: "55vh",
     position: "relative",
     ".node-title": {
       color: theme.vars.palette.text.primary,
-      marginBottom: "0.15em",
-      lineHeight: 1.2,
-      overflowWrap: "anywhere"
+      marginBottom: "0.25em"
     },
     ".title-container": {
       display: "flex",
@@ -70,19 +65,18 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".node-description": {
       fontWeight: 400,
-      fontSize: "0.9rem",
+      fontSize: "0.95rem",
       color: theme.vars.palette.text.primary,
       whiteSpace: "pre-wrap",
-      overflowWrap: "anywhere",
-      marginBottom: "0.75em",
-      lineHeight: "1.45",
+      marginBottom: "1em",
+      lineHeight: "1.6",
       display: "block",
       "& span": {
         display: "inline-block",
         position: "static",
         height: "auto",
         maxHeight: "none",
-        lineHeight: "1.45em"
+        lineHeight: "1.6em"
       }
     },
     ".node-tags span": {
@@ -102,12 +96,6 @@ const nodeInfoStyles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.action.selected
       }
     },
-    ".node-tags": {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "0.4em",
-      minWidth: 0
-    },
     ".node-usecases h4": {
       fontSize: theme.fontSizeSmaller,
       lineHeight: "2em"
@@ -116,14 +104,14 @@ const nodeInfoStyles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       fontWeight: "300",
       color: theme.vars.palette.text.secondary,
-      lineHeight: "1.25em",
+      lineHeight: "1.3em",
       ul: {
-        margin: "0.35em 0",
+        margin: "0.5em 0",
         paddingLeft: "0"
       },
       li: {
         position: "relative",
-        marginBottom: "0.15em",
+        marginBottom: "0.25em",
         paddingLeft: "1.5em",
         listStyleType: "none",
         "&::before": {
@@ -187,7 +175,7 @@ const nodeInfoStyles = (theme: Theme) =>
 
 const NodeInfo: React.FC<NodeInfoProps> = ({
   nodeMetadata,
-  menuWidth = 560,
+  menuWidth = 300,
   showConnections = true
 }) => {
   const searchTerm = useNodeMenuStore((state) => state.searchTerm);
@@ -236,28 +224,23 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     [setSearchTerm]
   );
 
-  const createTagClickHandler = useCallback(
-    (tag: string) => {
-      return () => handleTagClick(tag);
-    },
-    [handleTagClick]
-  );
-
-  const renderTags = useCallback((tags: string = "") => {
+  const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag, index) => (
       <span
-        onClick={createTagClickHandler(tag.trim())}
+        onClick={() => {
+          handleTagClick(tag.trim());
+        }}
         key={index}
         className="tag"
       >
         {tag.trim()}
       </span>
     ));
-  }, [createTagClickHandler]);
+  };
 
   const theme = useTheme();
   return (
-    <div css={nodeInfoStyles(theme)} style={{ maxWidth: menuWidth }}>
+    <div css={nodeInfoStyles(theme)} style={{ width: menuWidth }}>
       <div className="title-container">
         <Typography className="node-title">
           {titleizeString(nodeMetadata.title)}
@@ -274,9 +257,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </div>
       <div className="node-description">
-        <HighlightText 
-          text={description.description} 
-          query={searchTerm} 
+        <HighlightText
+          text={description.description}
+          query={searchTerm}
           matchStyle="primary"
         />
       </div>
@@ -287,9 +270,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         {description.useCases.raw && (
           <>
             <h4>Use cases</h4>
-            <HighlightText 
-              text={description.useCases.raw} 
-              query={searchTerm} 
+            <HighlightText
+              text={description.useCases.raw}
+              query={searchTerm}
               matchStyle="primary"
               isBulletList={true}
             />

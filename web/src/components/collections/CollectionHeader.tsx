@@ -1,7 +1,8 @@
 import React from "react";
-import { Box, Typography, Popover, List, ListItem } from "@mui/material";
+import { Box, Popover, List, ListItem } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
 import { useState } from "react";
+import { FlexRow, FlexColumn, Text, Caption } from "../ui_primitives";
 
 const CollectionHeader = () => {
   const [formatInfoAnchor, setFormatInfoAnchor] = useState<HTMLElement | null>(
@@ -10,20 +11,20 @@ const CollectionHeader = () => {
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Typography
-        variant="subtitle2"
+      <FlexRow
+        align="center"
+        gap={1}
         sx={{
-          mb: 0.5,
-          display: "flex",
-          alignItems: "center",
           cursor: "pointer",
           "&:hover": { color: "primary.main" }
         }}
         onClick={(e) => setFormatInfoAnchor(e.currentTarget)}
       >
-        <InfoIcon sx={{ mr: 1, fontSize: "1rem" }} />
-        What are collections?
-      </Typography>
+        <InfoIcon sx={{ fontSize: "1rem" }} />
+        <Text size="small" weight={600}>
+          What are collections?
+        </Text>
+      </FlexRow>
       <Popover
         open={Boolean(formatInfoAnchor)}
         anchorEl={formatInfoAnchor}
@@ -31,11 +32,11 @@ const CollectionHeader = () => {
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
-        <Box sx={{ p: 2, maxWidth: 400 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
+        <FlexColumn gap={1} sx={{ p: 2, maxWidth: 400 }}>
+          <Caption color="secondary">
             Collections are used to store and search documents. Following file
             formats are supported:
-          </Typography>
+          </Caption>
           <List dense sx={{ mt: 1, pl: 2 }}>
             <ListItem sx={{ display: "list-item" }}>
               PDFs, PowerPoint, Word, Excel
@@ -47,7 +48,7 @@ const CollectionHeader = () => {
               Images (text extraction with OCR)
             </ListItem>
           </List>
-        </Box>
+        </FlexColumn>
       </Popover>
     </Box>
   );

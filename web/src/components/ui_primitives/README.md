@@ -13,6 +13,24 @@ The UI primitives provide:
 
 ## Available Primitives
 
+### Layout Primitives
+
+- **FlexColumn** - Vertical flex container with gap spacing
+- **FlexRow** - Horizontal flex container with gap spacing
+- **Stack** - Vertical stack with spacing between children
+- **Container** - Standardized container with consistent padding
+
+### Surface Primitives
+
+- **Card** - Card component with elevation and padding variants
+- **Panel** - Panel component with header, content, and footer sections
+
+### Typography Primitives
+
+- **Text** - Flexible text component with size, color, and weight variants
+- **Label** - Semantic label for form fields with required indicator
+- **Caption** - Small secondary text for hints and captions
+
 ### Input Controls
 
 - **NodeTextField** - Text input field with semantic props
@@ -54,6 +72,22 @@ The UI primitives provide:
 
 ## Usage
 
+### Spacing Utilities
+
+The spacing module provides consistent spacing constants and utilities:
+
+```tsx
+import { SPACING, GAP, PADDING, getSpacingPx } from "../ui_primitives";
+
+// Use predefined spacing constants
+const mySpacing = SPACING.md; // 8px (2 * 4px)
+const myGap = GAP.normal;     // 8px
+const myPadding = PADDING.comfortable; // 12px
+
+// Convert to pixel string
+const pixels = getSpacingPx(2); // "8px"
+```
+
 ### Provider Setup
 
 Wrap your component tree with `EditorUiProvider` to set the styling scope:
@@ -73,6 +107,82 @@ import { EditorUiProvider } from "../ui_primitives";
 ```
 
 ### Using Primitives
+
+#### Layout Primitives
+
+```tsx
+import {
+  FlexColumn,
+  FlexRow,
+  Stack,
+  Container
+} from "../ui_primitives";
+
+// Vertical layout with gap
+<FlexColumn gap={2} padding={3}>
+  <Typography>Item 1</Typography>
+  <Typography>Item 2</Typography>
+</FlexColumn>
+
+// Horizontal layout with alignment
+<FlexRow gap={1.5} align="center" justify="space-between">
+  <Button>Left</Button>
+  <Button>Right</Button>
+</FlexRow>
+
+// Stack with divider
+<Stack spacing={2} divider={<Divider />}>
+  <MenuItem>Option 1</MenuItem>
+  <MenuItem>Option 2</MenuItem>
+</Stack>
+
+// Padded container
+<Container padding="comfortable" scrollable maxWidth={800}>
+  <Content />
+</Container>
+```
+
+#### Surface Primitives
+
+```tsx
+import { Card, Panel } from "../ui_primitives";
+
+// Card with hover effect
+<Card variant="elevated" hoverable padding="normal">
+  <Typography>Card content</Typography>
+</Card>
+
+// Panel with header and footer
+<Panel
+  title="Settings"
+  subtitle="Configure your preferences"
+  headerAction={<Button>Save</Button>}
+  footer={<Button>Apply</Button>}
+>
+  <SettingsForm />
+</Panel>
+```
+
+#### Typography Primitives
+
+```tsx
+import { Text, Label, Caption } from "../ui_primitives";
+
+// Flexible text component
+<Text size="big" color="primary" weight={600}>
+  Important text
+</Text>
+
+// Form label
+<Label required htmlFor="email">Email Address</Label>
+
+// Helper text
+<Caption color="secondary" size="small">
+  Enter your email address
+</Caption>
+```
+
+#### Input Controls
 
 ```tsx
 import {

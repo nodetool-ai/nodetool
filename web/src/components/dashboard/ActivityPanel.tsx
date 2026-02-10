@@ -9,6 +9,7 @@ import RecentChats from "./RecentChats";
 import { Thread } from "../../stores/ApiTypes";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
+import { FlexColumn } from "../ui_primitives";
 
 interface ActivityPanelProps {
   // Chat props
@@ -23,9 +24,6 @@ interface ActivityPanelProps {
 const styles = (theme: Theme) =>
   css({
     height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
     borderRadius: theme.spacing(1),
     boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}1a`,
     background: theme.vars.palette.c_editor_bg_color,
@@ -68,7 +66,7 @@ const ActivityPanel: React.FC<ActivityPanelProps> = (props) => {
   }, []);
 
   return (
-    <Box css={styles(theme)} className="activity-panel">
+    <FlexColumn gap={0} fullHeight css={styles(theme)} className="activity-panel">
       <Box className="panel-header">
         <Tabs
           value={activeTab}
@@ -116,7 +114,7 @@ const ActivityPanel: React.FC<ActivityPanelProps> = (props) => {
           )}
         </div>
       </Box>
-    </Box>
+    </FlexColumn>
   );
 };
 

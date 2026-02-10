@@ -13,6 +13,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { FlexRow } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -79,10 +80,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const headerCss = useMemo(
     () =>
       css({
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: "8px",
         width: "100%",
         minHeight: "44px",
         backgroundColor: "transparent",
@@ -94,9 +91,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
         transition: "background-color 0.2s ease-in-out, opacity 0.15s",
         ".header-left": {
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
           padding: "4px 4px",
           flex: 1,
           minWidth: 0
@@ -212,15 +206,18 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   }, [backgroundColor, selected]);
 
   return (
-    <div
+    <FlexRow
       className={`node-drag-handle node-header ${hasParent ? "has-parent" : ""
         }`}
       css={headerCss}
+      gap={1}
+      justify="space-between"
+      align="center"
       onClick={handleHeaderClick}
       onContextMenu={handleHeaderContextMenu}
       style={headerStyle || { backgroundColor }}
     >
-      <div className="header-left">
+      <FlexRow className="header-left" gap={1} align="center">
         {hasIcon && showIcon && (
           <div
             className="node-icon"
@@ -283,7 +280,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             </IconButton>
           </Tooltip>
         )}
-      </div>
+      </FlexRow>
 
       {/* Right side toggle buttons */}
       {(showResultButton || showInputsButton) && (
@@ -321,7 +318,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         open={logsDialogOpen}
         onClose={handleCloseLogsDialog}
       />
-    </div>
+    </FlexRow>
   );
 };
 

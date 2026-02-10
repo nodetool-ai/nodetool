@@ -10,6 +10,7 @@ import RightSideButtons from "./RightSideButtons";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { FlexRow } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -29,9 +30,6 @@ const styles = (theme: Theme) =>
     ".toolbar": {
       backgroundColor: "transparent",
       overflow: "visible",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
       position: "relative",
       height: "40px",
       minHeight: "40px",
@@ -62,10 +60,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".navigate": {
-      display: "flex !important",
-      alignItems: "center",
-      flex: "1 1 auto",
-      gap: "8px"
+      flex: "1 1 auto"
     },
     // Mode pills - segmented control style
     ".mode-pills": {
@@ -286,8 +281,8 @@ const AppHeader: React.FC = memo(function AppHeader() {
 
   return (
     <div css={headerStyles} className="app-header">
-      <Toolbar variant="dense" className="toolbar" tabIndex={-1}>
-        <div className="navigate" style={{ WebkitAppRegion: "no-drag" } as any}>
+      <Toolbar variant="dense" className="toolbar" tabIndex={-1} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <FlexRow className="navigate" gap={1} align="center" sx={{ WebkitAppRegion: "no-drag" } as any}>
           {/* Logo - clicks to Dashboard */}
           <Tooltip title="Go to Dashboard" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
             <div className="logo-container" onClick={handleLogoClick}>
@@ -303,7 +298,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
           {/* Mode Pills - Editor, Chat, Dashboard */}
           <ModePills currentPath={path} />
           <Box sx={{ flexGrow: 1 }} />
-        </div>
+        </FlexRow>
         <div
           className="buttons-right"
           style={{ WebkitAppRegion: "no-drag" } as any}
