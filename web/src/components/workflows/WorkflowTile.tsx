@@ -50,6 +50,20 @@ export const WorkflowTile = ({
     onClickOpen(workflow);
   }, [onClickOpen, workflow]);
 
+  const handleDuplicate = useCallback(
+    (event: React.MouseEvent) => {
+      onDuplicateWorkflow(event, workflow);
+    },
+    [onDuplicateWorkflow, workflow]
+  );
+
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      onDelete(e, workflow);
+    },
+    [onDelete, workflow]
+  );
+
   return (
     <Box
       onDoubleClick={handleDoubleClick}
@@ -102,16 +116,12 @@ export const WorkflowTile = ({
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
-              <EditorButton
-                color="primary"
-                onClick={(event) => onDuplicateWorkflow(event, workflow)}
-                density="compact"
-              >
+              <EditorButton color="primary" onClick={handleDuplicate} density="compact">
                 Duplicate
               </EditorButton>
             </Tooltip>
 
-            <DeleteButton onClick={(e) => onDelete(e, workflow)} />
+            <DeleteButton onClick={handleDelete} />
           </>
         )}
       </div>
