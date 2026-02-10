@@ -11,7 +11,7 @@ import {
   Button,
   Fab
 } from "@mui/material";
-import { memo, useEffect, useCallback } from "react";
+import { memo, useEffect, useCallback, useMemo } from "react";
 import CollectionForm from "./CollectionForm";
 import AddIcon from "@mui/icons-material/Add";
 import CollectionHeader from "./CollectionHeader";
@@ -35,9 +35,9 @@ const CollectionList = () => {
   const fetchCollections = useCollectionStore((state) => state.fetchCollections);
   const confirmDelete = useCollectionStore((state) => state.confirmDelete);
   const cancelDelete = useCollectionStore((state) => state.cancelDelete);
-  const handleDragOver = useCollectionStore((state) => state.handleDragOver);
-  const handleDragLeave = useCollectionStore((state) => state.handleDragLeave);
-  const handleDrop = useCollectionStore((state) => state.handleDrop);
+  const storeHandleDragOver = useCollectionStore((state) => state.handleDragOver);
+  const storeHandleDragLeave = useCollectionStore((state) => state.handleDragLeave);
+  const storeHandleDrop = useCollectionStore((state) => state.handleDrop);
 
   useEffect(() => {
     fetchCollections();
@@ -58,6 +58,34 @@ const CollectionList = () => {
   const handleClearIndexErrors = useCallback(() => {
     setIndexErrors([]);
   }, [setIndexErrors]);
+
+  // Memoize drag event handlers to prevent recreating functions on every render
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, collectionName: string) => {
+      storeHandleDragOver(e, collectionName);
+    },
+    [storeHandleDragOver]
+  );
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      storeHandleDragLeave(e);
+    },
+    [storeHandleDragLeave]
+  );
+
+  // Create a stable map of drop handlers for each collection
+  const dropHandlers = useMemo(() => {
+    const handlers: Record<string, (e: React.DragEvent<HTMLDivElement>) => void> = {};
+    if (collections?.collections) {
+      for (const collection of collections.collections) {
+        handlers[collection.name] = (e: React.DragEvent<HTMLDivElement>) => {
+          storeHandleDrop(collection.name)(e);
+        };
+      }
+    }
+    return handlers;
+  }, [collections?.collections, storeHandleDrop]);
 
   const totalCount = collections?.collections.length || 0;
 
@@ -168,8 +196,8 @@ const CollectionList = () => {
                     dragOverCollection={dragOverCollection}
                     indexProgress={indexProgress}
                     onDelete={handleDeleteClick}
-                    onDrop={handleDrop(collection.name)}
-                    onDragOver={(e) => handleDragOver(e, collection.name)}
+                    onDrop={dropHandlers[collection.name]}
+                    onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     deleteMutation={
                       {

@@ -33,8 +33,8 @@ interface CollectionItemProps {
   } | null;
   onDelete: (name: string) => void;
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDragOver: (e: React.DragEvent, collection: string) => void;
-  onDragLeave: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent<HTMLDivElement>, collection: string) => void;
+  onDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
   deleteMutation: UseMutationResult<void, Error, string>;
 }
 
@@ -150,7 +150,7 @@ const CollectionItem = ({
     onDelete(collection.name);
   }, [onDelete, collection.name]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     onDragOver(e, collection.name);
   }, [onDragOver, collection.name]);
 
