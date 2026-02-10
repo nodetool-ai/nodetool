@@ -6,12 +6,11 @@ import {
   Box,
   Typography,
   IconButton,
-  Tooltip,
-  CircularProgress
+  Tooltip
 } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CodeIcon from "@mui/icons-material/Code";
+import { RefreshButton, LoadingSpinner } from "../ui_primitives";
 import { BASE_URL, UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { injectRuntimeConfig } from "./utils/extractHtml";
 import type { Theme } from "@mui/material/styles";
@@ -141,11 +140,12 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
               </IconButton>
             </Tooltip>
           )}
-          <Tooltip title="Refresh Preview">
-            <IconButton size="small" onClick={handleRefresh} disabled={!html}>
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <RefreshButton
+            onClick={handleRefresh}
+            tooltip="Refresh Preview"
+            tooltipPlacement="bottom"
+            disabled={!html}
+          />
           <Tooltip title="Open in New Tab">
             <IconButton size="small" onClick={handleOpenInNew} disabled={!html}>
               <OpenInNewIcon fontSize="small" />
@@ -157,7 +157,7 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
       <div className="preview-frame-container">
         {isGenerating && !html && (
           <div className="preview-loading">
-            <CircularProgress size={32} />
+            <LoadingSpinner size="medium" />
           </div>
         )}
 

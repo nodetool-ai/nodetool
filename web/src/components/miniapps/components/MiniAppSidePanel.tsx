@@ -4,11 +4,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Box, IconButton, Tooltip, Typography, Collapse, Button } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import CloseIcon from "@mui/icons-material/Close";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import { CloseButton, ExpandCollapseButton } from "../../ui_primitives";
 
 import ThemeToggle from "../../ui/ThemeToggle";
 import MiniWorkflowGraph from "./MiniWorkflowGraph";
@@ -195,9 +193,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
       {/* Panel */}
       <div className="side-panel">
         <div className="side-panel-header">
-          <IconButton size="small" onClick={handleClosePanel}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
+          <CloseButton onClick={handleClosePanel} />
         </div>
 
         <div className="side-panel-content">
@@ -225,11 +221,11 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
                 <AccountTreeIcon sx={{ fontSize: 16 }} />
                 Workflow Graph
               </span>
-              {showGraph ? (
-                <ExpandLessIcon fontSize="small" color="action" />
-              ) : (
-                <ExpandMoreIcon fontSize="small" color="action" />
-              )}
+              <ExpandCollapseButton
+                expanded={showGraph}
+                onClick={handleToggleGraph}
+                iconVariant="chevron"
+              />
             </div>
             <Collapse in={showGraph}>
               <div className="graph-wrapper">
