@@ -29,6 +29,7 @@ import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToDashboardButton from "../dashboard/BackToDashboardButton";
 import { escapeHtml } from "../../utils/highlightText";
+import { sanitizeImageUrl } from "../../utils/urlValidation";
 const styles = (theme: Theme) =>
   css({
     ".MuiBackdrop-root": { background: "transparent" },
@@ -263,8 +264,8 @@ const OpenOrCreateDialog = () => {
           sx={{
             backgroundSize: "cover",
             backgroundPosition: "center",
-            backgroundImage: workflow.thumbnail_url
-              ? `url(${workflow.thumbnail_url})`
+            backgroundImage: sanitizeImageUrl(workflow.thumbnail_url)
+              ? `url(${sanitizeImageUrl(workflow.thumbnail_url)})`
               : "none",
             width: "50px",
             height: "50px"

@@ -16,6 +16,7 @@ import { truncateString } from "../../utils/truncateString";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import AddIcon from "@mui/icons-material/Add";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
+import { sanitizeImageUrl } from "../../utils/urlValidation";
 
 interface WorkflowsListProps {
   sortedWorkflows: Workflow[];
@@ -214,8 +215,8 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
               <Box
                 className="workflow-thumbnail"
                 sx={{
-                  backgroundImage: workflow.thumbnail_url
-                    ? `url(${workflow.thumbnail_url})`
+                  backgroundImage: sanitizeImageUrl(workflow.thumbnail_url)
+                    ? `url(${sanitizeImageUrl(workflow.thumbnail_url)})`
                     : undefined
                 }}
               />

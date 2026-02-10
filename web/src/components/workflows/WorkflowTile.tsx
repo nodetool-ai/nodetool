@@ -9,6 +9,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
 import { escapeHtml } from "../../utils/highlightText";
+import { sanitizeImageUrl } from "../../utils/urlValidation";
 
 interface WorkflowTileProps {
   workflow: Workflow;
@@ -61,8 +62,8 @@ export const WorkflowTile = ({
         sx={{
           backgroundSize: "cover",
           backgroundPosition: "center top",
-          backgroundImage: workflow.thumbnail_url
-            ? `url(${workflow.thumbnail_url})`
+          backgroundImage: sanitizeImageUrl(workflow.thumbnail_url)
+            ? `url(${sanitizeImageUrl(workflow.thumbnail_url)})`
             : "none",
           width: "200px",
           height: "200px"

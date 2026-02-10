@@ -8,6 +8,7 @@ import { isUrlAccessible } from '../isUrlAccessible';
 jest.mock('loglevel', () => ({
   default: {
     error: jest.fn(),
+    warn: jest.fn(),
   },
   __esModule: true,
 }));
@@ -118,8 +119,8 @@ describe('isUrlAccessible', () => {
       const error = new TypeError('Failed to fetch');
       (global.fetch as jest.Mock).mockRejectedValue(error);
 
-      const result = await isUrlAccessible('invalid-url');
-      
+      const result = await isUrlAccessible('https://invalid-domain-that-does-not-exist-12345.com');
+
       expect(result).toBe(false);
       expect(log.error).toHaveBeenCalledWith('isUrlAccessible: Error checking URL:', error);
     });
@@ -128,10 +129,11 @@ describe('isUrlAccessible', () => {
       const error = new Error('ECONNREFUSED');
       (global.fetch as jest.Mock).mockRejectedValue(error);
 
-      const result = await isUrlAccessible('http://localhost:9999');
-      
+      const result = await isUrlAccessible('http://example.com:9999');
+
+      // Use example.com instead of localhost to avoid SSRF protection
       expect(result).toBe(false);
-      expect(log.error).toHaveBeenCalledWith('isUrlAccessible: Error checking URL:', error);
+      expect(global.fetch).toHaveBeenCalledWith('http://example.com:9999', { method: 'HEAD' });
     });
 
     it('should handle timeout errors', async () => {
@@ -221,30 +223,26 @@ describe('isUrlAccessible', () => {
 
   describe('edge cases', () => {
     it('should handle empty string URL', async () => {
-      const error = new TypeError('Invalid URL');
-      (global.fetch as jest.Mock).mockRejectedValue(error);
-
       const result = await isUrlAccessible('');
-      
+
+      // With URL validation, empty strings are rejected before fetch
       expect(result).toBe(false);
-      expect(log.error).toHaveBeenCalledWith('isUrlAccessible: Error checking URL:', error);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('should handle malformed URL', async () => {
-      const error = new TypeError('Invalid URL');
-      (global.fetch as jest.Mock).mockRejectedValue(error);
-
       const result = await isUrlAccessible('not-a-url');
-      
+
+      // With URL validation, malformed URLs are rejected before fetch
       expect(result).toBe(false);
-      expect(log.error).toHaveBeenCalledWith('isUrlAccessible: Error checking URL:', error);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('should handle null response', async () => {
       (global.fetch as jest.Mock).mockResolvedValue(null);
 
       const result = await isUrlAccessible('https://example.com');
-      
+
       expect(result).toBe(false);
     });
 
@@ -255,9 +253,49 @@ describe('isUrlAccessible', () => {
       });
 
       const result = await isUrlAccessible('https://example.com');
-      
-      // When ok is undefined, the function returns undefined (falsy)
-      expect(result).toBe(undefined);
+
+      // When ok is undefined, the function returns false (not undefined)
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('URL validation security', () => {
+    it('should reject localhost URLs', async () => {
+      const result = await isUrlAccessible('http://localhost:8080');
+
+      expect(result).toBe(false);
+      expect(log.warn).toHaveBeenCalledWith('isUrlAccessible: URL validation failed:', 'http://localhost:8080');
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should reject 127.0.0.1 URLs', async () => {
+      const result = await isUrlAccessible('http://127.0.0.1:8080');
+
+      expect(result).toBe(false);
+      expect(log.warn).toHaveBeenCalledWith('isUrlAccessible: URL validation failed:', 'http://127.0.0.1:8080');
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should reject private network URLs (192.168.x.x)', async () => {
+      const result = await isUrlAccessible('http://192.168.1.1:8080');
+
+      expect(result).toBe(false);
+      expect(log.warn).toHaveBeenCalledWith('isUrlAccessible: URL validation failed:', 'http://192.168.1.1:8080');
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should reject javascript: URLs', async () => {
+      const result = await isUrlAccessible('javascript:alert(1)');
+
+      expect(result).toBe(false);
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should reject data: URLs', async () => {
+      const result = await isUrlAccessible('data:text/html,<script>alert(1)</script>');
+
+      expect(result).toBe(false);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 });
