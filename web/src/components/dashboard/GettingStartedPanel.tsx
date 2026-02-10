@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo, useCallback, useState } from "react";
 import {
-  Typography,
   Box,
   Button,
   LinearProgress,
@@ -31,6 +30,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import { useGettingStartedStore } from "../../stores/GettingStartedStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { FlexColumn, FlexRow, Card, Text, Caption } from "../ui_primitives";
 
 interface GettingStartedPanelProps {
   sortedWorkflows: Workflow[];
@@ -55,36 +55,15 @@ interface OnboardingStep {
 const panelStyles = (theme: Theme) =>
   css({
     "&": {
-      height: "100%",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      padding: "1em"
+      height: "100%"
     },
     ".panel-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.75em",
-      marginBottom: "1em",
       paddingBottom: "0.75em",
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
     ".header-icon": {
       color: theme.vars.palette.primary.main,
       fontSize: "1.75rem"
-    },
-    ".progress-section": {
-      marginBottom: "1.25em"
-    },
-    ".progress-header": {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "0.5em"
-    },
-    ".progress-text": {
-      fontSize: "0.875rem",
-      color: theme.vars.palette.text.secondary
     },
     ".progress-bar": {
       height: "4px",
@@ -100,23 +79,10 @@ const panelStyles = (theme: Theme) =>
       overflowY: "auto",
       overflowX: "hidden"
     },
-    ".steps-container": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.75em"
-    },
     ".step-card": {
-      display: "flex",
-      alignItems: "flex-start",
-      gap: "0.75em",
-      padding: "0.875em",
-      borderRadius: "10px",
-      backgroundColor: theme.vars.palette.grey[900],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
       transition: "all 0.2s ease"
     },
     ".step-card.completed": {
-      borderColor: theme.vars.palette.grey[600],
       opacity: 0.7
     },
     ".step-card:hover:not(.completed)": {
@@ -141,32 +107,6 @@ const panelStyles = (theme: Theme) =>
       flex: 1,
       minWidth: 0
     },
-    ".step-title": {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5em",
-      fontWeight: 500,
-      fontSize: "0.95rem",
-      color: theme.vars.palette.text.primary,
-      marginBottom: "0.25em"
-    },
-    ".step-title.completed": {
-      color: theme.vars.palette.success.main
-    },
-    ".step-description": {
-      fontSize: "0.85rem",
-      color: theme.vars.palette.text.secondary,
-      lineHeight: 1.4,
-      marginBottom: "0.5em"
-    },
-    ".step-action": {
-      marginTop: "0.5em"
-    },
-    ".step-status": {
-      display: "flex",
-      alignItems: "center",
-      flexShrink: 0
-    },
     ".optional-badge": {
       fontSize: "0.7rem",
       padding: "2px 6px",
@@ -188,22 +128,6 @@ const panelStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[850],
       borderRadius: 8,
       padding: "10px 12px"
-    },
-    ".local-model-header": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      gap: "3px"
-    },
-    ".local-model-title": {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.5em"
-    },
-    ".local-model-actions": {
-      display: "flex",
-      alignItems: "center",
-      width: "100%"
     },
     ".model-variant-buttons": {
       display: "flex",
@@ -241,10 +165,6 @@ const panelStyles = (theme: Theme) =>
       "&:hover": {
         backgroundColor: `color-mix(in srgb, ${theme.vars.palette.primary.main} 25%, transparent)`
       }
-    },
-    ".local-model-desc": {
-      marginTop: "4px",
-      opacity: 0.85
     },
     ".model-note": {
       color: theme.vars.palette.warning.main,
@@ -536,216 +456,199 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   const progressPercentage = (completedSteps / totalSteps) * 100;
 
   return (
-    <Box css={panelStyles(theme)} className="getting-started-panel">
-      <Box className="panel-header">
+    <FlexColumn gap={0} padding={4} fullHeight css={panelStyles(theme)} className="getting-started-panel">
+      <FlexRow gap={3} align="center" className="panel-header">
         <RocketLaunchIcon className="header-icon" />
-        <Box>
-          <Typography variant="h6" sx={useMemo(() => ({ fontWeight: 600, fontSize: "1.1rem" }), [])}>
-            Getting Started
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={useMemo(() => ({ color: "text.secondary", fontSize: "0.85rem" }), [])}
-          >
+        <FlexColumn gap={0.5}>
+          <Text size="big" weight={600}>Getting Started</Text>
+          <Caption size="small">
             {progressPercentage < 100
               ? "Complete these steps to get up and running"
               : "All set, welcome to NodeTool!"}
-          </Typography>
-        </Box>
-      </Box>
+          </Caption>
+        </FlexColumn>
+      </FlexRow>
 
       {progressPercentage < 100 && (
-        <Box className="progress-section">
-          <Box className="progress-header">
-            <Typography className="progress-text">
+        <FlexColumn gap={2} sx={{ mb: 1.5 }}>
+          <FlexRow justify="space-between" align="center">
+            <Caption size="small">
               {completedSteps} of {totalSteps} steps completed
-            </Typography>
-            <Typography className="progress-text">
+            </Caption>
+            <Caption size="small">
               {Math.round(progressPercentage)}%
-            </Typography>
-          </Box>
+            </Caption>
+          </FlexRow>
           <LinearProgress
             variant="determinate"
             value={progressPercentage}
             className="progress-bar"
           />
-        </Box>
+        </FlexColumn>
       )}
 
       <Box className="scrollable-content">
-        <Box className="steps-container">
+        <FlexColumn gap={3}>
           {steps.map((step, index) => (
-            <Box
+            <Card
               key={step.id}
+              variant="outlined"
+              padding="normal"
               className={`step-card ${step.isCompleted ? "completed" : ""}`}
             >
-              <Box className="step-icon-container">
-                {React.cloneElement(step.icon as React.ReactElement, {
-                  className: "step-icon"
-                })}
-              </Box>
-              <Box className="step-content">
-                <Typography
-                  className={`step-title ${step.isCompleted ? "completed" : ""}`}
-                >
-                  {index + 1}. {step.title}
-                  {step.isOptional && (
-                    <span className="optional-badge">Optional</span>
+              <FlexRow gap={3} align="flex-start">
+                <Box className="step-icon-container">
+                  {React.cloneElement(step.icon as React.ReactElement, {
+                    className: "step-icon"
+                  })}
+                </Box>
+                <FlexColumn gap={0.5} className="step-content">
+                  <FlexRow gap={2} align="center">
+                    <Text 
+                      size="normal" 
+                      weight={500}
+                      color={step.isCompleted ? "success" : "inherit"}
+                    >
+                      {index + 1}. {step.title}
+                      {step.isOptional && (
+                        <span className="optional-badge">Optional</span>
+                      )}
+                    </Text>
+                  </FlexRow>
+                  <Caption size="small">
+                    {step.description}
+                  </Caption>
+                  {step.action && (!step.isCompleted || step.id === "setup-provider") && (
+                    <Box sx={{ mt: 2 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={step.action}
+                        startIcon={step.isCompleted ? <SettingsIcon /> : <PlayArrowIcon />}
+                      >
+                        {step.isCompleted && step.id === "setup-provider" ? "Edit Settings" : step.actionLabel}
+                      </Button>
+                    </Box>
                   )}
-                </Typography>
-                <Typography className="step-description">
-                  {step.description}
-                </Typography>
-                {step.action && (!step.isCompleted || step.id === "setup-provider") && (
-                  <Box className="step-action">
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={step.action}
-                      startIcon={step.isCompleted ? <SettingsIcon /> : <PlayArrowIcon />}
-                    >
-                      {step.isCompleted && step.id === "setup-provider" ? "Edit Settings" : step.actionLabel}
-                    </Button>
-                  </Box>
-                )}
-                {/* Collapsible Popular Models section for download-model step */}
-                {step.id === "download-model" && (
-                  <Box sx={{ mt: 1 }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={handleToggleModelsExpanded}
-                      endIcon={modelsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                    >
-                      Popular Models
-                    </Button>
-                    <Collapse in={modelsExpanded}>
-                      <ul className="local-models-list" style={{ marginTop: "0.5em" }}>
-                        {recommendedModels.map((model) => (
-                          <li key={model.id} style={{ listStyle: "none" }}>
-                            <div className="local-model-item">
-                              <div className="local-model-header">
-                                <div className="local-model-title">
-                                  <Typography
-                                    variant="subtitle2"
-                                    sx={{ fontWeight: 500 }}
-                                  >
-                                    {(model as FeaturedModel).displayName ||
-                                      model.name}
-                                  </Typography>
-                                </div>
-                                <div className="local-model-actions">
-                                  <Box className="model-variant-buttons">
-                                    {((model as FeaturedModel).variants &&
-                                      (model as FeaturedModel).variants!.length > 0
-                                      ? (model as FeaturedModel).variants!
-                                      : [model.id.split(":")[1] || "latest"]
-                                    ).map((variant) => {
-                                      const base =
-                                        (model as FeaturedModel).base ||
-                                        (model.id.includes(":")
-                                          ? model.id.split(":")[0]
-                                          : model.id);
-                                      const variantModel: UnifiedModel = {
-                                        ...model,
-                                        id: `${base}:${variant}`,
-                                        repo_id: `${base}:${variant}`
-                                      };
-                                      const defaultVariant =
-                                        (model as FeaturedModel).defaultVariant ||
-                                        (model.id.includes(":")
-                                          ? model.id.split(":")[1]
-                                          : "");
-                                      const isDefault =
-                                        variant.toLowerCase() ===
-                                        (defaultVariant || "").toLowerCase();
-                                      return (
-                                        <InlineModelDownload
-                                          key={`${model.id}-${variant}`}
-                                          model={variantModel}
-                                          isDefault={isDefault}
-                                          label={`${variant.toUpperCase()}`}
-                                          tooltip={`Download ${base}:${variant}`}
+                  {/* Collapsible Popular Models section for download-model step */}
+                  {step.id === "download-model" && (
+                    <Box sx={{ mt: 1 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleToggleModelsExpanded}
+                        endIcon={modelsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      >
+                        Popular Models
+                      </Button>
+                      <Collapse in={modelsExpanded}>
+                        <ul className="local-models-list" style={{ marginTop: "0.5em" }}>
+                          {recommendedModels.map((model) => (
+                            <li key={model.id} style={{ listStyle: "none" }}>
+                              <div className="local-model-item">
+                                <FlexColumn gap={0.5}>
+                                  <FlexRow gap={2} align="center" justify="space-between">
+                                    <Text size="small" weight={500}>
+                                      {(model as FeaturedModel).displayName ||
+                                        model.name}
+                                    </Text>
+                                    <Box className="model-variant-buttons">
+                                      {((model as FeaturedModel).variants &&
+                                        (model as FeaturedModel).variants!.length > 0
+                                        ? (model as FeaturedModel).variants!
+                                        : [model.id.split(":")[1] || "latest"]
+                                      ).map((variant) => {
+                                        const base =
+                                          (model as FeaturedModel).base ||
+                                          (model.id.includes(":")
+                                            ? model.id.split(":")[0]
+                                            : model.id);
+                                        const variantModel: UnifiedModel = {
+                                          ...model,
+                                          id: `${base}:${variant}`,
+                                          repo_id: `${base}:${variant}`
+                                        };
+                                        const defaultVariant =
+                                          (model as FeaturedModel).defaultVariant ||
+                                          (model.id.includes(":")
+                                            ? model.id.split(":")[1]
+                                            : "");
+                                        const isDefault =
+                                          variant.toLowerCase() ===
+                                          (defaultVariant || "").toLowerCase();
+                                        return (
+                                          <InlineModelDownload
+                                            key={`${model.id}-${variant}`}
+                                            model={variantModel}
+                                            isDefault={isDefault}
+                                            label={`${variant.toUpperCase()}`}
+                                            tooltip={`Download ${base}:${variant}`}
+                                          />
+                                        );
+                                      })}
+                                    </Box>
+                                  </FlexRow>
+                                  {model.description && (
+                                    <Caption size="small">
+                                      {model.description}
+                                    </Caption>
+                                  )}
+                                  <FlexRow gap={2} wrap sx={{ mt: 0.75 }}>
+                                    {((model as FeaturedModel).reasoning ??
+                                      false) && (
+                                        <Chip
+                                          size="small"
+                                          label="Reasoning"
+                                          color="primary"
+                                          variant="outlined"
+                                          sx={{ height: "20px", fontSize: "0.7em" }}
                                         />
-                                      );
-                                    })}
-                                  </Box>
-                                </div>
-                              </div>
-                              <div className="local-model-desc">
-                                {model.description && (
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ fontSize: "0.85em" }}
-                                  >
-                                    {model.description}
-                                  </Typography>
-                                )}
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    gap: 0.5,
-                                    flexWrap: "wrap",
-                                    mt: 0.75
-                                  }}
-                                >
-                                  {((model as FeaturedModel).reasoning ??
-                                    false) && (
+                                      )}
+                                    {((model as FeaturedModel).vision ?? false) && (
                                       <Chip
                                         size="small"
-                                        label="Reasoning"
-                                        color="primary"
+                                        label="Vision"
+                                        color="secondary"
                                         variant="outlined"
                                         sx={{ height: "20px", fontSize: "0.7em" }}
                                       />
                                     )}
-                                  {((model as FeaturedModel).vision ?? false) && (
-                                    <Chip
-                                      size="small"
-                                      label="Vision"
-                                      color="secondary"
-                                      variant="outlined"
-                                      sx={{ height: "20px", fontSize: "0.7em" }}
-                                    />
+                                  </FlexRow>
+                                  {(model as FeaturedModel).note && (
+                                    <Caption size="smaller" className="model-note">
+                                      {(model as FeaturedModel).note}
+                                    </Caption>
                                   )}
-                                </Box>
-                                {(model as FeaturedModel).note && (
-                                  <Typography
-                                    variant="caption"
-                                    className="model-note"
-                                  >
-                                    {(model as FeaturedModel).note}
-                                  </Typography>
-                                )}
+                                </FlexColumn>
                               </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </Collapse>
-                  </Box>
-                )}
-              </Box>
-              <Box className="step-status">
-                {step.isCompleted ? (
-                  <Tooltip title="Completed">
-                    <CheckCircleIcon
-                      sx={{ color: "success.main", fontSize: "1.25rem" }}
-                    />
-                  </Tooltip>
-                ) : (
-                  <Tooltip title="Not completed">
-                    <RadioButtonUncheckedIcon
-                      sx={{ color: "grey.600", fontSize: "1.25rem" }}
-                    />
-                  </Tooltip>
-                )}
-              </Box>
-            </Box>
+                            </li>
+                          ))}
+                        </ul>
+                      </Collapse>
+                    </Box>
+                  )}
+                </FlexColumn>
+                <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                  {step.isCompleted ? (
+                    <Tooltip title="Completed">
+                      <CheckCircleIcon
+                        sx={{ color: "success.main", fontSize: "1.25rem" }}
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title="Not completed">
+                      <RadioButtonUncheckedIcon
+                        sx={{ color: "grey.600", fontSize: "1.25rem" }}
+                      />
+                    </Tooltip>
+                  )}
+                </Box>
+              </FlexRow>
+            </Card>
           ))}
-        </Box>
+        </FlexColumn>
       </Box>
-    </Box>
+    </FlexColumn>
   );
 };
 
