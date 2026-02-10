@@ -8,12 +8,15 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo, useCallback } from "react";
 import isEqual from "lodash/isEqual";
 import Terminal from "../terminal/Terminal";
+import { ErrorPanel } from "./ErrorPanel";
 import { useCombo } from "../../stores/KeyPressedStore";
+import { useNodes } from "../../contexts/NodeContext";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // icons
 import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import ErrorIcon from "@mui/icons-material/Error";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
 
@@ -108,13 +111,30 @@ const PanelBottom: React.FC = () => {
   } = useResizeBottomPanel();
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
+  const workflowId = useNodes((state) => state.workflow?.id);
 
   // Add keyboard shortcut for toggle (Ctrl+`)
   useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
+  // Add keyboard shortcut for error panel (Ctrl+E)
+  useCombo(["Control", "E"], () => handlePanelToggle("errors"), false);
 
-  const handleTerminalToggle = useCallback(() => {
-    handlePanelToggle("terminal");
-  }, [handlePanelToggle]);
+  const getHeaderIcon = useCallback(() => {
+    switch (activeView) {
+      case "errors":
+        return <ErrorIcon fontSize="small" />;
+      default:
+        return <TerminalIcon fontSize="small" />;
+    }
+  }, [activeView]);
+
+  const getHeaderTitle = useCallback(() => {
+    switch (activeView) {
+      case "errors":
+        return "Errors";
+      default:
+        return "Terminal";
+    }
+  }, [activeView]);
 
   const openHeight = isVisible
     ? Math.min(
@@ -164,13 +184,13 @@ const PanelBottom: React.FC = () => {
           {isVisible && (
             <div className="panel-header">
               <div className="left">
-                <TerminalIcon fontSize="small" />
-                <Typography variant="body2">Terminal</Typography>
+                {getHeaderIcon()}
+                <Typography variant="body2">{getHeaderTitle()}</Typography>
               </div>
               <Tooltip
                 title={
                   <div className="tooltip-span">
-                    <div className="tooltip-title">Hide terminal</div>
+                    <div className="tooltip-title">Hide panel</div>
                     <div className="tooltip-key">
                       <kbd>Ctrl</kbd> + <kbd>`</kbd>
                     </div>
@@ -181,8 +201,8 @@ const PanelBottom: React.FC = () => {
               >
                 <IconButton
                   size="small"
-                  onClick={handleTerminalToggle}
-                  aria-label="Hide terminal"
+                  onClick={() => handlePanelToggle(activeView)}
+                  aria-label="Hide panel"
                 >
                   <CloseIcon />
                 </IconButton>
@@ -197,6 +217,9 @@ const PanelBottom: React.FC = () => {
           >
             <Terminal />
           </div>
+          {activeView === "errors" && isVisible && workflowId && (
+            <ErrorPanel workflowId={workflowId} onClose={() => handlePanelToggle("errors")} />
+          )}
         </div>
       </Drawer>
     </div>

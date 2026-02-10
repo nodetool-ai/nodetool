@@ -534,6 +534,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   //   registerCombo: true
   // },
 
+  {
+    title: "Error Panel",
+    slug: "toggleErrorPanel",
+    keyCombo: ["Control", "E"],
+    category: "panel",
+    description: "Toggle Error panel",
+    registerCombo: false
+  },
   // ---------- WORKFLOW ----------------------------------------------------
   {
     title: "Run Workflow",

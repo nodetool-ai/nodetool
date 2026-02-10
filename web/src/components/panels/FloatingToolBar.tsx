@@ -33,6 +33,7 @@ import LayoutIcon from "@mui/icons-material/ViewModule";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import ErrorIcon from "@mui/icons-material/Error";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
@@ -615,6 +616,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     toggleBottomPanel("terminal");
   }, [toggleBottomPanel]);
 
+  const handleToggleErrorPanel = useCallback(() => {
+    toggleBottomPanel("errors");
+  }, [toggleBottomPanel]);
+
   const handleToggleInstantUpdate = useCallback(() => {
     setInstantUpdate(!instantUpdate);
   }, [instantUpdate, setInstantUpdate]);
@@ -627,6 +632,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleToggleTerminal();
     handleCloseActionsMenu();
   }, [handleToggleTerminal, handleCloseActionsMenu]);
+
+  const handleToggleErrorPanelAndCloseMenu = useCallback(() => {
+    handleToggleErrorPanel();
+    handleCloseActionsMenu();
+  }, [handleToggleErrorPanel, handleCloseActionsMenu]);
 
   const handleEditWorkflowAndCloseMenu = useCallback(() => {
     handleEditWorkflow();
@@ -802,6 +812,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <ListItemText
             primary={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
           />
+        </MenuItem>
+        <MenuItem onClick={handleToggleErrorPanelAndCloseMenu}>
+          <ListItemIcon>
+            <ErrorIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Show Errors" />
         </MenuItem>
         <MenuItem onClick={handleEditWorkflowAndCloseMenu}>
           <ListItemIcon>
