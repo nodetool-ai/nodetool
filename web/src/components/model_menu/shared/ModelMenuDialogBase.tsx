@@ -52,7 +52,7 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   storeHook: ModelMenuStoreHook<TModel>;
 }
 
-export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
+function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
   onClose,
   anchorEl,
@@ -452,3 +452,5 @@ export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     </Popover>
   );
 }
+
+export default ModelMenuDialogBase;

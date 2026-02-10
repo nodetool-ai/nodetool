@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, useMemo } from "react";
+import React, { memo, useState, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -329,4 +329,4 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
   );
 };
 
-export default NodeHistoryPanel;
+export default memo(NodeHistoryPanel);
