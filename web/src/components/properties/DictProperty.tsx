@@ -5,7 +5,7 @@ import DictTable, { DictDataType } from "../node/DataTable/DictTable";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "lodash/isEqual";
 
-const detectTypeFromDict = (dict: any) => {
+const detectTypeFromDict = (dict: unknown) => {
   if (!Array.isArray(dict) || dict.length === 0) {
     return "string";
   }

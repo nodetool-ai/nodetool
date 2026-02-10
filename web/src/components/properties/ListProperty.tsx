@@ -5,7 +5,7 @@ import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "lodash/isEqual";
 
-const detectTypeFromList = (list: any[]) => {
+const detectTypeFromList = (list: unknown[]) => {
   if (list.length === 0) {
     return "string";
   }
