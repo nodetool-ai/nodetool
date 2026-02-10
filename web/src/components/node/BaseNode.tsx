@@ -651,16 +651,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 };
 
 export default memo(BaseNode, (prevProps, nextProps) => {
-  const prevFocused =
-    useNodeFocusStore.getState().focusedNodeId === prevProps.id;
-  const nextFocused =
-    useNodeFocusStore.getState().focusedNodeId === nextProps.id;
   return (
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&
     prevProps.selected === nextProps.selected &&
     prevProps.dragging === nextProps.dragging &&
-    prevFocused === nextFocused &&
     prevProps.parentId === nextProps.parentId &&
     isEqual(prevProps.data, nextProps.data)
   );
