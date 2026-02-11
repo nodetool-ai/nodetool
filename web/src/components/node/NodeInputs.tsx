@@ -206,8 +206,9 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
 
   const dynamicInputs = data?.dynamic_inputs || {};
 
-  const dynamicInputElements = Object.entries(dynamicProperties).map(
-    ([name], index) => {
+  const dynamicInputElements = useMemo(
+    () =>
+      Object.entries(dynamicProperties).map(([name], index) => {
       const incoming = connectedEdges.find(
         (edge) => edge.targetHandle === name
       );
@@ -272,7 +273,18 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           isConnected={!!incoming}
         />
       );
-    }
+    }),
+    [
+      dynamicProperties,
+      dynamicInputs,
+      connectedEdges,
+      id,
+      nodeType,
+      layout,
+      data,
+      findNode,
+      getMetadata
+    ]
   );
 
   return (

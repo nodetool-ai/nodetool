@@ -30,7 +30,8 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     data: {
       properties: { value: "" },
       dynamic_properties: {},
-      workflow_id: "wf-1"
+      workflow_id: "wf-1",
+      selectable: false
     } as NodeData,
     basicFields: ["value"],
     showAdvancedFields: false,
