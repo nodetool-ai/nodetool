@@ -1,5 +1,5 @@
 /* @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { List, ListItem, ListItemText, Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -107,12 +107,16 @@ const styles = (theme: Theme) =>
 const NotificationsList: React.FC = () => {
   const theme = useTheme();
   const notifications = useNotificationStore((state) => state.notifications);
-  const recentNotifications = [...notifications]
-    .sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )
-    .slice(0, NOTIFICATIONS_LIST_MAX_ITEMS);
+
+  // Memoize the expensive sort operation to avoid re-sorting on every render
+  const recentNotifications = useMemo(() => {
+    return [...notifications]
+      .sort(
+        (a, b) =>
+          b.timestamp.getTime() - a.timestamp.getTime()
+      )
+      .slice(0, NOTIFICATIONS_LIST_MAX_ITEMS);
+  }, [notifications]);
 
   return (
     <Box css={styles(theme)} className="notifications-list-container">

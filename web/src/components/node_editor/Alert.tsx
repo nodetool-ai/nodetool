@@ -86,17 +86,12 @@ const styles = () =>
   });
 
 const Alert: React.FC = () => {
-  const {
-    notifications,
-    removeNotification,
-    lastDisplayedTimestamp,
-    updateLastDisplayedTimestamp
-  } = useNotificationStore((state) => ({
-    notifications: state.notifications,
-    removeNotification: state.removeNotification,
-    lastDisplayedTimestamp: state.lastDisplayedTimestamp,
-    updateLastDisplayedTimestamp: state.updateLastDisplayedTimestamp
-  }));
+  // Use separate selectors to avoid re-rendering when unrelated store values change
+  const notifications = useNotificationStore((state) => state.notifications);
+  const removeNotification = useNotificationStore((state) => state.removeNotification);
+  const lastDisplayedTimestamp = useNotificationStore((state) => state.lastDisplayedTimestamp);
+  const updateLastDisplayedTimestamp = useNotificationStore((state) => state.updateLastDisplayedTimestamp);
+
   const _theme = useTheme();
   const [visibleNotifications, setVisibleNotifications] = useState<
     Notification[]
@@ -113,62 +108,61 @@ const Alert: React.FC = () => {
         new Date(notification.timestamp) > lastDisplayedDate
     );
 
-    if (newNotifications.length > 0) {
-      setVisibleNotifications((prevNotifications) => {
-        const combined = [...prevNotifications, ...newNotifications];
-        // Deduplicate notifications by id
-        return combined.reduce((acc, current) => {
-          if (acc.findIndex(({ id }) => id === current.id) === -1) {
-            acc.push(current);
-          }
-          return acc;
-        }, [] as Notification[]);
-      });
-
-      const latestTimestamp = newNotifications.reduce(
-        (max, { timestamp }) =>
-          new Date(timestamp) > max ? new Date(timestamp) : max,
-        lastDisplayedDate
-      );
-
-      if (latestTimestamp > lastDisplayedDate) {
-        updateLastDisplayedTimestamp(latestTimestamp);
-      }
+    if (newNotifications.length === 0) {
+      return;
     }
+
+    setVisibleNotifications((prevNotifications) => {
+      const combined = [...prevNotifications, ...newNotifications];
+      // Deduplicate notifications by id
+      return combined.reduce((acc, current) => {
+        if (acc.findIndex(({ id }) => id === current.id) === -1) {
+          acc.push(current);
+        }
+        return acc;
+      }, [] as Notification[]);
+    });
+
+    const latestTimestamp = newNotifications.reduce(
+      (max, { timestamp }) =>
+        new Date(timestamp) > max ? new Date(timestamp) : max,
+      lastDisplayedDate
+    );
+
+    if (latestTimestamp > lastDisplayedDate) {
+      updateLastDisplayedTimestamp(latestTimestamp);
+    }
+
+    // Track all cleanup functions to prevent memory leaks
+    const cleanupFunctions: (() => void)[] = [];
 
     newNotifications.forEach((notification) => {
       setShow((s) => ({ ...s, [notification.id]: true }));
-      setTimeout(() => {
-        setShow((s) => ({ ...s, [notification.id]: false }));
 
-        setTimeout(() => {
-          setVisibleNotifications((prev) =>
-            prev.filter((item) => item.id !== notification.id)
-          );
-        }, TRANSITION_DURATION);
-      }, notification.timeout || DEFAULT_NOTIFICATION_TIMEOUT);
-    });
-
-    const timeouts = newNotifications.map((notification) => {
       const showTimeout = setTimeout(() => {
         setShow((s) => ({ ...s, [notification.id]: false }));
+
         const removeTimeout = setTimeout(() => {
           setVisibleNotifications((prev) =>
             prev.filter((item) => item.id !== notification.id)
           );
         }, TRANSITION_DURATION);
-        return removeTimeout;
+
+        // Add cleanup for the inner timeout
+        cleanupFunctions.push(() => clearTimeout(removeTimeout));
       }, notification.timeout || DEFAULT_NOTIFICATION_TIMEOUT);
-      return showTimeout;
+
+      // Add cleanup for the outer timeout
+      cleanupFunctions.push(() => clearTimeout(showTimeout));
     });
 
     return () => {
-      timeouts.forEach(clearTimeout);
+      // Clean up all timeouts to prevent memory leaks
+      cleanupFunctions.forEach((cleanup) => cleanup());
     };
   }, [
     notifications,
     lastDisplayedTimestamp,
-    removeNotification,
     updateLastDisplayedTimestamp
   ]);
 
