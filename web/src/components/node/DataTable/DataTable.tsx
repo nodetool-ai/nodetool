@@ -14,7 +14,8 @@ import {
   CellComponent,
   ColumnDefinitionAlign,
   Formatter,
-  StandardValidatorType
+  StandardValidatorType,
+  RowComponent
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -42,11 +43,11 @@ export const datetimeFormatter: Formatter = (cell) => {
 /**
  * Coerce a value to the correct type
  */
-const coerceValue = (value: any, column: ColumnDef) => {
+const coerceValue = (value: string | number | Date, column: ColumnDef) => {
   if (column.data_type === "int") {
-    return parseInt(value);
+    return parseInt(String(value));
   } else if (column.data_type === "float") {
-    return parseFloat(value);
+    return parseFloat(String(value));
   } else if (column.data_type === "datetime") {
     return value;
   }
@@ -56,13 +57,13 @@ const coerceValue = (value: any, column: ColumnDef) => {
 /**
  * Coerce a row to the correct types
  */
-const coerceRow = (rownum: number, row: any[], columns: ColumnDef[]) => {
+const coerceRow = (rownum: number, row: unknown[], columns: ColumnDef[]) => {
   return columns.reduce(
     (acc, col, index) => {
-      acc[col.name] = coerceValue(row[index], col);
+      acc[col.name] = coerceValue(row[index] as string | number | Date, col);
       return acc;
     },
-    { rownum } as Record<string, any>
+    { rownum } as Record<string, unknown>
   );
 };
 
@@ -85,7 +86,7 @@ const DataTable: React.FC<DataTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
-  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
   const [isTableReady, setIsTableReady] = useState(false);
@@ -119,7 +120,7 @@ const DataTable: React.FC<DataTableProps> = ({
   }, [dataframe.columns, dataframe.data]);
 
   const onChangeRows = useCallback(
-    (newData: any[] | Record<string, any>) => {
+    (newData: Record<string, unknown>[] | Record<string, unknown>) => {
       if (onChange && Array.isArray(newData)) {
         const currentDf = dataframeRef.current;
         onChange({
@@ -150,7 +151,7 @@ const DataTable: React.FC<DataTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (e: any, cell: CellComponent) {
+              cellClick: function (e: UIEvent, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -298,7 +299,7 @@ const DataTable: React.FC<DataTableProps> = ({
           type: "like" as const,
           value: searchFilter
         }));
-        tabulatorRef.current.setFilter([filters] as any);
+        tabulatorRef.current.setFilter(filters as any);
       } else {
         (tabulatorRef.current.clearFilter as () => void)();
       }

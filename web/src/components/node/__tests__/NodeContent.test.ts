@@ -29,6 +29,7 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     isOutputNode: false,
     data: {
       properties: { value: "" },
+      selectable: undefined,
       dynamic_properties: {},
       workflow_id: "wf-1"
     } as NodeData,
