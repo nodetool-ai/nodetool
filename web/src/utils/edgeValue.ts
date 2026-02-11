@@ -1,7 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
-type GetResult = (workflowId: string, nodeId: string) => any;
+type GetResult = (workflowId: string, nodeId: string) => unknown;
 type FindNode = (nodeId: string) => Node<NodeData> | undefined;
 
 const isLiteralSourceNode = (nodeType?: string) => {
@@ -14,13 +14,14 @@ const isLiteralSourceNode = (nodeType?: string) => {
   );
 };
 
-const resolveResultValue = (result: any, sourceHandle?: string) => {
+const resolveResultValue = (result: unknown, sourceHandle?: string): unknown => {
   if (
     sourceHandle &&
     typeof result === "object" &&
-    result !== null
+    result !== null &&
+    !Array.isArray(result)
   ) {
-    return result[sourceHandle] ?? result;
+    return (result as Record<string, unknown>)[sourceHandle] ?? result;
   }
   return result;
 };

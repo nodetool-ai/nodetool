@@ -24,7 +24,7 @@ type MonacoComponent = (props: {
   options?: Record<string, unknown>;
   width?: string | number;
   height?: string | number;
-  onMount?: (editor: monaco.editor.IStandaloneCodeEditor, monaco: any) => void;
+  onMount?: (editor: monaco.editor.IStandaloneCodeEditor, monaco: typeof import("monaco-editor")) => void;
 }) => JSX.Element;
 
 /**
