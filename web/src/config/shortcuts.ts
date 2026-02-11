@@ -750,6 +750,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  {
+    title: "Workflow Statistics",
+    slug: "toggleStatistics",
+    keyCombo: ["Control", "Shift", "S"],
+    category: "panel" as const,
+    description: "Toggle workflow statistics panel",
+    registerCombo: true
   }
 ] as Shortcut[];
 
