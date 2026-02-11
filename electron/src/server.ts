@@ -23,6 +23,12 @@ import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
 import { readSettings } from "./settings";
+import {
+  startPostgresServer,
+  stopPostgresServer,
+  isPostgresRunning,
+  getPostgresConnectionUrl,
+} from "./postgres";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
@@ -452,6 +458,19 @@ async function startServer(): Promise<void> {
     throw error;
   }
 
+  // Start PostgreSQL server first
+  try {
+    logMessage("Starting PostgreSQL server...");
+    emitBootMessage("Starting PostgreSQL server...");
+    await startPostgresServer();
+    logMessage("PostgreSQL server started successfully");
+  } catch (error) {
+    logMessage(
+      `Failed to start PostgreSQL server: ${(error as Error).message}. Continuing without PostgreSQL.`,
+      "warn"
+    );
+  }
+
   // Determine model backend preference
   let modelBackend = "ollama";
   try {
@@ -519,6 +538,19 @@ async function startServer(): Promise<void> {
     webPath,
   ];
 
+  // Build environment variables including PostgreSQL connection
+  const serverEnv: Record<string, string> = {
+    ...getProcessEnv(),
+    OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
+    LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
+  };
+
+  // Add PostgreSQL connection URL if PostgreSQL is running
+  if (isPostgresRunning()) {
+    serverEnv.DATABASE_URL = getPostgresConnectionUrl();
+    logMessage(`Set DATABASE_URL to ${serverEnv.DATABASE_URL}`);
+  }
+
   logMessage(`Starting backend server with command: ${pythonExecutablePath} ${args.join(" ")}`);
   emitBootMessage("Starting backend server...");
 
@@ -526,11 +558,7 @@ async function startServer(): Promise<void> {
     name: "nodetool",
     command: pythonExecutablePath,
     args,
-    env: {
-      ...getProcessEnv(),
-      OLLAMA_API_URL: `http://127.0.0.1:${serverState.ollamaPort ?? 11435}`,
-      LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
-    },
+    env: serverEnv,
     pidFilePath: PID_FILE_PATH,
     healthUrl: `http://127.0.0.1:${selectedPort}/health`,
     onOutput: (line) => handleServerOutput(Buffer.from(line)),
@@ -849,6 +877,8 @@ async function stopServer(): Promise<void> {
       await llamaWatchdog.stopGracefully();
       llamaWatchdog = null;
     }
+    // Stop PostgreSQL server
+    await stopPostgresServer();
   } catch (error) {
     logMessage(`Error during shutdown: ${(error as Error).message}`, "error");
   }
@@ -899,4 +929,5 @@ export {
   isServerRunning,
   isOllamaRunning,
   isLlamaServerRunning,
+  isPostgresRunning,
 };

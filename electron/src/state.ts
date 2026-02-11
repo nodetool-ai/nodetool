@@ -12,6 +12,7 @@ export interface ServerState {
   ollamaExternalManaged?: boolean;
   llamaPort?: number;
   llamaExternalManaged?: boolean;
+  postgresPort?: number;
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -28,6 +29,7 @@ const serverState: ServerState = {
   ollamaExternalManaged: false,
   llamaPort: 8080,
   llamaExternalManaged: false,
+  postgresPort: 7778,
 };
 
 export function getMainWindow(): BrowserWindow | null {
