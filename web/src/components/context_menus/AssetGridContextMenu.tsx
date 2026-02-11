@@ -1,5 +1,6 @@
 //mui
 import type { MouseEvent } from "react";
+import { memo } from "react";
 import { Menu, MenuItem, Typography, Divider } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
@@ -12,7 +13,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
-const AssetGridContextMenu = () => {
+const AssetGridContextMenu = memo(function AssetGridContextMenu() {
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
@@ -86,6 +87,6 @@ const AssetGridContextMenu = () => {
       />
     </Menu>
   );
-};
+});
 
 export default AssetGridContextMenu;

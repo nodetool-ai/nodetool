@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, memo } from "react";
 import { Box, Menu, MenuItem, ListSubheader, TextField, InputAdornment } from "@mui/material";
 import Search from "@mui/icons-material/Search";
 import { IMAGE_SIZE_PRESETS, PresetOption } from "../../config/constants";
@@ -12,14 +12,14 @@ interface ImageSizePresetsMenuProps {
   currentHeight: number;
 }
 
-export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
+export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = memo(function ImageSizePresetsMenu({
   anchorEl,
   open,
   onClose,
   onSelect,
   currentWidth,
   currentHeight
-}) => {
+}) {
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleClose = () => {
@@ -155,4 +155,4 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
       )}
     </Menu>
   );
-};
+});
