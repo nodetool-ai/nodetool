@@ -52,9 +52,9 @@ function shouldSkip(filename: string): boolean {
   return fs.existsSync(filepath);
 }
 
-// Skip when executed by Jest
-if (process.env.JEST_WORKER_ID) {
-  test.skip("skipped in jest runner", () => {});
+// Skip when executed by Jest or in CI (this is a documentation tool, not a functional test)
+if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
+  test.skip("skipped in jest runner or CI", () => {});
 } else {
 
   // ============================================================================
