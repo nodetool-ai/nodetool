@@ -1,11 +1,11 @@
 /**
  * FlexColumn Component
- * 
+ *
  * A flexible vertical container with consistent gap spacing.
  * Eliminates repetitive `display: flex, flexDirection: column, gap` patterns.
  */
 
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -49,7 +49,7 @@ export interface FlexColumnProps extends Omit<BoxProps, 'display' | 'flexDirecti
  *   <Button>Button 2</Button>
  * </FlexColumn>
  */
-export const FlexColumn: React.FC<FlexColumnProps> = ({
+const FlexColumnComponent = ({
   gap = 0,
   padding,
   align = "stretch",
@@ -60,26 +60,32 @@ export const FlexColumn: React.FC<FlexColumnProps> = ({
   sx,
   children,
   ...props
-}) => {
+}: FlexColumnProps) => {
   const theme = useTheme();
+
+  // Memoize the sx prop to prevent unnecessary re-renders
+  const boxSx = useMemo(() => ({
+    display: "flex" as const,
+    flexDirection: "column" as const,
+    gap: theme.spacing(gap),
+    padding: typeof padding === "number" ? theme.spacing(padding) : padding,
+    alignItems: align,
+    justifyContent: justify,
+    flexWrap: wrap ? "wrap" as const : "nowrap" as const,
+    width: fullWidth ? "100%" : undefined,
+    height: fullHeight ? "100%" : undefined,
+    ...sx
+  }), [theme, gap, padding, align, justify, wrap, fullWidth, fullHeight, sx]);
 
   return (
     <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: theme.spacing(gap),
-        padding: typeof padding === "number" ? theme.spacing(padding) : padding,
-        alignItems: align,
-        justifyContent: justify,
-        flexWrap: wrap ? "wrap" : "nowrap",
-        width: fullWidth ? "100%" : undefined,
-        height: fullHeight ? "100%" : undefined,
-        ...sx
-      }}
+      sx={boxSx}
       {...props}
     >
       {children}
     </Box>
   );
 };
+
+export const FlexColumn = memo(FlexColumnComponent);
+FlexColumn.displayName = "FlexColumn";

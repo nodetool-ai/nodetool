@@ -1,11 +1,11 @@
 /**
  * FlexRow Component
- * 
+ *
  * A flexible horizontal container with consistent gap spacing.
  * Eliminates repetitive `display: flex, gap` patterns.
  */
 
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -49,7 +49,7 @@ export interface FlexRowProps extends Omit<BoxProps, 'display'> {
  *   <Chip label="Tag 3" />
  * </FlexRow>
  */
-export const FlexRow: React.FC<FlexRowProps> = ({
+const FlexRowComponent = ({
   gap = 0,
   padding,
   align = "stretch",
@@ -59,25 +59,31 @@ export const FlexRow: React.FC<FlexRowProps> = ({
   sx,
   children,
   ...props
-}) => {
+}: FlexRowProps) => {
   const theme = useTheme();
+
+  // Memoize the sx prop to prevent unnecessary re-renders
+  const boxSx = useMemo(() => ({
+    display: "flex" as const,
+    flexDirection: "row" as const,
+    gap: theme.spacing(gap),
+    padding: typeof padding === "number" ? theme.spacing(padding) : padding,
+    alignItems: align,
+    justifyContent: justify,
+    flexWrap: wrap ? "wrap" as const : "nowrap" as const,
+    width: fullWidth ? "100%" : undefined,
+    ...sx
+  }), [theme, gap, padding, align, justify, wrap, fullWidth, sx]);
 
   return (
     <Box
-      sx={{
-        display: "flex",
-        flexDirection: "row",
-        gap: theme.spacing(gap),
-        padding: typeof padding === "number" ? theme.spacing(padding) : padding,
-        alignItems: align,
-        justifyContent: justify,
-        flexWrap: wrap ? "wrap" : "nowrap",
-        width: fullWidth ? "100%" : undefined,
-        ...sx
-      }}
+      sx={boxSx}
       {...props}
     >
       {children}
     </Box>
   );
 };
+
+export const FlexRow = memo(FlexRowComponent);
+FlexRow.displayName = "FlexRow";
