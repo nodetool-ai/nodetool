@@ -343,6 +343,33 @@ export const handleUpdate = (
           alert: true,
           content: `Job completed in ${job.duration?.toPrecision(2)} seconds`
         });
+        // Record health metrics for completed jobs
+        const recordHealth = useWorkflowHealthStore.getState().recordExecution;
+        const getDurations = () => {
+          const timings = useExecutionTimeStore.getState().timings;
+          const nodeTimings: Record<string, number> = {};
+          Object.entries(timings).forEach(([key, timing]) => {
+            if (key.startsWith(workflow.id + ":") && timing.endTime) {
+              const nodeId = key.split(":")[1];
+              nodeTimings[nodeId] = timing.endTime - timing.startTime;
+            }
+          });
+          return nodeTimings;
+        };
+        const errorStore = useErrorStore.getState();
+        const errorNodeIds: string[] = [];
+        Object.entries(errorStore.errors || {}).forEach(([key]) => {
+          if (key.startsWith(workflow.id + ":")) {
+            const nodeId = key.split(":")[1];
+            errorNodeIds.push(nodeId);
+          }
+        });
+        recordHealth(workflow.id, {
+          success: true,
+          duration: Math.round((job.duration || 0) * 1000),
+          nodeTimings: getDurations(),
+          errorNodeIds
+        });
         // Note: Don't clear edges on completion - keep the stream item counts visible
         // Edges are cleared when a new run starts (in WorkflowRunner.ts)
         clearProgress(workflow.id);
