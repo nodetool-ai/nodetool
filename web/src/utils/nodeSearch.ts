@@ -24,7 +24,8 @@ let globalPrefixTreeNodesHash: string = "";
  */
 function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
   // Create a hash of the nodes to detect changes
-  const nodesHash = nodes.map(n => n.node_type).sort().join(",");
+  // Keep hashing O(n): preserving current order avoids the expensive sort
+  const nodesHash = nodes.map((n) => n.node_type).join(",");
   
   // Check if we need to rebuild the tree
   if (!globalPrefixTree || globalPrefixTreeNodesHash !== nodesHash) {
@@ -142,9 +143,12 @@ export function performGroupedSearch(
 
   // Collect all results with their scores for ranking
   const allResults: Array<{ node: any; score: number; source: string }> = [];
+  const seenNodeTypes = new Set<string>();
 
   // Title matches (highest priority - score boost)
   titleFuse.search(term).forEach((result) => {
+    const nodeType = result.item.metadata.node_type;
+    seenNodeTypes.add(nodeType);
     allResults.push({
       node: {
         ...result.item.metadata,
@@ -160,10 +164,12 @@ export function performGroupedSearch(
 
   // Namespace + Tags matches
   titleTagsFuse.search(term).forEach((result) => {
+    const nodeType = result.item.metadata.node_type;
     // Skip if already in results
-    if (allResults.some((r) => r.node.node_type === result.item.metadata.node_type)) {
+    if (seenNodeTypes.has(nodeType)) {
       return;
     }
+    seenNodeTypes.add(nodeType);
     allResults.push({
       node: {
         ...result.item.metadata,
@@ -191,10 +197,12 @@ export function performGroupedSearch(
   });
 
   Array.from(descResults.values()).forEach((result) => {
+    const nodeType = result.item.metadata.node_type;
     // Skip if already in results
-    if (allResults.some((r) => r.node.node_type === result.item.metadata.node_type)) {
+    if (seenNodeTypes.has(nodeType)) {
       return;
     }
+    seenNodeTypes.add(nodeType);
     allResults.push({
       node: {
         ...result.item.metadata,
