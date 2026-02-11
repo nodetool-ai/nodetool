@@ -15,7 +15,10 @@
       "Bash(npm test -- packageManager)",
       "Bash(bundle install:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git merge-head:*)",
+      "Bash(make:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

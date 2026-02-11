@@ -91,7 +91,7 @@ export const defaultSettings: Settings = {
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       settings: { ...defaultSettings },
       isMenuOpen: false,
       settingsTab: 0,
@@ -216,7 +216,23 @@ export const useSettingsStore = create<SettingsStore>()(
       partialize: (state) => ({
         settings: state.settings,
         // Don't persist menuAnchorEl state
-      })
+      }),
+      // Merge persisted state with defaults to handle new settings being added
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<SettingsStore> | undefined;
+        return {
+          ...currentState,
+          settings: {
+            ...defaultSettings,
+            ...persisted?.settings,
+            // Deep merge autosave settings to ensure new defaults are included
+            autosave: {
+              ...defaultAutosaveSettings,
+              ...persisted?.settings?.autosave
+            }
+          }
+        };
+      }
     }
   )
 );

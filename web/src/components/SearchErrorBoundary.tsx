@@ -1,7 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
-import { Typography, Box, Button } from "@mui/material";
+import { Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
+import { Typography, Box } from "@mui/material";
+import { EditorButton } from "./ui_primitives";
 import { ThemeContext } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -49,12 +51,12 @@ interface SearchErrorBoundaryState {
 }
 
 interface SearchErrorBoundaryProps {
-  children: React.ReactNode;
+  children: ReactNode;
   fallbackTitle?: string;
   onRetry?: () => void;
 }
 
-class SearchErrorBoundary extends React.Component<
+class SearchErrorBoundary extends Component<
   SearchErrorBoundaryProps,
   SearchErrorBoundaryState
 > {
@@ -71,7 +73,7 @@ class SearchErrorBoundary extends React.Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Search component error:", error, errorInfo);
   }
 
@@ -94,14 +96,14 @@ class SearchErrorBoundary extends React.Component<
             Something went wrong with the search functionality. Please try
             again.
           </Typography>
-          <Button
+          <EditorButton
             variant="contained"
             onClick={this.handleRetry}
             className="retry-button"
-            size="small"
+            density="normal"
           >
             Try Again
-          </Button>
+          </EditorButton>
         </Box>
       );
     }

@@ -1,3 +1,23 @@
+/**
+ * AssetStore manages file assets and folder organization.
+ *
+ * Responsibilities:
+ * - CRUD operations for assets (files and folders)
+ * - Folder tree management and navigation
+ * - Asset search with global query support
+ * - Upload progress tracking
+ * - Batch download of assets
+ * - Integration with TanStack Query for caching
+ *
+ * Assets are versioned file objects with metadata including:
+ * - content_type: MIME type or "folder"
+ * - parent_id: Reference to parent folder
+ * - workflow_id: Optional association with a workflow
+ * - metadata: Additional JSON metadata
+ *
+ * Uses composite keys for cache: ["assets", { parent_id: "..." }]
+ */
+
 import { create } from "zustand";
 import { client, authHeader } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
@@ -38,7 +58,9 @@ const emitUploadProgress = (
   loaded: number,
   total: number
 ) => {
-  if (!onUploadProgress) {return;}
+  if (!onUploadProgress) {
+    return;
+  }
   onUploadProgress({
     loaded,
     total,
@@ -81,10 +103,10 @@ const uploadAsset = async (
       error instanceof DOMException && error.name === "AbortError"
         ? createErrorMessage(error, "Asset upload was cancelled")
         : error instanceof TypeError
-        ? createErrorMessage(error, "Network error while creating asset")
-        : statusCode === 408
-        ? createErrorMessage(error, "Asset upload timed out")
-        : createErrorMessage(error, errorMessage);
+          ? createErrorMessage(error, "Network error while creating asset")
+          : statusCode === 408
+            ? createErrorMessage(error, "Asset upload timed out")
+            : createErrorMessage(error, errorMessage);
 
     throw normalizedError;
   }
@@ -113,6 +135,7 @@ export type AssetUpdate = {
   content_type?: string;
   metadata?: Record<string, never>;
   data?: string;
+  data_encoding?: "base64";
   duration?: number;
 };
 
@@ -140,15 +163,6 @@ export interface AssetStore {
   download: (ids: string[]) => Promise<boolean>;
   getAssetsRecursive: (folderId: string) => Promise<AssetTreeNode[]>;
 }
-
-/**
- * Sort assets by created_at in descending order.
- */
-const sort = (assets: { [key: string]: Asset }) => {
-  return Object.values(assets).sort((a, b) => {
-    return -a.created_at.localeCompare(b.created_at);
-  });
-};
 
 export type FolderTree = Record<string, AssetTreeNode>;
 
@@ -334,10 +348,15 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       const headers = await authHeader();
       const params = new URLSearchParams();
       params.append("query", query.query);
-      if (query.content_type) {params.append("content_type", query.content_type);}
-      if (query.page_size)
-        {params.append("page_size", query.page_size.toString());}
-      if (query.cursor) {params.append("cursor", query.cursor);}
+      if (query.content_type) {
+        params.append("content_type", query.content_type);
+      }
+      if (query.page_size) {
+        params.append("page_size", query.page_size.toString());
+      }
+      if (query.cursor) {
+        params.append("cursor", query.cursor);
+      }
 
       const response = await axios.get(
         `${BASE_URL}/api/assets/search?${params.toString()}`,
@@ -477,10 +496,12 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
 
       const electronApi =
-        (window as unknown as {
-          electron?: { saveFile?: ElectronSaveFile };
-          api?: { saveFile?: ElectronSaveFile };
-        }).electron ||
+        (
+          window as unknown as {
+            electron?: { saveFile?: ElectronSaveFile };
+            api?: { saveFile?: ElectronSaveFile };
+          }
+        ).electron ||
         (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
 
       if (electronApi?.saveFile) {
@@ -549,14 +570,20 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     if (req.id === req.parent_id) {
       throw new Error("Cannot move an asset into itself.");
     }
+    // Use provided values or fall back to previous values for required fields.
+    // This ensures we don't accidentally clear fields like parent_id when only
+    // updating the name.
     const { error, data } = await client.PUT("/api/assets/{id}", {
       params: { path: { id: req.id } },
       body: {
-        name: req.name || null,
-        parent_id: req.parent_id || null,
-        content_type: req.content_type || null,
-        metadata: req.metadata || null,
-        data: req.data || null
+        name: req.name !== undefined ? req.name : prev.name,
+        parent_id: req.parent_id !== undefined ? req.parent_id : prev.parent_id,
+        content_type:
+          req.content_type !== undefined ? req.content_type : prev.content_type,
+        metadata: req.metadata !== undefined ? req.metadata : null,
+        data: req.data !== undefined ? req.data : null,
+        data_encoding:
+          req.data_encoding !== undefined ? req.data_encoding : null
       }
     });
     if (error) {
@@ -564,7 +591,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
     get().add(data);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
-    if (req.parent_id !== prev.parent_id) {
+    if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
       get().invalidateQueries(["assets", { parent_id: req.parent_id }]);
     }
     return data;

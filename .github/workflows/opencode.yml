@@ -1,4 +1,4 @@
-name: opencode
+name: Interactive Assistant
 
 on:
   issue_comment:
@@ -7,24 +7,25 @@ on:
     types: [created]
 
 jobs:
-  opencode:
+  assistant:
     if: |
       contains(github.event.comment.body, ' /oc') ||
       startsWith(github.event.comment.body, '/oc') ||
       contains(github.event.comment.body, ' /opencode') ||
       startsWith(github.event.comment.body, '/opencode')
     runs-on: ubuntu-latest
-    env:
-      MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
     permissions:
       id-token: write
       contents: read
       pull-requests: read
       issues: read
+      actions: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -32,20 +33,85 @@ jobs:
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
-      - name: Install web dependencies
+      - name: Install dependencies
         run: |
-          cd web
-          npm ci
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
 
-      - name: Install electron dependencies
+      - name: Pre-flight quality check
+        id: pre-check
+        continue-on-error: true
         run: |
-          cd electron
-          npm ci
-          
-      - name: Print MINIMAX_API_KEY length
-        run: 'echo "MINIMAX_API_KEY length: ${#MINIMAX_API_KEY}"'
+          echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
 
-      - name: Run opencode
-        uses: sst/opencode/github@latest
+          make typecheck 2>&1 | tee typecheck-pre.log || TYPECHECK_EXIT=1
+          make lint 2>&1 | tee lint-pre.log || LINT_EXIT=1
+          make test 2>&1 | tee test-pre.log || TEST_EXIT=1
+
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
         with:
-          model: minimax/MiniMax-M2.1
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,WebFetch,Edit,Read,Replace"
+          prompt: |
+            # NodeTool Assistant
+
+            Help with NodeTool, a React/TypeScript visual AI workflow builder.
+
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7, TanStack Query
+            - Packages: `/web`, `/electron`, `/mobile` — backend is a separate Python repo
+            - Memory: `.memory/` has project context, features list, known issues, and insights
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing branches
+            2. Read `.memory/features.md` and `.memory/project-context.md`
+            3. Check `.memory/issues/` and `.memory/insights/` for relevant solutions
+
+            ## Quality Rules
+            - `make typecheck && make lint && make test` must all pass
+            - Use `make lint-fix` to auto-fix many issues
+            - Never make quality worse than before
+            - TypeScript strict: no `any`, use `===`, use `Array.isArray()`
+            - React: selective Zustand subscriptions, useCallback for child props, MUI theme values
+
+            ## Your Task
+            Review the issue comment and provide helpful assistance. 
+            
+            **If you make code changes to fix an issue or implement a feature:**
+            1. Make the changes and test them thoroughly
+            2. Commit your changes with a clear message
+            3. Push your branch
+            4. **Create a Pull Request** with a clear description of what you did and why
+
+      - name: Post-change verification
+        if: always()
+        run: |
+          echo "## Post-Change Verification" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+
+          make typecheck 2>&1 || TYPECHECK_EXIT=1
+          make lint 2>&1 || LINT_EXIT=1
+          make test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "🔴 NEW TypeScript errors!" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "🔴 NEW lint errors!" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "🔴 NEW test failures!" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          echo "✅ Quality maintained" >> $GITHUB_STEP_SUMMARY

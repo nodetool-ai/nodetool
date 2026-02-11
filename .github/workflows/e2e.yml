@@ -7,6 +7,7 @@ on:
     paths:
       - "web/**"
       - "electron/**"
+      - "mobile/**"
       - ".github/workflows/e2e.yml"
   pull_request:
     branches:
@@ -14,6 +15,7 @@ on:
     paths:
       - "web/**"
       - "electron/**"
+      - "mobile/**"
       - ".github/workflows/e2e.yml"
 
 permissions:
@@ -23,7 +25,7 @@ jobs:
   web:
     name: Web Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout code
@@ -66,52 +68,10 @@ jobs:
           cd web
           npx playwright install --with-deps chromium
 
-      - name: Install Ollama
-        shell: bash -l {0}
-        run: |
-          # Install ollama via conda
-          conda install -y -c conda-forge ollama
-
-      - name: Start Ollama server
-        shell: bash -l {0}
-        run: |
-          # Find ollama binary in conda environment
-          OLLAMA_PATH="${CONDA_PREFIX}/bin/ollama"
-          echo "Ollama path: ${OLLAMA_PATH}"
-
-          # Start ollama serve in background
-          ${OLLAMA_PATH} serve > /tmp/ollama-server.log 2>&1 &
-          echo $! > /tmp/ollama-server.pid
-
-          # Wait for ollama to be ready
-          echo "Waiting for Ollama server to be ready..."
-          for i in {1..30}; do
-            if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-              echo "Ollama server is ready"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "Ollama server failed to start"
-              cat /tmp/ollama-server.log
-              exit 1
-            fi
-            sleep 2
-          done
-
-      - name: Pull Ollama model
-        shell: bash -l {0}
-        run: |
-          # Find ollama binary
-          OLLAMA_PATH="${CONDA_PREFIX}/bin/ollama"
-
-          # Pull the gemma3:270m model
-          echo "Pulling gemma3:270m model..."
-          ${OLLAMA_PATH} pull gemma3:270m
-
       - name: Start nodetool server
         shell: bash -l {0}
         run: |
-          nodetool serve --port 7777 > /tmp/nodetool-server.log 2>&1 &
+          nodetool serve --port 7777 --mock > /tmp/nodetool-server.log 2>&1 &
           echo $! > /tmp/nodetool-server.pid
           
       - name: Wait for nodetool server to be ready
@@ -136,9 +96,6 @@ jobs:
           if [ -f /tmp/nodetool-server.pid ]; then
             kill $(cat /tmp/nodetool-server.pid) || true
           fi
-          if [ -f /tmp/ollama-server.pid ]; then
-            kill $(cat /tmp/ollama-server.pid) || true
-          fi
 
       - name: Upload nodetool server logs
         if: failure()
@@ -146,14 +103,6 @@ jobs:
         with:
           name: nodetool-server-logs
           path: /tmp/nodetool-server.log
-          retention-days: 7
-
-      - name: Upload Ollama server logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ollama-server-logs
-          path: /tmp/ollama-server.log
           retention-days: 7
 
       - name: Upload Playwright report
@@ -175,7 +124,7 @@ jobs:
   electron:
     name: Electron End-to-End Tests
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     
     strategy:
       fail-fast: false
@@ -216,6 +165,11 @@ jobs:
       - name: Install Electron dependencies
         run: |
           cd electron
+          npm ci
+
+      - name: Install mobile dependencies
+        run: |
+          cd mobile
           npm ci
 
       - name: Install Playwright browsers

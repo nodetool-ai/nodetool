@@ -1,10 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback } from "react";
-import { Box, IconButton, Tooltip, Typography } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/DeleteOutline";
-import EditIcon from "@mui/icons-material/EditOutlined";
+import { Box, Typography } from "@mui/material";
+import { EditButton, DeleteButton } from "../ui_primitives";
 import NodeOutput from "./NodeOutput";
-import { Property, TypeMetadata } from "../../stores/ApiTypes";
+import { Property } from "../../stores/ApiTypes";
 import isEqual from "lodash/isEqual";
 
 type OutputItem = Property & { isDynamic?: boolean };
@@ -14,6 +13,7 @@ export interface DynamicOutputItemProps {
   output: OutputItem;
   showLabel: boolean;
   supportsDynamicOutputs: boolean;
+  isStreamingOutput?: boolean;
   onStartEdit: (name: string) => void;
   onDelete: (name: string) => void;
 }
@@ -23,6 +23,7 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
   output,
   showLabel,
   supportsDynamicOutputs,
+  isStreamingOutput,
   onStartEdit,
   onDelete
 }) => {
@@ -55,16 +56,16 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
             className="actions"
             sx={{ height: "1em", display: "flex", gap: 0.5 }}
           >
-            <Tooltip title="Rename output">
-              <IconButton size="small" onClick={handleRename}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Remove output">
-              <IconButton size="small" onClick={handleDelete}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <EditButton
+              onClick={handleRename}
+              tooltip="Rename output"
+              iconVariant="edit"
+            />
+            <DeleteButton
+              onClick={handleDelete}
+              tooltip="Remove output"
+              iconVariant="outline"
+            />
           </Box>
           <Typography textAlign="right">{output.name}</Typography>
         </Box>
@@ -96,6 +97,7 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
           stream: false
         }}
         isDynamic={true}
+        isStreamingOutput={isStreamingOutput}
       />
     </>
   );

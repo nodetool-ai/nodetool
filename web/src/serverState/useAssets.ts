@@ -7,7 +7,6 @@ import useAuth from "../stores/useAuth";
 import { useAssetGridStore } from "../stores/AssetGridStore";
 import { SIZE_FILTERS } from "../utils/formatUtils";
 
-type SortOrder = "name" | "date" | "size";
 type FilterOptions = {
   searchTerm: string;
   contentType?: string | null;
@@ -25,7 +24,7 @@ type AssetUpdate = {
   duration?: number;
 };
 
-export const useAssets = (initialFolderId: string | null = null) => {
+export const useAssets = (_initialFolderId: string | null = null) => {
   const setCurrentFolderId = useAssetGridStore(
     (state) => state.setCurrentFolderId
   );
@@ -33,14 +32,12 @@ export const useAssets = (initialFolderId: string | null = null) => {
   const currentUser = useAuth((state) => state.user);
   const setCurrentFolder = useAssetGridStore((state) => state.setCurrentFolder);
   const loadCurrentFolder = useAssetStore((state) => state.loadCurrentFolder);
-  const {
-    load,
-    loadFolderTree,
-    update,
-    delete: deleteAsset,
-    createFolder
-  } = useAssetStore();
-  const { settings } = useSettingsStore();
+  const load = useAssetStore((state) => state.load);
+  const loadFolderTree = useAssetStore((state) => state.loadFolderTree);
+  const update = useAssetStore((state) => state.update);
+  const deleteAsset = useAssetStore((state) => state.delete);
+  const createFolder = useAssetStore((state) => state.createFolder);
+  const settings = useSettingsStore((state) => state.settings);
   const queryClient = useQueryClient();
   const setSelectedFolderId = useAssetGridStore(
     (state) => state.setSelectedFolderId
@@ -129,9 +126,9 @@ export const useAssets = (initialFolderId: string | null = null) => {
         );
       } else if (settings.assetsOrder === "size") {
         // Sort by file size (largest first)
-        const aSize = (a as any).size as number | undefined;
-        const bSize = (b as any).size as number | undefined;
-        if (aSize !== undefined && bSize !== undefined) {
+        const aSize = a.size;
+        const bSize = b.size;
+        if (aSize !== undefined && aSize !== null && bSize !== undefined && bSize !== null) {
           return bSize - aSize;
         }
         // Fall back to name sorting if size is not available
@@ -161,8 +158,8 @@ export const useAssets = (initialFolderId: string | null = null) => {
           const sizeFilterConfig = SIZE_FILTERS.find(
             (f) => f.key === options.sizeFilter
           );
-          if (sizeFilterConfig && (asset as any).size !== undefined) {
-            const assetSize = (asset as any).size as number;
+          if (sizeFilterConfig && asset.size !== undefined && asset.size !== null) {
+            const assetSize = asset.size;
             if (sizeFilterConfig.key === "empty") {
               sizeMatch = assetSize === 0;
             } else {

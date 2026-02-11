@@ -6,7 +6,8 @@ import {
 
 // Mock the dependencies
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
+  useNodes: jest.fn(),
+  useNodeStoreRef: jest.fn()
 }));
 
 jest.mock("../../../stores/WorkflowRunner", () => ({
@@ -26,15 +27,16 @@ jest.mock("../../../stores/SettingsStore", () => ({
   useSettingsStore: jest.fn()
 }));
 
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
 import { subgraph } from "../../../core/graph";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 
 const mockUseNodes = useNodes as jest.Mock;
+const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
- 
+
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockSubgraph = subgraph as jest.Mock;
 const mockUseSettingsStore = useSettingsStore as unknown as jest.Mock;
@@ -91,12 +93,24 @@ describe("useInputNodeAutoRun", () => {
       findNode: mockFindNode
     });
 
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: defaultMockNodes,
+        edges: defaultMockEdges,
+        workflow: defaultMockWorkflow,
+        findNode: mockFindNode
+      })
+    });
+
     mockUseWebsocketRunner.mockImplementation((selector) => {
       const state = { run: mockRun, state: "idle" };
       return selector(state);
     });
 
-    mockUseResultsStore.mockReturnValue(mockGetResult);
+    mockUseResultsStore.mockImplementation((selector) => {
+      const state = { getResult: mockGetResult };
+      return selector(state);
+    });
 
     // Default: instantUpdate is disabled
     mockUseSettingsStore.mockImplementation((selector) => {
@@ -337,11 +351,21 @@ describe("useInputNodeAutoRun", () => {
       complexNodes.find((n) => n.id === id)
     );
 
+    // Override the beforeEach mock setup for this specific test
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: complexNodes,
+        edges: complexEdges,
+        workflow: defaultMockWorkflow,
+        findNode: mockFindNode
+      })
+    });
+
     // Subgraph from input-1 includes: input-1, downstream-1, downstream-2
     // But NOT external-1
     mockSubgraph.mockReturnValue({
       nodes: [complexNodes[1], complexNodes[2], complexNodes[3]],
-      edges: [complexEdges[1], complexEdges[2]]
+      edges: [complexEdges[0], complexEdges[1], complexEdges[2]]
     });
 
     // external-1 has a cached result
@@ -443,10 +467,20 @@ describe("useInputNodeAutoRun", () => {
       multiExternalNodes.find((n) => n.id === id)
     );
 
+    // Override the beforeEach mock setup for this specific test
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: multiExternalNodes,
+        edges: multiExternalEdges,
+        workflow: defaultMockWorkflow,
+        findNode: mockFindNode
+      })
+    });
+
     // Subgraph from input-1: input-1, downstream-1, downstream-2
     mockSubgraph.mockReturnValue({
       nodes: [multiExternalNodes[2], multiExternalNodes[3], multiExternalNodes[4]],
-      edges: [multiExternalEdges[2], multiExternalEdges[3]]
+      edges: [multiExternalEdges[0], multiExternalEdges[2], multiExternalEdges[3]]
     });
 
     // Both external nodes have cached results
@@ -543,9 +577,19 @@ describe("useInputNodeAutoRun", () => {
       nodesWithLiterals.find((n) => n.id === id)
     );
 
+    // Override the beforeEach mock setup for this specific test
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: nodesWithLiterals,
+        edges: literalEdges,
+        workflow: defaultMockWorkflow,
+        findNode: mockFindNode
+      })
+    });
+
     mockSubgraph.mockReturnValue({
       nodes: [nodesWithLiterals[0], nodesWithLiterals[3]],
-      edges: [literalEdges[0]]
+      edges: [literalEdges[0], literalEdges[1], literalEdges[2]]
     });
 
     // Enable instantUpdate

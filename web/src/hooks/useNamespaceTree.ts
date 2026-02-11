@@ -3,6 +3,31 @@ import useMetadataStore from "../stores/MetadataStore";
 import { isProduction } from "../stores/ApiClient";
 import { useSecrets } from "./useSecrets";
 
+/**
+ * Represents a hierarchical tree structure for organizing node namespaces.
+ * Used to group and display nodes by their namespace (e.g., "openai.chat", "anthropic.completion").
+ * 
+ * @example
+ * ```typescript
+ * {
+ *   "openai": {
+ *     children: {
+ *       "chat": { children: {}, disabled: false },
+ *       "completion": { children: {}, disabled: false }
+ *     },
+ *     disabled: false
+ *   },
+ *   "anthropic": {
+ *     children: {
+ *       "completion": { children: {}, disabled: true, requiredKey: "Anthropic API Key" }
+ *     },
+ *     disabled: true,
+ *     firstDisabled: true,
+ *     requiredKey: "Anthropic API Key"
+ *   }
+ * }
+ * ```
+ */
 export interface NamespaceTree {
   [key: string]: {
     children: NamespaceTree;
@@ -12,6 +37,38 @@ export interface NamespaceTree {
   };
 }
 
+/**
+ * Hook that builds a hierarchical tree structure from all available node namespaces.
+ * This tree is used to organize and display nodes in the node menu by category.
+ * 
+ * The hook handles:
+ * - **Namespace Extraction**: Collects unique namespaces from node metadata
+ * - **Tree Construction**: Builds a hierarchical structure from dot-separated namespaces
+ * - **API Key Validation**: Marks namespaces as disabled when required API keys are missing
+ * - **Sorting**: Sorts namespaces with enabled first, then disabled alphabetically
+ * - **First Disabled Tracking**: Marks the first disabled root namespace for UI hints
+ * 
+ * @returns NamespaceTree hierarchical structure for node organization
+ * 
+ * @example
+ * ```typescript
+ * const namespaceTree = useNamespaceTree();
+ * 
+ * // Render namespace tree in node menu
+ * Object.entries(namespaceTree).map(([name, node]) => (
+ *   <NamespaceSection key={name} name={name} node={node} />
+ * ));
+ * ```
+ * 
+ * @example
+ * **Namespace Structure**:
+ * - Root namespaces: "openai", "anthropic", "huggingface"
+ * - Nested namespaces: "openai.chat", "openai.embedding"
+ * - Disabled when API key not set: "anthropic.*" → "Anthropic API Key required"
+ * 
+ * @see useMetadataStore - Source of node metadata with namespaces
+ * @see useSecrets - Used to check API key availability
+ */
 const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
   const { isApiKeySet } = useSecrets();
@@ -20,9 +77,18 @@ const useNamespaceTree = (): NamespaceTree => {
   const getRequiredKey = useCallback((namespace: string) => {
     const apiKeyNames: Record<string, string> = {
       openai: "OpenAI API Key",
+      hunyuan3d: "Hunyuan3D API Key",
       aime: "Aime API Key",
       anthropic: "Anthropic API Key",
-      replicate: "Replicate API Token"
+      meshy: "Meshy API Key",
+      point_e: "Point-E API Key",
+      "point-e": "Point-E API Key",
+      replicate: "Replicate API Token",
+      rodin: "Rodin API Key",
+      shap_e: "Shap-E API Key",
+      "shap-e": "Shap-E API Key",
+      trellis: "Trellis API Key",
+      tripo: "Tripo API Key"
     };
 
     const rootNamespace = namespace.split(".")[0];
@@ -37,10 +103,19 @@ const useNamespaceTree = (): NamespaceTree => {
       const apiKeyChecks: Record<string, () => boolean> = {
         calendly: () => !isApiKeySet("CALENDLY_API_TOKEN"),
         google: () => !isApiKeySet("GEMINI_API_KEY"),
+        hunyuan3d: () => !isApiKeySet("HUNYUAN3D_API_KEY"),
         openai: () => !isApiKeySet("OPENAI_API_KEY"),
         aime: () => !isApiKeySet("AIME_API_KEY"),
         anthropic: () => !isApiKeySet("ANTHROPIC_API_KEY"),
-        replicate: () => !isApiKeySet("REPLICATE_API_TOKEN")
+        meshy: () => !isApiKeySet("MESHY_API_KEY"),
+        point_e: () => !isApiKeySet("POINT_E_API_KEY"),
+        "point-e": () => !isApiKeySet("POINT_E_API_KEY"),
+        replicate: () => !isApiKeySet("REPLICATE_API_TOKEN"),
+        rodin: () => !isApiKeySet("RODIN_API_KEY"),
+        shap_e: () => !isApiKeySet("SHAP_E_API_KEY"),
+        "shap-e": () => !isApiKeySet("SHAP_E_API_KEY"),
+        trellis: () => !isApiKeySet("TRELLIS_API_KEY"),
+        tripo: () => !isApiKeySet("TRIPO_API_KEY")
       };
 
       // Get the root namespace
@@ -106,7 +181,7 @@ const useNamespaceTree = (): NamespaceTree => {
 
       // Build path in tree
       let current = tree;
-      parts.forEach((part, index) => {
+      parts.forEach((part) => {
         if (!current[part]) {
           const newNode = {
             children: {} as NamespaceTree,

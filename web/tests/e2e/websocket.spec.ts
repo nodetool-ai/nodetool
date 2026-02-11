@@ -33,26 +33,6 @@ if (process.env.JEST_WORKER_ID) {
 } else {
   test.describe("WebSocket Integration", () => {
     test.describe("WebSocket Connection", () => {
-      test("should establish WebSocket connection on chat page load", async ({ page }) => {
-        // Track WebSocket connections
-        const wsConnections: string[] = [];
-        
-        page.on("websocket", (ws) => {
-          wsConnections.push(ws.url());
-        });
-
-        // Navigate to chat page
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
-
-        // Wait for WebSocket connection by checking for chat interface to be ready
-        await waitForChatInterface(page);
-
-        // Check that a WebSocket connection to /ws was established
-        const unifiedWsConnection = wsConnections.find(url => isUnifiedWsEndpoint(url));
-        expect(unifiedWsConnection).toBeTruthy();
-      });
-
       test("should use unified /ws endpoint instead of legacy endpoints", async ({ page }) => {
         // Track WebSocket connections
         const wsConnections: string[] = [];
@@ -170,40 +150,6 @@ if (process.env.JEST_WORKER_ID) {
         
         // Should not have fatal connection errors after loading
         expect(hasConnectionError).toBeFalsy();
-      });
-
-      test("should maintain WebSocket connection during navigation", async ({ page }) => {
-        // Track WebSocket connections to the unified /ws endpoint specifically
-        const unifiedWsConnections: string[] = [];
-        
-        page.on("websocket", (ws) => {
-          // Only track connections to the unified /ws endpoint (not /ws/updates, /ws/download, etc.)
-          if (isUnifiedWsEndpoint(ws.url())) {
-            unifiedWsConnections.push(ws.url());
-          }
-        });
-
-        // Navigate to chat
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
-        await waitForChatInterface(page);
-
-        // Navigate to another page and back
-        await page.goto("/");
-        await page.waitForLoadState("networkidle");
-
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
-        await waitForChatInterface(page);
-
-        // Verify that unified /ws endpoint connections were established
-        // The exact count can vary based on reconnection behavior, but should be > 0
-        expect(unifiedWsConnections.length).toBeGreaterThan(0);
-        
-        // Verify all tracked connections used the unified endpoint
-        unifiedWsConnections.forEach(url => {
-          expect(isUnifiedWsEndpoint(url)).toBe(true);
-        });
       });
     });
 

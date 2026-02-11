@@ -1,4 +1,4 @@
-import { Asset, AssetRef } from "../stores/ApiTypes";
+import { AssetRef } from "../stores/ApiTypes";
 
 /**
  * Helper function to get the thumbnail URL for an asset

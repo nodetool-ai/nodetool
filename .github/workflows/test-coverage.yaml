@@ -1,0 +1,96 @@
+name: Test Coverage
+
+on:
+  schedule:
+    - cron: "0 3 * * 6"  # Saturdays at 3 AM UTC
+  workflow_dispatch:
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+
+      - name: Run tests with coverage
+        run: |
+          cd web
+          npm run test:coverage -- --json --outputFile=coverage-summary.json || true
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
+          prompt: |
+            # Test Coverage Improvement
+
+            Add tests for untested or undertested code in NodeTool (React/TypeScript visual AI workflow builder).
+
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find code with missing or insufficient test coverage
+            2. Write tests for it
+            3. **Create a Pull Request with your new tests**
+            
+            Do NOT just analyze or report gaps. You must write tests and submit a PR.
+
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - Testing: Jest 29 + React Testing Library 16 + Playwright (E2E)
+            - Coverage data: `web/coverage-summary.json` (generated in previous step)
+            - Memory: `.memory/` contains project context
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing test branches
+            2. Check `web/coverage-summary.json` or run `npm run test:coverage` to find gaps
+
+            ## Priority
+            1. **Stores**: Zustand stores with business logic
+            2. **Hooks**: Custom hooks with logic
+            3. **Utils**: Utility/helper functions
+            4. **Components**: Complex components with business logic
+
+            ## Testing Patterns
+            - Test behavior, not implementation
+            - Use accessible queries: `getByRole`, `getByLabelText`
+            - Use `userEvent` for interactions (not `fireEvent`)
+            - Use `waitFor` for async assertions
+            - Mock external dependencies
+            - One test file per source file, descriptive test names
+
+            ## Quality
+            - `make typecheck && make lint && make test` must all pass
+            - Don't test trivial code (simple getters, TypeScript types, constants)
+            - Don't test third-party library internals
+
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've written your tests, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** noting coverage improvements (before/after percentages)

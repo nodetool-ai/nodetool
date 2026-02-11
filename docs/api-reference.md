@@ -15,8 +15,8 @@ NodeTool exposes three closely related API surfaces:
   - Acts as the **control plane** for authoring and debugging; includes dev-only endpoints such as the terminal WebSocket and debug tooling.  
   - Intended to run on a trusted local machine, not as a public internet API.
 
-- **Worker API (deployable instance)**  
-  - Served by `nodetool worker` (`src/nodetool/deploy/worker.py`).  
+- **Server API (deployable instance)**  
+  - Served by `nodetool serve --mode private` (`src/nodetool/api/run_server.py`).  
   - Provides a **stable, hardened runtime surface** for external clients: OpenAI-compatible chat, workflow execution, admin and storage routes, and health checks.  
   - Designed for self-hosted, RunPod, Cloud Run, and other remote deployments; all non-health endpoints sit behind Bearer auth and TLS.
 
@@ -26,9 +26,9 @@ NodeTool exposes three closely related API surfaces:
 
 This split exists because:
 
-- The desktop/editor needs full control over local resources and rich debug features, while deployed workers must *not* expose those capabilities.
-- The worker API is a small, stable contract you can safely integrate against and deploy widely; the editor API can evolve with the UI and internal architecture.
-- Separating **control plane** (Editor API) from **data plane** (Worker/Chat server) makes scaling, security hardening, and multi-environment deployments simpler.
+- The desktop/editor needs full control over local resources and rich debug features, while deployed servers must *not* expose those capabilities.
+- The server API is a small, stable contract you can safely integrate against and deploy widely; the editor API can evolve with the UI and internal architecture.
+- Separating **control plane** (Editor API) from **data plane** (Server/Chat server) makes scaling, security hardening, and multi-environment deployments simpler.
 
 ## Unified Endpoint Matrix
 
@@ -36,23 +36,23 @@ The table below summarizes key endpoints across the three surfaces. For detailed
 
 | Surface                 | Area       | Path / Prefix                     | Method / Protocol | Auth                                         | Streaming                        | Notes |
 |-------------------------|-----------|-----------------------------------|-------------------|----------------------------------------------|----------------------------------|-------|
-| Editor, Worker, Chat    | Models    | `/v1/models`                      | `GET`             | Bearer when `AUTH_PROVIDER` enforces         | no                               | OpenAI-compatible model listing |
-| Editor, Worker, Chat    | Chat      | `/v1/chat/completions`           | `POST`            | Bearer when `AUTH_PROVIDER` enforces         | SSE when `\"stream\": true`      | OpenAI-compatible chat; SSE or single JSON |
+| Editor, Server, Chat    | Models    | `/v1/models`                      | `GET`             | Bearer when `AUTH_PROVIDER` enforces         | no                               | OpenAI-compatible model listing |
+| Editor, Server, Chat    | Chat      | `/v1/chat/completions`           | `POST`            | Bearer when `AUTH_PROVIDER` enforces         | SSE when `\"stream\": true`      | OpenAI-compatible chat; SSE or single JSON |
 | Editor                  | Workflows | `/api/workflows`                 | `GET`             | Depends on `AUTH_PROVIDER`                   | no                               | List workflows for the local app |
-| Worker                  | Workflows | `/workflows`                     | `GET`             | Depends on `AUTH_PROVIDER`                   | no                               | List workflows on a worker instance |
-| Worker                  | Workflows | `/workflows/{id}/run`            | `POST`            | Depends on `AUTH_PROVIDER`                   | no                               | Run a workflow once, return final outputs |
-| Worker                  | Workflows | `/workflows/{id}/run/stream`     | `POST` (SSE)      | Depends on `AUTH_PROVIDER`                   | yes (SSE, server → client)       | Stream workflow progress and results |
+| Server                  | Workflows | `/workflows`                     | `GET`             | Depends on `AUTH_PROVIDER`                   | no                               | List workflows on a server instance |
+| Server                  | Workflows | `/workflows/{id}/run`            | `POST`            | Depends on `AUTH_PROVIDER`                   | no                               | Run a workflow once, return final outputs |
+| Server                  | Workflows | `/workflows/{id}/run/stream`     | `POST` (SSE)      | Depends on `AUTH_PROVIDER`                   | yes (SSE, server → client)       | Stream workflow progress and results |
 | Editor                  | Chat WS   | `/chat`                          | WebSocket         | Bearer header or `api_key` query when enforced | yes                            | Bidirectional chat, tools, and workflow triggering |
 | Editor                  | Jobs WS   | `/predict`                       | WebSocket         | Bearer header or `api_key` query when enforced | yes                            | Workflow/job execution and reconnection |
 | Editor                  | Updates   | `/updates`                       | WebSocket         | Follows global auth settings                 | yes                             | System and job updates stream |
 | Editor (dev-only)       | Terminal  | `/terminal`                      | WebSocket         | Same as `/chat`/`/predict` (when enabled)    | yes                             | Host terminal access; gated by `NODETOOL_ENABLE_TERMINAL_WS` |
-| Worker                  | Health    | `/health`                        | `GET`             | none                                         | no                               | JSON worker health (public) |
-| Worker                  | Ping      | `/ping`                          | `GET`             | none                                         | no                               | JSON ping with timestamp (public) |
+| Server                  | Health    | `/health`                        | `GET`             | none                                         | no                               | JSON server health (public) |
+| Server                  | Ping      | `/ping`                          | `GET`             | none                                         | no                               | JSON ping with timestamp (public) |
 | Editor, Chat            | Health    | `/health`                        | `GET`             | none                                         | no                               | Basic liveness; string or JSON |
-| Worker                  | Storage   | `/admin/storage/*`               | `HEAD/GET/PUT/DELETE` | Bearer when enforced                      | streaming for `GET`              | Admin asset/temp storage (full CRUD) |
-| Worker                  | Storage   | `/storage/*`                     | `HEAD/GET`        | none or proxy-protected                      | streaming for `GET`              | Public read-only asset/temp access |
+| Server                  | Storage   | `/admin/storage/*`               | `HEAD/GET/PUT/DELETE` | Bearer when enforced                      | streaming for `GET`              | Admin asset/temp storage (full CRUD) |
+| Server                  | Storage   | `/storage/*`                     | `HEAD/GET`        | none or proxy-protected                      | streaming for `GET`              | Public read-only asset/temp access |
 
-> When `AUTH_PROVIDER` is `local` or `none`, editor and worker endpoints accept requests without a token for convenience. When it is `static` or `supabase`, include `Authorization: Bearer <token>` on every request except `/health` and `/ping`.
+> When `AUTH_PROVIDER` is `local` or `none`, editor and server endpoints accept requests without a token for convenience. When it is `static` or `supabase`, include `Authorization: Bearer <token>` on every request except `/health` and `/ping`.
 
 ## Authentication and Headers
 
@@ -60,7 +60,7 @@ The table below summarizes key endpoints across the three surfaces. For detailed
 - WebSocket (Editor API): `Authorization: Bearer <token>` header (preferred) or `api_key`/`token` query parameter for legacy clients.
 - SSE: `Authorization: Bearer <token>` and `Accept: text/event-stream`.
 
-See [Authentication](authentication.md) for full token handling rules and the different `AUTH_PROVIDER` modes across editor and worker deployments.
+See [Authentication](authentication.md) for full token handling rules and the different `AUTH_PROVIDER` modes across editor and server deployments.
 
 ## Streaming Behavior
 
@@ -68,9 +68,9 @@ See [Authentication](authentication.md) for full token handling rules and the di
 - Editor WebSockets:
   - `/predict` streams workflow/job events until completion or cancellation.
   - `/chat` streams chat tokens, tool calls, and agent/workflow events.
-- Worker SSE:
+- Server SSE:
   - `/workflows/{id}/run/stream` sends job update and output events, then a final `[DONE]`.
-- Worker storage routes stream file contents for large assets.
+- Server storage routes stream file contents for large assets.
 
 ---
 
@@ -82,7 +82,7 @@ NodeTool can run entirely without the UI—perfect for automation, CI/CD pipelin
 
 ```bash
 # Run a workflow and get results (non-streaming)
-curl -X POST "http://localhost:8000/api/workflows/YOUR_WORKFLOW_ID/run" \
+curl -X POST "http://localhost:7777/api/workflows/YOUR_WORKFLOW_ID/run" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -99,7 +99,7 @@ Response:
   "output": {
     "image": {
       "type": "image",
-      "uri": "http://localhost:8000/storage/assets/abc123.png"
+      "uri": "http://localhost:7777/storage/assets/abc123.png"
     },
     "caption": "Generated image of a cyberpunk cityscape..."
   }
@@ -112,7 +112,7 @@ For long-running workflows, use streaming to get real-time progress updates:
 
 ```bash
 # Stream workflow execution (SSE)
-curl -X POST "http://localhost:8000/workflows/YOUR_WORKFLOW_ID/run/stream" \
+curl -X POST "http://localhost:7777/workflows/YOUR_WORKFLOW_ID/run/stream" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Accept: text/event-stream" \
@@ -144,7 +144,7 @@ NodeTool exposes OpenAI-compatible endpoints, so you can use standard OpenAI cli
 
 ```bash
 # Simple chat completion
-curl -X POST "http://localhost:8000/v1/chat/completions" \
+curl -X POST "http://localhost:7777/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -184,7 +184,7 @@ Response:
 
 ```bash
 # Streaming chat (prints tokens as they arrive)
-curl -X POST "http://localhost:8000/v1/chat/completions" \
+curl -X POST "http://localhost:7777/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -212,7 +212,7 @@ data: [DONE]
 ### List Available Models
 
 ```bash
-curl "http://localhost:8000/v1/models" \
+curl "http://localhost:7777/v1/models" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -233,11 +233,11 @@ Response:
 
 ```bash
 # List all workflows (Editor API)
-curl "http://localhost:8000/api/workflows" \
+curl "http://localhost:7777/api/workflows" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
-# List workflows on a deployed worker
-curl "http://your-worker:8000/workflows" \
+# List workflows on a deployed server
+curl "http://your-server:7777/workflows" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -245,7 +245,7 @@ curl "http://your-worker:8000/workflows" \
 
 ```bash
 # Check if server is running (no auth required)
-curl "http://localhost:8000/health"
+curl "http://localhost:7777/health"
 ```
 
 Response:
@@ -277,7 +277,7 @@ echo '{"workflow_id": "abc123", "params": {"prompt": "test"}}' | nodetool run --
 import requests
 
 # Configuration
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:7777"
 TOKEN = "your_token_here"
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
@@ -343,7 +343,7 @@ for chunk in client.chat.completions.create(
 ### JavaScript/Node.js Example
 
 ```javascript
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = 'http://localhost:7777';
 const TOKEN = 'your_token_here';
 
 // Run a workflow
@@ -437,8 +437,8 @@ API errors return standard HTTP status codes with JSON error bodies:
 ## Related Guides
 
 - [Chat API](chat-api.md) — OpenAI-compatible request/response schema and WebSocket usage.  
-- [Workflow API](workflow-api.md) — Editor vs Worker workflow paths and streaming.  
+- [Workflow API](workflow-api.md) — Editor vs Server workflow paths and streaming.  
 - [API Server Overview](api-server.md) — Editor API architecture and modules.  
-- [Deployment Guide](deployment.md) — How workers are built and exposed.  
+- [Deployment Guide](deployment.md) — How servers are built and exposed.  
 - [Chat Server](chat-server.md) — Minimal chat-only deployments.  
-- [CLI Reference](cli.md) — Commands for `serve`, `worker`, and `chat-server`.
+- [CLI Reference](cli.md) — Commands for `serve`, `server`, and `chat-server`.

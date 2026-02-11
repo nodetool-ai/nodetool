@@ -8,7 +8,35 @@ import {
 } from "@mui/material";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
-const SystemStatsDisplay: React.FC = () => {
+// Memoized inline styles for progress bars
+const progressSx = {
+  height: 2,
+  borderRadius: 2,
+  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  "& .MuiLinearProgress-bar": {
+    borderRadius: 4
+  }
+} as const;
+
+const popoverProgressSx = {
+  height: 4,
+  borderRadius: 4,
+  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  "& .MuiLinearProgress-bar": {
+    borderRadius: 4
+  }
+} as const;
+
+const statsBoxSx = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 1,
+  padding: "2px",
+  minWidth: 60,
+  cursor: "pointer"
+} as const;
+
+const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const systemStats = useWorkflowManager((state) => state.getSystemStats());
 
@@ -45,28 +73,14 @@ const SystemStatsDisplay: React.FC = () => {
       <Tooltip title="System Stats">
         <Box
           onClick={handleClick}
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 1,
-            padding: "2px",
-            minWidth: 60,
-            cursor: "pointer"
-          }}
+          sx={statsBoxSx}
         >
           {stats.map((stat) => (
             <LinearProgress
               key={stat.label}
               variant="determinate"
               value={stat.value}
-              sx={{
-                height: 2,
-                borderRadius: 2,
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                "& .MuiLinearProgress-bar": {
-                  borderRadius: 4
-                }
-              }}
+              sx={progressSx}
             />
           ))}
         </Box>
@@ -92,34 +106,29 @@ const SystemStatsDisplay: React.FC = () => {
       </Popover>
     </Box>
   );
-};
+});
 
-const StatItem: React.FC<{ label: string; value: number }> = ({
+const StatItem: React.FC<{ label: string; value: number }> = React.memo(function StatItem({
   label,
   value
-}) => (
-  <Box className="system-stats-popover">
-    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-      <Typography variant="caption" sx={{ opacity: 0.7 }}>
-        {label}
-      </Typography>
-      <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-        {value.toFixed(0)}%
-      </Typography>
+}) {
+  return (
+    <Box className="system-stats-popover">
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+          {label}
+        </Typography>
+        <Typography variant="caption" sx={{ fontWeight: "bold" }}>
+          {value.toFixed(0)}%
+        </Typography>
+      </Box>
+      <LinearProgress
+        variant="determinate"
+        value={value}
+        sx={popoverProgressSx}
+      />
     </Box>
-    <LinearProgress
-      variant="determinate"
-      value={value}
-      sx={{
-        height: 4,
-        borderRadius: 4,
-        backgroundColor: "rgba(255, 255, 255, 0.1)",
-        "& .MuiLinearProgress-bar": {
-          borderRadius: 4
-        }
-      }}
-    />
-  </Box>
-);
+  );
+});
 
 export default SystemStatsDisplay;

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, memo } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -201,8 +201,18 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   contrastBackgroundColor = "#ffffff"
 }) => {
   const theme = useTheme();
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
   const { addRecentColor, preferredColorMode, setPreferredColorMode } =
-    useColorPickerStore();
+    useColorPickerStore(
+      useCallback(
+        (state) => ({
+          addRecentColor: state.addRecentColor,
+          preferredColorMode: state.preferredColorMode,
+          setPreferredColorMode: state.setPreferredColorMode
+        }),
+        []
+      )
+    );
 
   // Internal state
   const [color, setColor] = useState(initialColor || "#ff0000");
@@ -339,6 +349,10 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
     [handleApply]
   );
 
+  const handleCopyHex = useCallback(() => {
+    copyColor("hex");
+  }, [copyColor]);
+
   const content = (
     <div css={styles(theme)}>
       <div className="modal-overlay" onClick={handleOverlayClick}>
@@ -394,7 +408,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                 <Tooltip title="Click to copy HEX">
                   <div
                     className="preview-swatch"
-                    onClick={() => copyColor("hex")}
+                    onClick={handleCopyHex}
                   >
                     <div className="preview-swatch-bg" />
                     <div
@@ -487,4 +501,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   return ReactDOM.createPortal(content, document.body);
 };
 
-export default ColorPickerModal;
+ColorPickerModal.displayName = 'ColorPickerModal';
+
+export default memo(ColorPickerModal);

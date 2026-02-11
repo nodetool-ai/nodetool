@@ -57,8 +57,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const hasFiles = files.length > 0;
 
   const isGenerating = status === 'loading' || status === 'streaming';
-  const isDisconnected = status === 'disconnected' || status === 'connecting';
-  const canSend = !disabled && !isDisconnected && (text.trim().length > 0 || hasFiles);
+  // Never disable - messages are always queued by globalWebSocketManager
+  const canSend = !disabled && (text.trim().length > 0 || hasFiles);
 
   const handleSend = useCallback(() => {
     if (!canSend) {return;}
@@ -232,9 +232,6 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   }, [addFilesToState]);
 
   const getPlaceholder = () => {
-    if (isDisconnected) {
-      return 'Connecting...';
-    }
     return 'Type a message...';
   };
 
@@ -267,14 +264,14 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         <TouchableOpacity
           style={styles.attachButton}
           onPress={handleAttachmentPress}
-          disabled={isDisconnected || disabled}
+          disabled={disabled}
           accessibilityLabel="Attach file"
           accessibilityRole="button"
         >
           <Ionicons 
             name="attach" 
             size={24} 
-            color={isDisconnected || disabled ? colors.textSecondary : colors.primary} 
+            color={disabled ? colors.textSecondary : colors.primary} 
           />
         </TouchableOpacity>
 
@@ -286,7 +283,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           placeholderTextColor={colors.textSecondary}
           multiline
           maxLength={10000}
-          editable={!isDisconnected && !disabled}
+          editable={!disabled}
           autoCorrect={true}
           autoCapitalize="sentences"
         />
@@ -408,7 +405,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     borderRadius: 20,
     paddingLeft: 8,
     paddingRight: 4,
@@ -420,12 +417,12 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2,
   },
   input: {
     flex: 1,
     fontSize: 16,
     maxHeight: 120,
+    minHeight: 42,
     paddingVertical: 8,
     paddingRight: 8,
   },
@@ -435,7 +432,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2,
   },
   stopButton: {
     backgroundColor: '#FF453A',

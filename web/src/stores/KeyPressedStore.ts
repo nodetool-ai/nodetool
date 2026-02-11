@@ -25,8 +25,10 @@ const ALLOWED_TEXTAREA_COMBOS: Array<{
   altKey?: boolean;
   metaKey?: boolean;
 }> = [
-  { key: "Enter", shiftKey: true }
-  // Add other allowed combinations here if needed
+  { key: "Enter", shiftKey: true },
+  { key: "Enter", ctrlKey: true },
+  { key: "Enter", metaKey: true },
+  { key: "Escape" } // Allow Escape to close modals/editors
 ];
 
 interface ComboOptions {
@@ -39,11 +41,14 @@ interface ComboOptions {
 const comboCallbacks = new Map<string, ComboOptions>();
 
 const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
-  comboCallbacks.set(combo, options);
+  // Normalize 'ctrl' to 'control' for consistency
+  const normalizedCombo = combo.replace(/\bctrl\b/g, "control");
+  comboCallbacks.set(normalizedCombo, options);
 };
 
 const unregisterComboCallback = (combo: string) => {
-  comboCallbacks.delete(combo);
+  const normalizedCombo = combo.replace(/\bctrl\b/g, "control");
+  comboCallbacks.delete(normalizedCombo);
 };
 
 const executeComboCallbacks = (
@@ -66,19 +71,30 @@ const executeComboCallbacks = (
   // An active callback exists for the pressed keys.
   // Now, check if we should suppress it due to input focus.
   const isInputFocused =
-    activeElement &&
-    (activeElement.tagName === "INPUT" ||
-      activeElement.tagName === "TEXTAREA" ||
-      activeElement.closest('[data-slate-editor="true"]') ||
-      activeElement.closest(".text-editor-container") ||
-      activeElement.closest(".editor-input"));
+    (activeElement &&
+      (activeElement.tagName === "INPUT" ||
+        activeElement.tagName === "TEXTAREA" ||
+        activeElement.closest('[data-slate-editor="true"]') ||
+        activeElement.closest(".text-editor-container") ||
+        activeElement.closest(".monaco-editor") ||
+        activeElement.closest(".editor-input"))) ||
+    (event?.target instanceof HTMLElement &&
+      (event.target.tagName === "INPUT" ||
+        event.target.tagName === "TEXTAREA" ||
+        event.target.closest(".MuiInputBase-input") ||
+        event.target.closest(".MuiTextField-root")));
 
   if (isInputFocused) {
     // --- Input Focus Handling ---
 
-    // 1. Always allow "shift+enter" to proceed to execution.
+    // 1. Always allow "shift+enter", "control+enter", and "meta+enter" to proceed to execution.
+    //    These are commonly used for multiline input and running actions.
     //    (Add other universally allowed input combos here if needed)
-    if (pressedKeysString === "shift+enter") {
+    if (
+      pressedKeysString === "shift+enter" ||
+      pressedKeysString === "control+enter" ||
+      pressedKeysString === "enter+meta"
+    ) {
       // This combo is allowed, so we don't return early.
       // It will be handled by the execution logic below.
     } else {
@@ -106,14 +122,15 @@ const executeComboCallbacks = (
       //    this logic will prevent it from firing when Slate (or other inputs) are focused.
       
       // Allow copy/paste shortcuts even when inputs are focused (for text copying)
-      if (pressedKeysString === "c+meta" || pressedKeysString === "meta+v" || pressedKeysString === "meta+x") {
-        // Allow copy/paste to proceed - they can handle both text and node copying
+      // Also allow Escape to close modals/editors
+      if (pressedKeysString === "c+meta" || pressedKeysString === "meta+v" || pressedKeysString === "meta+x" || pressedKeysString === "escape") {
+        // Allow these to proceed - they can handle both text and global actions
       } else {
         return; // Suppress other global combos in focused inputs.
       }
     }
-    // If we reach here while isInputFocused is true, it means the combo is "shift+enter"
-    // (or another combo explicitly designated to run in inputs).
+    // If we reach here while isInputFocused is true, it means the combo is "shift+enter",
+    // "control+enter", "meta+enter" (or another combo explicitly designated to run in inputs).
   }
 
   // --- Execute The Combo ---
@@ -185,7 +202,7 @@ const useKeyPressedStore = create<KeyPressedState>()((set, get) => ({
           newPressedKeys.add(normalizedKey);
           lastPressedKey = normalizedKey;
           newKeyPressCount[normalizedKey] =
-            (newKeyPressCount[normalizedKey] || 0) + 1;
+            (newKeyPressCount[normalizedKey] ?? 0) + 1;
         } else {
           newPressedKeys.delete(normalizedKey);
         }
@@ -239,6 +256,7 @@ const initKeyListeners = () => {
       '[data-slate-editor="true"]'
     );
     const targetIsLexicalEditor = eventTarget.closest(".text-editor-container");
+    const targetIsMonacoEditor = eventTarget.closest(".monaco-editor");
     const targetIsTextarea = eventTarget instanceof HTMLTextAreaElement;
 
     if (
@@ -246,6 +264,7 @@ const initKeyListeners = () => {
       targetIsSelectHeader ||
       targetIsSlateEditor ||
       targetIsLexicalEditor ||
+      targetIsMonacoEditor ||
       targetIsTextarea
     ) {
       if (isPressed) {

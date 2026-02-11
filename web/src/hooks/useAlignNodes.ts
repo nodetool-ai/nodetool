@@ -1,18 +1,45 @@
 import { useCallback } from "react";
-import { Node, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { useNodes } from "../contexts/NodeContext";
 
+/**
+ * Configuration options for aligning nodes.
+ */
 type AlignNodesOptions = {
+  /** Whether to arrange nodes with equal spacing between them */
   arrangeSpacing: boolean;
+  /** Optional collapsed state to apply to all selected nodes */
   collapsed?: boolean;
 };
 
+/**
+ * Custom hook for aligning selected nodes in the workflow editor.
+ * 
+ * Provides functionality to align nodes either vertically (left-aligned)
+ * or horizontally (top-aligned) based on the node distribution.
+ * Optionally arranges nodes with equal spacing and sets collapsed state.
+ * 
+ * @returns Callback function to align selected nodes with the specified options
+ * 
+ * @example
+ * ```typescript
+ * const alignNodes = useAlignNodes();
+ * 
+ * // Simple left/top alignment
+ * alignNodes({ arrangeSpacing: false });
+ * 
+ * // Alignment with equal spacing
+ * alignNodes({ arrangeSpacing: true, collapsed: false });
+ * ```
+ */
 const useAlignNodes = () => {
   const VERTICAL_SPACING = 20;
   const HORIZONTAL_SPACING = 40;
-  const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
-  const reactFlow = useReactFlow();
+  const { nodes, setNodes, getSelectedNodes } = useNodes((state) => ({
+    nodes: state.nodes,
+    setNodes: state.setNodes,
+    getSelectedNodes: state.getSelectedNodes
+  }));
 
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {
@@ -106,9 +133,9 @@ const useAlignNodes = () => {
         });
       }
 
-      // Update React Flow nodes
-      reactFlow.setNodes((currentNodes) =>
-        currentNodes.map((currentNode) => {
+      // Update nodes via NodeStore
+      setNodes(
+        nodes.map((currentNode) => {
           const updatedProps = nodeUpdates.get(currentNode.id);
           if (updatedProps) {
             return {
@@ -121,7 +148,7 @@ const useAlignNodes = () => {
         })
       );
     },
-    [getSelectedNodes, reactFlow]
+    [getSelectedNodes, nodes, setNodes]
   );
 
   return alignNodes;

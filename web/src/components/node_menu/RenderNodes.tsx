@@ -6,7 +6,6 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import NodeItem from "./NodeItem";
-import SearchResultItem from "./SearchResultItem";
 import SearchResultsPanel from "./SearchResultsPanel";
 import { Typography } from "@mui/material";
 import isEqual from "lodash/isEqual";
@@ -14,14 +13,21 @@ import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import AutoSizer from "react-virtualized-auto-sizer";
+import {
+  ListChildComponentProps,
+  VariableSizeList as VirtualList
+} from "react-window";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
   showCheckboxes?: boolean;
   selectedNodeTypes?: string[];
   onToggleSelection?: (nodeType: string) => void;
+  showFavoriteButton?: boolean;
 }
 
+// Stable utility functions - defined outside component to avoid recreation
 const groupNodes = (nodes: NodeMetadata[]) => {
   const groups: { [key: string]: NodeMetadata[] } = {};
   nodes.forEach((node) => {
@@ -38,11 +44,91 @@ const getServiceFromNamespace = (namespace: string): string => {
   return parts[0];
 };
 
+const NODE_ROW_HEIGHT = 44;
+const NAMESPACE_ROW_HEIGHT = 34;
+const API_VALIDATION_ROW_HEIGHT = 36;
+
+type FlatRow =
+  | {
+      type: "api-validation";
+      key: string;
+      namespace: string;
+    }
+  | {
+      type: "namespace";
+      key: string;
+      namespace: string;
+      textForNamespaceHeader: string;
+    }
+  | {
+      type: "node";
+      key: string;
+      node: NodeMetadata;
+    };
+
+interface RowData {
+  rows: FlatRow[];
+  handleDragStart: (
+    node: NodeMetadata,
+    event: React.DragEvent<HTMLDivElement>
+  ) => void;
+  handleNodeClick: (node: NodeMetadata) => void;
+  showCheckboxes: boolean;
+  selectedNodeTypesSet: Set<string>;
+  onToggleSelection?: (nodeType: string) => void;
+  showFavoriteButton: boolean;
+}
+
+const renderVirtualRow = ({ index, style, data }: ListChildComponentProps<RowData>) => {
+  const row = data.rows[index];
+  if (!row) {
+    return null;
+  }
+
+  if (row.type === "api-validation") {
+    return (
+      <div style={style}>
+        <ApiKeyValidation nodeNamespace={row.namespace} />
+      </div>
+    );
+  }
+
+  if (row.type === "namespace") {
+    return (
+      <Typography
+        style={style}
+        key={row.key}
+        variant="h5"
+        component="div"
+        className="namespace-text"
+      >
+        {row.textForNamespaceHeader}
+      </Typography>
+    );
+  }
+
+  return (
+    <div style={style}>
+      <NodeItem
+        key={row.key}
+        node={row.node}
+        onDragStart={data.handleDragStart}
+        onClick={data.handleNodeClick}
+        showCheckbox={data.showCheckboxes}
+        isSelected={data.selectedNodeTypesSet.has(row.node.node_type)}
+        onToggleSelection={data.onToggleSelection}
+        showFavoriteButton={data.showFavoriteButton}
+      />
+    </div>
+  );
+};
+
 const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
   showCheckboxes = false,
   selectedNodeTypes = [],
-  onToggleSelection
+  onToggleSelection,
+  showFavoriteButton = true
 }) => {
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore((state) => ({
@@ -51,11 +137,10 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
       searchTerm: state.searchTerm
     }));
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
-  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   const handleCreateNode = useCreateNode();
   const handleDragStart = useCallback(
-    (node: NodeMetadata) => (event: React.DragEvent<HTMLDivElement>) => {
+    (node: NodeMetadata, event: React.DragEvent<HTMLDivElement>) => {
       setDragToCreate(true);
       // Use unified drag serialization
       serializeDragData(
@@ -70,13 +155,14 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     [setDragToCreate, setActiveDrag]
   );
 
-  const handleDragEnd = useCallback(() => {
-    clearDrag();
-  }, [clearDrag]);
-
   const { selectedPath } = useNodeMenuStore((state) => ({
     selectedPath: state.selectedPath.join(".")
   }));
+
+  // Memoize grouped nodes to prevent recalculation on every render
+  const groupedNodes = useMemo(() => {
+    return groupNodes(nodes);
+  }, [nodes]);
 
   const searchNodes = useMemo(() => {
     if (searchTerm && groupedSearchResults.length > 0) {
@@ -85,43 +171,30 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return null;
   }, [searchTerm, groupedSearchResults]);
 
-  const elements = useMemo(() => {
-    // If we're searching, render flat ranked results with SearchResultItem
-    if (searchTerm && groupedSearchResults.length > 0) {
-      // Flatten all results from groups (now just one "Results" group)
-      const allSearchNodes = groupedSearchResults.flatMap(
-        (group) => group.nodes
-      );
+  const handleNodeClick = useCallback((node: NodeMetadata) => {
+    handleCreateNode(node);
+  }, [handleCreateNode]);
 
-      return allSearchNodes.map((node) => (
-        <SearchResultItem
-          key={node.node_type}
-          node={node}
-          onDragStart={handleDragStart(node)}
-          onDragEnd={handleDragEnd}
-          onClick={() => handleCreateNode(node)}
-        />
-      ));
-    }
+  const selectedNodeTypesSet = useMemo(() => {
+    return new Set(selectedNodeTypes);
+  }, [selectedNodeTypes]);
 
-    // Otherwise use the original namespace-based grouping
+  const virtualRows = useMemo(() => {
     const seenServices = new Set<string>();
+    const rows: FlatRow[] = [];
 
-    return Object.entries(groupNodes(nodes)).flatMap(
+    Object.entries(groupedNodes).forEach(
       ([namespace, nodesInNamespace], namespaceIndex) => {
         const service = getServiceFromNamespace(namespace);
         const isFirstNamespaceForService = !seenServices.has(service);
         seenServices.add(service);
 
-        const elements: JSX.Element[] = [];
-
         if (isFirstNamespaceForService) {
-          elements.push(
-            <ApiKeyValidation
-              key={`api-key-${service}-${namespaceIndex}`}
-              nodeNamespace={namespace}
-            />
-          );
+          rows.push({
+            type: "api-validation",
+            key: `api-key-${service}-${namespaceIndex}`,
+            namespace
+          });
         }
 
         let textForNamespaceHeader = namespace; // Default to full namespace string
@@ -139,46 +212,67 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         // If namespace is not a child of selectedPath and not equal to selectedPath,
         // it also remains the full 'namespace'.
 
-        elements.push(
-          <Typography
-            key={`namespace-${namespace}-${namespaceIndex}`}
-            variant="h5"
-            component="div"
-            className="namespace-text"
-          >
-            {textForNamespaceHeader}
-          </Typography>,
-          ...nodesInNamespace.map((node) => (
-            <div key={node.node_type}>
-              <NodeItem
-                key={node.node_type}
-                node={node}
-                onDragStart={handleDragStart(node)}
-                onClick={() => handleCreateNode(node)}
-                showCheckbox={showCheckboxes}
-                isSelected={selectedNodeTypes.includes(node.node_type)}
-                onToggleSelection={onToggleSelection}
-              />
-            </div>
-          ))
-        );
-        return elements;
+        rows.push({
+          type: "namespace",
+          key: `namespace-${namespace}-${namespaceIndex}`,
+          namespace,
+          textForNamespaceHeader
+        });
+
+        nodesInNamespace.forEach((node) => {
+          rows.push({
+            type: "node",
+            key: node.node_type,
+            node
+          });
+        });
       }
     );
+
+    return rows;
   }, [
-    searchTerm,
-    nodes,
-    groupedSearchResults,
+    groupedNodes,
     selectedPath,
-    handleDragStart,
-    handleDragEnd,
-    handleCreateNode,
-    showCheckboxes,
-    onToggleSelection,
-    selectedNodeTypes
   ]);
 
-  const style = searchNodes ? { height: "100%", overflow: "hidden" } : {};
+  const rowData = useMemo<RowData>(() => {
+    return {
+      rows: virtualRows,
+      handleDragStart,
+      handleNodeClick,
+      showCheckboxes,
+      selectedNodeTypesSet,
+      onToggleSelection,
+      showFavoriteButton
+    };
+  }, [
+    virtualRows,
+    handleDragStart,
+    handleNodeClick,
+    showCheckboxes,
+    selectedNodeTypesSet,
+    onToggleSelection,
+    showFavoriteButton
+  ]);
+
+  const getItemSize = useCallback(
+    (index: number): number => {
+      const row = virtualRows[index];
+      if (!row) {
+        return NODE_ROW_HEIGHT;
+      }
+      if (row.type === "namespace") {
+        return NAMESPACE_ROW_HEIGHT;
+      }
+      if (row.type === "api-validation") {
+        return API_VALIDATION_ROW_HEIGHT;
+      }
+      return NODE_ROW_HEIGHT;
+    },
+    [virtualRows]
+  );
+
+  const style = { height: "100%", overflow: "hidden" };
 
   return (
     <div className="nodes" style={style}>
@@ -186,7 +280,24 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         searchNodes ? (
           <SearchResultsPanel searchNodes={searchNodes} />
         ) : (
-          elements
+          <AutoSizer>
+            {({ height, width }) => {
+              const safeHeight = Math.max(height || 0, 100);
+              const safeWidth = Math.max(width || 0, 280);
+              return (
+                <VirtualList
+                  height={safeHeight}
+                  width={safeWidth}
+                  itemCount={virtualRows.length}
+                  itemData={rowData}
+                  itemSize={getItemSize}
+                  overscanCount={12}
+                >
+                  {renderVirtualRow}
+                </VirtualList>
+              );
+            }}
+          </AutoSizer>
         )
       ) : (
         <div className="no-selection">

@@ -1,14 +1,16 @@
 import { NodeMetadata } from "../stores/ApiTypes";
+import { sanitizeText } from "./sanitize";
 
 export const escapeHtml = (text: string): string => {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+  return sanitizeText(text);
 };
 
 // Convert hex color to RGB values
 export const hexToRgb = (hex: string) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const normalizedHex = hex.trim();
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
+    normalizedHex
+  );
   if (!result) {return null;}
   return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
     result[3],
@@ -100,8 +102,6 @@ export const highlightText = (
 
   // Find the best match for coloring (most relevant and longest)
   const bestMatch = nonOverlappingMatches[0];
-  const longestLength =
-    orderedMatches.length > 0 ? orderedMatches[0].length : 0;
 
   // Build highlighted HTML
   const parts: string[] = [];

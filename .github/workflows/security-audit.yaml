@@ -1,0 +1,107 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 9 * * 3"  # Wednesdays at 9 AM UTC
+  workflow_dispatch:
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      security-events: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
+
+      - name: Run npm audit
+        continue-on-error: true
+        run: |
+          cd web && npm audit --json > npm-audit-web.json || true
+          cd ../electron && npm audit --json > npm-audit-electron.json || true
+          cd ../mobile && npm audit --json > npm-audit-mobile.json || true
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
+          prompt: |
+            # Security Audit
+
+            Find and fix security vulnerabilities in NodeTool (React/TypeScript visual AI workflow builder).
+
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Find security vulnerabilities
+            2. Fix them
+            3. **Create a Pull Request with your changes**
+            
+            Do NOT just analyze or report findings. You must make fixes and submit a PR.
+
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - Packages: `/web`, `/electron`, `/mobile`
+            - Security concerns: API keys, user data, file uploads
+            - npm audit results: `web/npm-audit-web.json`, `electron/npm-audit-electron.json`, `mobile/npm-audit-mobile.json`
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing security branches
+            2. Read `.memory/project-context.md`
+
+            ## Audit Areas
+
+            **Dependencies**: Review npm audit results. Update vulnerable packages (critical/high first).
+
+            **Code**: Check for:
+            - `dangerouslySetInnerHTML` without DOMPurify
+            - `eval()` or `new Function()`
+            - Hardcoded secrets/API keys in source
+            - Unsanitized user input
+            - Missing file upload validation
+
+            **Electron**: Context isolation enabled? Node integration disabled? IPC validated?
+
+            **Config**: TypeScript strict mode? CSP headers configured?
+
+            ## Scanning
+            ```bash
+            grep -r "dangerouslySetInnerHTML" --include="*.tsx" web/src
+            grep -r "eval\(|new Function" --include="*.ts" --include="*.tsx" web/src
+            grep -r "api_key\|apiKey\|password\|secret" --include="*.ts" --include="*.tsx" web/src | grep -v "\.test\."
+            ```
+
+            ## Quality
+            - `make typecheck && make lint && make test` must all pass
+            - Test affected functionality after fixes
+
+            ## Final Step: CREATE THE PULL REQUEST
+            Once you've made your security fixes, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** with security fixes, noting severity and CVEs addressed

@@ -74,52 +74,37 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isFullscreenAssets
 }) => {
   const { error, folderFilesFiltered } = useAssets();
-  const openAsset = useAssetGridStore((state) => state.openAsset);
-  const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
-  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
-  const selectedFolderId = useAssetGridStore((state) => state.selectedFolderId);
-  const setSelectedAssetIds = useAssetGridStore(
-    (state) => state.setSelectedAssetIds
+  const {
+    openAsset,
+    setOpenAsset,
+    selectedAssetIds,
+    selectedFolderId,
+    setSelectedAssetIds,
+    setRenameDialogOpen,
+    currentAudioAsset,
+    currentFolderId,
+    currentFolder
+  } = useAssetGridStore(
+    (state) => ({
+      openAsset: state.openAsset,
+      setOpenAsset: state.setOpenAsset,
+      selectedAssetIds: state.selectedAssetIds,
+      selectedFolderId: state.selectedFolderId,
+      setSelectedAssetIds: state.setSelectedAssetIds,
+      setRenameDialogOpen: state.setRenameDialogOpen,
+      currentAudioAsset: state.currentAudioAsset,
+      currentFolderId: state.currentFolderId,
+      currentFolder: state.currentFolder
+    }),
+    shallow
   );
-  const setRenameDialogOpen = useAssetGridStore(
-    (state) => state.setRenameDialogOpen
-  );
-  const currentAudioAsset = useAssetGridStore(
-    (state) => state.currentAudioAsset
-  );
-  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
-  const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
-  const _isGlobalSearchActive = useAssetGridStore(
-    (state) => state.isGlobalSearchActive
-  );
-  const _isGlobalSearchMode = useAssetGridStore(
-    (state) => state.isGlobalSearchMode
-  );
-  const _globalSearchResults = useAssetGridStore(
-    (state) => state.globalSearchResults
-  );
-  const _setIsGlobalSearchActive = useAssetGridStore(
-    (state) => state.setIsGlobalSearchActive
-  );
-  const _setIsGlobalSearchMode = useAssetGridStore(
-    (state) => state.setIsGlobalSearchMode
-  );
-  const _setCurrentFolderId = useAssetGridStore(
-    (state) => state.setCurrentFolderId
-  );
-  void _isGlobalSearchActive;
-  void _isGlobalSearchMode;
-  void _globalSearchResults;
-  void _setIsGlobalSearchActive;
-  void _setIsGlobalSearchMode;
-  void _setCurrentFolderId;
   const theme = useTheme();
 
   // Dockview panel components are defined below; handlers for files live inside the Files panel
 
-  const { user } = useAuth();
+  const user = useAuth((state) => state.user);
 
   const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore(
     (state) => ({

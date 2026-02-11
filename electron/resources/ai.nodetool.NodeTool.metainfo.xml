@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>ai.nodetool.NodeTool</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-only</project_license>
+  <name>Nodetool</name>
+  <summary>Visual Builder for AI Workflows and Agents</summary>
+  <description>
+    <p>
+      NodeTool is an open-source visual programming tool for building AI workflows. 
+      Connect LLMs, real-time systems, build AI agents and generate media through a 
+      drag-and-drop node interface.
+    </p>
+    <p>Key Features:</p>
+    <ul>
+      <li>Node-based visual interface for AI workflow orchestration</li>
+      <li>Run anywhere: Your laptop, a server, or the cloud</li>
+      <li>Local-first AI with support for local LLMs via Ollama, MLX, and GGML/GGUF formats</li>
+      <li>Real-time workflow execution with async data streams</li>
+      <li>Build AI agents with tool use and secure code execution</li>
+      <li>Type-safe connections between node inputs and outputs</li>
+      <li>Multimodal AI: Process text, images, video, and audio</li>
+      <li>Access to 500,000+ models from HuggingFace</li>
+      <li>Cloud API integration: OpenAI, Anthropic, Gemini, and more</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">ai.nodetool.NodeTool.desktop</launchable>
+  <url type="homepage">https://nodetool.ai</url>
+  <url type="bugtracker">https://github.com/nodetool-ai/nodetool/issues</url>
+  <url type="help">https://docs.nodetool.ai</url>
+  <url type="vcs-browser">https://github.com/nodetool-ai/nodetool</url>
+  <url type="contact">https://discord.gg/WmQTWZRcYE</url>
+  <developer_name>Nodetool AI</developer_name>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/nodetool-ai/nodetool/main/screen2.png</image>
+      <caption>Nodetool workflow editor interface</caption>
+    </screenshot>
+  </screenshots>
+  <categories>
+    <category>Development</category>
+    <category>IDE</category>
+  </categories>
+  <keywords>
+    <keyword>AI</keyword>
+    <keyword>Workflow</keyword>
+    <keyword>Node</keyword>
+    <keyword>Editor</keyword>
+    <keyword>Machine Learning</keyword>
+    <keyword>LLM</keyword>
+    <keyword>Agent</keyword>
+  </keywords>
+  <provides>
+    <binary>nodetool</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.6.3-rc.20" date="2026-02-10">
+      <description>
+        <p>Latest release with improved features and bug fixes.</p>
+      </description>
+    </release>
+  </releases>
+</component>

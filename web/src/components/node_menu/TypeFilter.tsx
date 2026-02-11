@@ -1,13 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css, Global } from "@emotion/react";
 
-import React, { useEffect, useState } from "react";
+import React, { memo, useCallback, useState, useMemo } from "react";
 import { DATA_TYPES, IconForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   InputLabel,
   MenuItem,
   Select,
+  SelectChangeEvent,
   Tooltip,
   ListSubheader,
   ListItemIcon,
@@ -25,24 +26,22 @@ interface TypeFilterProps {
   setSelectedOutputType: (value: string) => void;
 }
 
-const TypeFilter: React.FC<TypeFilterProps> = ({
+const TypeFilter = memo(({
   selectedInputType,
   setSelectedInputType,
   selectedOutputType,
   setSelectedOutputType
-}) => {
+}: TypeFilterProps) => {
   const theme = useTheme();
   const nodeTypes = DATA_TYPES;
   const comfyTypes = nodeTypes.filter((t) => t.value.startsWith("comfy"));
   const otherTypes = nodeTypes.filter((t) => !t.value.startsWith("comfy"));
 
-  // Collapse/expand state for sections inside menu - separate for input and output
   const [showNodetoolInput, setShowNodetoolInput] = useState(true);
   const [showComfyInput, setShowComfyInput] = useState(false);
   const [showNodetoolOutput, setShowNodetoolOutput] = useState(true);
   const [showComfyOutput, setShowComfyOutput] = useState(false);
 
-  // Tooltip visibility state
   const [inputHover, setInputHover] = useState(false);
   const [outputHover, setOutputHover] = useState(false);
   const [inputSelectOpen, setInputSelectOpen] = useState(false);
@@ -51,7 +50,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
   const inputTooltipOpen = inputHover && !inputSelectOpen;
   const outputTooltipOpen = outputHover && !outputSelectOpen;
 
-  const toggleNodetoolInput = (e: React.MouseEvent) => {
+  const toggleNodetoolInput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowNodetoolInput((prev) => {
@@ -61,9 +60,9 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       }
       return newState;
     });
-  };
+  }, []);
 
-  const toggleComfyInput = (e: React.MouseEvent) => {
+  const toggleComfyInput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowComfyInput((prev) => {
@@ -73,9 +72,9 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       }
       return newState;
     });
-  };
+  }, []);
 
-  const toggleNodetoolOutput = (e: React.MouseEvent) => {
+  const toggleNodetoolOutput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowNodetoolOutput((prev) => {
@@ -85,9 +84,9 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       }
       return newState;
     });
-  };
+  }, []);
 
-  const toggleComfyOutput = (e: React.MouseEvent) => {
+  const toggleComfyOutput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowComfyOutput((prev) => {
@@ -97,7 +96,55 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       }
       return newState;
     });
+  }, []);
+
+  const handleInputChange = useCallback((e: SelectChangeEvent<string>) => {
+    setSelectedInputType(e.target.value as string);
+  }, [setSelectedInputType]);
+
+  const handleOutputChange = useCallback((e: SelectChangeEvent<string>) => {
+    setSelectedOutputType(e.target.value as string);
+  }, [setSelectedOutputType]);
+
+  const handleInputMouseEnter = () => setInputHover(true);
+  const handleInputMouseLeave = () => setInputHover(false);
+  const handleOutputMouseEnter = () => setOutputHover(true);
+  const handleOutputMouseLeave = () => setOutputHover(false);
+
+  const handleInputOpen = () => setInputSelectOpen(true);
+  const handleInputClose = () => {
+    setInputSelectOpen(false);
+    setInputHover(false);
   };
+
+  const handleOutputOpen = () => setOutputSelectOpen(true);
+  const handleOutputClose = () => {
+    setOutputSelectOpen(false);
+    setOutputHover(false);
+  };
+
+  // Memoize inline styles to prevent recreation on every render
+  const resetFilterStyle = useMemo(() => ({
+    color: theme.vars.palette.primary.main
+  }), [theme.vars.palette.primary.main]);
+
+  const subheaderSx = useMemo(() => ({
+    cursor: "pointer" as const,
+    pointerEvents: "auto" as const,
+    userSelect: "none" as const,
+    display: "flex",
+    alignItems: "center",
+    backgroundColor: theme.vars.palette.action.hover,
+    "&:hover": { backgroundColor: theme.vars.palette.action.selected }
+  }), [theme.vars.palette.action.hover, theme.vars.palette.action.selected]);
+
+  const menuItemSx = useCallback((show: boolean) => ({
+    display: show ? ("flex" as const) : ("none" as const)
+  }), []);
+
+  const listItemIconSx = useMemo(() => ({
+    minWidth: 18
+  }), []);
 
   const typeFilterStyles = (theme: Theme) =>
     css({
@@ -195,8 +242,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         >
           <div
             className="type-filter"
-            onMouseEnter={() => setInputHover(true)}
-            onMouseLeave={() => setInputHover(false)}
+            onMouseEnter={handleInputMouseEnter}
+            onMouseLeave={handleInputMouseLeave}
           >
             {!selectedInputType && (
               <InputLabel id="input-type" className="label">
@@ -205,19 +252,16 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
             )}
             <Select
               className="type-filter-select"
-              onChange={(e) => setSelectedInputType(e.target.value)}
+              onChange={handleInputChange}
               size="medium"
               variant="outlined"
               label="Input Type"
               value={selectedInputType}
-              onOpen={() => setInputSelectOpen(true)}
-              onClose={() => {
-                setInputSelectOpen(false);
-                setInputHover(false);
-              }}
+              onOpen={handleInputOpen}
+              onClose={handleInputClose}
             >
               <MenuItem
-                style={{ color: theme.vars.palette.primary.main }}
+                style={resetFilterStyle}
                 value=""
               >
                 RESET FILTER
@@ -225,18 +269,10 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               {/* Nodetool section header */}
               <ListSubheader
                 onMouseDown={toggleNodetoolInput}
-                sx={{
-                  cursor: "pointer",
-                  pointerEvents: "auto",
-                  userSelect: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  backgroundColor: theme.vars.palette.action.hover,
-                  "&:hover": { backgroundColor: theme.vars.palette.action.selected }
-                }}
+                sx={subheaderSx}
                 disableSticky
               >
-                <ListItemIcon sx={{ minWidth: 18 }}>
+                <ListItemIcon sx={listItemIconSx}>
                   {showNodetoolInput ? (
                     <ExpandLessIcon fontSize="small" />
                   ) : (
@@ -250,7 +286,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   key={option.value}
                   value={option.value}
                   className={`${option.value} type-filter-item nodetool-type`}
-                  sx={{ display: showNodetoolInput ? "flex" : "none" }}
+                  sx={menuItemSx(showNodetoolInput)}
                 >
                   <ListItemIcon>
                     <IconForType
@@ -266,19 +302,11 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               {comfyTypes.length > 0 && [
                 <ListSubheader
                   onMouseDown={toggleComfyInput}
-                  sx={{
-                    cursor: "pointer",
-                    pointerEvents: "auto",
-                    userSelect: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    backgroundColor: theme.vars.palette.action.hover,
-                    "&:hover": { backgroundColor: theme.vars.palette.action.selected }
-                  }}
+                  sx={subheaderSx}
                   key="comfy-header-input"
                   disableSticky
                 >
-                  <ListItemIcon sx={{ minWidth: 18 }}>
+                  <ListItemIcon sx={listItemIconSx}>
                     {showComfyInput ? (
                       <ExpandLessIcon fontSize="small" />
                     ) : (
@@ -292,7 +320,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     key={option.value}
                     value={option.value}
                     className={`${option.value} type-filter-item comfy-type`}
-                    sx={{ display: showComfyInput ? "flex" : "none" }}
+                    sx={menuItemSx(showComfyInput)}
                   >
                     <ListItemIcon>
                       <IconForType
@@ -319,8 +347,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
         >
           <div
             className="type-filter"
-            onMouseEnter={() => setOutputHover(true)}
-            onMouseLeave={() => setOutputHover(false)}
+            onMouseEnter={handleOutputMouseEnter}
+            onMouseLeave={handleOutputMouseLeave}
           >
             {!selectedOutputType && (
               <InputLabel id="output-type" className="label">
@@ -329,19 +357,16 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
             )}
             <Select
               className="type-filter-select"
-              onChange={(e) => setSelectedOutputType(e.target.value)}
+              onChange={handleOutputChange}
               size="medium"
               variant="outlined"
               label="Output Type"
               value={selectedOutputType}
-              onOpen={() => setOutputSelectOpen(true)}
-              onClose={() => {
-                setOutputSelectOpen(false);
-                setOutputHover(false);
-              }}
+              onOpen={handleOutputOpen}
+              onClose={handleOutputClose}
             >
               <MenuItem
-                style={{ color: theme.vars.palette.primary.main }}
+                style={resetFilterStyle}
                 value=""
               >
                 RESET FILTER
@@ -349,18 +374,10 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               {/* Nodetool section header */}
               <ListSubheader
                 onMouseDown={toggleNodetoolOutput}
-                sx={{
-                  cursor: "pointer",
-                  pointerEvents: "auto",
-                  userSelect: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  backgroundColor: theme.vars.palette.action.hover,
-                  "&:hover": { backgroundColor: theme.vars.palette.action.selected }
-                }}
+                sx={subheaderSx}
                 disableSticky
               >
-                <ListItemIcon sx={{ minWidth: 18 }}>
+                <ListItemIcon sx={listItemIconSx}>
                   {showNodetoolOutput ? (
                     <ExpandLessIcon fontSize="small" />
                   ) : (
@@ -374,7 +391,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                   key={option.value}
                   value={option.value}
                   className={`${option.value} type-filter-item nodetool-type`}
-                  sx={{ display: showNodetoolOutput ? "flex" : "none" }}
+                  sx={menuItemSx(showNodetoolOutput)}
                 >
                   <ListItemIcon>
                     <IconForType
@@ -390,19 +407,11 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
               {comfyTypes.length > 0 && [
                 <ListSubheader
                   onMouseDown={toggleComfyOutput}
-                  sx={{
-                    cursor: "pointer",
-                    pointerEvents: "auto",
-                    userSelect: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    backgroundColor: theme.vars.palette.action.hover,
-                    "&:hover": { backgroundColor: theme.vars.palette.action.selected }
-                  }}
+                  sx={subheaderSx}
                   key="comfy-header-output"
                   disableSticky
                 >
-                  <ListItemIcon sx={{ minWidth: 18 }}>
+                  <ListItemIcon sx={listItemIconSx}>
                     {showComfyOutput ? (
                       <ExpandLessIcon fontSize="small" />
                     ) : (
@@ -416,7 +425,7 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
                     key={option.value}
                     value={option.value}
                     className={`${option.value} type-filter-item comfy-type`}
-                    sx={{ display: showComfyOutput ? "flex" : "none" }}
+                    sx={menuItemSx(showComfyOutput)}
                   >
                     <ListItemIcon>
                       <IconForType
@@ -434,5 +443,8 @@ const TypeFilter: React.FC<TypeFilterProps> = ({
       </div>
     </Box>
   );
-};
+});
+
+TypeFilter.displayName = "TypeFilter";
+
 export default TypeFilter;

@@ -13,14 +13,7 @@
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
 import { create, StoreApi, UseBoundStore } from "zustand";
-import {
-  NodeMetadata,
-  OutputSlot,
-  Property,
-  RepoPath,
-  UnifiedModel,
-  Workflow
-} from "./ApiTypes";
+import { NodeMetadata, RepoPath, UnifiedModel, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import {
   Connection,
@@ -43,33 +36,30 @@ import { customEquality } from "./customEquality";
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import log from "loglevel";
 import { autoLayout } from "../core/graph";
-import { isConnectable } from "../utils/TypeHandler";
-import {
-  findOutputHandle,
-  findInputHandle,
-  hasOutputHandle,
-  hasInputHandle
-} from "../utils/handleUtils";
+import { isConnectable, isCollectType } from "../utils/TypeHandler";
+import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
-import {
-  graphEdgeToReactFlowEdge
-} from "./graphEdgeToReactFlowEdge";
+import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
+import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 
 /**
  * Generates a default name for input nodes based on their type.
  * For example, "nodetool.input.StringInput" becomes "string_input_1"
  */
-const generateInputNodeName = (nodeType: string, existingNodes: Node<NodeData>[]): string => {
+const generateInputNodeName = (
+  nodeType: string,
+  existingNodes: Node<NodeData>[]
+): string => {
   // Extract the input type from the node type (e.g., "StringInput" from "nodetool.input.StringInput")
   const match = nodeType.match(/nodetool\.input\.(\w+)Input$/);
   if (!match) {
@@ -87,12 +77,10 @@ const generateInputNodeName = (nodeType: string, existingNodes: Node<NodeData>[]
 
   const inputType = match[1].toLowerCase();
   const baseName = `${inputType}_input`;
-  
+
   // Count existing input nodes of the same type
-  const existingCount = existingNodes.filter(
-    (n) => n.type === nodeType
-  ).length;
-  
+  const existingCount = existingNodes.filter((n) => n.type === nodeType).length;
+
   return `${baseName}_${existingCount + 1}`;
 };
 
@@ -106,31 +94,23 @@ const generateUUID = (): string => {
   }
 
   // Fallback implementation for environments without crypto.randomUUID
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (char) {
-    const randomValue = (Math.random() * 16) | 0;
-    const hexValue = char === "x" ? randomValue : (randomValue & 0x3) | 0x8;
-    return hexValue.toString(16);
-  });
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+    /[xy]/g,
+    function (char) {
+      const randomValue = (Math.random() * 16) | 0;
+      const hexValue = char === "x" ? randomValue : (randomValue & 0x3) | 0x8;
+      return hexValue.toString(16);
+    }
+  );
 };
 
-export type NodeUIProperties = {
-  selected?: boolean;
-  selectable?: boolean;
-  position: XYPosition;
-  width?: number;
-  height?: number;
-  zIndex?: number;
-  title?: string;
-  color?: string;
-  bypassed?: boolean;
-};
+export { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
+export type { NodeUIProperties } from "./nodeUiDefaults";
 
 type NodeSelection = {
   nodes: Node<NodeData>[];
   edges: Edge[];
 };
-
-export const DEFAULT_NODE_WIDTH = 280;
 
 const undo_limit = 1000;
 
@@ -154,6 +134,7 @@ export interface NodeStoreState {
   getOutputEdges: (nodeId: string) => Edge[];
   getSelection: () => NodeSelection;
   getSelectedNodes: () => Node<NodeData>[];
+  getSelectedNodeCount: () => number;
   setSelectedNodes: (nodes: Node<NodeData>[]) => void;
   selectNodesByType: (nodeType: string) => void;
   getSelectedNodeIds: () => string[];
@@ -169,7 +150,7 @@ export interface NodeStoreState {
   findNode: (id: string) => Node<NodeData> | undefined;
   updateNode: (id: string, node: Partial<Node<NodeData>>) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
-  updateNodeProperties: (id: string, properties: any) => void;
+  updateNodeProperties: (id: string, properties: Record<string, unknown>) => void;
   deleteNode: (id: string) => void;
   findEdge: (id: string) => Edge | undefined;
   deleteEdge: (id: string) => void;
@@ -239,22 +220,6 @@ export const createNodeStore = (
         const metadata = useMetadataStore.getState().metadata;
         const nodeTypes = useMetadataStore.getState().nodeTypes;
         const addNodeType = useMetadataStore.getState().addNodeType;
-        // const modelFiles = extractModelFiles(workflow.graph.nodes);
-        // setTimeout(() => {
-        //   tryCacheFiles(modelFiles).then((paths) => {
-        //     set({
-        //       missingModelFiles: paths.filter((m) => !m.downloaded)
-        //     });
-        //   });
-        //   const modelRepos = extractModelRepos(workflow.graph.nodes);
-        //   tryCacheRepos(modelRepos).then((repos) => {
-        //     set({
-        //       missingModelRepos: repos
-        //         .filter((r) => !r.downloaded)
-        //         .map((r) => r.repo_id)
-        //     });
-        //   });
-        // }, 1000);
 
         const unsanitizedNodes = workflow
           ? (workflow.graph?.nodes || []).map((n: GraphNode) =>
@@ -355,6 +320,8 @@ export const createNodeStore = (
           },
           getSelectedNodes: (): Node<NodeData>[] =>
             get().nodes.filter((node) => node.selected),
+          getSelectedNodeCount: (): number =>
+            get().nodes.filter((node) => node.selected).length,
           setSelectedNodes: (nodes: Node<NodeData>[]): void => {
             set({
               nodes: get().nodes.map((node) => ({
@@ -409,15 +376,45 @@ export const createNodeStore = (
           setEdgeUpdateSuccessful: (value: boolean): void =>
             set({ edgeUpdateSuccessful: value }),
           onNodesChange: (changes: NodeChange<Node<NodeData>>[]): void => {
-            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver, selection)
-            const isOnlyInternalChanges = changes.every(
+            // Check if any dimension change is a user resize (has setAttributes set)
+            // This indicates the user intentionally resized the node via NodeResizeControl
+            const hasUserResize = changes.some(
               (change) =>
-                change.type === "dimensions" ||
-                change.type === "select" ||
-                (change.type === "position" && change.dragging === false)
+                change.type === "dimensions" &&
+                "setAttributes" in change &&
+                change.setAttributes
             );
 
-            const nodes = applyNodeChanges(changes, get().nodes);
+            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver, selection)
+            const isOnlyInternalChanges =
+              !hasUserResize &&
+              changes.every(
+                (change) =>
+                  change.type === "dimensions" ||
+                  change.type === "select" ||
+                  (change.type === "position" && change.dragging === false)
+              );
+
+            // Filter out selection changes for group nodes that have selectable: false
+            // This prevents groups from being selected during drag selection when they shouldn't be
+            const currentNodes = get().nodes;
+            const filteredChanges = changes.filter((change) => {
+              if (change.type === "select" && change.selected) {
+                const node = currentNodes.find((n) => n.id === change.id);
+                // If node is a group and has selectable: false, don't allow selection
+                if (
+                  node &&
+                  (node.type === GROUP_NODE_TYPE ||
+                    node.data?.originalType === GROUP_NODE_TYPE) &&
+                  node.selectable === false
+                ) {
+                  return false;
+                }
+              }
+              return true;
+            });
+
+            const nodes = applyNodeChanges(filteredChanges, currentNodes);
             set({ nodes });
 
             // Only mark as dirty if there are actual user changes, not just internal React Flow updates
@@ -513,14 +510,36 @@ export const createNodeStore = (
               return;
             }
 
+            // Check if the target handle is a "collect" handle (list[T])
+            // Collect handles allow multiple incoming connections
+            let isCollectHandle = false;
+            if (targetNode && connection.targetHandle) {
+              const targetMetadata = useMetadataStore
+                .getState()
+                .getMetadata(targetNode.type || "");
+              if (targetMetadata) {
+                const targetHandle = findInputHandle(
+                  targetNode,
+                  connection.targetHandle,
+                  targetMetadata
+                );
+                if (targetHandle?.type && isCollectType(targetHandle.type)) {
+                  isCollectHandle = true;
+                }
+              }
+            }
+
             // Remove any existing connections to this target handle
-            const filteredEdges = get().edges.filter(
-              (edge) =>
-                !(
-                  edge.target === connection.target &&
-                  edge.targetHandle === connection.targetHandle
-                )
-            );
+            // UNLESS it's a collect handle, which allows multiple connections
+            const filteredEdges = isCollectHandle
+              ? get().edges
+              : get().edges.filter(
+                  (edge) =>
+                    !(
+                      edge.target === connection.target &&
+                      edge.targetHandle === connection.targetHandle
+                    )
+                );
 
             if (
               wouldCreateCycle(
@@ -631,7 +650,7 @@ export const createNodeStore = (
               return { ...state, nodes };
             });
           },
-          updateNodeProperties: (id: string, properties: any): void => {
+          updateNodeProperties: (id: string, properties: Record<string, unknown>): void => {
             const workflow_id = get().workflow.id;
             set((state) => {
               const index = state.nodes.findIndex((n) => n.id === id);
@@ -754,7 +773,12 @@ export const createNodeStore = (
             return nodes.reduce((acc, node) => {
               for (const key in node.data.properties) {
                 const property = node.data.properties[key];
-                if (property?.type && property?.repo_id) {
+                if (
+                  property &&
+                  typeof property === "object" &&
+                  "type" in property &&
+                  "repo_id" in property
+                ) {
                   acc.push(property as UnifiedModel);
                 }
               }
@@ -764,7 +788,7 @@ export const createNodeStore = (
           getWorkflow: (): Workflow => {
             const workflow = get().workflow;
             const edges = get().edges;
-            
+
             // Optimization: Build a set of connected handles for O(1) lookups
             // instead of checking all edges for each property (O(n*m*e) -> O(n*m))
             const connectedHandles = new Set<string>();
@@ -773,11 +797,11 @@ export const createNodeStore = (
                 connectedHandles.add(`${edge.target}:${edge.targetHandle}`);
               }
             }
-            
+
             const isHandleConnected = (nodeId: string, handle: string) => {
               return connectedHandles.has(`${nodeId}:${handle}`);
             };
-            
+
             const unconnectedProperties = (node: Node<NodeData>) => {
               const properties: Record<string, any> = {};
               for (const name in node.data.properties) {
@@ -822,24 +846,32 @@ export const createNodeStore = (
               if (nodes.length === 0) {
                 return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
               }
-              
+
               let minX = Infinity;
               let minY = Infinity;
               let maxX = -Infinity;
               let maxY = -Infinity;
-              
+
               for (const node of nodes) {
                 const nodeX = node.position.x;
                 const nodeY = node.position.y;
                 const width = node.measured?.width ?? node.width ?? 100;
                 const height = node.measured?.height ?? node.height ?? 100;
-                
-                if (nodeX < minX) {minX = nodeX;}
-                if (nodeY < minY) {minY = nodeY;}
-                if (nodeX + width > maxX) {maxX = nodeX + width;}
-                if (nodeY + height > maxY) {maxY = nodeY + height;}
+
+                if (nodeX < minX) {
+                  minX = nodeX;
+                }
+                if (nodeY < minY) {
+                  minY = nodeY;
+                }
+                if (nodeX + width > maxX) {
+                  maxX = nodeX + width;
+                }
+                if (nodeY + height > maxY) {
+                  maxY = nodeY + height;
+                }
               }
-              
+
               return { minX, minY, maxX, maxY };
             };
 
@@ -1012,13 +1044,17 @@ export const createNodeStore = (
                 defaults[key] = properties[key];
               }
             }
-            
+
             // Generate default name for input nodes if name property exists but is empty
-            const isInputNode = metadata.node_type.startsWith("nodetool.input.");
+            const isInputNode =
+              metadata.node_type.startsWith("nodetool.input.");
             if (isInputNode && "name" in defaults && !defaults.name) {
-              defaults.name = generateInputNodeName(metadata.node_type, get().nodes);
+              defaults.name = generateInputNodeName(
+                metadata.node_type,
+                get().nodes
+              );
             }
-            
+
             const nodeId = get().generateNodeId();
             useResultsStore.getState().clearResults(nodeId);
 
@@ -1072,10 +1108,10 @@ export const createNodeStore = (
               set((state) => ({
                 nodes: state.nodes.map((n) =>
                   n.id === nodeId
-                    ? { 
-                        ...n, 
+                    ? {
+                        ...n,
                         className: newBypassed ? "bypassed" : undefined,
-                        data: { ...n.data, bypassed: newBypassed } 
+                        data: { ...n.data, bypassed: newBypassed }
                       }
                     : n
                 )
@@ -1087,10 +1123,10 @@ export const createNodeStore = (
             set((state) => ({
               nodes: state.nodes.map((n) =>
                 n.id === nodeId
-                  ? { 
-                      ...n, 
+                  ? {
+                      ...n,
                       className: bypassed ? "bypassed" : undefined,
-                      data: { ...n.data, bypassed } 
+                      data: { ...n.data, bypassed }
                     }
                   : n
               )
@@ -1102,18 +1138,20 @@ export const createNodeStore = (
             if (selectedNodes.length === 0) {
               return;
             }
-            
+
             // Determine if we should bypass or enable based on majority
-            const bypassedCount = selectedNodes.filter(n => n.data.bypassed).length;
+            const bypassedCount = selectedNodes.filter(
+              (n) => n.data.bypassed
+            ).length;
             const shouldBypass = bypassedCount < selectedNodes.length / 2;
-            
+
             set((state) => ({
               nodes: state.nodes.map((n) =>
                 n.selected
-                  ? { 
-                      ...n, 
+                  ? {
+                      ...n,
                       className: shouldBypass ? "bypassed" : undefined,
-                      data: { ...n.data, bypassed: shouldBypass } 
+                      data: { ...n.data, bypassed: shouldBypass }
                     }
                   : n
               )
@@ -1136,46 +1174,9 @@ export const createNodeStore = (
         limit: undo_limit,
         equality: customEquality,
         partialize: (state): PartializedNodeStore => {
-          const { workflow, nodes, edges, ...rest } = state;
+          const { workflow, nodes, edges } = state;
           return { workflow, nodes, edges };
         }
       }
     )
   );
-
-const extractModelRepos = (nodes: GraphNode[]): string[] => {
-  return nodes.reduce<string[]>((acc, node) => {
-    const data = node.data as Record<string, any>;
-    for (const name of Object.keys(data)) {
-      const value = data[name];
-      if (value && value.type?.startsWith("hf.")) {
-        if (value.repo_id && !value.path) {
-          acc.push(value.repo_id);
-        }
-      }
-    }
-    return acc;
-  }, []);
-};
-
-/**
- * Extract model files from workflow nodes that need to be cached
- */
-const extractModelFiles = (nodes: GraphNode[]): RepoPath[] => {
-  return nodes.reduce<RepoPath[]>((acc, node) => {
-    const data = node.data as Record<string, any>;
-    for (const name of Object.keys(data)) {
-      const value = data[name];
-      if (value && value.type?.startsWith("hf.")) {
-        if (value.repo_id && value.path) {
-          acc.push({
-            repo_id: value.repo_id,
-            path: value.path,
-            downloaded: false
-          });
-        }
-      }
-    }
-    return acc;
-  }, []);
-};

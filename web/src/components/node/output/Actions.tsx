@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { CopyToClipboardButton } from "../../common/CopyToClipboardButton";
+import { CopyButton } from "../../ui_primitives";
 import { Box } from "@mui/material";
 
 type ActionsProps = {
@@ -12,7 +12,7 @@ const Actions: React.FC<ActionsProps> = ({ copyValue }) => {
   }
   return (
     <Box className="actions">
-      <CopyToClipboardButton copyValue={copyValue} size="small" />
+      <CopyButton value={copyValue} buttonSize="small" />
     </Box>
   );
 };

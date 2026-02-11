@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
 import {
   CircularProgress,
   List,
@@ -46,17 +46,19 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
   const getAssetsRecursive = useAssetStore((state) => state.getAssetsRecursive);
-  const folderIcon = <IconForType iconName="folder" />;
-  const imageIcon = <IconForType iconName="image" />;
-  const audioIcon = <IconForType iconName="audio" />;
-  const videoIcon = <IconForType iconName="video" />;
-  const textIcon = <IconForType iconName="text" />;
-  const pdfIcon = <IconForType iconName="pdf" />;
-  const wordIcon = <IconForType iconName="word" />;
-  const excelIcon = <IconForType iconName="excel" />;
-  const powerpointIcon = <IconForType iconName="powerpoint" />;
-  const zipIcon = <IconForType iconName="zip" />;
-  const unknownIcon = <IconForType iconName="unknown" />;
+
+  // Memoize icons to prevent recreation on each render
+  const folderIcon = useMemo(() => <IconForType iconName="folder" />, []);
+  const imageIcon = useMemo(() => <IconForType iconName="image" />, []);
+  const audioIcon = useMemo(() => <IconForType iconName="audio" />, []);
+  const videoIcon = useMemo(() => <IconForType iconName="video" />, []);
+  const textIcon = useMemo(() => <IconForType iconName="text" />, []);
+  const pdfIcon = useMemo(() => <IconForType iconName="pdf" />, []);
+  const wordIcon = useMemo(() => <IconForType iconName="word" />, []);
+  const excelIcon = useMemo(() => <IconForType iconName="excel" />, []);
+  const powerpointIcon = useMemo(() => <IconForType iconName="powerpoint" />, []);
+  const zipIcon = useMemo(() => <IconForType iconName="zip" />, []);
+  const unknownIcon = useMemo(() => <IconForType iconName="unknown" />, []);
 
   const calculateTotalAssets = useCallback((node: Asset): number => {
     if (node.content_type === "folder" && (node as AssetTreeNode).children) {
@@ -71,20 +73,25 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     return 1;
   }, []);
 
+  // Memoize the tree processing logic to avoid recreating the function on every render
+  const processAssetTree = useCallback((nodes: Asset[]): AssetTreeNode[] => {
+    return nodes.map((node) => ({
+      ...node,
+      totalAssets: calculateTotalAssets(node),
+      children: (node as AssetTreeNode).children?.map((child) => ({
+        ...child,
+        totalAssets: calculateTotalAssets(child)
+      }))
+    }));
+  }, [calculateTotalAssets]);
+
   useEffect(() => {
     const fetchAssetTree = async () => {
       setIsLoading(true);
       onLoading(true);
       try {
         const result = await getAssetsRecursive(folderId);
-        const treeWithTotals: AssetTreeNode[] = result.map((node) => ({
-          ...node,
-          totalAssets: calculateTotalAssets(node),
-          children: (node as AssetTreeNode).children?.map((child) => ({
-            ...child,
-            totalAssets: calculateTotalAssets(child)
-          }))
-        }));
+        const treeWithTotals = processAssetTree(result);
         setAssetTree(treeWithTotals);
         const total = treeWithTotals.reduce(
           (sum, node) => sum + node.totalAssets,
@@ -105,12 +112,12 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   }, [
     folderId,
     getAssetsRecursive,
-    calculateTotalAssets,
+    processAssetTree,
     onTotalAssetsCalculated,
     onLoading
   ]);
 
-  const toggleFolder = (assetId: string) => {
+  const handleToggleFolder = useCallback((assetId: string) => {
     setClosedFolders((prev) => {
       if (prev.includes(assetId)) {
         return prev.filter((id) => id !== assetId);
@@ -118,9 +125,13 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         return [...prev, assetId];
       }
     });
-  };
+  }, []);
 
-  const getFileIcon = (contentType: string) => {
+  const createFolderToggleHandler = useCallback((assetId: string) => {
+    return () => handleToggleFolder(assetId);
+  }, [handleToggleFolder]);
+
+  const getFileIcon = useCallback((contentType: string) => {
     switch (contentType) {
       case "folder":
         return folderIcon;
@@ -159,10 +170,10 @@ const AssetTree: React.FC<AssetTreeProps> = ({
           return unknownIcon;
         }
     }
-  };
+  }, [folderIcon, imageIcon, audioIcon, videoIcon, textIcon, pdfIcon, wordIcon, excelIcon, powerpointIcon, zipIcon, unknownIcon]);
 
-  const renderAssetTree = (nodes: AssetTreeNode[], depth = 0) => {
-    const sortedNodes = [...nodes].sort((a, b) => {
+  const sortNodes = useCallback((nodes: AssetTreeNode[]): AssetTreeNode[] => {
+    return [...nodes].sort((a, b) => {
       if (a.content_type === "folder" && b.content_type !== "folder") {
         return -1;
       }
@@ -171,6 +182,12 @@ const AssetTree: React.FC<AssetTreeProps> = ({
       }
       return a.name.localeCompare(b.name);
     });
+  }, []);
+
+  const sortedAssetTree = useMemo(() => sortNodes(assetTree), [assetTree, sortNodes]);
+
+  const renderAssetTree = useCallback((nodes: AssetTreeNode[], depth = 0) => {
+    const sortedNodes = sortNodes(nodes);
 
     return (
       <List
@@ -182,9 +199,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         {sortedNodes.map((node) => (
           <React.Fragment key={node.id}>
             <ListItemButton
-              onClick={() =>
-                node.content_type === "folder" && toggleFolder(node.id)
-              }
+              onClick={createFolderToggleHandler(node.id)}
               style={{ paddingLeft: `${depth * 16}px` }}
             >
               <ListItemIcon
@@ -229,7 +244,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         ))}
       </List>
     );
-  };
+  }, [sortNodes, closedFolders, createFolderToggleHandler, getFileIcon, theme.vars.palette.grey]);
 
   if (isLoading) {
     return <CircularProgress />;
@@ -237,11 +252,11 @@ const AssetTree: React.FC<AssetTreeProps> = ({
 
   return assetTree.length > 0 ? (
     <Box className="asset-tree" css={styles(theme)}>
-      {renderAssetTree(assetTree)}
+      {renderAssetTree(sortedAssetTree)}
     </Box>
   ) : (
     <Typography variant="body1">No assets found</Typography>
   );
 };
 
-export default AssetTree;
+export default memo(AssetTree);

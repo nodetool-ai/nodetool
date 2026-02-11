@@ -1,13 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   IconButton,
   Tooltip,
   Slider,
-  Typography
+  Typography,
+  Checkbox,
+  FormControlLabel
 } from "@mui/material";
 
 // Icons
@@ -15,6 +17,12 @@ import PanToolIcon from "@mui/icons-material/PanTool";
 import CropIcon from "@mui/icons-material/Crop";
 import BrushIcon from "@mui/icons-material/Brush";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
+import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
+import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
+import RemoveIcon from "@mui/icons-material/Remove";
+import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import Rotate90DegreesCwIcon from "@mui/icons-material/Rotate90DegreesCw";
 import Rotate90DegreesCcwIcon from "@mui/icons-material/Rotate90DegreesCcw";
 import FlipIcon from "@mui/icons-material/Flip";
@@ -30,7 +38,9 @@ import type {
   EditTool,
   EditAction,
   BrushSettings,
-  AdjustmentSettings
+  AdjustmentSettings,
+  ShapeSettings,
+  TextSettings
 } from "./types";
 
 const styles = (theme: Theme) =>
@@ -201,6 +211,8 @@ const styles = (theme: Theme) =>
 interface ImageEditorToolbarProps {
   tool: EditTool;
   brushSettings: BrushSettings;
+  shapeSettings: ShapeSettings;
+  textSettings: TextSettings;
   adjustments: AdjustmentSettings;
   zoom: number;
   isCropping: boolean;
@@ -208,6 +220,8 @@ interface ImageEditorToolbarProps {
   canRedo: boolean;
   onToolChange: (tool: EditTool) => void;
   onBrushSettingsChange: (settings: Partial<BrushSettings>) => void;
+  onShapeSettingsChange: (settings: Partial<ShapeSettings>) => void;
+  onTextSettingsChange: (settings: Partial<TextSettings>) => void;
   onAdjustmentsChange: (adjustments: Partial<AdjustmentSettings>) => void;
   onAction: (action: EditAction) => void;
   onZoomChange: (zoom: number) => void;
@@ -218,6 +232,8 @@ interface ImageEditorToolbarProps {
 const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   tool,
   brushSettings,
+  shapeSettings,
+  textSettings,
   adjustments,
   zoom,
   isCropping,
@@ -225,6 +241,8 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   canRedo,
   onToolChange,
   onBrushSettingsChange,
+  onShapeSettingsChange,
+  onTextSettingsChange,
   onAdjustmentsChange,
   onAction,
   onZoomChange,
@@ -240,6 +258,55 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
     [onBrushSettingsChange]
   );
 
+  const handleToolSelect = useCallback(
+    (newTool: EditTool) => () => {
+      onToolChange(newTool);
+    },
+    [onToolChange]
+  );
+
+  const handleActionClick = useCallback(
+    (action: EditAction) => () => {
+      onAction(action);
+    },
+    [onAction]
+  );
+
+  const handleApplyCrop = useCallback(() => handleActionClick("apply-crop")(), [handleActionClick]);
+  const handleCancelCrop = useCallback(() => handleActionClick("cancel-crop")(), [handleActionClick]);
+
+  const handleRotateCCW = useCallback(() => handleActionClick("rotate-ccw")(), [handleActionClick]);
+  const handleRotateCW = useCallback(() => handleActionClick("rotate-cw")(), [handleActionClick]);
+  const handleFlipH = useCallback(() => handleActionClick("flip-h")(), [handleActionClick]);
+  const handleFlipV = useCallback(() => handleActionClick("flip-v")(), [handleActionClick]);
+  const handleReset = useCallback(() => handleActionClick("reset")(), [handleActionClick]);
+
+  const handleZoomOut = useCallback(() => {
+    onZoomChange(Math.max(0.1, zoom - 0.1));
+  }, [onZoomChange, zoom]);
+
+  const handleZoomIn = useCallback(() => {
+    onZoomChange(Math.min(5, zoom + 0.1));
+  }, [onZoomChange, zoom]);
+
+  const handleZoomReset = useCallback(() => {
+    onZoomChange(1);
+  }, [onZoomChange]);
+
+  const handleToolClick = useCallback(
+    (newTool: EditTool) => {
+      handleToolSelect(newTool)();
+    },
+    [handleToolSelect]
+  );
+
+  const handleSelectTool = useCallback(
+    (tool: EditTool) => () => {
+      handleToolClick(tool);
+    },
+    [handleToolClick]
+  );
+
   return (
     <div css={styles(theme)}>
       <div className="toolbar">
@@ -247,40 +314,94 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         <div className="toolbar-section">
           <Typography className="section-title">Tools</Typography>
           <div className="tools-grid">
-            <Tooltip title="Select / Pan" placement="top">
+            <Tooltip title="Select / Pan (V)" placement="top">
               <IconButton
                 className={`tool-button ${tool === "select" ? "active" : ""}`}
-                onClick={() => onToolChange("select")}
+                onClick={handleSelectTool("select")}
                 size="small"
               >
                 <PanToolIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Crop" placement="top">
+            <Tooltip title="Crop (C)" placement="top">
               <IconButton
                 className={`tool-button ${tool === "crop" ? "active" : ""}`}
-                onClick={() => onToolChange("crop")}
+                onClick={handleSelectTool("crop")}
                 size="small"
               >
                 <CropIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Draw / Paint" placement="top">
+            <Tooltip title="Draw / Paint (B)" placement="top">
               <IconButton
                 className={`tool-button ${tool === "draw" ? "active" : ""}`}
-                onClick={() => onToolChange("draw")}
+                onClick={handleSelectTool("draw")}
                 size="small"
               >
                 <BrushIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Erase" placement="top">
+            <Tooltip title="Erase (E)" placement="top">
               <IconButton
                 className={`tool-button ${tool === "erase" ? "active" : ""}`}
-                onClick={() => onToolChange("erase")}
+                onClick={handleSelectTool("erase")}
                 size="small"
               >
                 <AutoFixHighIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Fill (G)" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "fill" ? "active" : ""}`}
+                onClick={handleSelectTool("fill")}
+                size="small"
+              >
+                <FormatColorFillIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Text (T)" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "text" ? "active" : ""}`}
+                onClick={handleSelectTool("text")}
+                size="small"
+              >
+                <TextFieldsIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Rectangle (R)" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "rectangle" ? "active" : ""}`}
+                onClick={handleSelectTool("rectangle")}
+                size="small"
+              >
+                <RectangleOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Ellipse (O)" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "ellipse" ? "active" : ""}`}
+                onClick={handleSelectTool("ellipse")}
+                size="small"
+              >
+                <CircleOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Line (L)" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "line" ? "active" : ""}`}
+                onClick={handleSelectTool("line")}
+                size="small"
+              >
+                <RemoveIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Arrow (A)" placement="top">
+              <IconButton
+                className={`tool-button ${tool === "arrow" ? "active" : ""}`}
+                onClick={handleSelectTool("arrow")}
+                size="small"
+              >
+                <ArrowRightAltIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </div>
@@ -296,13 +417,13 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <div className="crop-actions">
               <button
                 className="crop-action-button crop-apply"
-                onClick={() => onAction("apply-crop")}
+                onClick={handleApplyCrop}
               >
                 <CheckIcon fontSize="small" /> Apply
               </button>
               <button
                 className="crop-action-button crop-cancel"
-                onClick={() => onAction("cancel-crop")}
+                onClick={handleCancelCrop}
               >
                 <CloseIcon fontSize="small" /> Cancel
               </button>
@@ -369,6 +490,173 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
           </div>
         )}
 
+        {/* Fill Settings (shown when fill tool is active) */}
+        {tool === "fill" && (
+          <div className="toolbar-section">
+            <Typography className="section-title">Fill Settings</Typography>
+            <div className="color-picker-row">
+              <input
+                type="color"
+                value={shapeSettings.fillColor}
+                onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
+                className="color-preview"
+                style={{ backgroundColor: shapeSettings.fillColor }}
+              />
+              <input
+                type="text"
+                value={shapeSettings.fillColor}
+                onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
+                className="color-input"
+                maxLength={7}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Shape Settings (shown when shape tools are active) */}
+        {(tool === "rectangle" || tool === "ellipse" || tool === "line" || tool === "arrow") && (
+          <div className="toolbar-section">
+            <Typography className="section-title">Shape Settings</Typography>
+
+            <div className="color-picker-row">
+              <input
+                type="color"
+                value={shapeSettings.strokeColor}
+                onChange={(e) => onShapeSettingsChange({ strokeColor: e.target.value })}
+                className="color-preview"
+                style={{ backgroundColor: shapeSettings.strokeColor }}
+              />
+              <input
+                type="text"
+                value={shapeSettings.strokeColor}
+                onChange={(e) => onShapeSettingsChange({ strokeColor: e.target.value })}
+                className="color-input"
+                maxLength={7}
+              />
+            </div>
+
+            <div className="slider-container">
+              <div className="slider-label">
+                <span>Stroke Width</span>
+                <span className="slider-value">{shapeSettings.strokeWidth}px</span>
+              </div>
+              <Slider
+                value={shapeSettings.strokeWidth}
+                onChange={(_, value) =>
+                  onShapeSettingsChange({ strokeWidth: value as number })
+                }
+                min={1}
+                max={20}
+                size="small"
+              />
+            </div>
+
+            {(tool === "rectangle" || tool === "ellipse") && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={shapeSettings.filled}
+                    onChange={(e) => onShapeSettingsChange({ filled: e.target.checked })}
+                    size="small"
+                    sx={{ color: "grey.400" }}
+                  />
+                }
+                label="Filled"
+                sx={{
+                  color: "grey.400",
+                  "& .MuiTypography-root": { fontSize: "12px" }
+                }}
+              />
+            )}
+
+            {shapeSettings.filled && (tool === "rectangle" || tool === "ellipse") && (
+              <div className="color-picker-row" style={{ marginTop: "8px" }}>
+                <Typography variant="caption" sx={{ color: "grey.500", mr: 1, minWidth: "50px" }}>
+                  Fill
+                </Typography>
+                <input
+                  type="color"
+                  value={shapeSettings.fillColor}
+                  onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
+                  className="color-preview"
+                  style={{ backgroundColor: shapeSettings.fillColor, width: "24px", height: "24px" }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Text Settings (shown when text tool is active) */}
+        {tool === "text" && (
+          <div className="toolbar-section">
+            <Typography className="section-title">Text Settings</Typography>
+
+            <div className="color-picker-row">
+              <input
+                type="color"
+                value={textSettings.color}
+                onChange={(e) => onTextSettingsChange({ color: e.target.value })}
+                className="color-preview"
+                style={{ backgroundColor: textSettings.color }}
+              />
+              <input
+                type="text"
+                value={textSettings.color}
+                onChange={(e) => onTextSettingsChange({ color: e.target.value })}
+                className="color-input"
+                maxLength={7}
+              />
+            </div>
+
+            <div className="slider-container">
+              <div className="slider-label">
+                <span>Font Size</span>
+                <span className="slider-value">{textSettings.fontSize}px</span>
+              </div>
+              <Slider
+                value={textSettings.fontSize}
+                onChange={(_, value) =>
+                  onTextSettingsChange({ fontSize: value as number })
+                }
+                min={8}
+                max={128}
+                size="small"
+              />
+            </div>
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={textSettings.bold}
+                  onChange={(e) => onTextSettingsChange({ bold: e.target.checked })}
+                  size="small"
+                  sx={{ color: "grey.400" }}
+                />
+              }
+              label="Bold"
+              sx={{
+                color: "grey.400",
+                "& .MuiTypography-root": { fontSize: "12px" }
+              }}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={textSettings.italic}
+                  onChange={(e) => onTextSettingsChange({ italic: e.target.checked })}
+                  size="small"
+                  sx={{ color: "grey.400" }}
+                />
+              }
+              label="Italic"
+              sx={{
+                color: "grey.400",
+                "& .MuiTypography-root": { fontSize: "12px" }
+              }}
+            />
+          </div>
+        )}
+
         {/* Transform Actions */}
         <div className="toolbar-section">
           <Typography className="section-title">Transform</Typography>
@@ -376,7 +664,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Rotate 90° CCW">
               <IconButton
                 className="action-button"
-                onClick={() => onAction("rotate-ccw")}
+                onClick={handleRotateCCW}
                 size="small"
               >
                 <Rotate90DegreesCcwIcon fontSize="small" />
@@ -385,7 +673,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Rotate 90° CW">
               <IconButton
                 className="action-button"
-                onClick={() => onAction("rotate-cw")}
+                onClick={handleRotateCW}
                 size="small"
               >
                 <Rotate90DegreesCwIcon fontSize="small" />
@@ -394,7 +682,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Flip Horizontal">
               <IconButton
                 className="action-button"
-                onClick={() => onAction("flip-h")}
+                onClick={handleFlipH}
                 size="small"
               >
                 <FlipIcon fontSize="small" />
@@ -403,9 +691,8 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Flip Vertical">
               <IconButton
                 className="action-button"
-                onClick={() => onAction("flip-v")}
+                onClick={handleFlipV}
                 size="small"
-                sx={{ transform: "rotate(90deg)" }}
               >
                 <FlipIcon fontSize="small" />
               </IconButton>
@@ -472,7 +759,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
           <div className="zoom-controls">
             <IconButton
               className="action-button"
-              onClick={() => onZoomChange(Math.max(0.1, zoom - 0.1))}
+              onClick={handleZoomOut}
               size="small"
             >
               <ZoomOutIcon fontSize="small" />
@@ -480,7 +767,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <span className="zoom-value">{Math.round(zoom * 100)}%</span>
             <IconButton
               className="action-button"
-              onClick={() => onZoomChange(Math.min(5, zoom + 0.1))}
+              onClick={handleZoomIn}
               size="small"
             >
               <ZoomInIcon fontSize="small" />
@@ -488,7 +775,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Reset Zoom">
               <IconButton
                 className="action-button"
-                onClick={() => onZoomChange(1)}
+                onClick={handleZoomReset}
                 size="small"
               >
                 <RestartAltIcon fontSize="small" />
@@ -528,7 +815,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <Tooltip title="Reset to Original">
               <IconButton
                 className="action-button"
-                onClick={() => onAction("reset")}
+                onClick={handleReset}
                 size="small"
               >
                 <RestartAltIcon fontSize="small" />
@@ -541,4 +828,4 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
   );
 };
 
-export default ImageEditorToolbar;
+export default memo(ImageEditorToolbar);

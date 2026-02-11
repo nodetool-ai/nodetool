@@ -1,12 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 // Convert hex color to RGB values
 const hexToRgb = (hex: string) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const normalizedHex = hex.trim();
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
+    normalizedHex
+  );
   if (!result) {return null;}
   return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
     result[3],
@@ -106,15 +109,32 @@ export const HighlightText = memo<HighlightTextProps>(
   ({ text, query, className, matchStyle = "primary", isBulletList = false }) => {
     const theme = useTheme();
 
-    if (isBulletList) {
-      const lines = formatBulletList(text);
+    // Memoize styles to avoid recreating on every render
+    const styles = useMemo(
+      () => highlightStyles(theme, matchStyle),
+      [theme, matchStyle]
+    );
+
+    // Memoize tokenized parts to avoid re-computing regex
+    const parts = useMemo(
+      () => tokenize(text, query),
+      [text, query]
+    );
+
+    // Memoize lines for bullet list
+    const lines = useMemo(
+      () => isBulletList ? formatBulletList(text) : null,
+      [text, isBulletList]
+    );
+
+    if (isBulletList && lines) {
       return (
-        <ul className={className} css={highlightStyles(theme, matchStyle)}>
+        <ul className={className} css={styles}>
           {lines.map((line, lineIndex) => {
-            const parts = tokenize(line, query);
+            const lineParts = tokenize(line, query);
             return (
               <li key={lineIndex}>
-                {parts.map((part, partIndex) =>
+                {lineParts.map((part, partIndex) =>
                   part.match ? (
                     <span key={partIndex} className="highlight-match">
                       {part.text}
@@ -130,9 +150,8 @@ export const HighlightText = memo<HighlightTextProps>(
       );
     }
 
-    const parts = tokenize(text, query);
     return (
-      <span className={className} css={highlightStyles(theme, matchStyle)}>
+      <span className={className} css={styles}>
         {parts.map((part, index) =>
           part.match ? (
             <span key={index} className="highlight-match">

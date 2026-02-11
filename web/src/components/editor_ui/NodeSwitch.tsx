@@ -9,9 +9,8 @@
  * - `changed`: Shows visual indicator when value differs from default
  */
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, useMemo, memo } from "react";
 import { Switch, SwitchProps } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
 import { editorUiClasses } from "../../constants/editorUiClasses";
 import { editorClassNames, cn } from "./editorUtils";
@@ -44,12 +43,22 @@ export interface NodeSwitchProps extends Omit<SwitchProps, "size"> {
  */
 export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
   ({ className, sx, changed, ...props }, ref) => {
-    const theme = useTheme();
     const scope = useEditorScope();
     const scopeClass =
       scope === "inspector"
         ? editorUiClasses.scopeInspector
         : editorUiClasses.scopeNode;
+
+    // Memoize sx prop to prevent unnecessary re-renders
+    const switchSx = useMemo(() => ({
+      // Semantic: changed state - shows visual indicator
+      // ...(changed && {
+      //   outline: `2px solid ${theme.vars.palette.primary.main}`,
+      //   outlineOffset: 2,
+      //   borderRadius: "6px"
+      // }),
+      ...sx
+    }), [sx]);
 
     return (
       <Switch
@@ -61,15 +70,7 @@ export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
           scopeClass,
           className
         )}
-        sx={{
-          // Semantic: changed state - shows visual indicator
-          // ...(changed && {
-          //   outline: `2px solid ${theme.vars.palette.primary.main}`,
-          //   outlineOffset: 2,
-          //   borderRadius: "6px"
-          // }),
-          ...sx
-        }}
+        sx={switchSx}
         {...props}
       />
     );
@@ -77,3 +78,8 @@ export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
 );
 
 NodeSwitch.displayName = "NodeSwitch";
+
+const NodeSwitchMemo = memo(NodeSwitch);
+NodeSwitchMemo.displayName = "NodeSwitch";
+
+export default NodeSwitchMemo;

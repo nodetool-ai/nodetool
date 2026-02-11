@@ -32,7 +32,7 @@ export interface WebSocketConfig {
 export interface WebSocketMessage {
   type?: string;
   command?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ConnectionStateTransition {
@@ -208,10 +208,12 @@ export class WebSocketManager extends EventEmitter {
   private setupEventHandlers(): void {
     if (!this.ws) {return;}
 
-    this.ws.onopen = this.handleOpen.bind(this);
-    this.ws.onmessage = this.handleMessage.bind(this);
-    this.ws.onerror = this.handleError.bind(this);
-    this.ws.onclose = this.handleClose.bind(this);
+    // Assign handlers directly (already bound as class methods)
+    // This avoids creating new function references on each call
+    this.ws.onopen = () => this.handleOpen();
+    this.ws.onmessage = (event) => this.handleMessage(event);
+    this.ws.onerror = (event) => this.handleError(event);
+    this.ws.onclose = (event) => this.handleClose(event);
   }
 
   private handleOpen(): void {
@@ -239,7 +241,7 @@ export class WebSocketManager extends EventEmitter {
 
   private async handleMessage(event: MessageEvent): Promise<void> {
     try {
-      let data: any;
+      let data: unknown;
 
       if (this.config.binaryType === "arraybuffer") {
         if (event.data instanceof ArrayBuffer) {
@@ -310,7 +312,11 @@ export class WebSocketManager extends EventEmitter {
     if (shouldReconnect) {
       this.scheduleReconnect();
     } else if (!this.intentionalDisconnect) {
-      this.transitionTo("failed");
+      // Note: We can't transition to "failed" from "disconnected" state.
+      // The failed state is only reachable from "connecting" or "reconnecting".
+      // If we reach here from "disconnected", we just stay disconnected.
+      // This can happen when max reconnect attempts are exhausted.
+      log.warn(`Connection failed after ${this.reconnectAttempt} attempts, staying in disconnected state`);
     }
   }
 

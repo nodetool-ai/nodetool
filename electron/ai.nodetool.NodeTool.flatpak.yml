@@ -1,0 +1,120 @@
+# Flatpak Manifest for NodeTool
+# 
+# This manifest defines how to build NodeTool as a Flatpak application.
+# It follows the requirements for independent CI workflow with:
+# - Explicit runtime and SDK declarations
+# - Pinned Electron and Node versions
+# - Minimum permissions declared explicitly
+# - Build from source, not prebuilt AppImages
+# - x86_64 architecture support
+
+app-id: ai.nodetool.NodeTool
+branch: stable
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '24.08'
+command: nodetool
+
+# Supported architectures - x86_64 only initially
+# Future: add aarch64 support
+build-options:
+  arch:
+    x86_64: {}
+
+# Explicit permission declarations
+# These are the minimum required permissions for NodeTool to function
+finish-args:
+  # Display protocols
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  
+  # GPU acceleration for AI workloads
+  - --device=dri
+  
+  # Audio input/output for multimedia processing
+  - --socket=pulseaudio
+  
+  # Network access for:
+  # - API calls to cloud AI services
+  # - Model downloads from HuggingFace
+  # - Backend communication
+  - --share=network
+  
+  # Filesystem access for:
+  # - User projects and workflows
+  # - Asset storage
+  # - Configuration files
+  - --filesystem=home
+  
+  # System integration
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=com.canonical.AppMenu.Registrar
+  - --talk-name=org.freedesktop.portal.Desktop
+  
+  # Device access for:
+  # - Microphone (audio recording features)
+  # - Camera (video recording features)
+  - --device=all
+  
+  # Environment variables
+  - --env=ELECTRON_TRASH=gio
+  - --env=NODE_ENV=production
+
+# Build modules
+modules:
+  # Main NodeTool application
+  - name: nodetool
+    buildsystem: simple
+    build-options:
+      env:
+        # Node environment
+        NPM_CONFIG_CACHE: /run/build/nodetool/npm-cache
+        npm_config_cache: /run/build/nodetool/npm-cache
+        npm_config_offline: 'true'
+        ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    build-commands:
+      # Install dependencies and build web frontend
+      - cd web && npm ci && npm run build
+      
+      # Build electron application
+      - cd electron && npm ci
+      - cd electron && npm run download-micromamba
+      - cd electron && npm run vite:build
+      - cd electron && npx tsc
+      
+      # Create application directory
+      - mkdir -p /app/nodetool
+      
+      # Copy built application
+      - cp -r electron/dist-electron /app/nodetool/
+      - cp -r web/dist /app/nodetool/dist-web
+      - cp -r electron/assets /app/nodetool/
+      - cp -r electron/resources /app/nodetool/
+      - cp -r electron/node_modules /app/nodetool/node_modules
+      - cp electron/package.json /app/nodetool/
+      
+      # Install wrapper script
+      - install -Dm755 electron/flatpak-wrapper.sh /app/bin/nodetool
+      
+      # Install desktop integration files
+      - install -Dm644 electron/resources/ai.nodetool.NodeTool.desktop /app/share/applications/ai.nodetool.NodeTool.desktop
+      - install -Dm644 electron/resources/ai.nodetool.NodeTool.metainfo.xml /app/share/metainfo/ai.nodetool.NodeTool.metainfo.xml
+      
+      # Install icons
+      - |
+        for size in 16 24 32 48 64 128 256 512; do
+          if [ -f "electron/resources/linux_icons/icon_${size}x${size}.png" ]; then
+            install -Dm644 "electron/resources/linux_icons/icon_${size}x${size}.png" \
+              "/app/share/icons/hicolor/${size}x${size}/apps/ai.nodetool.NodeTool.png"
+          fi
+        done
+    
+    sources:
+      # Main repository - this will be the checked out code
+      - type: dir
+        path: .
+

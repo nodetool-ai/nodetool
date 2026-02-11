@@ -5,11 +5,11 @@ type MenuEventHandler = (data: any) => void;
 
 export const useMenuHandler = (handler: MenuEventHandler) => {
   const context = useContext(MenuContext);
-  if (!context) {
-    throw new Error("useMenuHandler must be used within a MenuProvider");
-  }
 
   useEffect(() => {
+    if (!context) {
+      return;
+    }
     context.registerHandler(handler);
     return () => {
       context.unregisterHandler(handler);

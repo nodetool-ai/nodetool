@@ -28,7 +28,7 @@ jest.mock("../../utils/errorHandling", () => ({
   )
 }));
 jest.mock("../BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000"
+  BASE_URL: "http://localhost:7777"
 }));
 
 import axios from "axios";
@@ -338,8 +338,14 @@ describe("AssetStore", () => {
         metadata: { updated: true }
       };
 
+      const prevAsset = { 
+        id: "asset1", 
+        name: "old.jpg",
+        parent_id: "", 
+        content_type: "image/jpeg" 
+      };
       const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockResolvedValue({ data: { id: "asset1", parent_id: "" } });
+      (client.GET as jest.Mock).mockResolvedValue({ data: prevAsset });
       (client.PUT as jest.Mock).mockResolvedValue({ data: mockAsset });
 
       const { update } = useAssetStore.getState();
@@ -348,14 +354,16 @@ describe("AssetStore", () => {
         name: "updated.jpg"
       });
 
+      // The update function falls back to previous values for fields not explicitly provided
       expect(client.PUT).toHaveBeenCalledWith("/api/assets/{id}", {
         params: { path: { id: "asset1" } },
         body: {
           name: "updated.jpg",
-          parent_id: null,
-          content_type: null,
+          parent_id: "",
+          content_type: "image/jpeg",
           metadata: null,
-          data: null
+          data: null,
+          data_encoding: null
         }
       });
       expect(result).toEqual(mockAsset);
@@ -455,7 +463,7 @@ describe("AssetStore", () => {
 
   describe("loadFolderTree", () => {
     it("should load folder tree with default sorting", async () => {
-      const mockFolderTree = {
+      const _mockFolderTree = {
         folder1: {
           id: "folder1",
           name: "Folder 1",
@@ -477,7 +485,7 @@ describe("AssetStore", () => {
     });
 
     it("should load folder tree with custom sorting", async () => {
-      const mockFolderTree = {
+      const _mockFolderTree = {
         folder1: {
           id: "folder1",
           name: "Folder 1",
@@ -525,7 +533,7 @@ describe("AssetStore", () => {
   describe("utility functions", () => {
     describe("sort", () => {
       it("should sort assets by created_at in descending order", () => {
-        const assets = {
+        const _assets = {
           asset1: {
             id: "asset1",
             name: "asset1.jpg",

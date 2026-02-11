@@ -12,11 +12,9 @@ import {
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton } from "../ui_primitives";
 
 const popoverStyles = css({
   paddingRight: "4em",
@@ -32,12 +30,9 @@ const popoverStyles = css({
 const NotificationButton: React.FC = React.memo(() => {
   const [notificationAnchor, setNotificationAnchor] =
     useState<null | HTMLElement>(null);
-  const {
-    notifications,
-    lastDisplayedTimestamp,
-    updateLastDisplayedTimestamp
-  } = useNotificationStore();
-  const { writeClipboard } = useClipboard();
+  const notifications = useNotificationStore((state) => state.notifications);
+  const lastDisplayedTimestamp = useNotificationStore((state) => state.lastDisplayedTimestamp);
+  const updateLastDisplayedTimestamp = useNotificationStore((state) => state.updateLastDisplayedTimestamp);
   const theme = useTheme();
   const unreadCount = useMemo(() => {
     if (!lastDisplayedTimestamp) {return notifications.length;}
@@ -56,10 +51,6 @@ const NotificationButton: React.FC = React.memo(() => {
   const handleNotificationClose = useCallback(() => {
     setNotificationAnchor(null);
   }, []);
-
-  const handleCopy = async (content: string) => {
-    await writeClipboard(content, true);
-  };
 
   return (
     <div className="notifications-container">
@@ -191,10 +182,10 @@ const NotificationButton: React.FC = React.memo(() => {
                 >
                   {notification.timestamp.toLocaleString()}
                 </Typography>
-                <CopyToClipboardButton
-                  copyValue={notification.content}
+                <CopyButton
+                  value={notification.content}
                   className="copy-button"
-                  title="Copy to clipboard"
+                  tooltip="Copy to clipboard"
                 />
               </Box>
             ))

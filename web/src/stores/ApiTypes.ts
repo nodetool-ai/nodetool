@@ -106,6 +106,7 @@ export type TaskUpdate = components["schemas"]["TaskUpdate"];
 export type JobUpdate = components["schemas"]["JobUpdate"];
 export type LlamaModel = components["schemas"]["LlamaModel"];
 export type LanguageModel = components["schemas"]["LanguageModel"];
+export type EmbeddingModel = components["schemas"]["EmbeddingModel"];
 export type ImageModel = components["schemas"]["ImageModel"];
 export type TTSModel = components["schemas"]["TTSModel"];
 export type ASRModel = components["schemas"]["ASRModel"];
@@ -120,6 +121,7 @@ export type UnifiedModel = components["schemas"]["UnifiedModel"] & {
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];
+export type ToolResultUpdate = components["schemas"]["ToolResultUpdate"];
 export type Chunk = components["schemas"]["Chunk"];
 export type SVGElement = components["schemas"]["SVGElement"];
 export type DocumentRef = components["schemas"]["DocumentRef"];
@@ -133,8 +135,8 @@ export type MessageContent =
   | MessageAudioContent
   | MessageDocumentContent;
 export type RepoPath = components["schemas"]["RepoPath"];
-export type FileInfo = components["schemas"]["FileInfo"];
-export type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
+export type FileInfo = components["schemas"]["nodetool__api__file__FileInfo"];
+export type WorkspaceFileInfo = components["schemas"]["nodetool__api__workspace__FileInfo"];
 export type CollectionResponse = components["schemas"]["CollectionResponse"];
 export type CollectionList = components["schemas"]["CollectionList"];
 export type CollectionCreate = components["schemas"]["CollectionCreate"];
@@ -156,6 +158,7 @@ export type ThreadList = components["schemas"]["ThreadList"];
 export type EdgeUpdate = components["schemas"]["EdgeUpdate"];
 export type Notification = components["schemas"]["Notification"];
 export type LogUpdate = components["schemas"]["LogUpdate"];
+export type ErrorMessage = components["schemas"]["Error"];
 export type SecretResponse = components["schemas"]["SecretResponse"];
 export type JobResponse = components["schemas"]["JobResponse"];
 export type JobListResponse = components["schemas"]["JobListResponse"];
@@ -167,3 +170,9 @@ export type Job = JobResponse;
 
 // Model Pack - curated bundle of models that work together
 export type ModelPack = components["schemas"]["ModelPack"];
+
+// Workspace types - for managing workspace folders
+export type WorkspaceResponse = components["schemas"]["WorkspaceResponse"];
+export type WorkspaceListResponse = components["schemas"]["WorkspaceListResponse"];
+export type WorkspaceCreateRequest = components["schemas"]["WorkspaceCreateRequest"];
+export type WorkspaceUpdateRequest = components["schemas"]["WorkspaceUpdateRequest"];

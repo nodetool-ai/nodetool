@@ -1,13 +1,11 @@
 import React, { useMemo } from "react";
 import {
-  Dialog,
   DialogContent,
   DialogTitle,
-  IconButton,
   Link,
   Typography
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { CloseButton, Dialog } from "../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { useTheme } from "@mui/material/styles";
@@ -69,13 +67,11 @@ const ReadmeDialog: React.FC<ReadmeDialogProps> = ({
     >
       <DialogTitle>
         README
-        <IconButton
-          aria-label="close"
+        <CloseButton
           onClick={onClose}
+          tooltip="Close"
           sx={{ position: "absolute", right: 8, top: 8 }}
-        >
-          <CloseIcon />
-        </IconButton>
+        />
       </DialogTitle>
       <DialogContent>
         {formattedReadme ? (

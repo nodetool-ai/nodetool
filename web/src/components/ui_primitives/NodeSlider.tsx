@@ -10,10 +10,10 @@
  * - `density`: Controls compact vs normal sizing
  */
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, useMemo, memo } from "react";
 import { Slider, SliderProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useEditorScope } from "../editor_ui/EditorUiContext";
+import { useEditorScope } from "../editor_ui";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 
 export interface NodeSliderProps extends Omit<SliderProps, "size"> {
@@ -47,60 +47,59 @@ export interface NodeSliderProps extends Omit<SliderProps, "size"> {
 export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
   ({ className, sx, changed, density = "compact", ...props }, ref) => {
     const theme = useTheme();
-    const scope = useEditorScope();
+    // useEditorScope is called to maintain consistency with other editor_ui primitives
+    // and can be used for future scope-aware styling (inspector vs node context)
+    useEditorScope();
 
-    const height = density === "compact" ? 5 : 6;
-    const thumbSize = density === "compact" ? 8 : 10;
+    const sliderSx = useMemo(() => ({
+      marginTop: density === "compact" ? "3px" : "6px",
+      padding: 0,
+      // Rail (background track)
+      "& .MuiSlider-rail": {
+        backgroundColor: theme.vars.palette.grey[500],
+        borderRadius: 0,
+        height: density === "compact" ? 5 : 6
+      },
+      // Track (filled portion)
+      "& .MuiSlider-track": {
+        height: density === "compact" ? 5 : 6,
+        opacity: 1,
+        left: 0,
+        borderRadius: 0,
+        backgroundColor: theme.vars.palette.primary.main
+      },
+      // Thumb (draggable handle)
+      "& .MuiSlider-thumb": {
+        backgroundColor: changed
+          ? theme.vars.palette.primary.main
+          : theme.vars.palette.grey[200],
+        boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
+        borderRadius: 0,
+        width: density === "compact" ? 8 : 10,
+        height: density === "compact" ? 8 : 10,
+        "&:hover, &:focus, &:active": {
+          boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
+          backgroundColor: theme.vars.palette.primary.main
+        },
+        "&.Mui-focusVisible": {
+          boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)"
+        },
+        "&.Mui-active": {
+          boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)"
+        },
+        "&::before, &::after": {
+          width: density === "compact" ? 12 : 14,
+          height: density === "compact" ? 12 : 14
+        }
+      },
+      ...sx
+    }), [theme, changed, density, sx]);
 
     return (
       <Slider
         ref={ref}
         className={cn(editorClassNames.nodrag, className)}
-        sx={{
-          marginTop: density === "compact" ? "3px" : "6px",
-          padding: 0,
-          // Rail (background track)
-          "& .MuiSlider-rail": {
-            backgroundColor: theme.vars.palette.grey[500],
-            borderRadius: 0,
-            height
-          },
-          // Track (filled portion)
-          "& .MuiSlider-track": {
-            height,
-            opacity: 1,
-            left: 0,
-            borderRadius: 0,
-            backgroundColor: changed
-              ? theme.vars.palette.primary.main
-              : theme.vars.palette.primary.main
-          },
-          // Thumb (draggable handle)
-          "& .MuiSlider-thumb": {
-            backgroundColor: changed
-              ? theme.vars.palette.primary.main
-              : theme.vars.palette.grey[200],
-            boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
-            borderRadius: 0,
-            width: thumbSize,
-            height: thumbSize,
-            "&:hover, &:focus, &:active": {
-              boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
-              backgroundColor: theme.vars.palette.primary.main
-            },
-            "&.Mui-focusVisible": {
-              boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)"
-            },
-            "&.Mui-active": {
-              boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)"
-            },
-            "&::before, &::after": {
-              width: thumbSize + 4,
-              height: thumbSize + 4
-            }
-          },
-          ...sx
-        }}
+        sx={sliderSx}
         {...props}
       />
     );
@@ -108,3 +107,8 @@ export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
 );
 
 NodeSlider.displayName = "NodeSlider";
+
+const NodeSliderMemo = memo(NodeSlider);
+NodeSliderMemo.displayName = "NodeSlider";
+
+export default NodeSliderMemo;

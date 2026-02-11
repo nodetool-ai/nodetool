@@ -8,14 +8,10 @@ declare global {
       // Backwards-compatible (flat) API surface (used by some legacy pages)
       runApp: (workflowId: string) => Promise<void>;
 
-      clipboardWriteText: (text: string) => Promise<void>;
-      clipboardReadText: () => Promise<string>;
-      clipboardWriteImage: (dataUrl: string) => Promise<void>;
-
       openLogFile: () => Promise<void>;
       showItemInFolder: (fullPath: string) => Promise<void>;
       openModelDirectory: (
-        target: ModelDirectory
+        target: ModelDirectory,
       ) => Promise<FileExplorerResult>;
       openModelPath: (path: string) => Promise<FileExplorerResult>;
       openExternal: (url: string) => Promise<void>;
@@ -73,8 +69,9 @@ declare global {
         searchNodes: (query: string) => Promise<PackageNode[]>;
         showManager: (nodeSearch?: string) => void;
         onUpdatesAvailable: (
-          callback: (packages: PackageUpdateInfo[]) => void
+          callback: (packages: PackageUpdateInfo[]) => void,
         ) => () => void;
+        checkVersion: () => Promise<PackageVersionCheckResult[]>;
       };
 
       // Window controls
@@ -89,7 +86,7 @@ declare global {
         openLogFile: () => Promise<void>;
         showItemInFolder: (fullPath: string) => Promise<void>;
         openModelDirectory: (
-          target: ModelDirectory
+          target: ModelDirectory,
         ) => Promise<FileExplorerResult>;
         openModelPath: (path: string) => Promise<FileExplorerResult>;
         openExternal: (url: string) => Promise<void>;
@@ -111,12 +108,16 @@ declare global {
         writeBookmark: (
           title: string,
           url: string,
-          type?: ClipboardType
+          type?: ClipboardType,
         ) => Promise<void>;
         readFindText: () => Promise<string>;
         writeFindText: (text: string) => Promise<void>;
         clear: (type?: ClipboardType) => Promise<void>;
         availableFormats: (type?: ClipboardType) => Promise<string[]>;
+        readFilePaths: () => Promise<string[]>;
+        readBuffer: (format: string) => Promise<string | null>;
+        getContentInfo: () => Promise<ClipboardContentInfo>;
+        readFileAsDataURL: (filePath: string) => Promise<string | null>;
       };
 
       // Log viewer
@@ -133,17 +134,20 @@ declare global {
           packages: PythonPackages,
           modelBackend?: ModelBackend,
           installOllama?: boolean,
-          installLlamaCpp?: boolean
+          installLlamaCpp?: boolean,
         ) => Promise<void>;
         onLocationPrompt: (
-          callback: (data: InstallLocationData) => void
+          callback: (data: InstallLocationData) => void,
         ) => () => void;
-        onProgress: (callback: (data: UpdateProgressData) => void) => () => void;
+        onProgress: (
+          callback: (data: UpdateProgressData) => void,
+        ) => () => void;
       };
 
       // Updates
       updates: {
         onAvailable: (callback: (info: UpdateInfo) => void) => () => void;
+        restartAndInstall: () => Promise<void>;
       };
 
       // Menu events
@@ -155,17 +159,20 @@ declare global {
       shell: {
         showItemInFolder: (fullPath: string) => Promise<void>;
         openPath: (path: string) => Promise<string>;
-        openExternal: (url: string, options?: {
-          activate?: boolean;
-          workingDirectory?: string;
-          logUsage?: boolean;
-        }) => Promise<void>;
+        openExternal: (
+          url: string,
+          options?: {
+            activate?: boolean;
+            workingDirectory?: string;
+            logUsage?: boolean;
+          },
+        ) => Promise<void>;
         trashItem: (path: string) => Promise<void>;
         beep: () => void;
         writeShortcutLink: (
           shortcutPath: string,
           operation?: "create" | "update" | "replace",
-          options?: ShortcutDetails
+          options?: ShortcutDetails,
         ) => boolean;
         readShortcutLink: (shortcutPath: string) => ShortcutDetails;
       };
@@ -175,11 +182,26 @@ declare global {
         getCloseBehavior: () => Promise<WindowCloseAction>;
         setCloseBehavior: (action: WindowCloseAction) => Promise<void>;
         getSystemInfo: () => Promise<SystemInfo>;
+        getAutoUpdates: () => Promise<boolean>;
+        setAutoUpdates: (enabled: boolean) => Promise<void>;
+        openSettings: () => Promise<void>;
       };
 
       // Debug operations
       debug: {
-        exportBundle: (request: DebugBundleRequest) => Promise<DebugBundleResponse>;
+        exportBundle: (
+          request: DebugBundleRequest,
+        ) => Promise<DebugBundleResponse>;
+      };
+
+      // Native dialog operations
+      dialog: {
+        openFile: (
+          options?: DialogOpenFileRequest,
+        ) => Promise<DialogOpenResult>;
+        openFolder: (
+          options?: DialogOpenFolderRequest,
+        ) => Promise<DialogOpenResult>;
       };
     };
 
@@ -331,14 +353,14 @@ export interface Workflow {
 
 export interface MenuEventData {
   type:
-  | "cut"
-  | "copy"
-  | "paste"
-  | "selectAll"
-  | "undo"
-  | "redo"
-  | "close"
-  | "fitView";
+    | "cut"
+    | "copy"
+    | "paste"
+    | "selectAll"
+    | "undo"
+    | "redo"
+    | "close"
+    | "fitView";
 }
 
 export type ModelDirectory = "huggingface" | "ollama";
@@ -361,7 +383,6 @@ export interface ShortcutDetails {
   appUserModelId?: string;
   toastActivatorClsid?: string;
 }
-
 
 // IPC Channel names as const enum for type safety
 export enum IpcChannels {
@@ -415,6 +436,7 @@ export enum IpcChannels {
   PACKAGE_OPEN_EXTERNAL = "package-open-external",
   PACKAGE_SEARCH_NODES = "package-search-nodes",
   PACKAGE_UPDATES_AVAILABLE = "package-updates-available",
+  PACKAGE_VERSION_CHECK = "package-version-check",
   // Log viewer channels
   GET_LOGS = "get-logs",
   CLEAR_LOGS = "clear-logs",
@@ -430,14 +452,23 @@ export enum IpcChannels {
   // Settings channels
   SETTINGS_GET_CLOSE_BEHAVIOR = "settings-get-close-behavior",
   SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
+  SETTINGS_GET_AUTO_UPDATES = "settings-get-auto-updates",
+  SETTINGS_SET_AUTO_UPDATES = "settings-set-auto-updates",
+  SHOW_SETTINGS = "show-settings",
   // System directory channels
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY = "file-explorer-open-system-directory",
   // System info channel
   GET_SYSTEM_INFO = "get-system-info",
   // Debug channels
   DEBUG_EXPORT_BUNDLE = "debug-export-bundle",
+  // Dialog channels
+  DIALOG_OPEN_FILE = "dialog-open-file",
+  DIALOG_OPEN_FOLDER = "dialog-open-folder",
+  CLIPBOARD_READ_FILE_PATHS = "clipboard-read-file-paths",
+  CLIPBOARD_READ_BUFFER = "clipboard-read-buffer",
+  CLIPBOARD_GET_CONTENT_INFO = "clipboard-get-content-info",
+  FILE_READ_AS_DATA_URL = "file-read-as-data-url",
 }
-
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
 
@@ -467,6 +498,41 @@ export interface DebugBundleResponse {
   message: string;
 }
 
+// Dialog types for native file/folder selection
+export interface DialogFileFilter {
+  name: string;
+  extensions: string[];
+}
+
+export interface DialogOpenFileRequest {
+  title?: string;
+  defaultPath?: string;
+  filters?: DialogFileFilter[];
+  multiSelections?: boolean;
+}
+
+export interface DialogOpenFolderRequest {
+  title?: string;
+  defaultPath?: string;
+  buttonLabel?: string;
+}
+
+export interface DialogOpenResult {
+  canceled: boolean;
+  filePaths: string[];
+}
+
+// Clipboard content info for smart paste decisions
+export interface ClipboardContentInfo {
+  formats: string[];
+  hasImage: boolean;
+  hasFiles: boolean;
+  hasHtml: boolean;
+  hasRtf: boolean;
+  hasText: boolean;
+  platform: "darwin" | "win32" | "linux";
+}
+
 // Request/Response types for each IPC channel
 export interface IpcRequest {
   [IpcChannels.GET_SERVER_STATE]: void;
@@ -481,19 +547,27 @@ export interface IpcRequest {
   [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.SHOW_PACKAGE_MANAGER]: string | undefined;
+  [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: { text: string; type?: ClipboardType };
   [IpcChannels.CLIPBOARD_READ_TEXT]: ClipboardType | undefined;
-  [IpcChannels.CLIPBOARD_WRITE_IMAGE]: { dataUrl: string; type?: ClipboardType };
+  [IpcChannels.CLIPBOARD_WRITE_IMAGE]: {
+    dataUrl: string;
+    type?: ClipboardType;
+  };
   [IpcChannels.CLIPBOARD_READ_IMAGE]: ClipboardType | undefined;
   [IpcChannels.CLIPBOARD_READ_HTML]: ClipboardType | undefined;
   [IpcChannels.CLIPBOARD_WRITE_HTML]: { markup: string; type?: ClipboardType };
   [IpcChannels.CLIPBOARD_READ_RTF]: ClipboardType | undefined;
   [IpcChannels.CLIPBOARD_WRITE_RTF]: { text: string; type?: ClipboardType };
   [IpcChannels.CLIPBOARD_READ_BOOKMARK]: void;
-  [IpcChannels.CLIPBOARD_WRITE_BOOKMARK]: { title: string; url: string; type?: ClipboardType };
+  [IpcChannels.CLIPBOARD_WRITE_BOOKMARK]: {
+    title: string;
+    url: string;
+    type?: ClipboardType;
+  };
   [IpcChannels.CLIPBOARD_READ_FIND_TEXT]: void;
   [IpcChannels.CLIPBOARD_WRITE_FIND_TEXT]: string;
   [IpcChannels.CLIPBOARD_CLEAR]: ClipboardType | undefined;
@@ -509,6 +583,7 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_UPDATE]: string; // repo_id
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: string; // url
   [IpcChannels.PACKAGE_SEARCH_NODES]: string; // query
+  [IpcChannels.PACKAGE_VERSION_CHECK]: void;
   // Log viewer
   [IpcChannels.GET_LOGS]: void;
   [IpcChannels.CLEAR_LOGS]: void;
@@ -535,12 +610,22 @@ export interface IpcRequest {
   // Settings
   [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: void;
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
+  [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: void;
+  [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: boolean;
+  [IpcChannels.SHOW_SETTINGS]: void;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: SystemDirectory;
   // System info
   [IpcChannels.GET_SYSTEM_INFO]: void;
   // Debug
   [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleRequest;
+  // Dialog
+  [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenFileRequest;
+  [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenFolderRequest;
+  [IpcChannels.CLIPBOARD_READ_FILE_PATHS]: void;
+  [IpcChannels.CLIPBOARD_READ_BUFFER]: string; // format name
+  [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: void;
+  [IpcChannels.FILE_READ_AS_DATA_URL]: string; // filePath
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -558,6 +643,7 @@ export interface IpcResponse {
   [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: void;
   [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
+  [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
@@ -586,6 +672,7 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_UPDATE]: PackageResponse;
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: void;
   [IpcChannels.PACKAGE_SEARCH_NODES]: PackageNode[];
+  [IpcChannels.PACKAGE_VERSION_CHECK]: PackageVersionCheckResult[];
   // Log viewer
   [IpcChannels.GET_LOGS]: string[];
   [IpcChannels.CLEAR_LOGS]: void;
@@ -601,14 +688,23 @@ export interface IpcResponse {
   // Settings
   [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: WindowCloseAction;
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;
+  [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: boolean;
+  [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: void;
+  [IpcChannels.SHOW_SETTINGS]: void;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: FileExplorerResult;
   // System info
   [IpcChannels.GET_SYSTEM_INFO]: SystemInfo;
   // Debug
   [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleResponse;
+  // Dialog
+  [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenResult;
+  [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenResult;
+  [IpcChannels.CLIPBOARD_READ_FILE_PATHS]: string[];
+  [IpcChannels.CLIPBOARD_READ_BUFFER]: string | null; // base64 encoded buffer
+  [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: ClipboardContentInfo;
+  [IpcChannels.FILE_READ_AS_DATA_URL]: string | null;
 }
-
 
 // Event types for each IPC channel
 export interface IpcEvents {
@@ -634,7 +730,9 @@ export interface UpdateProgressData {
 }
 
 export interface UpdateInfo {
+  version: string;
   releaseUrl: string;
+  downloaded?: boolean;
 }
 
 export interface InstallLocationData {
@@ -678,6 +776,12 @@ export interface PackageUpdateInfo {
   repo_id: string;
   installedVersion: string;
   latestVersion: string;
+}
+
+export interface PackageVersionCheckResult {
+  packageName: string;
+  currentVersion?: string;
+  expectedVersion: string | null;
 }
 
 export interface InstalledPackageListResponse {

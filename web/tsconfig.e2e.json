@@ -8,7 +8,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["@playwright/test"]
+    "resolveJsonModule": true,
+    "types": ["@playwright/test", "node"]
   },
   "include": ["tests/e2e/**/*"]
 }

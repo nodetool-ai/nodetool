@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import {
   Box,
@@ -15,6 +15,8 @@ import { Workflow } from "../../stores/ApiTypes";
 import { truncateString } from "../../utils/truncateString";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import AddIcon from "@mui/icons-material/Add";
+import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
+import { sanitizeImageUrl } from "../../utils/urlValidation";
 
 interface WorkflowsListProps {
   sortedWorkflows: Workflow[];
@@ -141,6 +143,26 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   handleWorkflowClick
 }) => {
   const theme = useTheme();
+
+  // Memoize the workflow box sx prop to avoid creating new objects
+  const workflowControlsBoxSx = useMemo(() => ({
+    display: "flex",
+    gap: 2,
+    alignItems: "center"
+  }), []);
+
+  // Single click handler that uses the workflow from the event
+  // This avoids creating N callback functions for N workflows on every render
+  const handleWorkflowItemClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const workflowId = event.currentTarget.getAttribute('data-workflow-id');
+    if (workflowId) {
+      const workflow = sortedWorkflows.find(w => w.id === workflowId);
+      if (workflow) {
+        handleWorkflowClick(workflow);
+      }
+    }
+  }, [sortedWorkflows, handleWorkflowClick]);
+
   return (
     <div className="workflows-list" css={styles(theme)}>
       <Box className="header-controls">
@@ -149,7 +171,7 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
         </Typography>
         <Box
           className="workflow-controls"
-          sx={{ display: "flex", gap: 2, alignItems: "center" }}
+          sx={workflowControlsBoxSx}
         >
           <ToggleButtonGroup
             className="sort-toggle"
@@ -161,7 +183,13 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <ToggleButton value="name">Name</ToggleButton>
             <ToggleButton value="updated_at">Date</ToggleButton>
           </ToggleButtonGroup>
-          <Tooltip title="Create New Workflow">
+          <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY}
+          enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          placement="top"
+          title="Create New Workflow"
+          arrow
+          >
             <Button
               className="create-button"
               startIcon={<AddIcon />}
@@ -181,13 +209,14 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
             <Box
               key={workflow.id}
               className="workflow-item"
-              onClick={() => handleWorkflowClick(workflow)}
+              data-workflow-id={workflow.id}
+              onClick={handleWorkflowItemClick}
             >
               <Box
                 className="workflow-thumbnail"
                 sx={{
-                  backgroundImage: workflow.thumbnail_url
-                    ? `url(${workflow.thumbnail_url})`
+                  backgroundImage: sanitizeImageUrl(workflow.thumbnail_url)
+                    ? `url(${sanitizeImageUrl(workflow.thumbnail_url)})`
                     : undefined
                 }}
               />
@@ -210,4 +239,4 @@ const WorkflowsList: React.FC<WorkflowsListProps> = ({
   );
 };
 
-export default WorkflowsList;
+export default memo(WorkflowsList);

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 
 interface EditableInputProps {
   value: string;
@@ -92,6 +92,31 @@ const EditableInput: React.FC<EditableInputProps> = ({
     }
   }, [isFocused]);
 
+  const inputStyle = useMemo<React.CSSProperties>(
+    () => ({
+      width: isFocused ? `${Math.max(value.length * 10, 40)}px` : "0px",
+      color: isFocused ? "inherit" : "transparent",
+      backgroundColor: isFocused ? "inherit" : "transparent",
+      opacity: isFocused ? 1 : 0,
+      pointerEvents: isFocused ? "auto" : "none",
+      zIndex: isFocused ? 1 : -1,
+      border: "none",
+      outline: "none"
+    }),
+    [isFocused, value.length]
+  );
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter" || event.code === "NumpadEnter") {
+        event.preventDefault();
+        event.stopPropagation();
+        _onBlur(event as unknown as React.FocusEvent<HTMLInputElement>);
+      }
+    },
+    [_onBlur]
+  );
+
   return (
     <div className="editable-input-container">
       <input
@@ -100,28 +125,14 @@ const EditableInput: React.FC<EditableInputProps> = ({
         className={`edit-value nodrag${
           isDefault ? " default" : ""
         } edit-value-input`}
-        style={{
-          position: "absolute",
-          width: isFocused ? `${Math.max(value.length * 12, 50)}px` : "0px",
-          color: isFocused ? "inherit" : "transparent",
-          backgroundColor: isFocused ? "inherit" : "transparent",
-          opacity: isFocused ? 1 : 0.001,
-          pointerEvents: isFocused ? "auto" : "none",
-          zIndex: isFocused ? 1 : "auto"
-        }}
+        style={inputStyle}
         value={value}
         onChange={onChange}
         onBlur={_onBlur}
         onFocus={_onFocus}
         tabIndex={tabIndex}
         autoFocus={false}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.code === "NumpadEnter") {
-            e.preventDefault();
-            e.stopPropagation();
-            _onBlur(e as unknown as React.FocusEvent<HTMLInputElement>);
-          }
-        }}
+        onKeyDown={handleKeyDown}
       />
     </div>
   );

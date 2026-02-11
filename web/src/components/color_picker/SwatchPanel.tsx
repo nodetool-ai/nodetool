@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -108,7 +108,7 @@ interface SwatchPanelProps {
   onColorSelect: (color: string) => void;
 }
 
-const SwatchPanel: React.FC<SwatchPanelProps> = ({
+const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
   currentColor,
   onColorSelect
 }) => {
@@ -119,6 +119,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
     swatchId: string;
   } | null>(null);
 
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
   const {
     recentColors,
     swatches,
@@ -128,7 +129,21 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
     clearRecentColors,
     addPalette,
     removePalette
-  } = useColorPickerStore();
+  } = useColorPickerStore(
+    useCallback(
+      (state) => ({
+        recentColors: state.recentColors,
+        swatches: state.swatches,
+        palettes: state.palettes,
+        addSwatch: state.addSwatch,
+        removeSwatch: state.removeSwatch,
+        clearRecentColors: state.clearRecentColors,
+        addPalette: state.addPalette,
+        removePalette: state.removePalette
+      }),
+      []
+    )
+  );
 
   const handleAddSwatch = useCallback(() => {
     addSwatch(currentColor);
@@ -157,6 +172,70 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
     [addPalette]
   );
 
+  const handleColorSelect = useCallback(
+    (color: string) => {
+      onColorSelect(color);
+    },
+    [onColorSelect]
+  );
+
+  const handleRemovePalette = useCallback(
+    (id: string) => {
+      removePalette(id);
+    },
+    [removePalette]
+  );
+
+  const handlePresetsMenuOpen = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      setPresetsMenuAnchor(e.currentTarget);
+    },
+    []
+  );
+
+  const handlePresetsMenuClose = useCallback(() => {
+    setPresetsMenuAnchor(null);
+  }, []);
+
+  const handleSwatchMenuClose = useCallback(() => {
+    setSwatchMenuAnchor(null);
+  }, []);
+
+  const handleRecentColorClick = useCallback(
+    (color: string) => () => {
+      handleColorSelect(color);
+    },
+    [handleColorSelect]
+  );
+
+  const handleSwatchColorClick = useCallback(
+    (color: string) => () => {
+      handleColorSelect(color);
+    },
+    [handleColorSelect]
+  );
+
+  const handlePaletteRemove = useCallback(
+    (id: string) => () => {
+      handleRemovePalette(id);
+    },
+    [handleRemovePalette]
+  );
+
+  const handlePaletteColorClick = useCallback(
+    (color: string) => () => {
+      handleColorSelect(color);
+    },
+    [handleColorSelect]
+  );
+
+  const handleLoadPresetPalette = useCallback(
+    (palette: ColorPalette) => () => {
+      handleLoadPreset(palette);
+    },
+    [handleLoadPreset]
+  );
+
   return (
     <Box css={styles(theme)}>
       {/* Recent Colors */}
@@ -165,7 +244,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
           <Typography className="section-title">Recent</Typography>
           {recentColors.length > 0 && (
             <Tooltip title="Clear recent colors">
-              <IconButton size="small" onClick={clearRecentColors}>
+              <IconButton size="small" onClick={clearRecentColors} aria-label="Clear recent colors">
                 <DeleteIcon sx={{ fontSize: 14 }} />
               </IconButton>
             </Tooltip>
@@ -178,7 +257,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
                 <div
                   className="color-swatch"
                   style={{ backgroundColor: color }}
-                  onClick={() => onColorSelect(color)}
+                  onClick={handleRecentColorClick(color)}
                 />
               </Tooltip>
             ))
@@ -199,7 +278,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
               <div
                 className="color-swatch"
                 style={{ backgroundColor: swatch.color }}
-                onClick={() => onColorSelect(swatch.color)}
+                onClick={handleSwatchColorClick(swatch.color)}
                 onContextMenu={(e) => handleSwatchContextMenu(e, swatch.id)}
               />
             </Tooltip>
@@ -222,7 +301,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
             <div key={palette.id} className="palette-section">
               <div className="palette-header">
                 <Typography className="palette-name">{palette.name}</Typography>
-                <IconButton size="small" onClick={() => removePalette(palette.id)}>
+                <IconButton size="small" onClick={handlePaletteRemove(palette.id)} aria-label={`Remove palette ${palette.name}`}>
                   <DeleteIcon sx={{ fontSize: 12 }} />
                 </IconButton>
               </div>
@@ -232,7 +311,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
                     <div
                       className="color-swatch"
                       style={{ backgroundColor: color }}
-                      onClick={() => onColorSelect(color)}
+                      onClick={handlePaletteColorClick(color)}
                     />
                   </Tooltip>
                 ))}
@@ -249,7 +328,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
           <Button
             size="small"
             startIcon={<FolderOpenIcon />}
-            onClick={(e) => setPresetsMenuAnchor(e.currentTarget)}
+            onClick={handlePresetsMenuOpen}
           >
             Load
           </Button>
@@ -257,10 +336,10 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
         <Menu
           anchorEl={presetsMenuAnchor}
           open={Boolean(presetsMenuAnchor)}
-          onClose={() => setPresetsMenuAnchor(null)}
+          onClose={handlePresetsMenuClose}
         >
           {PRESET_PALETTES.map((palette) => (
-            <MenuItem key={palette.id} onClick={() => handleLoadPreset(palette)}>
+            <MenuItem key={palette.id} onClick={handleLoadPresetPalette(palette)}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Typography variant="body2">{palette.name}</Typography>
                 <Box sx={{ display: "flex", gap: 0.25 }}>
@@ -286,7 +365,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
       <Menu
         anchorEl={swatchMenuAnchor?.element}
         open={Boolean(swatchMenuAnchor)}
-        onClose={() => setSwatchMenuAnchor(null)}
+        onClose={handleSwatchMenuClose}
       >
         <MenuItem onClick={handleDeleteSwatch}>
           <DeleteIcon sx={{ fontSize: 16, mr: 1 }} /> Delete
@@ -294,6 +373,8 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
       </Menu>
     </Box>
   );
-};
+});
 
-export default SwatchPanel;
+SwatchPanel.displayName = 'SwatchPanel';
+
+export default memo(SwatchPanel);

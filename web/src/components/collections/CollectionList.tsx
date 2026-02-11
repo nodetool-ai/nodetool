@@ -11,15 +11,17 @@ import {
   Button,
   Fab
 } from "@mui/material";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useCallback, useMemo } from "react";
 import CollectionForm from "./CollectionForm";
 import AddIcon from "@mui/icons-material/Add";
 import CollectionHeader from "./CollectionHeader";
 import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
 import { useCollectionStore } from "../../stores/CollectionStore";
+import { DialogActionButtons } from "../ui_primitives";
 
 const CollectionList = () => {
+  // Group related state to reduce selector calls
   const {
     collections,
     isLoading,
@@ -35,18 +37,76 @@ const CollectionList = () => {
     fetchCollections,
     confirmDelete,
     cancelDelete,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop
-  } = useCollectionStore();
+    handleDragOver: storeHandleDragOver,
+    handleDragLeave: storeHandleDragLeave,
+    handleDrop: storeHandleDrop
+  } = useCollectionStore((state) => ({
+    collections: state.collections,
+    isLoading: state.isLoading,
+    error: state.error,
+    deleteTarget: state.deleteTarget,
+    showForm: state.showForm,
+    dragOverCollection: state.dragOverCollection,
+    indexProgress: state.indexProgress,
+    indexErrors: state.indexErrors,
+    setDeleteTarget: state.setDeleteTarget,
+    setShowForm: state.setShowForm,
+    setIndexErrors: state.setIndexErrors,
+    fetchCollections: state.fetchCollections,
+    confirmDelete: state.confirmDelete,
+    cancelDelete: state.cancelDelete,
+    handleDragOver: state.handleDragOver,
+    handleDragLeave: state.handleDragLeave,
+    handleDrop: state.handleDrop
+  }));
 
   useEffect(() => {
     fetchCollections();
   }, [fetchCollections]);
 
-  const handleDeleteClick = (collectionName: string) => {
+  const handleDeleteClick = useCallback((collectionName: string) => {
     setDeleteTarget(collectionName);
-  };
+  }, [setDeleteTarget]);
+
+  const handleShowForm = useCallback(() => {
+    setShowForm(true);
+  }, [setShowForm]);
+
+  const handleHideForm = useCallback(() => {
+    setShowForm(false);
+  }, [setShowForm]);
+
+  const handleClearIndexErrors = useCallback(() => {
+    setIndexErrors([]);
+  }, [setIndexErrors]);
+
+  // Memoize drag event handlers to prevent recreating functions on every render
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, collectionName: string) => {
+      storeHandleDragOver(e, collectionName);
+    },
+    [storeHandleDragOver]
+  );
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      storeHandleDragLeave(e);
+    },
+    [storeHandleDragLeave]
+  );
+
+  // Create a stable map of drop handlers for each collection
+  const dropHandlers = useMemo(() => {
+    const handlers: Record<string, (e: React.DragEvent<HTMLDivElement>) => void> = {};
+    if (collections?.collections) {
+      for (const collection of collections.collections) {
+        handlers[collection.name] = (e: React.DragEvent<HTMLDivElement>) => {
+          storeHandleDrop(collection.name)(e);
+        };
+      }
+    }
+    return handlers;
+  }, [collections?.collections, storeHandleDrop]);
 
   const totalCount = collections?.collections.length || 0;
 
@@ -73,7 +133,7 @@ const CollectionList = () => {
             </Box>
             <Fab
               variant="extended"
-              onClick={() => setShowForm(true)}
+              onClick={handleShowForm}
               aria-label="Create Collection"
               sx={{
                 position: "relative",
@@ -143,7 +203,6 @@ const CollectionList = () => {
                 mt: 2,
                 borderRadius: 2,
                 p: 1,
-                backgroundColor: "var(--palette-background-default)",
                 boxShadow: (theme) =>
                   theme.palette.mode === "dark"
                     ? "0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)"
@@ -158,15 +217,15 @@ const CollectionList = () => {
                     dragOverCollection={dragOverCollection}
                     indexProgress={indexProgress}
                     onDelete={handleDeleteClick}
-                    onDrop={handleDrop(collection.name)}
-                    onDragOver={(e) => handleDragOver(e, collection.name)}
+                    onDrop={dropHandlers[collection.name]}
+                    onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     deleteMutation={
                       {
                         isPending: false,
-                        mutate: () => {},
-                        mutateAsync: async () => {},
-                        reset: () => {},
+                        mutate: () => { },
+                        mutateAsync: async () => { },
+                        reset: () => { },
                         context: undefined,
                         data: undefined,
                         error: null,
@@ -188,7 +247,7 @@ const CollectionList = () => {
           )}
         </>
       )}
-      {showForm && <CollectionForm onClose={() => setShowForm(false)} />}
+      {showForm && <CollectionForm onClose={handleHideForm} />}
 
       <Dialog open={Boolean(deleteTarget)} onClose={cancelDelete}>
         <DialogTitle>Confirm Deletion</DialogTitle>
@@ -196,16 +255,17 @@ const CollectionList = () => {
           Are you sure you want to delete the collection &quot;{deleteTarget}
           &quot;?
         </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelDelete}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
+        <DialogActionButtons
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+          confirmText="Delete"
+          cancelText="Cancel"
+          destructive={true}
+        />
       </Dialog>
 
       {indexErrors.length > 0 && (
-        <Dialog open={true} onClose={() => setIndexErrors([])}>
+        <Dialog open={true} onClose={handleClearIndexErrors}>
           <DialogTitle>Indexing Report</DialogTitle>
           <DialogContent>
             <Typography variant="body1" sx={{ mb: 2 }}>
@@ -220,7 +280,7 @@ const CollectionList = () => {
             </List>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setIndexErrors([])}>Close</Button>
+            <Button onClick={handleClearIndexErrors}>Close</Button>
           </DialogActions>
         </Dialog>
       )}

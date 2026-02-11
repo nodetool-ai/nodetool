@@ -8,10 +8,12 @@ import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import isEqual from "lodash/isEqual";
 import { memo, useMemo } from "react";
 import LanguageModelSelect from "./LanguageModelSelect";
+import EmbeddingModelSelect from "./EmbeddingModelSelect";
 import ImageModelSelect from "./ImageModelSelect";
 import TTSModelSelect from "./TTSModelSelect";
 import ASRModelSelect from "./ASRModelSelect";
 import VideoModelSelect from "./VideoModelSelect";
+import Model3DModelSelect from "./Model3DModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -69,8 +71,8 @@ const ModelProperty = (props: PropertyProps) => {
     [modelType]
   );
 
-  const renderModelSelect = () => {
-    // Map node type to task-specific filters for generic nodes
+  // Memoize task calculations to avoid recalculation on every render
+  const { imageTask, videoTask, model3dTask } = useMemo(() => {
     const imageTask =
       props.nodeType === "nodetool.image.TextToImage"
         ? ("text_to_image" as const)
@@ -83,6 +85,17 @@ const ModelProperty = (props: PropertyProps) => {
         : props.nodeType === "nodetool.video.ImageToVideo"
           ? ("image_to_video" as const)
           : undefined;
+    const model3dTask =
+      props.nodeType === "nodetool.model3d.TextTo3D"
+        ? ("text_to_3d" as const)
+        : props.nodeType === "nodetool.model3d.ImageTo3D"
+          ? ("image_to_3d" as const)
+          : undefined;
+    return { imageTask, videoTask, model3dTask };
+  }, [props.nodeType]);
+
+  // Memoize model select component to avoid recreation on every render
+  const modelSelectComponent = useMemo(() => {
     if (modelType.startsWith("comfy.")) {
       if (props.nodeType.startsWith("comfy.loaders.")) {
         return (
@@ -96,6 +109,13 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType === "language_model") {
       return (
         <LanguageModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+        />
+      );
+    } else if (modelType === "embedding_model") {
+      return (
+        <EmbeddingModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
         />
@@ -130,6 +150,14 @@ const ModelProperty = (props: PropertyProps) => {
           task={videoTask}
         />
       );
+    } else if (modelType === "model_3d_model") {
+      return (
+        <Model3DModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+          task={model3dTask}
+        />
+      );
     } else if (modelType === "llama_model") {
       return (
         <LlamaModelSelect
@@ -147,7 +175,7 @@ const ModelProperty = (props: PropertyProps) => {
       );
     }
     return null;
-  };
+  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask]);
 
   return (
     <div className={`model-property ${modelClass}`} css={styles(theme)}>
@@ -156,7 +184,7 @@ const ModelProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {!isConnected && renderModelSelect()}
+      {!isConnected && modelSelectComponent}
     </div>
   );
 };

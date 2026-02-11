@@ -11,6 +11,7 @@ import { useCopyPaste } from "./handlers/useCopyPaste";
 import useAlignNodes from "./useAlignNodes";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 import { useDuplicateNodes } from "./useDuplicate";
+import { useSelectConnected } from "./useSelectConnected";
 import { shallow } from "zustand/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
@@ -23,7 +24,46 @@ import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
+import { useFindInWorkflow } from "./useFindInWorkflow";
+import { useSelectionActions } from "./useSelectionActions";
+import { useNodeFocus } from "./useNodeFocus";
+import type { MenuEventData } from "../window";
 
+/**
+ * Hook that registers and manages all keyboard shortcuts for the node editor.
+ * Provides comprehensive keyboard-based workflow editing including:
+ * - Clipboard operations (copy, cut, paste)
+ * - Node manipulation (delete, duplicate, align, group)
+ * - View navigation (zoom, pan, fit view)
+ * - Workflow operations (save, close, create new)
+ * - Node search and selection
+ * 
+ * Shortcuts are registered with KeyPressedStore and respond to configurable
+ * keyboard combinations defined in NODE_EDITOR_SHORTCUTS config.
+ * 
+ * @param active - Whether the hook should register shortcuts (false when editor not active)
+ * @param onShowShortcuts - Optional callback to show keyboard shortcuts help dialog
+ * 
+ * @example
+ * ```typescript
+ * // Enable shortcuts in active editor
+ * useNodeEditorShortcuts(true);
+ * 
+ * // With shortcuts dialog
+ * useNodeEditorShortcuts(true, () => setShowShortcuts(true));
+ * ```
+ * 
+ * @example
+ * **Common Shortcuts**:
+ * - `Ctrl+C` / `Cmd+C` - Copy selected nodes
+ * - `Ctrl+V` / `Cmd+V` - Paste nodes
+ * - `Ctrl+S` / `Cmd+S` - Save workflow
+ * - `Ctrl+A` / `Cmd+A` - Select all nodes
+ * - `Ctrl+F` / `Cmd+F` - Find in workflow
+ * - `Ctrl+/-` - Zoom in/out
+ * - `Delete/Backspace` - Delete selected nodes
+ * - `Alt+Arrows` - Focus navigation
+ */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
 export const useNodeEditorShortcuts = (
@@ -55,6 +95,10 @@ export const useNodeEditorShortcuts = (
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const surroundWithGroup = useSurroundWithGroup();
+  const selectConnectedAll = useSelectConnected({ direction: "both" });
+  const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
+  const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
+  const selectionActions = useSelectionActions();
 
   const nodeMenuStore = useNodeMenuStore(
     (state) => ({
@@ -68,10 +112,13 @@ export const useNodeEditorShortcuts = (
     (state) => state.addNotification
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
+  const findInWorkflow = useFindInWorkflow();
+  const nodeFocus = useNodeFocus();
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } = nodesStore;
+  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+    nodesStore;
   const {
     saveExample,
     removeWorkflow,
@@ -82,6 +129,7 @@ export const useNodeEditorShortcuts = (
   } = workflowManager;
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu } = nodeMenuStore;
+  const { openFind } = findInWorkflow;
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
@@ -105,6 +153,24 @@ export const useNodeEditorShortcuts = (
     }
   }, [selectedNodes.length, toggleBypassSelected]);
 
+  const handleSelectConnectedAll = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      selectConnectedAll.selectConnected();
+    }
+  }, [selectedNodes.length, selectConnectedAll]);
+
+  const handleSelectConnectedInputs = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      selectConnectedInputs.selectConnected();
+    }
+  }, [selectedNodes.length, selectConnectedInputs]);
+
+  const handleSelectConnectedOutputs = useCallback(() => {
+    if (selectedNodes.length > 0) {
+      selectConnectedOutputs.selectConnected();
+    }
+  }, [selectedNodes.length, selectConnectedOutputs]);
+
   const handleZoomIn = useCallback(() => {
     reactFlow.zoomIn({ duration: 200 });
   }, [reactFlow]);
@@ -112,6 +178,13 @@ export const useNodeEditorShortcuts = (
   const handleZoomOut = useCallback(() => {
     reactFlow.zoomOut({ duration: 200 });
   }, [reactFlow]);
+
+  const handleZoomToPreset = useCallback(
+    (preset: number) => {
+      reactFlow.zoomTo(preset, { duration: 200 });
+    },
+    [reactFlow]
+  );
 
   const handleAlign = useCallback(() => {
     alignNodes({ arrangeSpacing: false });
@@ -172,12 +245,21 @@ export const useNodeEditorShortcuts = (
   const handleSave = useCallback(async () => {
     const workflow = getCurrentWorkflow();
     if (workflow) {
-      await saveWorkflow(workflow);
-      addNotification({
-        content: `Workflow ${workflow.name} saved`,
-        type: "success",
-        alert: true
-      });
+      try {
+        await saveWorkflow(workflow);
+        addNotification({
+          content: `Workflow ${workflow.name} saved`,
+          type: "success",
+          alert: true
+        });
+      } catch (error) {
+        console.error("Failed to save workflow:", error);
+        addNotification({
+          content: `Failed to save workflow: ${error instanceof Error ? error.message : "Server unreachable"}`,
+          type: "error",
+          alert: true
+        });
+      }
     }
   }, [saveWorkflow, getCurrentWorkflow, addNotification]);
 
@@ -211,12 +293,16 @@ export const useNodeEditorShortcuts = (
   }, []);
 
   const handleShowKeyboardShortcuts = useCallback(() => {
-    if (onShowShortcuts) {onShowShortcuts();}
+    if (onShowShortcuts) {
+      onShowShortcuts();
+    }
   }, [onShowShortcuts]);
 
   const handleMenuEvent = useCallback(
-    (data: any) => {
-      if (!active) {return;}
+    (data: MenuEventData) => {
+      if (!active) {
+        return;
+      }
       switch (data.type) {
         case "copy":
           handleCopy();
@@ -249,11 +335,7 @@ export const useNodeEditorShortcuts = (
           closeCurrentWorkflow();
           break;
         case "resetZoom":
-          reactFlow.setViewport({
-            x: 0,
-            y: 0,
-            zoom: 1
-          });
+          reactFlow.zoomTo(0.5, { duration: 200 });
           break;
         case "zoomIn":
           reactFlow.zoomIn();
@@ -286,7 +368,9 @@ export const useNodeEditorShortcuts = (
           handleGroup();
           break;
         case "switchToTab":
-          handleSwitchToTab(data.index);
+          if (data.index !== undefined) {
+            handleSwitchToTab(data.index);
+          }
           break;
         default:
           break;
@@ -316,7 +400,7 @@ export const useNodeEditorShortcuts = (
   const handleMoveNodes = useCallback(
     (direction: { x?: number; y?: number }) => {
       if (selectedNodes.length > 0) {
-        const updatedNodes = selectedNodes.map((node) => ({
+        selectedNodes.map((node) => ({
           ...node,
           position: {
             x: node.position.x + (direction.x || 0),
@@ -344,6 +428,10 @@ export const useNodeEditorShortcuts = (
 
   const handleInspectorToggle = useCallback(() => {
     inspectorToggle("inspector");
+  }, [inspectorToggle]);
+
+  const handleWorkflowSettingsToggle = useCallback(() => {
+    inspectorToggle("workflow");
   }, [inspectorToggle]);
 
   // IPC Menu handler hook
@@ -379,9 +467,15 @@ export const useNodeEditorShortcuts = (
       duplicate: { callback: duplicateNodes },
       duplicateVertical: { callback: duplicateNodesVertical },
       fitView: { callback: () => handleFitView({ padding: 0.4 }) },
+      resetZoom: {
+        callback: () => {
+          reactFlow.zoomTo(0.5, { duration: 200 });
+        }
+      },
       openNodeMenu: { callback: handleOpenNodeMenu },
       groupSelected: { callback: handleGroup },
       toggleInspector: { callback: handleInspectorToggle },
+      toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
@@ -389,13 +483,86 @@ export const useNodeEditorShortcuts = (
       closeWorkflow: { callback: closeCurrentWorkflow },
       zoomIn: { callback: handleZoomIn },
       zoomOut: { callback: handleZoomOut },
+      zoom50: { callback: () => handleZoomToPreset(0.5) },
+      zoom100: { callback: () => handleZoomToPreset(1) },
+      zoom200: { callback: () => handleZoomToPreset(2) },
       prevTab: { callback: () => handleSwitchTab("prev") },
       nextTab: { callback: () => handleSwitchTab("next") },
       moveLeft: { callback: () => handleMoveNodes({ x: -10 }) },
       moveRight: { callback: () => handleMoveNodes({ x: 10 }) },
       moveUp: { callback: () => handleMoveNodes({ y: -10 }) },
       moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
-      bypassNode: { callback: handleBypassSelected, active: selectedNodes.length > 0 }
+      bypassNode: {
+        callback: handleBypassSelected,
+        active: selectedNodes.length > 0
+      },
+      findInWorkflow: { callback: openFind },
+      selectConnectedAll: {
+        callback: handleSelectConnectedAll,
+        active: selectedNodes.length > 0
+      },
+      selectConnectedInputs: {
+        callback: handleSelectConnectedInputs,
+        active: selectedNodes.length > 0
+      },
+      selectConnectedOutputs: {
+        callback: handleSelectConnectedOutputs,
+        active: selectedNodes.length > 0
+      },
+      alignLeft: {
+        callback: selectionActions.alignLeft,
+        active: selectedNodes.length > 1
+      },
+      alignCenter: {
+        callback: selectionActions.alignCenter,
+        active: selectedNodes.length > 1
+      },
+      alignRight: {
+        callback: selectionActions.alignRight,
+        active: selectedNodes.length > 1
+      },
+      alignTop: {
+        callback: selectionActions.alignTop,
+        active: selectedNodes.length > 1
+      },
+      alignMiddle: {
+        callback: selectionActions.alignMiddle,
+        active: selectedNodes.length > 1
+      },
+      alignBottom: {
+        callback: selectionActions.alignBottom,
+        active: selectedNodes.length > 1
+      },
+      distributeHorizontal: {
+        callback: selectionActions.distributeHorizontal,
+        active: selectedNodes.length > 1
+      },
+      distributeVertical: {
+        callback: selectionActions.distributeVertical,
+        active: selectedNodes.length > 1
+      },
+      deleteSelected: {
+        callback: selectionActions.deleteSelected,
+        active: selectedNodes.length > 0
+      },
+      navigateNextNode: { callback: nodeFocus.focusNext },
+      navigatePrevNode: { callback: nodeFocus.focusPrev },
+      selectFocusedNode: {
+        callback: nodeFocus.selectFocused,
+        active: nodeFocus.focusedNodeId !== null
+      },
+      exitNavigationMode: {
+        callback: nodeFocus.exitNavigationMode,
+        active: nodeFocus.isNavigationMode
+      },
+      focusNodeUp: { callback: nodeFocus.focusUp },
+      focusNodeDown: { callback: nodeFocus.focusDown },
+      focusNodeLeft: { callback: nodeFocus.focusLeft },
+      focusNodeRight: { callback: nodeFocus.focusRight },
+      goBack: {
+        callback: nodeFocus.goBack,
+        active: nodeFocus.focusHistory.length > 1
+      }
     };
 
     // Switch-to-tab (1-9)
@@ -413,14 +580,14 @@ export const useNodeEditorShortcuts = (
     nodeHistory.redo,
     selectAllNodes,
     handleAlign,
-    handleAlignWithSpacing,
     selectedNodes.length,
+    handleAlignWithSpacing,
     duplicateNodes,
     duplicateNodesVertical,
-    handleFitView,
     handleOpenNodeMenu,
     handleGroup,
     handleInspectorToggle,
+    handleWorkflowSettingsToggle,
     handleShowKeyboardShortcuts,
     handleSave,
     handleSaveExample,
@@ -428,10 +595,38 @@ export const useNodeEditorShortcuts = (
     closeCurrentWorkflow,
     handleZoomIn,
     handleZoomOut,
+    handleZoomToPreset,
+    handleBypassSelected,
+    handleFitView,
     handleSwitchTab,
     handleMoveNodes,
     handleSwitchToTab,
-    handleBypassSelected
+    openFind,
+    handleSelectConnectedAll,
+    handleSelectConnectedInputs,
+    handleSelectConnectedOutputs,
+    selectionActions.alignLeft,
+    selectionActions.alignCenter,
+    selectionActions.alignRight,
+    selectionActions.alignTop,
+    selectionActions.alignMiddle,
+    selectionActions.alignBottom,
+    selectionActions.distributeHorizontal,
+    selectionActions.distributeVertical,
+    selectionActions.deleteSelected,
+    reactFlow,
+    nodeFocus.focusNext,
+    nodeFocus.focusPrev,
+    nodeFocus.focusedNodeId,
+    nodeFocus.selectFocused,
+    nodeFocus.isNavigationMode,
+    nodeFocus.exitNavigationMode,
+    nodeFocus.focusUp,
+    nodeFocus.focusDown,
+    nodeFocus.focusLeft,
+    nodeFocus.focusRight,
+    nodeFocus.goBack,
+    nodeFocus.focusHistory.length
   ]);
 
   // useEffect for shortcut registration
@@ -439,11 +634,17 @@ export const useNodeEditorShortcuts = (
     const registered: string[] = [];
 
     NODE_EDITOR_SHORTCUTS.forEach((sc) => {
-      if (!sc.registerCombo) {return;}
-      if (sc.electronOnly && !electronDetails.isElectron) {return;}
+      if (!sc.registerCombo) {
+        return;
+      }
+      if (sc.electronOnly && !electronDetails.isElectron) {
+        return;
+      }
 
       const meta = shortcutMeta[sc.slug];
-      if (!meta) {return;}
+      if (!meta) {
+        return;
+      }
 
       const combos = [sc.keyCombo, ...(sc.altKeyCombos ?? [])];
 

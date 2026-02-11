@@ -4,7 +4,8 @@ import React, {
   useEffect,
   useRef,
   useMemo,
-  useState
+  useState,
+  useCallback
 } from "react";
 import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -16,7 +17,7 @@ import useGlobalChatStore, {
 } from "../../../stores/GlobalChatStore";
 import { NewChatButton } from "../thread/NewChatButton";
 import { usePanelStore } from "../../../stores/PanelStore";
-import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
 /**
  * StandaloneChat is a version of GlobalChat without app chrome (no AppHeader, no PanelRight).
@@ -25,12 +26,20 @@ import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
 const StandaloneChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
+  
+  // Consolidated Zustand store subscriptions to reduce re-renders
+  // Combine multiple subscriptions into single selectors to prevent re-renders
+  // when any individual value changes
   const {
+    // Connection
+    connect,
+    disconnect,
     status,
     sendMessage,
     progress,
     statusMessage,
     error,
+    // Thread management
     currentThreadId,
     threads,
     getCurrentMessagesSync,
@@ -38,32 +47,103 @@ const StandaloneChat: React.FC = () => {
     switchThread,
     fetchThread,
     stopGeneration,
+    threadsLoaded,
+    // Agent mode
     agentMode,
     setAgentMode,
+    // Task updates
     currentPlanningUpdate,
     currentTaskUpdate,
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread,
     currentLogUpdate,
-    threadsLoaded
-  } = useGlobalChatStore();
-  const runningToolCallId = useGlobalChatStore(
-    (s) => s.currentRunningToolCallId
+    // Tool execution
+    runningToolCallId,
+    runningToolMessage,
+    // Model and tools
+    selectedModel,
+    setSelectedModel,
+    selectedTools,
+    setSelectedTools,
+    selectedCollections,
+    setSelectedCollections,
+  } = useGlobalChatStore(
+    useCallback(
+      (state) => ({
+        // Connection
+        connect: state.connect,
+        disconnect: state.disconnect,
+        status: state.status,
+        sendMessage: state.sendMessage,
+        progress: state.progress,
+        statusMessage: state.statusMessage,
+        error: state.error,
+        // Thread management
+        currentThreadId: state.currentThreadId,
+        threads: state.threads,
+        getCurrentMessagesSync: state.getCurrentMessagesSync,
+        createNewThread: state.createNewThread,
+        switchThread: state.switchThread,
+        fetchThread: state.fetchThread,
+        stopGeneration: state.stopGeneration,
+        threadsLoaded: state.threadsLoaded,
+        // Agent mode
+        agentMode: state.agentMode,
+        setAgentMode: state.setAgentMode,
+        // Task updates
+        currentPlanningUpdate: state.currentPlanningUpdate,
+        currentTaskUpdate: state.currentTaskUpdate,
+        currentTaskUpdateThreadId: state.currentTaskUpdateThreadId,
+        lastTaskUpdatesByThread: state.lastTaskUpdatesByThread,
+        currentLogUpdate: state.currentLogUpdate,
+        // Tool execution
+        runningToolCallId: state.currentRunningToolCallId,
+        runningToolMessage: state.currentToolMessage,
+        // Model and tools
+        selectedModel: state.selectedModel,
+        setSelectedModel: state.setSelectedModel,
+        selectedTools: state.selectedTools,
+        setSelectedTools: state.setSelectedTools,
+        selectedCollections: state.selectedCollections,
+        setSelectedCollections: state.setSelectedCollections,
+      }),
+      []
+    )
   );
-  const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
+
+  // Get connection state from WebSocket manager directly
+  const [connectionState, setConnectionState] = React.useState(
+    globalWebSocketManager.getConnectionState()
+  );
+
+  useEffect(() => {
+    const unsubscribe = globalWebSocketManager.subscribeEvent(
+      "stateChange",
+      () => {
+        setConnectionState(globalWebSocketManager.getConnectionState());
+      }
+    );
+    return unsubscribe;
+  }, []);
+
+  // Initialize GlobalChatStore connection on mount
+  useEffect(() => {
+    connect().catch((err) => {
+      console.error("Failed to connect GlobalChatStore:", err);
+    });
+
+    return () => {
+      try {
+        disconnect();
+      } catch (err) {
+        console.error("Error during GlobalChatStore disconnect:", err);
+      }
+    };
+  }, [connect, disconnect]);
 
   // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =
     useThreadsQuery();
-
-  const selectedModel = useGlobalChatStore((s) => s.selectedModel);
-  const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
-  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
-  const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
-  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
-  const setSelectedCollections = useGlobalChatStore(
-    (s) => s.setSelectedCollections
-  );
   const theme = useTheme();
   const [alertDismissed, setAlertDismissed] = useState(false);
 
@@ -96,9 +176,6 @@ const StandaloneChat: React.FC = () => {
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread
   ]);
-
-  // Ensure chat connection while StandaloneChat is visible (do not disconnect on unmount)
-  useEnsureChatConnected();
 
   // Handle thread switching when URL changes
   useEffect(() => {
@@ -221,12 +298,12 @@ const StandaloneChat: React.FC = () => {
   }, [isMobile]);
 
   // Map status to ChatView compatible status
-  const getChatViewStatus = () => {
+  const getChatViewStatus = useCallback(() => {
     if (status === "stopping") {return "loading";}
     return status;
-  };
+  }, [status]);
 
-  const handleNewChat = async () => {
+  const handleNewChat = useCallback(async () => {
     try {
       const newThreadId = await createNewThread();
       switchThread(newThreadId);
@@ -234,7 +311,7 @@ const StandaloneChat: React.FC = () => {
     } catch (error) {
       console.error("Failed to create new thread:", error);
     }
-  };
+  }, [createNewThread, switchThread, navigate]);
 
   const mainAreaStyles = (_theme: Theme) =>
     css({
@@ -325,16 +402,13 @@ const StandaloneChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed &&
-          (error ||
-            status === "reconnecting" ||
-            status === "disconnected" ||
-            status === "failed") && (
+          (error || (!connectionState.isConnected && status !== "streaming" && status !== "loading")) && (
             <Alert
               className="standalone-chat-status-alert"
               severity={
-                status === "reconnecting"
+                connectionState.isConnecting
                   ? "info"
-                  : status === "disconnected"
+                  : !connectionState.isConnected
                   ? "warning"
                   : "error"
               }
@@ -350,12 +424,10 @@ const StandaloneChat: React.FC = () => {
                 flexShrink: 0
               }}
             >
-              {status === "reconnecting"
-                ? statusMessage || "Reconnecting to chat service..."
-                : status === "disconnected"
-                ? "Connection lost. Reconnecting automatically..."
-                : status === "failed"
-                ? "Connection failed. Retrying automatically..."
+              {connectionState.isConnecting
+                ? statusMessage || "Connecting to chat service..."
+                : !connectionState.isConnected
+                ? "Connecting to chat service..."
                 : error}
             </Alert>
           )}

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import {
   Typography,
   Box,
@@ -189,8 +189,10 @@ const panelStyles = (theme: Theme) =>
 const ProviderSetupPanel: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const { secrets, fetchSecrets, updateSecret } = useSecretsStore();
-  const { addNotification } = useNotificationStore();
+  const secrets = useSecretsStore((state) => state.secrets);
+  const fetchSecrets = useSecretsStore((state) => state.fetchSecrets);
+  const updateSecret = useSecretsStore((state) => state.updateSecret);
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   const [isExpanded, setIsExpanded] = useState(true);
   const [apiKeys, setApiKeys] = useState<Record<ProviderKey, string>>({
@@ -282,7 +284,7 @@ const ProviderSetupPanel: React.FC = () => {
     [apiKeys, updateMutation, addNotification]
   );
 
-  const handleKeyChange = useCallback((key: ProviderKey, value: string) => {
+  const _handleKeyChange = useCallback((key: ProviderKey, value: string) => {
     setApiKeys((prev) => ({ ...prev, [key]: value }));
   }, []);
 
@@ -290,13 +292,30 @@ const ProviderSetupPanel: React.FC = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
 
+  const handleToggleExpand = useCallback(() => {
+    setIsExpanded((prev) => !prev);
+  }, []);
+
+  const handleProviderSave = useCallback((providerKey: ProviderKey) => {
+    handleSaveKey(providerKey);
+  }, [handleSaveKey]);
+
+  const createProviderSaveHandler = useCallback((providerKey: ProviderKey) => {
+    return () => handleProviderSave(providerKey);
+  }, [handleProviderSave]);
+
+  const handleProviderLink = useCallback((url: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    handleOpenLink(url);
+  }, [handleOpenLink]);
+
   return (
     <Box css={panelStyles(theme)} className="provider-setup-panel">
       <div className="scrollable-content">
         <Box className="provider-setup-container">
           <div
             className="collapse-header"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleToggleExpand}
           >
             <div className="section-title">
               <Typography
@@ -359,57 +378,47 @@ const ProviderSetupPanel: React.FC = () => {
                         <a
                           href={provider.link}
                           className="provider-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenLink(provider.link);
-                          }}
+                          onClick={handleProviderLink(provider.link)}
                         >
                           {provider.linkText}
                           <OpenInNewIcon sx={{ fontSize: 14 }} />
                         </a>
                       </div>
 
-                      <div className="provider-input-container">
-                        <TextField
-                          type="password"
-                          size="small"
-                          fullWidth
-                          placeholder={
-                            isConfigured ? "••••••••••••" : provider.placeholder
-                          }
-                          value={apiKeys[provider.key]}
-                          onChange={(e) =>
-                            handleKeyChange(provider.key, e.target.value)
-                          }
-                          className="provider-input"
-                          disabled={isSaving}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && hasInput) {
-                              handleSaveKey(provider.key);
+                        <div className="provider-input-container">
+                          <TextField
+                            type="password"
+                            size="small"
+                            fullWidth
+                            value={apiKeys[provider.key] || ""}
+                            onChange={(e) =>
+                              _handleKeyChange(provider.key, e.target.value)
                             }
-                          }}
-                        />
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => handleSaveKey(provider.key)}
-                          disabled={!hasInput || isSaving}
-                          startIcon={
-                            isSaving ? (
-                              <CircularProgress size={16} />
-                            ) : (
-                              <SaveIcon />
-                            )
-                          }
-                          sx={{ minWidth: "100px" }}
-                        >
-                          {isSaving
-                            ? "Saving..."
-                            : isConfigured
-                            ? "Update"
-                            : "Save"}
-                        </Button>
-                      </div>
+                            placeholder={
+                              isConfigured ? "••••••••••••" : provider.placeholder
+                            }
+                          />
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={createProviderSaveHandler(provider.key)}
+                            disabled={!hasInput || isSaving}
+                            startIcon={
+                              isSaving ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <SaveIcon />
+                              )
+                            }
+                            sx={{ minWidth: "100px" }}
+                          >
+                            {isSaving
+                              ? "Saving..."
+                              : isConfigured
+                              ? "Update"
+                              : "Save"}
+                          </Button>
+                        </div>
                     </div>
                   );
                 })}
@@ -443,4 +452,4 @@ const ProviderSetupPanel: React.FC = () => {
   );
 };
 
-export default ProviderSetupPanel;
+export default memo(ProviderSetupPanel);

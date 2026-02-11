@@ -5,6 +5,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
+import DOMPurify from "dompurify";
+import isEqual from "lodash/isEqual";
 import Actions from "./Actions";
 
 const jsonStyles = (theme: Theme) =>
@@ -213,8 +215,22 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
       {showActions && <Actions copyValue={rawJson} />}
       <div
         className="json-content"
-        dangerouslySetInnerHTML={{ __html: formattedJson }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formattedJson) }}
       />
     </div>
   );
 };
+
+// Custom comparison function for deep equality check
+const arePropsEqual = (prevProps: JSONRendererProps, nextProps: JSONRendererProps) => {
+  // Quick check for primitive props
+  if (prevProps.showActions !== nextProps.showActions) {
+    return false;
+  }
+
+  // Use lodash.isEqual for efficient deep comparison instead of JSON.stringify
+  // which is slower and can fail with circular references
+  return isEqual(prevProps.value, nextProps.value);
+};
+
+export default React.memo(JSONRenderer, arePropsEqual);

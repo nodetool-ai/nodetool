@@ -2,6 +2,7 @@
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { memo, useCallback } from "react";
 import useAuth from "../../stores/useAuth";
 
 const styles = (_theme: Theme) => ({
@@ -10,12 +11,13 @@ const styles = (_theme: Theme) => ({
   }
 });
 
-const GoogleAuthButton = () => {
-  const { signInWithProvider, state } = useAuth();
-  const handleClick = async () => {
+const GoogleAuthButton = memo(function GoogleAuthButton() {
+  const signInWithProvider = useAuth((state) => state.signInWithProvider);
+  const state = useAuth((state) => state.state);
+  const handleClick = useCallback(async () => {
     if (state === "loading" || state === "logged_in") {return;}
     await signInWithProvider("google");
-  };
+  }, [state, signInWithProvider]);
   const theme = useTheme();
   return (
     <div css={styles(theme)}>
@@ -55,6 +57,6 @@ const GoogleAuthButton = () => {
       </button>
     </div>
   );
-};
+});
 
 export default GoogleAuthButton;

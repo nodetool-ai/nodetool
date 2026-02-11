@@ -1,23 +1,19 @@
 import { useCallback } from "react";
-import { useReactFlow } from "@xyflow/react";
+
 import { useNavigate } from "react-router-dom";
 import { Node } from "@xyflow/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import useResultsStore from "../../stores/ResultsStore";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useClipboard } from "../browser/useClipboard";
 import log from "loglevel";
-import { useRemoveFromGroup } from "./useRemoveFromGroup";
-import useMetadataStore from "../../stores/MetadataStore";
-import { subgraph } from "../../core/graph";
-import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+
 import { useNodes } from "../../contexts/NodeContext";
 import {
   constantToInputType,
   inputToConstantType
 } from "../../utils/NodeTypeMapping";
+import { useRunFromHere } from "./useRunFromHere";
 
 interface UseNodeContextMenuReturn {
   menuPosition: { x: number; y: number } | null;
@@ -52,18 +48,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     (state) => state.closeContextMenu
   );
   const nodeId = useContextMenuStore((state) => state.nodeId);
-  const { getNode } = useReactFlow();
-  const rawNode = nodeId ? getNode(nodeId) : undefined;
-  const node = rawNode as Node<NodeData> | null;
-  const nodeData = node?.data;
-  const metadata = useMetadataStore((state) =>
-    state.getMetadata(node?.type ?? "")
-  );
-  const { writeClipboard } = useClipboard();
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  const navigate = useNavigate();
+
   const {
     updateNodeData,
     updateNode,
@@ -71,10 +56,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     deleteNode,
     getSelectedNodes,
     toggleBypass,
-    nodes,
-    edges,
-    workflow,
-    findNode
+    nodes
   } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode,
@@ -82,16 +64,20 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     deleteNode: state.deleteNode,
     getSelectedNodes: state.getSelectedNodes,
     toggleBypass: state.toggleBypass,
-    nodes: state.nodes,
-    edges: state.edges,
-    workflow: state.workflow,
-    findNode: state.findNode
+    nodes: state.nodes
   }));
-  const run = useWebsocketRunner((state) => state.run);
-  const isWorkflowRunning = useWebsocketRunner(
-    (state) => state.state === "running"
+
+  const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
+  const node = rawNode as Node<NodeData> | null;
+  const nodeData = node?.data;
+  const { writeClipboard } = useClipboard();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
   );
-  const getResult = useResultsStore((state) => state.getResult);
+  const navigate = useNavigate();
+
+  const { runFromHere, isWorkflowRunning } = useRunFromHere(node);
+
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const selectedNodes = getSelectedNodes();
@@ -105,120 +91,9 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   }, [closeContextMenu, hasCommentTitle, nodeId, updateNodeData]);
 
   const handleRunFromHere = useCallback(() => {
-    if (!node || !nodeId || isWorkflowRunning) {
-      return;
-    }
-
-    const downstream = subgraph(edges, nodes, node as Node<NodeData>);
-    const subgraphNodeIds = new Set(downstream.nodes.map((n) => n.id));
-
-    const externalInputEdges = edges.filter(
-      (edge) =>
-        subgraphNodeIds.has(edge.target) && !subgraphNodeIds.has(edge.source)
-    );
-
-    const nodePropertyOverrides = new Map<string, Record<string, any>>();
-
-    for (const edge of externalInputEdges) {
-      const sourceNodeId = edge.source;
-      const sourceHandle = edge.sourceHandle;
-      const targetNodeId = edge.target;
-      const targetHandle = edge.targetHandle;
-
-      if (!targetHandle) {
-        continue;
-      }
-
-      const { value, hasValue, isFallback } = resolveExternalEdgeValue(
-        edge,
-        workflow.id,
-        getResult,
-        findNode
-      );
-      if (!hasValue) {
-        continue;
-      }
-
-      const existing = nodePropertyOverrides.get(targetNodeId) || {};
-      existing[targetHandle] = value;
-      nodePropertyOverrides.set(targetNodeId, existing);
-
-      log.info(
-        `Run from here: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
-        {
-          sourceHandle,
-          valueSource: isFallback ? "node" : "cached_result"
-        }
-      );
-    }
-
-    const nodesWithCachedValues = downstream.nodes.map((n) => {
-      const overrides = nodePropertyOverrides.get(n.id);
-      if (overrides && Object.keys(overrides).length > 0) {
-        const dynamicProps = n.data?.dynamic_properties || {};
-        const staticProps = n.data?.properties || {};
-        const updatedDynamicProps = { ...dynamicProps };
-        const updatedStaticProps = { ...staticProps };
-
-        for (const [key, value] of Object.entries(overrides)) {
-          if (Object.prototype.hasOwnProperty.call(dynamicProps, key)) {
-            updatedDynamicProps[key] = value;
-          } else {
-            updatedStaticProps[key] = value;
-          }
-        }
-
-        return {
-          ...n,
-          data: {
-            ...n.data,
-            properties: {
-              ...updatedStaticProps
-            },
-            dynamic_properties: {
-              ...updatedDynamicProps
-            }
-          }
-        };
-      }
-      return n;
-    });
-
-    const nodesWithOverrides = nodePropertyOverrides.size;
-    const totalPropertiesInjected = Array.from(
-      nodePropertyOverrides.values()
-    ).reduce((sum, props) => sum + Object.keys(props).length, 0);
-
-    log.info("Running downstream subgraph from node", {
-      startNodeId: nodeId,
-      nodeCount: nodesWithCachedValues.length,
-      edgeCount: downstream.edges.length,
-      nodesWithCachedDependencies: nodesWithOverrides,
-      totalCachedPropertiesInjected: totalPropertiesInjected
-    });
-
-    run({}, workflow, nodesWithCachedValues, downstream.edges);
-
-    addNotification({
-      type: "info",
-      alert: false,
-      content: `Running workflow from ${metadata?.title || node?.type || "node"}`
-    });
+    runFromHere();
     closeContextMenu();
-  }, [
-    node,
-    nodeId,
-    isWorkflowRunning,
-    edges,
-    nodes,
-    workflow,
-    getResult,
-    run,
-    addNotification,
-    metadata,
-    closeContextMenu,
-    findNode
-  ]);
+  }, [runFromHere, closeContextMenu]);
 
   const handleToggleBypass = useCallback(() => {
     if (!nodeId) {
@@ -239,13 +114,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       writeClipboard(JSON.stringify(nodeData, null, 2), true, true);
       closeContextMenu();
     }
-  }, [
-    nodeId,
-    nodeData,
-    addNotification,
-    writeClipboard,
-    closeContextMenu
-  ]);
+  }, [nodeId, nodeData, addNotification, writeClipboard, closeContextMenu]);
 
   const handleFindTemplates = useCallback(() => {
     const nodeType = node?.type || "";
@@ -292,7 +161,15 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       });
     }
     closeContextMenu();
-  }, [node, nodeId, nodeData, updateNodeData, updateNode, addNotification, closeContextMenu]);
+  }, [
+    node,
+    nodeId,
+    nodeData,
+    updateNodeData,
+    updateNode,
+    addNotification,
+    closeContextMenu
+  ]);
 
   const handleConvertToConstant = useCallback(() => {
     if (!node || !nodeId) {
@@ -313,10 +190,22 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       });
     }
     closeContextMenu();
-  }, [node, nodeId, nodeData, updateNodeData, updateNode, addNotification, closeContextMenu]);
+  }, [
+    node,
+    nodeId,
+    nodeData,
+    updateNodeData,
+    updateNode,
+    addNotification,
+    closeContextMenu
+  ]);
 
-  const canConvertToInput = Boolean(nodeId && constantToInputType(node?.type ?? ""));
-  const canConvertToConstant = Boolean(nodeId && inputToConstantType(node?.type ?? ""));
+  const canConvertToInput = Boolean(
+    nodeId && constantToInputType(node?.type ?? "")
+  );
+  const canConvertToConstant = Boolean(
+    nodeId && inputToConstantType(node?.type ?? "")
+  );
   const isInGroup = Boolean(node?.parentId);
 
   return {

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useMemo } from "react";
-import { ButtonGroup, Typography } from "@mui/material";
+import React, { memo, useMemo, useCallback } from "react";
+import { Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
@@ -11,7 +11,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import DeleteButton from "../buttons/DeleteButton";
+import { DeleteButton } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -155,10 +155,10 @@ const styles = (theme: Theme) =>
     },
     ".asset-delete": {
       pointerEvents: "none",
-      opacity: 0
+      opacity: 0,
+      transition: "opacity 0.2s ease"
     },
     "&.selected:hover .asset-delete": {
-      backgroundColor: "transparent",
       pointerEvents: "all",
       opacity: 1
     },
@@ -325,12 +325,27 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     [asset?.content_type, asset?.name]
   );
 
+  const handleAudioClick = useCallback(() => {
+    onSetCurrentAudioAsset?.(asset);
+  }, [asset, onSetCurrentAudioAsset]);
+
+  // Memoize click handler to prevent unnecessary re-renders
+  const handleItemClick = useCallback(() => {
+    handleClick(onSelect, onClickParent, isParent);
+  }, [handleClick, onSelect, onClickParent, isParent]);
+
+  const handleDoubleClickWithStop = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDoubleClick) {
+      onDoubleClick(asset);
+    }
+  }, [onDoubleClick, asset]);
+
   const result = (
     <div
       css={styles(theme)}
-      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${
-        isDragHovered ? "drag-hover" : ""
-      } ${isParent ? "parent" : ""}`}
+      className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
+        } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
@@ -338,24 +353,26 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       draggable={draggable}
       onDragStart={handleDrag}
       onDragEnd={handleDragEnd}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        if (onDoubleClick) {
-          onDoubleClick(asset);
-        }
-      }}
-      onClick={() => handleClick(onSelect, onClickParent, isParent)}
+      onDoubleClick={handleDoubleClickWithStop}
+      onClick={handleItemClick}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
       {showDeleteButton && (
-        <ButtonGroup className="asset-item-actions" size="small" tabIndex={-1}>
-          <DeleteButton<Asset>
+        <div
+          css={css({
+            position: "absolute",
+            top: 4,
+            right: 4,
+            zIndex: 1000
+          })}
+        >
+          <DeleteButton
             className="asset-delete"
-            item={asset}
-            onClick={() => handleDelete()}
+            onClick={handleDelete}
+            buttonSize="small"
           />
-        </ButtonGroup>
+        </div>
       )}
       <div className="asset">
         {!asset.get_url && <div className="asset-missing" />}
@@ -392,7 +409,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <>
             <AudioFileIcon
               style={{ color: `var(--c_${assetType})` }}
-              onClick={() => onSetCurrentAudioAsset?.(asset)}
+              onClick={handleAudioClick}
               className="placeholder"
               titleAccess={asset.content_type || "Audio file"}
             />
@@ -405,18 +422,39 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         )}
         {isVideo && (
           <>
-            <VideoFileIcon
-              className="placeholder"
-              style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
-              titleAccess={asset.content_type || "Video file"}
-            />
-            <div
-              className="image"
-              style={{
-                backgroundImage: `url(${asset.get_url})`
-              }}
-              aria-label={asset.id}
-            />
+            {!asset.thumb_url && !asset.get_url ? (
+              <VideoFileIcon
+                className="placeholder"
+                style={{ color: `var(--c_${assetType})`, zIndex: 1000 }}
+                titleAccess={asset.content_type || "Video file"}
+              />
+            ) : (
+              <div
+                className="image"
+                style={{
+                  backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+                }}
+                aria-label={asset.id}
+              />
+            )}
+
+            {/* Always show icon overlay for video if we have a thumbnail to indicate it's playble/video */}
+            {(asset.thumb_url || asset.get_url) && (
+              <VideoFileIcon
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  color: "white",
+                  fontSize: "3em",
+                  opacity: 0.8,
+                  filter: "drop-shadow(0px 0px 4px rgba(0,0,0,0.5))",
+                  zIndex: 10
+                }}
+              />
+            )}
+
             {showDuration && asset.duration && assetItemSize > 1 && (
               <Typography className="duration info">
                 {secondsToHMS(asset.duration)}

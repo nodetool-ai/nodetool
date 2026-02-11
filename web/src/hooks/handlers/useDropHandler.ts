@@ -15,12 +15,19 @@ import {
 } from "../../lib/dragdrop";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 
-// Node spacing when dropping multiple assets
+/** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
+/** Vertical spacing between nodes when dropping multiple assets */
 const MULTI_NODE_VERTICAL_SPACING = 250;
+/** Number of nodes per row when laying out multiple dropped assets */
 const NODES_PER_ROW = 2;
 
-// File type detection
+/**
+ * Detects the file type based on MIME type.
+ * 
+ * @param file - The file to analyze
+ * @returns Detected type: "png", "json", "csv", "document", or "unknown"
+ */
 function detectFileType(file: File): string {
   switch (file.type) {
     case "image/png":
@@ -42,6 +49,30 @@ function detectFileType(file: File): string {
   }
 }
 
+/**
+ * Hook for handling drop events on the ReactFlow canvas.
+ * 
+ * This hook manages dropping various content onto the workflow canvas:
+ * - External files (images, JSON, CSV, documents)
+ * - Assets from the asset browser
+ * - Nodes from the node menu
+ * 
+ * It handles file processing, node creation, and error notifications.
+ * 
+ * @returns Object containing onDrop and onDragOver handlers for the canvas
+ * 
+ * @example
+ * ```typescript
+ * const { onDrop, onDragOver } = useDropHandler();
+ * 
+ * return (
+ *   <ReactFlow
+ *     onDrop={onDrop}
+ *     onDragOver={onDragOver}
+ *   />
+ * );
+ * ```
+ */
 export const useDropHandler = () => {
   const { handlePngFile, handleJsonFile, handleCsvFile, handleGenericFile } =
     useFileHandlers();
@@ -161,6 +192,7 @@ export const useDropHandler = () => {
       addNode,
       getAsset,
       addNodeFromAsset,
+      addRecentNode,
       handlePngFile,
       handleJsonFile,
       handleCsvFile,
@@ -172,7 +204,10 @@ export const useDropHandler = () => {
   /* DRAG OVER */
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+    // Use "copy" for external file drops since source apps (like Eagle)
+    // may only allow "copy", causing a forbidden cursor if we force "move"
+    const hasFiles = Array.from(event.dataTransfer.types).includes("Files");
+    event.dataTransfer.dropEffect = hasFiles ? "copy" : "move";
   }, []);
 
   return { onDrop, onDragOver };

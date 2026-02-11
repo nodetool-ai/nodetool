@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useCallback } from "react";
 
 const styles = (theme: Theme) =>
   css({
@@ -47,62 +47,71 @@ interface NodeDescriptionProps {
   onTagClick?: (tag: string) => void;
 }
 
-const NodeDescription: React.FC<NodeDescriptionProps> = ({
-  description,
-  className,
-  onTagClick
-}) => {
-  const theme = useTheme();
-  if (!description) {
-    return null;
-  }
+const NodeDescription = React.memo(
+  ({ description, className, onTagClick }: NodeDescriptionProps) => {
+    const theme = useTheme();
 
-  const lines = description.split("\n");
-  const firstLine = lines[0] || "";
-  const tagsLine = lines.length > 1 ? lines[1] : "";
-  const restOfDescription =
-    lines.length > 2
-      ? lines
-          .slice(2)
-          .map((line) => line.trim())
-          .join("\n")
-      : "";
+    const handleTagClick = useCallback(
+      (tag: string) => {
+        if (onTagClick) {
+          onTagClick(tag);
+        }
+      },
+      [onTagClick]
+    );
 
-  const tags = tagsLine
-    ? tagsLine
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((t) => t)
-    : [];
+    const createTagClickHandler = useCallback(
+      (tag: string) => () => handleTagClick(tag),
+      [handleTagClick]
+    );
 
-  const handleTagClick = (tag: string) => {
-    if (onTagClick) {
-      onTagClick(tag);
+    if (!description) {
+      return null;
     }
-  };
 
-  return (
-    <div css={styles(theme)} className={className}>
-      {firstLine && <span className="first-line">{firstLine}</span>}
-      {tags.length > 0 && (
-        <div className="tags-container">
-          {tags.map((tag, index) => (
-            <span
-              key={index}
-              className="tag"
-              onClick={() => handleTagClick(tag)}
-              style={{ cursor: onTagClick ? "pointer" : "default" }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-      {restOfDescription && (
-        <div className="rest-description">{restOfDescription}</div>
-      )}
-    </div>
-  );
-};
+    const lines = description.split("\n");
+    const firstLine = lines[0] || "";
+    const tagsLine = lines.length > 1 ? lines[1] : "";
+    const restOfDescription =
+      lines.length > 2
+        ? lines
+            .slice(2)
+            .map((line) => line.trim())
+            .join("\n")
+        : "";
+
+    const tags = tagsLine
+      ? tagsLine
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((t) => t)
+      : [];
+
+    return (
+      <div css={styles(theme)} className={className}>
+        {firstLine && <span className="first-line">{firstLine}</span>}
+        {tags.length > 0 && (
+          <div className="tags-container">
+            {tags.map((tag, index) => (
+              <span
+                key={index}
+                className="tag"
+                onClick={createTagClickHandler(tag)}
+                style={{ cursor: onTagClick ? "pointer" : "default" }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+        {restOfDescription && (
+          <div className="rest-description">{restOfDescription}</div>
+        )}
+      </div>
+    );
+  }
+);
+
+NodeDescription.displayName = "NodeDescription";
 
 export default NodeDescription;

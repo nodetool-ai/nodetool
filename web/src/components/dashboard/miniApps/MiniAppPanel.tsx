@@ -3,7 +3,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  Button,
   CircularProgress,
   Typography,
   Select,
@@ -15,7 +14,6 @@ import {
   IconButton
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -44,7 +42,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [_submitError, _setSubmitError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const { fetchWorkflow } = useWorkflowManager((state) => ({
@@ -94,13 +92,21 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     runWorkflow,
     runnerState,
     statusMessage,
-    notifications,
     results,
     progress,
     resetWorkflowState
   } = useMiniAppRunner(workflow ?? undefined);
 
   const clearResults = useMiniAppsStore((state) => state.clearResults);
+
+  const handleWorkflowSelect = useCallback((e: unknown) => {
+    const value = typeof e === "object" && e !== null && "target" in e
+      ? (e.target as { value: string }).value
+      : null;
+    if (value) {
+      onWorkflowSelect?.(value);
+    }
+  }, [onWorkflowSelect]);
 
   const { nodes: workflowNodes, edges: workflowEdges } = useMemo(() => {
     if (!workflow?.graph) {
@@ -123,12 +129,10 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     return { nodes, edges };
   }, [workflow]);
 
-  const handleSubmit = useCallback(async () => {
+  const _handleSubmit = useCallback(async () => {
     if (!workflow) {
       return;
     }
-
-    setSubmitError(null);
 
     try {
       resetWorkflowState(workflow.id);
@@ -164,9 +168,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
       await runWorkflow(params, workflow, workflowNodes, workflowEdges);
     } catch (error) {
       console.error("Failed to run workflow", error);
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to run workflow"
-      );
     }
   }, [
     inputDefinitions,
@@ -178,7 +179,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     workflowNodes
   ]);
 
-  const isSubmitDisabled =
+  const _isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
   const handleOpenInEditor = useCallback(() => {
@@ -214,7 +215,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
             labelId="workflow-select-label"
             value=""
             label="Workflow"
-            onChange={(e) => onWorkflowSelect?.(e.target.value)}
+            onChange={handleWorkflowSelect}
           >
             {(() => {
               const items = Array.isArray(workflowsData) 
@@ -257,7 +258,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                 {workflow?.name}
               </Typography>
               <Tooltip title="Open in Editor">
-                <IconButton size="small" onClick={handleOpenInEditor}>
+                <IconButton size="small" onClick={handleOpenInEditor} aria-label="Open in Editor">
                   <EditIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -269,9 +270,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                 inputDefinitions={inputDefinitions}
                 inputValues={inputValues}
                 onInputChange={updateInputValue}
-                isSubmitDisabled={isSubmitDisabled}
-                onSubmit={handleSubmit}
-                onError={setSubmitError}
               />
               <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
                 {statusMessage && (
@@ -307,4 +305,6 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
   );
 };
 
-export default MiniAppPanel;
+MiniAppPanel.displayName = 'MiniAppPanel';
+
+export default React.memo(MiniAppPanel);

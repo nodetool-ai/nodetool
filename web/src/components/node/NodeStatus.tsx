@@ -6,7 +6,7 @@ import isEqual from "lodash/isEqual";
 import { useTheme } from "@mui/material/styles";
 
 interface NodeStatusProps {
-  status: string;
+  status?: string;
 }
 
 const NodeStatus: React.FC<NodeStatusProps> = ({ status }) => {

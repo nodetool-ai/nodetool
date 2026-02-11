@@ -5,10 +5,10 @@ import React, {
   useEffect,
   useMemo,
   useState,
-  useRef
+  useRef,
+  memo
 } from "react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -24,13 +24,12 @@ import {
   useTheme,
   Theme
 } from "@mui/material";
+import { Dialog } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,
   Search as SearchIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  Refresh as RefreshIcon,
-  Close as CloseIcon
+  ArrowUpward as ArrowUpwardIcon
 } from "@mui/icons-material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
@@ -41,7 +40,7 @@ import { FileInfo } from "../../stores/ApiTypes";
 import { createErrorMessage } from "../../utils/errorHandling";
 import log from "loglevel";
 
-import { CopyToClipboardButton } from "../common/CopyToClipboardButton";
+import { CopyButton, CloseButton, RefreshButton } from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
 
@@ -181,7 +180,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 
 // --- Component ---
 
-export default function FileBrowserDialog({
+function FileBrowserDialog({
   open,
   onClose,
   onConfirm,
@@ -208,15 +207,23 @@ export default function FileBrowserDialog({
 
   // --- Memos (Moved up for usage in effects) ---
 
-  // Filter files
+  // Sort files: Folders first, then files (memoized for performance)
+  const sortedFiles = useMemo(() => {
+    return [...files].sort((a, b) => {
+      if (a.is_dir === b.is_dir) {return a.name.localeCompare(b.name);}
+      return a.is_dir ? -1 : 1;
+    });
+  }, [files]);
+
+  // Filter files (after sorting)
   const filteredFiles = useMemo(() => {
-    if (!searchQuery) {return files;}
+    if (!searchQuery) {return sortedFiles;}
     // Optimization: Convert search query to lowercase once
     const searchQueryLower = searchQuery.toLowerCase();
-    return files.filter((f) =>
+    return sortedFiles.filter((f) =>
       f.name.toLowerCase().includes(searchQueryLower)
     );
-  }, [files, searchQuery]);
+  }, [sortedFiles, searchQuery]);
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => {
@@ -417,12 +424,7 @@ export default function FileBrowserDialog({
       setIsLoadingFiles(true);
       try {
         const fileList = await fetchFileList(currentPath);
-        // Sort: Folders first, then files
-        const sorted = fileList.sort((a, b) => {
-          if (a.is_dir === b.is_dir) {return a.name.localeCompare(b.name);}
-          return a.is_dir ? -1 : 1;
-        });
-        setFiles(sorted);
+        setFiles(fileList);
       } catch (err) {
         log.error("Failed to load files", err);
       } finally {
@@ -444,7 +446,7 @@ export default function FileBrowserDialog({
         // Try to list as directory first
         await fetchFileList(path);
         handleNavigate(path);
-      } catch (e) {
+      } catch {
         // If listing fails, assume it's a file path
         // Try to navigate to parent and select the file
         const parts = path.split(/[/\\]/);
@@ -470,7 +472,7 @@ export default function FileBrowserDialog({
     setIsEditingPath(false);
   };
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = useCallback((path: string) => {
     setCurrentPath(path);
     setSearchQuery("");
     if (selectionMode === "directory") {
@@ -478,9 +480,13 @@ export default function FileBrowserDialog({
     } else {
       setSelectedPath("");
     }
-  };
+  }, [selectionMode]);
 
-  const handleUp = () => {
+  const handleStartEditPath = useCallback(() => {
+    setIsEditingPath(true);
+  }, []);
+
+  const handleUp = useCallback(() => {
     if (currentPath === "~" || currentPath === "/") {return;}
     // Naive parent path
     const separator = currentPath.includes("\\") ? "\\" : "/";
@@ -492,9 +498,13 @@ export default function FileBrowserDialog({
     if (parent.endsWith(":")) {parent += "\\";} // Windows drive root often needs backslash
 
     handleNavigate(parent || "~");
-  };
+  }, [currentPath, handleNavigate]);
 
-  const handleFileClick = (file: FileInfo) => {
+  const handleRefresh = useCallback(() => {
+    handleNavigate(currentPath);
+  }, [currentPath, handleNavigate]);
+
+  const handleFileClick = useCallback((file: FileInfo) => {
     if (file.is_dir) {
       if (selectionMode === "directory") {
         setSelectedPath(file.path);
@@ -504,9 +514,9 @@ export default function FileBrowserDialog({
         setSelectedPath(file.path);
       }
     }
-  };
+  }, [selectionMode]);
 
-  const handleFileDoubleClick = (file: FileInfo) => {
+  const handleFileDoubleClick = useCallback((file: FileInfo) => {
     if (file.is_dir) {
       handleNavigate(file.path);
     } else {
@@ -515,13 +525,21 @@ export default function FileBrowserDialog({
         onConfirm(file.path);
       }
     }
-  };
+  }, [selectionMode, handleNavigate, onConfirm]);
 
-  const handleConfirmClick = () => {
+  const handleConfirmClick = useCallback(() => {
     if (selectedPath) {
       onConfirm(selectedPath);
     }
-  };
+  }, [selectedPath, onConfirm]);
+
+  const handlePathInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPathInputValue(e.target.value);
+  }, []);
+
+  const handleSearchQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
 
   // --- Tree Logic ---
 
@@ -584,29 +602,37 @@ export default function FileBrowserDialog({
     );
   };
 
-  const handleTreeItemClick = (event: React.MouseEvent, itemId: string) => {
+  const handleTreeItemClick = useCallback((event: React.MouseEvent, itemId: string) => {
     if (itemId.endsWith("_loading")) {return;}
     handleNavigate(itemId);
-  };
+  }, [handleNavigate]);
 
   // --- Renderers ---
 
-  const Row = ({
+  const Row = memo(function Row({
     index,
     style
   }: {
     index: number;
     style: React.CSSProperties;
-  }) => {
+  }) {
     const file = filteredFiles[index];
     const isSelected = selectedPath === file.path;
+
+    const handleClick = useCallback(() => {
+      handleFileClick(file);
+    }, [file]);
+
+    const handleDoubleClick = useCallback(() => {
+      handleFileDoubleClick(file);
+    }, [file]);
 
     return (
       <div
         style={style}
         className={`list-item ${isSelected ? "selected" : ""}`}
-        onClick={() => handleFileClick(file)}
-        onDoubleClick={() => handleFileDoubleClick(file)}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
       >
         {file.is_dir ? (
           <FolderIcon color="primary" sx={{ fontSize: 20 }} />
@@ -627,7 +653,7 @@ export default function FileBrowserDialog({
         )}
       </div>
     );
-  };
+  });
 
   return (
     <Dialog
@@ -654,13 +680,12 @@ export default function FileBrowserDialog({
       >
         <Typography
           variant="h6"
+          component="span"
           sx={{ fontSize: "1.1rem", padding: "0 1em", margin: 0 }}
         >
           {title}
         </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
       </DialogTitle>
 
       <DialogContent
@@ -691,7 +716,7 @@ export default function FileBrowserDialog({
                 size="small"
                 fullWidth
                 value={pathInputValue}
-                onChange={(e) => setPathInputValue(e.target.value)}
+                onChange={handlePathInputChange}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {handlePathSubmit();}
                   if (e.key === "Escape") {
@@ -713,7 +738,7 @@ export default function FileBrowserDialog({
                   cursor: "text",
                   minWidth: "100px"
                 }}
-                onClick={() => setIsEditingPath(true)}
+                onClick={handleStartEditPath}
               >
                 <Breadcrumbs className="breadcrumbs" separator="/">
                   {breadcrumbs.map((b, i) => (
@@ -743,7 +768,7 @@ export default function FileBrowserDialog({
               size="small"
               placeholder="Search in current folder..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchQueryChange}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -756,15 +781,11 @@ export default function FileBrowserDialog({
               sx={{ width: 200, "& .MuiInputBase-root": { height: 32 } }}
             />
 
-            <IconButton
-              onClick={() => {
-                handleNavigate(currentPath);
-              }}
-              size="small"
-              style={{ width: 32, height: 32 }}
-            >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
+            <RefreshButton
+              onClick={handleRefresh}
+              buttonSize="small"
+              tooltip="Refresh"
+            />
           </div>
 
           {/* Split View */}
@@ -829,10 +850,10 @@ export default function FileBrowserDialog({
           {selectedPath ? `Selected: ${selectedPath}` : "No selection"}
         </Typography>
         {selectedPath && (
-          <CopyToClipboardButton
-            copyValue={selectedPath}
-            title="Copy path"
-            size="small"
+          <CopyButton
+            value={selectedPath}
+            tooltip="Copy path"
+            buttonSize="small"
           />
         )}
         <Button onClick={onClose} color="inherit">
@@ -849,3 +870,5 @@ export default function FileBrowserDialog({
     </Dialog>
   );
 }
+
+export default memo(FileBrowserDialog);

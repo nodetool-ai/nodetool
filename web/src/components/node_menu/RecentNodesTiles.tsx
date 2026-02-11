@@ -84,7 +84,7 @@ const tileStyles = (theme: Theme) =>
       overflow: "hidden",
       border: "1px solid rgba(255, 255, 255, 0.06)",
       transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-      minHeight: "80px",
+      minHeight: "30px",
       background: "rgba(255, 255, 255, 0.02)",
       "&::before": {
         content: '""',
@@ -115,7 +115,7 @@ const tileStyles = (theme: Theme) =>
       }
     },
     ".tile-label": {
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       textAlign: "center",
       lineHeight: 1.3,
@@ -227,22 +227,49 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     clearRecentNodes();
   }, [clearRecentNodes]);
 
-  // Get readable node names
-  const getNodeDisplayName = useCallback(
-    (nodeType: string) => {
-      const metadata = getMetadata(nodeType);
-      if (metadata) {
-        return metadata.title || metadata.node_type.split(".").pop() || nodeType;
-      }
-      return nodeType.split(".").pop() || nodeType;
-    },
-    [getMetadata]
-  );
-
   // Filter out nodes that are already shown in Quick Actions
   const filteredRecentNodes = useMemo(
-    () => recentNodes.filter((node) => !QUICK_ACTION_NODE_TYPES.has(node.nodeType)),
+    () =>
+      recentNodes.filter((node) => !QUICK_ACTION_NODE_TYPES.has(node.nodeType)),
     [recentNodes]
+  );
+
+  // Memoize node display names to avoid re-computation on each render
+  const nodeDisplayNames = useMemo(
+    () => {
+      const names = new Map<string, string>();
+      filteredRecentNodes.forEach((recentNode) => {
+        const { nodeType } = recentNode;
+        const metadata = getMetadata(nodeType);
+        if (metadata) {
+          names.set(
+            nodeType,
+            metadata.title || metadata.node_type.split(".").pop() || nodeType
+          );
+        } else {
+          names.set(
+            nodeType,
+            nodeType.split(".").pop() || nodeType
+          );
+        }
+      });
+      return names;
+    },
+    [filteredRecentNodes, getMetadata]
+  );
+
+  const handleTileClick = useCallback(
+    (nodeType: string) => () => {
+      onTileClick(nodeType);
+    },
+    [onTileClick]
+  );
+
+  const handleTileMouseEnter = useCallback(
+    (nodeType: string) => () => {
+      onTileMouseEnter(nodeType);
+    },
+    [onTileMouseEnter]
   );
 
   if (filteredRecentNodes.length === 0) {
@@ -270,7 +297,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
       <div className="tiles-container">
         {filteredRecentNodes.map((recentNode) => {
           const { nodeType } = recentNode;
-          const displayName = getNodeDisplayName(nodeType);
+          const displayName = nodeDisplayNames.get(nodeType) || nodeType;
 
           return (
             <Tooltip
@@ -291,14 +318,15 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
               }
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
+              enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="recent-tile"
                 draggable
                 onDragStart={handleDragStart(nodeType)}
                 onDragEnd={handleDragEnd}
-                onClick={() => onTileClick(nodeType)}
-                onMouseEnter={() => onTileMouseEnter(nodeType)}
+                onClick={handleTileClick(nodeType)}
+                onMouseEnter={handleTileMouseEnter(nodeType)}
                 style={
                   {
                     background: theme.vars.palette.action.selected

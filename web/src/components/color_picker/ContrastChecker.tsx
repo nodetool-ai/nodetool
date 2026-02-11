@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, Typography } from "@mui/material";
@@ -115,7 +115,7 @@ interface ContrastCheckerProps {
   backgroundColor: string; // hex
 }
 
-const ContrastChecker: React.FC<ContrastCheckerProps> = ({
+const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
   foregroundColor,
   backgroundColor
 }) => {
@@ -260,6 +260,8 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({
       </div>
     </Box>
   );
-};
+});
 
-export default ContrastChecker;
+ContrastChecker.displayName = 'ContrastChecker';
+
+export default memo(ContrastChecker);

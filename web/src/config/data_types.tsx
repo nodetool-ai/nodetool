@@ -9,30 +9,38 @@ import type { Theme } from "@mui/material/styles";
 
 // icons
 import stc from "string-to-color";
-import any from "../icons/any.svg?react";
-import notype from "../icons/notype.svg?react";
-import asset from "../icons/asset.svg?react";
-import audio from "../icons/audio.svg?react";
-import bool from "../icons/bool.svg?react";
-import dataframe from "../icons/dataframe.svg?react";
-import dict from "../icons/dict.svg?react";
-import _enum from "../icons/enum.svg?react"; // 'enum' is a reserved keyword
-import file from "../icons/file.svg?react";
-import float from "../icons/float.svg?react";
-import folder from "../icons/folder.svg?react";
-import image from "../icons/image.svg?react";
-import int from "../icons/int.svg?react";
-import list from "../icons/list.svg?react";
-import model from "../icons/model.svg?react";
-import str from "../icons/str.svg?react";
-import tensor from "../icons/tensor.svg?react";
-import text from "../icons/text.svg?react";
-import thread from "../icons/thread.svg?react";
-import thread_message from "../icons/thread_message.svg?react";
-import union from "../icons/union.svg?react";
-import video from "../icons/video.svg?react";
-import database from "../icons/database.svg?react";
-import task from "../icons/task.svg?react";
+import any from "../icons/data_types/nodetool/any.svg?react";
+import notype from "../icons/data_types/nodetool/notype.svg?react";
+import asset from "../icons/data_types/nodetool/asset.svg?react";
+import audio from "../icons/data_types/nodetool/audio.svg?react";
+import bool from "../icons/data_types/nodetool/bool.svg?react";
+import chunk from "../icons/data_types/nodetool/chunk.svg?react";
+import dataframe from "../icons/data_types/nodetool/dataframe.svg?react";
+import dict from "../icons/data_types/nodetool/dict.svg?react";
+import _enum from "../icons/data_types/nodetool/enum.svg?react"; // 'enum' is a reserved keyword
+import file from "../icons/data_types/nodetool/file.svg?react";
+import float from "../icons/data_types/nodetool/float.svg?react";
+import folder from "../icons/data_types/nodetool/folder.svg?react";
+import image from "../icons/data_types/nodetool/image.svg?react";
+import int from "../icons/data_types/nodetool/int.svg?react";
+import list from "../icons/data_types/nodetool/list.svg?react";
+import model from "../icons/data_types/nodetool/model.svg?react";
+import language_model from "../icons/data_types/nodetool/language_model.svg?react";
+import image_model from "../icons/data_types/nodetool/image_model.svg?react";
+import model_3d from "../icons/data_types/nodetool/model_3d.svg?react";
+import str from "../icons/data_types/nodetool/str.svg?react";
+import tensor from "../icons/data_types/nodetool/tensor.svg?react";
+import text from "../icons/data_types/nodetool/text.svg?react";
+import thread from "../icons/data_types/nodetool/thread.svg?react";
+import thread_message from "../icons/data_types/nodetool/thread_message.svg?react";
+import union from "../icons/data_types/nodetool/union.svg?react";
+import video from "../icons/data_types/nodetool/video.svg?react";
+import database from "../icons/data_types/nodetool/database.svg?react";
+import task from "../icons/data_types/nodetool/task.svg?react";
+import documentIcon from "../icons/data_types/nodetool/document.svg?react";
+import np_array from "../icons/data_types/nodetool/np_array.svg?react";
+import datetime from "../icons/data_types/nodetool/datetime.svg?react";
+import date from "../icons/data_types/nodetool/date.svg?react";
 
 import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
 
@@ -67,6 +75,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   asset,
   audio,
   bool,
+  chunk,
   dataframe,
   dict,
   enum: _enum,
@@ -77,6 +86,9 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   int,
   list,
   model,
+  model_ref: model,
+  language_model,
+  image_model,
   str,
   tensor,
   text,
@@ -85,14 +97,15 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   video,
   database,
   task,
-  language_model: model,
   thread,
-  model_ref: model,
-  image_model: model,
   workflow: dataframe,
-  datetime: float,
+  datetime,
+  date,
   object: dict,
-  np_array: tensor,
+  np_array,
+  json: dict,
+  document: documentIcon,
+  model_3d,
   ...comfyIconMap
 };
 
@@ -113,7 +126,7 @@ export interface DataType {
   /**
    * Fallback text colour. Re‑evaluated later for WCAG contrast.
    */
-  textColor: "#fff" | "dark" | "var(--palette-action-active)";
+  textColor: "#fff" | "#111" | "#eee" | "dark" | "var(--palette-action-active)";
   icon?: string;
 }
 
@@ -122,6 +135,10 @@ export interface DataType {
  */
 function colour(k: SpectraKey) {
   return SpectraNode[k];
+}
+
+function normalizeTypeName(value: string) {
+  return value === "model3d" ? "model_3d" : value;
 }
 
 /**
@@ -143,9 +160,8 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   {
     value: "notype",
     label: "No Type",
-    description:
-      "No output produced. Used for nodes that perform actions without returning data.",
-    color: "#A7B1BF", // neutral grey
+    description: "No output or type not specified.",
+    color: "#A7B1BF",
     textColor: "dark",
     name: "",
     slug: "",
@@ -390,7 +406,19 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     name: "",
     slug: "",
     namespace: "",
-    icon: "ModelTraining"
+    icon: "ViewInAr"
+  },
+  {
+    value: "embedding_model",
+    label: "Embedding Model",
+    description:
+      "Reference to an embedding model for generating vector embeddings from text or images.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "tensor"
   },
   {
     value: "message",
@@ -501,6 +529,17 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "DataObject"
   },
   {
+    value: "date",
+    label: "Date",
+    description: "Calendar date without a time component.",
+    color: colour("scalar"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
     value: "object",
     label: "Object",
     description:
@@ -511,6 +550,30 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     slug: "",
     namespace: "",
     icon: "DataObject"
+  },
+  {
+    value: "json",
+    label: "JSON",
+    description:
+      "Structured JSON data. Used for nested objects, configuration, and API payloads.",
+    color: colour("collection"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "DataObject"
+  },
+  {
+    value: "model_3d",
+    label: "Model 3D",
+    description:
+      "3D model data for visualization or processing. Supports GLB and GLTF.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "ModelTraining"
   },
   {
     value: "np_array",
@@ -527,6 +590,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
 ];
 
 let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES, ...COMFY_DATA_TYPES];
+const DATA_TYPE_MAP: Record<string, DataType> = {};
 
 type IconProps = React.SVGProps<SVGSVGElement> & {
   containerStyle?: React.CSSProperties;
@@ -554,10 +618,8 @@ const iconStyles = (_theme: Theme) => ({
 });
 
 export function datatypeByName(name: string): DataType | null {
-  const foundItem = DATA_TYPES.find((item) => item.value === name);
-  return (
-    foundItem || DATA_TYPES.find((item) => item.value === "notype") || null
-  );
+  const normalizedName = normalizeTypeName(name);
+  return DATA_TYPE_MAP[normalizedName] || DATA_TYPE_MAP["notype"] || null;
 }
 
 interface IconForTypeProps extends IconProps {
@@ -573,7 +635,7 @@ interface IconForTypeProps extends IconProps {
 type IconSizeOption = "small" | "normal" | "medium" | "large";
 
 const ICON_SIZE_MAP: Record<IconSizeOption, number> = {
-  small: 16,
+  small: 20,
   normal: 24,
   medium: 32,
   large: 40
@@ -589,10 +651,11 @@ export const IconForType = memo(function IconForType({
 }: IconForTypeProps) {
   const theme = useTheme();
   const name = iconName?.replace("nodetool.", "") || "notype";
-  const dataType = datatypeByName(name);
+  const normalizedName = normalizeTypeName(name);
+  const dataType = datatypeByName(normalizedName);
   const description = dataType?.description || "";
-  const IconComponent = name
-    ? iconMap[name] || iconMap["any"] || iconMap["notype"]
+  const IconComponent = normalizedName
+    ? iconMap[normalizedName] || iconMap["any"] || iconMap["notype"]
     : iconMap["notype"];
   const resolvedSize = `${ICON_SIZE_MAP[iconSize] ?? ICON_SIZE_MAP.normal}px`;
 
@@ -639,22 +702,26 @@ export const IconForType = memo(function IconForType({
 isEqual);
 
 export function colorForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.color || stc(type);
 }
 
 export function textColorForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.textColor || "#eee";
 }
 
 export function descriptionForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.description || "";
 }
 
 export function labelForType(type: string): string {
-  const foundType = DATA_TYPES.find((dt) => dt.value === type);
+  const normalizedType = normalizeTypeName(type);
+  const foundType = DATA_TYPE_MAP[normalizedType];
   return foundType?.label || "";
 }
 
@@ -715,7 +782,7 @@ DATA_TYPES = DATA_TYPES.map((node): DataType => {
 });
 
 // Auto‑derive text colour + register CSS variables
-DATA_TYPES = DATA_TYPES.map((type: any) => {
+DATA_TYPES = DATA_TYPES.map((type: DataType) => {
   const color = type.color || stc(type.value);
   const { namespace, name, slug } = getNames(type.value);
   const rgbColor = hexToRgb(color);
@@ -738,6 +805,7 @@ DATA_TYPES.forEach((type) => {
     `--c_${type.slug}_text`,
     type.textColor
   );
+  DATA_TYPE_MAP[type.value] = type;
 });
 
 export { DATA_TYPES };

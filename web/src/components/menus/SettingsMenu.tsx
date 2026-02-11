@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 // Dialog-based settings menu (replacing MUI Menu)
+import React, { memo } from "react";
 import MenuItem from "@mui/material/MenuItem";
 import {
   TextField,
@@ -12,7 +13,6 @@ import {
   Tabs,
   Tab,
   Box,
-  Dialog,
   DialogContent
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -23,7 +23,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { useNavigate } from "react-router";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
-import CloseButton from "../buttons/CloseButton";
+import { CloseButton } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { client, isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
@@ -41,6 +41,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
+import { Dialog } from "../ui_primitives";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -48,7 +49,7 @@ interface TabPanelProps {
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
+const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
 
   return (
@@ -63,44 +64,28 @@ function TabPanel(props: TabPanelProps) {
       {value === index && <Box className="tab-panel-content">{children}</Box>}
     </div>
   );
-}
+});
 
 interface SettingsMenuProps {
   buttonText?: string;
 }
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const {
-    isMenuOpen,
-    setMenuOpen,
-    settingsTab,
-    setGridSnap,
-    setConnectionSnap,
-    setPanControls,
-    setSelectionMode,
-    setTimeFormat,
-    setSelectNodesOnDrag,
-    setShowWelcomeOnStartup,
-    setSoundNotifications,
-    updateAutosaveSettings,
-    settings
-  } = useSettingsStore((state) => ({
-    isMenuOpen: state.isMenuOpen,
-    settings: state.settings,
-    setMenuOpen: state.setMenuOpen,
-    settingsTab: state.settingsTab,
-    setGridSnap: state.setGridSnap,
-    setConnectionSnap: state.setConnectionSnap,
-    setPanControls: state.setPanControls,
-    setSelectionMode: state.setSelectionMode,
-    setTimeFormat: state.setTimeFormat,
-    setSelectNodesOnDrag: state.setSelectNodesOnDrag,
-    setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
-    setSoundNotifications: state.setSoundNotifications,
-    updateAutosaveSettings: state.updateAutosaveSettings
-  }));
+  const user = useAuth((state) => state.user);
+  const _navigate = useNavigate();
+  const isMenuOpen = useSettingsStore((state) => state.isMenuOpen);
+  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+  const settingsTab = useSettingsStore((state) => state.settingsTab);
+  const setGridSnap = useSettingsStore((state) => state.setGridSnap);
+  const setConnectionSnap = useSettingsStore((state) => state.setConnectionSnap);
+  const setPanControls = useSettingsStore((state) => state.setPanControls);
+  const setSelectionMode = useSettingsStore((state) => state.setSelectionMode);
+  const setTimeFormat = useSettingsStore((state) => state.setTimeFormat);
+  const setSelectNodesOnDrag = useSettingsStore((state) => state.setSelectNodesOnDrag);
+  const setShowWelcomeOnStartup = useSettingsStore((state) => state.setShowWelcomeOnStartup);
+  const setSoundNotifications = useSettingsStore((state) => state.setSoundNotifications);
+  const updateAutosaveSettings = useSettingsStore((state) => state.updateAutosaveSettings);
+  const settings = useSettingsStore((state) => state.settings);
 
   const [activeSection, setActiveSection] = useState("editor");
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
@@ -137,14 +122,47 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     return unsubscribe;
   }, []);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
     setMenuOpen(true, newValue);
-  };
+  }, [setMenuOpen]);
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setMenuOpen(!isMenuOpen);
-  };
+  }, [isMenuOpen, setMenuOpen]);
+
+  // Memoized handlers for settings controls to prevent re-renders
+  const handleShowWelcomeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setShowWelcomeOnStartup(e.target.checked);
+  }, [setShowWelcomeOnStartup]);
+
+  const handleSelectNodesOnDragChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectNodesOnDrag(e.target.checked ?? false);
+  }, [setSelectNodesOnDrag]);
+
+  const handleSoundNotificationsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSoundNotifications(e.target.checked ?? true);
+  }, [setSoundNotifications]);
+
+  const handleGridSnapChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setGridSnap(Number(e.target.value));
+  }, [setGridSnap]);
+
+  const handleConnectionSnapChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setConnectionSnap(Number(e.target.value));
+  }, [setConnectionSnap]);
+
+  const handlePanControlsChange = useCallback((e: any) => {
+    setPanControls(e.target.value);
+  }, [setPanControls]);
+
+  const handleSelectionModeChange = useCallback((e: any) => {
+    setSelectionMode(e.target.value);
+  }, [setSelectionMode]);
+
+  const handleTimeFormatChange = useCallback((e: any) => {
+    setTimeFormat(e.target.value === "12h" ? "12h" : "24h");
+  }, [setTimeFormat]);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -269,6 +287,18 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     exportMutation.mutate();
   }, [exportMutation]);
 
+  const handleOpenExportFolder = useCallback(() => {
+    if (!lastExportPath) {
+      return;
+    }
+    const api = (window as any)?.api;
+    if (api?.shell?.showItemInFolder) {
+      api.shell.showItemInFolder(lastExportPath);
+    } else if (api?.showItemInFolder) {
+      api.showItemInFolder(lastExportPath);
+    }
+  }, [lastExportPath]);
+
   const generalSidebarSections = [
     {
       category: "General",
@@ -310,36 +340,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         open={isMenuOpen}
         onClose={handleClose}
         fullWidth
-        maxWidth="md"
-        sx={{
-          "& .MuiDialog-paper": {
-            width: "70vw",
-            minWidth: "400px",
-            maxWidth: "1000px",
-            height: "75vh",
-            margin: "auto",
-            borderRadius: 1,
-            border: `1px solid ${theme.vars.palette.divider}`,
-            backgroundColor:
-              (theme as any)?.palette?.glass?.backgroundDialogContent ??
-              "transparent",
-            boxShadow: `0 8px 32px ${theme.vars.palette.grey[1000]}80`
-          }
-        }}
-        slotProps={{
-          backdrop: {
-            style: {
-              backdropFilter: theme.vars.palette.glass.blur,
-              backgroundColor: theme.vars.palette.glass.backgroundDialog
-            }
-          },
-          paper: {
-            style: {
-              borderRadius: theme.vars.rounded.dialog,
-              background: theme.vars.palette.glass.backgroundDialogContent
-            }
-          }
-        }}
+        maxWidth="lg"
       >
         <DialogContent sx={{ p: 0, overflow: "hidden" }}>
           <div css={settingsStyles(theme)}>
@@ -372,14 +373,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     settingsTab === 0
                       ? generalSidebarSections
                       : settingsTab === 1
-                      ? getApiServicesSidebarSections()
-                      : settingsTab === 2
-                      ? getFoldersSidebarSections()
-                      : settingsTab === 3
-                      ? getSecretsSidebarSections()
-                      : settingsTab === 4
-                      ? getAboutSidebarSections()
-                      : []
+                        ? getApiServicesSidebarSections()
+                        : settingsTab === 2
+                          ? getFoldersSidebarSections()
+                          : settingsTab === 3
+                            ? getSecretsSidebarSections()
+                            : settingsTab === 4
+                              ? getAboutSidebarSections()
+                              : []
                   }
                   onSectionClick={scrollToSection}
                 />
@@ -454,16 +455,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  onClick={() => {
-                                    const api = (window as any)?.api;
-                                    if (api?.shell?.showItemInFolder) {
-                                      api.shell.showItemInFolder(
-                                        lastExportPath
-                                      );
-                                    } else if (api?.showItemInFolder) {
-                                      api.showItemInFolder(lastExportPath);
-                                    }
-                                  }}
+                                  onClick={handleOpenExportFolder}
                                   style={{ alignSelf: "flex-start" }}
                                 >
                                   Open Folder
@@ -483,9 +475,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </InputLabel>
                           <Switch
                             checked={!!settings.showWelcomeOnStartup}
-                            onChange={(e) =>
-                              setShowWelcomeOnStartup(e.target.checked)
-                            }
+                            onChange={handleShowWelcomeChange}
                             inputProps={{ "aria-label": id }}
                           />
                         </FormControl>
@@ -506,9 +496,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                               }
                             }}
                             checked={!!settings.selectNodesOnDrag}
-                            onChange={(e) =>
-                              setSelectNodesOnDrag(e.target.checked ?? false)
-                            }
+                            onChange={handleSelectNodesOnDragChange}
                             inputProps={{ "aria-label": id }}
                           />
                         </FormControl>
@@ -521,31 +509,29 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         </Typography>
                       </div>
 
-                      <div className="settings-item">
-                        <FormControl>
-                          <InputLabel htmlFor={id}>
-                            Sound Notifications
-                          </InputLabel>
-                          <Switch
-                            sx={{
-                              "&.MuiSwitch-root": {
-                                margin: "16px 0 0"
-                              }
-                            }}
-                            checked={!!settings.soundNotifications}
-                            onChange={(e) =>
-                              setSoundNotifications(e.target.checked ?? true)
-                            }
-                            inputProps={{ "aria-label": id }}
-                          />
-                        </FormControl>
-                        <Typography className="description">
-                          Play a system beep sound when workflows complete,
-                          exports finish, or other important events occur.
-                          <br />
-                          Only works in Electron app.
-                        </Typography>
-                      </div>
+                      {isElectron && (
+                        <div className="settings-item">
+                          <FormControl>
+                            <InputLabel htmlFor={id}>
+                              Sound Notifications
+                            </InputLabel>
+                            <Switch
+                              sx={{
+                                "&.MuiSwitch-root": {
+                                  margin: "16px 0 0"
+                                }
+                              }}
+                              checked={!!settings.soundNotifications}
+                              onChange={handleSoundNotificationsChange}
+                              inputProps={{ "aria-label": id }}
+                            />
+                          </FormControl>
+                          <Typography className="description">
+                            Play a system beep sound when workflows complete,
+                            exports finish, or other important events occur.
+                          </Typography>
+                        </div>
+                      )}
 
                       {isElectron && (
                         <div className="settings-item">
@@ -560,9 +546,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                               onChange={(e) =>
                                 handleCloseBehaviorChange(
                                   e.target.value as
-                                    | "ask"
-                                    | "quit"
-                                    | "background"
+                                  | "ask"
+                                  | "quit"
+                                  | "background"
                                 )
                               }
                             >
@@ -717,7 +703,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             labelId={id}
                             value={settings.panControls}
                             variant="standard"
-                            onChange={(e) => setPanControls(e.target.value)}
+                            onChange={handlePanControlsChange}
                           >
                             <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
                             <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
@@ -746,7 +732,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             labelId={id}
                             value={settings.selectionMode}
                             variant="standard"
-                            onChange={(e) => setSelectionMode(e.target.value)}
+                            onChange={handleSelectionModeChange}
                           >
                             <MenuItem value={"full"}>Full</MenuItem>
                             <MenuItem value={"partial"}>Partial</MenuItem>
@@ -782,7 +768,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           id="grid-snap-input"
                           label="Grid Snap Precision"
                           value={settings.gridSnap}
-                          onChange={(e) => setGridSnap(Number(e.target.value))}
+                          onChange={handleGridSnapChange}
                           variant="standard"
                         />
                         <Typography className="description">
@@ -806,9 +792,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           id="connection-snap-input"
                           label="Connection Snap Range"
                           value={settings.connectionSnap}
-                          onChange={(e) =>
-                            setConnectionSnap(Number(e.target.value))
-                          }
+                          onChange={handleConnectionSnapChange}
                           variant="standard"
                         />
                         <Typography className="description">
@@ -829,11 +813,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                             labelId={id}
                             value={settings.timeFormat}
                             variant="standard"
-                            onChange={(e) =>
-                              setTimeFormat(
-                                e.target.value === "12h" ? "12h" : "24h"
-                              )
-                            }
+                            onChange={handleTimeFormatChange}
                           >
                             <MenuItem value={"12h"}>12h</MenuItem>
                             <MenuItem value={"24h"}>24h</MenuItem>
@@ -931,4 +911,4 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   );
 }
 
-export default SettingsMenu;
+export default memo(SettingsMenu);

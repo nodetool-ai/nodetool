@@ -1,5 +1,5 @@
 import { useCallback, MouseEvent as ReactMouseEvent, useMemo } from "react";
-import { useReactFlow, Node } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import useContextMenu from "../../stores/ContextMenuStore";
@@ -7,15 +7,53 @@ import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../nodes/useSelect";
 
+/**
+ * Configuration options for usePaneEvents hook.
+ */
 interface UsePaneEventsProps {
+  /** The type of node pending placement (from node menu) */
   pendingNodeType: string | null;
+  /** The label for the node being placed */
   placementLabel: string | null;
+  /** The ReactFlow instance for coordinate conversion */
   reactFlowInstance: ReturnType<typeof useReactFlow>;
 }
 
-const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
+/**
+ * Result object containing pane event handlers.
+ */
+interface UsePaneEventsResult {
+  /** Handler for double-clicking on the canvas */
+  handleDoubleClick: (e: React.MouseEvent) => void;
+  /** Handler for clicking on the canvas */
+  handlePaneClick: (event: ReactMouseEvent) => void;
+  /** Handler for right-clicking on the canvas */
+  handlePaneContextMenu: (event: any) => void;
+}
 
-export function usePaneEvents({ pendingNodeType, placementLabel, reactFlowInstance }: UsePaneEventsProps) {
+/**
+ * Hook for handling pane/canvas events in the workflow editor.
+ * 
+ * Manages interactions with the ReactFlow canvas including:
+ * - Double-click to open node menu
+ * - Click to place pending nodes or deselect
+ * - Right-click to open context menu
+ * 
+ * @param props - Configuration including pending node type and ReactFlow instance
+ * @returns Object containing pane event handlers
+ * 
+ * @example
+ * ```typescript
+ * const { handlePaneClick, handleDoubleClick, handlePaneContextMenu } = usePaneEvents({
+ *   pendingNodeType,
+ *   placementLabel,
+ *   reactFlowInstance,
+ * });
+ * 
+ * return <ReactFlow onPaneClick={handlePaneClick} onPaneContextMenu={handlePaneContextMenu} />;
+ * ```
+ */
+export function usePaneEvents({ pendingNodeType, placementLabel: _placementLabel, reactFlowInstance }: UsePaneEventsProps): UsePaneEventsResult {
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);

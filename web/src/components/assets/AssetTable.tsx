@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, memo, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -20,15 +20,42 @@ export type AssetTableProps = {
   onChange: (assetIds: string[]) => void;
 };
 
+interface AssetTableRowProps {
+  asset: Asset;
+  onRemove: (asset: Asset) => void;
+}
+
+const AssetTableRow = memo(function AssetTableRow({
+  asset,
+  onRemove
+}: AssetTableRowProps) {
+  const handleRemove = useCallback(() => {
+    onRemove(asset);
+  }, [asset, onRemove]);
+
+  return (
+    <TableRow>
+      <TableCell>
+        {asset.name} ({asset.content_type})
+      </TableCell>
+      <TableCell>
+        <Button variant="outlined" onClick={handleRemove}>
+          Remove
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+});
+
 const AssetTable: React.FC<AssetTableProps> = (props) => {
   const { assetIds, onChange } = props;
   const [assets, setAssets] = useState<Asset[]>([]);
   const getAsset = useAssetStore((state) => state.get);
 
   useEffect(() => {
-    const promises = assetIds.map((assetId) => getAsset(assetId));
-    Promise.all(promises).then((assets) => {
-      setAssets(assets.filter((a) => a !== null) as Asset[]);
+    const promises = assetIds.map((id) => getAsset(id));
+    Promise.all(promises).then((fetchedAssets) => {
+      setAssets(fetchedAssets.filter((a): a is Asset => !!a));
     });
   }, [getAsset, assetIds]);
 
@@ -44,12 +71,26 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
   const { onDrop, onDragOver, uploading } = useFileDrop({
     uploadAsset: true,
     onChangeAsset: (asset: Asset) => {
+      // Logic to handle new asset drop
+      // This part seems to imply we add the new asset to the list
+      // But props.onChange expects IDs.
+      // We should probably just rely on the parent updating props.
+      // But for local state:
       const newAssets = [...assets, asset];
       setAssets(newAssets);
       onChange(newAssets.map((a) => a.id));
     },
     type: "all",
   });
+
+  const dropZoneStyle = useMemo(() => ({
+    border: 1,
+    borderStyle: "dotted" as const,
+    height: 60,
+    display: "flex" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  }), []);
 
   return (
     <TableContainer component={Paper}>
@@ -62,19 +103,11 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
         </TableHead>
         <TableBody>
           {assets.map((asset, index) => (
-            <TableRow key={index}>
-              <TableCell>
-                {asset.name} ({asset.content_type})
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="outlined"
-                  onClick={() => handleRemoveAsset(asset)}
-                >
-                  Remove
-                </Button>
-              </TableCell>
-            </TableRow>
+            <AssetTableRow
+              key={asset.id || index}
+              asset={asset}
+              onRemove={handleRemoveAsset}
+            />
           ))}
           <TableRow key="last">
             <TableCell>
@@ -84,14 +117,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
                 <Box
                   onDragOver={onDragOver}
                   onDrop={onDrop}
-                  sx={{
-                    border: 1,
-                    borderStyle: "dotted",
-                    height: 60,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                  sx={dropZoneStyle}
                 >
                   Drop file here
                 </Box>
@@ -103,5 +129,6 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     </TableContainer>
   );
 };
+AssetTable.displayName = "AssetTable";
 
-export default AssetTable;
+export default memo(AssetTable);

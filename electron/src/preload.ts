@@ -25,6 +25,8 @@ import {
   Workflow,
   ModelDirectory,
   SystemDirectory,
+  DialogOpenFileRequest,
+  DialogOpenFolderRequest,
 } from "./types.d";
 
 // ============================================================================
@@ -42,7 +44,7 @@ type ClipboardType = "clipboard" | "selection";
  * This pattern ensures all event listeners can be properly cleaned up.
  */
 function createEventSubscription<T extends keyof IpcEvents>(
-  channel: T
+  channel: T,
 ): (callback: (data: IpcEvents[T]) => void) => () => void {
   return (callback: (data: IpcEvents[T]) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: IpcEvents[T]) =>
@@ -137,14 +139,8 @@ const api = {
   // ============================================================================
 
   /** Run a workflow as an app */
-  runApp: (workflowId: string) => ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
-
-  /** Clipboard helpers (legacy names) */
-  clipboardWriteText: (text: string) =>
-    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_TEXT, { text }),
-  clipboardReadText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_TEXT),
-  clipboardWriteImage: (dataUrl: string) =>
-    ipcRenderer.invoke(IpcChannels.CLIPBOARD_WRITE_IMAGE, { dataUrl }),
+  runApp: (workflowId: string) =>
+    ipcRenderer.invoke(IpcChannels.RUN_APP, workflowId),
 
   /** OS integration (legacy names) */
   openLogFile: () => ipcRenderer.invoke(IpcChannels.OPEN_LOG_FILE),
@@ -178,7 +174,8 @@ const api = {
   onServerLog: createEventSubscription(IpcChannels.SERVER_LOG),
 
   /** Restart llama server (legacy name) */
-  restartLlamaServer: () => ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
+  restartLlamaServer: () =>
+    ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
 
   /** Log viewer (legacy names) */
   getLogs: () => ipcRenderer.invoke(IpcChannels.GET_LOGS),
@@ -195,7 +192,9 @@ const api = {
   onMenuEvent: (callback: (data: MenuEventData) => void) => {
     const existingUnsubscribe = menuEventUnsubscribers.get(callback);
     if (existingUnsubscribe) existingUnsubscribe();
-    const unsubscribe = createEventSubscription(IpcChannels.MENU_EVENT)(callback);
+    const unsubscribe = createEventSubscription(IpcChannels.MENU_EVENT)(
+      callback,
+    );
     menuEventUnsubscribers.set(callback, unsubscribe);
   },
   unregisterMenuEvent: (callback: (data: MenuEventData) => void) => {
@@ -291,8 +290,12 @@ const api = {
 
     /** Subscribe to package updates available event */
     onUpdatesAvailable: createEventSubscription(
-      IpcChannels.PACKAGE_UPDATES_AVAILABLE
+      IpcChannels.PACKAGE_UPDATES_AVAILABLE,
     ),
+
+    /** Check package versions against expected versions */
+    checkVersion: () =>
+      ipcRenderer.invoke(IpcChannels.PACKAGE_VERSION_CHECK),
   },
 
   // ============================================================================
@@ -318,7 +321,10 @@ const api = {
 
     /** Show an item in the file explorer */
     showItemInFolder: (fullPath: string) =>
-      ipcRenderer.invoke(IpcChannels.SHOW_ITEM_IN_FOLDER, validatePath(fullPath)),
+      ipcRenderer.invoke(
+        IpcChannels.SHOW_ITEM_IN_FOLDER,
+        validatePath(fullPath),
+      ),
 
     /** Open a model directory (huggingface or ollama) */
     openModelDirectory: (target: ModelDirectory) =>
@@ -332,7 +338,10 @@ const api = {
 
     /** Open a system directory (installation or logs) */
     openSystemDirectory: (target: SystemDirectory) =>
-      ipcRenderer.invoke(IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY, target),
+      ipcRenderer.invoke(
+        IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY,
+        target,
+      ),
 
     /** Open a URL in the system browser */
     openExternal: (url: string) =>
@@ -391,7 +400,8 @@ const api = {
       }),
 
     /** Read find pasteboard text (macOS only) */
-    readFindText: () => ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_FIND_TEXT),
+    readFindText: () =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_FIND_TEXT),
 
     /** Write to find pasteboard (macOS only) */
     writeFindText: (text: string) =>
@@ -404,6 +414,25 @@ const api = {
     /** Get available clipboard formats */
     availableFormats: (type?: ClipboardType) =>
       ipcRenderer.invoke(IpcChannels.CLIPBOARD_AVAILABLE_FORMATS, type),
+
+    /** Read file paths from clipboard (cross-platform) */
+    readFilePaths: () =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_FILE_PATHS),
+
+    /** Read raw buffer data from clipboard for a specific format (returns base64) */
+    readBuffer: (format: string) =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_READ_BUFFER, format),
+
+    /** Get comprehensive clipboard content info for smart paste decisions */
+    getContentInfo: () =>
+      ipcRenderer.invoke(IpcChannels.CLIPBOARD_GET_CONTENT_INFO),
+
+    /** Read file content as data URL */
+    readFileAsDataURL: (filePath: string) =>
+      ipcRenderer.invoke(
+        IpcChannels.FILE_READ_AS_DATA_URL,
+        validatePath(filePath),
+      ),
   },
 
   // ============================================================================
@@ -422,7 +451,8 @@ const api = {
   // ============================================================================
   installer: {
     /** Select a custom install location */
-    selectLocation: () => ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
+    selectLocation: () =>
+      ipcRenderer.invoke(IpcChannels.SELECT_CUSTOM_LOCATION),
 
     /** Install to a specific location */
     install: (
@@ -430,7 +460,7 @@ const api = {
       packages: PythonPackages,
       modelBackend?: "ollama" | "llama_cpp" | "none",
       installOllama?: boolean,
-      installLlamaCpp?: boolean
+      installLlamaCpp?: boolean,
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
@@ -442,7 +472,7 @@ const api = {
 
     /** Subscribe to install location prompt */
     onLocationPrompt: createEventSubscription(
-      IpcChannels.INSTALL_LOCATION_PROMPT
+      IpcChannels.INSTALL_LOCATION_PROMPT,
     ),
 
     /** Subscribe to update/install progress */
@@ -455,6 +485,10 @@ const api = {
   updates: {
     /** Subscribe to update available event */
     onAvailable: createEventSubscription(IpcChannels.UPDATE_AVAILABLE),
+
+    /** Restart and install the downloaded update */
+    restartAndInstall: () =>
+      ipcRenderer.invoke(IpcChannels.INSTALL_UPDATE),
   },
 
   // ============================================================================
@@ -471,18 +505,24 @@ const api = {
   shell: {
     /** Show a file in the file manager */
     showItemInFolder: (fullPath: string) =>
-      ipcRenderer.invoke(IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER, validatePath(fullPath)),
+      ipcRenderer.invoke(
+        IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER,
+        validatePath(fullPath),
+      ),
 
     /** Open a file in the desktop's default manner */
     openPath: (path: string) =>
       ipcRenderer.invoke(IpcChannels.SHELL_OPEN_PATH, validatePath(path)),
 
     /** Open an external URL in the default browser */
-    openExternal: (url: string, options?: {
-      activate?: boolean;
-      workingDirectory?: string;
-      logUsage?: boolean;
-    }) =>
+    openExternal: (
+      url: string,
+      options?: {
+        activate?: boolean;
+        workingDirectory?: string;
+        logUsage?: boolean;
+      },
+    ) =>
       ipcRenderer.invoke(IpcChannels.SHELL_OPEN_EXTERNAL, {
         url: validateUrl(url),
         options,
@@ -493,8 +533,7 @@ const api = {
       ipcRenderer.invoke(IpcChannels.SHELL_TRASH_ITEM, validatePath(path)),
 
     /** Play the system beep sound */
-    beep: () =>
-      ipcRenderer.invoke(IpcChannels.SHELL_BEEP),
+    beep: () => ipcRenderer.invoke(IpcChannels.SHELL_BEEP),
 
     /** Create or update a Windows shortcut (Windows only) */
     writeShortcutLink: (
@@ -509,7 +548,7 @@ const api = {
         iconIndex?: number;
         appUserModelId?: string;
         toastActivatorClsid?: string;
-      }
+      },
     ) =>
       ipcRenderer.invoke(IpcChannels.SHELL_WRITE_SHORTCUT_LINK, {
         shortcutPath: validatePath(shortcutPath),
@@ -519,7 +558,10 @@ const api = {
 
     /** Read a Windows shortcut (Windows only) */
     readShortcutLink: (shortcutPath: string) =>
-      ipcRenderer.invoke(IpcChannels.SHELL_READ_SHORTCUT_LINK, validatePath(shortcutPath)),
+      ipcRenderer.invoke(
+        IpcChannels.SHELL_READ_SHORTCUT_LINK,
+        validatePath(shortcutPath),
+      ),
   },
 
   // ============================================================================
@@ -536,6 +578,17 @@ const api = {
 
     /** Get system information for about dialog */
     getSystemInfo: () => ipcRenderer.invoke(IpcChannels.GET_SYSTEM_INFO),
+
+    /** Get auto-updates setting (opt-in, default is false) */
+    getAutoUpdates: () =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_GET_AUTO_UPDATES),
+
+    /** Set auto-updates setting (opt-in) */
+    setAutoUpdates: (enabled: boolean) =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_SET_AUTO_UPDATES, enabled),
+
+    /** Open the settings window */
+    openSettings: () => ipcRenderer.invoke(IpcChannels.SHOW_SETTINGS),
   },
 
   // ============================================================================
@@ -548,8 +601,20 @@ const api = {
       graph?: Record<string, unknown>;
       errors?: string[];
       preferred_save?: "desktop" | "downloads";
-    }) =>
-      ipcRenderer.invoke(IpcChannels.DEBUG_EXPORT_BUNDLE, request),
+    }) => ipcRenderer.invoke(IpcChannels.DEBUG_EXPORT_BUNDLE, request),
+  },
+
+  // ============================================================================
+  // dialog: Native file/folder dialogs
+  // ============================================================================
+  dialog: {
+    /** Open a native file selection dialog */
+    openFile: (options?: DialogOpenFileRequest) =>
+      ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FILE, options || {}),
+
+    /** Open a native folder selection dialog */
+    openFolder: (options?: DialogOpenFolderRequest) =>
+      ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
   },
 };
 

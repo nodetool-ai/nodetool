@@ -2,23 +2,15 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useCallback } from "react";
 import { Tooltip, Typography } from "@mui/material";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 interface ActionButtonsProps {
-  status:
-    | "disconnected"
-    | "connecting"
-    | "connected"
-    | "loading"
-    | "error"
-    | "streaming"
-    | "reconnecting"
-    | "disconnecting"
-    | "failed";
+  isLoading: boolean;
+  isStreaming: boolean;
   onSend: () => void;
   onStop?: () => void;
   onNewChat?: () => void;
@@ -41,16 +33,21 @@ const styles = (_theme: Theme) =>
   });
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
-  status,
+  isLoading,
+  isStreaming,
   onSend,
   onStop,
   isDisabled,
   hasContent
 }) => {
   // Show stop button ONLY when generation is actively running
-  const showStopButton =
-    (status === "loading" || status === "streaming") && onStop;
+  const showStopButton = (isLoading || isStreaming) && onStop;
   const theme = useTheme();
+
+  // Memoize stop handler to prevent unnecessary re-renders
+  const handleStop = useCallback(() => {
+    onStop?.();
+  }, [onStop]);
 
   return (
     <div className="chat-action-buttons" css={styles(theme)}>
@@ -64,11 +61,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       {showStopButton && (
         <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span className="button-wrapper">
-            <StopGenerationButton
-              onClick={() => {
-                onStop?.();
-              }}
-            />
+            <StopGenerationButton onClick={handleStop} />
           </span>
         </Tooltip>
       )}

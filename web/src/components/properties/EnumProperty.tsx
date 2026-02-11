@@ -18,10 +18,11 @@ const EnumProperty: React.FC<PropertyProps> = ({
   );
 
   const values = useMemo(() => {
-    return property.type.type === "enum"
-      ? property.type.values
-      : property.type.type_args?.[0].values;
-  }, [property.type]);
+    return property.type.values || 
+           (property.type.type_args?.[0]?.values) ||
+           (property as any).values || 
+           (property as any).enum;
+  }, [property]);
 
   return (
     <div className="enum-property">
@@ -34,9 +35,9 @@ const EnumProperty: React.FC<PropertyProps> = ({
         value={value || ""}
         onChange={onChange}
         options={
-          values?.map((value) => ({
-            label: value.toString(),
-            value: value
+          values?.map((val: string | number) => ({
+            label: val.toString(),
+            value: val
           })) || []
         }
         label={property.name}

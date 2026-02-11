@@ -4,7 +4,7 @@
  * Visualizes the differences between two workflow versions.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import {
   Box,
   Typography,
@@ -28,7 +28,6 @@ import {
   LinkOff as LinkOffIcon
 } from "@mui/icons-material";
 import { GraphDiff, NodeChange, PropertyChange } from "../../utils/graphDiff";
-import { Node, Edge } from "../../stores/ApiTypes";
 
 interface VersionDiffProps {
   diff: GraphDiff;
@@ -299,3 +298,5 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
     </Box>
   );
 };
+
+export default memo(VersionDiff);

@@ -7,7 +7,6 @@ import React, {
   useRef,
   useEffect
 } from "react";
-import Plot from "react-plotly.js";
 
 import {
   Asset,
@@ -16,12 +15,10 @@ import {
   Message,
   NPArray,
   TaskPlan,
-  PlotlyConfig,
   Task,
   CalendarEvent
 } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
-import DataTable from "./DataTable/DataTable";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 import { Container, List, ListItem, ListItemText } from "@mui/material";
@@ -33,12 +30,15 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "lodash/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
+import Model3DViewer from "../asset_viewer/Model3DViewer";
 import {
   typeFor,
   renderSVGDocument,
   useImageAssets,
   useRevokeBlobUrls,
-  useVideoSrc
+  useVideoSrc,
+  resolveAssetUri,
+  getMimeTypeFromUri
 } from "./output";
 import { TextRenderer } from "./output/TextRenderer";
 import { BooleanRenderer } from "./output/BooleanRenderer";
@@ -51,7 +51,8 @@ import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
-// import left for future reuse of audio stream component when needed
+import PlotlyRenderer from "./output/PlotlyRenderer";
+import DataframeRenderer from "./output/DataframeRenderer";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -220,53 +221,55 @@ const useDraggableScroll = () => {
   const isDragging = useRef(false);
   const startY = useRef(0);
   const scrollTop = useRef(0);
+  const isDraggingState = useRef(false);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!scrollRef.current) {
-      return;
-    }
-    isDragging.current = true;
-    startY.current = e.clientY;
-    scrollTop.current = scrollRef.current.scrollTop;
-    scrollRef.current.style.cursor = "grabbing";
-  }, []);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handleMouseMoveRef = useRef((e: MouseEvent) => {
     if (!isDragging.current || !scrollRef.current) {
       return;
     }
     e.preventDefault();
     const deltaY = e.clientY - startY.current;
     scrollRef.current.scrollTop = scrollTop.current - deltaY;
-  }, []);
+  });
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUpRef = useRef(() => {
     if (!scrollRef.current) {
       return;
     }
     isDragging.current = false;
+    isDraggingState.current = false;
     scrollRef.current.style.cursor = "grab";
-  }, []);
+  });
 
+  // Set up global listeners once
   useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMove(e);
-    const handleGlobalMouseUp = () => handleMouseUp();
+    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMoveRef.current(e);
+    const handleGlobalMouseUp = () => handleMouseUpRef.current();
 
-    if (isDragging.current) {
-      document.addEventListener("mousemove", handleGlobalMouseMove);
-      document.addEventListener("mouseup", handleGlobalMouseUp);
-    }
+    document.addEventListener("mousemove", handleGlobalMouseMove);
+    document.addEventListener("mouseup", handleGlobalMouseUp);
 
     return () => {
       document.removeEventListener("mousemove", handleGlobalMouseMove);
       document.removeEventListener("mouseup", handleGlobalMouseUp);
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, []); // Empty deps - listeners set up once and check refs internally
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!scrollRef.current) {
+      return;
+    }
+    isDragging.current = true;
+    isDraggingState.current = true;
+    startY.current = e.clientY;
+    scrollTop.current = scrollRef.current.scrollTop;
+    scrollRef.current.style.cursor = "grabbing";
+  }, []);
 
   return {
     scrollRef,
     handleMouseDown,
-    isDragging: isDragging.current
+    isDragging: isDraggingState.current
   };
 };
 
@@ -293,6 +296,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
   const [openAsset, setLocalOpenAsset] = useState<Asset | null>(null);
+  const [openModel3D, setOpenModel3D] = useState<{
+    url: string;
+    contentType?: string;
+  } | null>(null);
   const { scrollRef, handleMouseDown } = useDraggableScroll();
 
   const type = useMemo(() => typeFor(value), [value]);
@@ -311,27 +318,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     [computedViewer.assets, setOpenAsset]
   );
 
+  const handleModel3DClick = useCallback((url: string, contentType?: string) => () => {
+    setOpenModel3D({ url, contentType });
+  }, []);
+
   const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
   const renderContent = useMemo(() => {
-    let config: PlotlyConfig | undefined;
     switch (type) {
       case "plotly_config":
-        config = value as PlotlyConfig;
-        return (
-          <div
-            className="render-content"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <Plot
-              data={config.config.data as Plotly.Data[]}
-              layout={config.config.layout as Partial<Plotly.Layout>}
-              config={config.config.config as Partial<Plotly.Config>}
-              frames={config.config.frames as Plotly.Frame[] | undefined}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </div>
-        );
+        return <PlotlyRenderer config={value} />;
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
       case "image":
@@ -341,13 +337,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
-              onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)}
             />
           ));
         } else {
           let imageSource: string | Uint8Array;
           if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
-            imageSource = value.uri;
+            imageSource = resolveAssetUri(value.uri);
           } else if (value?.data instanceof Uint8Array) {
             imageSource = value.data;
           } else if (Array.isArray(value?.data)) {
@@ -357,15 +352,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           } else {
             imageSource = "";
           }
-          return <ImageView source={imageSource} onImageEdited={(dataUrl, blob) => console.log(dataUrl, blob)} />;
+          return <ImageView source={imageSource} />;
         }
       case "audio": {
         // Handle different audio data formats
         let audioSource: string | Uint8Array;
 
         if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
-          // Use URI if available
-          audioSource = value.uri;
+          // Use URI if available (resolve asset:// to /api/storage/)
+          audioSource = resolveAssetUri(value.uri);
         } else if (Array.isArray(value?.data)) {
           // Convert array of bytes to Uint8Array
           audioSource = new Uint8Array(value.data);
@@ -381,7 +376,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         }
 
         const metadata = (value as any).metadata || {};
-        const mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
+        let mimeType = getMimeTypeFromUri(value?.uri);
+        if (!mimeType) {
+          mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
+        }
 
         return (
           <div className="audio" style={{ padding: "1em" }}>
@@ -402,8 +400,36 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             style={{ width: "100%", height: "100%" }}
           />
         );
+      case "model_3d": {
+        const rawUri: string =
+          (value && typeof value === "object" && typeof value.uri === "string"
+            ? value.uri
+            : "") || "";
+
+        if (!rawUri) {
+          return <JSONRenderer value={value} showActions={showTextActions} />;
+        }
+
+        const url = resolveAssetUri(rawUri);
+        const format =
+          value && typeof value === "object" && typeof (value as any).format === "string"
+            ? ((value as any).format as string)
+            : undefined;
+        const contentType = getMimeTypeFromUri(url) ||
+          (format === "gltf" ? "model/gltf+json" : "model/gltf-binary");
+
+        return (
+          <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
+            <Model3DViewer
+              url={url}
+              compact={true}
+              onClick={handleModel3DClick(url, contentType)}
+            />
+          </div>
+        );
+      }
       case "dataframe":
-        return <DataTable dataframe={value as DataframeRef} editable={false} />;
+        return <DataframeRenderer dataframe={value as DataframeRef} />;
       case "np_array":
         return (
           <div className="tensor nodrag">
@@ -466,7 +492,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (value[0] === undefined || value[0] === null) {
             return null;
           }
-          if (typeof value[0] === "string") {
+          if (typeof value[0] === "string" && value.every((v: any) => typeof v === "string")) {
             const seen = new Map<string, number>();
             return (
               <div
@@ -481,7 +507,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 }}
               >
                 <List sx={{ p: 1 }}>
-                  {value.map((v: any) => (
+                  {value.map((v: string) => (
                     <ListItem
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(v),
@@ -562,8 +588,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   {chunks.map((c) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
-                        `chunk:${(c as any)?.content_type ?? ""}:${
-                          (c as any)?.done ? 1 : 0
+                        `chunk:${(c as any)?.content_type ?? ""}:${(c as any)?.done ? 1 : 0
                         }:${hashStringBounded(
                           typeof (c as any)?.content === "string"
                             ? (c as any).content
@@ -627,7 +652,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 description: ""
               }))
             };
-            return <DataTable dataframe={df} editable={false} />;
+            return <DataframeRenderer dataframe={df} />;
           }
         }
 
@@ -697,15 +722,24 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     videoRef,
     handleMouseDown,
     scrollRef,
-    showTextActions
+    showTextActions,
+    handleModel3DClick
   ]);
+
+  const handleCloseAsset = useCallback(() => {
+    setLocalOpenAsset(null);
+  }, []);
+
+  const handleCloseModel3D = useCallback(() => {
+    setOpenModel3D(null);
+  }, []);
 
   if (!shouldRender) {
     return null;
   }
 
   return (
-    <div className="nodrag" style={{ height: "100%", width: "100%" }}>
+    <div style={{ height: "100%", width: "100%" }}>
       {openAsset && (
         <AssetViewer
           asset={openAsset}
@@ -713,7 +747,15 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             computedViewer.assets.length ? computedViewer.assets : undefined
           }
           open={openAsset !== null}
-          onClose={() => setLocalOpenAsset(null)}
+          onClose={handleCloseAsset}
+        />
+      )}
+      {openModel3D && (
+        <AssetViewer
+          url={openModel3D.url}
+          contentType={openModel3D.contentType}
+          open={true}
+          onClose={handleCloseModel3D}
         />
       )}
       {renderContent}

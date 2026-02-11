@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, {
+  memo,
   useState,
   useCallback,
   useRef
@@ -8,12 +9,14 @@ import React, {
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip, Typography, CircularProgress } from "@mui/material";
+import { Tooltip, Typography, CircularProgress } from "@mui/material";
 
 // Icons
-import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
+
+// UI Primitives
+import { CloseButton } from "../../ui_primitives";
 
 import { useCombo } from "../../../stores/KeyPressedStore";
 import ImageEditorToolbar from "./ImageEditorToolbar";
@@ -32,19 +35,23 @@ import type {
   EditAction,
   BrushSettings,
   AdjustmentSettings,
+  ShapeSettings,
+  TextSettings,
   CropRegion,
   Point,
   HistoryEntry
 } from "./types";
 import {
   DEFAULT_BRUSH_SETTINGS,
-  DEFAULT_ADJUSTMENTS
+  DEFAULT_ADJUSTMENTS,
+  DEFAULT_SHAPE_SETTINGS,
+  DEFAULT_TEXT_SETTINGS
 } from "./types";
 
 const styles = (theme: Theme) =>
   css({
     ".modal-overlay": {
-      position: "absolute",
+      position: "fixed",
       top: 0,
       left: 0,
       right: 0,
@@ -119,32 +126,32 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.primary
       }
     },
-     ".button-primary": {
-       backgroundColor: theme.vars.palette.primary.main,
-       color: theme.vars.palette.primary.contrastText,
-       border: "none",
-       "&:hover": {
-         backgroundColor: theme.vars.palette.primary.dark
-       },
-       "&:disabled": {
-         backgroundColor: theme.vars.palette.grey[700],
-         color: theme.vars.palette.grey[500],
-         cursor: "not-allowed"
-       }
-     },
-     ".loading-overlay": {
-       position: "absolute",
-       top: 0,
-       left: 0,
-       right: 0,
-       bottom: 0,
-       display: "flex",
-       alignItems: "center",
-       justifyContent: "center",
-       backgroundColor: "rgba(0, 0, 0, 0.7)",
-       zIndex: 100
-     }
-   });
+    ".button-primary": {
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.contrastText,
+      border: "none",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.primary.dark
+      },
+      "&:disabled": {
+        backgroundColor: theme.vars.palette.grey[700],
+        color: theme.vars.palette.grey[500],
+        cursor: "not-allowed"
+      }
+    },
+    ".loading-overlay": {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      zIndex: 100
+    }
+  });
 
 interface ImageEditorModalProps {
   imageUrl: string;
@@ -162,11 +169,11 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   const theme = useTheme();
   const canvasRef = useRef<ImageEditorCanvasRef>(null);
 
-  console.log("imageUrl", imageUrl);
-
   // Editor state
   const [tool, setTool] = useState<EditTool>("select");
   const [brushSettings, setBrushSettings] = useState<BrushSettings>(DEFAULT_BRUSH_SETTINGS);
+  const [shapeSettings, setShapeSettings] = useState<ShapeSettings>(DEFAULT_SHAPE_SETTINGS);
+  const [textSettings, setTextSettings] = useState<TextSettings>(DEFAULT_TEXT_SETTINGS);
   const [adjustments, setAdjustments] = useState<AdjustmentSettings>(DEFAULT_ADJUSTMENTS);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
@@ -218,12 +225,12 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
   // Save current state to history
   const saveToHistory = useCallback((action: string) => {
-    if (!canvasRef.current) {return;}
+    if (!canvasRef.current) { return; }
 
     const imageCanvas = canvasRef.current.getImageCanvas();
     const drawingCanvas = canvasRef.current.getDrawingCanvas();
 
-    if (!imageCanvas) {return;}
+    if (!imageCanvas) { return; }
 
     // Merge canvases to get complete state
     let finalCanvas = imageCanvas;
@@ -232,7 +239,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     }
 
     const ctx = finalCanvas.getContext("2d");
-    if (!ctx) {return;}
+    if (!ctx) { return; }
 
     const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
 
@@ -269,6 +276,22 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     []
   );
 
+  // Handle shape settings change
+  const handleShapeSettingsChange = useCallback(
+    (settings: Partial<ShapeSettings>) => {
+      setShapeSettings((prev) => ({ ...prev, ...settings }));
+    },
+    []
+  );
+
+  // Handle text settings change
+  const handleTextSettingsChange = useCallback(
+    (settings: Partial<TextSettings>) => {
+      setTextSettings((prev) => ({ ...prev, ...settings }));
+    },
+    []
+  );
+
   // Handle adjustments change
   const handleAdjustmentsChange = useCallback(
     (newAdjustments: Partial<AdjustmentSettings>) => {
@@ -280,10 +303,10 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   // Handle editor actions
   const handleAction = useCallback(
     (action: EditAction) => {
-      if (!canvasRef.current) {return;}
+      if (!canvasRef.current) { return; }
 
       const imageCanvas = canvasRef.current.getImageCanvas();
-      if (!imageCanvas) {return;}
+      if (!imageCanvas) { return; }
 
       switch (action) {
         case "rotate-cw": {
@@ -420,12 +443,12 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
   // Handle download
   const handleDownload = useCallback(async () => {
-    if (!canvasRef.current) {return;}
+    if (!canvasRef.current) { return; }
 
     const imageCanvas = canvasRef.current.getImageCanvas();
     const drawingCanvas = canvasRef.current.getDrawingCanvas();
 
-    if (!imageCanvas) {return;}
+    if (!imageCanvas) { return; }
 
     // Create final canvas with adjustments applied
     const finalCanvas = document.createElement("canvas");
@@ -433,7 +456,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
     finalCanvas.height = imageCanvas.height;
     const ctx = finalCanvas.getContext("2d");
 
-    if (!ctx) {return;}
+    if (!ctx) { return; }
 
     // Draw image
     ctx.drawImage(imageCanvas, 0, 0);
@@ -466,7 +489,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
   // Handle save
   const handleSave = useCallback(async () => {
-    if (!canvasRef.current) {return;}
+    if (!canvasRef.current) { return; }
 
     setIsSaving(true);
 
@@ -556,11 +579,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
                 Save
               </button>
             </Tooltip>
-            <Tooltip title="Close (Esc)">
-              <IconButton size="small" onClick={onClose}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close (Esc)" />
           </div>
         </div>
 
@@ -570,6 +589,8 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
           <ImageEditorToolbar
             tool={tool}
             brushSettings={brushSettings}
+            shapeSettings={shapeSettings}
+            textSettings={textSettings}
             adjustments={adjustments}
             zoom={zoom}
             isCropping={isCropping}
@@ -577,6 +598,8 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
             canRedo={canRedo}
             onToolChange={handleToolChange}
             onBrushSettingsChange={handleBrushSettingsChange}
+            onShapeSettingsChange={handleShapeSettingsChange}
+            onTextSettingsChange={handleTextSettingsChange}
             onAdjustmentsChange={handleAdjustmentsChange}
             onAction={handleAction}
             onZoomChange={handleZoomChange}
@@ -591,6 +614,8 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
               imageUrl={imageUrl}
               tool={tool}
               brushSettings={brushSettings}
+              shapeSettings={shapeSettings}
+              textSettings={textSettings}
               adjustments={adjustments}
               zoom={zoom}
               pan={pan}
@@ -610,4 +635,4 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
   return ReactDOM.createPortal(content, document.body);
 };
 
-export default ImageEditorModal;
+export default memo(ImageEditorModal);

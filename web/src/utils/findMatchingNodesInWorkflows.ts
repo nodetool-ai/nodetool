@@ -1,5 +1,5 @@
 import Fuse from "fuse.js";
-import { Workflow, Node as ApiNode } from "../stores/ApiTypes";
+import { Workflow } from "../stores/ApiTypes";
 import { SearchResult } from "../types/search";
 import { FUSE_THRESHOLD, FUSE_MIN_MATCH_FACTOR } from "../config/constants";
 
@@ -23,7 +23,11 @@ export const findMatchingNodesInWorkflows = (
   fuseThreshold: number = FUSE_THRESHOLD,
   fuseMinMatchCharLengthFactor: number = FUSE_MIN_MATCH_FACTOR
 ): SearchResult[] => {
-  if (!searchQuery.trim() || !workflows || workflows.length === 0) {
+  if (!workflows || workflows.length === 0) {
+    return [];
+  }
+
+  if (!searchQuery.trim()) {
     return workflows.map((workflow) => ({
       workflow,
       fuseScore: 1,

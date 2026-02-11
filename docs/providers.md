@@ -4,7 +4,7 @@ title: "Providers"
 ---
 
 The NodeTool provider system offers a unified interface for interacting with various AI service providers. This
-abstraction allows you to seamlessly switch between different AI backends (OpenAI, Anthropic, Gemini, HuggingFace, etc.)
+abstraction allows you to switch between different AI backends (OpenAI, Anthropic, Gemini, HuggingFace, etc.)
 without changing your workflow logic.
 
 ## Overview
@@ -17,6 +17,7 @@ requirements of different AI services. The system supports multiple modalities:
 - **Video Generation** - Text-to-video and image-to-video synthesis
 - **Text-to-Speech (TTS)** - Convert text to natural speech audio
 - **Automatic Speech Recognition (ASR)** - Transcribe audio to text
+- **3D Generation** - Text-to-3D and image-to-3D model creation
 
 To select a provider, pick a model in the node property panel. Providers are grouped under model families: OpenAI,
 Anthropic, Gemini, Hugging Face, Ollama, vLLM.
@@ -42,7 +43,7 @@ The capability system uses introspection to automatically detect which features 
 
 ### Language Model Providers
 
-#### OpenAI (`openai_provider.py`)
+#### <img src="assets/icons/openai.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="OpenAI" /> OpenAI (`openai_provider.py`)
 
 **Capabilities:** Language models (GPT-4, GPT-3.5), Image generation (DALL-E), Speech services
 
@@ -59,7 +60,7 @@ The capability system uses introspection to automatically detect which features 
 - ✅ Text-to-speech (TTS)
 - ✅ Speech-to-text (Whisper)
 
-#### Anthropic (`anthropic_provider.py`)
+#### <img src="assets/icons/anthropic.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Anthropic" /> Anthropic (`anthropic_provider.py`)
 
 **Capabilities:** Claude language models, Advanced reasoning
 
@@ -73,7 +74,7 @@ The capability system uses introspection to automatically detect which features 
 - ✅ Multimodal inputs (vision)
 - ✅ JSON mode (via tool use)
 
-#### Google Gemini (`gemini_provider.py`)
+#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Gemini" /> Google Gemini (`gemini_provider.py`)
 
 **Capabilities:** Gemini language models, Multimodal AI, Video generation
 
@@ -86,7 +87,7 @@ The capability system uses introspection to automatically detect which features 
 - ✅ JSON mode
 - ✅ Video generation (Veo 2, Veo 3)
 
-#### Ollama (`ollama_provider.py`)
+#### <img src="assets/icons/ollama.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Ollama" /> Ollama (`ollama_provider.py`)
 
 **Capabilities:** Local/self-hosted models, Open-source models
 
@@ -108,7 +109,7 @@ The capability system uses introspection to automatically detect which features 
 - Textual fallback mechanism available for incompatible models
 - Models must be pulled via `ollama pull` before use
 
-#### vLLM (`vllm_provider.py`)
+#### <img src="assets/icons/vllm.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="vLLM" /> vLLM (`vllm_provider.py`)
 
 **Capabilities:** Self-hosted inference, OpenAI-compatible API
 
@@ -123,13 +124,13 @@ The capability system uses introspection to automatically detect which features 
 
 ### Image Generation Providers
 
-#### HuggingFace (`huggingface_provider.py`)
+#### <img src="assets/icons/huggingface.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace (`huggingface_provider.py`)
 
 **Capabilities:** Diverse model ecosystem, Multiple hosted services, 500,000+ models
 
 **Features:**
 
-- 27+ node categories for comprehensive AI workflows
+- 27+ node categories for AI workflows
 - Supports multiple sub-providers (FAL.ai, Together, Replicate, etc.)
 - Text generation with streaming support
 - Text-to-image and image-to-image generation
@@ -149,9 +150,9 @@ For detailed information on all HuggingFace nodes, model recommendations, and us
 
 ### Video Generation Providers
 
-Multiple providers now support advanced video generation capabilities through the unified interface. NodeTool provides access to state-of-the-art models for text-to-video and image-to-video generation:
+Multiple providers now support advanced video generation capabilities through the unified interface. NodeTool supports text-to-video and image-to-video generation:
 
-#### OpenAI Sora 2 Pro
+#### <img src="assets/icons/sora.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Sora" /> OpenAI Sora 2 Pro
 
 **Capabilities:** Text-to-video, Image-to-video
 
@@ -164,7 +165,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Set `OPENAI_API_KEY` environment variable or configure in Settings → Providers
 
-#### Google Veo 3.1 (via Gemini)
+#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Gemini" /> Google Veo 3.1 (via Gemini)
 
 **Capabilities:** Text-to-video, Image-to-video, Multi-image reference
 
@@ -177,7 +178,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Set `GEMINI_API_KEY` environment variable or configure in Settings → Providers
 
-#### xAI Grok Imagine
+#### <img src="assets/icons/xai.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="xAI" /> xAI Grok Imagine
 
 **Capabilities:** Multimodal text/image-to-video, Text-to-image
 
@@ -189,7 +190,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
 
-#### Alibaba Wan 2.6
+#### <img src="assets/icons/alibaba.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Alibaba" /> Alibaba Wan 2.6
 
 **Capabilities:** Multi-shot video generation, Reference-guided generation
 
@@ -202,7 +203,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
 
-#### MiniMax Hailuo 2.3
+#### <img src="assets/icons/hailuo.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="MiniMax Hailuo" /> MiniMax Hailuo 2.3
 
 **Capabilities:** High-fidelity text-to-video and image-to-video
 
@@ -214,9 +215,9 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Set `MINIMAX_API_KEY` environment variable or configure in Settings → Providers
 
-#### Kling 2.6
+#### <img src="assets/icons/kling.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Kling" /> Kling 2.6
 
-**Capabilities:** Video generation with comprehensive audio
+**Capabilities:** Video generation with audio
 
 **Features:**
 - ✅ Text/image to synchronized video
@@ -229,7 +230,7 @@ Multiple providers now support advanced video generation capabilities through th
 
 ### Image Generation Providers
 
-#### Black Forest Labs FLUX.2
+#### <img src="assets/icons/bfl.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Black Forest Labs" /> Black Forest Labs FLUX.2
 
 **Capabilities:** Advanced text-to-image generation
 
@@ -242,18 +243,68 @@ Multiple providers now support advanced video generation capabilities through th
 
 **Configuration:** Available through HuggingFace provider or direct API access
 
-#### Google Nano Banana Pro
+#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Google" /> Google Nano Banana Pro
 
 **Capabilities:** High-resolution text-to-image
 
 **Features:**
 - ✅ Sharper 2K native output
-- ✅ Intelligent 4K upscaling
+- ✅ 4K upscaling
 - ✅ Improved text rendering accuracy
-- ✅ Enhanced character consistency
-- ✅ Advanced detail preservation
+- ✅ Better character consistency
+- ✅ Detail preservation
 
 **Configuration:** Access via Google's Gemini API using `GEMINI_API_KEY`, or through kie.ai
+
+### 3D Generation Providers
+
+NodeTool supports text-to-3D and image-to-3D providers through the unified provider interface.
+
+#### Hunyuan3D V2 / 3.0
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `HUNYUAN3D_API_KEY` in Settings → Providers
+
+#### Trellis 2
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `TRELLIS_API_KEY` in Settings → Providers
+
+#### TripoSR
+
+**Capabilities:** Image-to-3D
+
+**Configuration:** Set `TRIPO_API_KEY` in Settings → Providers
+
+#### Shap-E
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `SHAP_E_API_KEY` in Settings → Providers
+
+#### Point-E
+
+**Capabilities:** Text-to-3D
+
+**Configuration:** Set `POINT_E_API_KEY` in Settings → Providers
+
+#### Meshy AI
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `MESHY_API_KEY` in Settings → Providers
+
+#### Rodin AI
+
+**Capabilities:** Text-to-3D, Image-to-3D
+
+**Configuration:** Set `RODIN_API_KEY` in Settings → Providers
+
+#### 3D Model Nodes
+
+Use the HuggingFace 3D nodes for base model selection (`HFTextTo3D`, `HFImageTo3D`) or the generic nodes (`nodetool.3d.TextTo3D`, `nodetool.3d.ImageTo3D`) for provider switching across the 3D ecosystem.
 
 ### Multi-Provider Aggregators
 
@@ -282,11 +333,11 @@ Multiple providers now support advanced video generation capabilities through th
 - Black Forest Labs FLUX.2
 - Google Nano Banana Pro
 
-kie.ai provides a cost-effective alternative for accessing multiple state-of-the-art models through a unified interface. This is particularly useful for workflows that utilize models from different providers, as it reduces API key management complexity and can offer better pricing. **For models without direct NodeTool API key support, kie.ai is the recommended access method.**
+kie.ai provides access to multiple models through a unified interface. This is useful for workflows that use models from different providers, as it reduces API key management complexity and can offer better pricing. **For models without direct NodeTool API key support, kie.ai is the recommended access method.**
 
 ## Generic Nodes: Provider-Agnostic Workflows
 
-One of the most powerful features of the NodeTool provider system is **generic nodes**. These are special nodes that let
+A useful feature of the NodeTool provider system is **generic nodes**. These are nodes that let
 you switch AI providers without modifying your workflow.
 
 Generic nodes support provider switching without altering the graph. This is the recommended way to design
@@ -366,6 +417,32 @@ The following generic nodes are available in the NodeTool interface (visible in 
 - Stability AI
 - Other video generation services
 
+#### nodetool.3d.TextTo3D
+
+**Purpose:** Generate 3D assets from text prompts
+
+**Quick Switch:**
+
+- Hunyuan3D V2/3.0
+- Trellis 2
+- Meshy AI
+- Rodin AI
+- Shap-E
+- Point-E
+
+#### nodetool.3d.ImageTo3D
+
+**Purpose:** Generate 3D assets from images
+
+**Quick Switch:**
+
+- Hunyuan3D V2/3.0
+- Trellis 2
+- TripoSR
+- Meshy AI
+- Rodin AI
+- Shap-E
+
 #### nodetool.audio.TextToSpeech
 
 **Purpose:** Convert text to natural speech
@@ -412,7 +489,7 @@ The following generic nodes are available in the NodeTool interface (visible in 
 
 ### Provider Parameter Mapping
 
-Generic nodes intelligently map parameters to provider-specific formats:
+Generic nodes map parameters to provider-specific formats:
 
 **TextToImage mapping:**
 
@@ -480,27 +557,35 @@ TextToVideoParams(
 
 ### Environment Variables by Provider
 
-| Provider        | Required Variables    | Optional Variables              |
-| --------------- | --------------------- | ------------------------------- |
-| **OpenAI**      | `OPENAI_API_KEY`      | -                               |
-| **Anthropic**   | `ANTHROPIC_API_KEY`   | -                               |
-| **Gemini**      | `GEMINI_API_KEY`      | -                               |
-| **HuggingFace** | `HF_TOKEN`            | -                               |
-| **Ollama**      | -                     | `OLLAMA_API_URL`                |
-| **vLLM**        | -                     | `VLLM_BASE_URL`, `VLLM_API_KEY` |
-| **Replicate**   | `REPLICATE_API_TOKEN` | -                               |
-| **FAL**         | `FAL_API_KEY`         | -                               |
-| **ElevenLabs**  | `ELEVENLABS_API_KEY`  | -                               |
+| <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **OpenAI**      | `OPENAI_API_KEY`      | -                               |
+| <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Anthropic**   | `ANTHROPIC_API_KEY`   | -                               |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Gemini**      | `GEMINI_API_KEY`      | -                               |
+| <img src="assets/icons/huggingface.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **HuggingFace** | `HF_TOKEN`            | -                               |
+| <img src="assets/icons/ollama.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Ollama**      | -                     | `OLLAMA_API_URL`                |
+| <img src="assets/icons/vllm.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **vLLM**        | -                     | `VLLM_BASE_URL`, `VLLM_API_KEY` |
+| <img src="assets/icons/replicate.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Replicate**   | `REPLICATE_API_TOKEN` | -                               |
+| <img src="assets/icons/fal.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **FAL**         | `FAL_API_KEY`         | -                               |
+| <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **ElevenLabs**  | `ELEVENLABS_API_KEY`  | -                               |
+
 
 ### Getting API Keys
 
-- **OpenAI:** https://platform.openai.com/api-keys
-- **Anthropic:** https://console.anthropic.com/settings/keys
-- **Google Gemini:** https://ai.google.dev/
-- **HuggingFace:** https://huggingface.co/settings/tokens
-- **Replicate:** https://replicate.com/account/api-tokens
-- **FAL:** https://fal.ai/dashboard/keys
-- **ElevenLabs:** https://elevenlabs.io/app/settings/api-keys
+- <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **OpenAI:** https://platform.openai.com/api-keys
+- <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Anthropic:** https://console.anthropic.com/settings/keys
+- <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Google Gemini:** https://ai.google.dev/
+- <img src="assets/icons/huggingface.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **HuggingFace:** https://huggingface.co/settings/tokens
+- <img src="assets/icons/replicate.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Replicate:** https://replicate.com/account/api-tokens
+- <img src="assets/icons/fal.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **FAL:** https://fal.ai/dashboard/keys
+- <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **ElevenLabs:** https://elevenlabs.io/app/settings/api-keys
+
+| 3D Provider     | Required Variables    |
+| --------------- | --------------------- |
+| **Hunyuan3D**   | `HUNYUAN3D_API_KEY`   |
+| **Trellis**     | `TRELLIS_API_KEY`     |
+| **TripoSR**     | `TRIPO_API_KEY`       |
+| **Point-E**     | `POINT_E_API_KEY`     |
+| **Meshy AI**    | `MESHY_API_KEY`       |
+| **Rodin AI**    | `RODIN_API_KEY`       |
 
 ## Provider Development
 

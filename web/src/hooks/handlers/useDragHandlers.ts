@@ -1,4 +1,4 @@
-import { useCallback, useState, MouseEvent } from "react";
+import { useCallback, useState, useRef, MouseEvent } from "react";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   getMousePosition,
@@ -15,6 +15,9 @@ import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 // Removed comment creation via drag
 
+// Throttle interval for intersection checks (ms)
+const INTERSECTION_THROTTLE_MS = 50;
+
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
@@ -30,7 +33,7 @@ export default function useDragHandlers() {
     Node<NodeData> | undefined
   >();
   const { settings } = useSettingsStore((state) => state);
-  const [draggedNodes, setDraggedNodes] = useState<Set<Node<NodeData>>>(
+  const [_draggedNodes, setDraggedNodes] = useState<Set<Node<NodeData>>>(
     new Set()
   );
   const { pause, resume } = useTemporalNodes((state) => ({
@@ -38,21 +41,27 @@ export default function useDragHandlers() {
     resume: state.resume
   }));
 
-  const { createNode, addNode, setHoveredNodes, findNode, updateNode } =
+  const { setHoveredNodes, findNode } =
     useNodes((state) => ({
-      createNode: state.createNode,
-      addNode: state.addNode,
       setHoveredNodes: state.setHoveredNodes,
-      findNode: state.findNode,
-      updateNode: state.updateNode
+      findNode: state.findNode
     }));
-  // Removed: createCommentNode helper and related drag-to-create logic
+
+  // Refs for throttling and tracking last state to avoid unnecessary updates
+  const lastIntersectionCheckRef = useRef<number>(0);
+  const lastHoveredIdsRef = useRef<string>("");
 
   /* NODE DRAG START */
-  const onNodeDragStart = useCallback((event: any) => {
-    setLastParentNode(undefined);
-    resetWiggleDetection(); // Reset wiggle detection for new drag
-  }, []);
+  const onNodeDragStart = useCallback(
+    (_event: any, node: Node<NodeData>) => {
+      setLastParentNode(undefined);
+      resetWiggleDetection();
+      setDraggedNodes(new Set([node]));
+      lastIntersectionCheckRef.current = 0;
+      lastHoveredIdsRef.current = "";
+    },
+    [setDraggedNodes]
+  );
 
   /* NODE DRAG */
   const onNodeDrag = useCallback(
@@ -72,23 +81,38 @@ export default function useDragHandlers() {
         wasUngroupedByControlKey = true;
       }
 
-      setDraggedNodes(new Set([node]));
-
       if (wasUngroupedByControlKey) {
         setLastParentNode(undefined);
-        setHoveredNodes([]);
+        if (lastHoveredIdsRef.current !== "") {
+          lastHoveredIdsRef.current = "";
+          setHoveredNodes([]);
+        }
       } else {
+        // Throttle intersection checks for performance
+        const now = Date.now();
+        if (now - lastIntersectionCheckRef.current < INTERSECTION_THROTTLE_MS) {
+          return;
+        }
+        lastIntersectionCheckRef.current = now;
+
         // Find potential parent based on intersection
         const intersections = reactFlow
           .getIntersectingNodes(node)
           .filter((n) => isGroup(n as Node<NodeData>))
           .map((n) => n.id);
-        setHoveredNodes(intersections);
-        if (intersections.length > 0) {
-          const potentialParent = findNode(intersections[0]);
-          setLastParentNode(potentialParent);
-        } else {
-          setLastParentNode(undefined);
+
+        // Only update state if intersections changed
+        const intersectionKey = intersections.join(",");
+        if (intersectionKey !== lastHoveredIdsRef.current) {
+          lastHoveredIdsRef.current = intersectionKey;
+          setHoveredNodes(intersections);
+
+          if (intersections.length > 0) {
+            const potentialParent = findNode(intersections[0]);
+            setLastParentNode(potentialParent);
+          } else {
+            setLastParentNode(undefined);
+          }
         }
       }
     },
@@ -117,6 +141,7 @@ export default function useDragHandlers() {
       setHoveredNodes([]);
       setLastParentNode(undefined);
       resetWiggleDetection();
+      lastHoveredIdsRef.current = "";
     },
     [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
   );
@@ -129,6 +154,8 @@ export default function useDragHandlers() {
       pause(); // pause history
       setDraggedNodes(new Set(nodes));
       resetWiggleDetection();
+      lastIntersectionCheckRef.current = 0;
+      lastHoveredIdsRef.current = "";
     },
     [pause, setDraggedNodes]
   );
@@ -160,20 +187,37 @@ export default function useDragHandlers() {
       // Intersection logic conditional on *control key* ungrouping
       if (wasUngroupedByControlKey) {
         setLastParentNode(undefined);
-        setHoveredNodes([]);
+        if (lastHoveredIdsRef.current !== "") {
+          lastHoveredIdsRef.current = "";
+          setHoveredNodes([]);
+        }
       } else {
+        // Throttle intersection checks for performance
+        const now = Date.now();
+        if (now - lastIntersectionCheckRef.current < INTERSECTION_THROTTLE_MS) {
+          return;
+        }
+        lastIntersectionCheckRef.current = now;
+
         // Find potential parent based on the position of the *first* node in selection
         if (nodes.length > 0) {
           const intersections = reactFlow
             .getIntersectingNodes(nodes[0]) // Check based on first node
             .filter((n) => isGroup(n as Node<NodeData>))
             .map((n) => n.id);
-          setHoveredNodes(intersections); // Highlight intersected groups
-          if (intersections.length > 0) {
-            const potentialParent = findNode(intersections[0]);
-            setLastParentNode(potentialParent);
-          } else {
-            setLastParentNode(undefined);
+
+          // Only update state if intersections changed
+          const intersectionKey = intersections.join(",");
+          if (intersectionKey !== lastHoveredIdsRef.current) {
+            lastHoveredIdsRef.current = intersectionKey;
+            setHoveredNodes(intersections);
+
+            if (intersections.length > 0) {
+              const potentialParent = findNode(intersections[0]);
+              setLastParentNode(potentialParent);
+            } else {
+              setLastParentNode(undefined);
+            }
           }
         }
       }
@@ -205,26 +249,24 @@ export default function useDragHandlers() {
       setHoveredNodes([]);
       setLastParentNode(undefined);
       resetWiggleDetection();
+      lastHoveredIdsRef.current = "";
     },
     [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
   );
 
   /* SELECTION START */
-  const onSelectionStart = useCallback(
-    (event: any) => {
-      const currentMousePos = getMousePosition();
-      const projectedStartPos = reactFlow.screenToFlowPosition({
-        x: currentMousePos.x,
-        y: currentMousePos.y
-      });
-      setStartPos(projectedStartPos); // General purpose
-    },
-    [
-      reactFlow,
-      setStartPos,
-      // comment creation via drag removed
-    ]
-  ); // Added commentDragState.isActive
+  const onSelectionStart = useCallback((_event: any) => {
+    const currentMousePos = getMousePosition();
+    const projectedStartPos = reactFlow.screenToFlowPosition({
+      x: currentMousePos.x,
+      y: currentMousePos.y
+    });
+    setStartPos(projectedStartPos); // General purpose
+  }, [
+    reactFlow,
+    setStartPos,
+    // comment creation via drag removed
+  ]); // Added commentDragState.isActive
 
   const onSelectionEnd = useCallback(
     (_event: MouseEvent) => {

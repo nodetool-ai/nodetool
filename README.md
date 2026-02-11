@@ -1,9 +1,4 @@
-# NodeTool: Visual AI Workflow Builder
-
-![Release](https://github.com/nodetool-ai/nodetool/actions/workflows/release.yaml/badge.svg)
-[![Lint and Test](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/test.yml)
-[![E2E Tests](https://github.com/nodetool-ai/nodetool/actions/workflows/e2e.yml/badge.svg)](https://github.com/nodetool-ai/nodetool/actions/workflows/e2e.yml)
-![CodeQL](https://github.com/nodetool-ai/nodetool/actions/workflows/github-code-scanning/codeql/badge.svg)
+# NodeTool: Visual Builder for AI Workflows and Agents
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
 [![Downloads](https://img.shields.io/github/downloads/nodetool-ai/nodetool/total?color=3fb950)](https://github.com/nodetool-ai/nodetool/releases)
@@ -12,114 +7,106 @@
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 
-**Build AI Workflows Visually. Run Them Anywhere.**
+[![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://nodetool.ai)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
+[![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
 
-NodeTool is an open-source visual workflow builder. Connect nodes to generate images, analyze documents, automate tasks, and process data—no coding required. Run models locally or via cloud APIs.
+NodeTool is an open-source visual programming tool for building AI workflows. Connect LLMs, real-time systems, build AI agents and generate media through a drag-and-drop node interface.
 
-![Screenshot](screenshot.png)
+![Screenshot](screen2.png)
 
-## Features
+## Why NodeTool
 
-- **Visual Editor**: Drag-and-drop node connections. No coding required.
-- **Local Execution**: Run models on your hardware for privacy. Or use cloud APIs.
-- **Real-time Feedback**: See results stream as workflows execute.
-- **Portable Workflows**: Same workflow runs locally, on RunPod, Cloud Run, or self-hosted servers.
+- **Node-based visual interface**: Connect nodes by dragging lines between them for AI workflow orchestration
+- **Run anywhere**: Your laptop, a server, or the cloud - local execution engine for macOS, Windows, and Linux
+- **Local-first AI**: Run models entirely on your machine with support for local LLMs via Ollama, MLX, and GGML/GGUF formats
+- **Streaming**: Real-time workflow execution with async data streams
+- **Build AI agents**: Create LLM agents with tool use and secure code execution
+- **Type-safe connections**: Ensure compatibility between node inputs and outputs
 
-## Capabilities
+## What You Can Do
 
-- **Multimodal Support**: Text, image, audio, and video processing.
-- **Local Models**: Run Flux, SDXL, LLMs on Apple Silicon, NVIDIA GPUs, or CPU. Works offline.
-- **HuggingFace Integration**: Access 500,000+ models from the Hub.
-- **Cloud APIs**: Connect to OpenAI, Anthropic, Gemini, Replicate.
-- **Deployment**: Deploy to RunPod, Cloud Run, or self-hosted infrastructure.
-- **Asset Management**: Organize and access media files from workflows.
+- **Multimodal AI**: Process text, images, video, and audio
+- **Run locally**: Apple Silicon (M1+), NVIDIA GPUs, or CPU (works offline)
+- **Access models**: 500,000+ models from HuggingFace
+- **Cloud APIs**: OpenAI, Anthropic, Gemini, OpenRouter, Kie, Fal, MiniMax, Replicate
+- **Secure Code execution**: Execute code in secure containers
+- **Build RAG systems**: Vector database integration for semantic search
+- **Deploy anywhere**: Docker, RunPod, Google Cloud Run
+- **Extend with Python**: Build custom nodes
 
-## Use Cases
+**Common applications**: LLM agents with tool use, creative pipelines, RAG systems, generative media, document processing, and data transformation.
 
-- **Media Generation**: Generate and transform images, videos, and audio.
-- **Document Processing**: Build RAG systems, extract text, query documents.
-- **Data Analysis**: Transform data, create visualizations, generate reports.
-- **Automation**: Build AI agents that plan and execute multi-step tasks.
+## How NodeTool Compares
 
-## State-of-the-Art Cloud Models
+**vs ComfyUI**: While ComfyUI focuses on media generation workflows, NodeTool extends the node-based concept to general AI workflows including LLM agents, real-time streaming and RAG systems.
 
-NodeTool provides access to the latest high-quality generative AI models for creative workflows:
+**vs n8n**: While n8n is a general workflow automation tool for business processes and API integrations, NodeTool is specialized for AI workloads with native support for model management, local LLMs, multimodal, RAG and secure code execution.
 
-### Video Generation
-- **OpenAI Sora 2 Pro** – Realistic motion with refined physics and synchronized native audio; T2V/I2V up to 15s in 1080p
-- **Google Veo 3.1** – Upgraded realistic motion, extended clips, multi-image references, native 1080p with synced audio
-- **xAI Grok Imagine** – Multimodal text/image to short video with coherent motion and synchronized audio
-- **Alibaba Wan 2.6** – Affordable multi-shot 1080p with stable characters and native audio; T2V/I2V/reference-guided
-- **MiniMax Hailuo 2.3** – High-fidelity video with expressive characters, complex motion and lighting
-- **Kling 2.6** – Text/image to synchronized video with speech, ambient sound, and effects
+## Cloud Models
 
-### Image & Audio Generation
-- **Black Forest Labs FLUX.2** – Photoreal images with multi-reference consistency and accurate text rendering
-- **Google Nano Banana Pro** – Sharper 2K output, intelligent 4K scaling, improved text rendering and character consistency
+Access the latest AI models through simple nodes:
 
-Use these models through NodeTool's generic nodes (`TextToVideo`, `ImageToVideo`, `TextToImage`) by selecting the appropriate provider and model in the node properties.
+**Video**: OpenAI Sora 2 Pro, Google Veo 3.1, xAI Grok Imagine, Alibaba Wan 2.6, MiniMax Hailuo 2.3, Kling 2.6
 
-> **Direct API Key Support**: OpenAI Sora 2 Pro, Google Veo 3.1, and MiniMax Hailuo 2.3 have direct NodeTool API key support. Other models can be accessed through [kie.ai](https://kie.ai/), which aggregates multiple AI providers and often offers competitive pricing.
+**Image & Audio**: Black Forest Labs FLUX.2, Google Nano Banana Pro
 
-## Get Started
+Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provider and model.
 
-| Platform | Download | What You Need |
+> Some models need direct API keys. Others work through [kie.ai](https://kie.ai/), which combines multiple providers and often has better prices.
+
+## Download
+
+| Platform | Get It | Requirements |
 | :--- | :--- | :--- |
-| **Windows** | [Download Installer](https://nodetool.ai) | Nvidia GPU recommended, 20GB free space |
-| **macOS** | [Download Installer](https://nodetool.ai) | M1+ Apple Silicon |
-| **Linux** | [Download AppImage](https://nodetool.ai) | Nvidia GPU recommended |
+| **Windows** | [Download](https://nodetool.ai) | NVIDIA GPU recommended, 4GB+ VRAM (local AI), 20GB space |
+| **macOS** | [Download](https://nodetool.ai) | M1+ Apple Silicon, 16GB+ RAM (local AI) |
+| **Linux** | [Download](https://nodetool.ai) • [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) | NVIDIA GPU recommended, 4GB+ VRAM (local AI) |
 
-**Hardware for Local AI:**
-
-- **Apple Silicon**: 16GB+ RAM (text/audio), 24GB+ (image generation)
-- **Windows/Linux**: 4GB+ VRAM (text/audio), 8GB+ (images), 12GB+ (video)
-- **Cloud-Only**: No GPU required—use cloud AI services
+*Cloud-only usage requires no GPU—just use API services.*
 
 ______________________________________________________________________
 
 ## Documentation
 
-- **[Getting Started](https://docs.nodetool.ai/getting-started)**
-- **[Node Packs](https://docs.nodetool.ai/packs)**
-- **[Custom Nodes](https://docs.nodetool.ai/development/custom-nodes)**
-- **[Deployment](https://docs.nodetool.ai/deployment)**
-- **[API Reference](https://docs.nodetool.ai/api)**
+- **[Getting Started](https://docs.nodetool.ai/getting-started)** - Build your first workflow
+- **[Node Packs](https://docs.nodetool.ai/packs)** - Available operations and integrations
+- **[Custom Nodes](https://docs.nodetool.ai/development/custom-nodes)** - Extend NodeTool
+- **[Deployment](https://docs.nodetool.ai/deployment)** - Share your work
+- **[API Reference](https://docs.nodetool.ai/api)** - Programmatic access
 
 ______________________________________________________________________
 
-## 🛠️ Development Setup
+## Development Setup
 
-For core library development, see [nodetool-core](https://github.com/nodetool-ai/nodetool-core).
+For core library work, see [nodetool-core](https://github.com/nodetool-ai/nodetool-core).
 
-### Prerequisites
+**Prerequisites:** Python 3.11, Conda, Node.js LTS
 
-- Python 3.11, Conda, Node.js LTS
-
-### Quick Start
+**Quick start:**
 
 ```bash
-# 1. Setup Environment
+# Setup
 conda env update -f environment.yml --prune
 conda activate nodetool
 
-# 2. Install Core
+# Install
 uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
 
-# 3. Run Backend & Frontend
+# Run
 nodetool serve --reload &
 cd web && npm install && npm start
 ```
 
-### Installing HuggingFace pack (Linux/Windows GPU)
+### HuggingFace Pack (Linux/Windows GPU)
 
-Requires CUDA Driver version for linux: >=525.60.13
-Requires CUDA Driver version for windows: >=527.41
+Requires CUDA driver ≥525.60.13 (Linux) or ≥527.41 (Windows):
 
 ```bash
 uv pip install git+https://github.com/nodetool-ai/nodetool-huggingface --extra-index-url https://download.pytorch.org/whl/cu128
 ```
 
-### Installing MLX pack (Apple Silicon)
+### MLX Pack (Apple Silicon)
 
 ```bash
 uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
@@ -127,49 +114,19 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
 
 ### Electron App
 
-Configure `settings.yaml` with your Conda path and run `make electron`.
+Set your Conda path in `settings.yaml` and run `make electron`.
 
 ### Mobile App
 
-The mobile app allows you to run Mini Apps on iOS and Android devices.
+Run Mini Apps on iOS and Android:
 
 ```bash
 cd mobile && npm install && npm start
 ```
 
-See [mobile/README.md](mobile/README.md) for detailed setup and usage instructions.
+See [mobile/README.md](mobile/README.md) for setup.
 
 ______________________________________________________________________
-
-## 📱 Personal AI Stack
-
-NodeTool supports mobile access to self-hosted AI infrastructure. Run models on your own hardware and access them from anywhere via secure connection.
-
-### Deployment Patterns
-
-#### 🏠 **Local Stack**
-```
-[Mobile] → [VPN] → [Home Server] → [Local LLMs] + [Data]
-```
-
-#### 🏢 **Private Cloud**
-```
-[Mobile] → [VPN] → [VPC] → [Self-Hosted NodeTool] → [Private LLMs]
-```
-
-#### 🌐 **Hybrid**
-```
-[Mobile] → [VPN] → [Local Server] → [Local LLMs] + [Cloud APIs]
-```
-
-### Setup
-
-1. Set up NodeTool Server on your machine or cloud instance
-2. Configure VPN access (Tailscale, WireGuard, etc.)
-3. Install the Mobile App (iOS/Android)
-4. Connect to your server
-
-See [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/self_hosted.md).
 
 ## Testing
 
@@ -178,19 +135,29 @@ See [Mobile App Guide](mobile/README.md) and [Self-Hosted Deployment](docs/self_
 cd electron && npm test && npm run lint
 cd web && npm test && npm run lint
 
-# End-to-end tests (requires nodetool backend)
+# End-to-end tests
+# Web e2e (needs backend server)
 cd web && npm run test:e2e
+
+# Electron e2e (requires xvfb on Linux headless)
+cd electron && npm run test:e2e
 ```
+
+**Prerequisites for E2E tests:**
+- Web tests require Playwright browsers: `cd web && npx playwright install chromium`
+- Electron tests require:
+  - Built Electron app: `cd electron && npm run vite:build && npx tsc`
+  - Playwright browsers: `cd electron && npx playwright install chromium`
+  - On Linux headless: xvfb (test scripts handle this automatically)
 
 ## Contributing
 
-We welcome contributions!
+We welcome:
+- Bug reports and feature requests
+- Code contributions
+- New node creation
 
-- **Bug reports & Features**: Help us improve.
-- **Code**: Fix bugs or add features.
-- **Nodes**: Create new nodes.
-
-**Pull requests are welcome!** Open an issue for major changes.
+Open an issue before starting major work.
 
 ## License
 
@@ -202,3 +169,7 @@ We welcome contributions!
 - **Team**: [matti@nodetool.ai](mailto:matti@nodetool.ai), [david@nodetool.ai](mailto:david@nodetool.ai)
 
 [GitHub](https://github.com/nodetool-ai/nodetool) • [Discord](https://discord.gg/WmQTWZRcYE)
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=nodetool-ai/nodetool&type=date&legend=top-left)](https://www.star-history.com/#nodetool-ai/nodetool&type=date&legend=top-left)

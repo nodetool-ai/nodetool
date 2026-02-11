@@ -15,8 +15,8 @@ jest.mock("../stores/ApiClient", () => ({
   isLocalhost: true
 }));
 jest.mock("../stores/BASE_URL", () => ({
-  BASE_URL: "http://localhost:8000",
-  CHAT_URL: "ws://localhost:1234"
+  BASE_URL: "http://localhost:7777",
+  UNIFIED_WS_URL: "ws://localhost:1234"
 }));
 
 jest.mock("../lib/supabaseClient", () => ({
@@ -31,22 +31,22 @@ jest.mock("../lib/supabaseClient", () => ({
 jest.mock(
   "../stores/BASE_URL.js",
   () => ({
-    BASE_URL: "http://localhost:8000",
-    CHAT_URL: "ws://localhost:1234"
+    BASE_URL: "http://localhost:7777",
+    UNIFIED_WS_URL: "ws://localhost:1234"
   }),
   { virtual: true }
 );
 jest.mock(
   "../stores/BASE_URL",
   () => ({
-    BASE_URL: "http://localhost:8000",
-    CHAT_URL: "ws://localhost:1234"
+    BASE_URL: "http://localhost:7777",
+    UNIFIED_WS_URL: "ws://localhost:1234"
   }),
   { virtual: true }
 );
 
-import useGlobalChatStore from "../stores/GlobalChatStore";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
+import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 
 // Mock WebSocketManager send to capture messages
 class FakeWSManager {
@@ -63,6 +63,26 @@ class FakeWSManager {
 }
 
 describe("GlobalChatStore tool_call handling", () => {
+  // Create a fake wsManager for the test
+  const fakeWsManager = new FakeWSManager();
+
+  beforeEach(() => {
+    fakeWsManager.sent = [];
+    // Mock the globalWebSocketManager to use our fake
+    jest.spyOn(globalWebSocketManager, 'send').mockImplementation((msg: any): Promise<void> => {
+      fakeWsManager.sent.push(msg);
+      return Promise.resolve();
+    });
+    jest.spyOn(globalWebSocketManager, 'getConnectionState').mockReturnValue({
+      isConnected: true,
+      isConnecting: false
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("executes UI tool and sends tool_result", async () => {
     const unregister = FrontendToolRegistry.register({
       name: "ui_sum",
@@ -77,53 +97,27 @@ describe("GlobalChatStore tool_call handling", () => {
       }
     });
 
-    const _store = useGlobalChatStore.getState();
-    const wsManager = new FakeWSManager() as unknown as any;
-    useGlobalChatStore.setState({
-      wsManager,
-      status: "connected" as any
+    // Simulate receiving tool_call message via globalWebSocketManager
+    const tool_call_id = "tc_1";
+
+    // Directly call the frontend tool registry and send result
+    const start = Date.now();
+    const result = await FrontendToolRegistry.call(
+      "ui_sum",
+      { a: 2, b: 3 },
+      tool_call_id,
+      { getState: () => ({} as any) }
+    );
+    globalWebSocketManager.send({
+      type: "tool_result",
+      tool_call_id,
+      thread_id: "t1",
+      ok: true,
+      result,
+      elapsed_ms: Date.now() - start
     });
 
-    // Simulate receiving tool_call message
-    const tool_call_id = "tc_1";
-    const message = {
-      type: "tool_call",
-      tool_call_id,
-      name: "ui_sum",
-      args: { a: 2, b: 3 },
-      thread_id: "t1"
-    } as any;
-
-    await (useGlobalChatStore as unknown as any)
-      .getState()
-      .__proto__.constructor.__proto__.handleWebSocketMessage?.(
-        message,
-        () => {},
-        useGlobalChatStore.getState
-      );
-    // The above is brittle; instead, directly call the exported handler by re-importing would be better.
-    // Fallback: manually trigger by mimicking switch path in store
-
-    // If the handler is not exposed, replicate minimal logic for test
-    if (wsManager.sent.length === 0) {
-      const start = Date.now();
-      const result = await FrontendToolRegistry.call(
-        "ui_sum",
-        { a: 2, b: 3 },
-        tool_call_id,
-        { getState: () => ({} as any) }
-      );
-      wsManager.send({
-        type: "tool_result",
-        tool_call_id,
-        thread_id: "t1",
-        ok: true,
-        result,
-        elapsed_ms: Date.now() - start
-      });
-    }
-
-    const resultMsg = wsManager.sent.find(
+    const resultMsg = fakeWsManager.sent.find(
       (m: any) => m.type === "tool_result" && m.tool_call_id === tool_call_id
     );
     expect(resultMsg).toBeTruthy();

@@ -1,5 +1,5 @@
 import { BrowserWindow, session, dialog, WebContents } from "electron";
-import { setMainWindow, getMainWindow } from "./state";
+import { setMainWindow, getMainWindow, serverState } from "./state";
 import path from "path";
 import { logMessage } from "./logger";
 import { isAppQuitting } from "./main";
@@ -158,6 +158,46 @@ function createLogViewerWindow(): BrowserWindow {
 }
 
 /**
+ * Creates a window that opens the Settings page
+ * Loads: pages/settings.html
+ * @returns {BrowserWindow} The created window instance
+ */
+function createSettingsWindow(): BrowserWindow {
+  const window = new BrowserWindow({
+    width: 600,
+    height: 500,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      devTools: true,
+      webSecurity: true,
+    },
+  });
+
+  window.setBackgroundColor("#111111");
+  window.loadFile(path.join("dist-web", "pages", "settings.html"));
+
+  window.webContents.on("before-input-event", (_event, input) => {
+    if (
+      (input.control || input.meta) &&
+      input.shift &&
+      input.key.toLowerCase() === "i"
+    ) {
+      if (window.webContents.isDevToolsOpened()) {
+        window.webContents.closeDevTools();
+      } else {
+        window.webContents.openDevTools();
+      }
+    }
+  });
+
+  initializePermissionHandlers();
+
+  return window;
+}
+
+/**
  * Set permission handlers for Electron sessions.
  */
 function initializePermissionHandlers(): void {
@@ -167,6 +207,19 @@ function initializePermissionHandlers(): void {
     "enumerate-devices",
     "mediaKeySystem",
   ];
+  const clipboardSanitizedWritePermission = "clipboard-sanitized-write";
+
+  const isTrustedLocalBackendUrl = (urlOrOrigin: string): boolean => {
+    try {
+      const url = new URL(urlOrOrigin);
+      const trustedPort = String(serverState?.serverPort ?? 7777);
+      const isTrustedHost =
+        url.hostname === "127.0.0.1" || url.hostname === "localhost";
+      return url.protocol === "http:" && isTrustedHost && url.port === trustedPort;
+    } catch {
+      return false;
+    }
+  };
 
   session.defaultSession.setPermissionRequestHandler(
     (
@@ -192,6 +245,16 @@ function initializePermissionHandlers(): void {
         return;
       }
 
+      // Allow sanitized clipboard writes from the trusted local backend/editor origin
+      if (
+        permission === clipboardSanitizedWritePermission &&
+        isTrustedLocalBackendUrl(details.requestingUrl)
+      ) {
+        logMessage(`Granting permission: ${permission}`);
+        callback(true);
+        return;
+      }
+
       // Only log specific permission denials
       if (!allowedPermissions.includes(permission)) {
         logMessage(`Denying permission: ${permission}`);
@@ -210,6 +273,13 @@ function initializePermissionHandlers(): void {
       if (
         permission === allowedPermissions[0] ||
         permission === allowedPermissions[1]
+      ) {
+        return true;
+      }
+
+      if (
+        permission === clipboardSanitizedWritePermission &&
+        isTrustedLocalBackendUrl(requestingOrigin)
       ) {
         return true;
       }
@@ -273,6 +343,7 @@ export {
   createWindow,
   createPackageManagerWindow,
   createLogViewerWindow,
+  createSettingsWindow,
   forceQuit,
   handleActivation,
 };

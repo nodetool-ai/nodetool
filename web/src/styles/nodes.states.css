@@ -60,7 +60,8 @@
 /* Bypassed state                                  */
 /* --------------------------------------------- */
 .react-flow__node.bypassed {
-  opacity: 0.5;
+  opacity: 0.8;
+  filter: saturate(0.2);
 }
 
 .react-flow__node.bypassed .base-node {
@@ -70,14 +71,13 @@
     45deg,
     transparent,
     transparent 5px,
-    rgba(128, 128, 128, 0.08) 5px,
-    rgba(128, 128, 128, 0.08) 10px
+    rgba(180, 180, 180, 0.1) 5px,
+    rgba(180, 180, 180, 0.1) 10px
   );
 }
 
 .react-flow__node.bypassed .node-header .node-title {
-  text-decoration: line-through;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .react-flow__node.bypassed .bypass-badge {

@@ -164,17 +164,15 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     edges: state.edges
   }));
 
-  // const isSelected = useNodes((state) =>
-  //   state.getSelectedNodeIds().includes(props.id)
-  // );
-
   // RUN WORKFLOW
   const state = useWebsocketRunner((state) => state.state);
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
   );
   const run = useWebsocketRunner((state) => state.run);
-  const runWorkflow = useCallback(() => {
+
+  // Memoize group nodes and edges to avoid recalculation on every render
+  const { groupNodes, groupEdges } = useMemo(() => {
     // Filter nodes that belong to this group
     const groupNodes = nodes.filter(
       (node) => node.id === props.id || node.parentId === props.id
@@ -187,8 +185,12 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         groupNodes.find((node) => node.id === edge.target)
     );
 
+    return { groupNodes, groupEdges };
+  }, [nodes, edges, props.id]);
+
+  const runWorkflow = useCallback(() => {
     run({}, workflow, groupNodes, groupEdges);
-  }, [nodes, edges, run, workflow, props.id]);
+  }, [run, workflow, groupNodes, groupEdges]);
 
   // Get child nodes of this group
   const childNodes = useMemo(() => {
@@ -219,7 +221,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isDragging = useNodes((state) => state.hoveredNodes.length > 0);
 
   const [headline, setHeadline] = useState(
-    props.data.properties.headline || "Group"
+    (props.data.properties.headline as string | undefined) || "Group"
   );
 
   const [color, setColor] = useState(
@@ -237,47 +239,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
-  // const handleOpenNodeMenu = useCallback(
-  //   (e: React.MouseEvent) => {
-  //     e.stopPropagation();
-  //     e.preventDefault();
-  //     openNodeMenu({
-  //       x: getMousePosition().x,
-  //       y: getMousePosition().y
-  //     });
-  //   },
-  //   [openNodeMenu]
-  // );
-
-  // const handleDoubleClick = useCallback(
-  //   (e: React.MouseEvent, id: string) => {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-  //     const clickedElement = e.target as HTMLElement;
-  //     if (
-  //       clickedElement.classList.contains("node-header") ||
-  //       clickedElement.classList.contains("title-input")
-  //     ) {
-  //       // updateNodeData(id, { collapsed: !props.data.collapsed });
-  //     } else {
-  //       handleOpenNodeMenu(e);
-  //     }
-  //   },
-  //   [handleOpenNodeMenu]
-  // );
-
-  // const handleHeaderClick = () => {
-  //   updateNode(props.id, { selected: true });
-  // };
-  const handleHeaderDoubleClick = (e: React.MouseEvent) => {
+  const handleHeaderDoubleClick = (_e: React.MouseEvent) => {
     headerInputRef.current?.focus();
     headerInputRef.current?.select();
-    // e.preventDefault();
-    // e.stopPropagation();
-    // const clickedElement = e.target as HTMLElement;
-    // if (clickedElement.classList.contains("node-header")) {
-    //   updateNodeData(props.id, { collapsed: !props.data.collapsed });
-    // }
   };
   const handleHeadlineChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,7 +275,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const handleHeaderClick = () => {
-    // console.log("Node header clicked:", props.id, props.data);
+    // Header click handler - placeholder for future functionality
   };
 
   useEffect(() => {
@@ -328,12 +292,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     <div
       css={styles(theme, MIN_WIDTH, MIN_HEIGHT)}
       ref={nodeRef}
-      className={`group-node ${nodeHovered ? "hovered" : ""} 
-      }`}
+      className={`group-node ${nodeHovered ? "hovered" : ""} ${props.selected ? "selected" : ""}`}
       style={{
-        ...(nodeHovered
-          ? { border: `2px solid ${theme.vars.palette.primary.main}` }
-          : {}),
+        ...(props.selected
+          ? {
+              border: `2px solid ${theme.vars.palette.primary.main}`,
+              boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}40, inset 0 0 20px ${theme.vars.palette.primary.main}10`
+            }
+          : nodeHovered
+            ? { border: `2px solid ${theme.vars.palette.primary.main}` }
+            : {}),
         opacity:
           controlKeyPressed || metaKeyPressed ? 0.5 : nodeHovered ? 0.8 : 1,
         pointerEvents: controlKeyPressed || metaKeyPressed ? "all" : "none",

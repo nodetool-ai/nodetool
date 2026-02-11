@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
@@ -18,28 +18,62 @@ import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { isElectron } from "../../utils/browser";
+import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
+
 const AssetItemContextMenu = () => {
-  const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const closeContextMenu = useContextMenuStore(
-    (state) => state.closeContextMenu
+  // Combine multiple ContextMenuStore subscriptions into a single selector
+  const { menuPosition, closeContextMenu } = useContextMenuStore(
+    useCallback(
+      (state) => ({
+        menuPosition: state.menuPosition,
+        closeContextMenu: state.closeContextMenu
+      }),
+      []
+    )
   );
-  const setRenameDialogOpen = useAssetGridStore(
-    (state) => state.setRenameDialogOpen
+
+  // Combine multiple AssetGridStore subscriptions into a single selector
+  const {
+    setRenameDialogOpen,
+    setMoveToFolderDialogOpen,
+    setDeleteDialogOpen,
+    selectedAssetIds,
+    selectedAssets,
+    openCompareView,
+    setCreateFolderDialogOpen
+  } = useAssetGridStore(
+    useCallback(
+      (state) => ({
+        setRenameDialogOpen: state.setRenameDialogOpen,
+        setMoveToFolderDialogOpen: state.setMoveToFolderDialogOpen,
+        setDeleteDialogOpen: state.setDeleteDialogOpen,
+        selectedAssetIds: state.selectedAssetIds,
+        selectedAssets: state.selectedAssets,
+        openCompareView: state.openCompareView,
+        setCreateFolderDialogOpen: state.setCreateFolderDialogOpen
+      }),
+      []
+    )
   );
-  const setMoveToFolderDialogOpen = useAssetGridStore(
-    (state) => state.setMoveToFolderDialogOpen
+
+  // AssetStore subscription
+  const { download } = useAssetStore(
+    useCallback(
+      (state) => ({
+        download: state.download
+      }),
+      []
+    )
   );
-  const setDeleteDialogOpen = useAssetGridStore(
-    (state) => state.setDeleteDialogOpen
-  );
-  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
-  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
-  const download = useAssetStore((state) => state.download);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  const setCreateFolderDialogOpen = useAssetGridStore(
-    (state) => state.setCreateFolderDialogOpen
+
+  // NotificationStore subscription
+  const { addNotification } = useNotificationStore(
+    useCallback(
+      (state) => ({
+        addNotification: state.addNotification
+      }),
+      []
+    )
   );
 
   // Check if any selected items are folders
@@ -47,53 +81,51 @@ const AssetItemContextMenu = () => {
     (asset) => asset.content_type === "folder"
   );
 
-  // Check if the selected asset is a single image
-  const isSingleImage =
+  // Check if the selected asset is a single item that supports clipboard
+  const isSingleClipboardSupported =
     selectedAssets.length === 1 &&
-    selectedAssets[0]?.content_type?.startsWith("image/");
+    selectedAssets[0]?.content_type &&
+    isClipboardSupported(selectedAssets[0].content_type);
 
   // Check if exactly 2 images are selected for comparison
   const isTwoImages =
     selectedAssets.length === 2 &&
     selectedAssets.every((asset) => asset.content_type?.startsWith("image/"));
 
-  const openCompareView = useAssetGridStore((state) => state.openCompareView);
-
   // Determine if we have non-folder assets selected for moving to new folder
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
 
-  const handleCopyImageToClipboard = useCallback(async () => {
-    if (!isSingleImage || !selectedAssets[0]?.get_url) {return;}
+  const handleCopyToClipboard = useCallback(async () => {
+    const asset = selectedAssets[0];
+    if (!isSingleClipboardSupported || !asset?.get_url || !asset?.content_type) {
+      return;
+    }
 
     try {
-      // Fetch image as blob to avoid CORS issues with canvas
-      const response = await fetch(selectedAssets[0].get_url);
-      const blob = await response.blob();
-      
-      // Convert blob to data URL
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      await copyAssetToClipboard(asset.content_type, asset.get_url, asset.name || undefined);
 
-      await window.api.clipboardWriteImage(dataUrl);
+      const contentTypeLabel = asset.content_type.startsWith("image/")
+        ? "Image"
+        : asset.content_type.startsWith("video/")
+        ? "Video info"
+        : asset.content_type.startsWith("audio/")
+        ? "Audio info"
+        : "Content";
 
       addNotification({
         type: "success",
-        content: "Image copied to clipboard",
+        content: `${contentTypeLabel} copied to clipboard`,
         alert: true
       });
     } catch (error) {
-      log.error("Failed to copy image to clipboard", error);
+      log.error("Failed to copy to clipboard", error);
       addNotification({
         type: "error",
-        content: "Failed to copy image to clipboard",
+        content: "Failed to copy to clipboard",
         alert: true
       });
     }
-  }, [isSingleImage, selectedAssets, addNotification]);
+  }, [isSingleClipboardSupported, selectedAssets, addNotification]);
 
   const handleDownloadAssets = async (selectedAssetIds: string[]) => {
     addNotification({
@@ -135,8 +167,8 @@ const AssetItemContextMenu = () => {
   const downloadSelected = withMenuClose(async () => {
     await handleDownloadAssets(selectedAssetIds);
   });
-  const copyImageToClipboard = withMenuClose(async () => {
-    await handleCopyImageToClipboard();
+  const copyToClipboard = withMenuClose(async () => {
+    await handleCopyToClipboard();
   });
   const handleCompareImages = withMenuClose(() => {
     if (isTwoImages) {
@@ -200,12 +232,28 @@ const AssetItemContextMenu = () => {
           IconComponent={<FileDownloadIcon />}
           tooltip="Download selected assets to your Downloads folder"
         />
-        {isElectron && isSingleImage && (
+        {isElectron && isSingleClipboardSupported && (
           <ContextMenuItem
-            onClick={copyImageToClipboard}
-            label="Copy Image"
+            onClick={copyToClipboard}
+            label={
+              selectedAssets[0]?.content_type?.startsWith("image/")
+                ? "Copy Image"
+                : selectedAssets[0]?.content_type?.startsWith("video/")
+                ? "Copy Video Info"
+                : selectedAssets[0]?.content_type?.startsWith("audio/")
+                ? "Copy Audio Info"
+                : "Copy Content"
+            }
             IconComponent={<ContentCopyIcon />}
-            tooltip="Copy image to clipboard"
+            tooltip={
+              selectedAssets[0]?.content_type?.startsWith("image/")
+                ? "Copy image to clipboard"
+                : selectedAssets[0]?.content_type?.startsWith("video/")
+                ? "Copy video URL and metadata to clipboard"
+                : selectedAssets[0]?.content_type?.startsWith("audio/")
+                ? "Copy audio URL and metadata to clipboard"
+                : "Copy content to clipboard"
+            }
           />
         )}
         {isTwoImages && (
@@ -230,4 +278,4 @@ const AssetItemContextMenu = () => {
   );
 };
 
-export default AssetItemContextMenu;
+export default memo(AssetItemContextMenu);

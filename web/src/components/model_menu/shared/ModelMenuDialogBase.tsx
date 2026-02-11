@@ -1,32 +1,32 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
+
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
+  Popover,
+  PopoverOrigin,
   Box,
   Divider,
-  Tabs,
-  Tab,
+  ListItemText,
+  ListItemIcon,
+  List,
+  ListItemButton,
   Tooltip,
-  IconButton
+  CircularProgress,
+  Typography,
+  Collapse
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+
+import StarIcon from "@mui/icons-material/Star"; // Favorite
+import HistoryIcon from "@mui/icons-material/History"; // Recent
 import SearchInput from "../../search/SearchInput";
 import ModelFiltersBar from "../ModelFiltersBar";
 import ProviderList from "../ProviderList";
 import ModelList from "../ModelList";
-import FavoritesList from "../FavoritesList";
-import RecentList from "../RecentList";
-import ModelMenuFooter from "../ModelMenuFooter";
 import ProviderApiKeyWarningBanner from "./ProviderApiKeyWarningBanner";
 import useModelFiltersStore from "../../../stores/ModelFiltersStore";
 import {
   applyAdvancedModelFilters,
-  buildMetaIndex,
   ModelSelectorModel
 } from "../../../utils/modelNormalization";
 import {
@@ -34,27 +34,17 @@ import {
   useModelMenuData
 } from "../../../stores/ModelMenuStore";
 
-const containerStyles = css({
-  display: "grid",
-  gridTemplateColumns: "250px 480px 220px",
-  gap: 4,
-  minHeight: 480,
-  gridTemplateRows: "auto auto 1fr",
-  "@media (max-width: 900px)": {
-    gridTemplateColumns: "1fr",
-    gridTemplateRows: "auto auto auto 1fr",
-    minHeight: "auto",
-    gap: 8
-  }
-});
-
 export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   open: boolean;
   onClose: () => void;
+  anchorEl?: HTMLElement | null;
   modelData: {
     models: TModel[] | undefined;
     isLoading: boolean;
+    isFetching?: boolean;
     error: unknown;
+    providerErrors?: Array<{ provider: string; error: unknown }>;
+    loadingProgress?: { total: number; loaded: number; loading: number };
   };
   onModelChange?: (model: TModel) => void;
   title?: string;
@@ -62,242 +52,405 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   storeHook: ModelMenuStoreHook<TModel>;
 }
 
-export default function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
+function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
   onClose,
+  anchorEl,
   modelData,
   onModelChange,
-  title = "Select Model",
+  title: _title = "Select Model",
   searchPlaceholder = "Search models...",
   storeHook
 }: ModelMenuBaseProps<TModel>) {
-  const { models, isLoading, error: fetchedError } = modelData;
+  const { models, isLoading, isFetching, error: fetchedError, providerErrors, loadingProgress } = modelData;
 
   const isError = !!fetchedError;
   const theme = useTheme();
-  const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
+  // isSmall logic removed as Popover usually not full screen on mobile, but we can keep it if needed.
+  // Let's assume desktop-centric for "next to trigger".
+
   const setSearch = storeHook((s) => s.setSearch);
-  const activeSidebarTab = storeHook((s) => s.activeSidebarTab);
-  const setActiveSidebarTab = storeHook((s) => s.setActiveSidebarTab);
+  const search = storeHook((s) => s.search);
+  const selectedProvider = storeHook((s) => s.selectedProvider);
+  const setSelectedProvider = storeHook((s) => s.setSelectedProvider);
 
-  const [selectedModel, setSelectedModel] = useState<TModel | null>(null);
+  const [customView, setCustomView] = useState<"favorites" | "recent" | null>(
+    null
+  );
 
-  const {
-    providers,
-    filteredModels,
-    favoriteModels,
-    recentModels,
-    totalCount,
-    filteredCount,
-    totalActiveCount
-  } = useModelMenuData<TModel>(models || [], storeHook);
+  const isIconOnly = true;
+
+  const { providers, filteredModels, favoriteModels, recentModels } =
+    useModelMenuData<TModel>(models || [], storeHook);
 
   // Advanced filters state snapshot
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
   const sizeBucket = useModelFiltersStore((s) => s.sizeBucket);
-  const families = useModelFiltersStore((s) => s.families);
-  const search = storeHook((s) => s.search);
-  const selectedProvider = storeHook((s) => s.selectedProvider);
 
-  const { familiesList } = useMemo(() => {
-    const idx = buildMetaIndex(filteredModels.length ? filteredModels : []);
-    const f = Array.from(
-      new Set(idx.map((x) => x.meta.family).filter(Boolean) as string[])
-    ).sort();
-    return { familiesList: f };
-  }, [filteredModels]);
+  // Determine the base list of models to display
+  const baseModels = useMemo(() => {
+    if (customView === "favorites") {
+      return favoriteModels;
+    }
+    if (customView === "recent") {
+      return recentModels;
+    }
+    return filteredModels; // Respects provider selection
+  }, [customView, favoriteModels, recentModels, filteredModels]);
 
   const filteredModelsAdvanced = useMemo(() => {
-    const result = applyAdvancedModelFilters<TModel>(filteredModels, {
+    const result = applyAdvancedModelFilters<TModel>(baseModels, {
       selectedTypes,
       sizeBucket,
-      families
+      families: []
     });
     return result;
-  }, [filteredModels, selectedTypes, sizeBucket, families]);
+  }, [baseModels, selectedTypes, sizeBucket]);
 
   const handleSelectModel = useCallback(
     (model: TModel) => {
-      setSelectedModel(model);
       onModelChange?.(model);
     },
     [onModelChange]
   );
 
+  // Reset custom view when provider changes
+  React.useEffect(() => {
+    if (selectedProvider !== null && customView !== null) {
+      setCustomView(null);
+    }
+  }, [selectedProvider, customView]);
+
+  // Positioning logic mimicking Select.tsx
+  const [positionConfig, setPositionConfig] = useState<{
+    anchorOrigin: PopoverOrigin;
+    transformOrigin: PopoverOrigin;
+  }>({
+    anchorOrigin: { vertical: "bottom", horizontal: "left" },
+    transformOrigin: { vertical: "top", horizontal: "left" }
+  });
+
+  const updatePosition = useCallback(() => {
+    if (!anchorEl) {
+      return;
+    }
+    const rect = anchorEl.getBoundingClientRect();
+    const height = 420; // Height of the menu
+    const spaceBelow = window.innerHeight - rect.bottom;
+
+    if (spaceBelow < height && rect.top > height) {
+      // Flip to top
+      setPositionConfig({
+        anchorOrigin: { vertical: "top", horizontal: "left" },
+        transformOrigin: { vertical: "bottom", horizontal: "left" }
+      });
+    } else {
+      // Default bottom
+      setPositionConfig({
+        anchorOrigin: { vertical: "bottom", horizontal: "left" },
+        transformOrigin: { vertical: "top", horizontal: "left" }
+      });
+    }
+  }, [anchorEl]);
+
+  React.useLayoutEffect(() => {
+    if (open) {
+      updatePosition();
+      setSearch("");
+      window.addEventListener("resize", updatePosition);
+      return () => window.removeEventListener("resize", updatePosition);
+    }
+  }, [open, updatePosition, setSearch]);
+
   return (
-    <Dialog
+    <Popover
       open={open}
+      anchorEl={anchorEl}
       onClose={onClose}
-      css={css({
-        zIndex: 20000
-      })}
-      className="model-menu__dialog"
-      transitionDuration={isSmall ? 0 : undefined}
+      anchorOrigin={positionConfig.anchorOrigin}
+      transformOrigin={positionConfig.transformOrigin}
       slotProps={{
-        backdrop: {
-          style: {
-            backdropFilter: isSmall ? "none" : theme.vars.palette.glass.blur,
-            backgroundColor: isSmall
-              ? theme.vars.palette.background.default
-              : theme.vars.palette.glass.backgroundDialog
-          }
-        },
         paper: {
+          elevation: 24,
           style: {
-            maxWidth: "1050px",
+            width: "520px",
+            height: "500px",
+            maxHeight: "90vh",
+            maxWidth: "100vw", // Allow shrinkage
             borderRadius: theme.vars.rounded.dialog,
-            background: theme.vars.palette.glass.backgroundDialogContent
+            background: theme.vars.palette.background.paper, // No transparency
+            border: `1px solid ${theme.vars.palette.divider}`,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden"
           }
-        }
-      }}
-      sx={{
-        "& .MuiDialog-paper": {
-          width: { xs: "98%", sm: "92%" },
-          maxWidth: { xs: "100%", sm: "1200px" },
-          margin: "auto",
-          borderRadius: 1.5,
-          background: "transparent",
-          border: `1px solid ${theme.vars.palette.grey[700]}`
         }
       }}
     >
-      <DialogTitle
-        className="model-menu__title"
+      {/* Compact Header */}
+      <Box
         sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 2,
-          background: "transparent",
-          m: 0,
-          p: 4,
-          borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-          fontSize: "1rem",
-          letterSpacing: 0.4
-        }}
-      >
-        {title}
-        <Tooltip title="Close">
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            sx={{
-              position: "absolute",
-              right: (t) => t.spacing(1),
-              top: (t) => t.spacing(2),
-              color: (t) => t.vars.palette.grey[500]
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </Tooltip>
-      </DialogTitle>
-      <DialogContent
-        sx={{
+          p: 1.5,
+          pl: 2,
+          borderBottom: `1px solid ${theme.vars.palette.divider}`,
           display: "flex",
-          flexDirection: "column",
-          height: "100%",
-          overflow: "hidden",
-          marginTop: theme.spacing(4)
+          alignItems: "center",
+          gap: 2,
+          flexShrink: 0,
+          background: theme.vars.palette.background.paper // No transparency
         }}
       >
-        <ProviderApiKeyWarningBanner providers={providers} />
-        <Box
-          sx={{ mb: 1, display: "flex", gap: 2, alignItems: "center" }}
-          className="model-menu__controls"
-        >
-          <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 2 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             <SearchInput
               onSearchChange={setSearch}
               placeholder={searchPlaceholder}
               debounceTime={150}
               focusSearchInput
               focusOnTyping
-              maxWidth="300px"
-              width={270}
+              width="100%"
             />
           </Box>
-          <ModelFiltersBar familiesList={familiesList} />
+          <ModelFiltersBar />
         </Box>
-        <div
-          css={containerStyles}
-          className="model-menu__grid"
-          style={{ flex: 1, minHeight: 0 }}
+      </Box>
+
+      {/* Status Banner - shows loading progress and errors */}
+      <Collapse in={!!(isLoading || isFetching || (providerErrors && providerErrors.length > 0))}>
+        <Box
+          sx={{
+            px: 2,
+            py: 0.75,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`,
+            bgcolor: providerErrors && providerErrors.length > 0
+              ? theme.vars.palette.warning.main + "15"
+              : theme.vars.palette.action.hover,
+            fontSize: "0.8rem"
+          }}
         >
-          <Box sx={{ height: "100%", overflow: "hidden" }}>
+          {(isLoading || isFetching) && (
+            <>
+              <CircularProgress size={14} />
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                {loadingProgress
+                  ? `Loading models: ${loadingProgress.loaded}/${loadingProgress.total} providers...`
+                  : "Loading models..."}
+              </Typography>
+            </>
+          )}
+          {providerErrors && providerErrors.length > 0 && !isLoading && (
+            <Tooltip
+              title={
+                <Box sx={{ maxWidth: 300 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                    Failed to load models from:
+                  </Typography>
+                  {providerErrors.map((pe) => (
+                    <Typography key={pe.provider} variant="caption" component="div" sx={{ mt: 0.5 }}>
+                      • {pe.provider}: {pe.error instanceof Error ? pe.error.message : "Unknown error"}
+                    </Typography>
+                  ))}
+                </Box>
+              }
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "help" }}>
+                <WarningAmberIcon sx={{ fontSize: 16, color: "warning.main" }} />
+                <Typography variant="caption" sx={{ color: "warning.main" }}>
+                  {providerErrors.length} provider{providerErrors.length > 1 ? "s" : ""} failed to load
+                </Typography>
+              </Box>
+            </Tooltip>
+          )}
+        </Box>
+      </Collapse>
+
+      {/* Main Content Grid */}
+      <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Left Sidebar: Navigation */}
+        <Box
+          sx={{
+            width: isIconOnly ? 64 : 200,
+            flexShrink: 0,
+            borderRight: `1px solid ${theme.vars.palette.divider}`,
+            display: "flex",
+            flexDirection: "column",
+            bgcolor: theme.vars.palette.background.default,
+            alignItems: isIconOnly ? "center" : "stretch"
+          }}
+        >
+          <List dense sx={{ py: 1, width: "100%", px: isIconOnly ? 0.5 : 0 }}>
+            <ListItemButton
+              disableRipple
+              selected={customView === "favorites"}
+              onClick={() => {
+                setCustomView("favorites");
+                setSelectedProvider(null);
+              }}
+              sx={{
+                py: isIconOnly ? 1 : 0.5,
+                borderRadius: 1,
+                mx: isIconOnly ? 0 : 1,
+                mb: 0.5,
+                justifyContent: isIconOnly ? "center" : "flex-start",
+                minHeight: isIconOnly ? 40 : "auto",
+                px: isIconOnly ? 0 : 2
+              }}
+            >
+              {isIconOnly ? (
+                <Tooltip title="Favorites" placement="right">
+                  <StarIcon
+                    fontSize="small"
+                    sx={{
+                      fontSize: "1.2rem",
+                      color:
+                        customView === "favorites"
+                          ? "primary.main"
+                          : "text.secondary"
+                    }}
+                  />
+                </Tooltip>
+              ) : (
+                <>
+                  <ListItemIcon sx={{ minWidth: 32 }}>
+                    <StarIcon
+                      fontSize="small"
+                      sx={{
+                        fontSize: "1.1rem",
+                        color:
+                          customView === "favorites"
+                            ? "primary.main"
+                            : "text.secondary"
+                      }}
+                    />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Favorites"
+                    primaryTypographyProps={{
+                      fontSize: "0.85rem",
+                      fontWeight: customView === "favorites" ? 600 : 400
+                    }}
+                  />
+                </>
+              )}
+            </ListItemButton>
+            <ListItemButton
+              disableRipple
+              selected={customView === "recent"}
+              onClick={() => {
+                setCustomView("recent");
+                setSelectedProvider(null);
+              }}
+              sx={{
+                py: isIconOnly ? 1 : 0.5,
+                borderRadius: 1,
+                mx: isIconOnly ? 0 : 1,
+                justifyContent: isIconOnly ? "center" : "flex-start",
+                minHeight: isIconOnly ? 40 : "auto",
+                px: isIconOnly ? 0 : 2
+              }}
+            >
+              {isIconOnly ? (
+                <Tooltip title="Recent" placement="right">
+                  <HistoryIcon
+                    fontSize="small"
+                    sx={{
+                      fontSize: "1.2rem",
+                      color:
+                        customView === "recent"
+                          ? "primary.main"
+                          : "text.secondary"
+                    }}
+                  />
+                </Tooltip>
+              ) : (
+                <>
+                  <ListItemIcon sx={{ minWidth: 32 }}>
+                    <HistoryIcon
+                      fontSize="small"
+                      sx={{
+                        fontSize: "1.1rem",
+                        color:
+                          customView === "recent"
+                            ? "primary.main"
+                            : "text.secondary"
+                      }}
+                    />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Recent"
+                    primaryTypographyProps={{
+                      fontSize: "0.85rem",
+                      fontWeight: customView === "recent" ? 600 : 400
+                    }}
+                  />
+                </>
+              )}
+            </ListItemButton>
+          </List>
+
+          <Divider sx={{ mx: 2, mb: 1, opacity: 0.6 }} />
+
+          {!isIconOnly && (
+            <Box
+              sx={{
+                px: 2,
+                pb: 0.5,
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                color: "text.secondary",
+                textTransform: "uppercase",
+                letterSpacing: 0.5
+              }}
+            >
+              Providers
+            </Box>
+          )}
+          <Box
+            sx={{ flex: 1, overflow: "hidden", width: "100%" }}
+            onClickCapture={() => {
+              // If user clicks anywhere in provider list, we assume they want to stick to filtered view
+              if (customView) {
+                setCustomView(null);
+              }
+            }}
+          >
             <ProviderList
               providers={providers}
               isLoading={!!isLoading}
               isError={!!isError}
               storeHook={storeHook}
+              forceUnselect={!!customView}
+              iconOnly={isIconOnly}
             />
           </Box>
-          <Box
-            className="model-menu__model-list-container"
-            sx={{
-              maxWidth: { xs: "100%", sm: 540 },
-              height: "100%",
-              minHeight: 320,
-              overflow: "hidden"
-            }}
-          >
+          <ProviderApiKeyWarningBanner providers={providers} />
+        </Box>
+
+        {/* Center: Model List */}
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+            bgcolor: "background.paper"
+          }}
+        >
+          <Box sx={{ flex: 1, overflow: "hidden" }}>
             <ModelList<TModel>
               models={filteredModelsAdvanced}
               onSelect={handleSelectModel}
+              searchTerm={search}
             />
           </Box>
-          <Box
-            className="model-menu__sidebar"
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              height: "100%",
-              overflow: "hidden",
-              "& .model-menu__favorites-list .MuiListSubheader-root, & .model-menu__recent-list .MuiListSubheader-root":
-                {
-                  display: "none"
-                }
-            }}
-          >
-            <Tabs
-              value={activeSidebarTab}
-              onChange={(_, v) => {
-                setActiveSidebarTab(v);
-              }}
-              variant="fullWidth"
-              sx={{
-                minHeight: 36,
-                "& .MuiTab-root": {
-                  minHeight: 36,
-                  fontSize: (theme) => theme.vars.fontSizeSmall,
-                  paddingY: 0.5
-                }
-              }}
-            >
-              <Tab value="favorites" label="Favorites" />
-              <Tab value="recent" label="Recent" />
-            </Tabs>
-            <Divider />
-            <Box sx={{ flex: 1, overflowY: "auto", pt: 0.5 }}>
-              {activeSidebarTab === "favorites" ? (
-                <FavoritesList<TModel>
-                  models={favoriteModels}
-                  onSelect={handleSelectModel}
-                />
-              ) : (
-                <RecentList<TModel>
-                  models={recentModels}
-                  onSelect={handleSelectModel}
-                />
-              )}
-            </Box>
-          </Box>
-        </div>
-        <ModelMenuFooter
-          filteredCount={filteredModelsAdvanced.length}
-          totalCount={totalCount}
-          totalActiveCount={totalActiveCount}
-        />
-      </DialogContent>
-    </Dialog>
+          {/* Footer removed */}
+        </Box>
+      </Box>
+    </Popover>
   );
 }
+
+export default ModelMenuDialogBase;

@@ -43,10 +43,11 @@ interface FileExplorerResult {
   message?: string;
 }
 
-type MenuEventType =
+export type MenuEventType =
   | "saveWorkflow"
   | "newTab"
   | "close"
+  | "closeTab"
   | "cut"
   | "copy"
   | "paste"
@@ -61,27 +62,81 @@ type MenuEventType =
   | "fitView"
   | "resetZoom"
   | "zoomIn"
-  | "zoomOut";
+  | "zoomOut"
+  | "prevTab"
+  | "nextTab"
+  | "switchToTab";
 
-interface MenuEventData {
+export interface MenuEventData {
   type: MenuEventType;
+  index?: number;
+  [key: string]: unknown;
+}
+
+// Clipboard content info for smart paste decisions
+interface ClipboardContentInfo {
+  formats: string[];
+  hasImage: boolean;
+  hasFiles: boolean;
+  hasHtml: boolean;
+  hasRtf: boolean;
+  hasText: boolean;
+  platform: "darwin" | "win32" | "linux";
 }
 
 declare global {
   interface Window {
     api: {
       runApp: (workflowId: string) => Promise<void>;
-      clipboardWriteText: (text: string) => Promise<void>;
-      clipboardReadText: () => Promise<string>;
-      clipboardWriteImage: (dataUrl: string) => Promise<void>;
+
+      // Clipboard operations (new API)
+      clipboard?: {
+        readText: (type?: "clipboard" | "selection") => Promise<string>;
+        writeText: (
+          text: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readHTML: (type?: "clipboard" | "selection") => Promise<string>;
+        writeHTML: (
+          markup: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readImage: (type?: "clipboard" | "selection") => Promise<string>;
+        writeImage: (
+          dataUrl: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readRTF: (type?: "clipboard" | "selection") => Promise<string>;
+        writeRTF: (
+          text: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readBookmark: () => Promise<{ title: string; url: string }>;
+        writeBookmark: (
+          title: string,
+          url: string,
+          type?: "clipboard" | "selection"
+        ) => Promise<void>;
+        readFindText: () => Promise<string>;
+        writeFindText: (text: string) => Promise<void>;
+        clear: (type?: "clipboard" | "selection") => Promise<void>;
+        availableFormats: (
+          type?: "clipboard" | "selection"
+        ) => Promise<string[]>;
+        /** Read file paths from clipboard (cross-platform: macOS, Windows, Linux) */
+        readFilePaths: () => Promise<string[]>;
+        /** Read raw buffer data from clipboard for a specific format (returns base64) */
+        readBuffer: (format: string) => Promise<string | null>;
+        /** Get comprehensive clipboard content info for smart paste decisions */
+        getContentInfo: () => Promise<ClipboardContentInfo>;
+        readFileAsDataURL: (filePath: string) => Promise<string | null>;
+      };
       openLogFile: () => Promise<void>;
       showItemInFolder: (fullPath: string) => Promise<void>;
       openModelDirectory?: (
         target: ModelDirectory
       ) => Promise<FileExplorerResult | void>;
-      openModelPath?: (
-        path: string
-      ) => Promise<FileExplorerResult | void>;
+      openModelPath?: (path: string) => Promise<FileExplorerResult | void>;
       openSystemDirectory?: (
         target: SystemDirectory
       ) => Promise<FileExplorerResult | void>;
@@ -94,16 +149,19 @@ declare global {
       restartLlamaServer?: () => Promise<void>;
       windowControls: WindowControls;
       platform: string;
-      
+
       // Shell module - Desktop integration
       shell?: {
         showItemInFolder: (fullPath: string) => Promise<void>;
         openPath: (path: string) => Promise<string>;
-        openExternal: (url: string, options?: {
-          activate?: boolean;
-          workingDirectory?: string;
-          logUsage?: boolean;
-        }) => Promise<void>;
+        openExternal: (
+          url: string,
+          options?: {
+            activate?: boolean;
+            workingDirectory?: string;
+            logUsage?: boolean;
+          }
+        ) => Promise<void>;
         trashItem: (path: string) => Promise<void>;
         beep: () => Promise<void>;
         writeShortcutLink: (
@@ -135,7 +193,9 @@ declare global {
       // Settings module - Application settings (Windows only)
       settings?: {
         getCloseBehavior: () => Promise<"ask" | "quit" | "background">;
-        setCloseBehavior: (action: "ask" | "quit" | "background") => Promise<void>;
+        setCloseBehavior: (
+          action: "ask" | "quit" | "background"
+        ) => Promise<void>;
         getSystemInfo: () => Promise<SystemInfo>;
       };
 
@@ -152,6 +212,21 @@ declare global {
           message: string;
         }>;
       };
+
+      // Dialog module - Native file/folder dialogs
+      dialog?: {
+        openFile: (options?: {
+          title?: string;
+          defaultPath?: string;
+          filters?: { name: string; extensions: string[] }[];
+          multiSelections?: boolean;
+        }) => Promise<{ canceled: boolean; filePaths: string[] }>;
+        openFolder: (options?: {
+          title?: string;
+          defaultPath?: string;
+          buttonLabel?: string;
+        }) => Promise<{ canceled: boolean; filePaths: string[] }>;
+      };
     };
     process: {
       type: string;
@@ -163,10 +238,10 @@ declare global {
       };
     };
     electron?: {
-      on: (channel: string, listener: (...args: any[]) => void) => void;
-      off: (channel: string, listener: (...args: any[]) => void) => void;
+      on: (channel: string, listener: (...args: unknown[]) => void) => void;
+      off: (channel: string, listener: (...args: unknown[]) => void) => void;
     };
-    __UPDATES__?: any[];
+    __UPDATES__?: Record<string, unknown>[];
   }
 }
 

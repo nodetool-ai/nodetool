@@ -15,7 +15,6 @@ import { datetimeEditor, floatEditor, integerEditor } from "./DataTableEditors";
 import TableActions from "./TableActions";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 export type DictDataType = "int" | "string" | "datetime" | "float";
 export type DictTableProps = {
   data: Record<string, any>;
@@ -140,15 +139,21 @@ const DictTable: React.FC<DictTableProps> = ({
     [onDataChange]
   );
 
+  const tableData = useMemo(
+    () =>
+      Object.keys(data).map((key) => ({
+        key,
+        value: data[key]
+      })),
+    [data]
+  );
+
   useEffect(() => {
     if (!tableRef.current) {return;}
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "300px",
-      data: Object.keys(data).map((key) => ({
-        key,
-        value: data[key]
-      })),
+      data: tableData,
       columns: columns,
       columnDefaults: {
         headerSort: true,
@@ -172,7 +177,7 @@ const DictTable: React.FC<DictTableProps> = ({
     return () => {
       tabulatorInstance.destroy();
     };
-  }, [data, columns, onCellEdited]);
+  }, [tableData, columns, onCellEdited]);
 
   const theme = useTheme();
   return (

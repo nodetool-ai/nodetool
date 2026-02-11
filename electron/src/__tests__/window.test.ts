@@ -266,7 +266,7 @@ describe('Window Module', () => {
         width: 1200,
         height: 900,
         webPreferences: {
-          preload: expect.stringMatching(/.*\/src\/preload\.js$/),
+          preload: expect.stringMatching(/.*[\\/]+src[\\/]+preload\.js$/),
           contextIsolation: true,
           nodeIntegration: false,
           devTools: true,
@@ -413,6 +413,7 @@ describe('Window Module', () => {
       const mockCallback = jest.fn();
       const mockWebContents = {};
       const mockDetails = { requestingUrl: 'https://example.com' };
+      const mockLocalEditorDetails = { requestingUrl: 'http://127.0.0.1:7777/editor/test' };
       
       // Test media permission (allowed)
       permissionHandler(mockWebContents, 'media', mockCallback, mockDetails);
@@ -432,6 +433,13 @@ describe('Window Module', () => {
       // Test mediaKeySystem permission (allowed)
       permissionHandler(mockWebContents, 'mediaKeySystem', mockCallback, mockDetails);
       expect(mockCallback).toHaveBeenCalledWith(true);
+      
+      mockCallback.mockClear();
+
+      // Test clipboard-sanitized-write permission (allowed for trusted local editor origin)
+      permissionHandler(mockWebContents, 'clipboard-sanitized-write', mockCallback, mockLocalEditorDetails);
+      expect(mockCallback).toHaveBeenCalledWith(true);
+      expect(logMessage).toHaveBeenCalledWith('Granting permission: clipboard-sanitized-write');
       
       mockCallback.mockClear();
       
@@ -459,9 +467,13 @@ describe('Window Module', () => {
       const result3 = permissionCheckHandler(null, 'mediaKeySystem', 'https://example.com');
       expect(result3).toBe(true);
       
+      // Test clipboard-sanitized-write permission (allowed for trusted local origin)
+      const result4 = permissionCheckHandler(null, 'clipboard-sanitized-write', 'http://127.0.0.1:7777');
+      expect(result4).toBe(true);
+      
       // Test denied permission
-      const result4 = permissionCheckHandler(null, 'camera', 'https://example.com');
-      expect(result4).toBe(false);
+      const result5 = permissionCheckHandler(null, 'camera', 'https://example.com');
+      expect(result5).toBe(false);
     });
   });
 });

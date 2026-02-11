@@ -257,9 +257,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </div>
       <div className="node-description">
-        <HighlightText 
-          text={description.description} 
-          query={searchTerm} 
+        <HighlightText
+          text={description.description}
+          query={searchTerm}
           matchStyle="primary"
         />
       </div>
@@ -270,9 +270,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         {description.useCases.raw && (
           <>
             <h4>Use cases</h4>
-            <HighlightText 
-              text={description.useCases.raw} 
-              query={searchTerm} 
+            <HighlightText
+              text={description.useCases.raw}
+              query={searchTerm}
               matchStyle="primary"
               isBulletList={true}
             />

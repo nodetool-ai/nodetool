@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo } from "react";
-import { Typography, Box, Button, Tooltip } from "@mui/material";
+import React, { useCallback, memo, useMemo } from "react";
+import { Typography, Box, Tooltip } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   NavigateNext as NavigateIcon
@@ -18,7 +19,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   serializeDragData,
-  createDragCountBadge
+  createAssetDragImage
 } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 
@@ -196,15 +197,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   containerWidth = 1200
 }) => {
   const theme = useTheme();
-  // Optimize selection hook to prevent new arrays on every render
-  useMemo(
-    () => results.map((r) => r.id).join(","),
-    [results]
-  );
-
-  const memoizedResults = useMemo(() => results, [results]);
-  const { selectedAssetIds, handleSelectAsset } =
-    useAssetSelection(memoizedResults);
+  const { selectedAssetIds, handleSelectAsset } = useAssetSelection(results);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const globalSearchQuery = useAssetGridStore(
     (state) => state.globalSearchQuery
@@ -215,9 +208,23 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   const setSelectedAssets = useAssetGridStore(
     (state) => state.setSelectedAssets
   );
+  const selectedAssets = useAssetGridStore(
+    (state) => state.selectedAssets
+  );
   const { isSearching } = useAssetSearch();
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
+
+  // Memoize static styles to prevent recreation on every render
+  const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: "0.5em" }), []);
+  const spinnerStyle = useMemo(() => ({
+    width: "20px",
+    height: "20px",
+    border: "2px solid " + "var(--palette-grey-500)",
+    borderTop: "2px solid var(--palette-grey-100)",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite"
+  }), []);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, assetId?: string) => {
@@ -228,7 +235,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         // If right-clicking on a non-selected item, select only that item first
         if (!selectedAssetIds.includes(assetId)) {
           setSelectedAssetIds([assetId]);
-          const clicked = memoizedResults.find((a) => a.id === assetId);
+          const clicked = results.find((a) => a.id === assetId);
           setSelectedAssets(clicked ? [clicked] : []);
         }
         openContextMenu(
@@ -244,7 +251,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       selectedAssetIds,
       setSelectedAssetIds,
       setSelectedAssets,
-      memoizedResults
+      results
     ]
   );
 
@@ -260,23 +267,36 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       }
 
       // Use unified drag serialization
-      serializeDragData(
-        {
-          type: "assets-multiple",
-          payload: assetIds,
-          metadata: { count: assetIds.length, sourceId: asset.id }
-        },
-        e.dataTransfer
-      );
+      if (assetIds.length === 1) {
+        serializeDragData(
+          {
+            type: "asset",
+            payload: asset,
+            metadata: { sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      } else {
+        serializeDragData(
+          {
+            type: "assets-multiple",
+            payload: assetIds,
+            metadata: { count: assetIds.length, sourceId: asset.id }
+          },
+          e.dataTransfer
+        );
+      }
 
       // Also set legacy single asset key for components that only check "asset"
       // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
       // Create and set drag image using the unified utility
-      const dragImage = createDragCountBadge(assetIds.length);
+      // For global search, we might not have all selected assets in store correctly or they might be from different queries.
+      // But we can try to use store or just minimal info.
+      const dragImage = createAssetDragImage(asset, assetIds.length, selectedAssets || []);
       document.body.appendChild(dragImage);
-      e.dataTransfer.setDragImage(dragImage, 25, 30);
+      e.dataTransfer.setDragImage(dragImage, 10, 10);
       setTimeout(() => document.body.removeChild(dragImage), 0);
 
       // Update global drag state
@@ -286,7 +306,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         metadata: { count: assetIds.length, sourceId: asset.id }
       });
     },
-    [selectedAssetIds, handleSelectAsset, setActiveDrag]
+    [selectedAssetIds, handleSelectAsset, setActiveDrag, selectedAssets]
   );
 
   const handleDragEnd = useCallback(() => {
@@ -328,18 +348,11 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
           >
             {isSearching ? (
               <div
-                style={{ display: "flex", alignItems: "center", gap: "0.5em" }}
+                style={flexCenterStyle}
               >
                 <div
                   className="search-spinner"
-                  style={{
-                    width: "20px",
-                    height: "20px",
-                    border: "2px solid var(--palette-grey-500)",
-                    borderTop: "2px solid var(--palette-grey-100)",
-                    borderRadius: "50%",
-                    animation: "spin 1s linear infinite"
-                  }}
+                  style={spinnerStyle}
                 ></div>
                 <Typography>Searching...</Typography>
               </div>
@@ -385,9 +398,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
             return (
               <div
                 key={asset.id}
-                className={`global-search-result-item search-result-item ${
-                  isSelected ? "selected global-search-selected" : ""
-                }`}
+                className={`global-search-result-item search-result-item ${isSelected ? "selected global-search-selected" : ""
+                  }`}
                 draggable={true}
                 onDragStart={(e) => handleDragStart(e, asset)}
                 onDragEnd={handleDragEnd}
@@ -405,9 +417,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                   <div
                     className="global-search-result-thumbnail result-item-thumbnail"
                     style={{
-                      backgroundImage: `url(${
-                        asset.thumb_url || asset.get_url
-                      })`
+                      backgroundImage: `url(${asset.thumb_url || asset.get_url
+                        })`
                     }}
                     title={`${asset.content_type} thumbnail`}
                     data-testid="global-search-result-thumbnail"
@@ -471,9 +482,9 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                     </div>
                     {onNavigateToFolder && (
                       <Tooltip title="Go to folder">
-                        <Button
+                        <EditorButton
                           className="global-search-navigate-btn folder-navigate-btn"
-                          size="small"
+                          density="compact"
                           variant="text"
                           startIcon={<NavigateIcon fontSize="small" />}
                           onClick={(e) => {
@@ -485,7 +496,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                           }}
                           data-testid="global-search-navigate-folder"
                           data-folder-id={asset.folder_id}
-                        ></Button>
+                        ></EditorButton>
                       </Tooltip>
                     )}
                   </div>
@@ -499,4 +510,4 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   );
 };
 
-export default GlobalSearchResults;
+export default memo(GlobalSearchResults);

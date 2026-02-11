@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { DATA_TYPES } from "../config/data_types";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -53,7 +53,6 @@ const logoStyles = (
         (theme as any)?.palette?.grey?.[50] ??
         "#000000",
       borderRadius: ".1em",
-      // boxShadow: small ? `0` : "0 0 24px rgba(200,200,200,0.2)",
       cursor: "pointer",
       boxSizing: "border-box",
       transition: "all .4s ease-in-out"
@@ -85,7 +84,7 @@ type LogoProps = {
   onClick?: () => void;
 };
 
-const Logo = ({
+const Logo = memo(function Logo({
   width,
   height,
   fontSize,
@@ -94,7 +93,7 @@ const Logo = ({
   singleLine,
   enableText = false,
   onClick
-}: LogoProps) => {
+}: LogoProps) {
   const [rdt, setRdt] = useState(randomDatatype());
   const [hoverColor, setHoverColor] = useState(rdt.color);
   const [textColor, setTextColor] = useState(rdt.textColor);
@@ -132,7 +131,7 @@ const Logo = ({
       style={onClick ? { cursor: "pointer" } : undefined}
     >
       {small && (
-        <img className="logo-image" src="/logo.png" alt="NodeTool" />
+        <img className="logo-image" src="/nodetool_icon.png" alt="NodeTool" />
       )}
       {enableText && (
         <div className="nt" onMouseEnter={handleMouseEnter} aria-hidden="true">
@@ -149,6 +148,6 @@ const Logo = ({
       )}
     </div>
   );
-};
+});
 
 export default Logo;

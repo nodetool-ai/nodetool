@@ -11,6 +11,13 @@ const getSecretDisplayName = (secretKey: string): string => {
     OPENAI_API_KEY: "OpenAI API Key",
     ANTHROPIC_API_KEY: "Anthropic API Key",
     GEMINI_API_KEY: "Gemini API Key",
+    MESHY_API_KEY: "Meshy API Key",
+    RODIN_API_KEY: "Rodin API Key",
+    TRELLIS_API_KEY: "Trellis API Key",
+    TRIPO_API_KEY: "Tripo API Key",
+    HUNYUAN3D_API_KEY: "Hunyuan3D API Key",
+    SHAP_E_API_KEY: "Shap-E API Key",
+    POINT_E_API_KEY: "Point-E API Key",
     AIME_API_KEY: "Aime API Key",
     REPLICATE_API_TOKEN: "Replicate API Token",
     CALENDLY_API_TOKEN: "Calendly API Token",
@@ -74,4 +81,3 @@ export const useProviderApiKeyValidation = (
     return statuses;
   }, [providers, isApiKeySet, isLoading]);
 };
-

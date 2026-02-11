@@ -58,11 +58,8 @@ export const useAudioQueue = create<AudioQueueState>((set, get) => ({
 
     // If it's currently playing, stop it and move to next
     if (state.currentPlayingId === id) {
-      const item = state.queue.find((q) => q.id === state.currentPlayingId);
-      if (item) {
-        item.onStop();
-      }
-      get().finishCurrent();
+      // Don't call finishCurrent here - just clear current
+      set({ currentPlayingId: null, queue: state.queue });
     } else {
       // Just remove from queue
       set({ queue: state.queue.filter((q) => q.id !== id) });

@@ -5,7 +5,7 @@ import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Node,
   NodeProps,
@@ -15,37 +15,45 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "lodash/isEqual";
-import { Container } from "@mui/material";
+import { Button, Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
+import useErrorStore from "../../stores/ErrorStore";
 import ModelRecommendations from "./ModelRecommendations";
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
+import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
 import useMetadataStore from "../../stores/MetadataStore";
-import NodeFooter from "./NodeFooter";
 import useSelect from "../../hooks/nodes/useSelect";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
+import NodeResizeHandle from "./NodeResizeHandle";
+import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
 import { getIsElectronDetails } from "../../utils/browser";
+import { Box } from "@mui/material";
+import { useNodeFocusStore } from "../../stores/NodeFocusStore";
+import { useNodes } from "../../contexts/NodeContext";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { isProduction } from "../../stores/ApiClient";
 
-
-// Node sizing constants
+// CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
 const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-const isProduction = process.env.NODE_ENV === "production";
+const MIN_NODE_HEIGHT = 100;
 
 const resizer = (
   <div className="node-resizer">
@@ -56,28 +64,42 @@ const resizer = (
           params: ResizeParams & { direction: number[] }
         ) => {
           const [dirX, dirY] = params.direction;
-          return dirX !== 0 && dirY === 0;
+          // Allow both horizontal and vertical resizing
+          return dirX !== 0 || dirY !== 0;
         }}
-        minWidth={100}
+        minWidth={200}
         maxWidth={MAX_NODE_WIDTH}
+        minHeight={MIN_NODE_HEIGHT}
       />
     </div>
   </div>
 );
 
+const TOOLBAR_SHOW_DELAY = 200; // ms delay before showing toolbar after selection
+
 const Toolbar = memo(function Toolbar({
   id,
-  selected
+  selected,
+  dragging
 }: {
   id: string;
   selected: boolean;
+  dragging?: boolean;
 }) {
   const { activeSelect } = useSelect();
-  if (activeSelect || !selected) {
-    return null;
-  }
+  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
+
+  // Delay showing toolbar to avoid flash when clicking to drag
+  const delayedSelected = useDelayedVisibility({
+    shouldBeVisible: selected && !dragging,
+    delay: TOOLBAR_SHOW_DELAY
+  });
+
+  // Only show toolbar when exactly one node is selected
+  const isVisible =
+    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
   return (
-    <NodeToolbar position={Position.Top} offset={0}>
+    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
       <NodeToolButtons nodeId={id} />
     </NodeToolbar>
   );
@@ -163,7 +185,7 @@ const getStyleProps = (
       .replace(/\s+/g, " ")
       .trim(),
     minHeight: metadata
-      ? BASE_HEIGHT + (metadata.outputs?.length || 0) * INCREMENT_PER_OUTPUT
+      ? BASE_HEIGHT + (metadata.outputs?.length ?? 0) * INCREMENT_PER_OUTPUT
       : BASE_HEIGHT
   };
 };
@@ -172,7 +194,7 @@ const getNodeColors = (metadata: any): string[] => {
   const outputColors = [
     ...new Set(
       metadata?.outputs?.map((output: any) => colorForType(output.type.type)) ||
-      []
+        []
     )
   ];
   const inputColors = [
@@ -231,14 +253,80 @@ const getHeaderColors = (
   };
 };
 
+// Memoized function to generate node container styles
+const getNodeContainerStyles = (
+  isLoading: boolean,
+  selected: boolean,
+  isFocused: boolean,
+  hasParent: boolean,
+  hasToggleableResult: boolean,
+  baseColor: string | undefined,
+  parentColor: string | null,
+  theme: Theme,
+  minHeight: number
+) => ({
+  display: "flex" as const,
+  // Important for resizable nodes:
+  // ReactFlow applies width/height to the wrapper. Ensure our visual container
+  // stretches to match so vertical resizing is visible.
+  height: "100%",
+  minHeight,
+  border: isLoading
+    ? "none"
+    : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
+  ...theme.applyStyles("dark", {
+    border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
+  }),
+  boxShadow: selected
+    ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
+    : isFocused
+    ? `0 0 0 2px ${theme.vars.palette.warning.main}`
+    : "none",
+  outline: isFocused
+    ? `2px dashed ${theme.vars.palette.warning.main}`
+    : "none",
+  outlineOffset: "-2px",
+  backgroundColor:
+    hasParent && !isLoading
+      ? parentColor
+      : selected
+      ? "transparent !important"
+      : theme.vars.palette.c_node_bg,
+  backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
+  WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
+  borderRadius: "var(--rounded-node)",
+  // dynamic node color
+  "--node-primary-color": baseColor || "var(--palette-primary-main)",
+  ...(hasToggleableResult
+    ? {
+        // Match PreviewNode behavior: show the corner resize handle on hover
+        "& .react-flow__resize-control.nodrag.bottom.right.handle": {
+          opacity: 0,
+          position: "absolute" as const,
+          right: "-8px",
+          bottom: "-9px",
+          transition: "opacity 0.2s"
+        },
+        "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
+          opacity: 1
+        }
+      }
+    : {})
+});
+
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
-  const { id, type, data, selected, parentId } = props;
+  const { id, type, data, selected, parentId, dragging } = props;
   const { workflow_id, title } = data;
+  // Subscribe directly to focusedNodeId with equality check to avoid re-renders
+  const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
+  const updateNode = useNodes((state) => state.updateNode);
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
+  const initialRenderRef = useRef(true);
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -251,7 +339,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [type]
   );
   // Status
-  const status = useStatusStore((state) => state.getStatus(workflow_id, id));
+  const statusValue = useStatusStore((state) =>
+    state.getStatus(workflow_id, id)
+  );
+  const status =
+    statusValue && statusValue !== null && typeof statusValue !== "object"
+      ? statusValue
+      : undefined;
   const isLoading = useMemo(
     () => status === "running" || status === "starting" || status === "booting",
     [status]
@@ -263,10 +357,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     throw new Error("Metadata is not loaded for node type " + type);
   }
 
-  const parentColor = parentId ?
-    (isDarkMode ?
-      hexToRgba("#222", GROUP_COLOR_OPACITY)
-      : hexToRgba("#ccc", GROUP_COLOR_OPACITY)) : null;
+  const parentColor = parentId
+    ? isDarkMode
+      ? hexToRgba("#222", GROUP_COLOR_OPACITY)
+      : hexToRgba("#ccc", GROUP_COLOR_OPACITY)
+    : null;
 
   const specialNamespaces = useMemo(
     () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
@@ -278,8 +373,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       nodeNamespace: metadata.namespace || "",
       nodeBasicFields: metadata.basic_fields || [],
       hasAdvancedFields:
-        (metadata.properties?.length || 0) >
-        (metadata.basic_fields?.length || 0),
+        (metadata.properties?.length ?? 0) >
+        (metadata.basic_fields?.length ?? 0),
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
   }, [
@@ -297,34 +392,51 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Results and rendering
   const result = useResultsStore((state) => {
-    const r = state.getOutputResult(workflow_id, id) || state.getResult(workflow_id, id);
+    const r =
+      state.getOutputResult(workflow_id, id) ||
+      state.getResult(workflow_id, id);
     return r;
   });
 
-  // Manage overlay visibility based on node status and result
+  // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
     // Reset overlay when node starts running again
     if (status === "running" || status === "starting") {
       setShowResultOverlay(false);
     }
-    // Automatically show overlay when result becomes available and node completes
-    // Only for non-output nodes, and only when completed (not error or cancelled)
+    // When node completes with result, respect user's saved preference
+    // Only for non-output nodes (output nodes always show results)
     else if (result && !nodeType.isOutputNode && status === "completed") {
-      setShowResultOverlay(true);
+      // Only show result overlay if user has explicitly saved that preference
+      if (data.showResultPreference === true) {
+        setShowResultOverlay(true);
+      }
+      // Otherwise stay on inputs view (default behavior)
     }
-  }, [result, nodeType.isOutputNode, status]);
+  }, [result, nodeType.isOutputNode, status, data.showResultPreference]);
 
   const handleShowInputs = useCallback(() => {
     setShowResultOverlay(false);
-  }, []);
+    // Save preference: user wants to see inputs after workflow runs
+    updateNodeData(id, { showResultPreference: false });
+  }, [id, updateNodeData]);
 
   const handleShowResults = useCallback(() => {
     setShowResultOverlay(true);
-  }, []);
+    // Save preference: user wants to see results after workflow runs
+    updateNodeData(id, { showResultPreference: true });
+  }, [id, updateNodeData]);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
-  const isEmptyResult = (obj: any) => obj && typeof obj === "object" && Object.keys(obj).length === 0;
-  const isOverlayVisible = showResultOverlay && result && !isEmptyResult(result);
+  const isEmptyResult = (obj: unknown) =>
+    obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
+  const isOverlayVisible =
+    showResultOverlay && result && !isEmptyResult(result);
+  const hasToggleableResult =
+    !nodeType.isOutputNode &&
+    !nodeType.isConstantNode &&
+    result &&
+    !isEmptyResult(result);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
   const toolCall = useResultsStore((state) =>
@@ -363,46 +475,87 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [theme]
   );
 
+  // Memoize the container sx prop to prevent object recreation on every render
+  const containerSx = useMemo(
+    () =>
+      getNodeContainerStyles(
+        isLoading,
+        selected,
+        isFocused,
+        hasParent,
+        Boolean(hasToggleableResult),
+        baseColor,
+        parentColor,
+        theme,
+        styleProps.minHeight
+      ),
+    [
+      isLoading,
+      selected,
+      isFocused,
+      hasParent,
+      hasToggleableResult,
+      baseColor,
+      parentColor,
+      theme,
+      styleProps.minHeight
+    ]
+  );
+
   if (!metadata) {
     throw new Error("Metadata is not loaded for node " + id);
   }
 
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
-  }, [showAdvancedFields]);
+    // Reset node height to auto-size when toggling advanced fields
+    updateNode(id, { height: undefined, measured: undefined });
+  }, [showAdvancedFields, updateNode, id]);
+
+  const handleNamespaceClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Open nodeMenu at that namespace
+    const namespacePath = metadata.namespace?.split(".") || [];
+    useNodeMenuStore.getState().openNodeMenu({
+      x: e.clientX,
+      y: e.clientY,
+      selectedPath: namespacePath
+    });
+  }, [metadata.namespace]);
+
+  // Track error state for node dimension management
+  const hasError = useErrorStore((state) =>
+    workflow_id !== undefined ? !!state.getError(workflow_id, id) : false
+  );
+
+  // Force node re-measurement when content that affects height changes
+  // (error messages appearing/disappearing, result overlay toggling).
+  // Without this, React Flow's cached handle positions become stale.
+  // Uses requestAnimationFrame to let the DOM settle before React Flow
+  // re-measures, ensuring handle positions are read from final layout.
+  useEffect(() => {
+    if (initialRenderRef.current) {
+      initialRenderRef.current = false;
+      return;
+    }
+    // Wait one frame for DOM to settle, then reset measured dimensions
+    // so React Flow re-measures the node and recalculates handle positions
+    const rafId = requestAnimationFrame(() => {
+      updateNode(id, { height: undefined, measured: undefined });
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [hasError, isOverlayVisible, id, updateNode]);
 
   return (
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
-      sx={{
-        display: "flex",
-        minHeight: styleProps.minHeight,
-        border: isLoading
-          ? "none"
-          : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
-        ...theme.applyStyles("dark", {
-          border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
-        }),
-        boxShadow: selected
-          ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
-          : `0 4px 20px rgba(0, 0, 0, 0.1)`,
-        backgroundColor:
-          hasParent && !isLoading
-            ? parentColor
-            : selected
-              ? "transparent !important"
-              : // theme.vars.palette.c_node_bg
-              // : "#121212", // Darker background
-              theme.vars.palette.c_node_bg, // Darker background
-        backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-        WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-        borderRadius: "var(--rounded-node)",
-        // dynamic node color
-        "--node-primary-color": baseColor || "var(--palette-primary-main)"
-      }}
+      sx={containerSx}
     >
-      {selected && <Toolbar id={id} selected={selected} />}
+      {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
+      {/* {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />} */}
+      <NodeResizeHandle minWidth={150} minHeight={150} />
       <NodeHeader
         id={id}
         selected={selected}
@@ -412,34 +565,54 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         hasParent={hasParent}
         iconType={metadata?.outputs?.[0]?.type?.type}
         iconBaseColor={baseColor}
+        workflowId={workflow_id}
+        showResultButton={Boolean(!isOverlayVisible && hasToggleableResult)}
+        showInputsButton={Boolean(isOverlayVisible)}
+        onShowResults={handleShowResults}
+        onShowInputs={handleShowInputs}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
-      {!isOverlayVisible && (getIsElectronDetails().isElectron || !isProduction) && (
-        <ModelRecommendations nodeType={type} />
-      )}
+      <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
+      {!isOverlayVisible &&
+        (getIsElectronDetails().isElectron || !isProduction) && (
+          <ModelRecommendations nodeType={type} />
+        )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
-      <InputNodeNameWarning nodeType={type} name={data.properties?.name} />
-      <NodeContent
-        id={id}
-        nodeType={type}
-        nodeMetadata={metadata}
-        isConstantNode={nodeType.isConstantNode}
-        isOutputNode={nodeType.isOutputNode}
-        data={data}
-        hasAdvancedFields={meta.hasAdvancedFields}
-        showAdvancedFields={showAdvancedFields}
-        onToggleAdvancedFields={onToggleAdvancedFields}
-        basicFields={meta.nodeBasicFields}
-        status={status}
-        workflowId={workflow_id}
-        showResultOverlay={showResultOverlay}
-        result={result}
-        onShowInputs={handleShowInputs}
-        onShowResults={handleShowResults}
-      />
+      <InputNodeNameWarning nodeType={type} name={data.properties?.name as string | undefined} />
+      <Box
+        className="node-content-container"
+        sx={{
+          flex: "1 1 auto",
+          minHeight: 0,
+          width: "100%",
+          overflow: "visible", // Allow handles to render outside bounds
+          clipPath: "inset(0 -20px)" // Clip top/bottom, extend left/right for handles
+        }}
+      >
+        <NodeContent
+          id={id}
+          nodeType={type}
+          nodeMetadata={metadata}
+          isConstantNode={nodeType.isConstantNode}
+          isOutputNode={nodeType.isOutputNode}
+          data={data}
+          hasAdvancedFields={meta.hasAdvancedFields}
+          showAdvancedFields={showAdvancedFields}
+          onToggleAdvancedFields={onToggleAdvancedFields}
+          basicFields={meta.nodeBasicFields}
+          status={status}
+          workflowId={workflow_id}
+          showResultOverlay={showResultOverlay}
+          result={result}
+          onShowInputs={handleShowInputs}
+          onShowResults={handleShowResults}
+        />
+      </Box>
 
-      {selected && resizer}
+      {/* Default behavior: width-only resize for regular nodes.
+          If a node has toggleable result rendering, it uses the Preview-style corner handle instead. */}
+      {selected && !hasToggleableResult && resizer}
       {toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
@@ -448,18 +621,68 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       {chunk && <ChunkDisplay chunk={chunk} />}
       {task && <TaskView task={task} />}
-      {meta.showFooter && (
-        <NodeFooter
-          id={id}
-          nodeNamespace={meta.nodeNamespace}
-          metadata={metadata}
-          nodeType={type}
-          data={data}
-          workflowId={workflow_id}
-        />
+
+      {isFocused && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: -20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            bgcolor: theme.vars.palette.warning.main,
+            color: theme.vars.palette.warning.contrastText,
+            px: 1,
+            py: 0.25,
+            borderRadius: 1,
+            fontSize: "0.7rem",
+            fontWeight: "bold",
+            zIndex: 1000,
+            boxShadow: 2
+          }}
+        >
+          FOCUSED
+        </Box>
       )}
 
       {title && <EditableTitle nodeId={id} title={title} />}
+
+      {selected && metadata.namespace && (
+        <Tooltip
+          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+          title="Open Node Menu here"
+          placement="bottom"
+          arrow
+        >
+          <Button
+            variant="text"
+            className="node-namespace nodrag nopan"
+            onClick={handleNamespaceClick}
+            sx={{
+              position: "absolute",
+              bottom: -25,
+              left: "50%",
+              transform: "translateX(-50%)",
+              bgcolor: "background.paper",
+              color: "text.secondary",
+              px: 1,
+              py: 0.25,
+              borderRadius: 1,
+              fontSize: "0.65rem",
+              fontWeight: 400,
+              zIndex: 1000,
+              border: "1px solid",
+              borderColor: "divider",
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+              "&:hover": {
+                bgcolor: "action.hover"
+              }
+            }}
+          >
+            {metadata.namespace}
+          </Button>
+        </Tooltip>
+      )}
     </Container>
   );
 };
@@ -469,6 +692,7 @@ export default memo(BaseNode, (prevProps, nextProps) => {
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&
     prevProps.selected === nextProps.selected &&
+    prevProps.dragging === nextProps.dragging &&
     prevProps.parentId === nextProps.parentId &&
     isEqual(prevProps.data, nextProps.data)
   );

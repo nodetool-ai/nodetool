@@ -9,12 +9,13 @@ import React, {
   useId,
   useState
 } from "react";
+import ReactDOM from "react-dom";
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
 import { Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { selectStyles } from "./selectStyles";
+import { selectStyles, portalOptionsStyles } from "./selectStyles";
 
 interface Option {
   value: any;
@@ -74,6 +75,13 @@ const Select: React.FC<SelectProps> = ({
   const id = useId();
 
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    openUpward: boolean;
+  } | null>(null);
+
   const toggleDropdown = useCallback(() => {
     if (activeSelect === id) {
       close();
@@ -96,36 +104,46 @@ const Select: React.FC<SelectProps> = ({
   );
 
   const updateDropdownPosition = useCallback(() => {
-    if (!selectRef.current || !optionsRef.current || activeSelect !== id)
-      {return;}
+    if (!selectRef.current || activeSelect !== id) {
+      setDropdownPosition(null);
+      return;
+    }
 
     const selectRect = selectRef.current.getBoundingClientRect();
-    const optionsHeight = optionsRef.current.offsetHeight;
+    const estimatedOptionsHeight = 300; // maxHeight from styles
     const windowHeight = window.innerHeight;
     const spaceBelow = windowHeight - selectRect.bottom;
+    const openUpward = spaceBelow < estimatedOptionsHeight && selectRect.top > estimatedOptionsHeight;
 
-    if (spaceBelow < optionsHeight && selectRect.top > optionsHeight) {
-      optionsRef.current.style.bottom = "100%";
-      optionsRef.current.style.top = "auto";
-    } else {
-      optionsRef.current.style.top = "100%";
-      optionsRef.current.style.bottom = "auto";
-    }
+    setDropdownPosition({
+      top: openUpward ? selectRect.top : selectRect.bottom + 4,
+      left: selectRect.left,
+      width: Math.max(selectRect.width, 200),
+      openUpward
+    });
   }, [activeSelect, id]);
 
   useEffect(() => {
-    updateDropdownPosition();
-    window.addEventListener("resize", updateDropdownPosition);
-    return () => window.removeEventListener("resize", updateDropdownPosition);
-  }, [updateDropdownPosition]);
+    if (activeSelect === id) {
+      updateDropdownPosition();
+      window.addEventListener("resize", updateDropdownPosition);
+      window.addEventListener("scroll", updateDropdownPosition, true);
+      return () => {
+        window.removeEventListener("resize", updateDropdownPosition);
+        window.removeEventListener("scroll", updateDropdownPosition, true);
+      };
+    } else {
+      setDropdownPosition(null);
+    }
+  }, [activeSelect, id, updateDropdownPosition]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        selectRef.current &&
-        !selectRef.current.contains(event.target as Node) &&
-        activeSelect === id
-      ) {
+      const target = event.target as Node;
+      const isInsideSelect = selectRef.current?.contains(target);
+      const isInsideDropdown = optionsRef.current?.contains(target);
+      
+      if (activeSelect === id && !isInsideSelect && !isInsideDropdown) {
         close();
       }
     };
@@ -156,13 +174,16 @@ const Select: React.FC<SelectProps> = ({
     });
   }, [options, fuseOptions]);
 
+  // Memoize filtered options to avoid recomputation on every render
+  const filteredOptions = useMemo(() => {
+    return searchQuery
+      ? fuse.search(searchQuery).map(({ item }) => item)
+      : options;
+  }, [searchQuery, fuse, options]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (activeSelect !== id) {return;}
-
-      const filteredOptions = searchQuery
-        ? fuse.search(searchQuery).map(({ item }) => item)
-        : options;
 
       switch (e.key) {
         case "ArrowDown":
@@ -192,9 +213,7 @@ const Select: React.FC<SelectProps> = ({
     [
       activeSelect,
       id,
-      searchQuery,
-      options,
-      fuse,
+      filteredOptions,
       highlightedIndex,
       handleOptionClick,
       close
@@ -212,6 +231,33 @@ const Select: React.FC<SelectProps> = ({
   const changedStyle = changed
     ? { borderRight: `2px solid ${theme.vars.palette.primary.main}` }
     : undefined;
+
+  // Memoize dropdown style object to prevent recreation on every render
+  const dropdownStyle = useMemo(() => {
+    if (!dropdownPosition) {
+      return undefined;
+    }
+    return {
+      position: "fixed" as const,
+      left: dropdownPosition.left,
+      width: dropdownPosition.width,
+      ...(dropdownPosition.openUpward
+        ? { bottom: window.innerHeight - dropdownPosition.top + 4 }
+        : { top: dropdownPosition.top })
+    };
+  }, [dropdownPosition]);
+
+  // Create stable callbacks for option clicks to prevent re-renders
+  const optionClickHandlers = useMemo(() => {
+    const handlers = new Map<string, () => void>();
+    filteredOptions.forEach((option) => {
+      handlers.set(
+        option.value,
+        () => handleOptionClick(option.value)
+      );
+    });
+    return handlers;
+  }, [filteredOptions, handleOptionClick]);
 
   return (
     <div className="select-container" css={styles}>
@@ -243,36 +289,40 @@ const Select: React.FC<SelectProps> = ({
             </div>
           )}
           {activeSelect === id && (
-            <>
-              <input
-                ref={searchInputRef}
-                type="text"
-                className="search-input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                onClick={(e) => e.stopPropagation()}
-              />
-              <ul ref={optionsRef} className="options-list nowheel">
-                {(searchQuery
-                  ? fuse.search(searchQuery).map(({ item }) => item)
-                  : options
-                ).map((option, index) => (
-                  <li
-                    key={option.value}
-                    className={`option ${
-                      option.value === value ? "selected" : ""
-                    } ${index === highlightedIndex ? "highlighted" : ""}`}
-                    onClick={() => handleOptionClick(option.value)}
-                  >
-                    {option.label}
-                  </li>
-                ))}
-              </ul>
-            </>
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              onClick={(e) => e.stopPropagation()}
+            />
           )}
         </div>
       </Tooltip>
+      {activeSelect === id && dropdownPosition && ReactDOM.createPortal(
+        <ul
+          ref={optionsRef}
+          className="options-list nowheel"
+          css={portalOptionsStyles(theme)}
+          style={dropdownStyle}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {filteredOptions.map((option, index) => (
+            <li
+              key={option.value}
+              className={`option ${
+                option.value === value ? "selected" : ""
+              } ${index === highlightedIndex ? "highlighted" : ""}`}
+              onClick={optionClickHandlers.get(option.value)}
+            >
+              {option.label}
+            </li>
+          ))}
+        </ul>,
+        document.body
+      )}
     </div>
   );
 };

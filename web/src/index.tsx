@@ -1,10 +1,9 @@
 /** @jsxImportSource @emotion/react */
 // Ensure global MUI/Emotion type augmentations are loaded in the TS program
-import type {} from "./theme";
-import type {} from "./emotion";
-import type {} from "./material-ui";
-import type {} from "./window";
-// import type {} from "./types/svg-react"; // removed: file does not exist
+import type { } from "./theme";
+import type { } from "./emotion";
+import type { } from "./material-ui";
+import type { } from "./window";
 
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
@@ -50,7 +49,6 @@ import { isLocalhost } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
-import { useSettingsStore } from "./stores/SettingsStore";
 import {
   FetchCurrentWorkflow,
   WorkflowManagerProvider
@@ -58,7 +56,6 @@ import {
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
 import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
-import { useJobReconnection } from "./hooks/useJobReconnection";
 
 import log from "loglevel";
 import Alert from "./components/node_editor/Alert";
@@ -90,6 +87,9 @@ const TabsNodeEditor = React.lazy(
 const AssetExplorer = React.lazy(
   () => import("./components/assets/AssetExplorer")
 );
+const AssetEditor = React.lazy(
+  () => import("./components/assets/AssetEditor")
+);
 const CollectionsExplorer = React.lazy(
   () => import("./components/collections/CollectionsExplorer")
 );
@@ -100,19 +100,11 @@ const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 
 // Register frontend tools
 import "./lib/tools/builtin/addNode";
-import "./lib/tools/builtin/setSelectionMode";
-import "./lib/tools/builtin/setAutoLayout";
 import "./lib/tools/builtin/setNodeSyncMode";
 import "./lib/tools/builtin/connectNodes";
-import "./lib/tools/builtin/deleteNode";
-import "./lib/tools/builtin/deleteEdge";
 import "./lib/tools/builtin/updateNodeData";
 import "./lib/tools/builtin/moveNode";
-import "./lib/tools/builtin/autoLayout";
 import "./lib/tools/builtin/setNodeTitle";
-import "./lib/tools/builtin/setNodeColor";
-import "./lib/tools/builtin/alignNodes";
-import "./lib/tools/builtin/fitView";
 import "./lib/tools/builtin/graph";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
@@ -123,7 +115,7 @@ if (isLocalhost) {
 }
 
 const NavigateToStart = () => {
-  const { state } = useAuth();
+  const { state } = useAuth((auth) => ({ state: auth.state }));
 
   if (isLocalhost) {
     return <Navigate to="/dashboard" replace={true} />;
@@ -245,6 +237,14 @@ function getRoutes() {
       )
     },
     {
+      path: "assets/edit/:assetId",
+      element: (
+        <ProtectedRoute>
+          <AssetEditor />
+        </ProtectedRoute>
+      )
+    },
+    {
       path: "collections",
       element: (
         <ProtectedRoute>
@@ -334,14 +334,6 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
-/**
- * Component to handle job reconnection on app load
- */
-const JobReconnectionManager = () => {
-  useJobReconnection();
-  return null;
-};
-
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
 
@@ -360,7 +352,6 @@ const AppWrapper = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <JobReconnectionManager />
         <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />

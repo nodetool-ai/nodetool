@@ -3,7 +3,6 @@ import { memo, useEffect, useState, useRef } from "react";
 import { LinearProgress, Typography } from "@mui/material";
 import useResultsStore from "../../stores/ResultsStore";
 import isEqual from "lodash/isEqual";
-import MarkdownRenderer from "../../utils/MarkdownRenderer";
 
 const NodeProgress = ({
   id,

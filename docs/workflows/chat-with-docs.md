@@ -5,7 +5,7 @@ title: "Chat with Docs"
 
 ## Overview
 
-An intelligent document retrieval and question-answering system that leverages vector search and local LLMs to provide accurate, context-aware responses based on your document collection.
+A document retrieval and question-answering system that uses vector search and local LLMs to answer questions based on your document collection.
 
 
 

@@ -1,6 +1,6 @@
 {
   "name": "nodetool-electron",
-  "version": "0.6.2-rc.20",
+  "version": "0.6.3-rc.20",
   "description": "node-based AI development tool",
   "homepage": "https://nodetool.ai",
   "main": "dist-electron/main.js",
@@ -23,9 +23,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e": "xvfb-run -a playwright test",
+    "test:e2e:ui": "xvfb-run -a playwright test --ui",
+    "test:e2e:headed": "xvfb-run -a playwright test --headed"
   },
   "author": "matti.georgi@gmail.com",
   "license": "AGPL-3.0-only",
@@ -35,9 +35,9 @@
     "@types/gunzip-maybe": "^1.4.2",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.11.0",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
+    "@types/node": "^20.19.27",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
@@ -75,6 +75,11 @@
     "tar": "^7.4.3",
     "ws": "^8.18.0",
     "zustand": "^5.0.3"
+  },
+  "overrides": {
+    "qs": ">=6.14.1",
+    "express": ">=4.21.2",
+    "body-parser": ">=1.20.3"
   },
   "permissions": [
     "audioCapture"

@@ -10,11 +10,12 @@ export const numberInputStyles = (theme: Theme) =>
   css({
     "&.number-input": {
       display: "block",
+      position: "relative",
       cursor: "ew-resize !important",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.primary.main,
-      marginBottom: "10px"
+      color: theme.vars.palette.primary.light,
+      marginBottom: 0
     },
 
     // Highlight when the owning PropertyInput is marked as changed.
@@ -35,13 +36,22 @@ export const numberInputStyles = (theme: Theme) =>
 
     ".slider-value": {
       display: "flex",
-      justifyContent: "space-between",
+      justifyContent: "flex-start",
       alignItems: "center",
+      gap: "8px",
       outline: "none !important",
       width: "100%",
       marginBottom: 0,
       minHeight: "18px",
       marginTop: "-1px"
+    },
+
+    ".value-container": {
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+      minWidth: "30px",
+      minHeight: "20px" // Ensure stable height
     },
 
     ".slider-value .property-label": {
@@ -69,14 +79,20 @@ export const numberInputStyles = (theme: Theme) =>
     // },
 
     ".slider-value .value": {
-      position: "relative",
+      display: "flex", // Use flex to match input
+      alignItems: "center", // Center text vertically
       color: theme.vars.palette.grey[100],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      lineHeight: "1.2em",
+      lineHeight: "20px",
+      height: "20px",
       textAlign: "right",
       flexShrink: 0,
-      minWidth: "30px"
+      minWidth: "10px",
+      letterSpacing: "normal",
+      fontWeight: 400,
+      padding: 0,
+      marginTop: "-6px"
     },
 
     // Changed state: value differs from default
@@ -85,22 +101,27 @@ export const numberInputStyles = (theme: Theme) =>
     },
 
     ".edit-value": {
-      position: "absolute",
+      display: "flex",
+      alignItems: "center",
       outline: "none",
-      color: theme.vars.palette.grey[0],
-      backgroundColor: theme.vars.palette.grey[800],
+      color: theme.vars.palette.grey[100] + " !important",
+      backgroundColor: "transparent",
       border: "none",
       borderRadius: 0,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      lineHeight: "1.5em",
-      height: "12px",
-      top: "2px",
-      right: 0,
-      margin: 0,
-      padding: 0,
+      lineHeight: "20px !important",
+      height: "20px !important",
+      marginLeft: "1.25em !important",
+      marginTop: "-6px !important",
+      padding: "0 !important",
       textAlign: "right",
-      maxWidth: "100px"
+      maxWidth: "100px",
+      zIndex: 10,
+      letterSpacing: "normal",
+      fontWeight: 400,
+      appearance: "none",
+      boxShadow: "none"
     },
 
     ".editable-input-container": {

@@ -3,7 +3,6 @@ import { ListItem } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import RenderNamespaces from "./RenderNamespaces";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
-import isEqual from "lodash/isEqual";
 
 interface NamespaceItemProps {
   namespace: string;
@@ -24,7 +23,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   hasChildren,
   tree
 }) => {
-  const { setSelectedPath } = useNodeMenuStore();
+  const setSelectedPath = useNodeMenuStore((state) => state.setSelectedPath);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLLIElement>) => {

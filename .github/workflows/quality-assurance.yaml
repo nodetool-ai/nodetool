@@ -1,0 +1,166 @@
+name: Quality Assurance
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  quality-assurance:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd ../electron && npm ci
+          cd ../mobile && npm ci
+
+      - name: Pre-flight quality check
+        id: pre-check
+        continue-on-error: true
+        run: |
+          echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+
+          if make typecheck 2>&1 | tee typecheck-pre.log; then
+            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TYPECHECK_EXIT=1
+            echo "⚠️ TypeScript errors found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make lint 2>&1 | tee lint-pre.log; then
+            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            LINT_EXIT=1
+            echo "⚠️ Lint errors found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make test 2>&1 | tee test-pre.log; then
+            echo "✅ Tests: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TEST_EXIT=1
+            echo "⚠️ Test failures found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+        with:
+          anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
+          prompt: |
+            # Quality Assurance
+
+            Fix quality issues in NodeTool (React/TypeScript visual AI workflow builder).
+
+            ## ⚠️ IMPORTANT: You MUST create a Pull Request
+            Your job is to:
+            1. Run quality checks and identify issues
+            2. Fix any issues you find
+            3. **Create a Pull Request with your fixes**
+            
+            If you find issues, you MUST fix them and create a PR. Do NOT just report findings.
+            If everything is already green (no issues found), you can skip creating a PR.
+
+            ## Context
+            - Stack: React 18.2, TypeScript 5.7, Zustand, ReactFlow, MUI v7
+            - Packages: `/web`, `/electron`, `/mobile`
+            - Memory: `.memory/` contains project context and known issues
+
+            ## Before Starting
+            1. Run `git branch -a` — avoid duplicating existing fix branches
+            2. Read `.memory/project-context.md` for recent changes
+
+            ## Your Task
+
+            1. Run `make lint-fix` to auto-fix lint issues
+            2. Run `make typecheck` — fix any TypeScript errors
+            3. Run `make lint` — fix remaining lint errors
+            4. Run `make test` — fix failing tests
+            5. Run `make check` — all must pass (exit code 0)
+
+            ## Fix Priorities
+            1. **Critical**: Test failures, type errors blocking builds
+            2. **High**: Lint errors, security issues
+            3. **Medium**: Lint warnings, missing tests
+
+            ## Rules
+            - Never make quality worse — if codebase was clean, keep it clean
+            - One issue type per PR (don't mix type errors with test failures)
+            - Small, focused changes (5-10 files max per PR)
+
+            ## Final Step: CREATE THE PULL REQUEST (if you made fixes)
+            If you found and fixed issues, you MUST:
+            1. Commit all your changes
+            2. Push your branch
+            3. **Open a Pull Request** describing what was broken and how you fixed it
+            
+            If no issues were found and everything is green, you may skip the PR.
+
+      - name: Post-change verification
+        if: always()
+        run: |
+          echo "## Post-Change Verification" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+
+          if make typecheck 2>&1 | tee typecheck-post.log; then
+            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TYPECHECK_EXIT=1
+            echo "❌ TypeScript errors" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make lint 2>&1 | tee lint-post.log; then
+            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            LINT_EXIT=1
+            echo "❌ Lint errors" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make test 2>&1 | tee test-post.log; then
+            echo "✅ Tests: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TEST_EXIT=1
+            echo "❌ Test failures" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Fail if quality degraded
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "🔴 NEW TypeScript errors introduced!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "🔴 NEW lint errors introduced!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "🔴 NEW test failures introduced!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

@@ -5,8 +5,19 @@ import { NodeData } from "../stores/NodeData";
 
 const EXTRA_LEFT_PADDING = 100;
 const TOP_PADDING_ADJUSTMENT = 50;
+// Minimum viewport size around a single node (in pixels)
+const SINGLE_NODE_MIN_WIDTH = 1000;
+const SINGLE_NODE_MIN_HEIGHT = 800;
 
-function getNodesBounds(
+/**
+ * Calculates the bounding box that contains all specified nodes.
+ * Takes into account parent node positions and node dimensions.
+ * 
+ * @param nodesToBound - Array of nodes to calculate bounds for
+ * @param nodesById - Map of node IDs to their absolute positions
+ * @returns Object with xMin, xMax, yMin, yMax coordinates, or null if nodes array is empty
+ */
+export function getNodesBounds(
   nodesToBound: Node<NodeData>[],
   nodesById: Record<string, XYPosition>
 ) {
@@ -33,6 +44,29 @@ function getNodesBounds(
   return { xMin, xMax, yMin, yMax };
 }
 
+/**
+ * Custom hook for fitting the workflow editor viewport to display specified nodes.
+ * 
+ * Animates the viewport to center and zoom appropriately to show all nodes
+ * within the viewport. Supports fitting to selected nodes, specific node IDs,
+ * or all nodes in the workflow.
+ * 
+ * @returns Callback function to fit the viewport with optional configuration
+ * 
+ * @example
+ * ```typescript
+ * const fitView = useFitView();
+ * 
+ * // Fit all nodes to viewport
+ * fitView();
+ * 
+ * // Fit with custom padding
+ * fitView({ padding: 0.2 });
+ * 
+ * // Fit to specific nodes
+ * fitView({ nodeIds: ['node-1', 'node-2'] });
+ * ```
+ */
 export const useFitView = () => {
   const reactFlowInstance = useReactFlow();
   const { nodes, selectedNodes, setSelectedNodes, setViewport } = useNodes(
@@ -64,6 +98,33 @@ export const useFitView = () => {
 
       if (nodesToFit.length === 0) {
         reactFlowInstance.fitView({ duration: TRANSITION_DURATION, padding });
+        return;
+      }
+      if (nodesToFit.length === 1) {
+        const node = nodesToFit[0];
+        const nodeWidth = node.measured?.width || 200;
+        const nodeHeight = node.measured?.height || 100;
+        
+        // Use fixed minimum bounds so small nodes don't zoom in too close
+        // and large nodes don't zoom out too far
+        const boundsWidth = Math.max(nodeWidth, SINGLE_NODE_MIN_WIDTH);
+        const boundsHeight = Math.max(nodeHeight, SINGLE_NODE_MIN_HEIGHT);
+        
+        // Center the node in the bounds
+        const offsetX = (boundsWidth - nodeWidth) / 2;
+        const offsetY = (boundsHeight - nodeHeight) / 2;
+        
+        const singleNodeBounds = {
+          x: node.position.x - offsetX,
+          y: node.position.y - offsetY,
+          width: boundsWidth,
+          height: boundsHeight
+        };
+        
+        reactFlowInstance.fitBounds(singleNodeBounds, {
+          duration: TRANSITION_DURATION,
+          padding: 0.1
+        });
         return;
       }
 

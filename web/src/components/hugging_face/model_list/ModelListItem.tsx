@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
 
-import React, { useMemo, useState, memo, useCallback } from "react";
-import { Typography, Tooltip, Chip, Box, Link, Button } from "@mui/material";
+import React, { useMemo, useState, useCallback, memo } from "react";
+import { Typography, Tooltip, Chip, Box, Link } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -48,20 +47,17 @@ const ModelListItem: React.FC<
   const importantTags = ["gguf", "mlx"];
   const tags = (model.tags || []).filter((tag) => importantTags.includes(tag));
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleOpenDialog = useCallback(() => {
+    setDialogOpen(true);
+  }, []);
+
   const compatibilityCounts = useMemo(() => {
     if (!compatibility) {return { total: 0 };}
     return {
       total: compatibility.recommended.length + compatibility.compatible.length
     };
   }, [compatibility]);
-  
-  const handleDialogOpen = useCallback(() => {
-    setDialogOpen(true);
-  }, []);
-  
-  const handleDialogClose = useCallback(() => {
-    setDialogOpen(false);
-  }, []);
 
   if (downloadId && downloads[downloadId]) {
     return (
@@ -204,7 +200,7 @@ const ModelListItem: React.FC<
                 <Chip
                   label={`Works with ${compatibilityCounts.total} node${compatibilityCounts.total > 1 ? "s" : ""}`}
                   size="small"
-                  onClick={() => setDialogOpen(true)}
+                  onClick={handleOpenDialog}
                   icon={<VisibilityIcon style={{ fontSize: "1rem" }} />}
                   sx={{
                     height: 20,
@@ -276,7 +272,7 @@ const ModelListItem: React.FC<
       {compatibility && (
         <ModelCompatibilityDialog
           open={dialogOpen}
-          onClose={handleDialogClose}
+          onClose={() => setDialogOpen(false)}
           model={model}
           compatibility={compatibility}
         />

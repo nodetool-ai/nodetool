@@ -31,7 +31,6 @@ import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
-import RunAsAppFab from "./RunAsAppFab";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { useTheme } from "@mui/material/styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
@@ -41,6 +40,11 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
+import FindInWorkflowDialog from "./FindInWorkflowDialog";
+import SelectionActionToolbar from "./SelectionActionToolbar";
+import NodeInfoPanel from "./NodeInfoPanel";
+import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
+import { useNodes } from "../../contexts/NodeContext";
 
 declare global {
   interface Window {
@@ -57,6 +61,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
+  // Use getSelectedNodes method which is memoized in the store
+  const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -70,6 +76,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
 
   // Undo/Redo for CommandMenu
   const nodeHistory = useTemporalNodes((state) => state);
+  const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
   const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
@@ -78,6 +85,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active) {
         setCommandMenuOpen(true);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Node Info Panel (Ctrl+I / Meta+I)
+  const nodeInfoCombo = isMac() ? ["meta", "i"] : ["control", "i"];
+  useCombo(
+    nodeInfoCombo,
+    () => {
+      if (active && selectedNodes.length > 0) {
+        toggleInspectedNode(selectedNodes[0].id);
       }
     },
     true,
@@ -138,7 +158,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           <ReactFlowWrapper workflowId={workflowId} active={active} />
           {active && (
             <>
-              <RunAsAppFab workflowId={workflowId} />
+              <SelectionActionToolbar
+                visible={selectedNodes.length >= 2}
+              />
+              <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
@@ -147,6 +170,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 redo={() => nodeHistory.redo()}
                 reactFlowWrapper={reactFlowWrapperRef}
               />
+              <FindInWorkflowDialog workflowId={workflowId} />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {

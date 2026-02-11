@@ -1,4 +1,4 @@
-import { useCallback, useRef, MouseEvent as ReactMouseEvent, useMemo } from "react";
+import { useCallback, useRef, MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -6,7 +6,6 @@ import {
   getSelectionRect,
   getNodesWithinSelection
 } from "../../utils/selectionBounds";
-import useDragHandlers from "./useDragHandlers";
 
 interface UseSelectionEventsProps {
   reactFlowInstance: ReturnType<typeof useReactFlow>;
@@ -56,6 +55,46 @@ export function useSelectionEvents({
     [openContextMenu]
   );
 
+  const resetSelectionTracking = useCallback(() => {
+    selectionStartRef.current = null;
+    selectionEndRef.current = null;
+  }, []);
+
+  const selectGroupsWithinSelection = useCallback(() => {
+    const selectionRect = getSelectionRect(
+      selectionStartRef.current,
+      selectionEndRef.current
+    );
+    if (!selectionRect) {
+      return;
+    }
+
+    // Get groups that are fully enclosed by the selection rectangle
+    const fullyEnclosedGroups = getNodesWithinSelection(
+      reactFlowInstance,
+      selectionRect,
+      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
+    );
+    const fullyEnclosedIds = new Set(fullyEnclosedGroups.map((n) => n.id));
+
+    // Get all group nodes from the instance
+    const allNodes = reactFlowInstance.getNodes();
+    const allGroupNodes = allNodes.filter(
+      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
+    );
+
+    // Select fully enclosed groups, deselect groups that are selected but not fully enclosed
+    allGroupNodes.forEach((node) => {
+      const isFullyEnclosed = fullyEnclosedIds.has(node.id);
+      if (isFullyEnclosed && !node.selected) {
+        updateNode(node.id, { selected: true });
+      } else if (!isFullyEnclosed && node.selected) {
+        // Deselect groups that were selected by ReactFlow but aren't fully enclosed
+        updateNode(node.id, { selected: false });
+      }
+    });
+  }, [reactFlowInstance, updateNode]);
+
   const handleSelectionStart = useCallback(
     (event: ReactMouseEvent) => {
       const flowPoint = projectMouseEventToFlow(event);
@@ -70,9 +109,12 @@ export function useSelectionEvents({
     (event: ReactMouseEvent) => {
       onSelectionEndBase(event);
       selectionEndRef.current = projectMouseEventToFlow(event);
-      selectGroupsWithinSelection();
+      // Defer to next frame to allow ReactFlow to complete its selection updates
+      requestAnimationFrame(() => {
+        selectGroupsWithinSelection();
+      });
     },
-    [onSelectionEndBase, projectMouseEventToFlow]
+    [onSelectionEndBase, projectMouseEventToFlow, selectGroupsWithinSelection]
   );
 
   const handleSelectionDragStart = useCallback(
@@ -88,33 +130,6 @@ export function useSelectionEvents({
     },
     [onSelectionDragStopBase]
   );
-
-  const resetSelectionTracking = useCallback(() => {
-    selectionStartRef.current = null;
-    selectionEndRef.current = null;
-  }, []);
-
-  const selectGroupsWithinSelection = useCallback(() => {
-    const selectionRect = getSelectionRect(
-      selectionStartRef.current,
-      selectionEndRef.current
-    );
-    if (!selectionRect) {
-      return;
-    }
-
-    const intersectingGroups = getNodesWithinSelection(
-      reactFlowInstance,
-      selectionRect,
-      (node) => (node.type || node.data?.originalType) === GROUP_NODE_TYPE
-    );
-
-    intersectingGroups.forEach((node) => {
-      if (!node.selected) {
-        updateNode(node.id, { selected: true });
-      }
-    });
-  }, [reactFlowInstance, updateNode]);
 
   return {
     handleSelectionContextMenu,

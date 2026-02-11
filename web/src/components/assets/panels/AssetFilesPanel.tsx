@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, memo } from "react";
 import { IDockviewPanelProps } from "dockview";
 import SearchErrorBoundary from "../../SearchErrorBoundary";
 import GlobalSearchResults from "../GlobalSearchResults";
@@ -101,4 +101,6 @@ const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
   );
 };
 
-export default AssetFilesPanel;
+AssetFilesPanel.displayName = "AssetFilesPanel";
+
+export default memo(AssetFilesPanel);

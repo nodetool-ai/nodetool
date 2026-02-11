@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { DataType } from "../../config/data_types";
 
 interface EdgeGradientDefinitionsProps {
@@ -6,7 +6,7 @@ interface EdgeGradientDefinitionsProps {
   activeGradientKeys: string[]; // Changed from all dataTypes to specific keys
 }
 
-const EdgeGradientDefinitions: React.FC<EdgeGradientDefinitionsProps> = ({
+const EdgeGradientDefinitions: React.FC<EdgeGradientDefinitionsProps> = memo(({
   dataTypes,
   activeGradientKeys
 }) => {
@@ -44,6 +44,8 @@ const EdgeGradientDefinitions: React.FC<EdgeGradientDefinitionsProps> = ({
       <defs>{gradients}</defs>
     </svg>
   );
-};
+});
+
+EdgeGradientDefinitions.displayName = "EdgeGradientDefinitions";
 
 export default EdgeGradientDefinitions;

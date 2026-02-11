@@ -1,6 +1,6 @@
 import React, { forwardRef } from "react";
 import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
-import { IconButton } from "@mui/material";
+import { ToolbarIconButton } from "../../ui_primitives";
 
 interface NewChatComposerButtonProps {
   disabled?: boolean;
@@ -12,19 +12,21 @@ export const NewChatComposerButton = forwardRef<
   NewChatComposerButtonProps
 >(({ disabled = false, onClick }, ref) => {
   return (
-    <IconButton
+    <ToolbarIconButton
       ref={ref}
-      onClick={() => {
-        if (!disabled) {onClick();}
-      }}
-      size="small"
-      disableRipple={disabled}
+      icon={<AddCommentOutlinedIcon fontSize="small" />}
+      tooltip="New chat"
+      onClick={onClick}
       disabled={disabled}
+      nodrag={false}
       sx={(theme) => ({
         width: 36,
         height: 36,
-        transition: "background-color 0.15s ease, transform 0.1s ease",
         marginRight: "6px",
+        transition: "background-color 0.15s ease, transform 0.1s ease",
+        color: disabled
+          ? theme.vars.palette.grey[500]
+          : theme.vars.palette.grey[0],
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[600]
         },
@@ -35,16 +37,7 @@ export const NewChatComposerButton = forwardRef<
           opacity: 0.5
         }
       })}
-    >
-      <AddCommentOutlinedIcon
-        fontSize="small"
-        sx={(theme) => ({
-          color: disabled
-            ? theme.vars.palette.grey[500]
-            : theme.vars.palette.grey[0]
-        })}
-      />
-    </IconButton>
+    />
   );
 });
 

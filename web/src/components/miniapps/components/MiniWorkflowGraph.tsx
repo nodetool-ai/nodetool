@@ -27,18 +27,38 @@ interface LayoutNode extends SimpleNode {
 }
 
 const glowPulse = keyframes`
-  0%, 100% { 
-    box-shadow: 0 0 4px rgba(76, 175, 80, 0.4), 0 0 8px rgba(76, 175, 80, 0.2);
-    border-color: #4caf50;
+  0%, 100% {
+    box-shadow: 0 0 4px var(--palette-success-light, rgba(76, 175, 80, 0.4)), 0 0 8px var(--palette-success-light, rgba(76, 175, 80, 0.2));
+    border-color: var(--palette-success-main, #4caf50);
   }
-  50% { 
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8), 0 0 16px rgba(76, 175, 80, 0.4), 0 0 24px rgba(76, 175, 80, 0.2);
-    border-color: #81c784;
+  50% {
+    box-shadow: 0 0 8px var(--palette-success-light, rgba(76, 175, 80, 0.8)), 0 0 16px var(--palette-success-light, rgba(76, 175, 80, 0.4)), 0 0 24px var(--palette-success-light, rgba(76, 175, 80, 0.2));
+    border-color: var(--palette-success-light, #81c784);
   }
 `;
 
-const getNodeTitle = (node: any): string => {
-  if (node.ui_properties?.title) {
+interface GraphNode {
+  id: string;
+  type: string;
+  ui_properties?: unknown;
+  [key: string]: unknown;
+}
+
+interface GraphEdge {
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+  [key: string]: unknown;
+}
+
+const getNodeTitle = (node: GraphNode): string => {
+  if (
+    node.ui_properties &&
+    typeof node.ui_properties === "object" &&
+    "title" in node.ui_properties &&
+    typeof node.ui_properties.title === "string"
+  ) {
     return node.ui_properties.title;
   }
   const typeParts = node.type.split(".");
@@ -69,19 +89,19 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
 
     // Filter out comment, group, and preview nodes
     const filteredNodes = graphNodes.filter(
-      (n: any) =>
+      (n: GraphNode) =>
         !n.type.includes("Comment") &&
         !n.type.includes("Group") &&
         !n.type.includes("Preview")
     );
 
-    const simpleNodes: SimpleNode[] = filteredNodes.map((node: any) => ({
+    const simpleNodes: SimpleNode[] = filteredNodes.map((node: GraphNode) => ({
       id: node.id,
       type: node.type,
       title: getNodeTitle(node)
     }));
 
-    const simpleEdges: SimpleEdge[] = graphEdges.map((edge: any) => ({
+    const simpleEdges: SimpleEdge[] = graphEdges.map((edge: GraphEdge) => ({
       source: edge.source,
       target: edge.target
     }));
@@ -112,7 +132,7 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
     while (currentLayer.length > 0) {
       layers.push(currentLayer);
       const nextLayer: string[] = [];
-      
+
       currentLayer.forEach((nodeId) => {
         outEdges.get(nodeId)?.forEach((targetId) => {
           const newDegree = (inDegree.get(targetId) || 0) - 1;
@@ -122,7 +142,7 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
           }
         });
       });
-      
+
       currentLayer = nextLayer;
     }
 
@@ -143,10 +163,10 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
     const layoutNodes: LayoutNode[] = [];
 
     layers.forEach((layer, layerIndex) => {
-      const x = numLayers === 1 
+      const x = numLayers === 1
         ? availableWidth / 2 + paddingX
         : paddingX + (layerIndex / (numLayers - 1)) * availableWidth;
-      
+
       const spacing = 12;
       const layerHeight = layer.length * nodeHeight + (layer.length - 1) * spacing;
       const startY = paddingY + (availableHeight - layerHeight) / 2;
@@ -168,89 +188,89 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
   }, [workflow, containerHeight, containerWidth, nodeHeight, nodeWidth, paddingX, paddingY]);
 
   // Create nodeMap for edge rendering
-  const nodeMap = useMemo(() => 
-    new Map(layoutNodes.map((n) => [n.id, n])), 
+  const nodeMap = useMemo(() =>
+    new Map(layoutNodes.map((n) => [n.id, n])),
     [layoutNodes]
   );
 
-  const styles = css`
-    .mini-graph-container {
-      position: relative;
-      width: ${containerWidth}px;
-      height: ${containerHeight}px;
-      background: var(--palette-background-paper);
-      border-radius: 8px;
-      border: 1px solid var(--palette-divider);
-      overflow: hidden;
-    }
+  const styles = css({
+    ".mini-graph-container": {
+      position: "relative",
+      width: `${containerWidth}px`,
+      height: `${containerHeight}px`,
+      background: "color-mix(in srgb, var(--palette-background-paper), transparent 60%)",
+      backdropFilter: "blur(12px)",
+      borderRadius: "8px",
+      border: "1px solid var(--palette-divider)",
+      overflow: "hidden"
+    },
 
-    .mini-node {
-      position: absolute;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      background: var(--palette-background-default);
-      border: 1px solid var(--palette-divider);
-      border-radius: 4px;
-      font-size: 10px;
-      white-space: nowrap;
-      max-width: 90px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      transition: all 0.2s ease;
-      cursor: default;
-      
-      &:hover {
-        z-index: 10;
-        max-width: none;
-        background: var(--palette-action-hover);
+    ".mini-node": {
+      position: "absolute",
+      display: "flex",
+      alignItems: "center",
+      gap: "4px",
+      padding: "3px 8px",
+      background: "var(--palette-background-default)",
+      border: "1px solid var(--palette-divider)",
+      borderRadius: "4px",
+      fontSize: "10px",
+      whiteSpace: "nowrap",
+      maxWidth: "90px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      transition: "all 0.2s ease",
+      cursor: "default",
+
+      "&:hover": {
+        zIndex: 10,
+        maxWidth: "none",
+        background: "var(--palette-action-hover)"
       }
-    }
+    },
 
-    .mini-node.running {
-      border-color: #4caf50;
-      animation: ${glowPulse} 1.5s ease-in-out infinite;
-    }
+    ".mini-node.running": {
+      borderColor: "var(--palette-success-main, #4caf50)",
+      animation: `${glowPulse} 1.5s ease-in-out infinite`
+    },
 
-    .mini-node.completed {
-      border-color: #4caf50;
-      background: rgba(76, 175, 80, 0.15);
-    }
+    ".mini-node.completed": {
+      borderColor: "var(--palette-success-main, #4caf50)",
+      background: "var(--palette-success-light, rgba(76, 175, 80, 0.15))"
+    },
 
-    .mini-node.error {
-      border-color: #f44336;
-      background: rgba(244, 67, 54, 0.15);
-    }
+    ".mini-node.error": {
+      borderColor: "var(--palette-error-main, #f44336)",
+      background: "var(--palette-error-light, rgba(244, 67, 54, 0.15))"
+    },
 
-    .mini-node.booting,
-    .mini-node.queued {
-      border-color: #ff9800;
-      background: rgba(255, 152, 0, 0.1);
-    }
+    ".mini-node.booting, .mini-node.queued": {
+      borderColor: "var(--palette-warning-main, #ff9800)",
+      background: "var(--palette-warning-light, rgba(255, 152, 0, 0.1))"
+    },
 
-    .edge-line {
-      stroke: var(--palette-divider);
-      stroke-width: 1;
-      fill: none;
-    }
-    
-    .edge-line.active {
-      stroke: #4caf50;
-      stroke-width: 1.5;
-    }
+    ".edge-line": {
+      stroke: "var(--palette-divider)",
+      strokeWidth: 1,
+      fill: "none"
+    },
 
-    .mini-graph-title {
-      position: absolute;
-      top: 6px;
-      left: 10px;
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--palette-text-secondary);
-      font-weight: 500;
+    ".edge-line.active": {
+      stroke: "var(--palette-success-main, #4caf50)",
+      strokeWidth: 1.5
+    },
+
+    ".mini-graph-title": {
+      position: "absolute",
+      top: "6px",
+      left: "10px",
+      fontSize: "9px",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
+      color: "var(--palette-text-secondary)",
+      fontWeight: 500
     }
-  `;
+  });
 
   if (layoutNodes.length === 0) {
     return (
@@ -268,7 +288,7 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
     <Box css={styles}>
       <div className="mini-graph-container">
         <span className="mini-graph-title">Workflow Graph</span>
-        
+
         {/* SVG for edges */}
         <svg
           style={{
@@ -332,4 +352,6 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
   );
 };
 
-export default MiniWorkflowGraph;
+MiniWorkflowGraph.displayName = 'MiniWorkflowGraph';
+
+export default React.memo(MiniWorkflowGraph);

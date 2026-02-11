@@ -1,17 +1,19 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo } from "react";
-import { Typography, Box, IconButton } from "@mui/material";
+import React, { useCallback, useMemo, useRef, useState, useEffect, memo } from "react";
+import { Typography, Box } from "@mui/material";
+import AutoSizer from "react-virtualized-auto-sizer";
+import { VariableSizeList as List } from "react-window";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
-import { colorForType, IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/data_types";
 import FolderIcon from "@mui/icons-material/Folder";
-import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { ExpandCollapseButton } from "../ui_primitives";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -19,6 +21,10 @@ interface AssetListViewProps {
   containerWidth?: number;
   isHorizontal?: boolean;
 }
+
+const ROW_HEIGHT = 40;
+const HEADER_HEIGHT = 50;
+const TYPE_SECTION_HEIGHT = 36;
 
 const styles = (theme: Theme) =>
   css({
@@ -66,7 +72,10 @@ const styles = (theme: Theme) =>
     },
     ".asset-list-content": {
       flex: 1,
-      overflow: "auto"
+      overflow: "hidden"
+    },
+    ".asset-virtual-list": {
+      paddingBottom: "14em"
     },
     ".asset-content-type-section": {
       marginBottom: "1em"
@@ -191,7 +200,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const AssetListView: React.FC<AssetListViewProps> = ({
+const AssetListView: React.FC<AssetListViewProps> = memo(({
   assets,
   onDoubleClick,
   containerWidth = 1200,
@@ -201,8 +210,15 @@ const AssetListView: React.FC<AssetListViewProps> = ({
   const { selectedAssetIds, handleSelectAsset, handleDeselectAssets } =
     useAssetSelection(assets);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const listRef = useRef<List>(null);
 
-  // Group assets by content type - optimized with stable asset signature
+  // Keep track of selected IDs in a ref to avoid recreating renderRow when selection changes
+  const selectedAssetIdsRef = useRef(selectedAssetIds);
+  useEffect(() => {
+    selectedAssetIdsRef.current = selectedAssetIds;
+  }, [selectedAssetIds]);
+
+  // Memoize asset signature for change detection
   useMemo(
     () =>
       assets
@@ -234,7 +250,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     return grouped;
   }, [assets]);
 
-  const [expandedTypes, setExpandedTypes] = React.useState<Set<string>>(
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
     new Set(["folder", "image", "audio", "video", "text", "other"])
   );
 
@@ -249,6 +265,35 @@ const AssetListView: React.FC<AssetListViewProps> = ({
       return newSet;
     });
   }, []);
+
+  // Create a flat list of items for virtualization (alternating headers and assets)
+  const virtualListItems = useMemo(() => {
+    const items: Array<{ type: 'header' | 'asset'; key: string; data: any }> = [];
+    
+    Object.entries(assetsByType).forEach(([type, typeAssets]) => {
+      const isExpanded = expandedTypes.has(type);
+      
+      // Add type header
+      items.push({
+        type: 'header',
+        key: `header-${type}`,
+        data: { type, count: typeAssets.length, isExpanded }
+      });
+      
+      // Add assets if expanded
+      if (isExpanded) {
+        typeAssets.forEach((asset) => {
+          items.push({
+            type: 'asset',
+            key: `asset-${asset.id}`,
+            data: { asset }
+          });
+        });
+      }
+    });
+    
+    return items;
+  }, [assetsByType, expandedTypes]);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, assetId?: string) => {
@@ -302,6 +347,162 @@ const AssetListView: React.FC<AssetListViewProps> = ({
   const showType = containerWidth > typeThreshold;
   const showDate = containerWidth > dateThreshold;
 
+  // Empty callback for disabled button - prevents new function creation on each render
+  const emptyCallback = useCallback(() => {}, []);
+
+  const getRowHeight = useCallback((index: number) => {
+    const item = virtualListItems[index];
+    if (item?.type === 'header') {
+      return TYPE_SECTION_HEIGHT;
+    }
+    return ROW_HEIGHT;
+  }, [virtualListItems]);
+
+  // Reset list when data changes
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.resetAfterIndex(0);
+    }
+  }, [virtualListItems.length, expandedTypes]);
+
+  // Force re-render when selection changes to update selected state
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.resetAfterIndex(0);
+    }
+  }, [selectedAssetIds]);
+
+  // Render a single row in the virtualized list
+  const renderRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const item = virtualListItems[index];
+    
+    if (!item) {
+      return null;
+    }
+
+    if (item.type === 'header') {
+      const { type, count, isExpanded } = item.data;
+      return (
+        <div
+          style={style}
+          className="asset-content-type-header"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleExpanded(type);
+          }}
+        >
+          <IconForType
+            iconName={type}
+            showTooltip={false}
+            containerStyle={{
+              width: "24px",
+              height: "24px",
+              marginRight: "0.5em"
+            }}
+          />
+          <Typography className="asset-content-type-title">
+            {getTypeDisplayName(type)} ({count})
+          </Typography>
+          <ExpandCollapseButton
+            expanded={isExpanded}
+            onClick={emptyCallback}
+            size="small"
+            nodrag={false}
+            sx={{ pointerEvents: 'none' }}
+          />
+        </div>
+      );
+    }
+
+    // Render asset item
+    const { asset } = item.data;
+    // Use ref to avoid recreating renderRow when selection changes
+    const isSelected = selectedAssetIdsRef.current.includes(asset.id);
+    const isFolder = asset.content_type === "folder";
+    const assetSize = asset.size;
+    const hasVisualContent =
+      (asset.content_type?.startsWith("image/") || asset.content_type?.startsWith("video/")) &&
+      asset.get_url &&
+      asset.get_url !== "/images/placeholder.png";
+
+    return (
+      <div
+        className={`asset-list-item ${isSelected ? "selected" : ""}`}
+        style={style}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleSelectAsset(asset.id);
+        }}
+        onDoubleClick={() => onDoubleClick?.(asset)}
+        onContextMenu={(e) => handleContextMenu(e, asset.id)}
+      >
+        {hasVisualContent ? (
+          <div
+            className="asset-item-thumbnail"
+            style={{
+              backgroundImage: `url(${asset.thumb_url || asset.get_url})`
+            }}
+            title={`${asset.content_type} thumbnail`}
+          />
+        ) : (
+          <div className="asset-item-icon">
+            {isFolder ? (
+              <FolderIcon
+                style={{
+                  color: "var(--palette-grey-200)",
+                  fontSize: "1.2rem"
+                }}
+              />
+            ) : (
+              <IconForType
+                iconName={asset.content_type?.split("/")[0] || "other"}
+                showTooltip={false}
+                containerStyle={{
+                  width: "24px",
+                  height: "24px",
+                  transform: "scale(0.85)"
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        <div
+          className={`asset-item-name ${isFolder ? "folder" : ""}`}
+        >
+          {asset.name}
+          {asset.duration && (
+            <span className="asset-item-duration">
+              {secondsToHMS(asset.duration)}
+            </span>
+          )}
+        </div>
+
+        {showSize && (
+          <div className="asset-item-size">
+            {!isFolder && assetSize && assetSize > 0
+              ? formatFileSize(assetSize)
+              : "--"}
+          </div>
+        )}
+
+        {showType && (
+          <div className="asset-item-type">
+            {isFolder
+              ? "Folder"
+              : asset.content_type?.split("/")[1] || "Unknown"}
+          </div>
+        )}
+
+        {showDate && (
+          <div className="asset-item-date">
+            {formatDate(asset.created_at)}
+          </div>
+        )}
+      </div>
+    );
+  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback]);
+
   if (assets.length === 0) {
     return (
       <Box css={styles(theme)} className="asset-list-view">
@@ -330,138 +531,31 @@ const AssetListView: React.FC<AssetListViewProps> = ({
           className="asset-list-content"
           onContextMenu={(e) => handleContextMenu(e)}
           onClick={(e) => {
-            // Only deselect if clicking on empty space (the target is the content div itself)
             if (e.target === e.currentTarget) {
               handleDeselectAssets();
             }
           }}
         >
-          {Object.entries(assetsByType).map(([type, typeAssets]) => (
-            <div key={type} className="asset-content-type-section">
-              <div
-                className="asset-content-type-header"
-                style={{ borderBottomColor: colorForType(type) }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleExpanded(type);
-                }}
+          <AutoSizer>
+            {({ height, width }: { height: number; width: number }) => (
+              <List
+                ref={listRef}
+                className="asset-virtual-list"
+                height={height - HEADER_HEIGHT}
+                itemCount={virtualListItems.length}
+                itemSize={getRowHeight}
+                width={width}
               >
-                <IconForType
-                  iconName={type}
-                  showTooltip={false}
-                  containerStyle={{
-                    width: "24px",
-                    height: "24px",
-                    marginRight: "0.5em"
-                  }}
-                />
-                <Typography className="asset-content-type-title">
-                  {getTypeDisplayName(type)} ({typeAssets.length})
-                </Typography>
-                <IconButton size="small" tabIndex={-1}>
-                  {expandedTypes.has(type) ? <ExpandLess /> : <ExpandMore />}
-                </IconButton>
-              </div>
-
-              {expandedTypes.has(type) &&
-                typeAssets.map((asset) => {
-                  const isSelected = selectedAssetIds.includes(asset.id);
-                  const isFolder = asset.content_type === "folder";
-                  const assetSize = asset.size;
-                  const hasVisualContent =
-                    (type === "image" || type === "video") &&
-                    asset.get_url &&
-                    asset.get_url !== "/images/placeholder.png";
-
-                  return (
-                    <div
-                      key={asset.id}
-                      className={`asset-list-item ${
-                        isSelected ? "selected" : ""
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSelectAsset(asset.id);
-                      }}
-                      onDoubleClick={() => onDoubleClick?.(asset)}
-                      onContextMenu={(e) => handleContextMenu(e, asset.id)}
-                    >
-                      {hasVisualContent ? (
-                        <div
-                          className="asset-item-thumbnail"
-                          style={{
-                            backgroundImage: `url(${
-                              asset.thumb_url || asset.get_url
-                            })`
-                          }}
-                          title={`${asset.content_type} thumbnail`}
-                        />
-                      ) : (
-                        <div className="asset-item-icon">
-                          {isFolder ? (
-                            <FolderIcon
-                              style={{
-                                color: "var(--palette-grey-200)",
-                                fontSize: "1.2rem"
-                              }}
-                            />
-                          ) : (
-                            <IconForType
-                              iconName={type}
-                              showTooltip={false}
-                              containerStyle={{
-                                width: "24px",
-                                height: "24px",
-                                transform: "scale(0.85)"
-                              }}
-                            />
-                          )}
-                        </div>
-                      )}
-
-                      <div
-                        className={`asset-item-name ${
-                          isFolder ? "folder" : ""
-                        }`}
-                      >
-                        {asset.name}
-                        {asset.duration && (
-                          <span className="asset-item-duration">
-                            {secondsToHMS(asset.duration)}
-                          </span>
-                        )}
-                      </div>
-
-                      {showSize && (
-                        <div className="asset-item-size">
-                          {!isFolder && assetSize && assetSize > 0
-                            ? formatFileSize(assetSize)
-                            : "--"}
-                        </div>
-                      )}
-
-                      {showType && (
-                        <div className="asset-item-type">
-                          {isFolder
-                            ? "Folder"
-                            : asset.content_type.split("/")[1] || "Unknown"}
-                        </div>
-                      )}
-
-                      {showDate && (
-                        <div className="asset-item-date">
-                          {formatDate(asset.created_at)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          ))}
+                {renderRow}
+              </List>
+            )}
+          </AutoSizer>
         </div>
       </div>
     </Box>
   );
-};
+});
+
+AssetListView.displayName = 'AssetListView';
 
 export default AssetListView;

@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Button,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
@@ -10,11 +9,11 @@ import {
   Box,
   useTheme
 } from "@mui/material";
+import { Dialog } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client, authHeader } from "../../../stores/ApiClient";
 import {
   isFileExplorerAvailable,
-  openHuggingfacePath,
   openOllamaPath,
   openInExplorer
 } from "../../../utils/fileExplorer";
@@ -47,7 +46,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       const { error } = await client.DELETE("/api/models/huggingface", {
         params: { query: { repo_id: repoId } }
       });
-      if (error) {throw error;}
+      if (error) { throw error; }
       addNotification({
         type: "success",
         content: `Deleted model ${repoId}`,
@@ -68,7 +67,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     setDeletingModels((prev) => new Set(prev).add(modelName));
     try {
       const response = await fetch(
-        `${BASE_URL}/api/models/ollama_model?model_name=${encodeURIComponent(
+        `${BASE_URL}/api/models/ollama?model_name=${encodeURIComponent(
           modelName
         )}`,
         {
@@ -99,11 +98,11 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     mutationFn: deleteHFModel
   });
 
-  const handleShowInExplorer = async (modelId: string) => {
-    if (!modelId) {return;}
+  const handleShowInExplorer = useCallback(async (modelId: string) => {
+    if (!modelId) { return; }
 
     const model = allModels?.find((m) => m.id === modelId);
-    if (!model) {return;}
+    if (!model) { return; }
 
     const isOllama = model?.type === "llama_model";
 
@@ -118,7 +117,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         dismissable: true
       });
     }
-  };
+  }, [allModels, addNotification]);
 
   const modelForExplorer = modelId
     ? allModels?.find((m) => m.id === modelId)
@@ -178,6 +177,12 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   const isDeleting =
     (modelId && deletingModels.has(modelId)) || deleteHFModelMutation.isPending;
 
+  const handleShowInExplorerClick = useCallback(() => {
+    if (modelId) {
+      handleShowInExplorer(modelId);
+    }
+  }, [modelId, handleShowInExplorer]);
+
   return (
     <Dialog
       open={!!modelId}
@@ -212,7 +217,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       </DialogContent>
       <DialogActions>
         <Button
-          onClick={() => modelId && handleShowInExplorer(modelId)}
+          onClick={handleShowInExplorerClick}
           disabled={isExplorerDisabled || isDeleting}
         >
           Show in Explorer

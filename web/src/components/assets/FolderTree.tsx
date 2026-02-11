@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useEffect, useState } from "react";
-import { Box, Button } from "@mui/material";
+import React, { useCallback, useEffect, useState } from "react";
+import { Box } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { useAssetStore, type AssetTreeNode } from "../../stores/AssetStore";
@@ -78,19 +79,16 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     fetchFolderTree();
   }, [loadFolderTree, sortBy]);
 
-  const renderTree = (node: AssetTreeNode): React.ReactNode => {
-    const handleOnSelect = (
-      event: React.MouseEvent,
-      node: AssetTreeNode
-    ) => {
-      event.stopPropagation();
-      onSelect(node.id);
-    };
-
+  const renderTree = useCallback((node: AssetTreeNode): React.ReactNode => {
     if (!node.id) {
       log.error("Node with undefined id found:", node);
       return null;
     }
+
+    const handleButtonClick = (event: React.MouseEvent) => {
+      event.stopPropagation();
+      onSelect(node.id);
+    };
 
     return (
       <TreeItem
@@ -100,7 +98,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         label={
           <div>
             {node.name}
-            <Button onClick={(e) => handleOnSelect(e, node)}>&gt;</Button>
+            <EditorButton onClick={handleButtonClick} density="compact">{">"}</EditorButton>
           </div>
         }
       >
@@ -109,7 +107,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
           : null}
       </TreeItem>
     );
-  };
+  }, [onSelect]);
 
   return (
     <Box className="folder-tree" css={styles(theme)}>

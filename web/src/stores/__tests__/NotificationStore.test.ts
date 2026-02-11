@@ -1,5 +1,9 @@
 import { act } from "@testing-library/react";
-import { useNotificationStore, verbosityCheck, NotificationType } from "../NotificationStore";
+import {
+  useNotificationStore,
+  verbosityCheck,
+  NotificationType
+} from "../NotificationStore";
 
 describe("NotificationStore", () => {
   beforeEach(() => {
@@ -118,6 +122,122 @@ describe("NotificationStore", () => {
       const { notifications } = useNotificationStore.getState();
       expect(notifications[0].id).not.toBe(notifications[1].id);
     });
+
+    it("suppresses duplicate notifications with same type and content", () => {
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Workflow autosaved"
+        });
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Workflow autosaved"
+        });
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Workflow autosaved"
+        });
+      });
+
+      const { notifications } = useNotificationStore.getState();
+      expect(notifications).toHaveLength(1);
+      expect(notifications[0].content).toBe("Workflow autosaved");
+    });
+
+    it("allows notifications with different content", () => {
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "First message"
+        });
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Second message"
+        });
+      });
+
+      const { notifications } = useNotificationStore.getState();
+      expect(notifications).toHaveLength(2);
+    });
+
+    it("allows notifications with same content but different type", () => {
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Same message"
+        });
+        useNotificationStore.getState().addNotification({
+          type: "warning",
+          content: "Same message"
+        });
+      });
+
+      const { notifications } = useNotificationStore.getState();
+      expect(notifications).toHaveLength(2);
+    });
+
+    it("allows same notification after the dedupe window expires", () => {
+      // Add first notification with a timestamp in the past (>5s ago)
+      const oldTimestamp = new Date(Date.now() - 6000);
+      useNotificationStore.setState({
+        notifications: [
+          {
+            id: "old-id",
+            type: "info",
+            content: "Workflow autosaved",
+            timestamp: oldTimestamp
+          }
+        ]
+      });
+
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Workflow autosaved"
+        });
+      });
+
+      const { notifications } = useNotificationStore.getState();
+      expect(notifications).toHaveLength(2);
+    });
+
+    it("deduplicates using custom dedupeKey when provided", () => {
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Version 1 available",
+          dedupeKey: "autosave-versions"
+        });
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Version 2 available",
+          dedupeKey: "autosave-versions"
+        });
+      });
+
+      const { notifications } = useNotificationStore.getState();
+      // Same dedupeKey, so second one is suppressed even though content differs
+      expect(notifications).toHaveLength(1);
+      expect(notifications[0].content).toBe("Version 1 available");
+    });
+
+    it("allows notifications with different dedupeKeys", () => {
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Message",
+          dedupeKey: "key-a"
+        });
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Message",
+          dedupeKey: "key-b"
+        });
+      });
+
+      const { notifications } = useNotificationStore.getState();
+      expect(notifications).toHaveLength(2);
+    });
   });
 
   describe("removeNotification", () => {
@@ -162,7 +282,8 @@ describe("NotificationStore", () => {
         useNotificationStore.getState().removeNotification(idToRemove);
       });
 
-      const updatedNotifications = useNotificationStore.getState().notifications;
+      const updatedNotifications =
+        useNotificationStore.getState().notifications;
       expect(updatedNotifications).toHaveLength(2);
       expect(updatedNotifications[0].content).toBe("Keep this");
       expect(updatedNotifications[1].content).toBe("Keep this too");
@@ -239,12 +360,16 @@ describe("NotificationStore", () => {
       act(() => {
         useNotificationStore.getState().updateLastDisplayedTimestamp(date1);
       });
-      expect(useNotificationStore.getState().lastDisplayedTimestamp).toEqual(date1);
+      expect(useNotificationStore.getState().lastDisplayedTimestamp).toEqual(
+        date1
+      );
 
       act(() => {
         useNotificationStore.getState().updateLastDisplayedTimestamp(date2);
       });
-      expect(useNotificationStore.getState().lastDisplayedTimestamp).toEqual(date2);
+      expect(useNotificationStore.getState().lastDisplayedTimestamp).toEqual(
+        date2
+      );
     });
   });
 });

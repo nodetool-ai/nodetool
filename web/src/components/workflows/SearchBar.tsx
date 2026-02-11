@@ -13,6 +13,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
+import React, { memo, useCallback } from "react";
 
 interface SearchBarProps {
   inputValue: string;
@@ -22,13 +23,21 @@ interface SearchBarProps {
   onClear: () => void;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({
+const SearchBar = memo(({
   inputValue,
   nodesOnlySearch,
   onInputChange,
   onToggleNodeSearch,
   onClear
-}) => {
+}: SearchBarProps) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onInputChange(e.target.value);
+  }, [onInputChange]);
+
+  const handleToggleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onToggleNodeSearch(e.target.checked);
+  }, [onToggleNodeSearch]);
+
   return (
     <Box className="search-container">
       <TextField
@@ -47,7 +56,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         variant="outlined"
         size="small"
         value={inputValue}
-        onChange={(e) => onInputChange(e.target.value)}
+        onChange={handleInputChange}
         slotProps={{
           input: {
             endAdornment: inputValue && (
@@ -75,7 +84,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           control={
             <Switch
               checked={nodesOnlySearch}
-              onChange={(e) => onToggleNodeSearch(e.target.checked)}
+              onChange={handleToggleChange}
               size="small"
             />
           }
@@ -84,6 +93,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
       </Tooltip>
     </Box>
   );
-};
+});
+
+SearchBar.displayName = "SearchBar";
 
 export default SearchBar;

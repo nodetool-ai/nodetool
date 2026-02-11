@@ -52,6 +52,7 @@ interface NodeInputProps {
     oldPropertyName: string,
     newPropertyName: string
   ) => void;
+  isConnected: boolean;
 }
 
 const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
@@ -66,19 +67,10 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   tabIndex,
   showAdvancedFields,
   basicFields,
-  isDynamicProperty
+  isDynamicProperty,
+  isConnected
 }) {
-  const { edges } = useNodes((state) => ({
-    edges: state.edges,
-    findNode: state.findNode
-  }));
-
   const isConstantNode = property.type.type.startsWith("nodetool.constant");
-  const isConnected = useMemo(() => {
-    return edges.some(
-      (edge) => edge.target === id && edge.targetHandle === property.name
-    );
-  }, [edges, id, property.name]);
 
   const isBasicField = useMemo(() => {
     return basicFields?.includes(property.name);
@@ -130,7 +122,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const rootStyles = useMemo(
     () =>
       css({
-        marginTop: "0.5em"
+        marginTop: "1em",
+        marginBottom: "0.5em"
       }),
     []
   );
@@ -145,27 +138,36 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     []
   );
 
-  const tabableProperties = properties.filter((property) => {
-    const type = property.type;
-    return !type.optional && type.type !== "readonly";
-  });
+  const tabableProperties = useMemo(
+    () =>
+      properties.filter((property) => {
+        const type = property.type;
+        return !type.optional && type.type !== "readonly";
+      }),
+    [properties]
+  );
   const dynamicProperties: { [key: string]: Property } =
-    data?.dynamic_properties || {};
+    (data?.dynamic_properties || {}) as { [key: string]: Property };
 
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
-  const { edges, findNode } = useNodes((state) => ({
-    edges: state.edges,
-    findNode: state.findNode
-  }));
+
+  const edges = useNodes((state) => state.edges);
+  const connectedEdges = useMemo(
+    () => edges.filter((e) => e.target === id),
+    [edges, id]
+  );
+
+  const findNode = useNodes((state) => state.findNode);
+
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+
   const isConnected = useCallback(
     (handle: string) => {
-      return edges.some(
-        (edge) => edge.target === id && edge.targetHandle === handle
-      );
+      // Edges are already filtered by target === id
+      return connectedEdges.some((edge) => edge.targetHandle === handle);
     },
-    [edges, id]
+    [connectedEdges]
   );
 
   properties.forEach((property, index) => {
@@ -174,6 +176,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     );
     const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
     const isBasicField = basicFields?.includes(property.name);
+
+    const connected = isConnected(property.name);
 
     const inputElement = (
       <NodeInput
@@ -189,43 +193,61 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         tabIndex={finalTabIndex}
         showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}
+        isConnected={connected}
       />
     );
 
-    if (isBasicField || isConnected(property.name)) {
+    if (isBasicField || connected) {
       basicInputs.push(inputElement);
     } else {
       advancedInputs.push(inputElement);
     }
   });
 
+  const dynamicInputs = data?.dynamic_inputs || {};
+
   const dynamicInputElements = Object.entries(dynamicProperties).map(
     ([name], index) => {
-      // Determine type from incoming edge's source handle
-      const incoming = edges.find(
-        (edge) => edge.target === id && edge.targetHandle === name
+      const incoming = connectedEdges.find(
+        (edge) => edge.targetHandle === name
       );
-      let resolvedType: TypeMetadata = {
-        type: "any",
-        type_args: [],
-        optional: false
-      } as any;
-      if (incoming) {
-        const sourceNode = findNode(incoming.source);
-        if (sourceNode) {
-          const sourceMeta = getMetadata(sourceNode.type || "");
-          const handle = sourceMeta
-            ? findOutputHandle(
-                sourceNode,
-                incoming.sourceHandle || "",
-                sourceMeta
-              )
-            : undefined;
-          if (handle?.type) {
-            resolvedType = handle.type;
+      const inputMeta = dynamicInputs[name];
+
+      let resolvedType: TypeMetadata;
+      let description: string | undefined;
+      if (inputMeta) {
+        resolvedType = {
+          ...inputMeta,
+          type: inputMeta.type,
+          type_args: inputMeta.type_args ?? [],
+          optional: inputMeta.optional ?? false,
+          values: inputMeta.values || (inputMeta as any).enum || (inputMeta.type_args?.[0] as any)?.values || (inputMeta.type_args?.[0] as any)?.enum,
+        } as TypeMetadata;
+        description = inputMeta.description;
+      } else {
+        resolvedType = {
+          type: "any",
+          type_args: [],
+          optional: false
+        } as TypeMetadata;
+        if (incoming) {
+          const sourceNode = findNode(incoming.source);
+          if (sourceNode) {
+            const sourceMeta = getMetadata(sourceNode.type || "");
+            const handle = sourceMeta
+              ? findOutputHandle(
+                  sourceNode,
+                  incoming.sourceHandle || "",
+                  sourceMeta
+                )
+              : undefined;
+            if (handle?.type) {
+              resolvedType = handle.type;
+            }
           }
         }
       }
+
       return (
         <NodeInput
           key={`dynamic-${name}-${id}`}
@@ -235,7 +257,11 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           property={{
             name,
             type: resolvedType,
-            required: false
+            required: false,
+            ...(description != null && { description }),
+            ...(inputMeta?.min != null && { min: inputMeta.min }),
+            ...(inputMeta?.max != null && { max: inputMeta.max }),
+            ...(inputMeta?.default !== undefined && { default: inputMeta.default })
           }}
           propertyIndex={`dynamic-${index}`}
           data={data}
@@ -243,6 +269,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           showHandle={true}
           tabIndex={-1}
           isDynamicProperty={true}
+          isConnected={!!incoming}
         />
       );
     }
@@ -253,7 +280,10 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
       {basicInputs}
 
       {hasAdvancedFields && (
-        <div className="expand-button-container" css={expandButtonContainerStyles}>
+        <div
+          className="expand-button-container"
+          css={expandButtonContainerStyles}
+        >
           <Tooltip
             title={`${showAdvancedFields ? "Hide" : "Show"} Advanced Fields`}
             placement="bottom"

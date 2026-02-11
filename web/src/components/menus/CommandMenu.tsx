@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { Command, CommandInput } from "cmdk";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
-import { Dialog, Tooltip } from "@mui/material";
+import { Tooltip } from "@mui/material";
+import { Dialog } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
@@ -22,6 +21,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
 import { isDevelopment } from "../../stores/ApiClient";
+import { useMiniMapStore } from "../../stores/MiniMapStore";
 
 type CommandMenuProps = {
   open: boolean;
@@ -31,7 +31,7 @@ type CommandMenuProps = {
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
 };
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     ".MuiDialog-paper": {
       maxWidth: "800px",
@@ -47,14 +47,12 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     nodes,
     edges,
     currentWorkflow,
-    getWorkflow,
     workflowJSON,
     autoLayout
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
     currentWorkflow: state.workflow,
-    getWorkflow: state.getWorkflow,
     workflowJSON: state.workflowJSON,
     autoLayout: state.autoLayout
   }));
@@ -153,6 +151,22 @@ const LayoutCommands = memo(function LayoutCommands() {
       >
         Align Nodes with Spacing
       </Command.Item>
+      </Command.Group>
+  );
+});
+
+const ViewCommands = memo(function ViewCommands() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const visible = useMiniMapStore((state) => state.visible);
+  const toggleVisible = useMiniMapStore((state) => state.toggleVisible);
+
+  return (
+    <Command.Group heading="View">
+      <Command.Item
+        onSelect={() => executeAndClose(toggleVisible)}
+      >
+        {visible ? "Hide Mini Map" : "Show Mini Map"}
+      </Command.Item>
     </Command.Group>
   );
 });
@@ -160,7 +174,6 @@ const LayoutCommands = memo(function LayoutCommands() {
 const NodeCommands = memo(function NodeCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const reactFlowWrapper = useCommandMenu((state) => state.reactFlowWrapper);
-  // const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const { width: reactFlowWidth, height: reactFlowHeight } = useMemo(
     () =>
       reactFlowWrapper.current?.getBoundingClientRect() ?? {
@@ -198,15 +211,10 @@ const NodeCommands = memo(function NodeCommands() {
               enterDelay={0}
               leaveDelay={0}
               TransitionProps={{ timeout: 0 }}
-              // open={hoveredItem === meta.title}
             >
               <Command.Item
                 key={idx}
                 onSelect={() => executeAndClose(() => handleCreateNode(meta))}
-                // onMouseEnter={() => setHoveredItem(meta.title)}
-                // onMouseLeave={() => setHoveredItem(null)}
-                // onFocus={() => setHoveredItem(meta.title)}
-                // onBlur={() => setHoveredItem(null)}
               >
                 {meta.title}
               </Command.Item>
@@ -260,7 +268,7 @@ const ExampleCommands = memo(function ExampleCommands() {
 const useCommandMenu = create<{
   executeAndClose: (action: () => void) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
-}>((set) => ({
+}>((_set) => ({
   executeAndClose: () => {},
   reactFlowWrapper: { current: null }
 }));
@@ -272,7 +280,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   redo,
   reactFlowWrapper
 }) => {
-  const theme = useTheme();
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const input = useRef<HTMLInputElement>(null);
 
@@ -313,7 +320,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       open={open}
       onClose={() => setOpen(false)}
       className="command-menu-dialog"
-      css={styles(theme)}
+      css={styles()}
     >
       <Command label="Command Menu" className="command-menu">
         <CommandInput ref={input} />
@@ -322,6 +329,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
           <WorkflowCommands />
           <UndoCommands undo={undo} redo={redo} />
           <LayoutCommands />
+          <ViewCommands />
           <NodeCommands />
           <ExampleCommands />
         </Command.List>

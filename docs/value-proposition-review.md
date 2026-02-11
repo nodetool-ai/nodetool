@@ -50,7 +50,7 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 - **Local model execution** (`/docs/index.md:109-113`): "All workflows, assets, and models execute on your machine for maximum privacy. Use MLX, llama.cpp, Whisper, and Flux locally. Store assets on disk or Supabase buckets you control. Disable outbound traffic entirely if needed."
 - **No telemetry** (`/docs/README.md:24`): "No telemetry. No tracking. Your data is yours."
 - **AGPL-3.0 license** (`/docs/README.md:12`, `/docs/index.md:163-168`): Open source, inspectable codebase
-- **Self-hosted deployment** (`/docs/self_hosted.md:14-22`): Full control over proxy, worker containers, and data storage
+- **Self-hosted deployment** (`/docs/self-hosted-deployment.md:14-22`): Full control over proxy, server containers, and data storage
 - **Authentication options** (`/docs/getting-started.md:38-41`): Local-only mode for fully offline operation
 
 **Example Use Cases:**
@@ -224,7 +224,7 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 **Evidence:**
 - `/docs/README.md:22-24`: "Local First", "Private", "No telemetry"
 - `/docs/index.md:102-113`: Local-only mode section
-- `/docs/self_hosted.md`: Self-hosted deployment guide
+- `/docs/self-hosted-deployment.md`: Self-hosted deployment guide
 - `/docs/security-hardening.md`: Security documentation
 
 ---
@@ -240,7 +240,7 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 **Recommendation:**
 - Add performance benchmarks table in `/docs/models.md`:
   - Tokens/second for local LLMs on Apple Silicon vs NVIDIA
-  - Image generation time for Flux/SDXL at different resolutions
+  - Image generation time for Flux/Qwen Image at different resolutions
   - Transcription speed for Whisper variants
 - Include hardware recommendations with expected throughput
 - Add cold-start vs warm-start times for deployed workflows
@@ -283,7 +283,7 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 
 **Issue:** Documentation explains features but doesn't provide systematic debugging approaches for common workflow failures.
 
-**Evidence:** Troubleshooting scattered across files (e.g., `/docs/self_hosted.md:266-275`) but no unified guide.
+**Evidence:** Troubleshooting scattered across files (e.g., `/docs/self-hosted-deployment.md:266-275`) but no unified guide.
 
 **Recommendation:**
 - Create `/docs/troubleshooting.md` with:
@@ -314,21 +314,19 @@ NodeTool is the open-source visual workflow builder for teams who need control o
 
 **Target Location:** `/docs/workflows/*.md`, new `/docs/case-studies.md`
 
-### Gap 6: Unclear Differentiation from Alternatives
+### Gap 6: Clarity on NodeTool's Niche
 
-**Issue:** Documentation doesn't explicitly compare NodeTool to alternatives (LangChain, n8n, Zapier, Flowise).
+**Issue:** Documentation could better explain what NodeTool is good at without direct competitive comparisons.
 
-**Evidence:** Value proposition mentioned but no competitive positioning.
+**Evidence:** Value proposition mentioned but the unique niche isn't clearly articulated.
 
 **Recommendation:**
-- Create `/docs/comparisons.md` with:
-  - NodeTool vs LangChain (code-first vs visual-first)
-  - NodeTool vs n8n/Zapier (AI-native vs general automation)
-  - NodeTool vs Flowise (deployment flexibility, local-first)
-  - NodeTool vs custom Python scripts (maintainability, visualization)
-- Add "When to choose NodeTool" decision guide
+- Clarify NodeTool's focus: visual AI workflow builder for multi-modal pipelines
+- Explain what makes it distinct: local-first, streaming output, combines LLMs with media processing
+- Avoid direct feature comparisons with other tools
+- Focus on what users can build, not what competitors lack
 
-**Target Location:** New `/docs/comparisons.md`, `/docs/index.md` (add comparison section)
+**Target Location:** `/docs/comparisons.md`, `/docs/index.md`
 
 ### Gap 7: Limited Evaluation & Testing Guidance
 
@@ -548,7 +546,7 @@ NodeTool's architecture is designed around three core principles that directly i
 
 1. **Streaming-first execution** – See results as they generate, not after everything completes. Cancel long-running jobs without waiting. Perfect for interactive debugging and user-facing applications.
 
-2. **Unified runtime** – The same workflow JSON runs in desktop app, headless worker, RunPod endpoint, or Cloud Run service. No platform-specific code. No rewrites when scaling.
+2. **Unified runtime** – The same workflow JSON runs in desktop app, headless server, RunPod endpoint, or Cloud Run service. No platform-specific code. No rewrites when scaling.
 
 3. **Pluggable execution strategies** – Run nodes in threads (fast iteration), subprocesses (isolation), or Docker containers (deployment). Switch strategies without changing your workflow.
 
@@ -687,8 +685,8 @@ NodeTool's architecture is designed around three core principles that directly i
 4. ✅ **Add "Why This Matters"** sections to `/docs/key-concepts.md` and `/docs/architecture.md` (see Updates 4-5)
 
 ### New Content (Fill Gaps)
-5. **Create `/docs/cost-analysis.md`** with local vs cloud cost comparisons and break-even analysis
-6. **Create `/docs/comparisons.md`** positioning NodeTool against LangChain, n8n, Flowise, custom scripts
+5. **Create `/docs/cost-analysis.md`** with local vs cloud cost considerations
+6. **Update `/docs/comparisons.md`** to clarify NodeTool's niche without competitive positioning
 7. **Create `/docs/troubleshooting.md`** with systematic debugging approaches
 8. **Create `/docs/testing-workflows.md`** with evaluation and A/B testing patterns
 9. **Expand `/docs/deployment-journeys.md`** with narrative progression and decision trees

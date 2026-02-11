@@ -9,10 +9,10 @@ Use this page as a quick checklist before exposing NodeTool beyond your laptop. 
 ## Applies Everywhere
 
 - Require TLS termination at the proxy or ingress; use real certificates and redirect HTTP to HTTPS. See [Proxy Reference](proxy.md).
-- Do not run with `AUTH_PROVIDER=none` or `local` outside isolated dev; use `static` or `supabase` and rotate `WORKER_AUTH_TOKEN` regularly. See [Authentication](authentication.md).
+- Do not run with `AUTH_PROVIDER=none` or `local` outside isolated dev; use `static` or `supabase` and rotate `SERVER_AUTH_TOKEN` regularly. See [Authentication](authentication.md).
 - Keep secrets out of Git: load provider keys and tokens from env vars or a secrets manager; never commit `.env` files with secrets.
 - Restrict Docker access: run the proxy with a dedicated network (`docker_network`) and avoid exposing the Docker socket beyond the host.
-- Limit blast radius: run workers with `mem_limit`/`cpus` and read-only mounts where possible. See [Docker Resource Management](docker-resource-management.md).
+- Limit blast radius: run servers with `mem_limit`/`cpus` and read-only mounts where possible. See [Docker Resource Management](docker-resource-management.md).
 
 ## Development (Local)
 
@@ -30,7 +30,7 @@ Use this page as a quick checklist before exposing NodeTool beyond your laptop. 
 ## Production
 
 - Enforce `AUTH_PROVIDER=supabase` (or `static` with long, rotated tokens for service-to-service traffic only).
-- Use dedicated proxy and worker identities; keep `proxy.yaml` free of embedded secrets and distribute bearer tokens via your secrets manager.
+- Use dedicated proxy and server identities; keep `proxy.yaml` free of embedded secrets and distribute bearer tokens via your secrets manager.
 - Set `idle_timeout` and per-service resource caps to prevent runaway workloads on multi-tenant hosts.
 - Centralize logging and monitor for auth failures, 429s, and container restarts; alert on unusual spikes.
 - Keep images patched: rebuild regularly, track base image CVEs, and prune unused images.
@@ -40,7 +40,7 @@ Use this page as a quick checklist before exposing NodeTool beyond your laptop. 
 - [Authentication](authentication.md)
 - [Configuration Guide](configuration.md)
 - [Deployment Journeys](deployment-journeys.md)
-- [Self-Hosted Deployment](self_hosted.md)
+- [Self-Hosted Deployment](self-hosted-deployment.md)
 - [Proxy Reference](proxy.md)
 - [Docker Resource Management](docker-resource-management.md)
 - [Storage](storage.md)

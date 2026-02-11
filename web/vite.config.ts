@@ -33,6 +33,9 @@ export default defineConfig(async ({ mode }) => {
       port: 3000,
       proxy: proxyConfig
     },
+    optimizeDeps: {
+      exclude: ["@tanstack/react-query"]
+    },
     plugins: [
       react({
         jsxImportSource: "@emotion/react",
@@ -52,7 +55,24 @@ export default defineConfig(async ({ mode }) => {
         : {
             rollupOptions: {
               output: {
-                manualChunks: undefined
+                manualChunks: {
+                  "vendor-react": ["react", "react-dom", "react-router-dom"],
+                  "vendor-mui": [
+                    "@mui/material",
+                    "@mui/icons-material",
+                    "@emotion/react",
+                    "@emotion/styled"
+                  ],
+                  "vendor-plotly": ["react-plotly.js"],
+                  "vendor-three": [
+                    "three",
+                    "@react-three/fiber",
+                    "@react-three/drei"
+                  ],
+                  "vendor-editor": ["@monaco-editor/react", "lexical"],
+                  "vendor-pdf": ["react-pdf"],
+                  "vendor-waveform": ["wavesurfer.js"]
+                }
               }
             }
           })

@@ -5,9 +5,10 @@ import React, {
   useRef,
   useMemo,
   useState,
-  useCallback
+  useCallback,
+  memo
 } from "react";
-import { Box, Alert, Typography, useMediaQuery, IconButton, Tooltip, Popover } from "@mui/material";
+import { Box, Alert, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -15,66 +16,110 @@ import ChatView from "./ChatView";
 import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
-import { NewChatButton } from "../thread/NewChatButton";
-import ThreadList from "../thread/ThreadList";
 import type { ThreadInfo } from "../types/thread.types";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
-import { useEnsureChatConnected } from "../../../hooks/useEnsureChatConnected";
-import ListIcon from "@mui/icons-material/List";
+import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
-   const {
-    status,
-    sendMessage,
-    progress,
-    statusMessage,
-    error,
-    currentThreadId,
-    threads,
-    getCurrentMessagesSync,
-    createNewThread,
-    switchThread,
-    fetchThread,
-    stopGeneration,
-    agentMode,
-    setAgentMode,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentTaskUpdateThreadId,
-    lastTaskUpdatesByThread,
-    currentLogUpdate,
-    threadsLoaded,
-    workflowId,
-    deleteThread,
-    messageCache
-  } = useGlobalChatStore();
-  const runningToolCallId = useGlobalChatStore(
-    (s) => s.currentRunningToolCallId
+
+  // Split selectors to minimize re-renders - group by update frequency
+  // Frequently updated values (messages, status, progress)
+  const status = useGlobalChatStore((state) => state.status);
+  const progress = useGlobalChatStore((state) => state.progress);
+  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
+  const error = useGlobalChatStore((state) => state.error);
+  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
+
+  // Thread management (changes on thread switch)
+  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
+  const threads = useGlobalChatStore((state) => state.threads);
+  const threadsLoaded = useGlobalChatStore((state) => state.threadsLoaded);
+  const messageCache = useGlobalChatStore((state) => state.messageCache);
+  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
+
+  // Actions (stable references)
+  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const fetchThread = useGlobalChatStore((state) => state.fetchThread);
+  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
+  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
+  const connect = useGlobalChatStore((state) => state.connect);
+  const disconnect = useGlobalChatStore((state) => state.disconnect);
+
+  // Agent mode and settings (change less frequently)
+  const agentMode = useGlobalChatStore((state) => state.agentMode);
+  const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
+
+  // Task updates (change during execution)
+  const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
+  const currentTaskUpdate = useGlobalChatStore((state) => state.currentTaskUpdate);
+  const currentTaskUpdateThreadId = useGlobalChatStore((state) => state.currentTaskUpdateThreadId);
+  const lastTaskUpdatesByThread = useGlobalChatStore((state) => state.lastTaskUpdatesByThread);
+  const workflowId = useGlobalChatStore((state) => state.workflowId);
+
+  // Get connection state from WebSocket manager directly
+  const [_connectionState, setConnectionState] = useState(
+    globalWebSocketManager.getConnectionState()
   );
-  const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
+
+  useEffect(() => {
+    const unsubscribe = globalWebSocketManager.subscribeEvent(
+      "stateChange",
+      (_state: string) => {
+        setConnectionState(globalWebSocketManager.getConnectionState());
+      }
+    );
+    return unsubscribe;
+  }, []);
+
+  // Initialize GlobalChatStore connection on mount
+  useEffect(() => {
+    connect().catch((err) => {
+      console.error("Failed to connect GlobalChatStore:", err);
+    });
+
+    return () => {
+      try {
+        disconnect();
+      } catch (err) {
+        console.error("Error during GlobalChatStore disconnect:", err);
+      }
+    };
+  }, [connect, disconnect]);
+
+  const {
+    currentRunningToolCallId: runningToolCallId,
+    currentToolMessage: runningToolMessage,
+    selectedModel,
+    setSelectedModel,
+    selectedTools,
+    setSelectedTools,
+    selectedCollections,
+    setSelectedCollections
+  } = useGlobalChatStore(
+    (state) => ({
+      currentRunningToolCallId: state.currentRunningToolCallId,
+      currentToolMessage: state.currentToolMessage,
+      selectedModel: state.selectedModel,
+      setSelectedModel: state.setSelectedModel,
+      selectedTools: state.selectedTools,
+      setSelectedTools: state.setSelectedTools,
+      selectedCollections: state.selectedCollections,
+      setSelectedCollections: state.setSelectedCollections
+    })
+  );
 
   // Use the consolidated TanStack Query hook from the store
   const { isLoading: isLoadingThreads, error: threadsError } =
     useThreadsQuery();
-
-  const selectedModel = useGlobalChatStore((s) => s.selectedModel);
-  const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
-  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
-  const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
-  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
-  const setSelectedCollections = useGlobalChatStore(
-    (s) => s.setSelectedCollections
-  );
   const theme = useTheme();
-  const [_drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Sidebar open by default
   const [alertDismissed, setAlertDismissed] = useState(false);
-
-  // Thread list popover state
-  const [threadListAnchorEl, setThreadListAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const isThreadListOpen = Boolean(threadListAnchorEl);
 
   // Reset dismissed state when status or error changes
   useEffect(() => {
@@ -92,7 +137,7 @@ const GlobalChat: React.FC = () => {
   // Get messages from store
   const messages = getCurrentMessagesSync();
   const taskUpdateForDisplay = useMemo(() => {
-    if (!currentThreadId) {return null;}
+    if (!currentThreadId) { return null; }
     if (
       currentTaskUpdate &&
       currentTaskUpdateThreadId === currentThreadId
@@ -106,9 +151,6 @@ const GlobalChat: React.FC = () => {
     currentTaskUpdateThreadId,
     lastTaskUpdatesByThread
   ]);
-
-  // Ensure chat connection while GlobalChat is visible (do not disconnect on unmount)
-  useEnsureChatConnected();
 
   // Handle thread switching when URL changes
   useEffect(() => {
@@ -193,14 +235,9 @@ const GlobalChat: React.FC = () => {
   // Remove extra reconnect loop; rely on WebSocketManager's exponential backoff and
   // the store's network/visibility listeners to reconnect. This avoids double reconnects.
 
-  // Close the drawer automatically when switching to desktop view
-  useEffect(() => {
-    setDrawerOpen(false);
-  }, []);
-
   // Handle mobile keyboard behavior and maintain scroll position
   useEffect(() => {
-    if (!isMobile) {return;}
+    if (!isMobile) { return; }
 
     const handleViewportChange = () => {
       // Maintain scroll position when virtual keyboard appears/disappears
@@ -242,35 +279,24 @@ const GlobalChat: React.FC = () => {
 
   // Map status to ChatView compatible status
   const getChatViewStatus = () => {
-    if (status === "stopping") {return "loading";}
+    if (status === "stopping") { return "loading"; }
     return status;
   };
 
-  const handleNewChat = async () => {
+  const handleNewChat = useCallback(async () => {
     try {
       const newThreadId = await createNewThread();
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
-      setThreadListAnchorEl(null);
     } catch (error) {
       console.error("Failed to create new thread:", error);
     }
-  };
-
-  // Thread list handlers
-  const handleOpenThreadList = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    setThreadListAnchorEl(event.currentTarget);
-  }, []);
-
-  const handleCloseThreadList = useCallback(() => {
-    setThreadListAnchorEl(null);
-  }, []);
+  }, [createNewThread, switchThread, navigate]);
 
   const handleSelectThread = useCallback(
     (id: string) => {
       switchThread(id);
       navigate(`/chat/${id}`);
-      setThreadListAnchorEl(null);
     },
     [switchThread, navigate]
   );
@@ -314,8 +340,8 @@ const GlobalChat: React.FC = () => {
             ? firstUserMessage.content
             : Array.isArray(firstUserMessage.content) &&
               firstUserMessage.content[0]?.type === "text"
-            ? (firstUserMessage.content[0] as any).text
-            : "[Media message]";
+              ? (firstUserMessage.content[0] as any).text
+              : "[Media message]";
         return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
       }
 
@@ -356,7 +382,7 @@ const GlobalChat: React.FC = () => {
         flex: 1,
         overflow: "hidden",
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "row",  // Changed from column to row for sidebar layout
         minHeight: 0,
         maxHeight: "100%",
         position: "relative"
@@ -417,17 +443,17 @@ const GlobalChat: React.FC = () => {
         paddingLeft: isMobile
           ? 0
           : leftPanel.isVisible
-          ? `${leftPanel.panelSize}px`
-          : `${leftPanel.minWidth}px`,
+            ? `${leftPanel.panelSize}px`
+            : `${leftPanel.minWidth}px`,
         paddingRight: isMobile
           ? 0
           : rightPanel.isVisible
-          ? `${rightPanel.panelSize}px`
-          : 0,
+            ? `${rightPanel.panelSize}px`
+            : 0,
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box",
-        background: theme.vars.palette.c_editor_bg_color
+        background: theme.vars.palette.background.default
         // Mobile styles handled via separate CSS file
       }}
     >
@@ -437,19 +463,10 @@ const GlobalChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed &&
-          (error ||
-            status === "reconnecting" ||
-            status === "disconnected" ||
-            status === "failed") && (
+          (error &&
             <Alert
               className="global-chat-status-alert"
-              severity={
-                status === "reconnecting"
-                  ? "info"
-                  : status === "disconnected"
-                  ? "warning"
-                  : "error"
-              }
+              severity="error"
               onClose={() => setAlertDismissed(true)}
               sx={{
                 position: "absolute",
@@ -462,97 +479,78 @@ const GlobalChat: React.FC = () => {
                 flexShrink: 0
               }}
             >
-              {status === "reconnecting"
-                ? statusMessage || "Reconnecting to chat service..."
-                : status === "disconnected"
-                ? "Connection lost. Reconnecting automatically..."
-                : status === "failed"
-                ? "Connection failed. Retrying automatically..."
-                : error}
+              {error}
             </Alert>
           )}
 
-        {/* Controls row */}
         <Box
+          className="chat-container"
           sx={{
+            position: "relative",
+            height: "100%",
+            marginTop: "50px", // Offset for AppHeader
+            minHeight: 0,
+            flex: 1,
             display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            gap: 0.5,
-            px: 1,
-            pt: 1,
-            mt: 10
+            flexDirection: "row",
+            overflow: "hidden"
           }}
         >
-          <NewChatButton onNewThread={handleNewChat} />
-          <Tooltip title="Chat History">
-            <IconButton onClick={handleOpenThreadList} size="small">
-              <ListIcon />
-            </IconButton>
-          </Tooltip>
-          <Popover
-            open={isThreadListOpen}
-            anchorEl={threadListAnchorEl}
-            onClose={handleCloseThreadList}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "right"
-            }}
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "right"
-            }}
-            slotProps={{
-              paper: {
-                sx: {
-                  width: 320,
-                  maxHeight: "70vh",
-                  borderRadius: 2,
-                  overflow: "hidden"
-                }
-              }
+          {/* Chat Sidebar */}
+          <ChatSidebar
+            threads={threadsWithMessages}
+            currentThreadId={currentThreadId}
+            onNewChat={handleNewChat}
+            onSelectThread={handleSelectThread}
+            onDeleteThread={handleDeleteThread}
+            getThreadPreview={getThreadPreview}
+            isOpen={sidebarOpen}
+            onOpenChange={setSidebarOpen}
+          />
+
+          {/* Chat View - adjusts based on sidebar state */}
+          <Box
+            sx={{
+              flex: 1,
+              height: "100%",
+              marginLeft: sidebarOpen ? `${SIDEBAR_WIDTH}px` : 0,
+              transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              minHeight: 0,
+              overflow: "hidden"
             }}
           >
-            <ThreadList
-              threads={threadsWithMessages}
-              currentThreadId={currentThreadId}
-              onNewThread={handleNewChat}
-              onSelectThread={handleSelectThread}
-              onDeleteThread={handleDeleteThread}
-              getThreadPreview={getThreadPreview}
+            <ChatView
+              status={getChatViewStatus()}
+              messages={messages}
+              sendMessage={sendMessage}
+              progress={progress.current}
+              total={progress.total}
+              progressMessage={statusMessage}
+              runningToolCallId={runningToolCallId}
+              runningToolMessage={runningToolMessage}
+              model={selectedModel}
+              selectedTools={selectedTools}
+              onToolsChange={setSelectedTools}
+              selectedCollections={selectedCollections}
+              onCollectionsChange={setSelectedCollections}
+              onModelChange={setSelectedModel}
+              onStop={stopGeneration}
+              onNewChat={handleNewChat}
+              agentMode={agentMode}
+              onAgentModeToggle={setAgentMode}
+              currentPlanningUpdate={currentPlanningUpdate}
+              currentTaskUpdate={taskUpdateForDisplay}
+              currentLogUpdate={currentLogUpdate}
+              workflowId={workflowId}
             />
-          </Popover>
-        </Box>
-
-        <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
-          <ChatView
-            status={getChatViewStatus()}
-            messages={messages}
-            sendMessage={sendMessage}
-            progress={progress.current}
-            total={progress.total}
-            progressMessage={statusMessage}
-            runningToolCallId={runningToolCallId}
-            runningToolMessage={runningToolMessage}
-            model={selectedModel}
-            selectedTools={selectedTools}
-            onToolsChange={setSelectedTools}
-            selectedCollections={selectedCollections}
-            onCollectionsChange={setSelectedCollections}
-            onModelChange={setSelectedModel}
-            onStop={stopGeneration}
-            onNewChat={handleNewChat}
-            agentMode={agentMode}
-            onAgentModeToggle={setAgentMode}
-            currentPlanningUpdate={currentPlanningUpdate}
-            currentTaskUpdate={taskUpdateForDisplay}
-            currentLogUpdate={currentLogUpdate}
-            workflowId={workflowId}
-          />
+          </Box>
         </Box>
       </Box>
     </Box>
   );
 };
 
-export default GlobalChat;
+export default memo(GlobalChat);

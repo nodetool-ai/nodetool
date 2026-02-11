@@ -6,8 +6,9 @@ import * as path from "path";
 
 import { getPythonPath, getProcessEnv, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
-import { checkPermissions } from "./utils";
+import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
+import { getTorchIndexUrl } from "./torchPlatformCache";
 
 /**
  * Python environment manager for the Electron shell.
@@ -65,29 +66,34 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
 
 /**
  * Check if the Python environment is installed
+ * Verifies both Python and uv executables exist to detect partial/corrupted installs
  */
 async function isCondaEnvironmentInstalled(): Promise<boolean> {
   logMessage("=== Checking Conda Environment Installation ===");
 
   let pythonExecutablePath: string | null = null;
+  let uvExecutablePath: string | null = null;
+  
   try {
     pythonExecutablePath = getPythonPath();
+    uvExecutablePath = getUVPath();
   } catch (error) {
-    // If we cannot even resolve a python path, treat as not installed so installer is triggered
+    // If we cannot even resolve paths, treat as not installed so installer is triggered
     logMessage(
-      `Failed to resolve Python path, treating as not installed: ${error}`,
+      `Failed to resolve executable paths, treating as not installed: ${error}`,
       "error",
     );
     return false;
   }
 
   logMessage(`Python executable path: ${pythonExecutablePath}`);
+  logMessage(`UV executable path: ${uvExecutablePath}`);
 
+  // Check Python executable
   try {
     logMessage("Attempting to access Python executable...");
     await fs.access(pythonExecutablePath);
     logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
-    return true;
   } catch (error) {
     logMessage(
       `✗ Python executable not found at ${pythonExecutablePath}`,
@@ -96,6 +102,24 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
     logMessage(`Access error: ${error}`, "error");
     return false;
   }
+
+  // Check uv executable - important for detecting partial/corrupted installs
+  // This can happen if installation was interrupted (e.g., by macOS permission dialog)
+  try {
+    logMessage("Attempting to access uv executable...");
+    await fs.access(uvExecutablePath);
+    logMessage(`✓ UV executable found at ${uvExecutablePath}`);
+  } catch (error) {
+    logMessage(
+      `✗ UV executable not found at ${uvExecutablePath} - environment appears incomplete`,
+      "error",
+    );
+    logMessage(`Access error: ${error}`, "error");
+    logMessage("Will trigger reinstallation to complete the environment setup");
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -157,18 +181,26 @@ async function updateCondaEnvironment(
 
     const allPackages = [...corePackages, ...additionalPackages];
 
+    // Get the torch platform index URL (e.g., cu128 for CUDA 12.8)
+    const torchIndexUrl = getTorchIndexUrl();
+
     const installCommand: string[] = [
       uvExecutable,
       "pip",
       "install",
       "--extra-index-url",
       PACKAGE_INDEX_URL,
+      // Add PyTorch index URL for the detected GPU platform
+      ...(torchIndexUrl ? ["--extra-index-url", torchIndexUrl] : []),
       "--index-strategy",
       "unsafe-best-match",
       "--system",
       ...allPackages,
     ];
 
+    if (torchIndexUrl) {
+      logMessage(`Using torch index URL: ${torchIndexUrl}`);
+    }
     logMessage(`Running command: ${installCommand.join(" ")}`);
     await runCommand(installCommand);
 
@@ -185,7 +217,19 @@ async function updateCondaEnvironment(
  * Helper function to run pip commands
  */
 async function runCommand(command: string[]): Promise<void> {
-  const updateProcess = spawn(command[0], command.slice(1), {
+  const executable = command[0];
+  
+  // Check if executable exists before attempting to spawn
+  const executableExists = await fileExists(executable);
+  if (!executableExists) {
+    const errorMsg = `Python environment not properly installed: executable not found at ${executable}. ` +
+      `This may happen if the installation was interrupted (e.g., by a macOS permission dialog). ` +
+      `Please use "Reinstall environment" to set up the Python environment correctly.`;
+    logMessage(errorMsg, "error");
+    throw new Error(errorMsg);
+  }
+
+  const updateProcess = spawn(executable, command.slice(1), {
     stdio: "pipe",
     env: getProcessEnv(),
   });
@@ -225,7 +269,18 @@ async function runCommand(command: string[]): Promise<void> {
       }
     });
 
-    updateProcess.on("error", reject);
+    updateProcess.on("error", (error) => {
+      // Provide a more helpful error message for ENOENT
+      if (error.message.includes("ENOENT")) {
+        reject(new Error(
+          `Python environment not properly installed: could not run ${executable}. ` +
+          `This may happen if the installation was interrupted. ` +
+          `Please use "Reinstall environment" to fix this issue.`
+        ));
+      } else {
+        reject(error);
+      }
+    });
   });
 }
 /**

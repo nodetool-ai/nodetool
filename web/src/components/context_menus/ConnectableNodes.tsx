@@ -155,6 +155,23 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
+
+  // Memoize store selector function to prevent re-renders
+  const storeSelector = useCallback(
+    (state: any) => ({
+      connectableNodes: state.getConnectableNodes(),
+      typeMetadata: state.typeMetadata,
+      filterType: state.filterType,
+      isVisible: state.isVisible,
+      menuPosition: state.menuPosition,
+      hideMenu: state.hideMenu,
+      sourceHandle: state.sourceHandle,
+      targetHandle: state.targetHandle,
+      nodeId: state.nodeId
+    }),
+    []
+  );
+
   const {
     connectableNodes,
     typeMetadata,
@@ -165,17 +182,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     sourceHandle,
     targetHandle,
     nodeId
-  } = useConnectableNodesStore((state) => ({
-    connectableNodes: state.getConnectableNodes(),
-    typeMetadata: state.typeMetadata,
-    filterType: state.filterType,
-    isVisible: state.isVisible,
-    menuPosition: state.menuPosition,
-    hideMenu: state.hideMenu,
-    sourceHandle: state.sourceHandle,
-    targetHandle: state.targetHandle,
-    nodeId: state.nodeId
-  }));
+  } = useConnectableNodesStore(storeSelector);
 
   const filteredNodes = useMemo(
     () =>
@@ -275,6 +282,33 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     ]
   );
 
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      hideMenu();
+    } else {
+      e.stopPropagation();
+    }
+  }, [hideMenu]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm("");
+  }, []);
+
+  const handleNodeClick = useCallback((nodeMetadata: NodeMetadata) => {
+    createConnectableNode(nodeMetadata);
+    hideMenu();
+  }, [createConnectableNode, hideMenu]);
+
+  // Empty callback for onDragStart - prevents new function creation on each render
+  const handleDragStart = useCallback(
+    (_node: NodeMetadata, _event: React.DragEvent<HTMLDivElement>) => {},
+    []
+  );
+
   if (!menuPosition || !isVisible) {return null;}
 
   return (
@@ -319,15 +353,9 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             fullWidth
             placeholder="Search nodes..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                hideMenu();
-              } else {
-                e.stopPropagation();
-              }
-            }}
+            onKeyDown={handleSearchKeyDown}
             autoFocus={isVisible}
             aria-label="Search nodes"
             sx={{
@@ -353,7 +381,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                   <InputAdornment position="end">
                     <IconButton
                       aria-label="clear search"
-                      onClick={() => setSearchTerm("")}
+                      onClick={handleClearSearch}
                       edge="end"
                       size="small"
                     >
@@ -421,11 +449,8 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                     <NodeItem
                       key={nodeMetadata.node_type}
                       node={nodeMetadata}
-                      onDragStart={() => {}}
-                      onClick={() => {
-                        createConnectableNode(nodeMetadata);
-                        hideMenu();
-                      }}
+                      onDragStart={handleDragStart}
+                      onClick={handleNodeClick}
                     />
                   </div>
                 </Tooltip>

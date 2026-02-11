@@ -8,7 +8,6 @@ import isEqual from "lodash/isEqual";
 import { Container, Tooltip, Button } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";
-import { NodeFooter } from "../node/NodeFooter";
 import { Typography } from "@mui/material";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
@@ -266,6 +265,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         data={nodeData || {}}
         showMenu={false}
         selected={props.selected}
+        workflowId={nodeData?.workflow_id}
       />
       <Tooltip
         enterDelay={TOOLTIP_ENTER_DELAY}
@@ -301,14 +301,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         />
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
-      <NodeFooter
-        id={props.id}
-        data={nodeData}
-        nodeNamespace={resolvedNamespace}
-        metadata={mockMetadata}
-        nodeType={resolvedType || nodeType || ""}
-        workflowId={nodeData.workflow_id || ""}
-      />
     </Container>
   );
 };

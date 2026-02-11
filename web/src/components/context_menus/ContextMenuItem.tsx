@@ -2,8 +2,9 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { ReactElement, ReactNode } from "react";
-import { Tooltip, MenuItem, Button, IconButton } from "@mui/material";
+import React, { ReactElement, ReactNode, memo } from "react";
+import { Tooltip, MenuItem } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ContextMenuItemProps {
@@ -86,14 +87,14 @@ const styles = (theme: Theme) =>
     }
   });
 
-const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
+const ContextMenuItem = memo(function ContextMenuItem({
   onClick,
   label,
   IconComponent,
   tooltip,
   addButtonClassName,
   controlElement
-}) => {
+}: ContextMenuItemProps) {
   const theme = useTheme();
   return (
     <div className="context-menu-item" css={styles(theme)}>
@@ -108,13 +109,14 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
             {controlElement ? (
               React.cloneElement(controlElement, { onClick })
             ) : (
-              <Button
+              <EditorButton
                 className={`action ${addButtonClassName || ""}`}
                 onClick={onClick}
+                density="normal"
               >
                 {IconComponent}
                 <span className="label">{label}</span>
-              </Button>
+              </EditorButton>
             )}
           </MenuItem>
         </Tooltip>
@@ -124,18 +126,19 @@ const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
           {controlElement ? (
             React.cloneElement(controlElement, { onClick })
           ) : (
-            <IconButton
+            <EditorButton
               className={`action ${addButtonClassName || ""}`}
               onClick={onClick}
+              density="normal"
             >
               {IconComponent}
               <span className="label">{label}</span>
-            </IconButton>
+            </EditorButton>
           )}
         </MenuItem>
       )}
     </div>
   );
-};
+});
 
 export default ContextMenuItem;

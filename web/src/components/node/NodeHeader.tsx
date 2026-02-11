@@ -1,12 +1,19 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { memo, useCallback, useMemo } from "react";
+import useLogsStore from "../../stores/LogStore";
+import { memo, useCallback, useMemo, useState } from "react";
 import isEqual from "lodash/isEqual";
 import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { Badge, IconButton, Tooltip } from "@mui/material";
+import ListAltIcon from "@mui/icons-material/ListAlt";
+import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
+import { NodeLogsDialog } from "./NodeLogs";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { FlexRow } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -19,6 +26,15 @@ export interface NodeHeaderProps {
   iconType?: string;
   iconBaseColor?: string;
   showIcon?: boolean;
+  workflowId?: string;
+  hideLogs?: boolean;
+  // Toggle buttons for result/inputs view
+  showResultButton?: boolean;
+  showInputsButton?: boolean;
+  onShowResults?: () => void;
+  onShowInputs?: () => void;
+  externalLink?: string;
+  externalLinkTitle?: string;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
@@ -30,18 +46,40 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   iconType,
   iconBaseColor,
   showIcon = true,
-  data
+  data,
+  workflowId,
+  hideLogs = false,
+  showResultButton = false,
+  showInputsButton = false,
+  onShowResults,
+  onShowInputs,
+  externalLink,
+  externalLinkTitle
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
+  const nodeWorkflowId = useNodes((state) => state.workflow?.id);
+  const logs = useLogsStore((state) => state.getLogs(workflowId || nodeWorkflowId || "", id));
+  const [logsDialogOpen, setLogsDialogOpen] = useState(false);
+
+  const logCount = logs?.length || 0;
+
+  // Common icon button styles for toggle buttons
+  const toggleIconButtonStyles = {
+    padding: "4px",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    color: "var(--palette-text-primary)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    borderRadius: "50%",
+    "&:hover": {
+      backgroundColor: "rgba(255, 255, 255, 0.1)",
+      borderColor: "var(--palette-primary-main)"
+    }
+  };
 
   const headerCss = useMemo(
     () =>
       css({
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: "8px",
         width: "100%",
         minHeight: "44px",
         backgroundColor: "transparent",
@@ -53,10 +91,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
         transition: "background-color 0.2s ease-in-out, opacity 0.15s",
         ".header-left": {
+          padding: "4px 4px",
+          flex: 1,
+          minWidth: 0
+        },
+        ".header-right": {
           display: "flex",
           alignItems: "center",
-          gap: "8px",
-          padding: "4px 4px"
+          gap: "4px",
+          padding: "4px 4px",
+          flexShrink: 0
         },
         ".node-icon": {
           width: "28px",
@@ -82,7 +126,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           wordWrap: "break-word",
           lineHeight: "1.2em",
           fontSize: "var(--fontSizeNormal)",
-          fontWeight: 600,
+          fontWeight: 500,
           letterSpacing: "0.02em",
           padding: "2px 0",
           color: "var(--palette-text-primary)"
@@ -91,7 +135,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     []
   );
 
-  const handleOpenContextMenu = useCallback(
+  const _handleOpenContextMenu = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       openContextMenu(
@@ -123,6 +167,25 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     updateNode(id, { selected: true });
   }, [id, updateNode]);
 
+  const handleOpenLogsDialog = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLogsDialogOpen(true);
+  }, []);
+
+  const handleShowResultsClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onShowResults?.();
+  }, [onShowResults]);
+
+  const handleShowInputsClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onShowInputs?.();
+  }, [onShowInputs]);
+
+  const handleCloseLogsDialog = useCallback(() => {
+    setLogsDialogOpen(false);
+  }, []);
+
   const hasIcon = Boolean(iconType);
 
   const headerStyle: React.CSSProperties | undefined = useMemo(() => {
@@ -136,31 +199,41 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           ? backgroundColor
           : hexToRgba(tint, 0.5)
         : `linear-gradient(90deg, ${hexToRgba(tint, 0.2)}, ${hexToRgba(
-            tint,
-            0.15
-          )})`
+          tint,
+          0.15
+        )})`
     } as React.CSSProperties;
   }, [backgroundColor, selected]);
 
+  // Memoize icon background style to prevent recreation on every render
+  const iconBackgroundStyle = useMemo(() => ({
+    background: iconBaseColor
+      ? hexToRgba(iconBaseColor, 0.22)
+      : "rgba(255,255,255,0.08)"
+  }), [iconBaseColor]);
+
+  // Memoize title padding style to prevent recreation on every render
+  const titlePaddingStyle = useMemo(() => ({
+    paddingLeft: hasIcon ? 0 : undefined
+  }), [hasIcon]);
+
   return (
-    <div
-      className={`node-drag-handle node-header ${
-        hasParent ? "has-parent" : ""
-      }`}
+    <FlexRow
+      className={`node-drag-handle node-header ${hasParent ? "has-parent" : ""
+        }`}
       css={headerCss}
+      gap={1}
+      justify="space-between"
+      align="center"
       onClick={handleHeaderClick}
       onContextMenu={handleHeaderContextMenu}
       style={headerStyle || { backgroundColor }}
     >
-      <div className="header-left">
+      <FlexRow className="header-left" gap={1} align="center">
         {hasIcon && showIcon && (
           <div
             className="node-icon"
-            style={{
-              background: iconBaseColor
-                ? hexToRgba(iconBaseColor, 0.22)
-                : "rgba(255,255,255,0.08)"
-            }}
+            style={iconBackgroundStyle}
           >
             <IconForType
               iconName={iconType!}
@@ -171,17 +244,87 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         )}
         <span
           className="node-title"
-          style={{
-            paddingLeft: hasIcon ? 0 : undefined
-          }}
+          style={titlePaddingStyle}
         >
           {metadataTitle}
         </span>
+        {externalLink && (
+          <Tooltip title={externalLinkTitle || "Open link"} arrow enterDelay={TOOLTIP_ENTER_DELAY}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(externalLink, "_blank", "noopener,noreferrer");
+              }}
+              sx={{ 
+                padding: "2px",
+                marginLeft: "2px",
+                color: "rgba(255, 255, 255, 0.4)",
+                "&:hover": {
+                  color: "primary.light",
+                  backgroundColor: "rgba(255, 255, 255, 0.05)"
+                }
+              }}
+            >
+              <OpenInNew sx={{ fontSize: "0.85rem" }} />
+            </IconButton>
+          </Tooltip>
+        )}
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}
-      </div>
-    </div>
+        {logCount > 0 && !hideLogs && (
+          <Tooltip title={`${logCount} logs`} arrow>
+            <IconButton
+              size="small"
+              onClick={handleOpenLogsDialog}
+              sx={{ padding: "4px" }}
+            >
+              <Badge badgeContent={logCount} color="warning" max={99}>
+                <ListAltIcon sx={{ fontSize: "1rem" }} />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+        )}
+      </FlexRow>
+
+      {/* Right side toggle buttons */}
+      {(showResultButton || showInputsButton) && (
+        <div className="header-right">
+          {/* Show Result button */}
+          {showResultButton && onShowResults && (
+            <Tooltip title="Show Result" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
+              <IconButton
+                size="small"
+                onClick={handleShowResultsClick}
+                sx={toggleIconButtonStyles}
+              >
+                <Visibility sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+          {/* Show Inputs button */}
+          {showInputsButton && onShowInputs && (
+            <Tooltip title="Show Inputs" enterDelay={TOOLTIP_ENTER_DELAY} arrow>
+              <IconButton
+                size="small"
+                onClick={handleShowInputsClick}
+                sx={toggleIconButtonStyles}
+              >
+                <InputOutlined sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </div>
+      )}
+
+      <NodeLogsDialog
+        id={id}
+        workflowId={workflowId || nodeWorkflowId || ""}
+        open={logsDialogOpen}
+        onClose={handleCloseLogsDialog}
+      />
+    </FlexRow>
   );
 };
 
