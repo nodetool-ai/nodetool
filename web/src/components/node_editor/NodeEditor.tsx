@@ -61,8 +61,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
-  // Use getSelectedNodeIds to avoid re-renders on node position changes (dragging)
-  const selectedNodeIds = useNodes((state) => state.getSelectedNodeIds());
+  // Use getSelectedNodes method which is memoized in the store
+  const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -96,8 +96,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   useCombo(
     nodeInfoCombo,
     () => {
-      if (active && selectedNodeIds.length > 0) {
-        toggleInspectedNode(selectedNodeIds[0]);
+      if (active && selectedNodes.length > 0) {
+        toggleInspectedNode(selectedNodes[0].id);
       }
     },
     true,
@@ -159,7 +159,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           {active && (
             <>
               <SelectionActionToolbar
-                visible={selectedNodeIds.length >= 2}
+                visible={selectedNodes.length >= 2}
               />
               <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
