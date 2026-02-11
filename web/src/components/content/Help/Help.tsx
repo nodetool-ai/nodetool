@@ -16,7 +16,7 @@ import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
@@ -220,11 +220,14 @@ const Help = ({
 
   const theme = useTheme();
 
-  const nodetoolTypes = DATA_TYPES.filter(
-    (type) => !type.value.startsWith("comfy.")
+  // Memoize type filtering to avoid recomputation on every render
+  const nodetoolTypes = useMemo(
+    () => DATA_TYPES.filter((type) => !type.value.startsWith("comfy.")),
+    []
   );
-  const comfyTypes = DATA_TYPES.filter((type) =>
-    type.value.startsWith("comfy.")
+  const comfyTypes = useMemo(
+    () => DATA_TYPES.filter((type) => type.value.startsWith("comfy.")),
+    []
   );
 
   const handleAccordionChange =
