@@ -78,13 +78,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   visible,
   onClose,
 }) => {
-  // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
-  const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
+  // Use getSelectedNodeCount to avoid re-renders when node data/position changes
+  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
   const selectionActions = useSelectionActions();
 
-  const canAlign = selectedNodes.length >= 2;
-  const canDistribute = selectedNodes.length >= 2;
-  const canGroup = selectedNodes.length >= 2;
+  const canAlign = selectedCount >= 2;
+  const canDistribute = selectedCount >= 2;
+  const canGroup = selectedCount >= 2;
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
