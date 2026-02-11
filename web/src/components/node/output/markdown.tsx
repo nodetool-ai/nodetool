@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
 
 export const isLikelyMarkdown = (text: string): boolean => {
@@ -20,8 +20,8 @@ export const isLikelyMarkdown = (text: string): boolean => {
   return patterns.some((re) => re.test(text));
 };
 
-export const MaybeMarkdown: React.FC<{ text: string }> = ({ text }) =>
-  isLikelyMarkdown(text) ? (
+export const MaybeMarkdown: React.FC<{ text: string }> = memo(({ text }) => {
+  return isLikelyMarkdown(text) ? (
     <MarkdownRenderer content={text} />
   ) : (
     <div
@@ -31,3 +31,6 @@ export const MaybeMarkdown: React.FC<{ text: string }> = ({ text }) =>
       {text}
     </div>
   );
+});
+
+MaybeMarkdown.displayName = "MaybeMarkdown";
