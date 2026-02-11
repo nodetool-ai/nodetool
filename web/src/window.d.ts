@@ -231,10 +231,19 @@ declare global {
       // Claude Agent SDK operations (available in Electron only)
       claudeAgent?: {
         createSession: (options: {
+          provider?: "claude" | "codex";
           model: string;
           workspacePath?: string;
           resumeSessionId?: string;
         }) => Promise<string>;
+        listModels: (options?: {
+          provider?: "claude" | "codex";
+          workspacePath?: string;
+        }) => Promise<Array<{
+          id: string;
+          label: string;
+          isDefault?: boolean;
+        }>>;
         sendMessage: (
           sessionId: string,
           message: string
