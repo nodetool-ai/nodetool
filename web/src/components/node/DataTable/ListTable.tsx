@@ -128,16 +128,22 @@ const ListTable: React.FC<ListTableProps> = ({
     [data_type, editable, showSelect]
   );
 
+  // Memoize the tabulator data transformation to prevent recreation on every render
+  const tabulatorData = useMemo(
+    () => data.map((value, index) => ({
+        rownum: index,
+        value: coerceValue(value, data_type)
+      })),
+    [data, data_type]
+  );
+
   const onCellEdited = useCallback(
     (cell: CellComponent) => {
       const { rownum, value } = cell.getData();
-      const newData = data.map((row, index) => {
-        if (index === rownum) {
-          return value;
-        } else {
-          return row;
-        }
-      });
+      // Create new array only when necessary (on cell edit)
+      const newData = data.map((row, index) =>
+        index === rownum ? value : row
+      );
       if (onDataChange) {
         onDataChange(newData);
       }
@@ -159,10 +165,7 @@ const ListTable: React.FC<ListTableProps> = ({
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: "100%",
-      data: data.map((value, index) => ({
-        rownum: index,
-        value: coerceValue(value, data_type)
-      })),
+      data: tabulatorData,
       columns: columns,
       columnDefaults: {
         headerSort: true,
@@ -187,7 +190,7 @@ const ListTable: React.FC<ListTableProps> = ({
     return () => {
       tabulatorInstance.destroy();
     };
-  }, [data, columns, onCellEdited, data_type]);
+  }, [tabulatorData, columns, onCellEdited, data_type]);
 
   const theme = useTheme();
   return (
