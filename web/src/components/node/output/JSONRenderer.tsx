@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
+import isEqual from "lodash/isEqual";
 import Actions from "./Actions";
 
 const jsonStyles = (theme: Theme) =>
@@ -254,8 +255,9 @@ const arePropsEqual = (prevProps: JSONRendererProps, nextProps: JSONRendererProp
     return false;
   }
 
-  // Fast deep comparison for value prop
-  return deepEqual(prevProps.value, nextProps.value);
+  // Use lodash.isEqual for efficient deep comparison instead of JSON.stringify
+  // which is slower and can fail with circular references
+  return isEqual(prevProps.value, nextProps.value);
 };
 
 export default React.memo(JSONRenderer, arePropsEqual);

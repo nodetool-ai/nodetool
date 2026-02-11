@@ -222,7 +222,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     else if (
       comment &&
       typeof comment === "object" &&
-      comment.root &&
+      "root" in comment &&
       Object.keys(comment).length > 0
     ) {
       config.editorState = JSON.stringify(comment);

@@ -150,7 +150,7 @@ export interface NodeStoreState {
   findNode: (id: string) => Node<NodeData> | undefined;
   updateNode: (id: string, node: Partial<Node<NodeData>>) => void;
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
-  updateNodeProperties: (id: string, properties: any) => void;
+  updateNodeProperties: (id: string, properties: Record<string, unknown>) => void;
   deleteNode: (id: string) => void;
   findEdge: (id: string) => Edge | undefined;
   deleteEdge: (id: string) => void;
@@ -650,7 +650,7 @@ export const createNodeStore = (
               return { ...state, nodes };
             });
           },
-          updateNodeProperties: (id: string, properties: any): void => {
+          updateNodeProperties: (id: string, properties: Record<string, unknown>): void => {
             const workflow_id = get().workflow.id;
             set((state) => {
               const index = state.nodes.findIndex((n) => n.id === id);
@@ -773,7 +773,12 @@ export const createNodeStore = (
             return nodes.reduce((acc, node) => {
               for (const key in node.data.properties) {
                 const property = node.data.properties[key];
-                if (property?.type && property?.repo_id) {
+                if (
+                  property &&
+                  typeof property === "object" &&
+                  "type" in property &&
+                  "repo_id" in property
+                ) {
                   acc.push(property as UnifiedModel);
                 }
               }

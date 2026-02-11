@@ -61,8 +61,8 @@ export function graphNodeToReactFlowNode(
     selectable,
     className: isBypassed ? "bypassed" : undefined,
     data: {
-      properties: node.data || {},
-      dynamic_properties: node.dynamic_properties || {},
+      properties: (node.data || {}) as Record<string, unknown>,
+      dynamic_properties: (node.dynamic_properties || {}) as Record<string, unknown>,
       dynamic_outputs: node.dynamic_outputs || {},
       sync_mode: node.sync_mode,
       selectable,

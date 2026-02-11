@@ -225,12 +225,17 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         }
       };
 
+      let isMounted = true;
+
       // Delay adding the listener to avoid immediately closing on the same click that opened
       const timeoutId = setTimeout(() => {
-        document.addEventListener("mousedown", handleClickOutside);
+        if (isMounted) {
+          document.addEventListener("mousedown", handleClickOutside);
+        }
       }, 100);
 
       return () => {
+        isMounted = false;
         clearTimeout(timeoutId);
         document.removeEventListener("mousedown", handleClickOutside);
       };

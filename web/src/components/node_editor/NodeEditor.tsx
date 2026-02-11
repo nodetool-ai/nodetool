@@ -61,8 +61,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
-  // Use selector instead of calling getSelectedNodes() to avoid filtering on every render
-  const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
+  // Use getSelectedNodes method which is memoized in the store
+  const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
