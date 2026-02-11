@@ -1,13 +1,13 @@
 import { TypeMetadata } from "./ApiTypes";
 
 export type NodeData = {
-  properties: any;
+  properties: Record<string, unknown>;
   selectable: boolean | undefined;
-  dynamic_properties: any;
+  dynamic_properties: Record<string, unknown>;
   /** Schema-defined input types + descriptions (e.g. from FAL resolve); used for correct types and connection-only inputs */
   dynamic_inputs?: Record<
     string,
-    TypeMetadata & { description?: string; min?: number; max?: number; default?: any }
+    TypeMetadata & { description?: string; min?: number; max?: number; default?: unknown }
   >;
   dynamic_outputs?: Record<string, TypeMetadata>;
   /** Resolved FAL model/endpoint id (e.g. fal-ai/flux-pro) when schema is loaded */

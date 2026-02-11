@@ -145,7 +145,7 @@ const NodeExplorer: React.FC = () => {
       const title =
         node.data?.title?.trim() ||
         (metadata?.title ?? "") ||
-        node.data?.properties?.name ||
+        (node.data?.properties?.name as string | undefined) ||
         node.id;
 
       const subtitleParts = [

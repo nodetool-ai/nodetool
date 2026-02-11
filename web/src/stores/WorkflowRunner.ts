@@ -83,11 +83,11 @@ export type WorkflowRunner = {
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   run: (
-    params: any,
+    params: Record<string, unknown>,
     workflow: WorkflowAttributes,
     nodes: Node<NodeData>[],
     edges: Edge[],
-    resource_limits?: any
+    resource_limits?: Record<string, unknown>
   ) => Promise<void>;
   reconnect: (jobId: string) => Promise<void>;
   reconnectWithWorkflow: (
@@ -97,7 +97,7 @@ export type WorkflowRunner = {
   ensureConnection: () => Promise<void>;
   cleanup: () => void;
   // Streaming inputs
-  streamInput: (inputName: string, value: any, handle?: string) => void;
+  streamInput: (inputName: string, value: unknown, handle?: string) => void;
   endInputStream: (inputName: string, handle?: string) => void;
 };
 
@@ -207,7 +207,7 @@ export const createWorkflowRunnerStore = (
     },
 
     // Push a streaming item to a streaming InputNode by name
-    streamInput: async (inputName: string, value: any, handle?: string) => {
+    streamInput: async (inputName: string, value: unknown, handle?: string) => {
       const { job_id } = get();
       if (!job_id) {
         log.warn("streamInput called without an active job");
@@ -251,11 +251,11 @@ export const createWorkflowRunnerStore = (
      * Run the current workflow.
      */
     run: async (
-      params: any,
+      params: Record<string, unknown>,
       workflow: WorkflowAttributes,
       nodes: Node<NodeData>[],
       edges: Edge[],
-      resource_limits?: any
+      resource_limits?: Record<string, unknown>
     ) => {
       log.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 

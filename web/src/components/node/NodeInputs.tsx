@@ -147,7 +147,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     [properties]
   );
   const dynamicProperties: { [key: string]: Property } =
-    data?.dynamic_properties || {};
+    (data?.dynamic_properties || {}) as { [key: string]: Property };
 
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];

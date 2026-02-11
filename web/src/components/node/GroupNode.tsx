@@ -221,7 +221,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isDragging = useNodes((state) => state.hoveredNodes.length > 0);
 
   const [headline, setHeadline] = useState(
-    props.data.properties.headline || "Group"
+    (props.data.properties.headline as string | undefined) || "Group"
   );
 
   const [color, setColor] = useState(

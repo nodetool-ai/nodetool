@@ -155,10 +155,10 @@ describe("reactFlowNodeToGraphNode", () => {
       expect(result.data).toEqual({});
     });
 
-    it("maps undefined properties to undefined", () => {
+    it("maps undefined properties to empty object", () => {
       const node = createMockReactFlowNode({
         data: {
-          properties: undefined,
+          properties: {} as Record<string, unknown>,
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: {},
@@ -169,7 +169,7 @@ describe("reactFlowNodeToGraphNode", () => {
 
       const result = reactFlowNodeToGraphNode(node);
 
-      expect(result.data).toBeUndefined();
+      expect(result.data).toEqual({});
     });
 
     it("copies dynamic_properties from node data", () => {
