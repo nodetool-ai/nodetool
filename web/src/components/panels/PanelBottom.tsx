@@ -2,18 +2,20 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip, Typography } from "@mui/material";
+import { Drawer, IconButton, Tooltip, Typography, Tab, Tabs } from "@mui/material";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import isEqual from "lodash/isEqual";
 import Terminal from "../terminal/Terminal";
+import WorkflowHealthPanel from "../workflow_health/WorkflowHealthPanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // icons
 import CloseIcon from "@mui/icons-material/Close";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import HealthIcon from "@mui/icons-material/Favorite";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
 
@@ -84,19 +86,25 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary
       }
     },
-    ".terminal-wrapper": {
+    ".panel-wrapper": {
       flex: 1,
       minHeight: 0,
       display: "flex",
       overflow: "auto",
-      width: "100%",
-      ".terminal-container": {
-        width: "100%"
+      width: "100%"
+    },
+    ".tabs": {
+      minHeight: "40px",
+      "& .MuiTab-root": {
+        minHeight: "40px",
+        fontSize: "0.8125rem",
+        textTransform: "none",
+        minWidth: "auto"
       }
     }
   });
 
-const PanelBottom: React.FC = () => {
+const PanelBottom: React.FC = memo(function PanelBottom() {
   const theme = useTheme();
   const {
     ref: panelRef,
@@ -109,12 +117,20 @@ const PanelBottom: React.FC = () => {
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
 
-  // Add keyboard shortcut for toggle (Ctrl+`)
+  // Add keyboard shortcuts for toggle
   useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
+  useCombo(["H"], () => handlePanelToggle("health"), false);
 
-  const handleTerminalToggle = useCallback(() => {
-    handlePanelToggle("terminal");
-  }, [handlePanelToggle]);
+  const handlePanelClose = useCallback(() => {
+    handlePanelToggle(activeView);
+  }, [activeView, handlePanelToggle]);
+
+  const handleTabChange = useCallback(
+    (_event: React.SyntheticEvent, newValue: "terminal" | "health") => {
+      handlePanelToggle(newValue);
+    },
+    [handlePanelToggle]
+  );
 
   const openHeight = isVisible
     ? Math.min(
@@ -122,6 +138,46 @@ const PanelBottom: React.FC = () => {
         typeof window !== "undefined" ? Math.max(200, window.innerHeight * 0.6) : panelSize
       )
     : 0;
+
+  const headerContent = useMemo(() => {
+    switch (activeView) {
+      case "health":
+        return (
+          <>
+            <HealthIcon fontSize="small" />
+            <Typography variant="body2">Health</Typography>
+          </>
+        );
+      case "terminal":
+      default:
+        return (
+          <>
+            <TerminalIcon fontSize="small" />
+            <Typography variant="body2">Terminal</Typography>
+          </>
+        );
+    }
+  }, [activeView]);
+
+  const closeTooltip = useMemo(() => {
+    const shortcuts =
+      activeView === "health"
+        ? { combo: ["H"], title: "Hide health" }
+        : { combo: ["Control", "`"], title: "Hide terminal" };
+    return (
+      <div className="tooltip-span">
+        <div className="tooltip-title">{shortcuts.title}</div>
+        <div className="tooltip-key">
+          <kbd>{shortcuts.combo[0]}</kbd>
+          {shortcuts.combo[1] && (
+            <>
+              + <kbd>{shortcuts.combo[1]}</kbd>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }, [activeView]);
 
   return (
     <div
@@ -164,25 +220,30 @@ const PanelBottom: React.FC = () => {
           {isVisible && (
             <div className="panel-header">
               <div className="left">
-                <TerminalIcon fontSize="small" />
-                <Typography variant="body2">Terminal</Typography>
+                <Tabs
+                  value={activeView}
+                  onChange={handleTabChange}
+                  className="tabs"
+                  sx={{
+                    minHeight: "40px",
+                    "& .MuiTabs-indicator": {
+                      height: "2px"
+                    }
+                  }}
+                >
+                  <Tab label="Terminal" value="terminal" />
+                  <Tab label="Health" value="health" />
+                </Tabs>
               </div>
               <Tooltip
-                title={
-                  <div className="tooltip-span">
-                    <div className="tooltip-title">Hide terminal</div>
-                    <div className="tooltip-key">
-                      <kbd>Ctrl</kbd> + <kbd>`</kbd>
-                    </div>
-                  </div>
-                }
+                title={closeTooltip}
                 placement="top-start"
                 enterDelay={TOOLTIP_ENTER_DELAY}
               >
                 <IconButton
                   size="small"
-                  onClick={handleTerminalToggle}
-                  aria-label="Hide terminal"
+                  onClick={handlePanelClose}
+                  aria-label={`Close ${activeView} panel`}
                 >
                   <CloseIcon />
                 </IconButton>
@@ -190,17 +251,25 @@ const PanelBottom: React.FC = () => {
             </div>
           )}
           <div
-            className="terminal-wrapper"
+            className="panel-wrapper"
             style={{
               display: activeView === "terminal" && isVisible ? "flex" : "none"
             }}
           >
             <Terminal />
           </div>
+          <div
+            className="panel-wrapper"
+            style={{
+              display: activeView === "health" && isVisible ? "flex" : "none"
+            }}
+          >
+            <WorkflowHealthPanel />
+          </div>
         </div>
       </Drawer>
     </div>
   );
-};
+}, isEqual);
 
-export default memo(PanelBottom, isEqual);
+export default PanelBottom;
