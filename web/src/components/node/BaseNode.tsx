@@ -39,6 +39,9 @@ import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { NodeInfoTooltip } from "./NodeInfoTooltip";
+import { IconButton } from "@mui/material";
 
 import { getIsElectronDetails } from "../../utils/browser";
 import { Box } from "@mui/material";
@@ -547,6 +550,40 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return () => cancelAnimationFrame(rafId);
   }, [hasError, isOverlayVisible, id, updateNode]);
 
+  // Create info icon for node tooltip
+  const infoIcon = useMemo(
+    () => (
+      <NodeInfoTooltip metadata={metadata} nodeType={type}>
+        <IconButton
+          size="small"
+          sx={{
+            position: "absolute",
+            top: -12,
+            right: -12,
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "divider",
+            zIndex: 10,
+            p: 0.25,
+            width: 20,
+            height: 20,
+            "&:hover": {
+              bgcolor: "action.hover"
+            },
+            opacity: 0,
+            transition: "opacity 0.2s",
+            ".base-node:hover &": {
+              opacity: 1
+            }
+          }}
+        >
+          <InfoOutlinedIcon sx={{ fontSize: 12 }} />
+        </IconButton>
+      </NodeInfoTooltip>
+    ),
+    [metadata, type]
+  );
+
   return (
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
@@ -571,6 +608,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onShowResults={handleShowResults}
         onShowInputs={handleShowInputs}
       />
+      {infoIcon}
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
