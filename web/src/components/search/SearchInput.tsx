@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState, memo } from "react";
 import { Tooltip } from "@mui/material";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
@@ -116,7 +116,7 @@ interface SearchInputProps {
   width?: number | string;
 }
 
-const SearchInput: React.FC<SearchInputProps> = ({
+const SearchInput: React.FC<SearchInputProps> = memo(function SearchInput({
   onSearchChange,
   onPressEscape,
   onPressArrowDown,
@@ -130,7 +130,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   searchTerm: externalSearchTerm = "",
   searchResults = [],
   width = 150
-}) => {
+}) {
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
@@ -301,6 +301,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
       </Tooltip>
     </div>
   );
-};
+});
 
-export default React.memo(SearchInput);
+export default SearchInput;
