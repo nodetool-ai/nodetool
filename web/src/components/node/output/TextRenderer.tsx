@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
@@ -99,7 +99,7 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
-export const TextRenderer: React.FC<Props> = ({ text, showActions = true }) => {
+export const TextRenderer: React.FC<Props> = memo(({ text, showActions = true }) => {
   const theme = useTheme();
   const sections = useMemo(() => parseThinkSections(text), [text]);
   if (!text) {
@@ -123,4 +123,6 @@ export const TextRenderer: React.FC<Props> = ({ text, showActions = true }) => {
       )}
     </div>
   );
-};
+});
+
+TextRenderer.displayName = "TextRenderer";

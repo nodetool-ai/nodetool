@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { Chunk } from "../../../stores/ApiTypes";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
@@ -12,7 +12,7 @@ type Props = {
   chunk: Chunk;
 };
 
-export const ChunkRenderer: React.FC<Props> = ({ chunk }) => {
+export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
   const theme = useTheme();
 
   switch (chunk.content_type) {
@@ -59,4 +59,6 @@ export const ChunkRenderer: React.FC<Props> = ({ chunk }) => {
       );
     }
   }
-};
+});
+
+ChunkRenderer.displayName = "ChunkRenderer";
