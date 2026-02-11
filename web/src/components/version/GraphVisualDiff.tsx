@@ -28,15 +28,15 @@ interface MiniNodeProps {
   height: number;
 }
 
-const MiniNode: React.FC<MiniNodeProps> = ({ node, x, y, status, width, height }) => {
+const MiniNode: React.FC<MiniNodeProps> = memo(function MiniNode({ node, x, y, status, width, height }) {
   const theme = useTheme();
 
-  const colors = {
+  const colors = useMemo(() => ({
     added: { bg: theme.palette.success.main, border: theme.palette.success.dark, text: theme.palette.success.contrastText },
     removed: { bg: theme.palette.error.main, border: theme.palette.error.dark, text: theme.palette.error.contrastText },
     modified: { bg: theme.palette.warning.main, border: theme.palette.warning.dark, text: theme.palette.warning.contrastText },
     unchanged: { bg: theme.palette.action.selected, border: theme.palette.divider, text: theme.palette.text.secondary }
-  };
+  }), [theme.palette.success.main, theme.palette.success.dark, theme.palette.success.contrastText, theme.palette.error.main, theme.palette.error.dark, theme.palette.error.contrastText, theme.palette.warning.main, theme.palette.warning.dark, theme.palette.warning.contrastText, theme.palette.action.selected, theme.palette.divider, theme.palette.text.secondary]);
 
   const color = colors[status];
 
@@ -72,7 +72,7 @@ const MiniNode: React.FC<MiniNodeProps> = ({ node, x, y, status, width, height }
       )}
     </g>
   );
-};
+});
 
 const MiniEdge: React.FC<{
   x1: number;
@@ -80,7 +80,7 @@ const MiniEdge: React.FC<{
   x2: number;
   y2: number;
   status: "added" | "removed" | "unchanged";
-}> = ({ x1, y1, x2, y2, status }) => {
+}> = memo(function MiniEdge({ x1, y1, x2, y2, status }) {
   const theme = useTheme();
   const color = status === "added" ? theme.palette.success.main : status === "removed" ? theme.palette.error.main : theme.palette.text.disabled;
   const strokeWidth = status !== "unchanged" ? 2 : 1;
@@ -98,7 +98,7 @@ const MiniEdge: React.FC<{
       strokeDasharray={status === "removed" ? "4,2" : "none"}
     />
   );
-};
+});
 
 export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
   diff,
