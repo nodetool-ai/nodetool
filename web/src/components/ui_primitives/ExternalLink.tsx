@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -45,7 +45,7 @@ export interface ExternalLinkProps {
   className?: string;
 }
 
-export const ExternalLink: React.FC<ExternalLinkProps> = ({
+const ExternalLinkInternal: React.FC<ExternalLinkProps> = ({
   href,
   children,
   iconVariant = "arrow",
@@ -103,5 +103,9 @@ export const ExternalLink: React.FC<ExternalLinkProps> = ({
 
   return link;
 };
+
+export const ExternalLink = memo(ExternalLinkInternal);
+
+ExternalLink.displayName = "ExternalLink";
 
 export default ExternalLink;

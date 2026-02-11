@@ -224,24 +224,19 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
     [setSearchTerm]
   );
 
-  const createTagClickHandler = useCallback(
-    (tag: string) => {
-      return () => handleTagClick(tag);
-    },
-    [handleTagClick]
-  );
-
-  const renderTags = useCallback((tags: string = "") => {
+  const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag, index) => (
       <span
-        onClick={createTagClickHandler(tag.trim())}
+        onClick={() => {
+          handleTagClick(tag.trim());
+        }}
         key={index}
         className="tag"
       >
         {tag.trim()}
       </span>
     ));
-  }, [createTagClickHandler]);
+  };
 
   const theme = useTheme();
   return (
@@ -262,9 +257,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </div>
       <div className="node-description">
-        <HighlightText 
-          text={description.description} 
-          query={searchTerm} 
+        <HighlightText
+          text={description.description}
+          query={searchTerm}
           matchStyle="primary"
         />
       </div>
@@ -275,9 +270,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         {description.useCases.raw && (
           <>
             <h4>Use cases</h4>
-            <HighlightText 
-              text={description.useCases.raw} 
-              query={searchTerm} 
+            <HighlightText
+              text={description.useCases.raw}
+              query={searchTerm}
               matchStyle="primary"
               isBulletList={true}
             />

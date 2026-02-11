@@ -39,8 +39,8 @@ const sliderStyles = (theme: Theme) =>
     }
   });
 
-const SliderNodes = (props: any) => {
+const SliderNodes = React.memo((props: any) => {
   return <Slider {...props} css={sliderStyles} />;
-  // return <React.Fragment />;
-};
+});
+SliderNodes.displayName = "SliderNodes";
 export default SliderNodes;

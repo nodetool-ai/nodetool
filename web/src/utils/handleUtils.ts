@@ -141,15 +141,25 @@ export function findInputHandle(
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
     if (dynamicProperties[handleName] !== undefined) {
+      const inputMeta = node.data.dynamic_inputs?.[handleName];
+      const type = inputMeta
+        ? {
+            type: inputMeta.type,
+            optional: inputMeta.optional ?? false,
+            values: inputMeta.values ?? null,
+            type_args: inputMeta.type_args ?? [],
+            type_name: inputMeta.type_name ?? null
+          }
+        : {
+            type: "any",
+            optional: false,
+            values: null,
+            type_args: [],
+            type_name: null
+          };
       return {
         name: handleName,
-        type: {
-          type: "any",
-          optional: false,
-          values: null,
-          type_args: [],
-          type_name: null
-        },
+        type,
         isDynamic: true
       };
     }
@@ -219,16 +229,27 @@ export function getAllInputHandles(
   // Add dynamic properties (for dynamic nodes)
   if (metadata.is_dynamic) {
     const dynamicProperties = node.data.dynamic_properties || {};
+    const dynamicInputs = node.data.dynamic_inputs || {};
     Object.keys(dynamicProperties).forEach((name) => {
+      const inputMeta = dynamicInputs[name];
+      const type = inputMeta
+        ? {
+            type: inputMeta.type,
+            optional: inputMeta.optional ?? false,
+            values: inputMeta.values ?? null,
+            type_args: inputMeta.type_args ?? [],
+            type_name: inputMeta.type_name ?? null
+          }
+        : {
+            type: "any",
+            optional: false,
+            values: null,
+            type_args: [],
+            type_name: null
+          };
       handles.push({
         name,
-        type: {
-          type: "any", // Dynamic properties take on the type of their incoming connection
-          optional: false,
-          values: null,
-          type_args: [],
-          type_name: null
-        },
+        type,
         isDynamic: true
       });
     });

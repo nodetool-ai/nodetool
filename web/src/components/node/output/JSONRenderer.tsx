@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
+import isEqual from "lodash/isEqual";
 import Actions from "./Actions";
 
 const jsonStyles = (theme: Theme) =>
@@ -219,3 +220,44 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
     </div>
   );
 };
+
+// Helper function for fast deep equality check
+// Uses reference equality for objects, only strings JSON.stringify for comparison
+const deepEqual = (a: any, b: any): boolean => {
+  // Fast path: reference equality
+  if (a === b) {return true;}
+
+  // Handle null/undefined
+  if (a == null || b == null) {return a === b;}
+
+  // Handle strings - use JSON.stringify for consistent comparison
+  if (typeof a === "string" && typeof b === "string") {
+    return a === b;
+  }
+
+  // For objects, check reference equality first (most common case)
+  if (typeof a === "object" && typeof b === "object") {
+    // If both have type property and are JSON type, compare data
+    if (a?.type === "json" && b?.type === "json") {
+      return a.data === b.data;
+    }
+    // For other objects, use reference equality
+    return false;
+  }
+
+  return false;
+};
+
+// Custom comparison function for deep equality check
+const arePropsEqual = (prevProps: JSONRendererProps, nextProps: JSONRendererProps) => {
+  // Quick check for primitive props
+  if (prevProps.showActions !== nextProps.showActions) {
+    return false;
+  }
+
+  // Use lodash.isEqual for efficient deep comparison instead of JSON.stringify
+  // which is slower and can fail with circular references
+  return isEqual(prevProps.value, nextProps.value);
+};
+
+export default React.memo(JSONRenderer, arePropsEqual);

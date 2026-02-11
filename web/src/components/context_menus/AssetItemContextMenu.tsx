@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 //mui
 import { Divider, Menu, MenuItem, Typography } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
@@ -19,28 +19,61 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
+
 const AssetItemContextMenu = () => {
-  const menuPosition = useContextMenuStore((state) => state.menuPosition);
-  const closeContextMenu = useContextMenuStore(
-    (state) => state.closeContextMenu
+  // Combine multiple ContextMenuStore subscriptions into a single selector
+  const { menuPosition, closeContextMenu } = useContextMenuStore(
+    useCallback(
+      (state) => ({
+        menuPosition: state.menuPosition,
+        closeContextMenu: state.closeContextMenu
+      }),
+      []
+    )
   );
-  const setRenameDialogOpen = useAssetGridStore(
-    (state) => state.setRenameDialogOpen
+
+  // Combine multiple AssetGridStore subscriptions into a single selector
+  const {
+    setRenameDialogOpen,
+    setMoveToFolderDialogOpen,
+    setDeleteDialogOpen,
+    selectedAssetIds,
+    selectedAssets,
+    openCompareView,
+    setCreateFolderDialogOpen
+  } = useAssetGridStore(
+    useCallback(
+      (state) => ({
+        setRenameDialogOpen: state.setRenameDialogOpen,
+        setMoveToFolderDialogOpen: state.setMoveToFolderDialogOpen,
+        setDeleteDialogOpen: state.setDeleteDialogOpen,
+        selectedAssetIds: state.selectedAssetIds,
+        selectedAssets: state.selectedAssets,
+        openCompareView: state.openCompareView,
+        setCreateFolderDialogOpen: state.setCreateFolderDialogOpen
+      }),
+      []
+    )
   );
-  const setMoveToFolderDialogOpen = useAssetGridStore(
-    (state) => state.setMoveToFolderDialogOpen
+
+  // AssetStore subscription
+  const { download } = useAssetStore(
+    useCallback(
+      (state) => ({
+        download: state.download
+      }),
+      []
+    )
   );
-  const setDeleteDialogOpen = useAssetGridStore(
-    (state) => state.setDeleteDialogOpen
-  );
-  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
-  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
-  const download = useAssetStore((state) => state.download);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  const setCreateFolderDialogOpen = useAssetGridStore(
-    (state) => state.setCreateFolderDialogOpen
+
+  // NotificationStore subscription
+  const { addNotification } = useNotificationStore(
+    useCallback(
+      (state) => ({
+        addNotification: state.addNotification
+      }),
+      []
+    )
   );
 
   // Check if any selected items are folders
@@ -58,8 +91,6 @@ const AssetItemContextMenu = () => {
   const isTwoImages =
     selectedAssets.length === 2 &&
     selectedAssets.every((asset) => asset.content_type?.startsWith("image/"));
-
-  const openCompareView = useAssetGridStore((state) => state.openCompareView);
 
   // Determine if we have non-folder assets selected for moving to new folder
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
@@ -247,4 +278,4 @@ const AssetItemContextMenu = () => {
   );
 };
 
-export default AssetItemContextMenu;
+export default memo(AssetItemContextMenu);

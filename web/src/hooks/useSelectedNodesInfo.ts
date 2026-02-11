@@ -71,9 +71,30 @@ export const useSelectedNodesInfo = (): UseSelectedNodesInfoReturn => {
   const edges = useEdges();
   // Subscribe to getMetadata method only - this is a stable reference
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const results = useResultsStore((state) => state.results);
-  const errors = useErrorStore((state) => state.errors);
   const currentWorkflowId = useNodes((state) => state.workflow?.id ?? "");
+
+  // Subscribe selectively to only the results/errors for selected nodes
+  // to avoid re-renders when other nodes' results change
+  const results = useResultsStore((state) => {
+    const relevantResults: Record<string, any> = {};
+    for (const node of selectedNodes) {
+      const result = state.results[node.id];
+      if (result !== undefined) {
+        relevantResults[node.id] = result;
+      }
+    }
+    return relevantResults;
+  });
+  const errors = useErrorStore((state) => {
+    const relevantErrors: Record<string, any> = {};
+    for (const node of selectedNodes) {
+      const errorKey = currentWorkflowId ? `${currentWorkflowId}:${node.id}` : "";
+      if (errorKey && state.errors[errorKey] !== undefined) {
+        relevantErrors[errorKey] = state.errors[errorKey];
+      }
+    }
+    return relevantErrors;
+  });
 
   const nodesInfo = useMemo(() => {
     return selectedNodes.map((node) => {

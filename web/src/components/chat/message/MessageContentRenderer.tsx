@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect } from "react";
+import React, { useCallback, useRef, useEffect, useMemo } from "react";
 import { MessageContent } from "../../../stores/ApiTypes";
 import ImageView from "../../node/ImageView";
 import AudioPlayer from "../../audio/AudioPlayer";
@@ -14,7 +14,7 @@ interface MessageContentRendererProps {
   index: number;
 }
 
-export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
+export const MessageContentRenderer: React.FC<MessageContentRendererProps> = React.memo(({
   content,
   renderTextContent,
   index
@@ -57,6 +57,9 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
   }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Memoize video style to prevent recreation on every render
+  const videoStyle = useMemo(() => ({ width: "100%" }), []);
 
   // Render content according to Harmony format
   switch (content.type) {
@@ -119,7 +122,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
         "video/mp4"
       );
       return (
-        <video ref={videoRef} controls style={{ width: "100%" }} src={uri} />
+        <video ref={videoRef} controls style={videoStyle} src={uri} />
       );
     }
     case "document":
@@ -128,4 +131,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = ({
     default:
       return null;
   }
-};
+});
+
+MessageContentRenderer.displayName = "MessageContentRenderer";

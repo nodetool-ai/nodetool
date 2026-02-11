@@ -1,14 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Box, IconButton, Tooltip, Typography, Collapse, Button } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import CloseIcon from "@mui/icons-material/Close";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import { CloseButton, ExpandCollapseButton } from "../../ui_primitives";
 
 import ThemeToggle from "../../ui/ThemeToggle";
 import MiniWorkflowGraph from "./MiniWorkflowGraph";
@@ -20,7 +18,7 @@ interface MiniAppSidePanelProps {
   isRunning?: boolean;
 }
 
-const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
+const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
   workflow,
   isRunning = false
 }) => {
@@ -50,6 +48,15 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
   }, []);
 
   const panelWidth = 360;
+
+  // Memoize inline styles that depend on theme to prevent object creation on each render
+  const panelSectionMarginStyle = useMemo(() => ({
+    marginTop: theme.spacing(1)
+  }), [theme]);
+
+  const vibeCodingSectionMarginStyle = useMemo(() => ({
+    marginTop: theme.spacing(2)
+  }), [theme]);
 
   const styles = css({
     ".side-panel-toggle": {
@@ -186,9 +193,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
       {/* Panel */}
       <div className="side-panel">
         <div className="side-panel-header">
-          <IconButton size="small" onClick={handleClosePanel}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
+          <CloseButton onClick={handleClosePanel} />
         </div>
 
         <div className="side-panel-content">
@@ -207,7 +212,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
           </Typography>
 
           {/* Workflow Graph Section */}
-          <div className="panel-section" style={{ marginTop: theme.spacing(1) }}>
+          <div className="panel-section" style={panelSectionMarginStyle}>
             <div
               className="panel-section-header"
               onClick={handleToggleGraph}
@@ -216,11 +221,11 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
                 <AccountTreeIcon sx={{ fontSize: 16 }} />
                 Workflow Graph
               </span>
-              {showGraph ? (
-                <ExpandLessIcon fontSize="small" color="action" />
-              ) : (
-                <ExpandMoreIcon fontSize="small" color="action" />
-              )}
+              <ExpandCollapseButton
+                expanded={showGraph}
+                onClick={handleToggleGraph}
+                iconVariant="chevron"
+              />
             </div>
             <Collapse in={showGraph}>
               <div className="graph-wrapper">
@@ -230,7 +235,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
           </div>
 
           {/* VibeCoding Button */}
-          <div className="panel-section" style={{ marginTop: theme.spacing(2) }}>
+          <div className="panel-section" style={vibeCodingSectionMarginStyle}>
             <Button
               variant="outlined"
               startIcon={<AutoFixHighIcon />}
@@ -276,6 +281,8 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = ({
       />
     </Box>
   );
-};
+});
+
+MiniAppSidePanel.displayName = 'MiniAppSidePanel';
 
 export default MiniAppSidePanel;

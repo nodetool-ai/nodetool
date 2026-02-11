@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -108,7 +108,7 @@ interface SwatchPanelProps {
   onColorSelect: (color: string) => void;
 }
 
-const SwatchPanel: React.FC<SwatchPanelProps> = ({
+const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
   currentColor,
   onColorSelect
 }) => {
@@ -119,14 +119,31 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
     swatchId: string;
   } | null>(null);
 
-  const recentColors = useColorPickerStore((state) => state.recentColors);
-  const swatches = useColorPickerStore((state) => state.swatches);
-  const palettes = useColorPickerStore((state) => state.palettes);
-  const addSwatch = useColorPickerStore((state) => state.addSwatch);
-  const removeSwatch = useColorPickerStore((state) => state.removeSwatch);
-  const clearRecentColors = useColorPickerStore((state) => state.clearRecentColors);
-  const addPalette = useColorPickerStore((state) => state.addPalette);
-  const removePalette = useColorPickerStore((state) => state.removePalette);
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const {
+    recentColors,
+    swatches,
+    palettes,
+    addSwatch,
+    removeSwatch,
+    clearRecentColors,
+    addPalette,
+    removePalette
+  } = useColorPickerStore(
+    useCallback(
+      (state) => ({
+        recentColors: state.recentColors,
+        swatches: state.swatches,
+        palettes: state.palettes,
+        addSwatch: state.addSwatch,
+        removeSwatch: state.removeSwatch,
+        clearRecentColors: state.clearRecentColors,
+        addPalette: state.addPalette,
+        removePalette: state.removePalette
+      }),
+      []
+    )
+  );
 
   const handleAddSwatch = useCallback(() => {
     addSwatch(currentColor);
@@ -227,7 +244,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
           <Typography className="section-title">Recent</Typography>
           {recentColors.length > 0 && (
             <Tooltip title="Clear recent colors">
-              <IconButton size="small" onClick={clearRecentColors}>
+              <IconButton size="small" onClick={clearRecentColors} aria-label="Clear recent colors">
                 <DeleteIcon sx={{ fontSize: 14 }} />
               </IconButton>
             </Tooltip>
@@ -284,7 +301,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
             <div key={palette.id} className="palette-section">
               <div className="palette-header">
                 <Typography className="palette-name">{palette.name}</Typography>
-                <IconButton size="small" onClick={handlePaletteRemove(palette.id)}>
+                <IconButton size="small" onClick={handlePaletteRemove(palette.id)} aria-label={`Remove palette ${palette.name}`}>
                   <DeleteIcon sx={{ fontSize: 12 }} />
                 </IconButton>
               </div>
@@ -356,6 +373,8 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
       </Menu>
     </Box>
   );
-};
+});
 
-export default SwatchPanel;
+SwatchPanel.displayName = 'SwatchPanel';
+
+export default memo(SwatchPanel);

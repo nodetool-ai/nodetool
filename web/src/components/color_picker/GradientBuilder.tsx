@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -107,7 +107,7 @@ const DEFAULT_GRADIENT: GradientValue = {
   ]
 };
 
-const GradientBuilder: React.FC<GradientBuilderProps> = ({
+const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
   gradient = DEFAULT_GRADIENT,
   onChange,
   currentColor
@@ -384,6 +384,8 @@ const GradientBuilder: React.FC<GradientBuilderProps> = ({
       <div className="css-output">{cssOutput}</div>
     </Box>
   );
-};
+});
 
-export default GradientBuilder;
+GradientBuilder.displayName = 'GradientBuilder';
+
+export default memo(GradientBuilder);

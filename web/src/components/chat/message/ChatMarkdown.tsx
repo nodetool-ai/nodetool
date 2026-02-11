@@ -10,7 +10,6 @@ import "../../../styles/markdown/nodetool-markdown.css";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import "../../../styles/markdown/github-markdown-dark.css";
-// import "../../../styles/markdown/github-markdown-light.css";
 
 interface ChatMarkdownProps {
   content: string;
@@ -48,7 +47,7 @@ const styles = (_theme: Theme) =>
     }
   });
 
-const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
+const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
   content,
   onInsertCode
 }) => {
@@ -89,6 +88,8 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
       </ReactMarkdown>
     </div>
   );
-};
+});
+
+ChatMarkdown.displayName = "ChatMarkdown";
 
 export default ChatMarkdown;

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, memo, useMemo } from "react";
 import { Typography, Box, Tooltip } from "@mui/material";
 import { EditorButton } from "../ui_primitives";
 import {
@@ -197,15 +197,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   containerWidth = 1200
 }) => {
   const theme = useTheme();
-  // Optimize selection hook to prevent new arrays on every render
-  useMemo(
-    () => results.map((r) => r.id).join(","),
-    [results]
-  );
-
-  const memoizedResults = useMemo(() => results, [results]);
-  const { selectedAssetIds, handleSelectAsset } =
-    useAssetSelection(memoizedResults);
+  const { selectedAssetIds, handleSelectAsset } = useAssetSelection(results);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const globalSearchQuery = useAssetGridStore(
     (state) => state.globalSearchQuery
@@ -216,9 +208,23 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   const setSelectedAssets = useAssetGridStore(
     (state) => state.setSelectedAssets
   );
+  const selectedAssets = useAssetGridStore(
+    (state) => state.selectedAssets
+  );
   const { isSearching } = useAssetSearch();
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
+
+  // Memoize static styles to prevent recreation on every render
+  const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: "0.5em" }), []);
+  const spinnerStyle = useMemo(() => ({
+    width: "20px",
+    height: "20px",
+    border: "2px solid " + "var(--palette-grey-500)",
+    borderTop: "2px solid var(--palette-grey-100)",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite"
+  }), []);
 
   const handleContextMenu = useCallback(
     (event: React.MouseEvent, assetId?: string) => {
@@ -229,7 +235,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         // If right-clicking on a non-selected item, select only that item first
         if (!selectedAssetIds.includes(assetId)) {
           setSelectedAssetIds([assetId]);
-          const clicked = memoizedResults.find((a) => a.id === assetId);
+          const clicked = results.find((a) => a.id === assetId);
           setSelectedAssets(clicked ? [clicked] : []);
         }
         openContextMenu(
@@ -245,7 +251,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       selectedAssetIds,
       setSelectedAssetIds,
       setSelectedAssets,
-      memoizedResults
+      results
     ]
   );
 
@@ -288,8 +294,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       // Create and set drag image using the unified utility
       // For global search, we might not have all selected assets in store correctly or they might be from different queries.
       // But we can try to use store or just minimal info.
-      const allSelectedAssets = useAssetGridStore.getState().selectedAssets || [];
-      const dragImage = createAssetDragImage(asset, assetIds.length, allSelectedAssets);
+      const dragImage = createAssetDragImage(asset, assetIds.length, selectedAssets || []);
       document.body.appendChild(dragImage);
       e.dataTransfer.setDragImage(dragImage, 10, 10);
       setTimeout(() => document.body.removeChild(dragImage), 0);
@@ -301,7 +306,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         metadata: { count: assetIds.length, sourceId: asset.id }
       });
     },
-    [selectedAssetIds, handleSelectAsset, setActiveDrag]
+    [selectedAssetIds, handleSelectAsset, setActiveDrag, selectedAssets]
   );
 
   const handleDragEnd = useCallback(() => {
@@ -343,18 +348,11 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
           >
             {isSearching ? (
               <div
-                style={{ display: "flex", alignItems: "center", gap: "0.5em" }}
+                style={flexCenterStyle}
               >
                 <div
                   className="search-spinner"
-                  style={{
-                    width: "20px",
-                    height: "20px",
-                    border: "2px solid var(--palette-grey-500)",
-                    borderTop: "2px solid var(--palette-grey-100)",
-                    borderRadius: "50%",
-                    animation: "spin 1s linear infinite"
-                  }}
+                  style={spinnerStyle}
                 ></div>
                 <Typography>Searching...</Typography>
               </div>
@@ -512,4 +510,4 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   );
 };
 
-export default GlobalSearchResults;
+export default memo(GlobalSearchResults);

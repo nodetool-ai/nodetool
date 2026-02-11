@@ -11,7 +11,7 @@
   * - `density`: Controls compact vs normal sizing
   */
 
- import React, { forwardRef } from "react";
+ import React, { forwardRef, useMemo, memo } from "react";
  import {
    Select,
    SelectProps,
@@ -84,6 +84,34 @@
        scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeTiny;
      const height = density === "compact" ? 24 : 28;
 
+     // Memoize sx prop to prevent unnecessary re-renders
+     const selectSx = useMemo(() => ({
+       fontSize,
+       height,
+       // Semantic: changed state - shows right border indicator
+       ...(changed && {
+         "& .MuiOutlinedInput-notchedOutline": {
+           borderRightWidth: 2,
+           borderRightColor: theme.vars.palette.primary.main
+         },
+         "&:hover .MuiOutlinedInput-notchedOutline": {
+           borderRightWidth: 2,
+           borderRightColor: theme.vars.palette.primary.main
+         },
+         "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+           borderRightWidth: 2,
+           borderRightColor: theme.vars.palette.primary.main
+         }
+       }),
+       // Semantic: invalid state - shows error border (preserves changed right border)
+       ...(invalid && {
+         "& .MuiOutlinedInput-notchedOutline": {
+           borderColor: theme.vars.palette.error.main
+         }
+       }),
+       ...sx
+     }), [fontSize, height, changed, invalid, theme, sx]);
+
      return (
        <FormControl
          fullWidth
@@ -122,32 +150,7 @@
                list: editorUiClasses.menuList
              }
            }}
-           sx={{
-             fontSize,
-             height,
-             // Semantic: changed state - shows right border indicator
-             ...(changed && {
-               "& .MuiOutlinedInput-notchedOutline": {
-                 borderRightWidth: 2,
-                 borderRightColor: theme.vars.palette.primary.main
-               },
-               "&:hover .MuiOutlinedInput-notchedOutline": {
-                 borderRightWidth: 2,
-                 borderRightColor: theme.vars.palette.primary.main
-               },
-               "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                 borderRightWidth: 2,
-                 borderRightColor: theme.vars.palette.primary.main
-               }
-             }),
-             // Semantic: invalid state - shows error border (preserves changed right border)
-             ...(invalid && {
-               "& .MuiOutlinedInput-notchedOutline": {
-                 borderColor: theme.vars.palette.error.main
-               }
-             }),
-             ...sx
-           }}
+           sx={selectSx}
            {...props}
          >
            {children}
@@ -157,7 +160,12 @@
    }
  );
 
- NodeSelect.displayName = "NodeSelect";
+NodeSelect.displayName = "NodeSelect";
+
+const NodeSelectMemo = memo(NodeSelect);
+NodeSelectMemo.displayName = "NodeSelect";
+
+export default NodeSelectMemo;
 
  export interface NodeMenuItemProps extends MenuItemProps {
    /**
@@ -175,7 +183,7 @@
   *   <NodeMenuItem value="option1">Option 1</NodeMenuItem>
   * </NodeSelect>
   */
- export const NodeMenuItem = forwardRef<HTMLLIElement, NodeMenuItemProps>(
+ const NodeMenuItem = forwardRef<HTMLLIElement, NodeMenuItemProps>(
    ({ className, sx, ...props }, ref) => {
      return (
        <MenuItem
@@ -188,4 +196,9 @@
    }
  );
 
-  NodeMenuItem.displayName = "NodeMenuItem";
+NodeMenuItem.displayName = "NodeMenuItem";
+
+const NodeMenuItemMemo = memo(NodeMenuItem);
+NodeMenuItemMemo.displayName = "NodeMenuItem";
+
+export { NodeMenuItemMemo as NodeMenuItem };

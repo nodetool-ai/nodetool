@@ -29,6 +29,7 @@ import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import BackToDashboardButton from "../dashboard/BackToDashboardButton";
 import { escapeHtml } from "../../utils/highlightText";
+import { sanitizeImageUrl } from "../../utils/urlValidation";
 const styles = (theme: Theme) =>
   css({
     ".MuiBackdrop-root": { background: "transparent" },
@@ -246,54 +247,60 @@ const OpenOrCreateDialog = () => {
         return a.name.localeCompare(b.name);
       }
       return b.updated_at.localeCompare(a.updated_at);
-    }),
+    }) || [],
     [data?.workflows, settings.workflowOrder]
   );
 
-  // List view
-  const renderListView = (workflows: Workflow[]) => (
-    <Box className="container list" css={listStyles(theme)}>
-      {workflows.map((workflow: Workflow, index: number) => (
+  // Memoize workflow list items to prevent unnecessary re-renders
+  const workflowListItems = useMemo(() =>
+    sortedWorkflows.map((workflow: Workflow, index: number) => (
+      <Box
+        key={`${workflow.id}-${index}`}
+        className="workflow list"
+        onClick={() => onClickWorkflow(workflow)}
+      >
         <Box
-          key={`${workflow.id}-${index}`}
-          className="workflow list"
-          onClick={() => onClickWorkflow(workflow)}
+          className="image-wrapper"
+          sx={{
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundImage: sanitizeImageUrl(workflow.thumbnail_url)
+              ? `url(${sanitizeImageUrl(workflow.thumbnail_url)})`
+              : "none",
+            width: "50px",
+            height: "50px"
+          }}
         >
-          <Box
-            className="image-wrapper"
-            sx={{
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundImage: workflow.thumbnail_url
-                ? `url(${workflow.thumbnail_url})`
-                : "none",
-              width: "50px",
-              height: "50px"
-            }}
-          >
-            {!workflow.thumbnail_url && <Box className="image-placeholder" />}
-          </Box>
-          <Box className="name-and-description">
-            <div
-              className="name"
-              dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
-            ></div>
-            <Typography className="description">
-              {truncateString(workflow.description, 350)}
-            </Typography>
-          </Box>
-          <div className="right">
-            <Typography className="date">
-              {prettyDate(workflow.updated_at, "verbose", settings)}
-            </Typography>
-            <Typography className="date relative">
-              {relativeTime(workflow.updated_at)}
-            </Typography>
-          </div>
+          {!workflow.thumbnail_url && <Box className="image-placeholder" />}
         </Box>
-      ))}
-    </Box>
+        <Box className="name-and-description">
+          <div
+            className="name"
+            dangerouslySetInnerHTML={{ __html: addBreaks(workflow.name) }}
+          ></div>
+          <Typography className="description">
+            {truncateString(workflow.description, 350)}
+          </Typography>
+        </Box>
+        <div className="right">
+          <Typography className="date">
+            {prettyDate(workflow.updated_at, "verbose", settings)}
+          </Typography>
+          <Typography className="date relative">
+            {relativeTime(workflow.updated_at)}
+          </Typography>
+        </div>
+      </Box>
+    )),
+    [sortedWorkflows, onClickWorkflow, settings]
   );
+
+  // List view
+  const renderListView = useCallback(() => (
+    <Box className="container list" css={listStyles(theme)}>
+      {workflowListItems}
+    </Box>
+  ), [workflowListItems, theme]);
   return (
     <Dialog
       css={styles(theme)}
@@ -359,7 +366,7 @@ const OpenOrCreateDialog = () => {
                 <Typography>{error?.message}</Typography>
               </ErrorOutlineRounded>
             )}
-            {data && sortedWorkflows && renderListView(sortedWorkflows)}
+            {data && sortedWorkflows && renderListView()}
           </div>
         </div>
       </DialogContent>

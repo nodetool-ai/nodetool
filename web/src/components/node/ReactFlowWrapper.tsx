@@ -20,6 +20,10 @@ import { OutputNode } from "../node/OutputNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
+import {
+  DynamicFalSchemaNode,
+  DYNAMIC_FAL_NODE_TYPE
+} from "../node/DynamicFalSchemaNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
@@ -271,6 +275,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       "nodetool.output.Output": OutputNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
       "nodetool.control.Reroute": RerouteNode,
+      [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]
@@ -406,6 +411,20 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     [activeGradientKeys]
   );
 
+  // Memoize selected node IDs to avoid recalculating on every edge iteration
+  const selectedNodeIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const node of nodes) {
+      if (node.selected) {
+        ids.add(node.id);
+      }
+    }
+    return ids;
+  }, [nodes]);
+
+  // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
+  const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);
+
   useEffect(() => {
     if (isSelecting) {
       return;
@@ -415,16 +434,28 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       return;
     }
 
-    const selectedIds = new Set(
-      nodes.filter((node) => node.selected).map((node) => node.id)
-    );
+    // Skip if selected node IDs haven't changed (shallow comparison of sets)
+    const prevIds = prevSelectedNodeIdsRef.current;
+    if (prevIds !== null && prevIds.size === selectedNodeIds.size) {
+      let hasChanged = false;
+      for (const id of selectedNodeIds) {
+        if (!prevIds.has(id)) {
+          hasChanged = true;
+          break;
+        }
+      }
+      if (!hasChanged) {
+        return; // Selection hasn't changed, skip edge processing
+      }
+    }
+    prevSelectedNodeIdsRef.current = new Set(selectedNodeIds);
 
     const selectionUpdates: Record<string, boolean> = {};
 
     for (const edge of edges) {
       const isEdgeAlreadySelected = Boolean(edge.selected);
       const nodeDrivenSelection =
-        selectedIds.has(edge.source) || selectedIds.has(edge.target);
+        selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target);
       const shouldSelect = isEdgeAlreadySelected || nodeDrivenSelection;
 
       if (isEdgeAlreadySelected !== shouldSelect) {
@@ -435,7 +466,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     if (Object.keys(selectionUpdates).length > 0) {
       setEdgeSelectionState(selectionUpdates);
     }
-  }, [nodes, edges, setEdgeSelectionState, isSelecting]);
+  }, [nodes, edges, setEdgeSelectionState, isSelecting, selectedNodeIds]);
 
   useEffect(() => {
     if (shouldFitToScreen) {

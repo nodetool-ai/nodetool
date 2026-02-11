@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import DynamicOutputItem from "./DynamicOutputItem";
 import { Property, OutputSlot } from "../../stores/ApiTypes";
 import {
@@ -16,8 +16,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import useDynamicOutput from "../../hooks/nodes/useDynamicOutput";
 import { validateIdentifierName } from "../../utils/identifierValidation";
-
-import isEqual from "lodash/isEqual";
 
 export interface NodeOutputsProps {
   id: string;
@@ -53,16 +51,23 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
     required: false
   }));
 
-  const dynamicOutputs: OutputItem[] = Object.entries(
-    node?.data?.dynamic_outputs || {}
-  ).map(([name, typeMetadata]) => ({
-    name,
-    type: typeMetadata,
-    isDynamic: true,
-    required: false
-  }));
+  const dynamicOutputs: OutputItem[] = useMemo(
+    () =>
+      Object.entries(node?.data?.dynamic_outputs || {}).map(
+        ([name, typeMetadata]) => ({
+          name,
+          type: typeMetadata,
+          isDynamic: true,
+          required: false
+        })
+      ),
+    [node?.data?.dynamic_outputs]
+  );
 
-  const allOutputs: OutputItem[] = [...staticOutputs, ...dynamicOutputs];
+  const allOutputs: OutputItem[] = useMemo(
+    () => [...staticOutputs, ...dynamicOutputs],
+    [staticOutputs, dynamicOutputs]
+  );
 
   const onStartEdit = useCallback(
     (name: string) => {
@@ -233,4 +238,21 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
   );
 };
 
-export default memo(NodeOutputs, isEqual);
+// Optimize memo comparison - only compare props that affect rendering
+// Using shallow comparison instead of deep isEqual for better performance
+const arePropsEqual = (prevProps: NodeOutputsProps, nextProps: NodeOutputsProps) => {
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.isStreamingOutput === nextProps.isStreamingOutput &&
+    prevProps.outputs.length === nextProps.outputs.length &&
+    prevProps.outputs.every((output, i) => {
+      const nextOutput = nextProps.outputs[i];
+      return (
+        output.name === nextOutput.name &&
+        output.type === nextOutput.type
+      );
+    })
+  );
+};
+
+export default memo(NodeOutputs, arePropsEqual);

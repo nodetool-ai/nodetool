@@ -9,6 +9,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import isEqual from "lodash/isEqual";
 import { escapeHtml } from "../../utils/highlightText";
+import { sanitizeImageUrl } from "../../utils/urlValidation";
 
 interface WorkflowTileProps {
   workflow: Workflow;
@@ -18,7 +19,7 @@ interface WorkflowTileProps {
   onDoubleClickWorkflow: (workflow: Workflow) => void;
   onDuplicateWorkflow: (event: React.MouseEvent, workflow: Workflow) => void;
   onSelect: (workflow: Workflow) => void;
-  onDelete: (e: any, workflow: Workflow) => void;
+  onDelete: (e: React.MouseEvent, workflow: Workflow) => void;
 }
 
 const addBreaks = (text: string) => {
@@ -49,6 +50,20 @@ export const WorkflowTile = ({
     onClickOpen(workflow);
   }, [onClickOpen, workflow]);
 
+  const handleDuplicate = useCallback(
+    (event: React.MouseEvent) => {
+      onDuplicateWorkflow(event, workflow);
+    },
+    [onDuplicateWorkflow, workflow]
+  );
+
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      onDelete(e, workflow);
+    },
+    [onDelete, workflow]
+  );
+
   return (
     <Box
       onDoubleClick={handleDoubleClick}
@@ -61,8 +76,8 @@ export const WorkflowTile = ({
         sx={{
           backgroundSize: "cover",
           backgroundPosition: "center top",
-          backgroundImage: workflow.thumbnail_url
-            ? `url(${workflow.thumbnail_url})`
+          backgroundImage: sanitizeImageUrl(workflow.thumbnail_url)
+            ? `url(${sanitizeImageUrl(workflow.thumbnail_url)})`
             : "none",
           width: "200px",
           height: "200px"
@@ -101,16 +116,12 @@ export const WorkflowTile = ({
               placement="top"
               enterDelay={TOOLTIP_ENTER_DELAY}
             >
-              <EditorButton
-                color="primary"
-                onClick={(event) => onDuplicateWorkflow(event, workflow)}
-                density="compact"
-              >
+              <EditorButton color="primary" onClick={handleDuplicate} density="compact">
                 Duplicate
               </EditorButton>
             </Tooltip>
 
-            <DeleteButton onClick={(e) => onDelete(e, workflow)} />
+            <DeleteButton onClick={handleDelete} />
           </>
         )}
       </div>

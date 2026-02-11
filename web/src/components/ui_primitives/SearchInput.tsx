@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -90,7 +90,7 @@ const styles = (theme: Theme) => css`
   }
 `;
 
-export const SearchInput: React.FC<SearchInputProps> = ({
+export const SearchInput: React.FC<SearchInputProps> = memo(({
   value,
   onChange,
   placeholder = "Search...",
@@ -196,6 +196,8 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       />
     </div>
   );
-};
+});
+
+SearchInput.displayName = "SearchInput";
 
 export default SearchInput;

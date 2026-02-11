@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, memo } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -201,9 +201,18 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   contrastBackgroundColor = "#ffffff"
 }) => {
   const theme = useTheme();
-  const addRecentColor = useColorPickerStore((state) => state.addRecentColor);
-  const preferredColorMode = useColorPickerStore((state) => state.preferredColorMode);
-  const setPreferredColorMode = useColorPickerStore((state) => state.setPreferredColorMode);
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const { addRecentColor, preferredColorMode, setPreferredColorMode } =
+    useColorPickerStore(
+      useCallback(
+        (state) => ({
+          addRecentColor: state.addRecentColor,
+          preferredColorMode: state.preferredColorMode,
+          setPreferredColorMode: state.setPreferredColorMode
+        }),
+        []
+      )
+    );
 
   // Internal state
   const [color, setColor] = useState(initialColor || "#ff0000");
@@ -492,4 +501,6 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   return ReactDOM.createPortal(content, document.body);
 };
 
-export default ColorPickerModal;
+ColorPickerModal.displayName = 'ColorPickerModal';
+
+export default memo(ColorPickerModal);

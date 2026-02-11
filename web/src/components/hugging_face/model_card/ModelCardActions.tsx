@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useCallback } from "react";
 import { CardActions, Box, Typography, Tooltip, Button } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -44,6 +44,18 @@ const ModelActions: React.FC<{
     showFileExplorerButton = true
   } = props;
 
+  const handleShowInExplorerClick = useCallback(() => {
+    if (handleShowInExplorer) {
+      handleShowInExplorer(model.id);
+    }
+  }, [handleShowInExplorer, model.id]);
+
+  const handleDeleteClick = useCallback(() => {
+    if (handleModelDelete) {
+      handleModelDelete(model.id);
+    }
+  }, [handleModelDelete, model.id]);
+
   return (
     <Box className="model-actions" sx={{ width: "100%" }}>
       {onDownload && !downloaded && (
@@ -57,7 +69,7 @@ const ModelActions: React.FC<{
       <Box sx={{ position: "absolute", bottom: "0.5em", left: "0.5em" }}>
         {handleShowInExplorer && showFileExplorerButton && (
           <ModelShowInExplorerButton
-            onClick={() => handleShowInExplorer!(model.id)}
+            onClick={handleShowInExplorerClick}
             disabled={!model.path}
           />
         )}
@@ -65,7 +77,7 @@ const ModelActions: React.FC<{
 
       {handleModelDelete && (
         <DeleteButton
-          onClick={() => handleModelDelete(model.id)}
+          onClick={handleDeleteClick}
           className="delete-button"
         />
       )}

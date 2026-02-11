@@ -10,9 +10,10 @@ import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import ListAltIcon from "@mui/icons-material/ListAlt";
-import { Visibility, InputOutlined } from "@mui/icons-material";
+import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { FlexRow } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -32,6 +33,8 @@ export interface NodeHeaderProps {
   showInputsButton?: boolean;
   onShowResults?: () => void;
   onShowInputs?: () => void;
+  externalLink?: string;
+  externalLinkTitle?: string;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
@@ -49,7 +52,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showResultButton = false,
   showInputsButton = false,
   onShowResults,
-  onShowInputs
+  onShowInputs,
+  externalLink,
+  externalLinkTitle
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
@@ -75,10 +80,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const headerCss = useMemo(
     () =>
       css({
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: "8px",
         width: "100%",
         minHeight: "44px",
         backgroundColor: "transparent",
@@ -90,9 +91,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
         transition: "background-color 0.2s ease-in-out, opacity 0.15s",
         ".header-left": {
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
           padding: "4px 4px",
           flex: 1,
           minWidth: 0
@@ -207,24 +205,35 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     } as React.CSSProperties;
   }, [backgroundColor, selected]);
 
+  // Memoize icon background style to prevent recreation on every render
+  const iconBackgroundStyle = useMemo(() => ({
+    background: iconBaseColor
+      ? hexToRgba(iconBaseColor, 0.22)
+      : "rgba(255,255,255,0.08)"
+  }), [iconBaseColor]);
+
+  // Memoize title padding style to prevent recreation on every render
+  const titlePaddingStyle = useMemo(() => ({
+    paddingLeft: hasIcon ? 0 : undefined
+  }), [hasIcon]);
+
   return (
-    <div
+    <FlexRow
       className={`node-drag-handle node-header ${hasParent ? "has-parent" : ""
         }`}
       css={headerCss}
+      gap={1}
+      justify="space-between"
+      align="center"
       onClick={handleHeaderClick}
       onContextMenu={handleHeaderContextMenu}
       style={headerStyle || { backgroundColor }}
     >
-      <div className="header-left">
+      <FlexRow className="header-left" gap={1} align="center">
         {hasIcon && showIcon && (
           <div
             className="node-icon"
-            style={{
-              background: iconBaseColor
-                ? hexToRgba(iconBaseColor, 0.22)
-                : "rgba(255,255,255,0.08)"
-            }}
+            style={iconBackgroundStyle}
           >
             <IconForType
               iconName={iconType!}
@@ -235,12 +244,32 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         )}
         <span
           className="node-title"
-          style={{
-            paddingLeft: hasIcon ? 0 : undefined
-          }}
+          style={titlePaddingStyle}
         >
           {metadataTitle}
         </span>
+        {externalLink && (
+          <Tooltip title={externalLinkTitle || "Open link"} arrow enterDelay={TOOLTIP_ENTER_DELAY}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(externalLink, "_blank", "noopener,noreferrer");
+              }}
+              sx={{ 
+                padding: "2px",
+                marginLeft: "2px",
+                color: "rgba(255, 255, 255, 0.4)",
+                "&:hover": {
+                  color: "primary.light",
+                  backgroundColor: "rgba(255, 255, 255, 0.05)"
+                }
+              }}
+            >
+              <OpenInNew sx={{ fontSize: "0.85rem" }} />
+            </IconButton>
+          </Tooltip>
+        )}
         {data.bypassed && (
           <span className="bypass-badge">Bypassed</span>
         )}
@@ -257,7 +286,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             </IconButton>
           </Tooltip>
         )}
-      </div>
+      </FlexRow>
 
       {/* Right side toggle buttons */}
       {(showResultButton || showInputsButton) && (
@@ -295,7 +324,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         open={logsDialogOpen}
         onClose={handleCloseLogsDialog}
       />
-    </div>
+    </FlexRow>
   );
 };
 

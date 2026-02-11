@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   Message,
   MessageContent,
@@ -47,7 +47,7 @@ interface MessageViewProps {
 
 export const MessageView: React.FC<
   MessageViewProps & { componentStyles?: any }
-> = ({
+> = React.memo(({
   message,
   expandedThoughts,
   onToggleThought,
@@ -88,6 +88,24 @@ export const MessageView: React.FC<
 
     return { executionContent, executionEventType };
   }, [message.content, message.execution_event_type]);
+
+  // Memoize handlers to prevent recreation on every render
+  const handleCopy = useCallback(() => {
+    let textToCopy = "";
+    if (typeof message.content === "string") {
+      textToCopy = message.content;
+    } else if (Array.isArray(message.content)) {
+      textToCopy = message.content
+        .filter((c) => c.type === "text")
+        .map((c) => (c as MessageTextContent).text)
+        .join("\n");
+    }
+    return textToCopy;
+  }, [message.content]);
+
+  const createToggleHandler = useCallback((key: string) => {
+    return () => onToggleThought(key);
+  }, [onToggleThought]);
 
   // Handle agent execution messages with consolidation
   if (message.role === "agent_execution") {
@@ -200,19 +218,6 @@ export const MessageView: React.FC<
       .filter(Boolean)
       .join(" ");
 
-    const handleCopy = () => {
-      let textToCopy = "";
-      if (typeof message.content === "string") {
-        textToCopy = message.content;
-      } else if (Array.isArray(message.content)) {
-        textToCopy = message.content
-          .filter((c) => c.type === "text")
-          .map((c) => (c as MessageTextContent).text)
-          .join("\n");
-      }
-      return textToCopy;
-    };
-
     const renderTextContent = (content: string, index: string | number) => {
       // Check if content contains Harmony format tokens
       if (hasHarmonyTokens(content)) {
@@ -236,7 +241,7 @@ export const MessageView: React.FC<
                       key={key}
                       thoughtContent={parsedThought.thoughtContent}
                       isExpanded={isExpanded}
-                      onToggle={() => onToggleThought(key)}
+                      onToggle={createToggleHandler(key)}
                       textBefore={parsedThought.textBeforeThought}
                       textAfter={parsedThought.textAfterThought}
                     />
@@ -277,7 +282,7 @@ export const MessageView: React.FC<
           <ThoughtSection
             thoughtContent={parsedThought.thoughtContent}
             isExpanded={isExpanded}
-            onToggle={() => onToggleThought(key)}
+            onToggle={createToggleHandler(key)}
             textBefore={parsedThought.textBeforeThought}
             textAfter={parsedThought.textAfterThought}
           />
@@ -295,7 +300,7 @@ export const MessageView: React.FC<
       | string;
 
     // Pretty JSON helper
-    const PrettyJson: React.FC<{ value: any }> = ({ value }) => {
+    const PrettyJson: React.FC<{ value: any }> = React.memo(({ value }) => {
       const text = useMemo(() => {
         try {
           if (typeof value === "string") {
@@ -308,12 +313,13 @@ export const MessageView: React.FC<
         }
       }, [value]);
       return <pre className="pretty-json">{text}</pre>;
-    };
+    });
+    PrettyJson.displayName = "PrettyJson";
 
     const ToolCallCard: React.FC<{
       tc: ToolCall;
       result?: { name?: string | null; content: any };
-    }> = ({ tc, result: _result }) => {
+    }> = React.memo(({ tc, result: _result }) => {
       const [open, setOpen] = useState(false);
       const runningToolCallId = useGlobalChatStore(
         (s) => s.currentRunningToolCallId
@@ -323,6 +329,11 @@ export const MessageView: React.FC<
         (tc as any)?.args && Object.keys((tc as any).args).length > 0;
       const hasDetails = !!hasArgs;
       const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
+
+      const handleToggleOpen = useCallback(() => {
+        setOpen((v) => !v);
+      }, []);
+
       return (
         <Box className={`tool-call-card${isRunning ? " running" : ""}`}>
           <Box className="tool-call-header">
@@ -338,11 +349,7 @@ export const MessageView: React.FC<
             <Box sx={{ flex: 1 }} />
             {hasDetails && (
               <Tooltip title={open ? "Hide details" : "Show details"}>
-                <IconButton
-                  size="small"
-                  className="tool-expand-button"
-                  onClick={() => setOpen((v) => !v)}
-                >
+                <IconButton size="small" onClick={handleToggleOpen} aria-label={open ? "Hide details" : "Show details"}>
                   <ExpandMoreIcon
                     className={`expand-icon${open ? " expanded" : ""}`}
                   />
@@ -363,7 +370,8 @@ export const MessageView: React.FC<
           </Collapse>
         </Box>
       );
-    };
+    });
+    ToolCallCard.displayName = "ToolCallCard";
 
     // Format timestamp for display
     const formatTime = (dateStr?: string | null) => {
@@ -432,4 +440,6 @@ export const MessageView: React.FC<
         )}
       </div>
     );
-  };
+});
+
+MessageView.displayName = "MessageView";

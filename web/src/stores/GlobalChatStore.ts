@@ -54,7 +54,7 @@ type ChatStatus =
 export type StepToolCall = {
   id: string;
   name: string;
-  args: Record<string, any> | null;
+  args: Record<string, unknown> | null;
   message?: string | null;
   startedAt: number;
 };
@@ -618,8 +618,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           }));
 
           return data;
-        } catch (error: any) {
-          const isNotFound = error?.status === 404;
+        } catch (error: unknown) {
+          const isNotFound =
+            error && typeof error === "object" && "status" in error && error.status === 404;
           if (!isNotFound) {
             log.error("Failed to fetch thread:", error);
           }
@@ -634,9 +635,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const localThread: Thread = {
           id,
           title: title || "New conversation",
-          created_at: now as any,
-          updated_at: now as any
-        } as any;
+          created_at: now,
+          updated_at: now
+        } as Thread;
 
         set((state) => ({
           threads: {
@@ -934,7 +935,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // Add created_at timestamp if not already present
           const messageWithTimestamp = {
             ...message,
-            created_at: (message as any).created_at || new Date().toISOString()
+            created_at: message.created_at || new Date().toISOString()
           };
           return {
             messageCache: {

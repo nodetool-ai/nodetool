@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useRef, useCallback } from "react";
+import React, { forwardRef, useEffect, useRef, useCallback, memo } from "react";
 
 interface MessageInputProps {
   value: string;
@@ -11,7 +11,7 @@ interface MessageInputProps {
 const MAX_HEIGHT = 180;
 const LINE_HEIGHT = 24;
 
-export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
+export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputProps>(
   (
     {
       value,
@@ -71,6 +71,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(
       />
     );
   }
-);
+));
 
 MessageInput.displayName = "MessageInput";

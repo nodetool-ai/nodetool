@@ -22,12 +22,11 @@ import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "lodash/isEqual";
 import { useCreateNode } from "../../hooks/useCreateNode";
+import { FlexColumn, FlexRow } from "../ui_primitives";
 
 const treeStyles = (theme: Theme) =>
   css({
     "&": {
-      display: "flex",
-      flexDirection: "column",
       height: "auto",
       maxHeight: "90vh",
       minHeight: "35vh",
@@ -55,10 +54,7 @@ const treeStyles = (theme: Theme) =>
       width: "100%",
       minHeight: "12px", // Minimal drag handle
       cursor: "grab",
-      userSelect: "none",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "flex-end"
+      userSelect: "none"
     },
     ".draggable-header:active": {
       cursor: "grabbing"
@@ -71,26 +67,9 @@ const treeStyles = (theme: Theme) =>
       flexGrow: 1,
       // Removed inner shadow to keep it clean
     },
-    ".search-toolbar": {
-      display: "flex",
-      flexDirection: "column",
-      gap: "8px",
-      flexGrow: 0,
-      overflow: "visible",
-      width: "100%",
-      margin: 0,
-      padding: "0 1em 0 0.5em"
-    },
-    ".search-row": {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: "0.75em",
-      marginLeft: "-3px",
-      ".search-input-container": {
-        minWidth: "100%",
-        flexGrow: 1
-      }
+    ".search-input-container": {
+      minWidth: "100%",
+      flexGrow: 1
     },
     "& .MuiPaper-root.MuiAccordion-root": {
       backgroundColor: "transparent !important",
@@ -272,18 +251,18 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       defaultPosition={{ x: menuPosition.x, y: menuPosition.y }}
       handle=".draggable-header"
     >
-      <Box
+      <FlexColumn
         ref={nodeRef}
-        sx={{ minWidth: "800px", maxHeight: menuHeight }}
+        sx={{ minWidth: "980px", maxHeight: menuHeight }}
         className="floating-node-menu"
         css={memoizedStyles}
       >
-        <div className="draggable-header">
-        </div>
+        <FlexRow className="draggable-header" align="center" justify="flex-end">
+        </FlexRow>
         <Box className="node-menu-container">
           <div className="main-content">
-            <Box className="search-toolbar">
-              <Box className="search-row">
+            <FlexColumn gap={1} className="search-toolbar" sx={{ flexGrow: 0, overflow: "visible", width: "100%", margin: 0, padding: "0 1em 0 0.5em" }}>
+              <FlexRow gap={3} align="center" className="search-row" sx={{ marginLeft: "-3px" }}>
                 <SearchInput
                   focusSearchInput={focusSearchInput}
                   focusOnTyping={true}
@@ -299,21 +278,21 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   onPressEnter={handleEnter}
                   searchResults={searchResults}
                 />
-              </Box>
+              </FlexRow>
               <TypeFilterChips
                 selectedInputType={selectedInputType}
                 selectedOutputType={selectedOutputType}
                 setSelectedInputType={setSelectedInputType}
                 setSelectedOutputType={setSelectedOutputType}
               />
-            </Box>
+            </FlexColumn>
             <NamespaceList
               namespaceTree={namespaceTree}
               metadata={searchResults}
             />
           </div>
         </Box>
-      </Box>
+      </FlexColumn>
     </Draggable>
   );
 };

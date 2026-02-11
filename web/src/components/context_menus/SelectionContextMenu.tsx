@@ -46,9 +46,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
   );
-  const { selectedNodes } = useNodes((state) => ({
-    selectedNodes: state.getSelectedNodes()
-  }));
+  // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
+  const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
 
   // any has parent
   const anyHasParent = useMemo(() => {

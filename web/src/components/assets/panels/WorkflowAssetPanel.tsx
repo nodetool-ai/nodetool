@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useRef, useEffect } from "react";
+import React, { useCallback, useRef, useEffect, useMemo } from "react";
 import { Box, Typography, CircularProgress, Alert } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
@@ -44,18 +44,21 @@ const WorkflowAssetPanel: React.FC = () => {
   // Track results for the current workflow and refetch when they change
   const prevResultsRef = useRef<{ results: typeof results; outputResults: typeof outputResults } | null>(null);
 
+  // Memoize filtered results to avoid repeated filtering on every render
+  const currentWorkflowResults = useMemo(() => {
+    if (!currentWorkflowId) {return [];}
+    return Object.keys(results).filter((key) => key.startsWith(currentWorkflowId));
+  }, [results, currentWorkflowId]);
+
+  const currentWorkflowOutputResults = useMemo(() => {
+    if (!currentWorkflowId) {return [];}
+    return Object.keys(outputResults).filter((key) => key.startsWith(currentWorkflowId));
+  }, [outputResults, currentWorkflowId]);
+
   useEffect(() => {
     if (!currentWorkflowId) {
       return;
     }
-
-    // Filter results for current workflow
-    const currentWorkflowResults = Object.keys(results).filter(
-      (key) => key.startsWith(currentWorkflowId)
-    );
-    const currentWorkflowOutputResults = Object.keys(outputResults).filter(
-      (key) => key.startsWith(currentWorkflowId)
-    );
 
     // Check if we have new results
     const prevResults = prevResultsRef.current;
@@ -82,7 +85,7 @@ const WorkflowAssetPanel: React.FC = () => {
     }
 
     prevResultsRef.current = { results, outputResults };
-  }, [results, outputResults, currentWorkflowId, refetch]);
+  }, [results, outputResults, currentWorkflowId, refetch, currentWorkflowResults, currentWorkflowOutputResults]);
 
   const handleDoubleClick = useCallback(
     (asset: Asset) => {

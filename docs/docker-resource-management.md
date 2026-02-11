@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Docker Resource Management"
-description: "Practical limits for NodeTool proxy + worker containers."
+description: "Practical limits for NodeTool proxy + server containers."
 ---
 
 Use these guidelines to keep multi-tenant or long-running NodeTool deployments stable. All examples reuse the `mem_limit` and `cpus` fields supported by the proxy and self-hosted deployment schemas.
@@ -19,7 +19,7 @@ Example excerpt in `proxy.yaml` (rendered by `nodetool deploy apply`):
 
 ```yaml
 services:
-  - name: nodetool-worker
+  - name: nodetool-server
     path: /
     image: nodetool:latest
     mem_limit: 8g
@@ -54,7 +54,7 @@ docker run --gpus all \
   nodetool:latest
 ```
 
-- Use `--memory-reservation` to set soft limits when co-locating multiple workers.
+- Use `--memory-reservation` to set soft limits when co-locating multiple servers.
 - Keep per-run tmp data on the workspace volume (e.g., `TMPDIR=/workspace/tmp`) so it persists through restarts.
 
 ## Monitoring and Tuning

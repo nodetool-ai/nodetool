@@ -2,7 +2,438 @@
 
 This document provides practical examples of using the UI primitives from `src/components/ui_primitives/`.
 
-## Basic Usage Examples
+## Layout Primitives Examples
+
+### FlexColumn Examples
+
+FlexColumn provides a vertical flex container with consistent gap spacing.
+
+```tsx
+import React from "react";
+import { FlexColumn } from "../ui_primitives";
+import { Typography, Button } from "@mui/material";
+
+// Basic vertical layout
+export const BasicFlexColumn: React.FC = () => (
+  <FlexColumn gap={2}>
+    <Typography>First item</Typography>
+    <Typography>Second item</Typography>
+    <Typography>Third item</Typography>
+  </FlexColumn>
+);
+
+// Centered content with padding
+export const CenteredFlexColumn: React.FC = () => (
+  <FlexColumn gap={1.5} padding={3} align="center" fullWidth>
+    <Typography variant="h6">Welcome</Typography>
+    <Typography color="text.secondary">
+      Please sign in to continue
+    </Typography>
+    <Button variant="contained">Sign In</Button>
+  </FlexColumn>
+);
+
+// Space-between layout
+export const SpaceBetweenFlexColumn: React.FC = () => (
+  <FlexColumn gap={0} justify="space-between" fullHeight>
+    <Typography>Header</Typography>
+    <Typography>Content</Typography>
+    <Typography>Footer</Typography>
+  </FlexColumn>
+);
+```
+
+### FlexRow Examples
+
+FlexRow provides a horizontal flex container with consistent gap spacing.
+
+```tsx
+import React from "react";
+import { FlexRow } from "../ui_primitives";
+import { Button, IconButton, Chip } from "@mui/material";
+import SaveIcon from "@mui/icons-material/Save";
+
+// Button toolbar
+export const ButtonToolbar: React.FC = () => (
+  <FlexRow gap={1} align="center">
+    <Button variant="contained">Save</Button>
+    <Button variant="outlined">Cancel</Button>
+    <Button>Reset</Button>
+  </FlexRow>
+);
+
+// Space-between header
+export const HeaderRow: React.FC = () => (
+  <FlexRow gap={2} align="center" justify="space-between" fullWidth>
+    <Typography variant="h6">Page Title</Typography>
+    <FlexRow gap={1}>
+      <IconButton><SaveIcon /></IconButton>
+      <IconButton><CloseIcon /></IconButton>
+    </FlexRow>
+  </FlexRow>
+);
+
+// Wrapping tags
+export const TagRow: React.FC = () => (
+  <FlexRow gap={1} wrap>
+    <Chip label="React" />
+    <Chip label="TypeScript" />
+    <Chip label="MUI" />
+    <Chip label="Emotion" />
+  </FlexRow>
+);
+```
+
+### Stack Examples
+
+Stack provides a semantic vertical stack with spacing.
+
+```tsx
+import React from "react";
+import { Stack } from "../ui_primitives";
+import { Typography, Divider, MenuItem } from "@mui/material";
+
+// Simple stack
+export const SimpleStack: React.FC = () => (
+  <Stack spacing={2}>
+    <Typography>Item 1</Typography>
+    <Typography>Item 2</Typography>
+    <Typography>Item 3</Typography>
+  </Stack>
+);
+
+// Stack with dividers
+export const StackWithDividers: React.FC = () => (
+  <Stack spacing={1} divider={<Divider />}>
+    <MenuItem>Profile</MenuItem>
+    <MenuItem>Settings</MenuItem>
+    <MenuItem>Logout</MenuItem>
+  </Stack>
+);
+
+// Full width form stack
+export const FormStack: React.FC = () => (
+  <Stack spacing={2} padding={3} fullWidth>
+    <TextField label="Name" fullWidth />
+    <TextField label="Email" fullWidth />
+    <TextField label="Message" multiline rows={4} fullWidth />
+  </Stack>
+);
+```
+
+### Container Examples
+
+Container provides standardized padding.
+
+```tsx
+import React from "react";
+import { Container } from "../ui_primitives";
+import { Typography } from "@mui/material";
+
+// Standard container
+export const StandardContainer: React.FC = () => (
+  <Container padding="normal">
+    <Typography>Container content with normal padding</Typography>
+  </Container>
+);
+
+// Scrollable container
+export const ScrollableContainer: React.FC = () => (
+  <Container scrollable maxWidth={800} padding="comfortable">
+    <Typography>Long content that scrolls...</Typography>
+  </Container>
+);
+
+// Centered container
+export const CenteredContainer: React.FC = () => (
+  <Container centered maxWidth={600} padding="spacious">
+    <Typography align="center">Centered content</Typography>
+  </Container>
+);
+```
+
+## Surface Primitives Examples
+
+### Card Examples
+
+```tsx
+import React from "react";
+import { Card } from "../ui_primitives";
+import { Typography, Button } from "@mui/material";
+
+// Basic card
+export const BasicCard: React.FC = () => (
+  <Card>
+    <Typography variant="h6">Card Title</Typography>
+    <Typography>Card content goes here</Typography>
+  </Card>
+);
+
+// Outlined card
+export const OutlinedCard: React.FC = () => (
+  <Card variant="outlined" padding="compact">
+    <Typography>Compact outlined card</Typography>
+  </Card>
+);
+
+// Clickable card
+export const ClickableCard: React.FC = () => (
+  <Card clickable hoverable onClick={() => console.log("Clicked")}>
+    <Typography variant="h6">Click me</Typography>
+    <Typography color="text.secondary">
+      This card responds to clicks
+    </Typography>
+  </Card>
+);
+
+// Elevated card
+export const ElevatedCard: React.FC = () => (
+  <Card variant="elevated" elevation={8} padding="spacious">
+    <Typography variant="h5">Featured Content</Typography>
+    <Typography>High elevation card with spacious padding</Typography>
+  </Card>
+);
+```
+
+### Panel Examples
+
+```tsx
+import React, { useState } from "react";
+import { Panel } from "../ui_primitives";
+import { Typography, Button, TextField } from "@mui/material";
+
+// Basic panel
+export const BasicPanel: React.FC = () => (
+  <Panel title="User Settings">
+    <Typography>Panel content</Typography>
+  </Panel>
+);
+
+// Panel with header action
+export const PanelWithAction: React.FC = () => (
+  <Panel
+    title="Users"
+    subtitle="Manage user accounts"
+    headerAction={<Button size="small">Add User</Button>}
+  >
+    <Typography>User list goes here</Typography>
+  </Panel>
+);
+
+// Panel with footer
+export const PanelWithFooter: React.FC = () => (
+  <Panel
+    title="Edit Profile"
+    bordered
+    footer={
+      <FlexRow gap={1} justify="flex-end">
+        <Button>Cancel</Button>
+        <Button variant="contained">Save</Button>
+      </FlexRow>
+    }
+  >
+    <Stack spacing={2}>
+      <TextField label="Name" fullWidth />
+      <TextField label="Email" fullWidth />
+    </Stack>
+  </Panel>
+);
+
+// Collapsible panel
+export const CollapsiblePanel: React.FC = () => {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <Panel
+      title="Advanced Options"
+      collapsible
+      collapsed={collapsed}
+      onToggleCollapse={() => setCollapsed(!collapsed)}
+    >
+      <Typography>Advanced settings content</Typography>
+    </Panel>
+  );
+};
+```
+
+## Typography Primitives Examples
+
+### Text Examples
+
+```tsx
+import React from "react";
+import { Text } from "../ui_primitives";
+
+// Size variants
+export const TextSizes: React.FC = () => (
+  <FlexColumn gap={1}>
+    <Text size="giant">Giant text</Text>
+    <Text size="bigger">Bigger text</Text>
+    <Text size="big">Big text</Text>
+    <Text size="normal">Normal text</Text>
+    <Text size="small">Small text</Text>
+    <Text size="smaller">Smaller text</Text>
+    <Text size="tiny">Tiny text</Text>
+  </FlexColumn>
+);
+
+// Color variants
+export const TextColors: React.FC = () => (
+  <FlexColumn gap={1}>
+    <Text color="primary">Primary text</Text>
+    <Text color="secondary">Secondary text</Text>
+    <Text color="error">Error text</Text>
+    <Text color="warning">Warning text</Text>
+    <Text color="success">Success text</Text>
+  </FlexColumn>
+);
+
+// Font weights
+export const TextWeights: React.FC = () => (
+  <FlexColumn gap={1}>
+    <Text weight={300}>Light text</Text>
+    <Text weight={400}>Normal text</Text>
+    <Text weight={600}>Semibold text</Text>
+    <Text weight={700}>Bold text</Text>
+  </FlexColumn>
+);
+
+// Truncation
+export const TruncatedText: React.FC = () => (
+  <FlexColumn gap={1}>
+    <Text truncate maxWidth={200}>
+      This is a very long text that will be truncated with ellipsis
+    </Text>
+    <Text lineClamp={2}>
+      This is a multi-line text that will be clamped to 2 lines.
+      Any content beyond that will be hidden with an ellipsis.
+    </Text>
+  </FlexColumn>
+);
+```
+
+### Label Examples
+
+```tsx
+import React from "react";
+import { Label } from "../ui_primitives";
+import { TextField } from "@mui/material";
+
+// Form labels
+export const FormLabels: React.FC = () => (
+  <FlexColumn gap={2}>
+    <div>
+      <Label htmlFor="name">Name</Label>
+      <TextField id="name" fullWidth />
+    </div>
+    
+    <div>
+      <Label required htmlFor="email">Email</Label>
+      <TextField id="email" type="email" fullWidth />
+    </div>
+    
+    <div>
+      <Label error>Invalid Input</Label>
+      <TextField error fullWidth />
+    </div>
+    
+    <div>
+      <Label disabled>Disabled Field</Label>
+      <TextField disabled fullWidth />
+    </div>
+  </FlexColumn>
+);
+
+// Label sizes
+export const LabelSizes: React.FC = () => (
+  <FlexColumn gap={1}>
+    <Label size="small">Small label</Label>
+    <Label size="normal">Normal label</Label>
+    <Label size="large">Large label</Label>
+  </FlexColumn>
+);
+```
+
+### Caption Examples
+
+```tsx
+import React from "react";
+import { Caption } from "../ui_primitives";
+import { TextField } from "@mui/material";
+
+// Helper text
+export const HelperText: React.FC = () => (
+  <FlexColumn gap={2}>
+    <div>
+      <TextField label="Password" type="password" fullWidth />
+      <Caption>Minimum 8 characters</Caption>
+    </div>
+    
+    <div>
+      <TextField label="Username" fullWidth />
+      <Caption color="error">This username is already taken</Caption>
+    </div>
+    
+    <div>
+      <TextField label="Bio" multiline rows={3} fullWidth />
+      <Caption color="muted" size="tiny">
+        Last updated 2 hours ago
+      </Caption>
+    </div>
+  </FlexColumn>
+);
+
+// Italic captions
+export const ItalicCaptions: React.FC = () => (
+  <FlexColumn gap={1}>
+    <Caption italic>Optional field</Caption>
+    <Caption italic color="secondary">
+      This field can be left blank
+    </Caption>
+  </FlexColumn>
+);
+```
+
+## Spacing Utilities Examples
+
+```tsx
+import React from "react";
+import { SPACING, GAP, PADDING, MARGIN, getSpacingPx } from "../ui_primitives";
+import { Box } from "@mui/material";
+
+// Using spacing constants
+export const SpacingExample: React.FC = () => (
+  <Box
+    sx={{
+      padding: getSpacingPx(SPACING.md),
+      margin: getSpacingPx(SPACING.lg),
+      gap: getSpacingPx(GAP.normal)
+    }}
+  >
+    Content with consistent spacing
+  </Box>
+);
+
+// Using predefined values
+export const PredefinedSpacing: React.FC = () => {
+  // SPACING: xxs, xs, sm, md, ml, lg, xl, xxl, huge
+  // GAP: none, tight, compact, normal, comfortable, spacious
+  // PADDING: none, compact, normal, comfortable, spacious
+  // MARGIN: none, tight, compact, normal, comfortable, spacious
+  
+  return (
+    <FlexColumn gap={GAP.normal} padding={PADDING.comfortable}>
+      <Box sx={{ margin: getSpacingPx(MARGIN.tight) }}>
+        Tight margin
+      </Box>
+    </FlexColumn>
+  );
+};
+```
+
+## Composite Examples
+
+### Complex Layout
 
 ### Example 1: Simple Property Input
 

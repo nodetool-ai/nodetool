@@ -204,7 +204,10 @@ export const useDropHandler = () => {
   /* DRAG OVER */
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+    // Use "copy" for external file drops since source apps (like Eagle)
+    // may only allow "copy", causing a forbidden cursor if we force "move"
+    const hasFiles = Array.from(event.dataTransfer.types).includes("Files");
+    event.dataTransfer.dropEffect = hasFiles ? "copy" : "move";
   }, []);
 
   return { onDrop, onDragOver };

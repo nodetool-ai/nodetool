@@ -174,13 +174,16 @@ const Select: React.FC<SelectProps> = ({
     });
   }, [options, fuseOptions]);
 
+  // Memoize filtered options to avoid recomputation on every render
+  const filteredOptions = useMemo(() => {
+    return searchQuery
+      ? fuse.search(searchQuery).map(({ item }) => item)
+      : options;
+  }, [searchQuery, fuse, options]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (activeSelect !== id) {return;}
-
-      const filteredOptions = searchQuery
-        ? fuse.search(searchQuery).map(({ item }) => item)
-        : options;
 
       switch (e.key) {
         case "ArrowDown":
@@ -210,9 +213,7 @@ const Select: React.FC<SelectProps> = ({
     [
       activeSelect,
       id,
-      searchQuery,
-      options,
-      fuse,
+      filteredOptions,
       highlightedIndex,
       handleOptionClick,
       close
@@ -230,6 +231,33 @@ const Select: React.FC<SelectProps> = ({
   const changedStyle = changed
     ? { borderRight: `2px solid ${theme.vars.palette.primary.main}` }
     : undefined;
+
+  // Memoize dropdown style object to prevent recreation on every render
+  const dropdownStyle = useMemo(() => {
+    if (!dropdownPosition) {
+      return undefined;
+    }
+    return {
+      position: "fixed" as const,
+      left: dropdownPosition.left,
+      width: dropdownPosition.width,
+      ...(dropdownPosition.openUpward
+        ? { bottom: window.innerHeight - dropdownPosition.top + 4 }
+        : { top: dropdownPosition.top })
+    };
+  }, [dropdownPosition]);
+
+  // Create stable callbacks for option clicks to prevent re-renders
+  const optionClickHandlers = useMemo(() => {
+    const handlers = new Map<string, () => void>();
+    filteredOptions.forEach((option) => {
+      handlers.set(
+        option.value,
+        () => handleOptionClick(option.value)
+      );
+    });
+    return handlers;
+  }, [filteredOptions, handleOptionClick]);
 
   return (
     <div className="select-container" css={styles}>
@@ -278,26 +306,16 @@ const Select: React.FC<SelectProps> = ({
           ref={optionsRef}
           className="options-list nowheel"
           css={portalOptionsStyles(theme)}
-          style={{
-            position: "fixed",
-            left: dropdownPosition.left,
-            width: dropdownPosition.width,
-            ...(dropdownPosition.openUpward
-              ? { bottom: window.innerHeight - dropdownPosition.top + 4 }
-              : { top: dropdownPosition.top })
-          }}
+          style={dropdownStyle}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {(searchQuery
-            ? fuse.search(searchQuery).map(({ item }) => item)
-            : options
-          ).map((option, index) => (
+          {filteredOptions.map((option, index) => (
             <li
               key={option.value}
               className={`option ${
                 option.value === value ? "selected" : ""
               } ${index === highlightedIndex ? "highlighted" : ""}`}
-              onClick={() => handleOptionClick(option.value)}
+              onClick={optionClickHandlers.get(option.value)}
             >
               {option.label}
             </li>

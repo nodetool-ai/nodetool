@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -108,7 +108,7 @@ const getSeparator = (type: BreadcrumbsProps["separator"]) => {
   }
 };
 
-export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
+const BreadcrumbsInternal: React.FC<BreadcrumbsProps> = ({
   items,
   onNavigate,
   showHomeIcon = false,
@@ -188,5 +188,9 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
     </div>
   );
 };
+
+export const Breadcrumbs = memo(BreadcrumbsInternal);
+
+Breadcrumbs.displayName = "Breadcrumbs";
 
 export default Breadcrumbs;

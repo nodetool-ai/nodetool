@@ -6,12 +6,12 @@ This file provides specific guidance for GitHub Copilot when generating code sug
 
 NodeTool is a React/TypeScript application for building AI workflows visually. Key technologies:
 
-- **Frontend**: React 18.2, TypeScript 5.7, Vite, Material-UI (MUI) v7
-- **State Management**: Zustand 4.5 with temporal (undo/redo) support
-- **Flow Editor**: ReactFlow (@xyflow/react) v12
-- **Data Fetching**: TanStack Query (React Query) v5
-- **Testing**: Jest 29 + React Testing Library 16
-- **Routing**: React Router v7
+- **Frontend**: React 18.2, TypeScript 5.7, Vite 6, Material-UI (MUI) v7
+- **State Management**: Zustand 4.5.7 with temporal (undo/redo) support
+- **Flow Editor**: ReactFlow (@xyflow/react) v12.10.0
+- **Data Fetching**: TanStack Query (React Query) v5.62.3
+- **Testing**: Jest 29.7.0 + React Testing Library 16.1.0
+- **Routing**: React Router v7.12.0
 
 ## Code Generation Guidelines
 
@@ -952,10 +952,12 @@ For more details, see `electron/README.md`.
 
 - React: 18.2.0
 - TypeScript: 5.7.2
+- Vite: 6.4.1
 - Material-UI: 7.2.0
 - Zustand: 4.5.7
-- ReactFlow: 12.8.2
+- ReactFlow: 12.10.0
 - TanStack Query: 5.62.3
+- React Router: 7.12.0
 - Jest: 29.7.0
 - React Testing Library: 16.1.0
 

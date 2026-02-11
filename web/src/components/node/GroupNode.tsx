@@ -170,7 +170,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     (state) => state.state === "running"
   );
   const run = useWebsocketRunner((state) => state.run);
-  const runWorkflow = useCallback(() => {
+
+  // Memoize group nodes and edges to avoid recalculation on every render
+  const { groupNodes, groupEdges } = useMemo(() => {
     // Filter nodes that belong to this group
     const groupNodes = nodes.filter(
       (node) => node.id === props.id || node.parentId === props.id
@@ -183,8 +185,12 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         groupNodes.find((node) => node.id === edge.target)
     );
 
+    return { groupNodes, groupEdges };
+  }, [nodes, edges, props.id]);
+
+  const runWorkflow = useCallback(() => {
     run({}, workflow, groupNodes, groupEdges);
-  }, [nodes, edges, run, workflow, props.id]);
+  }, [run, workflow, groupNodes, groupEdges]);
 
   // Get child nodes of this group
   const childNodes = useMemo(() => {
@@ -215,7 +221,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isDragging = useNodes((state) => state.hoveredNodes.length > 0);
 
   const [headline, setHeadline] = useState(
-    props.data.properties.headline || "Group"
+    (props.data.properties.headline as string | undefined) || "Group"
   );
 
   const [color, setColor] = useState(
@@ -236,12 +242,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const handleHeaderDoubleClick = (_e: React.MouseEvent) => {
     headerInputRef.current?.focus();
     headerInputRef.current?.select();
-    // e.preventDefault();
-    // e.stopPropagation();
-    // const clickedElement = e.target as HTMLElement;
-    // if (clickedElement.classList.contains("node-header")) {
-    //   updateNodeData(props.id, { collapsed: !props.data.collapsed });
-    // }
   };
   const handleHeadlineChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,7 +275,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const handleHeaderClick = () => {
-    // console.log("Node header clicked:", props.id, props.data);
+    // Header click handler - placeholder for future functionality
   };
 
   useEffect(() => {

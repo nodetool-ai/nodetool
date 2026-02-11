@@ -196,5 +196,5 @@ Errors are propagated as:
 
 The chat server can be deployed standalone or integrated into existing FastAPI applications by importing and mounting
 the OpenAI-compatible router from `nodetool.api.openai.create_openai_compatible_router` or by invoking `run_chat_server`
-from `nodetool.chat.server`. For full workflow execution and storage, use the Worker API described in
+from `nodetool.chat.server`. For full workflow execution and storage, use the Server API described in
 [Deployment Guide](deployment.md).

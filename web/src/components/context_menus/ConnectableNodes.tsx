@@ -155,6 +155,23 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
+
+  // Memoize store selector function to prevent re-renders
+  const storeSelector = useCallback(
+    (state: any) => ({
+      connectableNodes: state.getConnectableNodes(),
+      typeMetadata: state.typeMetadata,
+      filterType: state.filterType,
+      isVisible: state.isVisible,
+      menuPosition: state.menuPosition,
+      hideMenu: state.hideMenu,
+      sourceHandle: state.sourceHandle,
+      targetHandle: state.targetHandle,
+      nodeId: state.nodeId
+    }),
+    []
+  );
+
   const {
     connectableNodes,
     typeMetadata,
@@ -165,17 +182,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     sourceHandle,
     targetHandle,
     nodeId
-  } = useConnectableNodesStore((state) => ({
-    connectableNodes: state.getConnectableNodes(),
-    typeMetadata: state.typeMetadata,
-    filterType: state.filterType,
-    isVisible: state.isVisible,
-    menuPosition: state.menuPosition,
-    hideMenu: state.hideMenu,
-    sourceHandle: state.sourceHandle,
-    targetHandle: state.targetHandle,
-    nodeId: state.nodeId
-  }));
+  } = useConnectableNodesStore(storeSelector);
 
   const filteredNodes = useMemo(
     () =>
@@ -297,7 +304,10 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   }, [createConnectableNode, hideMenu]);
 
   // Empty callback for onDragStart - prevents new function creation on each render
-  const handleDragStart = useCallback(() => {}, []);
+  const handleDragStart = useCallback(
+    (_node: NodeMetadata, _event: React.DragEvent<HTMLDivElement>) => {},
+    []
+  );
 
   if (!menuPosition || !isVisible) {return null;}
 
@@ -440,7 +450,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
                       key={nodeMetadata.node_type}
                       node={nodeMetadata}
                       onDragStart={handleDragStart}
-                      onClick={() => handleNodeClick(nodeMetadata)}
+                      onClick={handleNodeClick}
                     />
                   </div>
                 </Tooltip>

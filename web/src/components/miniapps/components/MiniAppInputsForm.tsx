@@ -598,4 +598,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
   );
 };
 
-export default MiniAppInputsForm;
+MiniAppInputsForm.displayName = 'MiniAppInputsForm';
+
+export default React.memo(MiniAppInputsForm);

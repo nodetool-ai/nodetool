@@ -6,7 +6,7 @@ title: "Chat API"
 NodeTool provides both OpenAI-compatible HTTP endpoints and WebSocket endpoints for chat interactions:
 
 - The **Editor API** (`nodetool serve`, defaults to port **7777**) exposes WebSocket chat at `/chat` and `/predict`, primarily for the desktop/local app.
-- The **Worker and Chat Server APIs** (`nodetool worker`, `nodetool chat-server`, defaults to port **7777**) expose OpenAI-compatible HTTP endpoints (`/v1/chat/completions`, `/v1/models`) for remote clients.
+- The **Server and Chat Server APIs** (`nodetool serve --mode private`, `nodetool chat-server`, defaults to port **7777**) expose OpenAI-compatible HTTP endpoints (`/v1/chat/completions`, `/v1/models`) for remote clients.
 
 See the canonical matrix in [API Reference](api-reference.md#unified-endpoint-matrix) for methods, auth requirements, and streaming behavior.
 
@@ -45,7 +45,7 @@ is optional for development.
 import openai
 
 # For local development: base_url="http://localhost:7777/v1"
-# For production/worker: base_url="http://localhost:7777/v1" or your server URL
+# For production/server: base_url="http://localhost:7777/v1" or your server URL
 client = openai.OpenAI(
     api_key="YOUR_TOKEN",
     base_url="http://localhost:7777/v1"

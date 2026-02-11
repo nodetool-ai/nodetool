@@ -61,6 +61,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
+  // Use getSelectedNodes method which is memoized in the store
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);

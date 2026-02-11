@@ -199,13 +199,18 @@ const TextListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `text-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
-  
+
+  // Use selectors for asset grid store to avoid full store subscriptions
+  const filteredAssets = useAssetGridStore((state) => state.filteredAssets);
+  const globalSearchResults = useAssetGridStore((state) => state.globalSearchResults);
+  const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
+
   // Convert value to array of TextItem, flattening nested arrays
   const texts: TextItem[] = useMemo(
     () => flattenTextItems(props.value),
     [props.value]
   );
-  
+
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -223,6 +228,13 @@ const TextListProperty = (props: PropertyProps) => {
       props.onChange(updatedTexts);
     },
     [texts, props]
+  );
+
+  // Create memoized click handlers for each text item to prevent unnecessary re-renders
+  const removeButtonClickHandlers = useMemo(
+    () =>
+      texts.map((_, index) => () => handleRemoveText(index)),
+    [texts, handleRemoveText]
   );
 
   // Extract filename from URI
@@ -253,10 +265,25 @@ const TextListProperty = (props: PropertyProps) => {
         // Handle multiple assets
         if (dragData.type === "assets-multiple") {
           const selectedIds = dragData.payload as string[];
-          const { filteredAssets, globalSearchResults, selectedAssets } = useAssetGridStore.getState();
-          const potentialAssets = [...filteredAssets, ...globalSearchResults, ...(selectedAssets || [])];
-          const foundAssets = potentialAssets.filter(a => selectedIds.includes(a.id));
-          const uniqueAssets = Array.from(new Map(foundAssets.map(item => [item.id, item])).values());
+          // Optimize: Use Set for O(1) lookup and single-pass iteration
+          const selectedIdsSet = new Set(selectedIds);
+          const uniqueAssets = [];
+          const seenIds = new Set<string>();
+
+          // Single pass through all potential assets
+          for (const asset of [
+            ...filteredAssets,
+            ...globalSearchResults,
+            ...(selectedAssets || [])
+          ]) {
+            if (
+              selectedIdsSet.has(asset.id) &&
+              !seenIds.has(asset.id)
+            ) {
+              uniqueAssets.push(asset);
+              seenIds.add(asset.id);
+            }
+          }
 
           uniqueAssets.forEach(asset => {
             if (asset.get_url && isTextAsset(asset.content_type)) {
@@ -322,7 +349,7 @@ const TextListProperty = (props: PropertyProps) => {
         console.error("Failed to upload text files:", error);
       }
     },
-    [uploadAsset, handleAddTexts]
+    [uploadAsset, handleAddTexts, filteredAssets, globalSearchResults, selectedAssets]
   );
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -476,7 +503,7 @@ const TextListProperty = (props: PropertyProps) => {
               <Tooltip title="Remove text file">
                 <IconButton
                   className="remove-button"
-                  onClick={() => handleRemoveText(index)}
+                  onClick={removeButtonClickHandlers[index]}
                   size="small"
                   aria-label="Remove text file"
                 >

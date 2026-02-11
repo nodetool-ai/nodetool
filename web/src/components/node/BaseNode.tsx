@@ -253,6 +253,67 @@ const getHeaderColors = (
   };
 };
 
+// Memoized function to generate node container styles
+const getNodeContainerStyles = (
+  isLoading: boolean,
+  selected: boolean,
+  isFocused: boolean,
+  hasParent: boolean,
+  hasToggleableResult: boolean,
+  baseColor: string | undefined,
+  parentColor: string | null,
+  theme: Theme,
+  minHeight: number
+) => ({
+  display: "flex" as const,
+  // Important for resizable nodes:
+  // ReactFlow applies width/height to the wrapper. Ensure our visual container
+  // stretches to match so vertical resizing is visible.
+  height: "100%",
+  minHeight,
+  border: isLoading
+    ? "none"
+    : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
+  ...theme.applyStyles("dark", {
+    border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
+  }),
+  boxShadow: selected
+    ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
+    : isFocused
+    ? `0 0 0 2px ${theme.vars.palette.warning.main}`
+    : "none",
+  outline: isFocused
+    ? `2px dashed ${theme.vars.palette.warning.main}`
+    : "none",
+  outlineOffset: "-2px",
+  backgroundColor:
+    hasParent && !isLoading
+      ? parentColor
+      : selected
+      ? "transparent !important"
+      : theme.vars.palette.c_node_bg,
+  backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
+  WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
+  borderRadius: "var(--rounded-node)",
+  // dynamic node color
+  "--node-primary-color": baseColor || "var(--palette-primary-main)",
+  ...(hasToggleableResult
+    ? {
+        // Match PreviewNode behavior: show the corner resize handle on hover
+        "& .react-flow__resize-control.nodrag.bottom.right.handle": {
+          opacity: 0,
+          position: "absolute" as const,
+          right: "-8px",
+          bottom: "-9px",
+          transition: "opacity 0.2s"
+        },
+        "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
+          opacity: 1
+        }
+      }
+    : {})
+});
+
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
@@ -367,8 +428,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [id, updateNodeData]);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
-  const isEmptyResult = (obj: any) =>
-    obj && typeof obj === "object" && Object.keys(obj).length === 0;
+  const isEmptyResult = (obj: unknown) =>
+    obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
   const isOverlayVisible =
     showResultOverlay && result && !isEmptyResult(result);
   const hasToggleableResult =
@@ -414,6 +475,33 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [theme]
   );
 
+  // Memoize the container sx prop to prevent object recreation on every render
+  const containerSx = useMemo(
+    () =>
+      getNodeContainerStyles(
+        isLoading,
+        selected,
+        isFocused,
+        hasParent,
+        Boolean(hasToggleableResult),
+        baseColor,
+        parentColor,
+        theme,
+        styleProps.minHeight
+      ),
+    [
+      isLoading,
+      selected,
+      isFocused,
+      hasParent,
+      hasToggleableResult,
+      baseColor,
+      parentColor,
+      theme,
+      styleProps.minHeight
+    ]
+  );
+
   if (!metadata) {
     throw new Error("Metadata is not loaded for node " + id);
   }
@@ -423,6 +511,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     // Reset node height to auto-size when toggling advanced fields
     updateNode(id, { height: undefined, measured: undefined });
   }, [showAdvancedFields, updateNode, id]);
+
+  const handleNamespaceClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Open nodeMenu at that namespace
+    const namespacePath = metadata.namespace?.split(".") || [];
+    useNodeMenuStore.getState().openNodeMenu({
+      x: e.clientX,
+      y: e.clientY,
+      selectedPath: namespacePath
+    });
+  }, [metadata.namespace]);
 
   // Track error state for node dimension management
   const hasError = useErrorStore((state) =>
@@ -451,58 +551,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
-      sx={{
-        display: "flex",
-        // Important for resizable nodes:
-        // ReactFlow applies width/height to the wrapper. Ensure our visual container
-        // stretches to match so vertical resizing is visible.
-        height: "100%",
-        minHeight: styleProps.minHeight,
-        border: isLoading
-          ? "none"
-          : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
-        ...theme.applyStyles("dark", {
-          border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
-        }),
-        boxShadow: selected
-          ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
-          : isFocused
-          ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-          : "none",
-        outline: isFocused
-          ? `2px dashed ${theme.vars.palette.warning.main}`
-          : "none",
-        outlineOffset: "-2px",
-        backgroundColor:
-          hasParent && !isLoading
-            ? parentColor
-            : selected
-            ? "transparent !important"
-            : // theme.vars.palette.c_node_bg
-              // : "#121212", // Darker background
-              theme.vars.palette.c_node_bg, // Darker background
-        backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-        WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-        borderRadius: "var(--rounded-node)",
-        // dynamic node color
-        "--node-primary-color": baseColor || "var(--palette-primary-main)",
-        ...(hasToggleableResult
-          ? {
-              // Match PreviewNode behavior: show the corner resize handle on hover
-              "& .react-flow__resize-control.nodrag.bottom.right.handle": {
-                opacity: 0,
-                position: "absolute",
-                right: "-8px",
-                bottom: "-9px",
-                transition: "opacity 0.2s"
-              },
-              "&:hover .react-flow__resize-control.nodrag.bottom.right.handle":
-                {
-                  opacity: 1
-                }
-            }
-          : {})
-      }}
+      sx={containerSx}
     >
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
       {/* {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />} */}
@@ -517,8 +566,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         iconType={metadata?.outputs?.[0]?.type?.type}
         iconBaseColor={baseColor}
         workflowId={workflow_id}
-        showResultButton={!isOverlayVisible && hasToggleableResult}
-        showInputsButton={isOverlayVisible}
+        showResultButton={Boolean(!isOverlayVisible && hasToggleableResult)}
+        showInputsButton={Boolean(isOverlayVisible)}
         onShowResults={handleShowResults}
         onShowInputs={handleShowInputs}
       />
@@ -530,7 +579,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           <ModelRecommendations nodeType={type} />
         )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
-      <InputNodeNameWarning nodeType={type} name={data.properties?.name} />
+      <InputNodeNameWarning nodeType={type} name={data.properties?.name as string | undefined} />
       <Box
         className="node-content-container"
         sx={{
@@ -607,17 +656,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           <Button
             variant="text"
             className="node-namespace nodrag nopan"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              // Open nodeMenu at that namespace
-              const namespacePath = metadata.namespace?.split(".") || [];
-              useNodeMenuStore.getState().openNodeMenu({
-                x: e.clientX,
-                y: e.clientY,
-                selectedPath: namespacePath
-              });
-            }}
+            onClick={handleNamespaceClick}
             sx={{
               position: "absolute",
               bottom: -25,
@@ -649,16 +688,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 };
 
 export default memo(BaseNode, (prevProps, nextProps) => {
-  const prevFocused =
-    useNodeFocusStore.getState().focusedNodeId === prevProps.id;
-  const nextFocused =
-    useNodeFocusStore.getState().focusedNodeId === nextProps.id;
   return (
     prevProps.id === nextProps.id &&
     prevProps.type === nextProps.type &&
     prevProps.selected === nextProps.selected &&
     prevProps.dragging === nextProps.dragging &&
-    prevFocused === nextFocused &&
     prevProps.parentId === nextProps.parentId &&
     isEqual(prevProps.data, nextProps.data)
   );

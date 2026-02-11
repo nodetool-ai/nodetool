@@ -2,7 +2,8 @@
 import React, {
   useRef,
   useState,
-  useCallback
+  useCallback,
+  memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Box, Typography, IconButton, Tooltip, Collapse } from "@mui/material";
@@ -33,7 +34,7 @@ interface ChatComposerProps {
   toolbarNode?: React.ReactNode;
 }
 
-const ChatComposer: React.FC<ChatComposerProps> = ({
+const ChatComposer: React.FC<ChatComposerProps> = memo(({
   isLoading,
   isStreaming,
   onSendMessage,
@@ -165,6 +166,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
                 size="small"
                 onClick={sendQueuedNow}
                 disabled={!onStop}
+                aria-label="Send now"
                 sx={{
                   color: "primary.main",
                   "&:hover": { backgroundColor: theme.vars.palette.primary.main + "20" }
@@ -177,6 +179,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
               <IconButton
                 size="small"
                 onClick={cancelQueued}
+                aria-label="Cancel queued message"
                 sx={{
                   color: "text.secondary",
                   "&:hover": { color: "error.main" }
@@ -231,6 +234,7 @@ const ChatComposer: React.FC<ChatComposerProps> = ({
       </div>
     </div>
   );
-};
+});
+ChatComposer.displayName = "ChatComposer";
 
 export default ChatComposer;

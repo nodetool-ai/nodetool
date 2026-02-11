@@ -34,6 +34,7 @@ import FolderPathProperty from "../properties/FolderPathProperty";
 import DocumentProperty from "../properties/DocumentProperty";
 import FontProperty from "../properties/FontProperty";
 import SelectProperty from "../properties/SelectProperty";
+import ImageSizeProperty from "../properties/ImageSizeProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import { useTheme } from "@mui/material/styles";
@@ -126,6 +127,17 @@ function InputProperty(props: PropertyProps) {
 export function getComponentForProperty(
   property: Property
 ): React.ComponentType<PropertyProps> {
+  // If property has predefined values, treat it as an enum/select 
+  // regardless of base type (often comes as 'str' from dynamic schemas)
+  const hasValues = (property.type.values && property.type.values.length > 0) || 
+                    (property.type.type_args?.[0]?.values && property.type.type_args[0].values.length > 0) ||
+                    ((property as any).values && (property as any).values.length > 0) ||
+                    ((property as any).enum && (property as any).enum.length > 0);
+  
+  if (hasValues) {
+    return EnumProperty;
+  }
+
   if (property.json_schema_extra?.type) {
     return componentForType(property.json_schema_extra.type as string);
   } else {
@@ -158,6 +170,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return ColorProperty;
     case "image":
       return ImageProperty;
+    case "image_size":
+      return ImageSizeProperty;
     case "image_list":
       return ImageListProperty;
     case "video_list":
@@ -226,10 +240,8 @@ function handleUnionType(
   return getComponentForProperty({
     ...property,
     type: {
+      ...property.type,
       type: reducedType,
-      optional: property.type.optional,
-      type_args: property.type.type_args,
-      type_name: property.type.type_name
     }
   });
 }
@@ -303,6 +315,7 @@ export type PropertyInputProps = {
   isInspector?: boolean;
   tabIndex?: number;
   isDynamicProperty?: boolean;
+  hideActionIcons?: boolean;
   onValueChange?: (value: any) => void;
 };
 
@@ -316,6 +329,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   controlKeyPressed,
   tabIndex,
   isDynamicProperty,
+  hideActionIcons,
   isInspector,
   onValueChange
 }: PropertyInputProps) => {
@@ -430,21 +444,27 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         }
 
         if (isDynamicProperty) {
-          // For dynamic properties, get default from metadata
+          // For dynamic properties, get default from metadata or the property object itself
           const nodeMetadata = metadata?.[node.type as string];
+          let defaultValue = property.default;
+
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === property.name
             );
-            if (propertyDef && node.data.dynamic_properties) {
-              const updatedDynamicProperties = {
-                ...node.data.dynamic_properties,
-                [property.name]: propertyDef.default
-              };
-              updateNodeData(id, {
-                dynamic_properties: updatedDynamicProperties
-              });
+            if (propertyDef) {
+              defaultValue = propertyDef.default;
             }
+          }
+
+          if (defaultValue !== undefined && node.data.dynamic_properties) {
+            const updatedDynamicProperties = {
+              ...node.data.dynamic_properties,
+              [property.name]: defaultValue
+            };
+            updateNodeData(id, {
+              dynamic_properties: updatedDynamicProperties
+            });
           }
         } else {
           // For regular properties, get default from metadata or property
@@ -551,7 +571,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       onDoubleClick={handleDoubleClick}
     >
       {inputField}
-      {isDynamicProperty && (
+      {isDynamicProperty && !hideActionIcons && (
         <div className="action-icons">
           <Edit
             className="action-icon"

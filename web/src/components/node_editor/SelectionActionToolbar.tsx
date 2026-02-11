@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Box, Divider } from "@mui/material";
 import {
   AlignHorizontalLeft,
@@ -74,11 +74,12 @@ const renderDivider = (index: number): React.ReactNode => (
   />
 );
 
-const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
+const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   visible,
   onClose,
 }) => {
-  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
+  const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
   const selectionActions = useSelectionActions();
 
   const canAlign = selectedNodes.length >= 2;
@@ -195,17 +196,22 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
     [canGroup, selectionActions]
   );
 
+  // Memoize the combined button array to avoid creating new references on every render
+  // This must be declared before the early return to follow React Hooks rules
+  const allButtons: ButtonItem[] = useMemo(
+    () => [
+      ...alignmentButtons,
+      { divider: true } as DividerButton,
+      ...distributionButtons,
+      { divider: true } as DividerButton,
+      ...actionButtons
+    ],
+    [alignmentButtons, distributionButtons, actionButtons]
+  );
+
   if (!visible) {
     return null;
   }
-
-  const allButtons: ButtonItem[] = [
-    ...alignmentButtons,
-    { divider: true } as DividerButton,
-    ...distributionButtons,
-    { divider: true } as DividerButton,
-    ...actionButtons
-  ];
 
   return (
     <Box
@@ -239,6 +245,8 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = ({
       })}
     </Box>
   );
-};
+});
+
+SelectionActionToolbar.displayName = 'SelectionActionToolbar';
 
 export default SelectionActionToolbar;

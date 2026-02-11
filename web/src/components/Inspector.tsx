@@ -63,52 +63,6 @@ const styles = (theme: Theme) =>
       maxHeight: "20vh",
       padding: "0.5em "
     },
-    // ".node-property": {
-    //   display: "flex",
-    //   flexShrink: 0,
-    //   flexDirection: "column",
-    //   margin: 0,
-    //   padding: 0,
-    //   width: "100%",
-    //   minWidth: "180px",
-    //   maxWidth: "300px",
-    //   marginBottom: ".1em"
-    // },
-    // ".node-property .MuiTextField-root textarea": {
-    //   fontSize: theme.fontSizeNormal
-    // },
-    // ".node-property textarea": {
-    //   margin: 0,
-    //   padding: "0.25em",
-    //   backgroundColor: theme.vars.palette.grey[600],
-    //   fontSize: theme.fontSizeSmall,
-    //   minHeight: "1.75em",
-    //   maxHeight: "20em"
-    // },
-    // ".node-property label": {
-    //   fontSize: theme.fontSizeNormal,
-    //   fontFamily: theme.fontFamily1,
-    //   minHeight: "18px",
-    //   userSelect: "none"
-    // },
-    // ".node-property.enum .mui-select": {
-    //   height: "2em",
-    //   backgroundColor: theme.vars.palette.grey[600],
-    //   marginTop: "0.25em",
-    //   padding: "0.5em .5em",
-    //   fontSize: theme.fontSizeSmall
-    // },
-    // ".node-property.enum .property-label": {
-    //   height: "1em"
-    // },
-    // ".node-property.enum label": {
-    //   fontSize: theme.fontSizeNormal,
-    //   fontFamily: theme.fontFamily1,
-    //   transform: "translate(0, 0)"
-    // },
-    // ".node-property.enum .MuiFormControl-root": {
-    //   margin: 0
-    // },
     ".inspector-header": {
       display: "flex",
       flexDirection: "column",
@@ -174,23 +128,29 @@ const styles = (theme: Theme) =>
   });
 
 const Inspector: React.FC = () => {
-  const {
-    selectedNodes,
-    edges,
-    findNode,
-    updateNodeProperties,
-    setSelectedNodes
-  } = useNodes((state) => ({
-    selectedNodes: state.getSelectedNodes(),
-    edges: state.edges,
-    findNode: state.findNode,
-    updateNodeProperties: state.updateNodeProperties,
-    setSelectedNodes: state.setSelectedNodes
-  }));
+  // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
+  const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
+  const findNode = useNodes((state) => state.findNode);
+  const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
+  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
+
+  // Optimize: Only subscribe to edges that are connected to selected nodes to avoid re-renders
+  // when unrelated edges change. This is especially important for dynamic properties lookup.
+  const selectedNodeIds = useMemo(
+    () => new Set(selectedNodes.map((node) => node.id)),
+    [selectedNodes]
+  );
+  const edges = useNodes((state) =>
+    state.edges.filter(
+      (edge) =>
+        selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)
+    )
+  );
+
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
-  const inspectorStyles = styles(theme);
+  const inspectorStyles = useMemo(() => styles(theme), [theme]);
   const nodesWithMetadata = useMemo(
     () =>
       selectedNodes
@@ -447,18 +407,22 @@ const Inspector: React.FC = () => {
             {/* Dynamic properties, if any */}
             {Object.entries(selectedNode.data.dynamic_properties || {}).map(
               ([name, value], index) => {
-                // Infer type from incoming edge
+                // Infer type from incoming edge or dynamic_inputs metadata
                 const incoming = edges.find(
                   (edge) =>
                     edge.target === selectedNode.id &&
                     edge.targetHandle === name
                 );
-                let resolvedType: TypeMetadata = {
+
+                const dynamicInputMeta = selectedNode.data.dynamic_inputs?.[name];
+
+                let resolvedType: TypeMetadata = (dynamicInputMeta as TypeMetadata) || {
                   type: "any",
                   type_args: [],
                   optional: false
                 } as any;
-                if (incoming) {
+
+                if (incoming && !dynamicInputMeta) {
                   const sourceNode = findNode(incoming.source);
                   if (sourceNode) {
                     const sourceMeta = getMetadata(sourceNode.type || "");
@@ -474,12 +438,19 @@ const Inspector: React.FC = () => {
                     }
                   }
                 }
+
+                const isFalNode = selectedNode.type === "fal.dynamic_schema.FalAI";
+
                 return (
                   <PropertyField
                     key={`inspector-dynamic-${name}-${selectedNode.id}`}
                     id={selectedNode.id}
                     value={value}
-                    property={{ name, type: resolvedType } as any}
+                    property={{
+                      ...dynamicInputMeta,
+                      name,
+                      type: resolvedType,
+                    } as any}
                     propertyIndex={`dynamic-${index}`}
                     showHandle={false}
                     isInspector={true}
@@ -487,6 +458,7 @@ const Inspector: React.FC = () => {
                     data={selectedNode.data}
                     layout=""
                     isDynamicProperty={true}
+                    hideActionIcons={isFalNode}
                   />
                 );
               }
@@ -518,4 +490,7 @@ const Inspector: React.FC = () => {
   );
 };
 
-export default Inspector;
+export default React.memo(Inspector, (_prevProps, _nextProps) => {
+  // Inspector has no props, so always prevent re-render
+  return true;
+});

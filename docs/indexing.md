@@ -47,7 +47,7 @@ Return values can include summaries, metadata, or alternate embeddings. Review `
 
 - `POST /collections/{name}/index` (see `src/nodetool/api/collection.py`) triggers ingestion via HTTP.
 - The MCP server (`src/nodetool/api/mcp_server.py:1889`) exposes commands for IDE plug-ins to index assets.
-- Admin routes under `src/nodetool/deploy/admin_routes.py` provide remote ingestion endpoints for deployed workers.
+- Admin routes under `src/nodetool/deploy/admin_routes.py` provide remote ingestion endpoints for deployed servers.
 
 ## Troubleshooting
 

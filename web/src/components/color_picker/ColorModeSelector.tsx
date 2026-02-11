@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Tabs, Tab } from "@mui/material";
 import { ColorMode } from "./ColorInputs";
@@ -15,7 +15,7 @@ interface ColorModeSelectorProps {
  * A tab selector for choosing color input modes (hex, rgb, hsl, etc.).
  * Uses semantic sx prop styling instead of CSS class selectors.
  */
-const ColorModeSelector: React.FC<ColorModeSelectorProps> = ({
+const ColorModeSelector: React.FC<ColorModeSelectorProps> = memo(({
   mode,
   onChange,
   showAllModes = true
@@ -72,6 +72,8 @@ const ColorModeSelector: React.FC<ColorModeSelectorProps> = ({
       ))}
     </Tabs>
   );
-};
+});
+
+ColorModeSelector.displayName = 'ColorModeSelector';
 
 export default ColorModeSelector;

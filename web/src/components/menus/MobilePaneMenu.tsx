@@ -110,6 +110,9 @@ const styles = (theme: Theme) =>
     }
   });
 
+// Memoized divider style to prevent object creation on each render
+const dividerSx = { margin: "12px 0" } as const;
+
 interface MobilePaneMenuProps {
   open: boolean;
   onClose: () => void;
@@ -265,7 +268,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
             </ListItemButton>
           </ListItem>
 
-          <Divider sx={{ margin: "12px 0" }} />
+          <Divider sx={dividerSx} />
 
           {/* AI Nodes */}
           <div className="menu-section-title">AI Nodes</div>
@@ -295,7 +298,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
             </ListItemButton>
           </ListItem>
 
-          <Divider sx={{ margin: "12px 0" }} />
+          <Divider sx={dividerSx} />
 
           {/* Input Nodes */}
           <div className="menu-section-title">Input Nodes</div>
@@ -364,7 +367,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
             </ListItemButton>
           </ListItem>
 
-          <Divider sx={{ margin: "12px 0" }} />
+          <Divider sx={dividerSx} />
 
           {/* Organization */}
           <div className="menu-section-title">Organization</div>

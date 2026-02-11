@@ -19,7 +19,7 @@ import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "../../hooks/useAutosave";
@@ -403,9 +403,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     (state) => state.handleViewChange
   );
 
-  const { instantUpdate, setInstantUpdate } = useSettingsStore((state) => ({
+  const { instantUpdate, setInstantUpdate, autosave } = useSettingsStore((state) => ({
     instantUpdate: state.settings.instantUpdate,
-    setInstantUpdate: state.setInstantUpdate
+    setInstantUpdate: state.setInstantUpdate,
+    autosave: state.settings.autosave
   }));
 
   const { visible: isMiniMapVisible, toggleVisible: toggleMiniMap } =
@@ -414,14 +415,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       toggleVisible: state.toggleVisible
     }));
 
-  const { workflow, nodes, edges, autoLayout, workflowJSON } = useNodes(
+  const nodeStore = useNodeStoreRef();
+  const { workflow, autoLayout, workflowJSON } = useNodes(
     (state) => ({
       workflow: state.workflow,
-      nodes: state.nodes,
-      edges: state.edges,
       autoLayout: state.autoLayout,
       workflowJSON: state.workflowJSON
     })
+  );
+
+  // Subscribe only to emptiness state to avoid re-renders on every node drag
+  const isEmptyWorkflow = useNodes(
+    (state) => state.nodes.length === 0 && state.edges.length === 0
   );
 
   const {
@@ -452,18 +457,19 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const handleRun = useCallback(async () => {
     if (!isWorkflowRunning) {
       // Create a checkpoint version before execution if enabled
-      const autosaveSettings = useSettingsStore.getState().settings.autosave;
-      if (autosaveSettings?.saveBeforeRun) {
+      if (autosave?.saveBeforeRun) {
         const w = getWorkflowById(workflow.id);
         if (w?.graph?.nodes && w.graph.nodes.length > 0) {
           await triggerAutosaveForWorkflow(workflow.id, w.graph, "checkpoint", {
             description: "Before execution",
             force: true,
-            maxVersions: autosaveSettings.maxVersionsPerWorkflow
+            maxVersions: autosave.maxVersionsPerWorkflow
           });
         }
       }
 
+      // Access current state directly to avoid re-renders on every node drag
+      const { nodes, edges } = nodeStore.getState();
       run({}, workflow, nodes, edges, undefined);
     }
     setTimeout(() => {
@@ -476,10 +482,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isWorkflowRunning,
     run,
     workflow,
-    nodes,
-    edges,
+    nodeStore,
     getWorkflowById,
-    saveWorkflow
+    saveWorkflow,
+    autosave
   ]);
 
   const handleStop = useCallback(() => {
@@ -572,7 +578,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     }
   }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
 
-  const isEmptyWorkflow = nodes.length === 0 && edges.length === 0;
   const shouldHighlightNodeMenu =
     isEmptyWorkflow && workflow?.name === "New Workflow";
 

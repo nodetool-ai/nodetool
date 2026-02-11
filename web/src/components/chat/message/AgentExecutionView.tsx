@@ -343,13 +343,13 @@ interface ToolCallsSectionProps {
   toolCalls: any[];
 }
 
-const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
+const ToolCallsSection: React.FC<ToolCallsSectionProps> = React.memo(({ toolCalls }) => {
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
 
   const handleToggleExpanded = useCallback(() => {
-    setExpanded(!expanded);
-  }, [expanded]);
+    setExpanded(prev => !prev);
+  }, []);
 
   // Memoize formatted tool args to avoid repeated JSON parsing on every render
   const formattedArgs = useMemo(() => {
@@ -404,7 +404,9 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
       </Collapse>
     </div>
   );
-};
+});
+
+ToolCallsSection.displayName = "ToolCallsSection";
 
 interface AgentExecutionViewProps {
   messages: Message[];
@@ -530,29 +532,47 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
     return result;
   }, [messages]);
 
-  const renderTimelineItem = (item: TimelineItem) => {
+  // Memoize inline styles to prevent re-creation on every render
+  const planningItemStyle = useMemo(() => ({ position: "relative" as const, marginBottom: "0.5rem" }), []);
+  const logItemStyle = useMemo(() => ({ position: "relative" as const }), []);
+  const logDotStyle = useMemo(() => ({
+    width: 6,
+    height: 6,
+    left: "-19px",
+    top: "14px",
+    backgroundColor: theme.vars.palette.grey[700],
+    border: "none",
+    boxShadow: "none"
+  }), [theme]);
+  const taskItemStyle = useMemo(() => ({ position: "relative" as const }), []);
+  const stepContainerStyle = useMemo(() => ({ display: "flex" as const, flexDirection: "column" as const, gap: "0.5rem" }), []);
+  const additionalStepsGroupStyle = useMemo(() => ({ marginTop: "1rem" }), []);
+  const emptyStateStyle = useMemo(() => ({
+    padding: "0.75rem 1rem",
+    color: theme.vars.palette.text.secondary,
+    fontSize: "0.8rem",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: "8px",
+    marginBottom: "0.5rem"
+  }), [theme]);
+  const emptyStateTitleStyle = useMemo(() => ({ fontWeight: 600, marginBottom: "0.25rem" }), []);
+  const emptyStateMetaStyle = useMemo(() => ({ fontSize: "0.7rem", opacity: 0.6, marginTop: "0.25rem" }), []);
+
+  const renderTimelineItem = useCallback((item: TimelineItem) => {
     switch (item.type) {
       case "planning":
         return (
-          <div key={item.key} style={{ position: "relative", marginBottom: "0.5rem" }}>
+          <div key={item.key} style={planningItemStyle}>
             <div className={`timeline-dot ${item.data.status === "Success" ? "completed" : ""}`} />
             <PlanningUpdateDisplay planningUpdate={item.data} />
           </div>
         );
       case "log":
         return (
-          <div key={item.key} style={{ position: "relative" }}>
-             <div 
-              className="timeline-dot" 
-              style={{
-                width: 6,
-                height: 6,
-                left: "-19px",
-                top: "14px",
-                backgroundColor: theme.vars.palette.grey[700],
-                border: "none",
-                boxShadow: "none"
-              }} 
+          <div key={item.key} style={logItemStyle}>
+             <div
+              className="timeline-dot"
+              style={logDotStyle}
             />
             <div className="log-entry">
               {item.data.content}
@@ -564,7 +584,7 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
         const task = taskUpdate.task;
         const currentStep = taskUpdate.step;
         const currentStepId = currentStep?.id || currentStep?.instructions;
-        
+
         // Find if current step is part of the plan
         const currentStepInPlan =
           !!currentStep &&
@@ -588,9 +608,9 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
         };
 
         return (
-          <div key={item.key} style={{ position: "relative" }}>
+          <div key={item.key} style={taskItemStyle}>
              <div className={`consolidated-task-card noscroll ${execution.status === "executing" ? "executing" : ""}`} css={styles(theme)}>
-              
+
               <div className="task-header-section">
                 <div className="task-header-top">
                   <div className="task-label">Agent Task</div>
@@ -619,9 +639,9 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
                          const isCurrent = currentStep && (currentStep.id ? currentStep.id === step.id : currentStep.instructions === step.instructions);
                          const _isRunning = (step.start_time > 0 && !step.completed) || (isCurrent && !step.completed);
                          const stepToolCalls = stepKey ? toolCallsByStep?.[stepKey] || [] : [];
-                         
+
                          return (
-                          <div key={idx} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                          <div key={idx} style={stepContainerStyle}>
                             <StepView
                               step={{
                                 ...step,
@@ -639,7 +659,7 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
 
                 {/* Handle internal steps that aren't in the original plan */}
                 {currentStep && (!task?.steps || !currentStepInPlan) && (
-                  <div className="step-group" style={{ marginTop: "1rem" }}>
+                  <div className="step-group" style={additionalStepsGroupStyle}>
                     <span className="section-label">Additional Steps</span>
                     <div className="step-wrapper">
                       <StepView step={currentStep} />
@@ -657,7 +677,7 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
       default:
         return null;
     }
-  };
+  }, [theme, execution, toolCallsByStep, planningItemStyle, logItemStyle, logDotStyle, taskItemStyle, stepContainerStyle, additionalStepsGroupStyle]);
 
   return (
     <li className="chat-message-list-item execution-event">
@@ -673,17 +693,10 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
             })
             .map(renderTimelineItem)
         ) : (
-          <div style={{ 
-            padding: "0.75rem 1rem", 
-            color: theme.vars.palette.text.secondary, 
-            fontSize: "0.8rem",
-            backgroundColor: "rgba(255,255,255,0.05)",
-            borderRadius: "8px",
-            marginBottom: "0.5rem"
-          }}>
-            <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>Agent Task</div>
+          <div style={emptyStateStyle}>
+            <div style={emptyStateTitleStyle}>Agent Task</div>
             <div>Processing...</div>
-            <div style={{ fontSize: "0.7rem", opacity: 0.6, marginTop: "0.25rem" }}>
+            <div style={emptyStateMetaStyle}>
               {messages.length} message{messages.length !== 1 ? "s" : ""} received
             </div>
           </div>

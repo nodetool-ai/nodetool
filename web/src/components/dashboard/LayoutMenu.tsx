@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Button,
   Menu,
@@ -27,11 +27,22 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isSaveDialogOpen, setSaveDialogOpen] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState("");
-  const layouts = useLayoutStore((state) => state.layouts);
-  const activeLayoutId = useLayoutStore((state) => state.activeLayoutId);
-  const addLayout = useLayoutStore((state) => state.addLayout);
-  const setActiveLayoutId = useLayoutStore((state) => state.setActiveLayoutId);
-  const updateActiveLayout = useLayoutStore((state) => state.updateActiveLayout);
+
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const { layouts, activeLayoutId, addLayout, setActiveLayoutId, updateActiveLayout } =
+    useLayoutStore(
+      useCallback(
+        (state) => ({
+          layouts: state.layouts,
+          activeLayoutId: state.activeLayoutId,
+          addLayout: state.addLayout,
+          setActiveLayoutId: state.setActiveLayoutId,
+          updateActiveLayout: state.updateActiveLayout
+        }),
+        []
+      )
+    );
+
   const open = Boolean(anchorEl);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
@@ -111,14 +122,17 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
     [handleLayoutSelect]
   );
 
+  // Memoize button sx prop to prevent unnecessary re-renders
+  const buttonSx = useMemo(() => ({
+    padding: "0.2em 0.5em",
+    border: 0
+  }), []);
+
   return (
     <div>
       <Button
         className="layout-menu-button"
-        sx={{
-          padding: "0.2em 0.5em",
-          border: 0
-        }}
+        sx={buttonSx}
         onClick={handleClick}
         variant="outlined"
         startIcon={<Layers />}
