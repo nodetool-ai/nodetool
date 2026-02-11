@@ -6,15 +6,6 @@
  * as a child process, so it must run in the Node.js main process.
  */
 
-import {
-  createSdkMcpServer,
-  query,
-  tool as sdkTool,
-  type SDKMessage,
-  type SDKUserMessage,
-  type Query,
-} from "@anthropic-ai/claude-agent-sdk";
-import { z } from "zod";
 import { logMessage } from "./logger";
 import {
   IpcChannels,
@@ -26,19 +17,36 @@ import { app, ipcMain, type WebContents } from "electron";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
 
 /** Default path to Claude Code executable in the user's local install */
 function getClaudeCodeExecutablePath(): string {
-  // Try the common local installation path first
   const homePath = app.getPath("home");
-  const localPath = path.join(homePath, ".claude", "local", "claude");
+  const candidates = [
+    path.join(homePath, ".claude", "local", "claude"),
+    path.join(homePath, ".claude", "local", "claude.exe"),
+  ];
 
-  if (existsSync(localPath)) {
-    return localPath;
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
   }
 
-  // Fall back to expecting it in PATH (the SDK will handle this)
-  return "claude";
+  const whichCommand = process.platform === "win32" ? "where" : "which";
+  const result = spawnSync(whichCommand, ["claude"], {
+    encoding: "utf8",
+  });
+  if (result.status === 0 && result.stdout.trim().length > 0) {
+    const [firstPath] = result.stdout.trim().split(/\r?\n/);
+    if (firstPath && firstPath.trim().length > 0) {
+      return firstPath.trim();
+    }
+  }
+
+  throw new Error(
+    "Could not find Claude Code executable. Install Claude Code or add it to PATH.",
+  );
 }
 
 const HELP_SYSTEM_PROMPT = [
@@ -248,207 +256,249 @@ const HELP_SYSTEM_PROMPT = [
 
 
 
-class AsyncInputQueue<T> implements AsyncIterable<T>, AsyncIterator<T> {
-  private queue: T[] = [];
-  private resolver: ((result: IteratorResult<T>) => void) | null = null;
-  private closed = false;
-
-  enqueue(value: T): void {
-    if (this.closed) {
-      throw new Error("Cannot enqueue to a closed queue");
-    }
-    if (this.resolver) {
-      const resolve = this.resolver;
-      this.resolver = null;
-      resolve({ value, done: false });
-      return;
-    }
-    this.queue.push(value);
-  }
-
-  close(): void {
-    this.closed = true;
-    if (this.resolver) {
-      const resolve = this.resolver;
-      this.resolver = null;
-      resolve({ value: undefined as T, done: true });
-    }
-  }
-
-  async next(): Promise<IteratorResult<T>> {
-    if (this.queue.length > 0) {
-      return { value: this.queue.shift() as T, done: false };
-    }
-    if (this.closed) {
-      return { value: undefined as T, done: true };
-    }
-    return await new Promise<IteratorResult<T>>((resolve) => {
-      this.resolver = resolve;
-    });
-  }
-
-  [Symbol.asyncIterator](): AsyncIterator<T> {
-    return this;
-  }
-}
-
-function toZodShape(parameters: Record<string, unknown>): z.ZodRawShape {
-  const required = new Set(
-    Array.isArray((parameters as { required?: unknown }).required)
-      ? ((parameters as { required?: unknown }).required as unknown[]).filter(
-          (key): key is string => typeof key === "string",
-        )
-      : [],
-  );
-
-  const props =
-    parameters &&
-    typeof parameters === "object" &&
-    (parameters as { properties?: unknown }).properties &&
-    typeof (parameters as { properties?: unknown }).properties === "object"
-      ? ((parameters as { properties?: unknown }).properties as Record<
-          string,
-          unknown
-        >)
-      : {};
-
-  const shape: Record<string, z.ZodTypeAny> = {};
-  for (const key of Object.keys(props)) {
-    const schema = z.any();
-    shape[key] = required.has(key) ? schema : schema.optional();
-  }
-  return shape as z.ZodRawShape;
-}
-
 class ClaudeQuerySession {
-  private readonly querySession: Query;
-  private readonly inputQueue = new AsyncInputQueue<SDKUserMessage>();
-  private readonly streamIterator: AsyncIterator<SDKMessage>;
   private closed = false;
   private resolvedSessionId: string | null;
+  private readonly model: string;
+  private readonly workspacePath: string;
+  private inFlight = false;
 
   constructor(options: {
     model: string;
     workspacePath: string;
     resumeSessionId?: string;
   }) {
+    this.model = options.model;
+    this.workspacePath = options.workspacePath;
     this.resolvedSessionId = options.resumeSessionId ?? null;
-    this.querySession = query({
-      prompt: this.inputQueue,
-      options: {
-        model: options.model,
-        cwd: options.workspacePath,
-        systemPrompt: HELP_SYSTEM_PROMPT,
-        pathToClaudeCodeExecutable: getClaudeCodeExecutablePath(),
-        permissionMode: "bypassPermissions",
-        allowDangerouslySkipPermissions: true,
-      },
-    });
-    this.streamIterator = this.querySession[Symbol.asyncIterator]();
   }
 
-  async setFrontendTools(
-    webContents: WebContents,
+  private createClaudeProcess(
+    manifest: FrontendToolManifest[],
+  ): ChildProcessWithoutNullStreams {
+    const allowedTools = manifest.map((tool) => tool.name);
+    const args = [
+      "-p",
+      "--input-format",
+      "stream-json",
+      "--output-format",
+      "stream-json",
+      "--model",
+      this.model,
+      "--append-system-prompt",
+      HELP_SYSTEM_PROMPT,
+    ];
+
+    if (this.resolvedSessionId) {
+      args.push("--resume", this.resolvedSessionId);
+    }
+    if (allowedTools.length > 0) {
+      args.push("--allowedTools", allowedTools.join(","));
+    }
+
+    const executable = getClaudeCodeExecutablePath();
+    logMessage(
+      `Starting Claude Code piped process: ${executable} ${args.join(" ")}`,
+    );
+
+    return spawn(executable, args, {
+      cwd: this.workspacePath,
+      env: process.env,
+      stdio: "pipe",
+    });
+  }
+
+  private logPipe(direction: "stdin" | "stdout", payload: unknown): void {
+    const text = typeof payload === "string" ? payload : JSON.stringify(payload);
+    logMessage(`Claude Code ${direction}: ${text}`);
+  }
+
+  async send(
+    message: string,
+    webContents: WebContents | null,
     sessionId: string,
     manifest: FrontendToolManifest[],
-  ): Promise<void> {
-    if (this.closed) {
-      throw new Error("Cannot set tools on a closed session");
-    }
-
-    if (manifest.length === 0) {
-      await this.querySession.setMcpServers({});
-      return;
-    }
-
-    const tools = manifest.map((toolDef) => {
-      const shape = toZodShape(toolDef.parameters ?? {});
-      return sdkTool(
-        toolDef.name,
-        toolDef.description,
-        shape,
-        async (args) => {
-          const toolCallId = randomUUID();
-          try {
-            const result = await executeFrontendTool(
-              webContents,
-              sessionId,
-              toolCallId,
-              toolDef.name,
-              args,
-            );
-
-            const text =
-              typeof result === "string"
-                ? result
-                : JSON.stringify(result, null, 2);
-
-            return {
-              content: [{ type: "text" as const, text }],
-              ...(result && typeof result === "object"
-                ? { structuredContent: result as Record<string, unknown> }
-                : {}),
-            };
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-            return {
-              content: [{ type: "text" as const, text: message }],
-              isError: true,
-            };
-          }
-        },
-      );
-    });
-
-    const mcpServer = createSdkMcpServer({
-      name: "nodetool-ui-tools",
-      version: "1.0.0",
-      tools,
-    });
-
-    await this.querySession.setMcpServers({
-      nodetool_ui: mcpServer,
-    });
-  }
-
-  async send(message: string): Promise<void> {
+  ): Promise<ClaudeAgentMessage[]> {
     if (this.closed) {
       throw new Error("Cannot send to a closed session");
     }
+    if (this.inFlight) {
+      throw new Error("A Claude request is already in progress for this session");
+    }
 
-    this.inputQueue.enqueue({
-      type: "user",
-      session_id: this.resolvedSessionId ?? "",
-      message: {
+    this.inFlight = true;
+    const toolManifestMap = new Map(manifest.map((tool) => [tool.name, tool]));
+    const outputMessages: ClaudeAgentMessage[] = [];
+    const processHandle = this.createClaudeProcess(manifest);
+    let stdoutBuffer = "";
+
+    const resultPromise = new Promise<ClaudeAgentMessage[]>((resolve, reject) => {
+      let settled = false;
+      const settle = (fn: () => void): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        fn();
+      };
+
+      const handleLine = async (line: string): Promise<void> => {
+        if (!line.trim()) {
+          return;
+        }
+        this.logPipe("stdout", line);
+        let parsed: Record<string, unknown>;
+        try {
+          parsed = JSON.parse(line) as Record<string, unknown>;
+        } catch {
+          return;
+        }
+
+        const type = typeof parsed.type === "string" ? parsed.type : "";
+        if (type === "init" && typeof parsed.sessionId === "string") {
+          this.resolvedSessionId = parsed.sessionId;
+          return;
+        }
+
+        if (type === "message") {
+          const text =
+            typeof parsed.content === "string" ? parsed.content : "";
+          outputMessages.push({
+            type: "assistant",
+            uuid: randomUUID(),
+            session_id: this.resolvedSessionId ?? sessionId,
+            content: [{ type: "text", text }],
+          });
+          return;
+        }
+
+        if (
+          type === "tool_use" &&
+          typeof parsed.id === "string" &&
+          typeof parsed.name === "string"
+        ) {
+          const toolUseId = parsed.id;
+          const toolName = parsed.name;
+          const toolArgs = parsed.input;
+          outputMessages.push({
+            type: "assistant",
+            uuid: randomUUID(),
+            session_id: this.resolvedSessionId ?? sessionId,
+            content: [],
+            tool_calls: [
+              {
+                id: toolUseId,
+                type: "function",
+                function: {
+                  name: toolName,
+                  arguments: JSON.stringify(toolArgs ?? {}),
+                },
+              },
+            ],
+          });
+
+          let toolResult: unknown;
+          let isError = false;
+          try {
+            if (!toolManifestMap.has(toolName)) {
+              throw new Error(`Tool is not allowed in this session: ${toolName}`);
+            }
+            if (!webContents) {
+              throw new Error(`Cannot execute tool ${toolName} without renderer context`);
+            }
+            toolResult = await executeFrontendTool(
+              webContents,
+              sessionId,
+              toolUseId,
+              toolName,
+              toolArgs,
+            );
+          } catch (error) {
+            isError = true;
+            toolResult = error instanceof Error ? error.message : String(error);
+          }
+
+          const toolResultPayload = {
+            type: "tool_result",
+            tool_use_id: toolUseId,
+            content:
+              typeof toolResult === "string"
+                ? toolResult
+                : JSON.stringify(toolResult, null, 2),
+            is_error: isError,
+          };
+          this.logPipe("stdin", toolResultPayload);
+          processHandle.stdin.write(`${JSON.stringify(toolResultPayload)}\n`);
+          return;
+        }
+
+        if (type === "result") {
+          const status = parsed.status === "success" ? "success" : "error";
+          const text = typeof parsed.result === "string" ? parsed.result : "";
+          outputMessages.push({
+            type: "result",
+            uuid: randomUUID(),
+            session_id: this.resolvedSessionId ?? sessionId,
+            subtype: status,
+            text,
+            is_error: status !== "success",
+            ...(status !== "success" ? { errors: [text || "Unknown error"] } : {}),
+          });
+          processHandle.stdin.end();
+          return;
+        }
+      };
+
+      processHandle.stdout.on("data", (chunk: Buffer) => {
+        stdoutBuffer += chunk.toString("utf8");
+        const lines = stdoutBuffer.split(/\r?\n/);
+        stdoutBuffer = lines.pop() ?? "";
+        for (const line of lines) {
+          void handleLine(line).catch((error: unknown) => {
+            settle(() => reject(error));
+          });
+        }
+      });
+
+      processHandle.stderr.on("data", (chunk: Buffer) => {
+        const text = chunk.toString("utf8").trim();
+        if (text) {
+          logMessage(`Claude Code stderr: ${text}`, "warn");
+        }
+      });
+
+      processHandle.on("error", (error) => {
+        settle(() => reject(error));
+      });
+
+      processHandle.on("close", (code) => {
+        if (stdoutBuffer.trim().length > 0) {
+          void handleLine(stdoutBuffer.trim()).catch(() => {
+            // ignore trailing parse errors
+          });
+        }
+        if (code === 0) {
+          settle(() => resolve(outputMessages));
+          return;
+        }
+        settle(() =>
+          reject(new Error(`Claude Code process exited with code ${code ?? -1}`)),
+        );
+      });
+
+      const userPayload = {
+        type: "message",
         role: "user",
-        content: [{ type: "text", text: message }],
-      },
-      parent_tool_use_id: null,
+        content: message,
+      };
+      this.logPipe("stdin", userPayload);
+      processHandle.stdin.write(`${JSON.stringify(userPayload)}\n`);
     });
-  }
 
-  async *stream(): AsyncGenerator<SDKMessage, void> {
-    while (true) {
-      const next = await this.streamIterator.next();
-      if (next.done || !next.value) {
-        return;
-      }
-
-      const msg = next.value;
-      if (
-        msg.type === "system" &&
-        msg.subtype === "init" &&
-        typeof msg.session_id === "string"
-      ) {
-        this.resolvedSessionId = msg.session_id;
-      }
-
-      yield msg;
-
-      if (msg.type === "result") {
-        return;
-      }
+    try {
+      return await resultPromise;
+    } finally {
+      this.inFlight = false;
     }
   }
 
@@ -457,15 +507,13 @@ class ClaudeQuerySession {
       return;
     }
     this.closed = true;
-    this.inputQueue.close();
-    this.querySession.close();
   }
 }
 
 /** Active sessions indexed by session ID */
 const activeSessions = new Map<string, ClaudeQuerySession>();
 
-/** Counter for generating temporary session IDs before the SDK assigns one */
+/** Counter for generating temporary session IDs before Claude Code assigns one */
 let sessionCounter = 0;
 const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
 
@@ -598,77 +646,6 @@ async function executeFrontendTool(
 }
 
 /**
- * Convert an SDKMessage to a serializable ClaudeAgentMessage for IPC transport.
- */
-function serializeSDKMessage(msg: SDKMessage): ClaudeAgentMessage | null {
-  switch (msg.type) {
-    case "assistant": {
-      const content: Array<{ type: string; text?: string }> = [];
-      const toolCalls: Array<{
-        id: string;
-        type: string;
-        function: {
-          name: string;
-          arguments: string;
-        };
-      }> = [];
-
-      if (msg.message?.content && Array.isArray(msg.message.content)) {
-        for (const block of msg.message.content) {
-          if (block.type === "text") {
-            content.push({ type: "text", text: block.text });
-          } else if (block.type === "tool_use") {
-            // Convert Claude SDK tool_use to NodeTool/OpenAI format
-            toolCalls.push({
-              id: block.id,
-              type: "function",
-              function: {
-                name: block.name,
-                arguments: JSON.stringify(block.input),
-              },
-            });
-          }
-        }
-      }
-      return {
-        type: "assistant",
-        uuid: msg.uuid,
-        session_id: msg.session_id,
-        content,
-        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
-      };
-    }
-
-    case "result": {
-      if ("result" in msg && msg.subtype === "success") {
-        return {
-          type: "result",
-          uuid: msg.uuid,
-          session_id: msg.session_id,
-          subtype: "success",
-          text: msg.result,
-          is_error: false,
-        };
-      }
-      if (msg.is_error && "errors" in msg) {
-        return {
-          type: "result",
-          uuid: msg.uuid,
-          session_id: msg.session_id,
-          subtype: msg.subtype,
-          is_error: true,
-          errors: msg.errors,
-        };
-      }
-      return null;
-    }
-
-    default:
-      return null;
-  }
-}
-
-/**
  * Create a new Claude Agent SDK session.
  * Returns the session ID.
  */
@@ -716,18 +693,11 @@ export async function sendClaudeAgentMessage(
   }
 
   logMessage(`Sending message to Claude Agent session ${sessionId}`);
-  await session.send(message);
-
-  const messages: ClaudeAgentMessage[] = [];
-  for await (const msg of session.stream()) {
-    // Keep both aliases so callers can continue using their original ID.
-    if (msg.session_id && msg.session_id !== sessionId) {
-      activeSessions.set(msg.session_id, session);
-    }
-
-    const serialized = serializeSDKMessage(msg);
-    if (serialized) {
-      messages.push(serialized);
+  // Message-only mode has no renderer tool bridge, so frontend tools are disabled.
+  const messages = await session.send(message, null, sessionId, []);
+  for (const serialized of messages) {
+    if (serialized.session_id && serialized.session_id !== sessionId) {
+      activeSessions.set(serialized.session_id, session);
     }
   }
 
@@ -754,37 +724,19 @@ export async function sendClaudeAgentMessageStreaming(
   logMessage(`Sending message to Claude Agent session ${sessionId} (streaming)`);
 
   const frontendTools = await getFrontendToolsManifest(webContents, sessionId);
-  try {
-    await session.setFrontendTools(webContents, sessionId, frontendTools);
-    logMessage(
-      `Configured ${frontendTools.length} frontend tools for session ${sessionId}`,
-    );
-  } catch (error) {
-    logMessage(
-      `Failed to configure frontend tools for session ${sessionId}: ${error}`,
-      "warn",
-    );
-  }
-
-  await session.send(message);
+  const messages = await session.send(message, webContents, sessionId, frontendTools);
 
   let messageCount = 0;
-
-  for await (const msg of session.stream()) {
-    // Keep both aliases so callers can continue using their original ID.
-    if (msg.session_id && msg.session_id !== sessionId) {
-      activeSessions.set(msg.session_id, session);
+  for (const serialized of messages) {
+    if (serialized.session_id && serialized.session_id !== sessionId) {
+      activeSessions.set(serialized.session_id, session);
     }
-
-    const serialized = serializeSDKMessage(msg);
-    if (serialized) {
-      messageCount++;
-      webContents.send(IpcChannels.CLAUDE_AGENT_STREAM_MESSAGE, {
-        sessionId,
-        message: serialized,
-        done: false,
-      });
-    }
+    messageCount++;
+    webContents.send(IpcChannels.CLAUDE_AGENT_STREAM_MESSAGE, {
+      sessionId,
+      message: serialized,
+      done: false,
+    });
   }
 
   webContents.send(IpcChannels.CLAUDE_AGENT_STREAM_MESSAGE, {
