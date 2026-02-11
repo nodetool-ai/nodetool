@@ -305,7 +305,8 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       (inputElement as HTMLInputElement)?.focus();
     };
     if (open) {
-      setTimeout(focusInput, 0);
+      const timeoutId = setTimeout(focusInput, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [open]);
 

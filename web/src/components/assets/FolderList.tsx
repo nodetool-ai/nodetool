@@ -167,6 +167,16 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     new Set()
   );
 
+  // Memoize class names to prevent recreation on every render
+  const accordionClassName = useMemo(() => "accordion", []);
+  const rootFolderClassName = useMemo(() => "root-folder", []);
+  const accordionSummaryClassName = useMemo(() => "accordion-summary", []);
+  const childlessClassName = useMemo(() => "childless", []);
+  const rowClassName = useMemo(() => "row", []);
+  const expandGutterClassName = useMemo(() => "expand-gutter", []);
+  const folderListClassName = useMemo(() => "folder-list", []);
+  const folderListContainerClassName = useMemo(() => "folder-list-container", []);
+
   const handleSelect = useCallback((folder: Asset | RootFolder) => {
     if ((folder as Asset).user_id !== undefined) {
       navigateToFolder(folder as Asset);
@@ -250,7 +260,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         // Folder with children
         <Accordion
           slotProps={{ heading: { component: "div" } }}
-          className={"accordion " + (isRoot ? "root-folder" : "")}
+          className={isRoot ? `${accordionClassName} ${rootFolderClassName}` : accordionClassName}
           key={folder.id}
           sx={{
             marginTop: "0 !important",
@@ -262,7 +272,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         >
           <AccordionSummary
             component="div"
-            className="accordion-summary"
+            className={accordionSummaryClassName}
             sx={{
               marginTop: 0,
               marginBottom: 0,
@@ -274,7 +284,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
             onClick={handleFolderClick}
           >
             <div
-              className="row"
+              className={rowClassName}
               style={{
                 paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem`
               }}
@@ -288,7 +298,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
               >
                 {!isRoot && (
                   <span
-                    className="expand-gutter"
+                    className={expandGutterClassName}
                     aria-hidden="true"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -311,7 +321,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
       ) : (
         // Folder without children
         <Box
-          className={"childless " + (isRoot ? "root-folder" : "")}
+          className={isRoot ? `${childlessClassName} ${rootFolderClassName}` : childlessClassName}
           sx={{
             height: ROW_HEIGHT_REM + "rem",
             marginTop: 0,
@@ -320,7 +330,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
           key={folder.id}
         >
           <div
-            className="row"
+            className={rowClassName}
             style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
           >
             <FolderItem
@@ -332,7 +342,22 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         </Box>
       );
     },
-    [expandedFolderIds, selectedFolderIds, handleRowDoubleClick, handleFolderSelect, handleFolderClick, handleExpandFolder, noop, hasChildNodes]
+    [
+      expandedFolderIds,
+      selectedFolderIds,
+      handleRowDoubleClick,
+      handleFolderSelect,
+      handleFolderClick,
+      handleExpandFolder,
+      noop,
+      hasChildNodes,
+      accordionClassName,
+      rootFolderClassName,
+      accordionSummaryClassName,
+      childlessClassName,
+      rowClassName,
+      expandGutterClassName
+    ]
   );
 
   const rootFolder: RootFolder = useMemo(() => ({
@@ -345,14 +370,14 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
 
   return (
     <div
-      className="folder-list-container"
+      className={folderListContainerClassName}
       css={styles(theme)}
       style={{
         minHeight: isHorizontal ? "100%" : "auto",
         minWidth: isHorizontal ? LIST_MIN_WIDTH : "auto"
       }}
     >
-      <div className="folder-list">{renderFolder(rootFolder, 0, true)}</div>
+      <div className={folderListClassName}>{renderFolder(rootFolder, 0, true)}</div>
     </div>
   );
 };
