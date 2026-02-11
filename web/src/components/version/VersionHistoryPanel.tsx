@@ -40,6 +40,18 @@ interface VersionHistoryPanelProps {
   onClose: () => void;
 }
 
+// Helper function to calculate graph size efficiently
+// Uses a simple approximation instead of creating a Blob
+const getGraphSizeBytes = (graph: any): number => {
+  try {
+    // Use JSON.stringify length as an approximation
+    // This is much faster than creating a Blob
+    return JSON.stringify(graph).length * 2; // Approximate UTF-16 byte size
+  } catch {
+    return 0;
+  }
+};
+
 const getSaveType = (version: WorkflowVersion): SaveType => {
   if (version.save_type && ["manual", "autosave", "checkpoint", "restore"].includes(version.save_type)) {
     return version.save_type;
@@ -89,7 +101,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     return filtered.map((v) => ({
       ...v,
       save_type: getSaveType(v),
-      size_bytes: JSON.stringify(v.graph).length
+      size_bytes: getGraphSizeBytes(v.graph)
     }));
   }, [apiVersions, filterType]);
 

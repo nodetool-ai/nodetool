@@ -326,11 +326,14 @@ describe('NodeInputs Performance Optimizations', () => {
         basic: i < 20 // 20 basic, 80 advanced
       }));
 
+      let operationCount = 0;
+
       const filterProperties = (props: any[], showAdvanced: boolean) => {
         const basic: any[] = [];
         const advanced: any[] = [];
 
         props.forEach((prop) => {
+          operationCount++;
           if (prop.basic) {
             basic.push(prop);
           } else if (showAdvanced) {
@@ -347,9 +350,11 @@ describe('NodeInputs Performance Optimizations', () => {
         filterProperties(largePropertyList, false);
       }
       const duration1 = performance.now() - start1;
+      const operationsWithoutMemo = operationCount;
 
       // With memoization (cached result)
       let cached: any = null;
+      operationCount = 0;
       const start2 = performance.now();
       for (let i = 0; i < 100; i++) {
         if (!cached) {
@@ -357,12 +362,16 @@ describe('NodeInputs Performance Optimizations', () => {
         }
       }
       const duration2 = performance.now() - start2;
+      const operationsWithMemo = operationCount;
 
       console.log(`[PERF] Without memo (100 calls): ${duration1.toFixed(2)}ms`);
       console.log(`[PERF] With memo (100 calls): ${duration2.toFixed(2)}ms`);
-      console.log(`[PERF] Speed improvement: ${(duration1 / duration2).toFixed(1)}x`);
+      console.log(
+        `[PERF] Operation reduction: ${operationsWithoutMemo}/${operationsWithMemo}`
+      );
 
-      expect(duration2).toBeLessThan(duration1 / 5); // At least 5x faster
+      expect(operationsWithoutMemo).toBe(100 * largePropertyList.length);
+      expect(operationsWithMemo).toBe(largePropertyList.length);
     });
   });
 
