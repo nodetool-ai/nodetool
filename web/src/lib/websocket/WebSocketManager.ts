@@ -32,7 +32,7 @@ export interface WebSocketConfig {
 export interface WebSocketMessage {
   type?: string;
   command?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ConnectionStateTransition {
@@ -241,7 +241,7 @@ export class WebSocketManager extends EventEmitter {
 
   private async handleMessage(event: MessageEvent): Promise<void> {
     try {
-      let data: any;
+      let data: unknown;
 
       if (this.config.binaryType === "arraybuffer") {
         if (event.data instanceof ArrayBuffer) {
