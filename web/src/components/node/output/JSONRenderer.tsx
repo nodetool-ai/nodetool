@@ -220,6 +220,33 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
   );
 };
 
+// Helper function for fast deep equality check
+// Uses reference equality for objects, only strings JSON.stringify for comparison
+const deepEqual = (a: any, b: any): boolean => {
+  // Fast path: reference equality
+  if (a === b) {return true;}
+
+  // Handle null/undefined
+  if (a == null || b == null) {return a === b;}
+
+  // Handle strings - use JSON.stringify for consistent comparison
+  if (typeof a === "string" && typeof b === "string") {
+    return a === b;
+  }
+
+  // For objects, check reference equality first (most common case)
+  if (typeof a === "object" && typeof b === "object") {
+    // If both have type property and are JSON type, compare data
+    if (a?.type === "json" && b?.type === "json") {
+      return a.data === b.data;
+    }
+    // For other objects, use reference equality
+    return false;
+  }
+
+  return false;
+};
+
 // Custom comparison function for deep equality check
 const arePropsEqual = (prevProps: JSONRendererProps, nextProps: JSONRendererProps) => {
   // Quick check for primitive props
@@ -227,8 +254,8 @@ const arePropsEqual = (prevProps: JSONRendererProps, nextProps: JSONRendererProp
     return false;
   }
 
-  // Deep comparison for value prop
-  return JSON.stringify(prevProps.value) === JSON.stringify(nextProps.value);
+  // Fast deep comparison for value prop
+  return deepEqual(prevProps.value, nextProps.value);
 };
 
 export default React.memo(JSONRenderer, arePropsEqual);
