@@ -219,3 +219,16 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
     </div>
   );
 };
+
+// Custom comparison function for deep equality check
+const arePropsEqual = (prevProps: JSONRendererProps, nextProps: JSONRendererProps) => {
+  // Quick check for primitive props
+  if (prevProps.showActions !== nextProps.showActions) {
+    return false;
+  }
+
+  // Deep comparison for value prop
+  return JSON.stringify(prevProps.value) === JSON.stringify(nextProps.value);
+};
+
+export default React.memo(JSONRenderer, arePropsEqual);

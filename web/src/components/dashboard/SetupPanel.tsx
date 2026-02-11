@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { Typography } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { css } from "@emotion/react";
@@ -93,4 +93,4 @@ const SetupPanel: React.FC = () => {
   );
 };
 
-export default SetupPanel;
+export default memo(SetupPanel);
