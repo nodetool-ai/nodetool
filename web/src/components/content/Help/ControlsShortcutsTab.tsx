@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Box, Typography, TextField } from "@mui/material";
 import {
   NODE_EDITOR_SHORTCUTS,
@@ -8,16 +8,18 @@ import {
 
 const ControlsShortcutsTab: React.FC = () => {
   const [search, setSearch] = useState("");
-  const lower = search.toLowerCase();
 
-  // dynamic filter
-  const filteredShortcuts = NODE_EDITOR_SHORTCUTS.filter((s) => {
-    if (!lower) {return true;}
-    return (
-      s.title.toLowerCase().includes(lower) ||
-      (s.description && s.description.toLowerCase().includes(lower))
-    );
-  });
+  // Memoize filtered shortcuts to avoid recomputation on every render
+  const filteredShortcuts = useMemo(() => {
+    const lower = search.toLowerCase();
+    return NODE_EDITOR_SHORTCUTS.filter((s) => {
+      if (!lower) {return true;}
+      return (
+        s.title.toLowerCase().includes(lower) ||
+        (s.description && s.description.toLowerCase().includes(lower))
+      );
+    });
+  }, [search]);
 
   // List of category keys derived from the exported mapping
   const categories = Object.keys(SHORTCUT_CATEGORIES) as Array<
