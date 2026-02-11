@@ -422,6 +422,9 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     return ids;
   }, [nodes]);
 
+  // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
+  const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);
+
   useEffect(() => {
     if (isSelecting) {
       return;
@@ -430,6 +433,22 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     if (!nodes.length || !edges.length) {
       return;
     }
+
+    // Skip if selected node IDs haven't changed (shallow comparison of sets)
+    const prevIds = prevSelectedNodeIdsRef.current;
+    if (prevIds !== null && prevIds.size === selectedNodeIds.size) {
+      let hasChanged = false;
+      for (const id of selectedNodeIds) {
+        if (!prevIds.has(id)) {
+          hasChanged = true;
+          break;
+        }
+      }
+      if (!hasChanged) {
+        return; // Selection hasn't changed, skip edge processing
+      }
+    }
+    prevSelectedNodeIdsRef.current = new Set(selectedNodeIds);
 
     const selectionUpdates: Record<string, boolean> = {};
 
