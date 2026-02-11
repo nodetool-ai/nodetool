@@ -17,50 +17,49 @@ const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
 ) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const setOpenAssetLocal = useAssetGridStore((state) => state.setOpenAsset);
-  const isGlobalSearchActiveLocal = useAssetGridStore(
-    (state) => state.isGlobalSearchActive
-  );
-  const isGlobalSearchModeLocal = useAssetGridStore(
-    (state) => state.isGlobalSearchMode
-  );
-  const globalSearchResultsLocal = useAssetGridStore(
-    (state) => state.globalSearchResults
-  );
-  const setIsGlobalSearchActiveLocal = useAssetGridStore(
-    (state) => state.setIsGlobalSearchActive
-  );
-  const setIsGlobalSearchModeLocal = useAssetGridStore(
-    (state) => state.setIsGlobalSearchMode
-  );
-  const setCurrentFolderIdLocal = useAssetGridStore(
-    (state) => state.setCurrentFolderId
-  );
+  // Combine multiple store subscriptions into a single selector to reduce re-renders
+  const {
+    setOpenAsset,
+    isGlobalSearchActive,
+    isGlobalSearchMode,
+    globalSearchResults,
+    setIsGlobalSearchActive,
+    setIsGlobalSearchMode,
+    setCurrentFolderId
+  } = useAssetGridStore((state) => ({
+    setOpenAsset: state.setOpenAsset,
+    isGlobalSearchActive: state.isGlobalSearchActive,
+    isGlobalSearchMode: state.isGlobalSearchMode,
+    globalSearchResults: state.globalSearchResults,
+    setIsGlobalSearchActive: state.setIsGlobalSearchActive,
+    setIsGlobalSearchMode: state.setIsGlobalSearchMode,
+    setCurrentFolderId: state.setCurrentFolderId
+  }));
 
   const handleDoubleClick = useCallback(
     (asset: Asset) => {
-      setOpenAssetLocal(asset);
+      setOpenAsset(asset);
     },
-    [setOpenAssetLocal]
+    [setOpenAsset]
   );
 
   const handleGlobalSearchAssetDoubleClick = useCallback(
     (asset: AssetWithPath) => {
-      setOpenAssetLocal(asset);
+      setOpenAsset(asset);
     },
-    [setOpenAssetLocal]
+    [setOpenAsset]
   );
 
   const handleNavigateToFolder = useCallback(
     (folderId: string, _folderPath: string) => {
-      setCurrentFolderIdLocal(folderId);
-      setIsGlobalSearchActiveLocal(false);
-      setIsGlobalSearchModeLocal(false);
+      setCurrentFolderId(folderId);
+      setIsGlobalSearchActive(false);
+      setIsGlobalSearchMode(false);
     },
     [
-      setCurrentFolderIdLocal,
-      setIsGlobalSearchActiveLocal,
-      setIsGlobalSearchModeLocal
+      setCurrentFolderId,
+      setIsGlobalSearchActive,
+      setIsGlobalSearchMode
     ]
   );
 
@@ -73,17 +72,17 @@ const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
     <div style={{ height: "100%", overflow: "hidden", backgroundColor: theme.vars.palette.c_editor_bg_color }}>
       <div
         className={`asset-content-wrapper ${
-          isGlobalSearchModeLocal && isGlobalSearchActiveLocal
+          isGlobalSearchMode && isGlobalSearchActive
             ? "global-search-mode"
             : "normal-grid-mode"
         }`}
         style={{ height: "100%" }}
         ref={containerRef}
       >
-        {isGlobalSearchModeLocal && isGlobalSearchActiveLocal ? (
+        {isGlobalSearchMode && isGlobalSearchActive ? (
           <SearchErrorBoundary fallbackTitle="Search Results Error">
             <GlobalSearchResults
-              results={globalSearchResultsLocal}
+              results={globalSearchResults}
               onAssetDoubleClick={handleGlobalSearchAssetDoubleClick}
               onNavigateToFolder={handleNavigateToFolder}
               containerWidth={containerRef.current?.offsetWidth || 800}
