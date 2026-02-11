@@ -38,7 +38,7 @@ export const LinearProgressWithLabel = memo(function LinearProgressWithLabel(pro
                 </Box>
             )}
             <Box sx={progressBoxStyle}>
-                <LinearProgress variant="determinate" {...linearProgressProps} />
+                <LinearProgress variant="determinate" value={value ?? 0} {...linearProgressProps} />
             </Box>
             <Box sx={percentageBoxStyle}>
                 <Typography variant="body2" color="text.secondary">{`${Math.round(
