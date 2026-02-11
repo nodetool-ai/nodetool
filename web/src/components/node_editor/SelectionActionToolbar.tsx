@@ -196,17 +196,22 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
     [canGroup, selectionActions]
   );
 
+  // Memoize the combined button array to avoid creating new references on every render
+  // This must be declared before the early return to follow React Hooks rules
+  const allButtons: ButtonItem[] = useMemo(
+    () => [
+      ...alignmentButtons,
+      { divider: true } as DividerButton,
+      ...distributionButtons,
+      { divider: true } as DividerButton,
+      ...actionButtons
+    ],
+    [alignmentButtons, distributionButtons, actionButtons]
+  );
+
   if (!visible) {
     return null;
   }
-
-  const allButtons: ButtonItem[] = [
-    ...alignmentButtons,
-    { divider: true } as DividerButton,
-    ...distributionButtons,
-    { divider: true } as DividerButton,
-    ...actionButtons
-  ];
 
   return (
     <Box
