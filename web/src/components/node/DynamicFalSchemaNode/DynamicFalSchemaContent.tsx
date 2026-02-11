@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Box, Typography } from "@mui/material";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
@@ -33,7 +33,7 @@ export interface DynamicFalSchemaContentProps {
  */
 export const DynamicFalSchemaContent: React.FC<
   DynamicFalSchemaContentProps
-> = ({
+> = memo(({
   id,
   nodeType,
   nodeMetadata,
@@ -147,4 +147,6 @@ export const DynamicFalSchemaContent: React.FC<
       </Box>
     </Box>
   );
-};
+});
+
+DynamicFalSchemaContent.displayName = "DynamicFalSchemaContent";

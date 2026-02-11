@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -99,7 +99,7 @@ interface NodeColorSelectorProps {
   alwaysVisible?: boolean;
 }
 
-export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
+export const NodeColorSelector: React.FC<NodeColorSelectorProps> = memo(({
   onColorChange,
   alwaysVisible = false
 }) => {
@@ -195,4 +195,6 @@ export const NodeColorSelector: React.FC<NodeColorSelectorProps> = ({
       </Dialog>
     </div>
   );
-};
+});
+
+NodeColorSelector.displayName = "NodeColorSelector";

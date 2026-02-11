@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import React, { useEffect, useState, useRef, createRef } from "react";
+import React, { useEffect, useState, useRef, createRef, memo } from "react";
 import { Alert as MUIAlert, AlertColor, Button } from "@mui/material";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
@@ -85,7 +85,7 @@ const styles = () =>
     }
   });
 
-const Alert: React.FC = () => {
+const Alert: React.FC = memo(() => {
   // Use separate selectors to avoid re-rendering when unrelated store values change
   const notifications = useNotificationStore((state) => state.notifications);
   const removeNotification = useNotificationStore((state) => state.removeNotification);
@@ -235,5 +235,8 @@ const Alert: React.FC = () => {
       })}
     </TransitionGroup>
   );
-};
+});
+
+Alert.displayName = "Alert";
+
 export default Alert;

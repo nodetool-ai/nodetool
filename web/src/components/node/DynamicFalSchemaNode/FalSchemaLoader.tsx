@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, memo } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -17,7 +17,7 @@ interface FalSchemaLoaderProps {
  * FAL-specific control: "Load schema" button for FalAI nodes.
  * Resolves schema via backend and updates node dynamic_properties / dynamic_outputs.
  */
-export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
+export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
   nodeId,
   data
 }) => {
@@ -144,4 +144,6 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = ({
       )}
     </Box>
   );
-};
+});
+
+FalSchemaLoader.displayName = "FalSchemaLoader";
