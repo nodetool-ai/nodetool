@@ -80,11 +80,32 @@ const arePropsEqual = (
     return false;
   }
 
-  // Check data.properties - shallow comparison of keys is sufficient
-  const prevDataKeys = Object.keys(prevProps.data.properties || {});
-  const nextDataKeys = Object.keys(nextProps.data.properties || {});
+  // Check data.properties - compare both keys and values
+  const prevDataProps = prevProps.data.properties || {};
+  const nextDataProps = nextProps.data.properties || {};
+  const prevDataKeys = Object.keys(prevDataProps);
+  const nextDataKeys = Object.keys(nextDataProps);
   if (prevDataKeys.length !== nextDataKeys.length) {
     return false;
+  }
+  for (const key of prevDataKeys) {
+    if (prevDataProps[key] !== nextDataProps[key]) {
+      return false;
+    }
+  }
+
+  // Check data.dynamic_properties - compare both keys and values
+  const prevDynProps = prevProps.data.dynamic_properties || {};
+  const nextDynProps = nextProps.data.dynamic_properties || {};
+  const prevDynKeys = Object.keys(prevDynProps);
+  const nextDynKeys = Object.keys(nextDynProps);
+  if (prevDynKeys.length !== nextDynKeys.length) {
+    return false;
+  }
+  for (const key of prevDynKeys) {
+    if (prevDynProps[key] !== nextDynProps[key]) {
+      return false;
+    }
   }
 
   // Check dynamic_outputs
@@ -284,4 +305,5 @@ const NodeContent: React.FC<NodeContentProps> = ({
   );
 };
 
+export { arePropsEqual };
 export default memo(NodeContent, arePropsEqual);
