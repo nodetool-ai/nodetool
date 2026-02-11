@@ -324,7 +324,7 @@ Flathub checks for:
 
 Recommended approach:
 - **Stable**: Tag-based releases only (v0.6.x, v0.7.x)
-- **Beta**: RC releases (v0.6.3-rc.20)
+- **Beta**: RC releases (v0.6.3-rc.21)
 - **Manual override**: Via workflow_dispatch for hotfixes
 
 ---
