@@ -1,24 +1,11 @@
-const queuedMessages: Array<Record<string, unknown>> = [];
+import { EventEmitter } from "node:events";
 
-const mockIterator = {
-  next: jest.fn(async () => {
-    if (queuedMessages.length === 0) {
-      return { done: true, value: undefined };
-    }
-    return { done: false, value: queuedMessages.shift() };
-  }),
-};
+const mockSpawn = jest.fn();
+const mockSpawnSync = jest.fn(() => ({ status: 0, stdout: "/usr/bin/claude\n" }));
 
-const mockQuery = {
-  close: jest.fn(),
-  setMcpServers: jest.fn(async () => ({})),
-  [Symbol.asyncIterator]: jest.fn(() => mockIterator),
-};
-
-jest.mock("@anthropic-ai/claude-agent-sdk", () => ({
-  query: jest.fn(() => mockQuery),
-  createSdkMcpServer: jest.fn(),
-  tool: jest.fn(),
+jest.mock("node:child_process", () => ({
+  spawn: mockSpawn,
+  spawnSync: mockSpawnSync,
 }));
 
 jest.mock("electron", () => ({
@@ -42,55 +29,67 @@ import {
   closeAllClaudeAgentSessions,
 } from "../claudeAgent";
 
+function makeMockClaudeProcess(lines: Record<string, unknown>[]) {
+  const stdout = new EventEmitter();
+  const stderr = new EventEmitter();
+  const processEmitter = new EventEmitter() as EventEmitter & {
+    stdout: EventEmitter;
+    stderr: EventEmitter;
+    stdin: { write: jest.Mock; end: jest.Mock };
+  };
+
+  processEmitter.stdout = stdout;
+  processEmitter.stderr = stderr;
+  processEmitter.stdin = {
+    write: jest.fn((payload: string) => {
+      const parsed = JSON.parse(payload.trim()) as { type?: string };
+      if (parsed.type === "message") {
+        setImmediate(() => {
+          const ndjson = `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`;
+          stdout.emit("data", Buffer.from(ndjson, "utf8"));
+          processEmitter.emit("close", 0);
+        });
+      }
+      return true;
+    }),
+    end: jest.fn(),
+  };
+
+  return processEmitter;
+}
+
 describe("claudeAgent session alias handling", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    queuedMessages.length = 0;
   });
 
   afterEach(() => {
     closeAllClaudeAgentSessions();
   });
 
-  it("keeps the original temp session id valid after sdk emits a canonical session id", async () => {
+  it("keeps the original temp session id valid after claude emits a canonical session id", async () => {
+    mockSpawn
+      .mockReturnValueOnce(
+        makeMockClaudeProcess([
+          { type: "init", sessionId: "sdk-session-1" },
+          { type: "message", content: "hello" },
+          { type: "result", status: "success", result: "done" },
+        ]),
+      )
+      .mockReturnValueOnce(
+        makeMockClaudeProcess([
+          { type: "init", sessionId: "sdk-session-1" },
+          { type: "message", content: "again" },
+          { type: "result", status: "success", result: "done" },
+        ]),
+      );
+
     const tempSessionId = await createClaudeAgentSession({
       model: "claude-sonnet-4-20250514",
       workspacePath: "/tmp/workspace-test",
     });
 
-    queuedMessages.push(
-      {
-        type: "assistant",
-        uuid: "m1",
-        session_id: "sdk-session-1",
-        message: { content: [{ type: "text", text: "hello" }] },
-      },
-      {
-        type: "result",
-        uuid: "m2",
-        session_id: "sdk-session-1",
-        subtype: "success",
-        result: "done",
-      },
-    );
-
     await sendClaudeAgentMessage(tempSessionId, "hi");
-
-    queuedMessages.push(
-      {
-        type: "assistant",
-        uuid: "m3",
-        session_id: "sdk-session-1",
-        message: { content: [{ type: "text", text: "again" }] },
-      },
-      {
-        type: "result",
-        uuid: "m4",
-        session_id: "sdk-session-1",
-        subtype: "success",
-        result: "done",
-      },
-    );
 
     await expect(
       sendClaudeAgentMessage(tempSessionId, "what tools can you do"),
@@ -105,26 +104,18 @@ describe("claudeAgent session alias handling", () => {
   });
 
   it("closes all aliases when closing via a temp id", async () => {
+    mockSpawn.mockReturnValue(
+      makeMockClaudeProcess([
+        { type: "init", sessionId: "sdk-session-1" },
+        { type: "message", content: "hello" },
+        { type: "result", status: "success", result: "done" },
+      ]),
+    );
+
     const tempSessionId = await createClaudeAgentSession({
       model: "claude-sonnet-4-20250514",
       workspacePath: "/tmp/workspace-test",
     });
-
-    queuedMessages.push(
-      {
-        type: "assistant",
-        uuid: "m1",
-        session_id: "sdk-session-1",
-        message: { content: [{ type: "text", text: "hello" }] },
-      },
-      {
-        type: "result",
-        uuid: "m2",
-        session_id: "sdk-session-1",
-        subtype: "success",
-        result: "done",
-      },
-    );
 
     await sendClaudeAgentMessage(tempSessionId, "hi");
     closeClaudeAgentSession(tempSessionId);
@@ -132,6 +123,5 @@ describe("claudeAgent session alias handling", () => {
     await expect(
       sendClaudeAgentMessage("sdk-session-1", "should fail"),
     ).rejects.toThrow("No active Claude Agent session");
-    expect(mockQuery.close).toHaveBeenCalledTimes(1);
   });
 });
