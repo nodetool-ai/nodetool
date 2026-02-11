@@ -108,6 +108,16 @@ const NotificationsList: React.FC = () => {
   const theme = useTheme();
   const notifications = useNotificationStore((state) => state.notifications);
 
+  // Memoize inline styles to prevent recreation on every render
+  const notificationRowStyle = useMemo(
+    () => ({ display: "flex" as const }),
+    []
+  );
+  const messageStyle = useMemo(
+    () => ({ wordWrap: "break-word" as const }),
+    []
+  );
+
   // Memoize the expensive sort operation to avoid re-sorting on every render
   const recentNotifications = useMemo(() => {
     return [...notifications]
@@ -129,7 +139,7 @@ const NotificationsList: React.FC = () => {
             <ListItemText
               className="notification-content"
               primary={
-                <div style={{ display: "flex" }} className="notification-row">
+                <div style={notificationRowStyle} className="notification-row">
                   <span className="time notification-timestamp">
                     {new Date(notification.timestamp).toLocaleTimeString(
                       "en-US",
@@ -143,7 +153,7 @@ const NotificationsList: React.FC = () => {
                   </span>
                   <span
                     className={`message notification-message ${notification.type}-message`}
-                    style={{ wordWrap: "break-word" }}
+                    style={messageStyle}
                   >
                     {notification.content}
                   </span>
