@@ -1,10 +1,11 @@
 import { renderHook } from "@testing-library/react";
-import { Node } from "@xyflow/react";
+import { Node, NodeChange } from "@xyflow/react";
 import { MouseEvent as ReactMouseEvent } from "react";
 import { useNodeEvents } from "../useNodeEvents";
 import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../nodes/useSelect";
+import { NodeData } from "../../../stores/NodeData";
 
 jest.mock("../../../stores/ContextMenuStore");
 jest.mock("../../../contexts/NodeContext");
@@ -93,7 +94,7 @@ describe("useNodeEvents", () => {
   describe("handleNodesChange", () => {
     it("calls onNodesChange with the changes array", () => {
       const { result } = renderHook(() => useNodeEvents());
-      const changes = [
+      const changes: NodeChange<Node<NodeData>>[] = [
         { type: "position", id: "node-1", position: { x: 10, y: 20 } }
       ];
 
@@ -112,7 +113,7 @@ describe("useNodeEvents", () => {
 
     it("passes through multiple changes", () => {
       const { result } = renderHook(() => useNodeEvents());
-      const changes = [
+      const changes: NodeChange<Node<NodeData>>[] = [
         { type: "position", id: "node-1" },
         { type: "select", id: "node-2", selected: true },
         { type: "remove", id: "node-3" }
