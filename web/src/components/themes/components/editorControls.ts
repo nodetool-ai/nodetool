@@ -61,13 +61,13 @@ export const editorControlsComponents: Components<Theme> = {
             [`&.${editorUiClasses.scopeInspector} .MuiOutlinedInput-input`]: {
               padding: `${editor.padYInspector} ${editor.padXInspector}`,
               minHeight: "1.7em",
-              lineHeight: "1.25em",
+              lineHeight: "1.5em",
               fontSize: theme.fontSizeSmaller
             },
             [`&.${editorUiClasses.scopeNode} .MuiOutlinedInput-input`]: {
               padding: `${editor.padYNode} ${editor.padXNode}`,
               minHeight: "1.7em",
-              lineHeight: "1.25em",
+              lineHeight: "1.5em",
               fontSize: theme.fontSizeSmaller
             },
 
