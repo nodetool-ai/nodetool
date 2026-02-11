@@ -428,8 +428,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [id, updateNodeData]);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
-  const isEmptyResult = (obj: any) =>
-    obj && typeof obj === "object" && Object.keys(obj).length === 0;
+  const isEmptyResult = (obj: unknown) =>
+    obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
   const isOverlayVisible =
     showResultOverlay && result && !isEmptyResult(result);
   const hasToggleableResult =
@@ -483,7 +483,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         selected,
         isFocused,
         hasParent,
-        hasToggleableResult,
+        Boolean(hasToggleableResult),
         baseColor,
         parentColor,
         theme,
@@ -566,8 +566,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         iconType={metadata?.outputs?.[0]?.type?.type}
         iconBaseColor={baseColor}
         workflowId={workflow_id}
-        showResultButton={!isOverlayVisible && hasToggleableResult}
-        showInputsButton={isOverlayVisible}
+        showResultButton={Boolean(!isOverlayVisible && hasToggleableResult)}
+        showInputsButton={Boolean(isOverlayVisible)}
         onShowResults={handleShowResults}
         onShowInputs={handleShowInputs}
       />
@@ -579,7 +579,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           <ModelRecommendations nodeType={type} />
         )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
-      <InputNodeNameWarning nodeType={type} name={data.properties?.name} />
+      <InputNodeNameWarning nodeType={type} name={data.properties?.name as string | undefined} />
       <Box
         className="node-content-container"
         sx={{
