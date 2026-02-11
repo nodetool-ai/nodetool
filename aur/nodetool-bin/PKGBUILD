@@ -1,0 +1,52 @@
+# Maintainer: NodeTool AI <hello@nodetool.ai>
+
+pkgname=nodetool-bin
+_pkgname=nodetool
+pkgver=0.6.2_rc.18
+_pkgver=${pkgver//_/-}
+pkgrel=1
+pkgdesc="Visual AI Workflow Builder - Build AI Workflows Visually, Run Them Anywhere"
+arch=('x86_64')
+url="https://github.com/nodetool-ai/nodetool"
+license=('AGPL-3.0-only')
+depends=('fuse2' 'gtk3' 'libnotify' 'nss' 'libxss' 'libxtst' 'xdg-utils' 'at-spi2-core' 'util-linux-libs' 'libsecret')
+optdepends=(
+    'libappindicator-gtk3: Allow nodetool to extend a menu via Ayatana indicators in Unity, KDE or Systray'
+)
+provides=("$_pkgname")
+conflicts=("$_pkgname" "$_pkgname-git")
+options=('!strip')
+source=(
+    "${_pkgname}.sh"
+    "${_pkgname}.desktop"
+    "${_pkgname}-${pkgver}-x86_64.AppImage::${url}/releases/download/v${_pkgver}/Nodetool-${_pkgver}-x86_64.AppImage"
+)
+sha256sums=(
+    'SKIP'
+    'SKIP'
+    'SKIP'
+)
+
+package() {
+    # Install AppImage
+    install -Dm755 "${srcdir}/${_pkgname}-${pkgver}-x86_64.AppImage" "${pkgdir}/opt/${_pkgname}/${_pkgname}.AppImage"
+
+    # Install launcher script
+    install -Dm755 "${srcdir}/${_pkgname}.sh" "${pkgdir}/usr/bin/${_pkgname}"
+
+    # Install desktop file
+    install -Dm644 "${srcdir}/${_pkgname}.desktop" "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
+
+    # Extract icon from AppImage
+    cd "${srcdir}"
+    chmod +x "${_pkgname}-${pkgver}-x86_64.AppImage"
+    "./${_pkgname}-${pkgver}-x86_64.AppImage" --appimage-extract "*.png" 2>/dev/null || true
+    "./${_pkgname}-${pkgver}-x86_64.AppImage" --appimage-extract "usr/share/icons" 2>/dev/null || true
+
+    # Install icons
+    if [ -f "squashfs-root/.DirIcon" ]; then
+        install -Dm644 "squashfs-root/.DirIcon" "${pkgdir}/usr/share/icons/hicolor/256x256/apps/${_pkgname}.png"
+    elif [ -f "squashfs-root/usr/share/icons/hicolor/256x256/apps/nodetool.png" ]; then
+        install -Dm644 "squashfs-root/usr/share/icons/hicolor/256x256/apps/nodetool.png" "${pkgdir}/usr/share/icons/hicolor/256x256/apps/${_pkgname}.png"
+    fi
+}

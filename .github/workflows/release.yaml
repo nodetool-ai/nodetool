@@ -398,3 +398,83 @@ jobs:
           files: |
             electron/dist/*.AppImage
             electron/dist/latest-linux.yml
+
+  aur-publish:
+    needs: release-build
+    runs-on: ubuntu-latest
+    # Only publish to AUR for non-prerelease tags (exclude -test, -rc, etc.)
+    if: ${{ !contains(github.ref_name, '-test') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Remove 'v' prefix and convert '-' to '_' for AUR version format
+          VERSION="${GITHUB_REF_NAME#v}"
+          AUR_VERSION="${VERSION//-/_}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "aur_version=${AUR_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Download AppImage and calculate checksum
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          wget "https://github.com/nodetool-ai/nodetool/releases/download/v${VERSION}/Nodetool-${VERSION}-x86_64.AppImage" -O nodetool.AppImage
+          CHECKSUM=$(sha256sum nodetool.AppImage | awk '{print $1}')
+          echo "APPIMAGE_CHECKSUM=${CHECKSUM}" >> $GITHUB_ENV
+
+      - name: Update PKGBUILD version and checksums
+        env:
+          AUR_VERSION: ${{ steps.version.outputs.aur_version }}
+        run: |
+          # Update pkgver in PKGBUILD
+          sed -i "s/pkgver=.*/pkgver=${AUR_VERSION}/" aur/nodetool-bin/PKGBUILD
+
+          # Calculate checksums and export as environment variables for Python
+          export SH_CHECKSUM=$(sha256sum aur/nodetool-bin/nodetool.sh | awk '{print $1}')
+          export DESKTOP_CHECKSUM=$(sha256sum aur/nodetool-bin/nodetool.desktop | awk '{print $1}')
+
+          # Update checksums using Python for reliable multi-line replacement
+          python3 << 'EOF'
+          import os
+          import re
+
+          sh_checksum = os.environ['SH_CHECKSUM']
+          desktop_checksum = os.environ['DESKTOP_CHECKSUM']
+          appimage_checksum = os.environ['APPIMAGE_CHECKSUM']
+
+          with open('aur/nodetool-bin/PKGBUILD', 'r') as f:
+              content = f.read()
+
+          # Replace the sha256sums array (using 4-space indentation to match PKGBUILD style)
+          new_checksums = f"""sha256sums=(
+    '{sh_checksum}'
+    '{desktop_checksum}'
+    '{appimage_checksum}'
+)"""
+
+          content = re.sub(
+              r"sha256sums=\([^)]*\)",
+              new_checksums,
+              content,
+              flags=re.DOTALL
+          )
+
+          with open('aur/nodetool-bin/PKGBUILD', 'w') as f:
+              f.write(content)
+          EOF
+
+      - name: Publish AUR package
+        uses: KSXGitHub/github-actions-deploy-aur@v3.0.1
+        with:
+          pkgname: nodetool-bin
+          pkgbuild: aur/nodetool-bin/PKGBUILD
+          commit_username: nodetool-ai
+          commit_email: hello@nodetool.ai
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to version ${{ steps.version.outputs.version }}"
+          ssh_keyscan_types: rsa,ed25519
+          allow_empty_commits: false
+          assets: |
+            aur/nodetool-bin/nodetool.sh
+            aur/nodetool-bin/nodetool.desktop
