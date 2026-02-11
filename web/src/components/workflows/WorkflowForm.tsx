@@ -20,6 +20,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
+import WorkflowNotesEditor from "./WorkflowNotesEditor";
 
 const DEFAULT_TAG_SUGGESTIONS = [
   "image",
@@ -216,6 +217,11 @@ const styles = (theme: Theme) =>
         boxShadow: `0 4px 12px ${theme.vars.palette.primary.main}66`,
         transform: "translateY(-1px)"
       }
+    },
+    
+    // Notes section
+    ".notes-section": {
+      marginTop: theme.spacing(3)
     }
   });
 
@@ -354,6 +360,16 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     },
     []
   );
+
+  const handleNotesChange = useCallback((notes: string) => {
+    setLocalWorkflow((prev: Workflow) => ({
+      ...prev,
+      settings: {
+        ...(prev.settings || {}),
+        notes: notes
+      }
+    }));
+  }, []);
 
   return (
     <div css={styles(theme)} className="workflow-form">
@@ -534,6 +550,20 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
             Identifier for API/tool usage. Letters, numbers, underscores only.
           </FormHelperText>
         </FormControl>
+      </div>
+
+      {/* Documentation Section */}
+      <div className="settings-section notes-section">
+        <Typography className="section-title">Documentation</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+          Add notes and documentation for this workflow
+        </Typography>
+
+        <WorkflowNotesEditor
+          notes={String(localWorkflow.settings?.notes ?? "")}
+          onNotesChange={handleNotesChange}
+          placeholder="Add notes about this workflow..."
+        />
       </div>
 
       <div className="button-container">
