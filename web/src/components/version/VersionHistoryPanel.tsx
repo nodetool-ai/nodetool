@@ -89,7 +89,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     return filtered.map((v) => ({
       ...v,
       save_type: getSaveType(v),
-      size_bytes: new Blob([JSON.stringify(v.graph)]).size
+      size_bytes: JSON.stringify(v.graph).length
     }));
   }, [apiVersions, filterType]);
 
