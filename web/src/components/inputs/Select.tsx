@@ -232,6 +232,33 @@ const Select: React.FC<SelectProps> = ({
     ? { borderRight: `2px solid ${theme.vars.palette.primary.main}` }
     : undefined;
 
+  // Memoize dropdown style object to prevent recreation on every render
+  const dropdownStyle = useMemo(() => {
+    if (!dropdownPosition) {
+      return undefined;
+    }
+    return {
+      position: "fixed" as const,
+      left: dropdownPosition.left,
+      width: dropdownPosition.width,
+      ...(dropdownPosition.openUpward
+        ? { bottom: window.innerHeight - dropdownPosition.top + 4 }
+        : { top: dropdownPosition.top })
+    };
+  }, [dropdownPosition]);
+
+  // Create stable callbacks for option clicks to prevent re-renders
+  const optionClickHandlers = useMemo(() => {
+    const handlers = new Map<string, () => void>();
+    filteredOptions.forEach((option) => {
+      handlers.set(
+        option.value,
+        () => handleOptionClick(option.value)
+      );
+    });
+    return handlers;
+  }, [filteredOptions, handleOptionClick]);
+
   return (
     <div className="select-container" css={styles}>
       <Tooltip placement="top" enterDelay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
@@ -279,14 +306,7 @@ const Select: React.FC<SelectProps> = ({
           ref={optionsRef}
           className="options-list nowheel"
           css={portalOptionsStyles(theme)}
-          style={{
-            position: "fixed",
-            left: dropdownPosition.left,
-            width: dropdownPosition.width,
-            ...(dropdownPosition.openUpward
-              ? { bottom: window.innerHeight - dropdownPosition.top + 4 }
-              : { top: dropdownPosition.top })
-          }}
+          style={dropdownStyle}
           onMouseDown={(e) => e.stopPropagation()}
         >
           {filteredOptions.map((option, index) => (
@@ -295,7 +315,7 @@ const Select: React.FC<SelectProps> = ({
               className={`option ${
                 option.value === value ? "selected" : ""
               } ${index === highlightedIndex ? "highlighted" : ""}`}
-              onClick={() => handleOptionClick(option.value)}
+              onClick={optionClickHandlers.get(option.value)}
             >
               {option.label}
             </li>
