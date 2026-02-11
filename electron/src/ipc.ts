@@ -951,6 +951,14 @@ export function initializeIpcHandlers(): void {
   );
 
   createIpcMainHandler(
+    IpcChannels.CLAUDE_AGENT_LIST_MODELS,
+    async (_event, options) => {
+      const { listAgentModels } = await import("./claudeAgent");
+      return await listAgentModels(options ?? {});
+    },
+  );
+
+  createIpcMainHandler(
     IpcChannels.CLAUDE_AGENT_SEND_MESSAGE,
     async (event, request) => {
       const { sendClaudeAgentMessageStreaming } = await import("./claudeAgent");

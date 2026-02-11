@@ -207,6 +207,9 @@ declare global {
       // Claude Agent SDK operations
       claudeAgent: {
         createSession: (options: ClaudeAgentSessionOptions) => Promise<string>;
+        listModels: (
+          options?: AgentModelsRequest,
+        ) => Promise<AgentModelDescriptor[]>;
         sendMessage: (
           sessionId: string,
           message: string,
@@ -480,6 +483,7 @@ export enum IpcChannels {
   FILE_READ_AS_DATA_URL = "file-read-as-data-url",
   // Claude Agent SDK channels
   CLAUDE_AGENT_CREATE_SESSION = "claude-agent-create-session",
+  CLAUDE_AGENT_LIST_MODELS = "claude-agent-list-models",
   CLAUDE_AGENT_SEND_MESSAGE = "claude-agent-send-message",
   CLAUDE_AGENT_CLOSE_SESSION = "claude-agent-close-session",
   // Claude Agent SDK streaming event (sent from main to renderer)
@@ -652,6 +656,7 @@ export interface IpcRequest {
   [IpcChannels.FILE_READ_AS_DATA_URL]: string; // filePath
   // Claude Agent SDK
   [IpcChannels.CLAUDE_AGENT_CREATE_SESSION]: ClaudeAgentSessionOptions;
+  [IpcChannels.CLAUDE_AGENT_LIST_MODELS]: AgentModelsRequest;
   [IpcChannels.CLAUDE_AGENT_SEND_MESSAGE]: ClaudeAgentSendRequest;
   [IpcChannels.CLAUDE_AGENT_CLOSE_SESSION]: string; // sessionId
   // Frontend tools
@@ -738,6 +743,7 @@ export interface IpcResponse {
   [IpcChannels.FILE_READ_AS_DATA_URL]: string | null;
   // Claude Agent SDK
   [IpcChannels.CLAUDE_AGENT_CREATE_SESSION]: string; // sessionId
+  [IpcChannels.CLAUDE_AGENT_LIST_MODELS]: AgentModelDescriptor[];
   [IpcChannels.CLAUDE_AGENT_SEND_MESSAGE]: ClaudeAgentMessage[];
   [IpcChannels.CLAUDE_AGENT_CLOSE_SESSION]: void;
   // Frontend tools
@@ -852,9 +858,23 @@ export interface PackageUninstallRequest {
 
 // Claude Agent SDK types
 export interface ClaudeAgentSessionOptions {
+  provider?: AgentProvider;
   model: string;
   workspacePath?: string;
   resumeSessionId?: string;
+}
+
+export type AgentProvider = "claude" | "codex";
+
+export interface AgentModelDescriptor {
+  id: string;
+  label: string;
+  isDefault?: boolean;
+}
+
+export interface AgentModelsRequest {
+  provider?: AgentProvider;
+  workspacePath?: string;
 }
 
 export interface ClaudeAgentSendRequest {

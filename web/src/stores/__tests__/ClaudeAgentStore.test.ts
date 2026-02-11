@@ -1,10 +1,17 @@
 import type { Message } from "../ApiTypes";
 
 describe("ClaudeAgentStore", () => {
-  const createSessionMock = jest.fn<
-    Promise<string>,
-    [{ model: string; workspacePath?: string; resumeSessionId?: string }]
-  >();
+const createSessionMock = jest.fn<
+  Promise<string>,
+  [
+    {
+      provider?: "claude" | "codex";
+      model: string;
+      workspacePath?: string;
+      resumeSessionId?: string;
+    }
+  ]
+>();
   const sendMessageMock = jest.fn<Promise<void>, [string, string]>();
   const closeSessionMock = jest.fn<Promise<void>, [string]>();
   const onStreamMessageMock = jest.fn<
@@ -234,6 +241,7 @@ describe("ClaudeAgentStore", () => {
     expect(state.status).toBe("loading");
     expect(createSessionMock).toHaveBeenCalledTimes(1);
     expect(createSessionMock).toHaveBeenCalledWith({
+      provider: "claude",
       model: "claude-sonnet-4-20250514",
       workspacePath: "/tmp/workspace-1",
       resumeSessionId: undefined

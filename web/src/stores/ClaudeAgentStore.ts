@@ -23,6 +23,13 @@ import {
 // This registers handlers that allow the Claude Agent to call frontend tools
 import "../lib/tools/frontendToolsIpc";
 
+export type AgentProvider = "claude" | "codex";
+export interface AgentModelDescriptor {
+  id: string;
+  label: string;
+  isDefault?: boolean;
+}
+
 export type ClaudeAgentStatus =
   | "disconnected"
   | "connecting"
@@ -33,6 +40,7 @@ export type ClaudeAgentStatus =
 
 export interface ClaudeAgentSessionHistoryEntry {
   id: string;
+  provider: AgentProvider;
   model: string;
   workspacePath: string;
   workspaceId?: string;
@@ -53,6 +61,12 @@ interface ClaudeAgentState {
   isAvailable: boolean;
   /** Model to use for the session */
   model: string;
+  /** Available models for the selected provider */
+  availableModels: AgentModelDescriptor[];
+  /** Whether models are currently loading */
+  modelsLoading: boolean;
+  /** Provider to use for the session */
+  provider: AgentProvider;
   /** Unsubscribe function for streaming events */
   streamUnsubscribe: (() => void) | null;
   /** Tracks whether assistant content already arrived for the active turn */
@@ -90,6 +104,10 @@ interface ClaudeAgentState {
   newChat: () => void;
   /** Set the model to use */
   setModel: (model: string) => void;
+  /** Set provider to use for the session */
+  setProvider: (provider: AgentProvider) => void;
+  /** Load models for current provider/workspace */
+  loadModels: () => Promise<void>;
 }
 
 /**
@@ -168,6 +186,9 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
   error: null,
   isAvailable: isClaudeAgentAvailable(),
   model: "claude-sonnet-4-20250514",
+  availableModels: [],
+  modelsLoading: false,
+  provider: "claude",
   streamUnsubscribe: null,
   hasAssistantInCurrentTurn: false,
   workspacePath: null,
@@ -178,12 +199,44 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
     set({ model });
   },
 
+  setProvider: (provider: AgentProvider) => {
+    set({ provider });
+  },
+
+  loadModels: async () => {
+    const { provider, workspacePath, model } = get();
+    if (!isClaudeAgentAvailable()) {
+      return;
+    }
+
+    set({ modelsLoading: true });
+    try {
+      const models = await window.api.claudeAgent!.listModels({
+        provider,
+        workspacePath: workspacePath ?? undefined
+      });
+
+      const selectedModel = models.find((item) => item.id === model);
+      const defaultModel =
+        models.find((item) => item.isDefault) ?? models[0] ?? null;
+
+      set({
+        availableModels: models,
+        model: selectedModel ? model : defaultModel?.id ?? model,
+        modelsLoading: false
+      });
+    } catch (error) {
+      console.error("Failed to load agent models:", error);
+      set({ modelsLoading: false });
+    }
+  },
+
   setWorkspaceContext: (workspaceId, workspacePath) => {
     set({ workspaceId, workspacePath });
   },
 
   createSession: async (options) => {
-    const { model, streamUnsubscribe, workspacePath, workspaceId } = get();
+    const { model, provider, streamUnsubscribe, workspacePath, workspaceId } = get();
     const preserveMessages = options?.preserveMessages ?? false;
     const preserveStatus = options?.preserveStatus ?? false;
     const selectedWorkspacePath = options?.workspacePath ?? workspacePath;
@@ -199,7 +252,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
     if (!isClaudeAgentAvailable()) {
       set({
         error:
-          "Claude Agent SDK requires the NodeTool desktop app (Electron). Please use the desktop application to access this feature.",
+          "Agent sessions require the NodeTool desktop app (Electron). Please use the desktop application to access this feature.",
         status: "error"
       });
       return;
@@ -208,7 +261,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
     if (!selectedWorkspacePath) {
       set({
         status: "error",
-        error: "Select a workspace before starting a Claude session."
+        error: "Select a workspace before starting an agent session."
       });
       return;
     }
@@ -220,6 +273,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       }));
 
       const sessionId = await window.api.claudeAgent!.createSession({
+        provider,
         model,
         workspacePath: selectedWorkspacePath,
         resumeSessionId
@@ -229,6 +283,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       set((state) => ({
         sessionHistory: upsertSessionHistory(state.sessionHistory, {
           id: resumeSessionId ?? sessionId,
+          provider,
           model,
           workspacePath: selectedWorkspacePath,
           workspaceId: selectedWorkspaceId ?? undefined,
@@ -306,8 +361,8 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
         messages: preserveMessages ? state.messages : [],
         streamUnsubscribe: unsubscribe,
         workspacePath: selectedWorkspacePath,
-        workspaceId: selectedWorkspaceId ?? null
-      }));
+      workspaceId: selectedWorkspaceId ?? null
+    }));
     } catch (error) {
       set({
         status: "error",
@@ -346,7 +401,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
     if (!isClaudeAgentAvailable()) {
       set({
         error:
-          "Claude Agent SDK requires the NodeTool desktop app (Electron).",
+          "Agent sessions require the NodeTool desktop app (Electron).",
         status: "error"
       });
       return;
@@ -463,6 +518,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       workspacePath: target.workspacePath,
       workspaceId: target.workspaceId ?? null
     });
+    set({ provider: target.provider });
     await get().createSession({
       workspacePath: target.workspacePath,
       workspaceId: target.workspaceId,

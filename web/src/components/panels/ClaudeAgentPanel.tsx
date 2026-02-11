@@ -49,7 +49,8 @@ const containerStyles = css({
   },
   ".claude-session-controls": {
     display: "grid",
-    gridTemplateColumns: "minmax(220px, 1fr) minmax(180px, 1fr) auto",
+    gridTemplateColumns:
+      "minmax(130px, 180px) minmax(170px, 220px) minmax(220px, 1fr) minmax(180px, 1fr) auto",
     gap: "8px",
     alignItems: "center",
     marginBottom: "8px"
@@ -111,7 +112,14 @@ const ClaudeAgentPanel: React.FC = () => {
       sessionId,
       workspaceId,
       workspacePath,
-      setWorkspaceContext
+      setWorkspaceContext,
+      provider,
+      setProvider,
+      model,
+      setModel,
+      availableModels,
+      modelsLoading,
+      loadModels
     } = useClaudeAgentStore(
     useMemo(
       () => (state) => ({
@@ -129,7 +137,14 @@ const ClaudeAgentPanel: React.FC = () => {
         sessionId: state.sessionId,
         workspaceId: state.workspaceId,
         workspacePath: state.workspacePath,
-        setWorkspaceContext: state.setWorkspaceContext
+        setWorkspaceContext: state.setWorkspaceContext,
+        provider: state.provider,
+        setProvider: state.setProvider,
+        model: state.model,
+        setModel: state.setModel,
+        availableModels: state.availableModels,
+        modelsLoading: state.modelsLoading,
+        loadModels: state.loadModels
       }),
       []
     )
@@ -139,6 +154,12 @@ const ClaudeAgentPanel: React.FC = () => {
     queryFn: fetchWorkspaces
   });
   const hasRunningSession = Boolean(sessionId);
+
+  useEffect(() => {
+    loadModels().catch((err) => {
+      console.error("Failed to load models:", err);
+    });
+  }, [provider, workspacePath, loadModels]);
 
   useEffect(() => {
     if (!workspaces || workspaceId) {
@@ -226,11 +247,10 @@ const ClaudeAgentPanel: React.FC = () => {
       return (
         <Box css={placeholderStyles}>
           <Typography variant="h6" color="text.secondary">
-            Claude Agent SDK
+            AI Agent
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            This feature requires the NodeTool desktop app (Electron) to
-            interact with the Claude Agent SDK.
+            This feature requires the NodeTool desktop app (Electron).
           </Typography>
         </Box>
       );
@@ -252,11 +272,10 @@ const ClaudeAgentPanel: React.FC = () => {
     return (
       <Box css={placeholderStyles}>
         <Typography variant="h6" color="text.secondary">
-          Claude Agent
+          {provider === "codex" ? "Codex Agent" : "Claude Agent"}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Start a conversation with the Claude Agent SDK. Messages are processed
-          through a local Claude Code session.
+          Start a conversation with a local agent session.
         </Typography>
         {status === "disconnected" && !hasRunningSession && (
           <Button
@@ -270,7 +289,15 @@ const ClaudeAgentPanel: React.FC = () => {
         )}
       </Box>
     );
-  }, [isAvailable, error, status, handleStartSession, hasRunningSession, workspacePath]);
+  }, [
+    isAvailable,
+    error,
+    status,
+    handleStartSession,
+    hasRunningSession,
+    workspacePath,
+    provider
+  ]);
 
   const previousSessions = useMemo(
     () => sessionHistory.filter((entry) => entry.id !== sessionId),
@@ -279,8 +306,40 @@ const ClaudeAgentPanel: React.FC = () => {
 
   return (
     <Box css={containerStyles} className="claude-agent-panel">
-      <PanelHeadline title="Claude Agent" />
+      <PanelHeadline title="AI Agent" />
       <Box className="claude-session-controls">
+        <FormControl size="small" className="claude-session-select">
+          <Select
+            value={provider}
+            onChange={(event) => {
+              const nextProvider = event.target.value;
+              if (nextProvider === "claude" || nextProvider === "codex") {
+                setProvider(nextProvider);
+              }
+            }}
+            disabled={hasRunningSession}
+          >
+            <MenuItem value="claude">Claude</MenuItem>
+            <MenuItem value="codex">Codex</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl size="small" className="claude-session-select">
+          <Select
+            value={model}
+            onChange={(event) => {
+              if (typeof event.target.value === "string") {
+                setModel(event.target.value);
+              }
+            }}
+            disabled={hasRunningSession || modelsLoading || availableModels.length === 0}
+          >
+            {availableModels.map((entry) => (
+              <MenuItem key={entry.id} value={entry.id}>
+                {entry.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
         <WorkspaceSelect
           value={workspaceId ?? undefined}
           onChange={handleWorkspaceChange}
@@ -308,7 +367,7 @@ const ClaudeAgentPanel: React.FC = () => {
             ))}
           </Select>
         </FormControl>
-        <Tooltip title="Create a new Claude session in this workspace">
+        <Tooltip title={`Create a new ${provider} session in this workspace`}>
           <span>
             <Button
               variant="outlined"

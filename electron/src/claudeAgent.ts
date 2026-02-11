@@ -9,10 +9,14 @@
 import { logMessage } from "./logger";
 import {
   IpcChannels,
+  type AgentModelDescriptor,
+  type AgentModelsRequest,
+  type AgentProvider,
   type ClaudeAgentSessionOptions,
   type ClaudeAgentMessage,
   type FrontendToolManifest,
 } from "./types.d";
+import { CodexQuerySession, listCodexModels } from "./codexAgent";
 import { app, ipcMain, type WebContents } from "electron";
 import path from "node:path";
 import { existsSync } from "node:fs";
@@ -279,6 +283,7 @@ class ClaudeQuerySession {
     const allowedTools = manifest.map((tool) => tool.name);
     const args = [
       "-p",
+      "--verbose",
       "--input-format",
       "stream-json",
       "--output-format",
@@ -342,6 +347,73 @@ class ClaudeQuerySession {
         fn();
       };
 
+      const handleToolUse = async (
+        toolUseId: string,
+        toolName: string,
+        toolArgs: unknown,
+      ): Promise<void> => {
+        // Claude can emit tool_use items for built-in/MCP tools that it executes
+        // internally. Only bridge tool calls that are explicitly exposed by the UI.
+        if (!toolManifestMap.has(toolName)) {
+          return;
+        }
+
+        outputMessages.push({
+          type: "assistant",
+          uuid: randomUUID(),
+          session_id: this.resolvedSessionId ?? sessionId,
+          content: [],
+          tool_calls: [
+            {
+              id: toolUseId,
+              type: "function",
+              function: {
+                name: toolName,
+                arguments: JSON.stringify(toolArgs ?? {}),
+              },
+            },
+          ],
+        });
+
+        let toolResult: unknown;
+        let isError = false;
+        try {
+          if (!webContents) {
+            throw new Error(`Cannot execute tool ${toolName} without renderer context`);
+          }
+          toolResult = await executeFrontendTool(
+            webContents,
+            sessionId,
+            toolUseId,
+            toolName,
+            toolArgs,
+          );
+        } catch (error) {
+          isError = true;
+          toolResult = error instanceof Error ? error.message : String(error);
+        }
+
+        const toolResultPayload = {
+          type: "user",
+          message: {
+            role: "user",
+            content: [
+              {
+                type: "tool_result",
+                tool_use_id: toolUseId,
+                content:
+                  typeof toolResult === "string"
+                    ? toolResult
+                    : JSON.stringify(toolResult, null, 2),
+                is_error: isError,
+              },
+            ],
+          },
+        };
+        this.logPipe("stdin", toolResultPayload);
+        processHandle.stdin.write(`${JSON.stringify(toolResultPayload)}\n`);
+      };
+
       const handleLine = async (line: string): Promise<void> => {
         if (!line.trim()) {
           return;
@@ -355,6 +427,22 @@ class ClaudeQuerySession {
         }
 
         const type = typeof parsed.type === "string" ? parsed.type : "";
+        if (typeof parsed.session_id === "string") {
+          this.resolvedSessionId = parsed.session_id;
+        }
+        if (typeof parsed.sessionId === "string") {
+          this.resolvedSessionId = parsed.sessionId;
+        }
+
+        if (
+          type === "system" &&
+          parsed.subtype === "init" &&
+          typeof parsed.session_id === "string"
+        ) {
+          this.resolvedSessionId = parsed.session_id;
+          return;
+        }
+
         if (type === "init" && typeof parsed.sessionId === "string") {
           this.resolvedSessionId = parsed.sessionId;
           return;
@@ -372,78 +460,79 @@ class ClaudeQuerySession {
           return;
         }
 
+        if (type === "assistant") {
+          const messageRecord =
+            parsed.message && typeof parsed.message === "object"
+              ? (parsed.message as Record<string, unknown>)
+              : null;
+          const content = messageRecord?.content;
+          if (!Array.isArray(content)) {
+            return;
+          }
+
+          for (const item of content) {
+            if (!item || typeof item !== "object") {
+              continue;
+            }
+            const contentItem = item as Record<string, unknown>;
+            const contentType =
+              typeof contentItem.type === "string" ? contentItem.type : "";
+
+            if (contentType === "text" && typeof contentItem.text === "string") {
+              outputMessages.push({
+                type: "assistant",
+                uuid: randomUUID(),
+                session_id: this.resolvedSessionId ?? sessionId,
+                content: [{ type: "text", text: contentItem.text }],
+              });
+              continue;
+            }
+
+            if (
+              contentType === "tool_use" &&
+              typeof contentItem.id === "string" &&
+              typeof contentItem.name === "string"
+            ) {
+              await handleToolUse(
+                contentItem.id,
+                contentItem.name,
+                contentItem.input,
+              );
+            }
+          }
+          return;
+        }
+
         if (
           type === "tool_use" &&
           typeof parsed.id === "string" &&
           typeof parsed.name === "string"
         ) {
-          const toolUseId = parsed.id;
-          const toolName = parsed.name;
-          const toolArgs = parsed.input;
-          outputMessages.push({
-            type: "assistant",
-            uuid: randomUUID(),
-            session_id: this.resolvedSessionId ?? sessionId,
-            content: [],
-            tool_calls: [
-              {
-                id: toolUseId,
-                type: "function",
-                function: {
-                  name: toolName,
-                  arguments: JSON.stringify(toolArgs ?? {}),
-                },
-              },
-            ],
-          });
-
-          let toolResult: unknown;
-          let isError = false;
-          try {
-            if (!toolManifestMap.has(toolName)) {
-              throw new Error(`Tool is not allowed in this session: ${toolName}`);
-            }
-            if (!webContents) {
-              throw new Error(`Cannot execute tool ${toolName} without renderer context`);
-            }
-            toolResult = await executeFrontendTool(
-              webContents,
-              sessionId,
-              toolUseId,
-              toolName,
-              toolArgs,
-            );
-          } catch (error) {
-            isError = true;
-            toolResult = error instanceof Error ? error.message : String(error);
-          }
-
-          const toolResultPayload = {
-            type: "tool_result",
-            tool_use_id: toolUseId,
-            content:
-              typeof toolResult === "string"
-                ? toolResult
-                : JSON.stringify(toolResult, null, 2),
-            is_error: isError,
-          };
-          this.logPipe("stdin", toolResultPayload);
-          processHandle.stdin.write(`${JSON.stringify(toolResultPayload)}\n`);
+          await handleToolUse(parsed.id, parsed.name, parsed.input);
           return;
         }
 
         if (type === "result") {
-          const status = parsed.status === "success" ? "success" : "error";
+          const status =
+            parsed.is_error === true
+              ? "error"
+              : parsed.status === "success" ||
+                  parsed.subtype === "success" ||
+                  parsed.is_error === false
+                ? "success"
+                : "error";
           const text = typeof parsed.result === "string" ? parsed.result : "";
-          outputMessages.push({
-            type: "result",
-            uuid: randomUUID(),
-            session_id: this.resolvedSessionId ?? sessionId,
-            subtype: status,
-            text,
-            is_error: status !== "success",
-            ...(status !== "success" ? { errors: [text || "Unknown error"] } : {}),
-          });
+          if (status !== "success") {
+            outputMessages.push({
+              type: "result",
+              uuid: randomUUID(),
+              session_id: this.resolvedSessionId ?? sessionId,
+              subtype: status,
+              text,
+              is_error: true,
+              errors: [text || "Unknown error"],
+            });
+          }
           processHandle.stdin.end();
           return;
         }
@@ -487,9 +576,11 @@ class ClaudeQuerySession {
       });
 
       const userPayload = {
-        type: "message",
-        role: "user",
-        content: message,
+        type: "user",
+        message: {
+          role: "user",
+          content: [{ type: "text", text: message }],
+        },
       };
       this.logPipe("stdin", userPayload);
       processHandle.stdin.write(`${JSON.stringify(userPayload)}\n`);
@@ -510,12 +601,41 @@ class ClaudeQuerySession {
   }
 }
 
+interface AgentQuerySession {
+  send(
+    message: string,
+    webContents: WebContents | null,
+    sessionId: string,
+    manifest: FrontendToolManifest[],
+  ): Promise<ClaudeAgentMessage[]>;
+  close(): void;
+}
+
 /** Active sessions indexed by session ID */
-const activeSessions = new Map<string, ClaudeQuerySession>();
+const activeSessions = new Map<string, AgentQuerySession>();
 
 /** Counter for generating temporary session IDs before Claude Code assigns one */
 let sessionCounter = 0;
 const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
+const DEFAULT_CLAUDE_MODELS: AgentModelDescriptor[] = [
+  {
+    id: "claude-sonnet-4-20250514",
+    label: "Claude Sonnet 4",
+    isDefault: true,
+  },
+  {
+    id: "claude-3-7-sonnet-20250219",
+    label: "Claude 3.7 Sonnet",
+  },
+  {
+    id: "claude-3-5-sonnet-20241022",
+    label: "Claude 3.5 Sonnet",
+  },
+  {
+    id: "claude-3-5-haiku-20241022",
+    label: "Claude 3.5 Haiku",
+  },
+];
 
 async function requestRendererToolsEvent<T>(
   webContents: WebContents,
@@ -572,7 +692,7 @@ async function requestRendererToolsEvent<T>(
   });
 }
 
-function removeSessionAliases(targetSession: ClaudeQuerySession): void {
+function removeSessionAliases(targetSession: AgentQuerySession): void {
   for (const [id, session] of activeSessions.entries()) {
     if (session === targetSession) {
       activeSessions.delete(id);
@@ -663,19 +783,27 @@ export async function createClaudeAgentSession(
   }
 
   const tempId = `claude-session-${++sessionCounter}`;
+  const provider: AgentProvider = options.provider ?? "claude";
   const sessionMode = options.resumeSessionId ? "resuming" : "creating";
   logMessage(
-    `${sessionMode} Claude Agent session with model: ${options.model} (workspace: ${options.workspacePath})`,
+    `${sessionMode} ${provider} agent session with model: ${options.model} (workspace: ${options.workspacePath})`,
   );
 
-  const session = new ClaudeQuerySession({
-    model: options.model,
-    workspacePath: options.workspacePath,
-    resumeSessionId: options.resumeSessionId,
-  });
+  const session: AgentQuerySession =
+    provider === "codex"
+      ? new CodexQuerySession({
+          model: options.model,
+          workspacePath: options.workspacePath,
+          resumeSessionId: options.resumeSessionId,
+        })
+      : new ClaudeQuerySession({
+          model: options.model,
+          workspacePath: options.workspacePath,
+          resumeSessionId: options.resumeSessionId,
+        });
 
   activeSessions.set(tempId, session);
-  logMessage(`Claude Agent session created: ${tempId}`);
+  logMessage(`${provider} agent session created: ${tempId}`);
   return tempId;
 }
 
@@ -776,4 +904,27 @@ export function closeAllClaudeAgentSessions(): void {
     session.close();
   }
   activeSessions.clear();
+}
+
+export async function listAgentModels(
+  options: AgentModelsRequest,
+): Promise<AgentModelDescriptor[]> {
+  const provider: AgentProvider = options.provider ?? "claude";
+  if (provider === "codex") {
+    const workspacePath = options.workspacePath || process.cwd();
+    try {
+      return await listCodexModels(workspacePath);
+    } catch (error) {
+      logMessage(`Failed to list Codex models: ${error}`, "warn");
+      return [
+        {
+          id: "gpt-5.3-codex",
+          label: "gpt-5.3-codex",
+          isDefault: true,
+        },
+      ];
+    }
+  }
+
+  return DEFAULT_CLAUDE_MODELS;
 }

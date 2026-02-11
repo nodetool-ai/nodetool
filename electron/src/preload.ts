@@ -626,6 +626,10 @@ const api = {
     createSession: (options: ClaudeAgentSessionOptions) =>
       ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_CREATE_SESSION, options),
 
+    /** List available models for the selected provider */
+    listModels: (options?: { provider?: "claude" | "codex"; workspacePath?: string }) =>
+      ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_LIST_MODELS, options || {}),
+
     /** Send a message to an active Claude Agent session */
     sendMessage: (sessionId: string, message: string) =>
       ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_SEND_MESSAGE, {
