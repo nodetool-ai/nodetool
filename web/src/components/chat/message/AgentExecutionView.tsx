@@ -343,13 +343,13 @@ interface ToolCallsSectionProps {
   toolCalls: any[];
 }
 
-const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
+const ToolCallsSection: React.FC<ToolCallsSectionProps> = React.memo(({ toolCalls }) => {
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
 
   const handleToggleExpanded = useCallback(() => {
-    setExpanded(!expanded);
-  }, [expanded]);
+    setExpanded(prev => !prev);
+  }, []);
 
   // Memoize formatted tool args to avoid repeated JSON parsing on every render
   const formattedArgs = useMemo(() => {
@@ -404,7 +404,9 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = ({ toolCalls }) => {
       </Collapse>
     </div>
   );
-};
+});
+
+ToolCallsSection.displayName = "ToolCallsSection";
 
 interface AgentExecutionViewProps {
   messages: Message[];
