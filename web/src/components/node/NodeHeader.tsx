@@ -205,6 +205,18 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     } as React.CSSProperties;
   }, [backgroundColor, selected]);
 
+  // Memoize icon background style to prevent recreation on every render
+  const iconBackgroundStyle = useMemo(() => ({
+    background: iconBaseColor
+      ? hexToRgba(iconBaseColor, 0.22)
+      : "rgba(255,255,255,0.08)"
+  }), [iconBaseColor]);
+
+  // Memoize title padding style to prevent recreation on every render
+  const titlePaddingStyle = useMemo(() => ({
+    paddingLeft: hasIcon ? 0 : undefined
+  }), [hasIcon]);
+
   return (
     <FlexRow
       className={`node-drag-handle node-header ${hasParent ? "has-parent" : ""
@@ -221,11 +233,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         {hasIcon && showIcon && (
           <div
             className="node-icon"
-            style={{
-              background: iconBaseColor
-                ? hexToRgba(iconBaseColor, 0.22)
-                : "rgba(255,255,255,0.08)"
-            }}
+            style={iconBackgroundStyle}
           >
             <IconForType
               iconName={iconType!}
@@ -236,9 +244,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         )}
         <span
           className="node-title"
-          style={{
-            paddingLeft: hasIcon ? 0 : undefined
-          }}
+          style={titlePaddingStyle}
         >
           {metadataTitle}
         </span>
