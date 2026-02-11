@@ -43,6 +43,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import WorkflowStatisticsPanel from "./WorkflowStatisticsPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -171,6 +172,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <WorkflowStatisticsPanel workflowId={workflowId} />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {

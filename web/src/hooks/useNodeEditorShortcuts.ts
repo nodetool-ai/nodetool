@@ -21,6 +21,7 @@ import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
+import { useWorkflowStatisticsStore } from "../stores/WorkflowStatisticsStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
@@ -112,6 +113,7 @@ export const useNodeEditorShortcuts = (
     (state) => state.addNotification
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
+  const toggleStatistics = useWorkflowStatisticsStore((state) => state.toggle);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
   // All hooks above this line
@@ -434,6 +436,10 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const handleStatisticsToggle = useCallback(() => {
+    toggleStatistics();
+  }, [toggleStatistics]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -476,6 +482,7 @@ export const useNodeEditorShortcuts = (
       groupSelected: { callback: handleGroup },
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
+      toggleStatistics: { callback: handleStatisticsToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
@@ -588,6 +595,7 @@ export const useNodeEditorShortcuts = (
     handleGroup,
     handleInspectorToggle,
     handleWorkflowSettingsToggle,
+    handleStatisticsToggle,
     handleShowKeyboardShortcuts,
     handleSave,
     handleSaveExample,
