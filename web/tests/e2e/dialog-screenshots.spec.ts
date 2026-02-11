@@ -8,9 +8,9 @@
 import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes } from "./fixtures/mockData";
 
-// Skip when run by Jest
-if (process.env.JEST_WORKER_ID) {
-  test.skip("skipped in jest runner", () => {});
+// Skip when run by Jest or in CI (this is a screenshot utility, not a functional test)
+if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
+  test.skip("skipped in jest runner or CI", () => {});
 } else {
   test.describe("Dialog Screenshots", () => {
     test.beforeEach(async ({ page }) => {

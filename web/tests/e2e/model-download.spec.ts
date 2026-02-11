@@ -5,9 +5,9 @@ import { BACKEND_URL, BACKEND_WS_URL } from "./support/backend";
 const TEST_TIMEOUT_MS = 180000;  // 3 minutes for the overall test
 const DOWNLOAD_TIMEOUT_MS = 120000;  // 2 minutes for the download operation
 
-// Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
-if (process.env.JEST_WORKER_ID) {
-  test.skip("skipped in jest runner", () => {});
+// Skip when executed by Jest or in CI (requires local server with network access for downloads)
+if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
+  test.skip("skipped in jest runner or CI", () => {});
 } else {
   test.describe("Model Download", () => {
     // Use a very small test model from HuggingFace (< 1MB)
