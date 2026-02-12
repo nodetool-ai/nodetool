@@ -321,8 +321,16 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { workflow_id, title } = data;
   // Subscribe directly to focusedNodeId with equality check to avoid re-renders
   const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
-  const updateNodeData = useNodes((state) => state.updateNodeData);
-  const updateNode = useNodes((state) => state.updateNode);
+  // Combine useNodes subscriptions into a single selector to reduce re-renders
+  const { updateNodeData, updateNode } = useNodes(
+    useMemo(
+      () => (state) => ({
+        updateNodeData: state.updateNodeData,
+        updateNode: state.updateNode
+      }),
+      []
+    )
+  );
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -390,13 +398,20 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [parentId, nodeType, isLoading, metadata]
   );
 
-  // Results and rendering
-  const result = useResultsStore((state) => {
-    const r =
-      state.getOutputResult(workflow_id, id) ||
-      state.getResult(workflow_id, id);
-    return r;
-  });
+  // Results and rendering - combine multiple store subscriptions into single selector
+  const { result, chunk, toolCall, planningUpdate, task } = useResultsStore(
+    useMemo(
+      () => (state) => ({
+        result:
+          state.getOutputResult(workflow_id, id) || state.getResult(workflow_id, id),
+        chunk: state.getChunk(workflow_id, id),
+        toolCall: state.getToolCall(workflow_id, id),
+        planningUpdate: state.getPlanningUpdate(workflow_id, id),
+        task: state.getTask(workflow_id, id)
+      }),
+      [workflow_id, id]
+    )
+  );
 
   // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
@@ -438,14 +453,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     result &&
     !isEmptyResult(result);
 
-  const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
-  const toolCall = useResultsStore((state) =>
-    state.getToolCall(workflow_id, id)
-  );
-  const planningUpdate = useResultsStore((state) =>
-    state.getPlanningUpdate(workflow_id, id)
-  );
-
   // Node metadata and properties
   const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
 
@@ -453,8 +460,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => getHeaderColors(metadata, theme, type),
     [metadata, theme, type]
   );
-
-  const task = useResultsStore((state) => state.getTask(workflow_id, id));
 
   // Use useMemo to cache the styles based on nodeColors
   const styles = useMemo(() => getNodeStyles(nodeColors), [nodeColors]);
