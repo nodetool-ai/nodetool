@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useEffect, useState, useRef } from "react";
 import { LinearProgress, Typography } from "@mui/material";
-import useResultsStore from "../../stores/ResultsStore";
+import { useNodeProgress } from "../../hooks/useNodeProgress";
 import isEqual from "lodash/isEqual";
 
 const NodeProgress = ({
@@ -11,9 +11,8 @@ const NodeProgress = ({
   id: string;
   workflowId: string;
 }) => {
-  const progress = useResultsStore((state) =>
-    state.getProgress(workflowId, id)
-  );
+  // Use optimized hook to prevent unnecessary re-renders
+  const progress = useNodeProgress(workflowId, id);
   const [eta, setEta] = useState<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
 

@@ -9,7 +9,7 @@ import type { Theme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodePreview } from "../../../hooks/useNodePreview";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeResizer from "../NodeResizer";
@@ -112,10 +112,8 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
   const theme = useTheme();
   const hasParent = props.parentId !== undefined;
 
-  // Get the preview result for this node
-  const result = useResultsStore((state) =>
-    state.getPreview(props.data.workflow_id, props.id)
-  );
+  // Get the preview result for this node - use optimized hook
+  const result = useNodePreview(props.data.workflow_id, props.id);
 
   // Extract comparison data from result
   const comparisonData = useMemo(() => {

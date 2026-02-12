@@ -10,7 +10,7 @@ import log from "loglevel";
 import isEqual from "lodash/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeResult } from "../../../hooks/useNodeResult";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
@@ -292,10 +292,8 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
 
-  // Use getOutputResult instead of getPreview - this gets accumulated streaming outputs
-  const result = useResultsStore((state) =>
-    state.getOutputResult(props.data.workflow_id, props.id)
-  );
+  // Use getOutputResult - use optimized hook to prevent unnecessary re-renders
+  const result = useNodeResult(props.data.workflow_id, props.id);
 
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
 
