@@ -1,35 +1,40 @@
-# ⚡ Bolt: FloatingToolBar Performance Optimization
+# ⚡ Bolt: NodeEditor Drag Performance Optimization
 
 ## 💡 What
-Modified `web/src/components/panels/FloatingToolBar.tsx` to stop subscribing to the full `nodes` and `edges` arrays from the Zustand store.
+Modified `web/src/components/node_editor/NodeEditor.tsx` and `web/src/components/node_editor/SelectionActionToolbar.tsx` to stop subscribing to the `nodes` array or derived arrays (via `filter`) that change on every position update.
 
 ## 🎯 Why
-The `FloatingToolBar` component was re-rendering on every single node drag or position update because it subscribed to `state.nodes` and `state.edges`. Since `nodes` are immutable arrays, any change (even position updates during dragging) creates a new array reference, triggering a re-render of the toolbar.
-
-This caused unnecessary main thread work during high-frequency interactions like dragging nodes, potentially contributing to UI lag.
+The `NodeEditor` component subscribed to `state.getSelectedNodes()`, which returns a new array on every store update (even if selection is stable, if nodes move).
+The `SelectionActionToolbar` subscribed to `state.nodes.filter(...)`, which also returns a new array on every store update (e.g., during drag).
+This caused unnecessary re-renders of the entire editor and toolbar on every frame of a drag operation, consuming main thread resources.
 
 ## 📊 Impact
-- **Reduces re-renders:** `FloatingToolBar` now only re-renders when:
-  - The workflow becomes empty or non-empty (`nodes.length === 0 && edges.length === 0`).
-  - The workflow metadata changes (e.g., name).
-  - It does **NOT** re-render when nodes are moved, resized, or when their data changes.
-- **Improved Responsiveness:** Frees up React reconciliation cycles during drag operations.
+- **Reduces re-renders:** `NodeEditor` and `SelectionActionToolbar` now only re-render when the *set of selected node IDs* changes (or the count changes for toolbar), not when their positions change.
+- **Improved Responsiveness:** Frees up React reconciliation cycles during drag operations, making the UI smoother.
 
 ## 🔬 Measurement
 The optimization replaced:
 ```typescript
-const { nodes, edges } = useNodes((state) => ({ nodes: state.nodes, edges: state.edges }));
+// In NodeEditor.tsx
+const selectedNodes = useNodes((state) => state.getSelectedNodes());
 ```
 with:
 ```typescript
-const nodeStore = useNodeStoreRef();
-const isEmptyWorkflow = useNodes((state) => state.nodes.length === 0 && state.edges.length === 0);
+// Uses IDs (stable strings) instead of node objects (mutable)
+const selectedNodeIds = useNodes((state) => state.getSelectedNodeIds());
+```
 
-// In handleRun callback:
-const { nodes, edges } = nodeStore.getState();
+And in `SelectionActionToolbar.tsx`:
+```typescript
+const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
+```
+with:
+```typescript
+// Uses count (number) which is stable during drag
+const selectedCount = useNodes((state) => state.getSelectedNodeCount());
 ```
 
 ## 🧪 Testing
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `make lint`: Passed for web package.
-- Ran `make test`: Passed for web package (294 tests passed).
+- Attempted `make test`: Encountered pre-existing environment failures in `FlexColumn.tsx`, but updated `SelectionActionToolbar.test.tsx` to align with changes.
