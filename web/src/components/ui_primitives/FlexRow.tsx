@@ -5,7 +5,7 @@
  * Eliminates repetitive `display: flex, gap` patterns.
  */
 
-import React from "react";
+import * as React from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
