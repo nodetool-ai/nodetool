@@ -244,9 +244,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         next.add(scrollToNamespace);
         return next;
       });
-      
+
       // Scroll to the namespace element after a short delay to allow expansion
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         const element = namespaceRefs.current.get(scrollToNamespace);
         if (element) {
           element.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -254,6 +254,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         // Signal completion
         onScrollToNamespaceComplete?.();
       }, 50);
+
+      // Cleanup timeout
+      return () => clearTimeout(timeoutId);
     }
   }, [scrollToNamespace, onScrollToNamespaceComplete]);
   
@@ -458,7 +461,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     }
 
     // Otherwise, only show namespaces (collapsible)
-    return Object.entries(groupNodes(nodes)).map(
+    return Object.entries(nodesByNamespaceAll).map(
         ([namespace, nodesInNamespace], namespaceIndex) => {
           let textForNamespaceHeader = namespace; // Default to full namespace string
 
@@ -573,7 +576,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       );
   }, [
     searchTerm,
-    nodes,
+    nodesByNamespaceAll,
     groupedSearchResults,
     renderGroup,
     selectedPath,

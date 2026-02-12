@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -126,16 +126,97 @@ const styles = (theme: Theme) =>
     }
   });
 
+// Memoized list item component to prevent unnecessary re-renders
+const NodeExplorerItem = memo(function NodeExplorerItem({
+  entry,
+  onNodeClick,
+  onContextMenu,
+  onEditButtonClick
+}: {
+  entry: ExplorerEntry;
+  onNodeClick: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onContextMenu: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onEditButtonClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  const internalHandleClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      onNodeClick(event);
+    },
+    [onNodeClick]
+  );
+
+  const internalHandleContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      onContextMenu(event);
+    },
+    [onContextMenu]
+  );
+
+  const internalHandleEditClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      onEditButtonClick(event);
+    },
+    [onEditButtonClick]
+  );
+
+  return (
+    <ListItem className="node-item" disablePadding>
+      <ListItemButton
+        className="node-body"
+        data-node-id={entry.node.id}
+        onClick={internalHandleClick}
+        onContextMenu={internalHandleContextMenu}
+      >
+        <div className="node-text">
+          <Typography className="node-title" variant="body1">
+            {entry.title}
+          </Typography>
+          {entry.subtitle && (
+            <Typography className="node-subtitle" variant="body2">
+              {entry.subtitle}
+            </Typography>
+          )}
+        </div>
+      </ListItemButton>
+      <Button
+        className="node-edit-button"
+        size="small"
+        aria-label="Edit node"
+        data-node-id={entry.node.id}
+        onClick={internalHandleEditClick}
+      >
+        <NorthEastIcon fontSize="small" />
+      </Button>
+    </ListItem>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison for entry object
+  return (
+    prevProps.entry.node.id === nextProps.entry.node.id &&
+    prevProps.entry.node.data?.title === nextProps.entry.node.data?.title &&
+    prevProps.entry.title === nextProps.entry.title &&
+    prevProps.entry.subtitle === nextProps.entry.subtitle
+  );
+});
+
 const NodeExplorer: React.FC = () => {
   const theme = useTheme();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const { nodes, setSelectedNodes } = useNodes((state) => ({
-    nodes: state.nodes,
-    setSelectedNodes: state.setSelectedNodes
-  }));
+  const nodes = useNodes((state) => state.nodes);
+  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
   const setActiveView = useRightPanelStore((state) => state.setActiveView);
   const setPanelVisible = useRightPanelStore((state) => state.setVisibility);
   const [filter, setFilter] = useState("");
+  const pendingRafs = useRef<Set<number>>(new Set());
+
+  // Cleanup any pending animation frames on unmount
+  useEffect(() => {
+    const currentRafs = pendingRafs.current;
+    return () => {
+      currentRafs.forEach((rafId) => cancelAnimationFrame(rafId));
+      currentRafs.clear();
+    };
+  }, []);
 
   const entries = useMemo<ExplorerEntry[]>(() => {
     const normalizedFilter = filter.trim().toLowerCase();
@@ -196,21 +277,24 @@ const NodeExplorer: React.FC = () => {
 
   const handleNodeFocus = useCallback(
     (nodeId: string) => {
-
       const node = nodes.find((candidate) => candidate.id === nodeId);
       if (!node) {
         console.warn("[NodeExplorer] node not found", { nodeId });
         return;
       }
 
-      // setSelectedNodes([node]);
-      requestAnimationFrame(() => {
+      const rafId = requestAnimationFrame(() => {
         window.dispatchEvent(
           new CustomEvent("nodetool:fit-node", {
             detail: { nodeId, node }
           })
         );
+        // Clean up the RAF ID after execution
+        pendingRafs.current.delete(rafId);
       });
+
+      // Track the RAF ID for cleanup on unmount
+      pendingRafs.current.add(rafId);
     },
     [nodes]
   );
@@ -322,34 +406,13 @@ const NodeExplorer: React.FC = () => {
       ) : (
         <List className="node-list" dense disablePadding>
           {entries.map((entry) => (
-            <ListItem key={entry.node.id} className="node-item" disablePadding>
-              <ListItemButton
-                className="node-body"
-                data-node-id={entry.node.id}
-                onClick={handleNodeClick}
-                onContextMenu={handleContextMenu}
-              >
-                <div className="node-text">
-                  <Typography className="node-title" variant="body1">
-                    {entry.title}
-                  </Typography>
-                  {entry.subtitle && (
-                    <Typography className="node-subtitle" variant="body2">
-                      {entry.subtitle}
-                    </Typography>
-                  )}
-                </div>
-              </ListItemButton>
-              <Button
-                className="node-edit-button"
-                size="small"
-                aria-label="Edit node"
-                data-node-id={entry.node.id}
-                onClick={handleEditButtonClick}
-              >
-                <NorthEastIcon fontSize="small" />
-              </Button>
-            </ListItem>
+            <NodeExplorerItem
+              key={entry.node.id}
+              entry={entry}
+              onNodeClick={handleNodeClick}
+              onContextMenu={handleContextMenu}
+              onEditButtonClick={handleEditButtonClick}
+            />
           ))}
         </List>
       )}
