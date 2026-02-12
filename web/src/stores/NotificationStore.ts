@@ -27,6 +27,8 @@ export interface Notification {
   action?: NotificationAction;
   /** Optional key for deduplication. If not provided, type + content is used. */
   dedupeKey?: string;
+  /** When true, replaces existing notifications with the same dedupeKey instead of accumulating. */
+  replaceExisting?: boolean;
 }
 
 /** Time window in milliseconds within which duplicate notifications are suppressed. */
@@ -82,12 +84,23 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
       log.info("NOTIFICATION:", notification);
     }
 
-    set((state) => ({
-      notifications: [
-        ...state.notifications,
-        { ...notification, id: uuidv4(), timestamp: now }
-      ]
-    }));
+    set((state) => {
+      // When replaceExisting is true, remove previous notifications with the same key
+      const base = notification.replaceExisting
+        ? state.notifications.filter((existing) => {
+            const existingKey =
+              existing.dedupeKey ?? `${existing.type}:${existing.content}`;
+            return existingKey !== key;
+          })
+        : state.notifications;
+
+      return {
+        notifications: [
+          ...base,
+          { ...notification, id: uuidv4(), timestamp: now }
+        ]
+      };
+    });
   },
   removeNotification: (id: string) => {
     set((state) => ({

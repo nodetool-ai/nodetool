@@ -99,6 +99,18 @@ const Alert: React.FC = memo(() => {
 
   const nodeRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
   const [_show, setShow] = useState<Record<string, boolean>>({});
+  // Store timeout IDs in a ref so they persist across effect re-runs
+  const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>[]>>(new Map());
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach((timeouts) => {
+        timeouts.forEach(clearTimeout);
+      });
+      timeoutsRef.current.clear();
+    };
+  }, []);
 
   useEffect(() => {
     const lastDisplayedDate = new Date(lastDisplayedTimestamp || 0);
@@ -133,9 +145,6 @@ const Alert: React.FC = memo(() => {
       updateLastDisplayedTimestamp(latestTimestamp);
     }
 
-    // Track all cleanup functions to prevent memory leaks
-    const cleanupFunctions: (() => void)[] = [];
-
     newNotifications.forEach((notification) => {
       setShow((s) => ({ ...s, [notification.id]: true }));
 
@@ -146,20 +155,21 @@ const Alert: React.FC = memo(() => {
           setVisibleNotifications((prev) =>
             prev.filter((item) => item.id !== notification.id)
           );
+          // Clean up tracked timeouts for this notification
+          timeoutsRef.current.delete(notification.id);
         }, TRANSITION_DURATION);
 
-        // Add cleanup for the inner timeout
-        cleanupFunctions.push(() => clearTimeout(removeTimeout));
+        // Track the inner timeout
+        const existing = timeoutsRef.current.get(notification.id) || [];
+        existing.push(removeTimeout);
+        timeoutsRef.current.set(notification.id, existing);
       }, notification.timeout || DEFAULT_NOTIFICATION_TIMEOUT);
 
-      // Add cleanup for the outer timeout
-      cleanupFunctions.push(() => clearTimeout(showTimeout));
+      // Track the outer timeout in the ref
+      const existing = timeoutsRef.current.get(notification.id) || [];
+      existing.push(showTimeout);
+      timeoutsRef.current.set(notification.id, existing);
     });
-
-    return () => {
-      // Clean up all timeouts to prevent memory leaks
-      cleanupFunctions.forEach((cleanup) => cleanup());
-    };
   }, [
     notifications,
     lastDisplayedTimestamp,
