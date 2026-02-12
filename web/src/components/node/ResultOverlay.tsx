@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { Box, IconButton, Typography, Divider, Tooltip } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
@@ -148,4 +148,4 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
   );
 };
 
-export default ResultOverlay;
+export default memo(ResultOverlay);

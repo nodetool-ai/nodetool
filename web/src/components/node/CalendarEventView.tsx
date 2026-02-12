@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Card, CardContent, Typography, Box, Chip } from "@mui/material";
 import { CalendarEvent, Datetime } from "../../stores/ApiTypes";
 import EventIcon from "@mui/icons-material/Event";
@@ -69,4 +69,4 @@ const CalendarEventView: React.FC<CalendarEventViewProps> = ({ event }) => {
   );
 };
 
-export default CalendarEventView;
+export default memo(CalendarEventView);

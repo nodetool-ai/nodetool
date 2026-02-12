@@ -152,12 +152,14 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
 
+  // Only subscribe to edges array - we don't need the entire store
   const edges = useNodes((state) => state.edges);
   const connectedEdges = useMemo(
     () => edges.filter((e) => e.target === id),
     [edges, id]
   );
 
+  // Subscribe only to findNode function, not entire store
   const findNode = useNodes((state) => state.findNode);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);

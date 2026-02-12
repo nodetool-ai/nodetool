@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -56,4 +56,4 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
   );
 };
 
-export default TaskView;
+export default memo(TaskView);

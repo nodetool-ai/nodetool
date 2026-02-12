@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -130,4 +130,4 @@ const StepView: React.FC<StepViewProps> = ({ step }) => {
   );
 };
 
-export default StepView;
+export default memo(StepView);
