@@ -29,6 +29,74 @@ const fetchModelsForProvider = async (provider: InferenceProvider, pipelineTag: 
   return response.json();
 };
 
+// Move providerOptions outside component to prevent recreation on every render
+const PROVIDER_OPTIONS = [
+  {
+    label: "Cerebras",
+    value: "cerebras"
+  },
+  {
+    label: "Cohere",
+    value: "cohere"
+  },
+  {
+    label: "Fal AI",
+    value: "fal-ai"
+  },
+  {
+    label: "Featherless AI",
+    value: "featherless-ai"
+  },
+  {
+    label: "Fireworks AI",
+    value: "fireworks-ai"
+  },
+  {
+    label: "Groq",
+    value: "groq"
+  },
+  {
+    label: "HF Inference",
+    value: "hf-inference"
+  },
+  {
+    label: "Hyperbolic",
+    value: "hyperbolic"
+  },
+  {
+    label: "Nebius",
+    value: "nebius"
+  },
+  {
+    label: "Novita",
+    value: "novita"
+  },
+  {
+    label: "Nscale",
+    value: "nscale"
+  },
+  {
+    label: "OpenAI",
+    value: "openai"
+  },
+  {
+    label: "Replicate",
+    value: "replicate"
+  },
+  {
+    label: "Sambanova",
+    value: "sambanova"
+  },
+  {
+    label: "Together",
+    value: "together"
+  },
+  {
+    label: "Z.AI",
+    value: "zai-org"
+  }
+] as const;
+
 const InferenceProviderModelSelect = ({
   property,
   onChange,
@@ -39,72 +107,6 @@ const InferenceProviderModelSelect = ({
   value: any;
 }) => {
     const [provider, setProvider] = useState<InferenceProvider>(value.provider);
-    const providerOptions = [
-        {
-            label: "Cerebras",
-            value: "cerebras"
-        },
-        {
-            label: "Cohere",
-            value: "cohere"
-        },
-        {
-            label: "Fal AI",
-            value: "fal-ai"
-        },
-        {
-            label: "Featherless AI",
-            value: "featherless-ai"
-        },
-        {
-            label: "Fireworks AI",
-            value: "fireworks-ai"
-        },
-        {
-            label: "Groq",
-            value: "groq"
-        },
-        {
-            label: "HF Inference",
-            value: "hf-inference"
-        },
-        {
-            label: "Hyperbolic",
-            value: "hyperbolic"
-        },
-        {
-            label: "Nebius",
-            value: "nebius"
-        },
-        {
-            label: "Novita",
-            value: "novita"
-        },
-        {
-            label: "Nscale",
-            value: "nscale"
-        },
-        {
-            label: "OpenAI",
-            value: "openai"
-        },
-        {
-            label: "Replicate",
-            value: "replicate"
-        },
-        {
-            label: "Sambanova",
-            value: "sambanova"
-        },
-        {
-            label: "Together",
-            value: "together"
-        },
-        {
-            label: "Z.AI",
-            value: "zai-org"
-        }
-    ];
     const pipelineTag = useMemo(() => {
         switch (property.type.type) {
         case "inference_provider_automatic_speech_recognition_model":
@@ -179,7 +181,7 @@ const InferenceProviderModelSelect = ({
                     Provider
                 </Typography>
                 <Select
-                    options={providerOptions}
+                    options={[...PROVIDER_OPTIONS]}
                     value={value.provider}
                     onChange={handleChangeProvider}
                     placeholder="Select an inference provider"
