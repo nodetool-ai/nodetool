@@ -1,7 +1,8 @@
 import { useContext, useEffect } from "react";
 import { MenuContext } from "../providers/MenuProvider";
+import type { MenuEventData } from "../window.d";
 
-type MenuEventHandler = (data: any) => void;
+type MenuEventHandler = (data: MenuEventData) => void;
 
 export const useMenuHandler = (handler: MenuEventHandler) => {
   const context = useContext(MenuContext);

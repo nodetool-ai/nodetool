@@ -1,9 +1,9 @@
-import { NodeMetadata, Workflow } from "../../stores/ApiTypes";
+import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { NodeStore } from "../../stores/NodeStore";
 
-export type JsonSchema = Record<string, any>;
+export type JsonSchema = Record<string, unknown>;
 
-export interface FrontendToolDefinition<Args = any, Result = any> {
+export interface FrontendToolDefinition<Result = unknown> {
   name: `ui_${string}`;
   description: string;
   parameters: JsonSchema;
@@ -13,7 +13,8 @@ export interface FrontendToolDefinition<Args = any, Result = any> {
    */
   hidden?: boolean;
   requireUserConsent?: boolean;
-  execute: (args: Args, ctx: FrontendToolContext) => Promise<Result>;
+  // Use `any` here to allow destructured parameters in tool implementations
+  execute: (args: any, ctx: FrontendToolContext) => Promise<Result>;
 }
 
 export interface FrontendToolState {
@@ -30,7 +31,7 @@ export interface FrontendToolState {
   fetchWorkflow: (workflowId: string) => Promise<void>;
   newWorkflow: () => Workflow;
   createNew: () => Promise<Workflow>;
-  searchTemplates: (query: string) => Promise<any>;
+  searchTemplates: (query: string) => Promise<WorkflowList>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
 }
 
@@ -63,7 +64,7 @@ export const FrontendToolRegistry = {
   },
   async call(
     name: string,
-    args: any,
+    args: unknown,
     toolCallId: string,
     ctx: Omit<FrontendToolContext, "abortSignal">
   ) {
