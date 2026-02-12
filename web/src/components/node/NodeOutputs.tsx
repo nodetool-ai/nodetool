@@ -24,7 +24,16 @@ export interface NodeOutputsProps {
 }
 
 export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreamingOutput }) => {
-  const node = useNodes((state) => state.findNode(id));
+  // Combine multiple useNodes subscriptions into a single selector to reduce re-renders
+  const { node, updateNodeData } = useNodes(
+    useMemo(
+      () => (state) => ({
+        node: state.findNode(id),
+        updateNodeData: state.updateNodeData
+      }),
+      [id]
+    )
+  );
   const nodeType = node?.type || "";
   const metadata = useMetadataStore((state) =>
     nodeType ? state.getMetadata(nodeType) : undefined
@@ -34,7 +43,6 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
     id,
     node?.data?.dynamic_outputs || {}
   );
-  const updateNodeData = useNodes((state) => state.updateNodeData);
 
   const [renameTarget, setRenameTarget] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");

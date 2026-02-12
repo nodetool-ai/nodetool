@@ -152,15 +152,24 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
 
-  const edges = useNodes((state) => state.edges);
+  // Combine multiple useNodes subscriptions into a single selector to reduce re-renders
+  const { edges, findNode } = useNodes(
+    useMemo(
+      () => (state) => ({
+        edges: state.edges,
+        findNode: state.findNode
+      }),
+      []
+    )
+  );
+
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+
+  // Memoize connected edges for this node
   const connectedEdges = useMemo(
     () => edges.filter((e) => e.target === id),
     [edges, id]
   );
-
-  const findNode = useNodes((state) => state.findNode);
-
-  const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const isConnected = useCallback(
     (handle: string) => {
