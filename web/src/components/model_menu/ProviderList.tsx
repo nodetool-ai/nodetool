@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
+import isEqual from "lodash/isEqual";
 import {
   List,
   ListItemButton,
@@ -407,4 +408,4 @@ const ProviderList: React.FC<ProviderListProps> = ({
   );
 };
 
-export default ProviderList;
+export default memo(ProviderList, isEqual);
