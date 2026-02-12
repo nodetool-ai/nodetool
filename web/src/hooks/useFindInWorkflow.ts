@@ -1,55 +1,11 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
-/**
- * Hook to implement "Find in Workflow" functionality.
- * 
- * Provides search capabilities for finding nodes within the current workflow.
- * Supports searching by node name, node type, or node ID with debounced
- * input and keyboard navigation through results.
- * 
- * @returns Object containing:
- *   - isOpen: Whether the find dialog is open
- *   - searchTerm: Current search term
- *   - results: Array of matching nodes with indices
- *   - selectedIndex: Currently selected result index
- *   - totalCount: Total number of matching results
- *   - openFind: Function to open the find dialog
- *   - closeFind: Function to close the find dialog
- *   - performSearch: Debounced search function for text input
- *   - immediateSearch: Non-debounced search function
- *   - goToSelected: Navigate to and select the current result
- *   - navigateNext: Move to next result
- *   - navigatePrevious: Move to previous result
- *   - clearSearch: Clear search term and results
- *   - selectNode: Programmatically select a result by index
- *   - getNodeDisplayName: Get display name for a node
- * 
- * @example
- * ```typescript
- * const { 
- *   isOpen, 
- *   openFind, 
- *   performSearch, 
- *   results,
- *   goToSelected 
- * } = useFindInWorkflow();
- * 
- * // Open find dialog
- * openFind();
- * 
- * // Search for nodes
- * performSearch("text");
- * 
- * // Navigate to result
- * goToSelected();
- * ```
- */
 export const useFindInWorkflow = () => {
   const isOpen = useFindInWorkflowStore((state) => state.isOpen);
   const searchTerm = useFindInWorkflowStore((state) => state.searchTerm);
@@ -66,6 +22,10 @@ export const useFindInWorkflow = () => {
 
   const nodes = useNodes((state) => state.nodes);
   const { setCenter, fitView } = useReactFlow();
+
+  // Get node store reference for use in selectAllResults
+  // We call this outside useCallback to avoid React Hook rules violations
+  const nodeStore = useNodeStoreRef();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -137,7 +97,7 @@ export const useFindInWorkflow = () => {
         clearTimeout(searchTimeoutRef.current);
       }
 
-      // Debounce the actual search
+      // Debounce actual search
       searchTimeoutRef.current = setTimeout(() => {
         performSearch(term);
       }, 150);
@@ -192,6 +152,26 @@ export const useFindInWorkflow = () => {
     [results.length, setSelectedIndex]
   );
 
+  const selectAllResults = useCallback(() => {
+    if (results.length === 0) {
+      return;
+    }
+
+    // Extract the node objects from results to select them
+    const nodesToSelect = results.map((result) => result.node);
+    const nodeIds = new Set(nodesToSelect.map((node) => node.id));
+
+    // Update all nodes: set selected=true for matched nodes
+    const updatedNodes = nodes.map((node) =>
+      nodeIds.has(node.id) ? { ...node, selected: true } : node
+    );
+
+    // Use the node store from context to call setNodes
+    // We need to call it at the top level, not inside a callback
+    const nodeStore = useNodeStoreRef();
+    (nodeStore as any).getState().setNodes(updatedNodes);
+  }, [results, nodes, useNodeStoreRef]);
+  
   return {
     isOpen,
     searchTerm,
@@ -207,6 +187,7 @@ export const useFindInWorkflow = () => {
     navigatePrevious,
     clearSearch,
     selectNode,
+    selectAllResults,
     getNodeDisplayName
   };
 };
