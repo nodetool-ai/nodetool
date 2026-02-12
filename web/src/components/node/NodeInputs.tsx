@@ -7,6 +7,7 @@ import { NodeData } from "../../stores/NodeData";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
+import { useNodeEdges } from "../../hooks/useNodeEdges";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { Button } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -152,7 +153,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
 
-  const edges = useNodes((state) => state.edges);
+  // Use optimized hook for edges to prevent unnecessary re-renders
+  const edges = useNodeEdges();
   const connectedEdges = useMemo(
     () => edges.filter((e) => e.target === id),
     [edges, id]

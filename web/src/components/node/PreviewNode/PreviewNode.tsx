@@ -10,7 +10,7 @@ import log from "loglevel";
 import isEqual from "lodash/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodePreview } from "../../../hooks/useNodePreview";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
@@ -267,9 +267,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const hasParent = props.parentId !== undefined;
   const [isContentFocused, setIsContentFocused] = useState(false);
 
-  const result = useResultsStore((state) =>
-    state.getPreview(props.data.workflow_id, props.id)
-  );
+  // Use optimized hook to prevent unnecessary re-renders
+  const result = useNodePreview(props.data.workflow_id, props.id);
 
   const previewOutput = useMemo(() => getOutputFromResult(result), [result]);
 

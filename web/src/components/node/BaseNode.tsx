@@ -19,8 +19,13 @@ import { Button, Container, Tooltip } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
-import useStatusStore from "../../stores/StatusStore";
-import useResultsStore from "../../stores/ResultsStore";
+import { useNodeStatus } from "../../hooks/useNodeStatus";
+import { useNodeResult } from "../../hooks/useNodeResult";
+import { useNodeMetadata } from "../../hooks/useNodeMetadata";
+import { useNodeChunk } from "../../hooks/useNodeChunk";
+import { useNodeToolCall } from "../../hooks/useNodeToolCall";
+import { useNodePlanningUpdate } from "../../hooks/useNodePlanningUpdate";
+import { useNodeTask } from "../../hooks/useNodeTask";
 import useErrorStore from "../../stores/ErrorStore";
 import ModelRecommendations from "./ModelRecommendations";
 import ApiKeyValidation from "./ApiKeyValidation";
@@ -30,7 +35,6 @@ import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
-import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../../hooks/nodes/useSelect";
 import EditableTitle from "./EditableTitle";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -338,10 +342,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }),
     [type]
   );
-  // Status
-  const statusValue = useStatusStore((state) =>
-    state.getStatus(workflow_id, id)
-  );
+  // Status - use optimized hook to prevent unnecessary re-renders
+  const statusValue = useNodeStatus(workflow_id, id);
   const status =
     statusValue && statusValue !== null && typeof statusValue !== "object"
       ? statusValue
@@ -351,8 +353,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [status]
   );
 
-  // Metadata
-  const metadata = useMetadataStore((state) => state.getMetadata(type));
+  // Metadata - use optimized hook to prevent unnecessary re-renders
+  const metadata = useNodeMetadata(type);
   if (!metadata) {
     throw new Error("Metadata is not loaded for node type " + type);
   }
@@ -390,13 +392,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [parentId, nodeType, isLoading, metadata]
   );
 
-  // Results and rendering
-  const result = useResultsStore((state) => {
-    const r =
-      state.getOutputResult(workflow_id, id) ||
-      state.getResult(workflow_id, id);
-    return r;
-  });
+  // Results and rendering - use optimized hook to prevent unnecessary re-renders
+  const result = useNodeResult(workflow_id, id);
 
   // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
@@ -438,13 +435,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     result &&
     !isEmptyResult(result);
 
-  const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
-  const toolCall = useResultsStore((state) =>
-    state.getToolCall(workflow_id, id)
-  );
-  const planningUpdate = useResultsStore((state) =>
-    state.getPlanningUpdate(workflow_id, id)
-  );
+  // Use optimized hooks to prevent unnecessary re-renders
+  const chunk = useNodeChunk(workflow_id, id);
+  const toolCall = useNodeToolCall(workflow_id, id);
+  const planningUpdate = useNodePlanningUpdate(workflow_id, id);
 
   // Node metadata and properties
   const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
@@ -454,7 +448,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [metadata, theme, type]
   );
 
-  const task = useResultsStore((state) => state.getTask(workflow_id, id));
+  // Use optimized hook to prevent unnecessary re-renders
+  const task = useNodeTask(workflow_id, id);
 
   // Use useMemo to cache the styles based on nodeColors
   const styles = useMemo(() => getNodeStyles(nodeColors), [nodeColors]);

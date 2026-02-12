@@ -9,9 +9,9 @@ import NodeStatus from "../NodeStatus";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeToolButtons from "../NodeToolButtons";
 import NodeExecutionTime from "../NodeExecutionTime";
-import useMetadataStore from "../../../stores/MetadataStore";
-import useStatusStore from "../../../stores/StatusStore";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeMetadata } from "../../../hooks/useNodeMetadata";
+import { useNodeStatus } from "../../../hooks/useNodeStatus";
+import { useNodeResult } from "../../../hooks/useNodeResult";
 import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
@@ -61,16 +61,14 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
-  const metadata = useMetadataStore((state) => state.getMetadata(type));
-  const status = useStatusStore((state) => state.getStatus(workflow_id, id));
+  // Use optimized hooks to prevent unnecessary re-renders
+  const metadata = useNodeMetadata(type);
+  const status = useNodeStatus(workflow_id, id);
   const statusValue =
     status && status !== null && typeof status !== "object"
       ? status
       : undefined;
-  const result = useResultsStore(
-    (state) =>
-      state.getOutputResult(workflow_id, id) ?? state.getResult(workflow_id, id)
-  );
+  const result = useNodeResult(workflow_id, id);
 
   const meta = useMemo(
     () => {
