@@ -113,11 +113,8 @@ export const useAssets = (_initialFolderId: string | null = null) => {
       (asset) => asset.content_type !== "folder"
     );
 
-    // Sort by content_type and then by the user's preferred order
+    // Sort by the user's preferred order (views handle grouping by type)
     return nonFolderAssets.sort((a, b) => {
-      if (a.content_type !== b.content_type) {
-        return a.content_type.localeCompare(b.content_type);
-      }
       if (settings.assetsOrder === "name") {
         return a.name.localeCompare(b.name);
       } else if (settings.assetsOrder === "date") {
@@ -125,13 +122,11 @@ export const useAssets = (_initialFolderId: string | null = null) => {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       } else if (settings.assetsOrder === "size") {
-        // Sort by file size (largest first)
         const aSize = a.size;
         const bSize = b.size;
         if (aSize !== undefined && aSize !== null && bSize !== undefined && bSize !== null) {
           return bSize - aSize;
         }
-        // Fall back to name sorting if size is not available
         return a.name.localeCompare(b.name);
       } else {
         return (

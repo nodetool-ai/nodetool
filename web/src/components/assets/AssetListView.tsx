@@ -242,11 +242,6 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
       grouped[type].push(asset);
     });
 
-    // Sort each group by name
-    Object.keys(grouped).forEach((type) => {
-      grouped[type].sort((a, b) => a.name.localeCompare(b.name));
-    });
-
     return grouped;
   }, [assets]);
 
