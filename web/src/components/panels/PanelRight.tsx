@@ -6,7 +6,7 @@ import { Box } from "@mui/material";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import isEqual from "lodash/isEqual";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -128,6 +128,11 @@ const PanelRight: React.FC = () => {
   );
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
 
+  // Memoize workflow to prevent unnecessary re-renders when activeNodeStore reference changes
+  const workflow = useMemo(() => {
+    return activeNodeStore?.getState().getWorkflow();
+  }, [activeNodeStore]);
+
   const handleRestoreVersion = async (version: WorkflowVersion) => {
     if (!activeNodeStore || !currentWorkflowId) {
       return;
@@ -222,7 +227,7 @@ const PanelRight: React.FC = () => {
                       }}
                     >
                       <WorkflowForm
-                        workflow={activeNodeStore.getState().getWorkflow()}
+                        workflow={workflow}
                         onClose={() => handlePanelToggle("workflow")}
                       />
                     </Box>
