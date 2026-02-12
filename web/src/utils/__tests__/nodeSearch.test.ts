@@ -36,7 +36,6 @@ jest.mock("../../stores/fuseOptions", () => ({
 }));
 
 // Performance thresholds for regression testing
-const PERF_THRESHOLD_LARGE = 150; // 150ms for large dataset
 const PERF_THRESHOLD_SMALL = 200; // 200ms for small dataset in CI
 const PERF_THRESHOLD_MEDIUM = 600; // 600ms for medium dataset in CI
 const SHOULD_ENFORCE_PERF = process.env.PERF_TESTS === "true";
