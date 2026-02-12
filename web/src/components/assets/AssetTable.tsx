@@ -114,12 +114,9 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     justifyContent: "center" as const,
   }), []);
 
-  // Memoize assets array to avoid recreating Row callback
-  const memoizedAssets = useMemo(() => assets, [assets]);
-
   // Virtualized row renderer for react-window
   const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const asset = memoizedAssets[index];
+    const asset = assets[index];
     if (!asset) {
       return null;
     }
@@ -131,7 +128,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
         />
       </div>
     );
-  }, [memoizedAssets, handleRemoveAsset]);
+  }, [assets, handleRemoveAsset]);
 
   // Calculate list height based on number of items + drop zone row
   const rowHeight = 53; // Approximate height of a TableRow
@@ -153,7 +150,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
         <TableBody>
           {shouldVirtualize ? (
             <TableRow>
-              <TableCell colSpan={2} sx={{ padding: 0, height: listHeight }}>
+              <TableCell colSpan={2} sx={{ padding: 0 }}>
                 <AutoSizer disableHeight>
                   {({ width }: { width: number }) => (
                     <List
