@@ -727,6 +727,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
                   alert: true,
                   dismissable: true,
                   timeout: 10000,
+                  dedupeKey: "newer-autosave-available",
+                  replaceExisting: true,
                   action: {
                     label: "View History",
                     onClick: async () => {

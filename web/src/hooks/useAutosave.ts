@@ -180,7 +180,9 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
         addNotification({
           content: "Workflow autosaved",
           type: "info",
-          alert: false
+          alert: false,
+          dedupeKey: "autosave",
+          replaceExisting: true
         });
       }
     } catch (error) {
