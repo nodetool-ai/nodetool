@@ -213,7 +213,9 @@ describe("useAutosave", () => {
       expect(addNotification).toHaveBeenCalledWith({
         content: "Workflow autosaved",
         type: "info",
-        alert: false
+        alert: false,
+        dedupeKey: "autosave",
+        replaceExisting: true
       });
     });
 
