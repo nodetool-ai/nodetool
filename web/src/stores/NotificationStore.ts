@@ -71,7 +71,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
       );
     });
 
-    if (isDuplicate) {
+    if (isDuplicate && !notification.replaceExisting) {
       log.debug("NOTIFICATION suppressed (duplicate):", notification);
       return;
     }

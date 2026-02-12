@@ -114,6 +114,26 @@ const Alert: React.FC = memo(() => {
   }, []);
 
   useEffect(() => {
+    // Clean up visible notifications that were removed from the store (e.g. via replaceExisting)
+    const storeIds = new Set(notifications.map((n) => n.id));
+    setVisibleNotifications((prev) => {
+      const filtered = prev.filter((n) => storeIds.has(n.id));
+      if (filtered.length === prev.length) {
+        return prev;
+      }
+      // Clear timeouts for removed notifications
+      prev.forEach((n) => {
+        if (!storeIds.has(n.id)) {
+          const timeouts = timeoutsRef.current.get(n.id);
+          if (timeouts) {
+            timeouts.forEach(clearTimeout);
+            timeoutsRef.current.delete(n.id);
+          }
+        }
+      });
+      return filtered;
+    });
+
     const lastDisplayedDate = new Date(lastDisplayedTimestamp || 0);
     const newNotifications = notifications.filter(
       (notification) =>
