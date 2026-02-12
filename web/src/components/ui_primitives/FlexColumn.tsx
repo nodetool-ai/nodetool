@@ -49,7 +49,7 @@ export interface FlexColumnProps extends Omit<BoxProps, 'display' | 'flexDirecti
  *   <Button>Button 2</Button>
  * </FlexColumn>
  */
-export const FlexColumn: React.FC<FlexColumnProps> = ({
+export const FlexColumn = React.forwardRef<HTMLDivElement, FlexColumnProps>(({
   gap = 0,
   padding,
   align = "stretch",
@@ -60,11 +60,12 @@ export const FlexColumn: React.FC<FlexColumnProps> = ({
   sx,
   children,
   ...props
-}) => {
+}, ref) => {
   const theme = useTheme();
 
   return (
     <Box
+      ref={ref}
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -82,4 +83,4 @@ export const FlexColumn: React.FC<FlexColumnProps> = ({
       {children}
     </Box>
   );
-};
+});

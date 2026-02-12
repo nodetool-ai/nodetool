@@ -49,7 +49,7 @@ export interface FlexRowProps extends Omit<BoxProps, 'display'> {
  *   <Chip label="Tag 3" />
  * </FlexRow>
  */
-export const FlexRow: React.FC<FlexRowProps> = ({
+export const FlexRow = React.forwardRef<HTMLDivElement, FlexRowProps>(({
   gap = 0,
   padding,
   align = "stretch",
@@ -59,11 +59,12 @@ export const FlexRow: React.FC<FlexRowProps> = ({
   sx,
   children,
   ...props
-}) => {
+}, ref) => {
   const theme = useTheme();
 
   return (
     <Box
+      ref={ref}
       sx={{
         display: "flex",
         flexDirection: "row",
@@ -80,4 +81,4 @@ export const FlexRow: React.FC<FlexRowProps> = ({
       {children}
     </Box>
   );
-};
+});
