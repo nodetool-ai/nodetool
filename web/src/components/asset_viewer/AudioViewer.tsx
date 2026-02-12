@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { MouseEventHandler } from "react";
+import React, { MouseEventHandler, memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
 
@@ -80,7 +80,7 @@ const handleRightClick: MouseEventHandler<HTMLImageElement> = (event) => {
 /**
  * AudioViewer component, used to display an audio player for a given asset.
  */
-const AudioViewer: React.FC<AudioViewerProps> = ({ asset, url }) => {
+const AudioViewer: React.FC<AudioViewerProps> = memo(({ asset, url }) => {
   const theme = useTheme();
   return (
     <div
@@ -104,6 +104,8 @@ const AudioViewer: React.FC<AudioViewerProps> = ({ asset, url }) => {
       />
     </div>
   );
-};
+});
+
+AudioViewer.displayName = "AudioViewer";
 
 export default AudioViewer;

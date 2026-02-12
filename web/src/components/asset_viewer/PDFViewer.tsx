@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
@@ -162,7 +162,7 @@ const styles = (theme: Theme) =>
 /**
  * PDFViewer component, used to display a PDF document for a given asset.
  */
-const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
+const PDFViewer: React.FC<PDFViewerProps> = memo(({ asset, url }) => {
   const theme = useTheme();
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -282,6 +282,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
       </div>
     </Box>
   );
-};
+});
+
+PDFViewer.displayName = "PDFViewer";
 
 export default PDFViewer;

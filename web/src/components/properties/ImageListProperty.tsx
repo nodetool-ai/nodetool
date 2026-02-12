@@ -233,6 +233,24 @@ const ImageListProperty = (props: PropertyProps) => {
     }
   }, []);
 
+  // Memoize click handlers for each image index to avoid recreating functions on every render
+  const removeImageHandlers = useMemo(() => {
+    const handlers: Record<number, () => void> = {};
+    for (let i = 0; i < images.length; i++) {
+      handlers[i] = () => handleRemoveImage(i);
+    }
+    return handlers;
+  }, [images.length, handleRemoveImage]);
+
+  // Memoize click handlers for image onLoad to avoid recreating functions
+  const imageLoadHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const image of images) {
+      handlers[image.uri] = () => handleImageLoad(image.uri);
+    }
+    return handlers;
+  }, [images, handleImageLoad]);
+
   // Handle file drops (both internal nodetool assets and external files)
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -491,7 +509,7 @@ const ImageListProperty = (props: PropertyProps) => {
                   src={image.uri}
                   alt={`Image ${index + 1}`}
                   draggable={false}
-                  onLoad={() => handleImageLoad(image.uri)}
+                  onLoad={imageLoadHandlers[image.uri]}
                 />
                 {imageDimensions[image.uri] && (
                   <ImageDimensions
@@ -503,7 +521,7 @@ const ImageListProperty = (props: PropertyProps) => {
               <Tooltip title="Remove image">
                 <IconButton
                   className="remove-button"
-                  onClick={() => handleRemoveImage(index)}
+                  onClick={removeImageHandlers[index]}
                   size="small"
                 >
                   <CloseIcon />
