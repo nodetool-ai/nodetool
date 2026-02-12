@@ -8,7 +8,7 @@
  * centralized and testable outside of Zustand.
  */
 import { WorkflowAttributes } from "../../stores/ApiTypes";
-import { handleUpdate } from "../../stores/workflowUpdates";
+import { handleUpdate, MsgpackData } from "../../stores/workflowUpdates";
 import { WorkflowRunnerStore } from "../../stores/WorkflowRunner";
 
 /**
@@ -18,8 +18,8 @@ import { WorkflowRunnerStore } from "../../stores/WorkflowRunner";
  */
 export const createRunnerMessageHandler = (
   store: WorkflowRunnerStore
-): (workflow: WorkflowAttributes, data: any) => void => {
-  return (workflow: WorkflowAttributes, data: any) => {
+): (workflow: WorkflowAttributes, data: MsgpackData) => void => {
+  return (workflow: WorkflowAttributes, data: MsgpackData) => {
     handleUpdate(workflow, data, store);
   };
 };
