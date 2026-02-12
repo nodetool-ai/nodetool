@@ -77,6 +77,7 @@ export const useNodeEditorShortcuts = (
   const nodeHistory = useTemporalNodes((state) => state);
   const nodesStore = useNodes((state) => ({
     selectedNodes: state.getSelectedNodes(),
+    selectedEdgeCount: state.edges.filter((edge) => Boolean(edge.selected)).length,
     selectAllNodes: state.selectAllNodes,
     setNodes: state.setNodes,
     toggleBypassSelected: state.toggleBypassSelected
@@ -117,7 +118,13 @@ export const useNodeEditorShortcuts = (
   // All hooks above this line
 
   // Now destructure/store values from the hook results
-  const { selectedNodes, selectAllNodes, setNodes, toggleBypassSelected } =
+  const {
+    selectedNodes,
+    selectedEdgeCount,
+    selectAllNodes,
+    setNodes,
+    toggleBypassSelected
+  } =
     nodesStore;
   const {
     saveExample,
@@ -543,7 +550,7 @@ export const useNodeEditorShortcuts = (
       },
       deleteSelected: {
         callback: selectionActions.deleteSelected,
-        active: selectedNodes.length > 0
+        active: selectedNodes.length > 0 || selectedEdgeCount > 0
       },
       navigateNextNode: { callback: nodeFocus.focusNext },
       navigatePrevNode: { callback: nodeFocus.focusPrev },
@@ -581,6 +588,7 @@ export const useNodeEditorShortcuts = (
     selectAllNodes,
     handleAlign,
     selectedNodes.length,
+    selectedEdgeCount,
     handleAlignWithSpacing,
     duplicateNodes,
     duplicateNodesVertical,

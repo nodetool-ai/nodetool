@@ -154,6 +154,7 @@ export interface NodeStoreState {
   deleteNode: (id: string) => void;
   findEdge: (id: string) => Edge | undefined;
   deleteEdge: (id: string) => void;
+  deleteEdges: (ids: string[]) => void;
   addEdge: (edge: Edge) => void;
   updateEdge: (edge: Edge) => void;
   updateEdgeHandle: (
@@ -712,6 +713,14 @@ export const createNodeStore = (
           },
           deleteEdge: (id: string): void => {
             set({ edges: get().edges.filter((e) => e.id !== id) });
+            get().setWorkflowDirty(true);
+          },
+          deleteEdges: (ids: string[]): void => {
+            if (ids.length === 0) {
+              return;
+            }
+            const idSet = new Set(ids);
+            set({ edges: get().edges.filter((edge) => !idSet.has(edge.id)) });
             get().setWorkflowDirty(true);
           },
           addEdge: (edge: Edge): void => {
