@@ -29,6 +29,7 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     isOutputNode: false,
     data: {
       properties: { value: "" },
+      selectable: undefined,
       dynamic_properties: {},
       workflow_id: "wf-1"
     } as NodeData,
@@ -58,6 +59,7 @@ describe("NodeContent arePropsEqual", () => {
     const next = makeProps({
       data: {
         ...prev.data,
+        selectable: undefined,
         properties: { value: "hello" }
       }
     });
@@ -68,6 +70,7 @@ describe("NodeContent arePropsEqual", () => {
     const prev = makeProps({
       data: {
         properties: { value: "" },
+        selectable: undefined,
         dynamic_properties: { custom: "old" },
         workflow_id: "wf-1"
       }
@@ -75,6 +78,7 @@ describe("NodeContent arePropsEqual", () => {
     const next = makeProps({
       data: {
         properties: { value: "" },
+        selectable: undefined,
         dynamic_properties: { custom: "new" },
         workflow_id: "wf-1"
       }
@@ -87,6 +91,7 @@ describe("NodeContent arePropsEqual", () => {
     const next = makeProps({
       data: {
         ...prev.data,
+        selectable: undefined,
         properties: { value: "", newProp: "test" }
       }
     });
@@ -100,6 +105,7 @@ describe("NodeContent arePropsEqual", () => {
     const prev = makeProps({
       data: {
         properties: { value: "hello" },
+        selectable: undefined,
         dynamic_properties: {},
         workflow_id: "wf-1"
       },
@@ -110,6 +116,7 @@ describe("NodeContent arePropsEqual", () => {
     const next = makeProps({
       data: {
         properties: { value: "hello" },
+        selectable: undefined,
         dynamic_properties: {},
         workflow_id: "wf-1"
       },
