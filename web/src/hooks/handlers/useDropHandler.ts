@@ -14,6 +14,7 @@ import {
   extractFiles
 } from "../../lib/dragdrop";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
+import heic2any from "heic2any";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -153,7 +154,26 @@ export const useDropHandler = () => {
       // Handle external file drops
       if (hasExternalFiles(event.dataTransfer) && user) {
         const files = extractFiles(event.dataTransfer);
-        for (const file of files) {
+        for (let file of files) {
+          // Convert HEIC to PNG before processing
+          if (file.type === "image/heic" || file.type === "image/heif") {
+            try {
+              const pngBlob = (await heic2any({
+                blob: file,
+                toType: "image/png"
+              })) as Blob;
+              const name = file.name.replace(/\.heic$/i, ".png").replace(/\.heif$/i, ".png");
+              file = new File([pngBlob], name, { type: "image/png" });
+            } catch (_e) {
+              addNotification({
+                type: "error",
+                content: `Failed to convert HEIC file: ${file.name}`,
+                alert: true
+              });
+              continue;
+            }
+          }
+
           const fileType = detectFileType(file);
           let result: FileHandlerResult;
 
