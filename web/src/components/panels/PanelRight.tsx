@@ -217,7 +217,7 @@ const PanelRight: React.FC = () => {
                     />
                   ) : null
                 ) : activeView === "workflow" ? (
-                  activeNodeStore && currentWorkflowId ? (
+                  workflow && activeNodeStore && currentWorkflowId ? (
                     <Box
                       className="workflow-panel"
                       sx={{
