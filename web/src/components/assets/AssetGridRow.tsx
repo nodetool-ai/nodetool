@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   AssetOrDivider,
   DIVIDER_HEIGHT,
@@ -52,6 +52,51 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
 
+  // Memoize styles to prevent re-renders
+  const dividerHeaderStyle = useMemo(() => ({
+    padding: `${itemSpacing}px ${itemSpacing}px`,
+    boxSizing: "border-box" as const,
+    display: "flex" as const,
+    alignItems: "center" as const,
+    cursor: "pointer" as const
+  }), [itemSpacing]);
+
+  const dividerTypographyStyle = useMemo(() => ({
+    display: "inline-block" as const,
+    margin: "0 1em 0 .5em",
+    color: theme.vars.palette.grey[200],
+    flexGrow: 1
+  }), [theme]);
+
+  const dividerLineStyle = useMemo(() => ({
+    width: "100%",
+    height: "2px",
+    backgroundColor: "" as string
+  }), []);
+
+  const iconContainerStyle = useMemo(() => ({
+    borderRadius: "0 0 3px 0" as const,
+    marginLeft: "0.1em",
+    marginTop: "0"
+  }), []);
+
+  const iconBgStyle = useMemo(() => ({
+    backgroundColor: "transparent" as const,
+    width: "15px"
+  }), []);
+
+  const gridRowStyle = useMemo(() => ({
+    display: "flex" as const,
+    flexWrap: "wrap" as const,
+    width: "100%",
+    boxSizing: "border-box" as const
+  }), []);
+
+  const gridItemStyle = useMemo(() => ({
+    flexShrink: 0,
+    boxSizing: "border-box" as const
+  }), []);
+
   const handleContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -92,6 +137,12 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     }
   }, [rowItems, toggleExpanded]);
 
+  // Memoize grid row style before early return
+  const gridRowStyleWithProps = useMemo(() => ({
+    ...style,
+    ...gridRowStyle
+  }), [style, gridRowStyle]);
+
   if (rowItems.length === 0) {
     return null;
   }
@@ -106,6 +157,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
       count: number;
     };
     const isExpanded = expandedTypes.has(divider.type);
+    const currentDividerLineStyle = { ...dividerLineStyle, backgroundColor: colorForType(divider.type) };
 
     return (
       <Tooltip
@@ -115,49 +167,25 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
         enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
       >
         <div
-          style={{
-            ...style,
-            height: DIVIDER_HEIGHT,
-            padding: `${itemSpacing}px ${itemSpacing}px`,
-            boxSizing: "border-box",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer"
-          }}
+          style={{ ...style, height: DIVIDER_HEIGHT, ...dividerHeaderStyle }}
           className="content-type-header"
           onClick={handleToggleExpanded}
         >
           <Typography
             variant="body2"
-            style={{
-              display: "inline-block",
-              margin: "0 1em 0 .5em",
-              color: theme.vars.palette.grey[200],
-              flexGrow: 1
-            }}
+            style={dividerTypographyStyle}
           >
             {divider.count}
           </Typography>
           <div
             className="divider"
-            style={{
-              width: "100%",
-              height: "2px",
-              backgroundColor: colorForType(divider.type)
-            }}
+            style={currentDividerLineStyle}
           />
           <span style={{ marginLeft: "8px" }}>
             <IconForType
               iconName={divider.type}
-              containerStyle={{
-                borderRadius: "0 0 3px 0",
-                marginLeft: "0.1em",
-                marginTop: "0"
-              }}
-              bgStyle={{
-                backgroundColor: "transparent",
-                width: "15px"
-              }}
+              containerStyle={iconContainerStyle}
+              bgStyle={iconBgStyle}
               showTooltip={false}
             />
           </span>
@@ -178,13 +206,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     <div
       className="asset-grid-row"
       onContextMenu={handleContextMenu}
-      style={{
-        ...style,
-        display: "flex",
-        flexWrap: "wrap",
-        width: "100%",
-        boxSizing: "border-box"
-      }}
+      style={gridRowStyleWithProps}
     >
       {rowItems.map((item) => {
         if (item.isDivider) {
@@ -194,18 +216,17 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
         const isSelected =
           selectedAssetIds && selectedAssetIds.includes(item.id);
 
+        const itemHeight = gridDimensions.itemHeight + footerHeight + extraFooterSpace;
+
         return (
           <div
             className="asset-grid-row-item"
             key={`asset-${item.id}`}
             style={{
+              ...gridItemStyle,
               width: `${gridDimensions.itemWidth}px`,
-              height: `${
-                gridDimensions.itemHeight + footerHeight + extraFooterSpace
-              }px`,
-              padding: `${itemSpacing}px`,
-              flexShrink: 0,
-              boxSizing: "border-box"
+              height: `${itemHeight}px`,
+              padding: `${itemSpacing}px`
             }}
           >
             <AssetItem

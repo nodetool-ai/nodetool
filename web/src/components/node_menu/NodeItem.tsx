@@ -187,6 +187,35 @@ const NodeItem = memo(
         []
       );
 
+      // Memoize the IconForType styles to prevent recreation
+      const iconForTypeContainerStyle = useMemo(() => ({
+        borderRadius: "0 0 3px 0" as const,
+        marginLeft: "0",
+        marginTop: "0"
+      }), []);
+
+      const iconForTypeBgStyle = useMemo(() => ({
+        backgroundColor: theme.vars.palette.grey[900],
+        margin: "0",
+        padding: "1px",
+        borderRadius: "0 0 3px 0" as const,
+        boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
+        width: "20px" as const,
+        height: "20px" as const
+      }), [theme]);
+
+      const iconSvgProps = useMemo(() => ({
+        width: "15px" as const,
+        height: "15px" as const
+      }), []);
+
+      const typographySx = useMemo(() => ({
+        lineHeight: 1.3,
+        whiteSpace: "nowrap" as const,
+        overflow: "hidden" as const,
+        textOverflow: "ellipsis" as const
+      }), []);
+
       return (
         <div
           ref={ref}
@@ -233,33 +262,13 @@ const NodeItem = memo(
                 <div style={iconContainerStyle}>
                   <IconForType
                     iconName={outputType}
-                    containerStyle={{
-                      borderRadius: "0 0 3px 0",
-                      marginLeft: "0",
-                      marginTop: "0"
-                    }}
-                    bgStyle={{
-                      backgroundColor: theme.vars.palette.grey[900],
-                      margin: "0",
-                      padding: "1px",
-                      borderRadius: "0 0 3px 0",
-                      boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
-                      width: "20px",
-                      height: "20px"
-                    }}
-                    svgProps={{
-                      width: "15px",
-                      height: "15px"
-                    }}
+                    containerStyle={iconForTypeContainerStyle}
+                    bgStyle={iconForTypeBgStyle}
+                    svgProps={iconSvgProps}
                   />
                   <Typography
                     fontSize="small"
-                    sx={{
-                      lineHeight: 1.3,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis"
-                    }}
+                    sx={typographySx}
                   >
                     <HighlightText
                       text={node.title}
@@ -273,33 +282,13 @@ const NodeItem = memo(
               <div style={iconContainerStyle}>
                 <IconForType
                   iconName={outputType}
-                  containerStyle={{
-                    borderRadius: "0 0 3px 0",
-                    marginLeft: "0",
-                    marginTop: "0"
-                  }}
-                  bgStyle={{
-                    backgroundColor: theme.vars.palette.grey[900],
-                    margin: "0",
-                    padding: "1px",
-                    borderRadius: "0 0 3px 0",
-                    boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
-                    width: "20px",
-                    height: "20px"
-                  }}
-                  svgProps={{
-                    width: "15px",
-                    height: "15px"
-                  }}
+                  containerStyle={iconForTypeContainerStyle}
+                  bgStyle={iconForTypeBgStyle}
+                  svgProps={iconSvgProps}
                 />
                 <Typography
                   fontSize="small"
-                  sx={{
-                    lineHeight: 1.3,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis"
-                  }}
+                  sx={typographySx}
                 >
                   <HighlightText
                     text={node.title}
