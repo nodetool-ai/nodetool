@@ -24,6 +24,8 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SyncIcon from "@mui/icons-material/Sync";
 import DataArrayIcon from "@mui/icons-material/DataArray";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -37,6 +39,8 @@ import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useNodeBookmarks } from "../../hooks/useNodeBookmarks";
 
 interface NodeToolbarProps {
   nodeId: string | null;
@@ -63,6 +67,14 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { handlers, conditions } = useNodeContextMenu();
   const { runFromHere, isWorkflowRunning } = useRunFromHere(node as Node<NodeData> | null);
 
+  // Get workflow ID for bookmarks
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+
+  // Setup bookmarks functionality
+  const nodeBookmarks = useNodeBookmarks({
+    workflowId: currentWorkflowId || ""
+  });
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const dropdownOpen = Boolean(anchorEl);
 
@@ -70,6 +82,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
   const isInGroup = Boolean(node?.parentId);
+  const isBookmarked = nodeId !== null ? nodeBookmarks.isBookmarked(nodeId) : false;
 
   const handleDelete = useCallback(() => {
     if (nodeId !== null) {
@@ -151,6 +164,12 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const handleCloseDropdown = useCallback(() => {
     setAnchorEl(null);
   }, []);
+
+  const handleToggleBookmark = useCallback(() => {
+    if (nodeId !== null && currentWorkflowId) {
+      nodeBookmarks.toggleBookmark(nodeId);
+    }
+  }, [nodeId, currentWorkflowId, nodeBookmarks]);
 
   if (!nodeId) { return null; }
 
@@ -252,6 +271,30 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             </span>
           }
         />
+
+        <Tooltip
+          title={
+            <span>
+              {isBookmarked ? "Remove Bookmark" : "Add Bookmark"}{" "}
+              {getShortcutTooltip("toggleBookmark", undefined, "combo")}
+            </span>
+          }
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <IconButton
+            className="nodrag"
+            onClick={handleToggleBookmark}
+            tabIndex={-1}
+            color={isBookmarked ? "warning" : "default"}
+            size="small"
+          >
+            {isBookmarked ? (
+              <BookmarkIcon fontSize="small" />
+            ) : (
+              <BookmarkBorderIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
 
         <Tooltip
           title={<span>Info</span>}

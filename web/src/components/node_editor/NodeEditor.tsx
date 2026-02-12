@@ -43,8 +43,12 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import BookmarksPanel from "./BookmarksPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { useBookmarksPanelStore } from "../../stores/BookmarksPanelStore";
+import { useNodeBookmarks } from "../../hooks/useNodeBookmarks";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 declare global {
   interface Window {
@@ -98,6 +102,36 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => {
       if (active && selectedNodeIds.length > 0) {
         toggleInspectedNode(selectedNodeIds[0]);
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Bookmarks Panel (Ctrl+Shift+B / Meta+Shift+B)
+  const bookmarksPanelCombo = isMac() ? ["meta", "shift", "b"] : ["control", "shift", "b"];
+  const toggleBookmarksPanel = useBookmarksPanelStore((state) => state.toggleBookmarksPanel);
+  const showBookmarksPanel = useBookmarksPanelStore((state) => state.showBookmarksPanel);
+  useCombo(
+    bookmarksPanelCombo,
+    () => {
+      if (active) {
+        toggleBookmarksPanel();
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Toggle Bookmark (Shift+B)
+  const toggleBookmarkCombo = ["shift", "b"];
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+  const nodeBookmarks = useNodeBookmarks({ workflowId: currentWorkflowId || "" });
+  useCombo(
+    toggleBookmarkCombo,
+    () => {
+      if (active && selectedNodeIds.length > 0 && currentWorkflowId) {
+        nodeBookmarks.toggleBookmark(selectedNodeIds[0]);
       }
     },
     true,
@@ -162,6 +196,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 visible={selectedNodeIds.length >= 2}
               />
               <NodeInfoPanel />
+              {showBookmarksPanel && (
+                <BookmarksPanel
+                  workflowId={workflowId}
+                  onClose={() => useBookmarksPanelStore.getState().setShowBookmarksPanel(false)}
+                />
+              )}
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}

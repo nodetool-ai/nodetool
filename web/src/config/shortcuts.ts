@@ -360,6 +360,22 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Toggle Bookmark",
+    slug: "toggleBookmark",
+    keyCombo: ["Shift", "B"],
+    category: "editor",
+    description: "Add or remove bookmark on selected node",
+    registerCombo: true
+  },
+  {
+    title: "Show Bookmarks",
+    slug: "showBookmarks",
+    keyCombo: ["Control", "Shift", "B"],
+    category: "editor",
+    description: "Show/hide Bookmarks panel",
+    registerCombo: true
+  },
+  {
     title: "Select Connected (All)",
     slug: "selectConnectedAll",
     keyCombo: ["Shift", "C"],
