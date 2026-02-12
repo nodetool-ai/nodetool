@@ -84,3 +84,5 @@ export const FlexColumn = React.forwardRef<HTMLDivElement, FlexColumnProps>(({
     </Box>
   );
 });
+
+FlexColumn.displayName = "FlexColumn";

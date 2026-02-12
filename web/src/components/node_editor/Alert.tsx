@@ -104,11 +104,12 @@ const Alert: React.FC = memo(() => {
 
   // Cleanup all timeouts on unmount
   useEffect(() => {
+    const timeoutsMap = timeoutsRef.current;
     return () => {
-      timeoutsRef.current.forEach((timeouts) => {
+      timeoutsMap.forEach((timeouts) => {
         timeouts.forEach(clearTimeout);
       });
-      timeoutsRef.current.clear();
+      timeoutsMap.clear();
     };
   }, []);
 
