@@ -9,6 +9,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
 import { CloseButton } from "../ui_primitives/CloseButton";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 
 const styles = (theme: Theme) =>
@@ -175,6 +176,33 @@ const styles = (theme: Theme) =>
     },
     "& .empty-text": {
       fontSize: "13px"
+    },
+    "& .select-all-button": {
+      padding: "6px 12px",
+      minWidth: "unset",
+      height: "28px",
+      border: `1px solid ${theme.vars.palette.primary.main}`,
+      borderRadius: "4px",
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.contrastText,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      fontSize: "13px",
+      fontWeight: 500,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.primary.dark,
+        borderColor: theme.vars.palette.primary.dark
+      },
+      "&:disabled": {
+        opacity: 0.5,
+        cursor: "not-allowed",
+        backgroundColor: theme.vars.palette.action.disabledBackground
+      }
+    },
+    "& .select-all-icon": {
+      fontSize: "16px"
     }
   });
 
@@ -201,6 +229,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       navigatePrevious,
       clearSearch,
       selectNode,
+      selectAllResults,
       getNodeDisplayName
     } = useFindInWorkflow();
 
@@ -278,6 +307,16 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           event.preventDefault();
           return;
         }
+
+        if (event.key === "a" || event.key === "A") {
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            if (results.length > 0) {
+              selectAllResults();
+            }
+          }
+          return;
+        }
       };
 
       window.addEventListener("keydown", handleKeyDown);
@@ -288,7 +327,8 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       navigateNext,
       navigatePrevious,
       results.length,
-      goToSelected
+      goToSelected,
+      selectAllResults
     ]);
 
     const handleInputChange = useCallback(
@@ -311,6 +351,10 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       clearSearch();
       inputRef.current?.focus();
     }, [clearSearch]);
+
+    const handleSelectAll = useCallback(() => {
+      selectAllResults();
+    }, [selectAllResults]);
 
     if (!isOpen) {
       return null;
@@ -365,6 +409,15 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               title="Next (Enter)"
             >
               <ArrowDownwardIcon fontSize="small" />
+            </button>
+            <button
+              className="select-all-button"
+              onClick={handleSelectAll}
+              disabled={results.length === 0}
+              title="Select all results (Ctrl+A)"
+            >
+              <CheckCircleOutlineIcon className="select-all-icon" />
+              Select All
             </button>
           </Box>
           <CloseButton

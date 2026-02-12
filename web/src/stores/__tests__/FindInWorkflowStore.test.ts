@@ -232,4 +232,33 @@ describe("FindInWorkflowStore", () => {
       expect(useFindInWorkflowStore.getState().selectedIndex).toBe(0);
     });
   });
+
+  describe("selectAllResults", () => {
+    it("sets selectedIndex to -2 when results exist", () => {
+      const mockNode1 = createMockNode("node-1");
+      const mockNode2 = createMockNode("node-2");
+      const mockResults: FindResult[] = [
+        { node: mockNode1, matchIndex: 0 },
+        { node: mockNode2, matchIndex: 1 }
+      ];
+
+      act(() => {
+        useFindInWorkflowStore.getState().setResults(mockResults);
+      });
+
+      act(() => {
+        useFindInWorkflowStore.getState().selectAllResults();
+      });
+
+      expect(useFindInWorkflowStore.getState().selectedIndex).toBe(-2);
+    });
+
+    it("does nothing when results are empty", () => {
+      act(() => {
+        useFindInWorkflowStore.getState().selectAllResults();
+      });
+
+      expect(useFindInWorkflowStore.getState().selectedIndex).toBe(0);
+    });
+  });
 });

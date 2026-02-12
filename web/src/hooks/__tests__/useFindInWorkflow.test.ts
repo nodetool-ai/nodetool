@@ -1,12 +1,13 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFindInWorkflow } from "../useFindInWorkflow";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 
 jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
+  useNodes: jest.fn(),
+  useNodeStoreRef: jest.fn()
 }));
 
 jest.mock("@xyflow/react", () => ({
@@ -14,6 +15,7 @@ jest.mock("@xyflow/react", () => ({
 }));
 
 const mockUseNodes = useNodes as jest.MockedFunction<typeof useNodes>;
+const mockUseNodeStoreRef = useNodeStoreRef as jest.MockedFunction<typeof useNodeStoreRef>;
 const mockUseReactFlow = useReactFlow as jest.MockedFunction<typeof useReactFlow>;
 
 const createMockNodeData = (): NodeData => ({
@@ -70,6 +72,19 @@ describe("useFindInWorkflow", () => {
     flowToScreenPosition: jest.fn(() => ({ x: 0, y: 0 })),
     getNodes: jest.fn(() => []),
     setNodes: jest.fn(),
+    getState: jest.fn(() => ({
+      nodes: mockNodes,
+      edges: [],
+      setNodes: jest.fn(),
+    }))
+  };
+  const mockNodeStore = {
+    getState: jest.fn(() => ({
+      nodes: mockNodes,
+      edges: [],
+      setNodes: jest.fn(),
+    }))
+  };
     addNodes: jest.fn(),
     getNode: jest.fn(),
     getInternalNode: jest.fn(),
@@ -544,6 +559,59 @@ describe("useFindInWorkflow", () => {
       });
 
       expect(result.current.totalCount).toBe(result.current.results.length);
+    });
+  });
+
+  describe("selectAllResults", () => {
+    it("should select all result nodes", () => {
+      const mockSetNodes = jest.fn();
+      const mockNodeStore = { getState: jest.fn() };
+      mockUseNodeStoreRef.mockReturnValue(mockNodeStore);
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [], setNodes: mockSetNodes };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.immediateSearch("text");
+      });
+
+      act(() => {
+        result.current.selectAllResults();
+      });
+
+      expect(mockSetNodes).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "node-1", selected: true }),
+          expect.objectContaining({ id: "node-2", selected: true })
+        ])
+      );
+    });
+
+    it("should not call setNodes when no results", () => {
+      const mockSetNodes = jest.fn();
+      const mockNodeStore = { getState: jest.fn() };
+      mockUseNodeStoreRef.mockReturnValue(mockNodeStore);
+      mockUseNodes.mockImplementation((selector: any) => {
+        const state = { nodes: mockNodes, edges: [], setNodes: mockSetNodes };
+        return selector ? selector(state) : state;
+      });
+      mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
+
+      const { result } = renderHook(() => useFindInWorkflow());
+
+      act(() => {
+        result.current.clearSearch();
+      });
+
+      act(() => {
+        result.current.selectAllResults();
+      });
+
+      expect(mockSetNodes).not.toHaveBeenCalled();
     });
   });
 });
