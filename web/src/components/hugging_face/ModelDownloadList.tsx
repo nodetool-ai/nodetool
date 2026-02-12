@@ -29,11 +29,8 @@ interface ModelDownloadListProps {
 
 const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
   const theme = useTheme();
-  const { downloads } = useModelDownloadStore(
-    (state) => ({
-      startDownload: state.startDownload,
-      downloads: state.downloads
-    }),
+  const downloads = useModelDownloadStore(
+    (state) => state.downloads,
     shallow
   );
 
@@ -45,7 +42,7 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
   return (
     <Box css={styles(theme)}>
       <Grid container spacing={2} className="models-grid">
-        {models.map((model, index) => {
+        {models.map((model) => {
           const modelId = model.id;
           return (
             <Grid
@@ -57,12 +54,11 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
                   lg: "span 12"
                 }
               }}
-              key={index}
+              key={modelId}
             >
               <Box className="model-container">
                 {!downloads[modelId] && (
                   <ModelListItem
-                    key={model.id}
                     model={model}
                     showModelStats={false}
                     handleModelDelete={handleModelDelete}

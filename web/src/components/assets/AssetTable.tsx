@@ -12,6 +12,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { FixedSizeList as List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -70,9 +71,14 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
 
   useEffect(() => {
     const promises = assetIds.map((id) => getAsset(id));
-    Promise.all(promises).then((fetchedAssets) => {
-      setAssets(fetchedAssets.filter((a): a is Asset => !!a));
-    });
+    Promise.all(promises)
+      .then((fetchedAssets) => {
+        setAssets(fetchedAssets.filter((a): a is Asset => !!a));
+      })
+      .catch((error) => {
+        console.error("Failed to fetch assets:", error);
+        setAssets([]);
+      });
   }, [getAsset, assetIds]);
 
   const handleRemoveAsset = useCallback(
@@ -108,9 +114,12 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     justifyContent: "center" as const,
   }), []);
 
+  // Memoize assets array to avoid recreating Row callback
+  const memoizedAssets = useMemo(() => assets, [assets]);
+
   // Virtualized row renderer for react-window
   const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const asset = assets[index];
+    const asset = memoizedAssets[index];
     if (!asset) {
       return null;
     }
@@ -122,7 +131,7 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
         />
       </div>
     );
-  }, [assets, handleRemoveAsset]);
+  }, [memoizedAssets, handleRemoveAsset]);
 
   // Calculate list height based on number of items + drop zone row
   const rowHeight = 53; // Approximate height of a TableRow
@@ -144,15 +153,19 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
         <TableBody>
           {shouldVirtualize ? (
             <TableRow>
-              <TableCell colSpan={2} sx={{ padding: 0 }}>
-                <List
-                  height={listHeight}
-                  itemCount={assets.length}
-                  itemSize={rowHeight}
-                  width="100%"
-                >
-                  {Row}
-                </List>
+              <TableCell colSpan={2} sx={{ padding: 0, height: listHeight }}>
+                <AutoSizer disableHeight>
+                  {({ width }: { width: number }) => (
+                    <List
+                      height={listHeight}
+                      itemCount={assets.length}
+                      itemSize={rowHeight}
+                      width={width}
+                    >
+                      {Row}
+                    </List>
+                  )}
+                </AutoSizer>
               </TableCell>
             </TableRow>
           ) : (
