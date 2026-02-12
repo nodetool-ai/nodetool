@@ -114,13 +114,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   }, [workflowId, storedViewport, nodes]);
 
   const reactFlowInstance = useReactFlow();
-  const pendingNodeType = useNodePlacementStore(
-    (state) => state.pendingNodeType
+  // Combine multiple node placement store subscriptions into a single selector to reduce re-renders
+  const { pendingNodeType, cancelPlacement, label: placementLabel } = useNodePlacementStore(
+    useMemo(
+      () => (state) => ({
+        pendingNodeType: state.pendingNodeType,
+        cancelPlacement: state.cancelPlacement,
+        label: state.label
+      }),
+      []
+    )
   );
-  const cancelPlacement = useNodePlacementStore(
-    (state) => state.cancelPlacement
-  );
-  const placementLabel = useNodePlacementStore((state) => state.label);
   const [ghostPosition, setGhostPosition] = useState<{
     x: number;
     y: number;
@@ -262,9 +266,17 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
     };
   }, [deleteEdge]);
 
-  const getMetadata = useMetadataStore((state) => state.getMetadata);
+  // Combine multiple metadata store subscriptions into a single selector to reduce re-renders
+  const { getMetadata, nodeTypes: baseNodeTypes } = useMetadataStore(
+    useMemo(
+      () => (state) => ({
+        getMetadata: state.getMetadata,
+        nodeTypes: state.nodeTypes
+      }),
+      []
+    )
+  );
 
-  const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
