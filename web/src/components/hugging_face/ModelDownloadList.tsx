@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useCallback, memo } from "react";
 import { Grid, Box } from "@mui/material";
 import { shallow } from "zustand/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -37,6 +37,11 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
     shallow
   );
 
+  // Memoize empty callback to prevent unnecessary re-renders
+  const handleModelDelete = useCallback(() => {
+    // No-op - model deletion not supported in this view
+  }, []);
+
   return (
     <Box css={styles(theme)}>
       <Grid container spacing={2} className="models-grid">
@@ -60,7 +65,7 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
                     key={model.id}
                     model={model}
                     showModelStats={false}
-                    handleModelDelete={() => {}}
+                    handleModelDelete={handleModelDelete}
                   />
                 )}
                 {downloads[modelId] && <DownloadProgress name={modelId} />}
@@ -73,4 +78,4 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
   );
 };
 
-export default ModelDownloadList;
+export default memo(ModelDownloadList);
