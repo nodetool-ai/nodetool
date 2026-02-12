@@ -28,7 +28,10 @@ export function useSelectionEvents({
   const selectionEndRef = useRef<{ x: number; y: number } | null>(null);
 
   const { openContextMenu } = useContextMenu();
-  const updateNode = useNodes((state) => state.updateNode);
+  const { updateNode, setEdgeSelectionState } = useNodes((state) => ({
+    updateNode: state.updateNode,
+    setEdgeSelectionState: state.setEdgeSelectionState
+  }));
 
   const projectMouseEventToFlow = useCallback(
     (event?: { clientX?: number; clientY?: number } | null) => {
@@ -95,6 +98,60 @@ export function useSelectionEvents({
     });
   }, [reactFlowInstance, updateNode]);
 
+  const selectEdgesWithinSelection = useCallback(() => {
+    const selectionRect = getSelectionRect(
+      selectionStartRef.current,
+      selectionEndRef.current
+    );
+    if (!selectionRect) {
+      return;
+    }
+
+    const topLeft = reactFlowInstance.flowToScreenPosition({
+      x: selectionRect.x,
+      y: selectionRect.y
+    });
+    const bottomRight = reactFlowInstance.flowToScreenPosition({
+      x: selectionRect.x + selectionRect.width,
+      y: selectionRect.y + selectionRect.height
+    });
+
+    const minX = Math.min(topLeft.x, bottomRight.x);
+    const maxX = Math.max(topLeft.x, bottomRight.x);
+    const minY = Math.min(topLeft.y, bottomRight.y);
+    const maxY = Math.max(topLeft.y, bottomRight.y);
+
+    const allEdges = reactFlowInstance.getEdges();
+    const edgeSelections: Record<string, boolean> = {};
+
+    const intersectsSelectionRect = (rect: DOMRect): boolean =>
+      rect.right >= minX &&
+      rect.left <= maxX &&
+      rect.bottom >= minY &&
+      rect.top <= maxY;
+
+    allEdges.forEach((edge) => {
+      const edgeElement = document.querySelector(
+        `.react-flow__edge[data-id="${edge.id}"]`
+      );
+      if (!edgeElement) {
+        edgeSelections[edge.id] = false;
+        return;
+      }
+
+      const edgePath = edgeElement.querySelector(".react-flow__edge-path");
+      if (!edgePath) {
+        edgeSelections[edge.id] = false;
+        return;
+      }
+
+      const edgeBounds = edgePath.getBoundingClientRect();
+      edgeSelections[edge.id] = intersectsSelectionRect(edgeBounds);
+    });
+
+    setEdgeSelectionState(edgeSelections);
+  }, [reactFlowInstance, setEdgeSelectionState]);
+
   const handleSelectionStart = useCallback(
     (event: ReactMouseEvent) => {
       const flowPoint = projectMouseEventToFlow(event);
@@ -112,9 +169,15 @@ export function useSelectionEvents({
       // Defer to next frame to allow ReactFlow to complete its selection updates
       requestAnimationFrame(() => {
         selectGroupsWithinSelection();
+        selectEdgesWithinSelection();
       });
     },
-    [onSelectionEndBase, projectMouseEventToFlow, selectGroupsWithinSelection]
+    [
+      onSelectionEndBase,
+      projectMouseEventToFlow,
+      selectGroupsWithinSelection,
+      selectEdgesWithinSelection
+    ]
   );
 
   const handleSelectionDragStart = useCallback(
@@ -139,6 +202,7 @@ export function useSelectionEvents({
     handleSelectionDragStop,
     resetSelectionTracking,
     selectGroupsWithinSelection,
+    selectEdgesWithinSelection,
     projectMouseEventToFlow,
     selectionStartRef,
     selectionEndRef
