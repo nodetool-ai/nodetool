@@ -83,7 +83,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
   const setNodes = useNodes((state) => state.setNodes);
   const setEdges = useNodes((state) => state.setEdges);
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
-  const deleteNode = useNodes((state) => state.deleteNode);
+  const deleteNodes = useNodes((state) => state.deleteNodes);
   const deleteEdges = useNodes((state) => state.deleteEdges);
   const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
   const store = useNodeStoreRef();
@@ -317,16 +317,14 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
   const deleteSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
-    selectedNodes.forEach((node) => {
-      deleteNode(node.id);
-    });
+    deleteNodes(selectedNodes.map((node) => node.id));
 
     const { edges } = store.getState();
     const selectedEdgeIds = edges
       .filter((edge) => edge.selected)
       .map((edge) => edge.id);
     deleteEdges(selectedEdgeIds);
-  }, [getSelectedNodes, deleteNode, store, deleteEdges]);
+  }, [getSelectedNodes, deleteNodes, store, deleteEdges]);
 
   const duplicateSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();

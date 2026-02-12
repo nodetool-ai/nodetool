@@ -51,7 +51,7 @@ describe("useSelectionActions", () => {
         setNodes: mockSetNodes,
         setEdges: mockSetEdges,
         getSelectedNodes: jest.fn(() => defaultNodes),
-        deleteNode: jest.fn(),
+        deleteNodes: jest.fn(),
         deleteEdges: jest.fn(),
         updateNodeData: jest.fn(),
         toggleBypassSelected: jest.fn()
@@ -416,7 +416,7 @@ describe("useSelectionActions", () => {
 
   describe("deleteSelected", () => {
     it("deletes all selected nodes", () => {
-      const mockDeleteNode = jest.fn();
+      const mockDeleteNodes = jest.fn();
       const mockDeleteEdges = jest.fn();
       const testNodes = [
         { id: "1", position: { x: 0, y: 0 }, selected: true },
@@ -429,7 +429,7 @@ describe("useSelectionActions", () => {
           setNodes: mockSetNodes,
           setEdges: mockSetEdges,
           getSelectedNodes: () => testNodes,
-          deleteNode: mockDeleteNode,
+          deleteNodes: mockDeleteNodes,
           deleteEdges: mockDeleteEdges
         })
       );
@@ -442,14 +442,13 @@ describe("useSelectionActions", () => {
 
       const { result } = renderHook(() => useSelectionActions());
       result.current.deleteSelected();
-      expect(mockDeleteNode).toHaveBeenCalledTimes(2);
-      expect(mockDeleteNode).toHaveBeenCalledWith("1");
-      expect(mockDeleteNode).toHaveBeenCalledWith("2");
+      expect(mockDeleteNodes).toHaveBeenCalledTimes(1);
+      expect(mockDeleteNodes).toHaveBeenCalledWith(["1", "2"]);
       expect(mockDeleteEdges).toHaveBeenCalledWith([]);
     });
 
     it("deletes selected edges when no nodes are selected", () => {
-      const mockDeleteNode = jest.fn();
+      const mockDeleteNodes = jest.fn();
       const mockDeleteEdges = jest.fn();
       const edges = [
         { id: "e-1", selected: true },
@@ -463,7 +462,7 @@ describe("useSelectionActions", () => {
           setNodes: mockSetNodes,
           setEdges: mockSetEdges,
           getSelectedNodes: () => [],
-          deleteNode: mockDeleteNode,
+          deleteNodes: mockDeleteNodes,
           deleteEdges: mockDeleteEdges,
           toggleBypassSelected: jest.fn()
         })
@@ -478,7 +477,7 @@ describe("useSelectionActions", () => {
       const { result } = renderHook(() => useSelectionActions());
       result.current.deleteSelected();
 
-      expect(mockDeleteNode).not.toHaveBeenCalled();
+      expect(mockDeleteNodes).toHaveBeenCalledWith([]);
       expect(mockDeleteEdges).toHaveBeenCalledTimes(1);
       expect(mockDeleteEdges).toHaveBeenCalledWith(["e-1", "e-3"]);
     });

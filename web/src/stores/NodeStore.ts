@@ -152,6 +152,7 @@ export interface NodeStoreState {
   updateNodeData: (id: string, data: Partial<NodeData>) => void;
   updateNodeProperties: (id: string, properties: Record<string, unknown>) => void;
   deleteNode: (id: string) => void;
+  deleteNodes: (ids: string[]) => void;
   findEdge: (id: string) => Edge | undefined;
   deleteEdge: (id: string) => void;
   deleteEdges: (ids: string[]) => void;
@@ -676,11 +677,24 @@ export const createNodeStore = (
             get().setWorkflowDirty(true);
           },
           deleteNode: (id: string): void => {
-            const nodeToDelete = get().findNode(id);
-            if (!nodeToDelete) {
-              log.warn(`Node with id ${id} not found`);
+            get().deleteNodes([id]);
+          },
+          deleteNodes: (ids: string[]): void => {
+            if (ids.length === 0) {
               return;
             }
+
+            const idsToDelete = new Set(ids);
+            const existingNodes = get().nodes;
+            const foundIds = existingNodes
+              .filter((node) => idsToDelete.has(node.id))
+              .map((node) => node.id);
+
+            if (foundIds.length === 0) {
+              log.warn(`Node(s) not found: ${ids.join(", ")}`);
+              return;
+            }
+
             const focusedElement = document.activeElement as HTMLElement;
             if (
               focusedElement.classList.contains("MuiInput-input") ||
@@ -688,11 +702,13 @@ export const createNodeStore = (
             ) {
               return;
             }
-            // Optimization: Use single pass to filter and update parentId
+
+            const foundIdSet = new Set(foundIds);
             const nodes: Node<NodeData>[] = [];
-            for (const node of get().nodes) {
-              if (node.id !== id) {
-                if (node.parentId === id) {
+
+            for (const node of existingNodes) {
+              if (!foundIdSet.has(node.id)) {
+                if (node.parentId && foundIdSet.has(node.parentId)) {
                   nodes.push({ ...node, parentId: undefined });
                 } else {
                   nodes.push(node);
@@ -700,13 +716,16 @@ export const createNodeStore = (
               }
             }
 
-            useErrorStore.getState().clearErrors(id);
-            useResultsStore.getState().clearResults(id);
+            for (const nodeId of foundIds) {
+              useErrorStore.getState().clearErrors(nodeId);
+              useResultsStore.getState().clearResults(nodeId);
+            }
 
             set({
-              nodes: nodes,
+              nodes,
               edges: get().edges.filter(
-                (edge) => edge.source !== id && edge.target !== id
+                (edge) =>
+                  !foundIdSet.has(edge.source) && !foundIdSet.has(edge.target)
               )
             });
             get().setWorkflowDirty(true);
