@@ -13,6 +13,10 @@ const ENTER_DELAY = 600;
 /**
  * Checks if a TypeMetadata is a union of float and int (in any order)
  * and returns "number" if so, otherwise returns the formatted type string.
+ *
+ * Note: This function is called during render, so the sort operation
+ * is on a small, fixed-size array (2 elements) which is negligible.
+ * The result is typically stable across renders for the same type metadata.
  */
 const formatTypeString = (typeMetadata: TypeMetadata): string => {
   // Check if it's a union type with exactly 2 type args
@@ -22,14 +26,15 @@ const formatTypeString = (typeMetadata: TypeMetadata): string => {
     typeMetadata.type_args.length === 2
   ) {
     const typeArgs = typeMetadata.type_args;
+    // Sort is O(1) for fixed-size array, no memoization needed
     const types = [typeArgs[0].type, typeArgs[1].type].sort();
-    
+
     // Check if it's a union of float and int (in any order)
     if (types[0] === "float" && types[1] === "int") {
       return "number";
     }
   }
-  
+
   return typeToString(typeMetadata);
 };
 

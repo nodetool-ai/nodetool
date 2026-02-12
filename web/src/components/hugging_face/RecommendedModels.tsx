@@ -1,12 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  List,
   Typography,
   Box,
   TextField,
   InputAdornment,
   Button
 } from "@mui/material";
+import AutoSizer from "react-virtualized-auto-sizer";
+import {
+  FixedSizeList as VirtualList,
+  ListChildComponentProps
+} from "react-window";
 import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
@@ -81,6 +85,33 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
     });
   }, [cacheStatuses, filteredModels]);
 
+  // Memoized row renderer for virtualized list
+  const renderRow = useCallback(
+    ({ index, style }: ListChildComponentProps) => {
+      const model = displayModels[index];
+      const cacheKey = getHfCacheKey(model);
+      const isCacheable = canCheckHfCache(model);
+      const isCheckingCache =
+        isCacheable &&
+        (cachePending[cacheKey] || cacheStatuses[cacheKey] === undefined);
+
+      return (
+        <div style={style} key={model.id}>
+          <ModelListItem
+            compactView={true}
+            model={model}
+            onDownload={() => startDownload(model)}
+            isCheckingCache={isCheckingCache}
+          />
+        </div>
+      );
+    },
+    [displayModels, cacheStatuses, cachePending, startDownload]
+  );
+
+  // Calculate item size for virtual list (compact view is ~72px per item)
+  const getItemSize = useCallback(() => 72, []);
+
   if (!recommendedModels) {
     return <div>Loading...</div>;
   }
@@ -138,24 +169,21 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
           No models found{searchQuery ? ` for "${searchQuery}"` : ""}.
         </Typography>
       ) : (
-        <List>
-          {displayModels.map((model) => {
-            const cacheKey = getHfCacheKey(model);
-            const isCacheable = canCheckHfCache(model);
-            const isCheckingCache =
-              isCacheable &&
-              (cachePending[cacheKey] || cacheStatuses[cacheKey] === undefined);
-            return (
-              <ModelListItem
-                compactView={true}
-                key={model.id}
-                model={model}
-                onDownload={() => startDownload(model)}
-                isCheckingCache={isCheckingCache}
-              />
-            );
-          })}
-        </List>
+        <Box sx={{ height: displayModels.length * 72, maxHeight: 500 }}>
+          <AutoSizer>
+            {({ height, width }) => (
+              <VirtualList
+                height={Math.min(height, 500)}
+                width={width}
+                itemCount={displayModels.length}
+                itemSize={getItemSize()}
+                overscanCount={5}
+              >
+                {renderRow}
+              </VirtualList>
+            )}
+          </AutoSizer>
+        </Box>
       )}
       <Typography
         variant="body1"
