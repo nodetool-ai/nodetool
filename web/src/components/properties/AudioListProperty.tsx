@@ -206,6 +206,15 @@ const AudioListProperty = (props: PropertyProps) => {
     [audios, props]
   );
 
+  // Memoize click handlers for each audio index to avoid recreating functions on every render
+  const removeAudioHandlers = useMemo(() => {
+    const handlers: Record<number, () => void> = {};
+    for (let i = 0; i < audios.length; i++) {
+      handlers[i] = () => handleRemoveAudio(i);
+    }
+    return handlers;
+  }, [audios.length, handleRemoveAudio]);
+
   // Extract filename from URI
   const getFilename = useCallback((uri: string) => {
     try {
@@ -482,7 +491,7 @@ const AudioListProperty = (props: PropertyProps) => {
               <Tooltip title="Remove audio">
                 <IconButton
                   className="remove-button"
-                  onClick={() => handleRemoveAudio(index)}
+                  onClick={removeAudioHandlers[index]}
                   size="small"
                   aria-label="Remove audio"
                 >

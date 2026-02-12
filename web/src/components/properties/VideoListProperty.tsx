@@ -199,6 +199,15 @@ const VideoListProperty = (props: PropertyProps) => {
     [videos, props]
   );
 
+  // Memoize click handlers for each video index to avoid recreating functions on every render
+  const removeVideoHandlers = useMemo(() => {
+    const handlers: Record<number, () => void> = {};
+    for (let i = 0; i < videos.length; i++) {
+      handlers[i] = () => handleRemoveVideo(i);
+    }
+    return handlers;
+  }, [videos.length, handleRemoveVideo]);
+
   // Handle file drops
   // Handle file drops (both internal nodetool assets and external files)
   const onDrop = useCallback(
@@ -460,7 +469,7 @@ const VideoListProperty = (props: PropertyProps) => {
               <Tooltip title="Remove video">
                 <IconButton
                   className="remove-button"
-                  onClick={() => handleRemoveVideo(index)}
+                  onClick={removeVideoHandlers[index]}
                   size="small"
                   aria-label="Remove video"
                 >

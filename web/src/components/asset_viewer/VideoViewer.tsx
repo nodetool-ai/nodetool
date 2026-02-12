@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React from "react";
+import React, { memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -32,7 +32,7 @@ const styles = (_theme: Theme) =>
     }
   });
 
-const VideoViewer: React.FC<VideoViewerProps> = ({ asset }) => {
+const VideoViewer: React.FC<VideoViewerProps> = memo(({ asset }) => {
   const theme = useTheme();
   return (
     <Box className="video-viewer" css={styles(theme)}>
@@ -44,6 +44,8 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ asset }) => {
       </Typography>
     </Box>
   );
-};
+});
+
+VideoViewer.displayName = "VideoViewer";
 
 export default VideoViewer;
