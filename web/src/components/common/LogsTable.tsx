@@ -323,7 +323,7 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
 
 RowItem.displayName = "RowItem";
 
-export const LogsTable: React.FC<LogsTableProps> = ({
+const LogsTableInternal: React.FC<LogsTableProps> = ({
   rows,
   rowHeight = 36,
   height,
@@ -495,4 +495,5 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   );
 };
 
+export const LogsTable = memo(LogsTableInternal);
 export default LogsTable;
