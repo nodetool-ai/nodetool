@@ -4,8 +4,9 @@ Existing features in NodeTool. **Read before adding new features to avoid duplic
 
 Format: `- **Feature Name**: Brief description`
 
-Last updated: 2026-02-10
+Last updated: 2026-02-13
 
+- **Search History for Node Menu (2026-02-13)**: Recent searches displayed as clickable chips below search input; persists across sessions via localStorage; includes clear history button and individual chip deletion
 - **Minimap Type-Based Coloring (2026-02-10)**: Enhanced minimap with color-by-node-type mode, configurable via settings popover; includes interactive legend showing Input (blue), Constant (purple), Processing (slate), Group (indigo), Comment (green), and Output (amber) nodes
 
 - **Store JSDoc Documentation (2026-01-19)**: Added module-level JSDoc to ResultsStore, AssetStore, and StatusStore for consistent documentation across all critical stores
@@ -44,8 +45,11 @@ Last updated: 2026-02-10
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
 - **Node Search**: Fuzzy search for finding nodes by name/description (Fuse.js)
+- **Search History**: Recent searches displayed as clickable chips for quick rerun; persisted across sessions; includes clear history and individual delete options
 - **Node Properties**: Property editors for different data types (text, number, color, date, etc.)
 - **Node Inspector**: Inspect node inputs, outputs, and execution results
+- **Node Info Panel**: Contextual panel showing selected node details (type, description, connections, status, quick actions)
+- **Quick Constant Nodes**: Quick access tiles for adding constant value nodes (String, Integer, Float, Boolean) directly from the node menu
 - **Node Info Panel**: Contextual panel showing selected node details (type, description, connections, status, quick actions)
 - **Quick Constant Nodes**: Quick access tiles for adding constant value nodes (String, Integer, Float, Boolean) directly from the node menu
 - **Node Context Menu**: Right-click menu for node operations (delete, duplicate, etc.)
@@ -572,4 +576,3 @@ All hooks now include module-level JSDoc with @param, @returns, and @example tag
 
 ---
 
-### Documentation Port Consistency Fixes (2026-01-17)
