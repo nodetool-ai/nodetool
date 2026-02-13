@@ -238,6 +238,57 @@ describe("NotificationStore", () => {
       const { notifications } = useNotificationStore.getState();
       expect(notifications).toHaveLength(2);
     });
+
+    it("replaceExisting bypasses dedup check and replaces existing notification", () => {
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Version 1",
+          dedupeKey: "autosave",
+          replaceExisting: true
+        });
+      });
+
+      expect(useNotificationStore.getState().notifications).toHaveLength(1);
+      expect(useNotificationStore.getState().notifications[0].content).toBe(
+        "Version 1"
+      );
+
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Version 2",
+          dedupeKey: "autosave",
+          replaceExisting: true
+        });
+      });
+
+      const { notifications } = useNotificationStore.getState();
+      // Should have replaced the old one, not suppressed
+      expect(notifications).toHaveLength(1);
+      expect(notifications[0].content).toBe("Version 2");
+    });
+
+    it("replaceExisting without dedupeKey still replaces by type:content key", () => {
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Same message",
+          replaceExisting: true
+        });
+      });
+
+      act(() => {
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          content: "Same message",
+          replaceExisting: true
+        });
+      });
+
+      const { notifications } = useNotificationStore.getState();
+      expect(notifications).toHaveLength(1);
+    });
   });
 
   describe("removeNotification", () => {

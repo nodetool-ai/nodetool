@@ -40,31 +40,30 @@ export const highlightText = (
     return { html, highlightedWords };
   }
 
+  // Memoize expensive string operations
+  const searchTermLower = searchTerm.toLowerCase();
+  const searchTermNoSpace = searchTermLower.replace(/\s+/g, "");
+
   // Get matches for this key
   const matches = searchInfo.matches
     .filter((match) => match.key === key)
     .flatMap((match) =>
-      match.indices.map(([start, end]) => ({
-        start,
-        end,
-        text: text.slice(start, end + 1),
-        length: end - start + 1,
-        // Calculate similarity to search term
-        relevance: searchTerm
-          ? text
-              .slice(start, end + 1)
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase())
+      match.indices.map(([start, end]) => {
+        const matchText = text.slice(start, end + 1);
+        const matchTextLower = matchText.toLowerCase();
+        return {
+          start,
+          end,
+          text: matchText,
+          length: end - start + 1,
+          // Calculate similarity to search term
+          relevance: matchTextLower.includes(searchTermLower)
             ? 2
-            : text
-                .slice(start, end + 1)
-                .toLowerCase()
-                .replace(/\s+/g, "")
-                .includes(searchTerm.toLowerCase().replace(/\s+/g, ""))
-            ? 1
-            : 0
-          : 0
-      }))
+            : matchTextLower.replace(/\s+/g, "").includes(searchTermNoSpace)
+              ? 1
+              : 0
+        };
+      })
     )
     .filter((match) => match.start < text.length); // Validate bounds
 
