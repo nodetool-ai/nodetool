@@ -16,11 +16,14 @@ import {
   DialogActions,
   Box
 } from "@mui/material";
+import { shallow } from "zustand/shallow";
 import useLogsStore from "../../stores/LogStore";
 import isEqual from "lodash/isEqual";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
+
+const EMPTY_ARRAY: any[] = [];
 
 type NodeLogsProps = {
   id: string;
@@ -61,7 +64,10 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
     const theme = useTheme();
     const logsRef = useRef<HTMLDivElement>(null);
-    const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+    const logs = useLogsStore(
+      (state) => (open ? state.getLogs(workflowId, id) : EMPTY_ARRAY),
+      shallow
+    );
     const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>(
       []
     );
@@ -225,10 +231,10 @@ NodeLogsDialog.displayName = "NodeLogsDialog";
 
 export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   const theme = useTheme();
-  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+  const count = useLogsStore(
+    (state) => state.getLogs(workflowId, id).length
+  );
   const [open, setOpen] = useState(false);
-
-  const count = logs?.length || 0;
 
   const handleOpen = useCallback(() => {
     setOpen(true);

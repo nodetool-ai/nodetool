@@ -59,10 +59,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
   const nodeWorkflowId = useNodes((state) => state.workflow?.id);
-  const logs = useLogsStore((state) => state.getLogs(workflowId || nodeWorkflowId || "", id));
+  const logCount = useLogsStore(
+    (state) => state.getLogs(workflowId || nodeWorkflowId || "", id).length
+  );
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
-
-  const logCount = logs?.length || 0;
 
   // Common icon button styles for toggle buttons
   const toggleIconButtonStyles = {
@@ -318,12 +318,14 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         </div>
       )}
 
-      <NodeLogsDialog
-        id={id}
-        workflowId={workflowId || nodeWorkflowId || ""}
-        open={logsDialogOpen}
-        onClose={handleCloseLogsDialog}
-      />
+      {logsDialogOpen && (
+        <NodeLogsDialog
+          id={id}
+          workflowId={workflowId || nodeWorkflowId || ""}
+          open={logsDialogOpen}
+          onClose={handleCloseLogsDialog}
+        />
+      )}
     </FlexRow>
   );
 };

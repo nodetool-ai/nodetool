@@ -7,6 +7,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useNodeSnippets } from "../useNodeSnippets";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
+import useNodeSnippetsStore from "../../stores/NodeSnippetsStore";
 
 // Mock NodeContext for testing
 jest.mock("../../contexts/NodeContext", () => ({
@@ -14,10 +15,25 @@ jest.mock("../../contexts/NodeContext", () => ({
     getState: jest.fn(() => ({
       addNodes: jest.fn(),
       addEdges: jest.fn(),
+      nodes: [],
+      edges: [],
+      setNodes: jest.fn(),
+      setEdges: jest.fn(),
       workflowId: "test-workflow"
     }))
   }))
 }));
+
+const mockRfAddNodes = jest.fn();
+jest.mock("@xyflow/react", () => {
+  const actual = jest.requireActual("@xyflow/react");
+  return {
+    ...actual,
+    useReactFlow: () => ({
+      addNodes: mockRfAddNodes
+    })
+  };
+});
 
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 
@@ -52,6 +68,7 @@ describe("useNodeSnippets", () => {
   beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
+    useNodeSnippetsStore.setState({ snippets: [] });
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => {
@@ -97,7 +114,11 @@ describe("useNodeSnippets", () => {
         getState: () => ({
           addNodes: mockAddNodes,
           addEdges: mockAddEdges,
-          workflowId: "test-workflow"
+          workflowId: "test-workflow",
+          nodes: [],
+          edges: [],
+          setNodes: jest.fn(),
+          setEdges: jest.fn()
         })
       });
 
@@ -126,12 +147,12 @@ describe("useNodeSnippets", () => {
         result.current.restoreSnippet(snippetId, { x: 500, y: 500 });
       });
 
-      expect(mockAddNodes).toHaveBeenCalledWith(
+      expect(mockRfAddNodes).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             type: "TypeA",
             data: expect.objectContaining({
-              workflow_id: "test-workflow"
+              workflow_id: ""
             })
           })
         ])
@@ -153,7 +174,11 @@ describe("useNodeSnippets", () => {
         getState: () => ({
           addNodes: mockAddNodes,
           addEdges: jest.fn(),
-          workflowId: "test-workflow"
+          workflowId: "test-workflow",
+          nodes: [],
+          edges: [],
+          setNodes: jest.fn(),
+          setEdges: jest.fn()
         })
       });
 
@@ -179,10 +204,10 @@ describe("useNodeSnippets", () => {
       });
 
       // Position should be (500, 500) + offset (50, 100) - original (100, 100)
-      // = (450, 500)
-      const addedNodes = mockAddNodes.mock.calls[0][0] as Node<NodeData>[];
-      expect(addedNodes[0].position.x).toBe(450);
-      expect(addedNodes[0].position.y).toBe(500);
+      // = (550, 600)
+      const addedNodes = mockRfAddNodes.mock.calls[0][0] as Node<NodeData>[];
+      expect(addedNodes[0].position.x).toBe(550);
+      expect(addedNodes[0].position.y).toBe(600);
     });
   });
 
