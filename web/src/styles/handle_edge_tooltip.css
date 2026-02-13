@@ -85,9 +85,7 @@
 .react-flow .react-flow__connection-path {
   stroke: var(--palette-grey-400);
   stroke-width: 2.5 !important;
-  transition:
-    stroke-opacity 0.3s ease-in-out,
-    stroke-width 0.2s ease-in-out;
+  transition: stroke-opacity 0.3s ease-in-out, stroke-width 0.2s ease-in-out;
 }
 
 /* Dim static edges by default */
@@ -123,9 +121,12 @@
   .react-flow__edges
   .react-flow__edge.selected
   .react-flow__edge-path {
-  stroke-dasharray: 6;
-  stroke-width: 5;
+  stroke: var(--palette-text-primary) !important;
+  /* stroke-dasharray: 6; */
+  stroke-width: 5 !important;
   stroke-opacity: 1;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 4px rgba(255, 255, 255, 0.75));
 }
 
 /* Flow animation for edges on message_sent or running source node */
@@ -138,7 +139,9 @@
 }
 
 /* Streaming edges get bigger stroke when animated */
-.react-flow .react-flow__edge.message-sent.streaming-edge .react-flow__edge-path {
+.react-flow
+  .react-flow__edge.message-sent.streaming-edge
+  .react-flow__edge-path {
   stroke-width: 4 !important;
 }
 
@@ -168,9 +171,12 @@
   .react-flow__edges
   .react-flow__edge.streaming-edge.selected
   .react-flow__edge-path {
+  stroke: var(--palette-text-primary) !important;
   stroke-dasharray: 8;
-  stroke-width: 6;
+  stroke-width: 6 !important;
   stroke-opacity: 1;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.75));
 }
 
 .react-flow__edge .react-flow__edge-text {
@@ -184,10 +190,7 @@
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
   transform-origin: right center;
-  transition:
-    transform 0.15s,
-    height 0.05s,
-    opacity 0.2s linear;
+  transition: transform 0.15s, height 0.05s, opacity 0.2s linear;
   width: var(--handle_width);
   height: var(--handle_height);
   /* Subtle, darker base so it doesn't pop over glass */
@@ -260,8 +263,7 @@
   border-left-width: 3px;
   border-left-style: double;
   /* Subtle glow to make it more noticeable */
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.3),
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
     inset 1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
@@ -277,9 +279,7 @@
   height: calc(var(--handle_height) * 2);
   transform: translate(0, -50%) scale(1.15, 1);
   opacity: 1;
-  box-shadow:
-    0 0 8px rgba(255, 255, 255, 0.3),
-    0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* STREAMING OUTPUT HANDLE - outputs that stream data continuously */
