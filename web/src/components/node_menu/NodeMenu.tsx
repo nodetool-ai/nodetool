@@ -10,9 +10,11 @@ import { Box } from "@mui/material";
 // components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
+import SearchHistoryChips from "./SearchHistoryChips";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import useSearchHistoryStore from "../../stores/SearchHistoryStore";
 
 // utils
 import Draggable from "react-draggable";
@@ -122,7 +124,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     Object.is
   );
 
-  // Use lazy initialization for the rest of the state
+  // Use lazy initialization for rest of state
   const {
     closeNodeMenu,
     menuHeight,
@@ -159,12 +161,45 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     isEqual
   );
 
+  // Search history store
+  const addSearchTerm = useSearchHistoryStore((state) => state.addSearchTerm);
+
   const namespaceTree = useNamespaceTree();
   const theme = useTheme();
   const memoizedStyles = useMemo(() => treeStyles(theme), [theme]);
 
   // Hook for creating nodes
   const handleCreateNode = useCreateNode();
+
+  // Handle search term change with history tracking
+  const handleSearchChange = useCallback(
+    (term: string) => {
+      setSearchTerm(term);
+      // Only add to history when user has stopped typing (debounced)
+      // and the term is non-empty
+      if (term.trim().length > 0) {
+        // Use a timeout to add to history only after user stops typing
+        const timeoutId = setTimeout(() => {
+          addSearchTerm(term);
+        }, 500);
+        // Clear any existing timeout
+        if ((handleSearchChange as any).timeoutId) {
+          clearTimeout((handleSearchChange as any).timeoutId);
+        }
+        (handleSearchChange as any).timeoutId = timeoutId;
+      }
+    },
+    [setSearchTerm, addSearchTerm]
+  );
+
+  // Handle clicking a search history chip
+  const handleSearchHistoryClick = useCallback(
+    (term: string) => {
+      setSearchTerm(term);
+      addSearchTerm(term);
+    },
+    [setSearchTerm, addSearchTerm]
+  );
 
   // Keyboard navigation handlers
   const handleArrowDown = useCallback(() => {
@@ -198,7 +233,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     }
   }, [isMenuOpen, searchTerm, searchResults.length]);
 
-  // Keep the draggable bounds within the viewport, accounting for element size
+  // Keep draggable bounds within the viewport, accounting for element size
   useEffect(() => {
     const updateBounds = () => {
       const el = nodeRef.current;
@@ -240,6 +275,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     }
   }, [isMenuOpen, menuPosition.x, menuPosition.y]);
 
+  // Show search history when there's no active search term
+  const showSearchHistory = searchTerm.trim().length === 0;
+
   if (!isMenuOpen) {
     return null;
   }
@@ -271,7 +309,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   width={500}
                   maxWidth={"600px"}
                   searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
+                  onSearchChange={handleSearchChange}
                   onPressEscape={closeNodeMenu}
                   onPressArrowDown={handleArrowDown}
                   onPressArrowUp={handleArrowUp}
@@ -279,6 +317,9 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   searchResults={searchResults}
                 />
               </FlexRow>
+              {showSearchHistory && (
+                <SearchHistoryChips onSearchTermClick={handleSearchHistoryClick} />
+              )}
               <TypeFilterChips
                 selectedInputType={selectedInputType}
                 selectedOutputType={selectedOutputType}
