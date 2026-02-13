@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect, memo } from "react";
 import { Typography, Box } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
@@ -26,19 +26,21 @@ interface FolderButtonProps {
   onClick: () => void;
 }
 
-const FolderButton = ({ label, onClick }: FolderButtonProps) => (
-  <NavButton
-    icon={<FolderOutlinedIcon />}
-    label={label}
-    onClick={onClick}
-    sx={{
-      padding: "0.5em 1.5em",
-      textTransform: "none",
-      justifyContent: "flex-start",
-      minWidth: "200px"
-    }}
-  />
-);
+const FolderButton = memo(function FolderButton({ label, onClick }: FolderButtonProps) {
+  return (
+    <NavButton
+      icon={<FolderOutlinedIcon />}
+      label={label}
+      onClick={onClick}
+      sx={{
+        padding: "0.5em 1.5em",
+        textTransform: "none",
+        justifyContent: "flex-start",
+        minWidth: "200px"
+      }}
+    />
+  );
+});
 
 const FoldersSettings = () => {
   const queryClient = useQueryClient();
@@ -56,7 +58,7 @@ const FoldersSettings = () => {
     {}
   );
 
-  useMemo(() => {
+  useEffect(() => {
     const settingsToUse = data || settings;
     if (settingsToUse && settingsToUse.length > 0) {
       const values: Record<string, string> = {};
