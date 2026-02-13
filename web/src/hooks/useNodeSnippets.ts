@@ -93,8 +93,9 @@ export const useNodeSnippets = (
     (state) => state.getSnippetsByNodeType
   );
 
-  const { nodes, setNodes, setEdges } = useNodes((state) => ({
+  const { nodes, edges, setNodes, setEdges } = useNodes((state) => ({
     nodes: state.nodes,
+    edges: state.edges,
     setNodes: state.setNodes,
     setEdges: state.setEdges
   }));
@@ -196,9 +197,9 @@ export const useNodeSnippets = (
       // Add nodes and edges using both ReactFlow and store methods
       rfAddNodes(newNodes);
       setNodes([...nodes, ...newNodes]);
-      setEdges([...(useNodes.getState().edges), ...newEdges]);
+      setEdges([...edges, ...newEdges]);
     },
-    [getSnippet, nodes, setNodes, setEdges, rfAddNodes, restoreOffset]
+    [getSnippet, nodes, edges, setNodes, setEdges, rfAddNodes, restoreOffset]
   );
 
   /**

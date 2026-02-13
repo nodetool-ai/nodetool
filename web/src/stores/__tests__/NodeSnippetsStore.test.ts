@@ -11,8 +11,8 @@ describe("NodeSnippetsStore", () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
-    // Store doesn't have a clear method, so we rely on localStorage clearing
-    renderHook(() => useNodeSnippetsStore());
+    // Reset store state
+    useNodeSnippetsStore.setState({ snippets: [] });
   });
 
   const createMockNode = (
@@ -113,6 +113,7 @@ describe("NodeSnippetsStore", () => {
     });
 
     it("should sort snippets by updated time descending", () => {
+      jest.useFakeTimers();
       const { result } = renderHook(() => useNodeSnippetsStore());
 
       const nodes = [createMockNode("node1", "TestNode", { x: 0, y: 0 })];
@@ -121,14 +122,16 @@ describe("NodeSnippetsStore", () => {
         result.current.createSnippetFromNodes("First", "Desc1", nodes, []);
       });
 
-      // Wait a bit to ensure different timestamp
+      // Advance time to ensure different timestamp
       act(() => {
+        jest.advanceTimersByTime(100);
         result.current.createSnippetFromNodes("Second", "Desc2", nodes, []);
       });
 
       const snippets = result.current.getSnippets();
       expect(snippets[0].name).toBe("Second");
       expect(snippets[1].name).toBe("First");
+      jest.useRealTimers();
     });
   });
 
@@ -159,6 +162,7 @@ describe("NodeSnippetsStore", () => {
     });
 
     it("should update updatedAt timestamp on update", () => {
+      jest.useFakeTimers();
       const { result } = renderHook(() => useNodeSnippetsStore());
 
       const nodes = [createMockNode("node1", "TestNode", { x: 0, y: 0 })];
@@ -175,13 +179,15 @@ describe("NodeSnippetsStore", () => {
 
       const originalUpdatedAt = result.current.getSnippet(snippetId)?.updatedAt ?? 0;
 
-      // Wait to ensure timestamp difference
+      // Advance time to ensure timestamp difference
       act(() => {
+        jest.advanceTimersByTime(100);
         result.current.updateSnippet(snippetId, { name: "Updated" });
       });
 
       const updatedSnippet = result.current.getSnippet(snippetId);
       expect(updatedSnippet?.updatedAt).toBeGreaterThan(originalUpdatedAt);
+      jest.useRealTimers();
     });
   });
 
