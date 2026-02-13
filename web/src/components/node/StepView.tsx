@@ -85,15 +85,15 @@ interface StepViewProps {
   step: Step;
 }
 
-const StepView: React.FC<StepViewProps> = ({ step }) => {
+const StepView: React.FC<StepViewProps> = React.memo(({ step }) => {
   const theme = useTheme();
   // Simple heuristic for running state: has start time but not completed
   const isRunning = step.start_time > 0 && !step.completed;
 
   return (
     <div css={styles(theme)}>
-      <Paper 
-        className={`step-item ${isRunning ? "running" : ""} ${step.completed ? "completed" : ""}`} 
+      <Paper
+        className={`step-item ${isRunning ? "running" : ""} ${step.completed ? "completed" : ""}`}
         elevation={0}
       >
         <div className="step-content">
@@ -102,7 +102,7 @@ const StepView: React.FC<StepViewProps> = ({ step }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              height: "20px" 
+              height: "20px"
             }}
           >
             {isRunning ? (
@@ -128,6 +128,16 @@ const StepView: React.FC<StepViewProps> = ({ step }) => {
       </Paper>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for Step objects - only re-render when critical props change
+  return (
+    prevProps.step.id === nextProps.step.id &&
+    prevProps.step.instructions === nextProps.step.instructions &&
+    prevProps.step.completed === nextProps.step.completed &&
+    prevProps.step.start_time === nextProps.step.start_time
+  );
+});
+
+StepView.displayName = "StepView";
 
 export default StepView;

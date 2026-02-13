@@ -29,10 +29,10 @@ const mapButtonSize = (
 /**
  * CopyToClipboardButton - A wrapper around CopyButton from ui_primitives
  * that adds special serialization for complex values.
- * 
+ *
  * @deprecated Consider using CopyButton from ui_primitives directly for new code.
  */
-export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
+export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = React.memo(({
   copyValue,
   onCopySuccess,
   onCopyError,
@@ -86,4 +86,17 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
       {...props}
     />
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render when critical props change
+  return (
+    prevProps.copyValue === nextProps.copyValue &&
+    prevProps.title === nextProps.title &&
+    prevProps.size === nextProps.size &&
+    prevProps.tooltipPlacement === nextProps.tooltipPlacement &&
+    prevProps.onCopySuccess === nextProps.onCopySuccess &&
+    prevProps.onCopyError === nextProps.onCopyError &&
+    prevProps.sx === nextProps.sx
+  );
+});
+
+CopyToClipboardButton.displayName = "CopyToClipboardButton";

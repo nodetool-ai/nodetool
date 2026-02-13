@@ -26,12 +26,16 @@ const styles = css({
   fontFamily: "var(--fontFamily2)"
 });
 
-const ImageDimensions: React.FC<ImageDimensionsProps> = ({ width, height }) => {
+const ImageDimensions: React.FC<ImageDimensionsProps> = React.memo(({ width, height }) => {
   return (
     <Box css={styles} className="image-dimensions">
       {width}×{height}
     </Box>
   );
-};
+}, (prevProps, nextProps) => {
+  return prevProps.width === nextProps.width && prevProps.height === nextProps.height;
+});
+
+ImageDimensions.displayName = "ImageDimensions";
 
 export default ImageDimensions;
