@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
+import React, { useState, DragEvent, useRef, useCallback, useEffect, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -113,4 +113,4 @@ const Dropzone: React.FC<DropzoneProps> = (props) => {
   );
 };
 
-export default Dropzone;
+export default memo(Dropzone);
