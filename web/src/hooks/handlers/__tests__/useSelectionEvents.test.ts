@@ -16,7 +16,12 @@ describe("useSelectionEvents", () => {
   const mockReactFlowInstance = {
     screenToFlowPosition: mockScreenToFlowPosition,
     getIntersectingNodes: jest.fn().mockReturnValue([]),
-    getNodes: jest.fn().mockReturnValue([])
+    getNodes: jest.fn().mockReturnValue([]),
+    flowToScreenPosition: jest.fn().mockImplementation((pos) => pos),
+    getEdges: jest.fn().mockReturnValue([
+      { id: "edge-1" },
+      { id: "edge-2" }
+    ])
   };
 
   const mockOpenContextMenu = jest.fn();
@@ -160,14 +165,6 @@ describe("useSelectionEvents", () => {
     });
 
     it("selects edges inside the marquee rectangle", () => {
-      mockReactFlowInstance.flowToScreenPosition = jest
-        .fn()
-        .mockImplementation((pos) => pos);
-      mockReactFlowInstance.getEdges = jest.fn().mockReturnValue([
-        { id: "edge-1" },
-        { id: "edge-2" }
-      ]);
-
       const { result } = renderHook(() =>
         useSelectionEvents({
           reactFlowInstance: mockReactFlowInstance as any,
