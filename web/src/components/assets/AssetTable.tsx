@@ -12,6 +12,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { FixedSizeList as List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -70,9 +71,14 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
 
   useEffect(() => {
     const promises = assetIds.map((id) => getAsset(id));
-    Promise.all(promises).then((fetchedAssets) => {
-      setAssets(fetchedAssets.filter((a): a is Asset => !!a));
-    });
+    Promise.all(promises)
+      .then((fetchedAssets) => {
+        setAssets(fetchedAssets.filter((a): a is Asset => !!a));
+      })
+      .catch((error) => {
+        console.error("Failed to fetch assets:", error);
+        setAssets([]);
+      });
   }, [getAsset, assetIds]);
 
   const handleRemoveAsset = useCallback(
@@ -145,14 +151,18 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
           {shouldVirtualize ? (
             <TableRow>
               <TableCell colSpan={2} sx={{ padding: 0 }}>
-                <List
-                  height={listHeight}
-                  itemCount={assets.length}
-                  itemSize={rowHeight}
-                  width="100%"
-                >
-                  {Row}
-                </List>
+                <AutoSizer disableHeight>
+                  {({ width }: { width: number }) => (
+                    <List
+                      height={listHeight}
+                      itemCount={assets.length}
+                      itemSize={rowHeight}
+                      width={width}
+                    >
+                      {Row}
+                    </List>
+                  )}
+                </AutoSizer>
               </TableCell>
             </TableRow>
           ) : (
