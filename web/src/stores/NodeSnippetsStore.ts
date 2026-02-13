@@ -57,6 +57,7 @@ interface NodeSnippetsStore {
     nodes: Node<NodeData>[],
     edges: Edge[]
   ) => string;
+  setState: (state: Partial<NodeSnippetsStore>) => void;
 }
 
 const MAX_SNIPPETS = 50;
@@ -118,6 +119,10 @@ export const useNodeSnippetsStore = create<NodeSnippetsStore>()(
   persist(
     (set, get) => ({
       snippets: [],
+
+      setState: (partial) => {
+        set(partial);
+      },
 
       addSnippet: (snippet) => {
         const id = generateSnippetId();
