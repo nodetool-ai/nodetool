@@ -1,4 +1,4 @@
-import Fuse from "fuse.js";
+import Fuse, { type FuseResult } from "fuse.js";
 import { NodeMetadata, TypeName } from "../stores/ApiTypes";
 import {
   filterDataByType,
@@ -12,6 +12,16 @@ export type SearchResultGroup = {
   title: string;
   nodes: NodeMetadata[];
 };
+
+interface SearchEntry {
+  title: string;
+  node_type: string;
+  namespace: string;
+  description: string;
+  use_cases: string | string[];
+  tags: string;
+  metadata: NodeMetadata;
+}
 
 // Global prefix tree instance for fast prefix searches
 // Cache is keyed by the metadata array to enable proper reuse
@@ -57,7 +67,7 @@ function shouldUsePrefixTree(term: string): boolean {
 }
 
 export function performGroupedSearch(
-  entries: any[],
+  entries: SearchEntry[],
   term: string
 ): SearchResultGroup[] {
   // Extract node metadata from entries
@@ -138,21 +148,22 @@ export function performGroupedSearch(
     ignoreLocation: true,
     includeMatches: true,
     useExtendedSearch: true
-  } as ExtendedFuseOptions<any>);
+  } as ExtendedFuseOptions<SearchEntry>);
 
   // Collect all results with their scores for ranking
-  const allResults: Array<{ node: any; score: number; source: string }> = [];
+  const allResults: Array<{ node: NodeMetadata; score: number; source: string }> = [];
 
   // Title matches (highest priority - score boost)
   titleFuse.search(term).forEach((result) => {
+    const nodeWithSearchInfo: NodeMetadata = {
+      ...result.item.metadata,
+      searchInfo: {
+        score: result.score ?? undefined,
+        matches: result.matches as any
+      }
+    };
     allResults.push({
-      node: {
-        ...result.item.metadata,
-        searchInfo: {
-          score: result.score,
-          matches: result.matches
-        }
-      },
+      node: nodeWithSearchInfo,
       score: (result.score || 0) * 0.5, // Boost title matches
       source: "title"
     });
@@ -164,14 +175,15 @@ export function performGroupedSearch(
     if (allResults.some((r) => r.node.node_type === result.item.metadata.node_type)) {
       return;
     }
+    const nodeWithSearchInfo: NodeMetadata = {
+      ...result.item.metadata,
+      searchInfo: {
+        score: result.score ?? undefined,
+        matches: result.matches as any
+      }
+    };
     allResults.push({
-      node: {
-        ...result.item.metadata,
-        searchInfo: {
-          score: result.score,
-          matches: result.matches
-        }
-      },
+      node: nodeWithSearchInfo,
       score: (result.score || 0) * 0.7, // Slight boost for namespace/tags
       source: "namespace"
     });
@@ -179,7 +191,7 @@ export function performGroupedSearch(
 
   // Description matches
   const termNoSpaces = term.replace(/\s+/g, "");
-  const descResults = new Map<string, any>();
+  const descResults = new Map<string, FuseResult<SearchEntry>>();
   [
     ...descriptionFuse.search(term),
     ...descriptionFuse.search(termNoSpaces)
@@ -195,14 +207,15 @@ export function performGroupedSearch(
     if (allResults.some((r) => r.node.node_type === result.item.metadata.node_type)) {
       return;
     }
+    const nodeWithSearchInfo: NodeMetadata = {
+      ...result.item.metadata,
+      searchInfo: {
+        score: result.score ?? undefined,
+        matches: result.matches as any
+      }
+    };
     allResults.push({
-      node: {
-        ...result.item.metadata,
-        searchInfo: {
-          score: result.score,
-          matches: result.matches
-        }
-      },
+      node: nodeWithSearchInfo,
       score: result.score || 0,
       source: "description"
     });
