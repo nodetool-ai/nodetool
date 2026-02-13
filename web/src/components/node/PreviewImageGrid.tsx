@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -565,4 +565,4 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   );
 };
 
-export default PreviewImageGrid;
+export default memo(PreviewImageGrid);
