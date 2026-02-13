@@ -10,6 +10,18 @@ import isEqual from "lodash/isEqual";
 const MAX_TEXT_LENGTH = 1000;
 const MAX_TEXT_HEIGHT = 50;
 
+// Move style objects outside component to prevent recreation on every render
+const CONTAINER_STYLE: React.CSSProperties = {
+  width: "100%",
+  padding: ".5em",
+  maxHeight: MAX_TEXT_HEIGHT,
+  overflow: "auto"
+};
+
+const TEXT_STYLE: React.CSSProperties = {
+  whiteSpace: "pre-wrap"
+};
+
 interface TextAssetDisplayProps {
   assetId: string;
 }
@@ -41,14 +53,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
   }, [data]);
 
   return (
-    <div
-      style={{
-        width: "100%",
-        padding: ".5em",
-        maxHeight: MAX_TEXT_HEIGHT,
-        overflow: "auto"
-      }}
-    >
+    <div style={CONTAINER_STYLE}>
       <Tooltip title="Open Editor" enterDelay={TOOLTIP_ENTER_DELAY}>
         <button className="button-expand" onClick={toggleExpand}>
           {isExpanded ? "↙" : "↗"}
@@ -57,7 +62,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
       <Typography
         className="text"
         variant="body1"
-        style={{ whiteSpace: "pre-wrap" }}
+        style={TEXT_STYLE}
       >
         {error
           ? "Error loading preview."
