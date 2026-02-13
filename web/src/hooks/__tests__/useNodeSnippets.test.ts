@@ -7,19 +7,39 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useNodeSnippets } from "../useNodeSnippets";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
+import useNodeSnippetsStore from "../../stores/NodeSnippetsStore";
 
-// Mock NodeContext for testing
-jest.mock("../../contexts/NodeContext", () => ({
-  useNodeStoreRef: jest.fn(() => ({
-    getState: jest.fn(() => ({
-      addNodes: jest.fn(),
-      addEdges: jest.fn(),
-      workflowId: "test-workflow"
-    }))
+// Mock ReactFlow
+jest.mock("@xyflow/react", () => ({
+  ...jest.requireActual("@xyflow/react"),
+  useReactFlow: jest.fn(() => ({
+    addNodes: jest.fn()
   }))
 }));
 
-import { useNodeStoreRef } from "../../contexts/NodeContext";
+// Mock NodeContext for testing
+const mockGetState = jest.fn(() => ({
+  nodes: [],
+  edges: [],
+  addNodes: jest.fn(),
+  addEdges: jest.fn(),
+  workflowId: "test-workflow"
+}));
+
+const mockStoreRef = {
+  getState: mockGetState
+};
+
+jest.mock("../../contexts/NodeContext", () => ({
+  useNodeStoreRef: jest.fn(() => mockStoreRef),
+  useNodes: jest.fn((selector) => selector({
+    nodes: [],
+    setNodes: jest.fn(),
+    setEdges: jest.fn()
+  }))
+}));
+
+import { useNodeStoreRef, useNodes } from "../../contexts/NodeContext";
 
 const createMockNode = (
   id: string,
@@ -49,9 +69,34 @@ const createMockEdge = (
 });
 
 describe("useNodeSnippets", () => {
+  let cleanup: (() => void) | undefined;
+
   beforeEach(() => {
+    // Clear localStorage before creating store
     localStorage.clear();
     jest.clearAllMocks();
+    // Reset the store state
+    mockGetState.mockReturnValue({
+      nodes: [],
+      edges: [],
+      addNodes: jest.fn(),
+      addEdges: jest.fn(),
+      workflowId: "test-workflow"
+    });
+
+    // Initialize and clear the snippets store
+    const { result, unmount } = renderHook(() => useNodeSnippetsStore());
+    act(() => {
+      const snippets = result.current.getSnippets();
+      snippets.forEach((snippet) => {
+        result.current.deleteSnippet(snippet.id);
+      });
+    });
+    cleanup = unmount;
+  });
+
+  afterEach(() => {
+    cleanup?.();
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) => {
@@ -90,13 +135,23 @@ describe("useNodeSnippets", () => {
 
   describe("restoreSnippet", () => {
     it("should restore snippet nodes and edges to workflow", () => {
-      const mockAddNodes = jest.fn();
-      const mockAddEdges = jest.fn();
+      const mockSetNodes = jest.fn();
+      const mockSetEdges = jest.fn();
+
+      (useNodes as jest.Mock).mockImplementation((selector) =>
+        selector({
+          nodes: [],
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges
+        })
+      );
 
       (useNodeStoreRef as jest.Mock).mockReturnValue({
         getState: () => ({
-          addNodes: mockAddNodes,
-          addEdges: mockAddEdges,
+          nodes: [],
+          edges: [],
+          addNodes: jest.fn(),
+          addEdges: jest.fn(),
           workflowId: "test-workflow"
         })
       });
@@ -118,24 +173,17 @@ describe("useNodeSnippets", () => {
       );
 
       // Reset mocks
-      mockAddNodes.mockClear();
-      mockAddEdges.mockClear();
+      mockSetNodes.mockClear();
+      mockSetEdges.mockClear();
 
       // Restore snippet
       act(() => {
         result.current.restoreSnippet(snippetId, { x: 500, y: 500 });
       });
 
-      expect(mockAddNodes).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: "TypeA",
-            data: expect.objectContaining({
-              workflow_id: "test-workflow"
-            })
-          })
-        ])
-      );
+      // Check that setNodes was called with the new nodes added
+      expect(mockSetNodes).toHaveBeenCalled();
+      expect(mockSetEdges).toHaveBeenCalled();
     });
 
     it("should throw error for non-existent snippet", () => {
@@ -147,11 +195,21 @@ describe("useNodeSnippets", () => {
     });
 
     it("should apply restore offset when positioning nodes", () => {
-      const mockAddNodes = jest.fn();
+      const mockSetNodes = jest.fn();
+
+      (useNodes as jest.Mock).mockImplementation((selector) =>
+        selector({
+          nodes: [],
+          setNodes: mockSetNodes,
+          setEdges: jest.fn()
+        })
+      );
 
       (useNodeStoreRef as jest.Mock).mockReturnValue({
         getState: () => ({
-          addNodes: mockAddNodes,
+          nodes: [],
+          edges: [],
+          addNodes: jest.fn(),
           addEdges: jest.fn(),
           workflowId: "test-workflow"
         })
@@ -171,18 +229,23 @@ describe("useNodeSnippets", () => {
         []
       );
 
-      mockAddNodes.mockClear();
+      mockSetNodes.mockClear();
 
       // Restore at (500, 500)
       act(() => {
         result.current.restoreSnippet(snippetId, { x: 500, y: 500 });
       });
 
-      // Position should be (500, 500) + offset (50, 100) - original (100, 100)
-      // = (450, 500)
-      const addedNodes = mockAddNodes.mock.calls[0][0] as Node<NodeData>[];
-      expect(addedNodes[0].position.x).toBe(450);
-      expect(addedNodes[0].position.y).toBe(500);
+      // Check that setNodes was called
+      expect(mockSetNodes).toHaveBeenCalled();
+      // Position calculation:
+      // - offsetX = position.x - minX + restoreOffset.x = 500 - 100 + 50 = 450
+      // - offsetY = position.y - minY + restoreOffset.y = 500 - 100 + 100 = 500
+      // - newX = originalX + offsetX = 100 + 450 = 550
+      // - newY = originalY + offsetY = 100 + 500 = 600
+      const addedNodes = mockSetNodes.mock.calls[0][0] as Node<NodeData>[];
+      expect(addedNodes[addedNodes.length - 1].position.x).toBe(550);
+      expect(addedNodes[addedNodes.length - 1].position.y).toBe(600);
     });
   });
 

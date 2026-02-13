@@ -8,11 +8,25 @@ import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../NodeData";
 
 describe("NodeSnippetsStore", () => {
+  let cleanupHook: (() => void) | undefined;
+
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
-    // Store doesn't have a clear method, so we rely on localStorage clearing
-    renderHook(() => useNodeSnippetsStore());
+    // Initialize the store and clean it
+    const { result, unmount } = renderHook(() => useNodeSnippetsStore());
+    // Clear any snippets that might have been loaded from previous runs
+    act(() => {
+      const snippets = result.current.getSnippets();
+      snippets.forEach((snippet) => {
+        result.current.deleteSnippet(snippet.id);
+      });
+    });
+    cleanupHook = unmount;
+  });
+
+  afterEach(() => {
+    cleanupHook?.();
   });
 
   const createMockNode = (
@@ -121,10 +135,15 @@ describe("NodeSnippetsStore", () => {
         result.current.createSnippetFromNodes("First", "Desc1", nodes, []);
       });
 
-      // Wait a bit to ensure different timestamp
+      // Use a fake timer to ensure different timestamp
+      jest.useFakeTimers();
+      jest.setSystemTime(Date.now() + 1000);
+
       act(() => {
         result.current.createSnippetFromNodes("Second", "Desc2", nodes, []);
       });
+
+      jest.useRealTimers();
 
       const snippets = result.current.getSnippets();
       expect(snippets[0].name).toBe("Second");
@@ -173,14 +192,21 @@ describe("NodeSnippetsStore", () => {
         );
       });
 
-      const originalUpdatedAt = result.current.getSnippet(snippetId)?.updatedAt ?? 0;
+      const originalSnippet = result.current.getSnippet(snippetId);
+      const originalUpdatedAt = originalSnippet?.updatedAt ?? 0;
 
-      // Wait to ensure timestamp difference
+      // Use a fake timer to ensure timestamp difference
+      jest.useFakeTimers();
+      jest.setSystemTime(originalUpdatedAt + 1000);
+
       act(() => {
         result.current.updateSnippet(snippetId, { name: "Updated" });
       });
 
       const updatedSnippet = result.current.getSnippet(snippetId);
+
+      jest.useRealTimers();
+
       expect(updatedSnippet?.updatedAt).toBeGreaterThan(originalUpdatedAt);
     });
   });
