@@ -3,7 +3,7 @@
  * Shows title, description, total size, and allows one-click download of all models.
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, memo } from "react";
 import {
   Card,
   CardContent,
@@ -38,7 +38,7 @@ interface ModelPackCardProps {
   onDownloadAll: (models: UnifiedModel[]) => void;
 }
 
-const ModelPackCard: React.FC<ModelPackCardProps> = ({
+const ModelPackCardInner: React.FC<ModelPackCardProps> = ({
   pack,
   onDownloadAll
 }) => {
@@ -294,5 +294,8 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
     </Card>
   );
 };
+
+const ModelPackCard = memo(ModelPackCardInner);
+ModelPackCard.displayName = "ModelPackCard";
 
 export default ModelPackCard;
