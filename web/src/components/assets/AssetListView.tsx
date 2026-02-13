@@ -345,6 +345,16 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   // Empty callback for disabled button - prevents new function creation on each render
   const emptyCallback = useCallback(() => {}, []);
 
+  const handleContentAreaClick = useCallback((e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleDeselectAssets();
+    }
+  }, [handleDeselectAssets]);
+
+  const handleContentContextMenu = useCallback((e: React.MouseEvent) => {
+    handleContextMenu(e);
+  }, [handleContextMenu]);
+
   const getRowHeight = useCallback((index: number) => {
     const item = virtualListItems[index];
     if (item?.type === 'header') {
@@ -367,6 +377,25 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
     }
   }, [selectedAssetIds]);
 
+  // Memoized handlers to prevent recreation on each render
+  const handleTypeHeaderClick = useCallback((e: React.MouseEvent, type: string) => {
+    e.stopPropagation();
+    toggleExpanded(type);
+  }, [toggleExpanded]);
+
+  const handleAssetClick = useCallback((e: React.MouseEvent, assetId: string) => {
+    e.stopPropagation();
+    handleSelectAsset(assetId);
+  }, [handleSelectAsset]);
+
+  const handleAssetDoubleClick = useCallback((asset: Asset) => {
+    onDoubleClick?.(asset);
+  }, [onDoubleClick]);
+
+  const handleAssetContextMenu = useCallback((e: React.MouseEvent, assetId: string) => {
+    handleContextMenu(e, assetId);
+  }, [handleContextMenu]);
+
   // Render a single row in the virtualized list
   const renderRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const item = virtualListItems[index];
@@ -381,10 +410,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
         <div
           style={style}
           className="asset-content-type-header"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleExpanded(type);
-          }}
+          onClick={(e) => handleTypeHeaderClick(e, type)}
         >
           <IconForType
             iconName={type}
@@ -424,12 +450,9 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
       <div
         className={`asset-list-item ${isSelected ? "selected" : ""}`}
         style={style}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleSelectAsset(asset.id);
-        }}
-        onDoubleClick={() => onDoubleClick?.(asset)}
-        onContextMenu={(e) => handleContextMenu(e, asset.id)}
+        onClick={(e) => handleAssetClick(e, asset.id)}
+        onDoubleClick={() => handleAssetDoubleClick(asset)}
+        onContextMenu={(e) => handleAssetContextMenu(e, asset.id)}
       >
         {hasVisualContent ? (
           <div
@@ -496,7 +519,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
         )}
       </div>
     );
-  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback]);
+  }, [virtualListItems, handleAssetClick, handleAssetDoubleClick, handleAssetContextMenu, handleTypeHeaderClick, showSize, showType, showDate, emptyCallback]);
 
   if (assets.length === 0) {
     return (
@@ -524,12 +547,8 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
 
         <div
           className="asset-list-content"
-          onContextMenu={(e) => handleContextMenu(e)}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              handleDeselectAssets();
-            }
-          }}
+          onContextMenu={handleContentContextMenu}
+          onClick={handleContentAreaClick}
         >
           <AutoSizer>
             {({ height, width }: { height: number; width: number }) => (

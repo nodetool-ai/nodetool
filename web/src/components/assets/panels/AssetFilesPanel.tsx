@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useRef, memo } from "react";
+import React, { useCallback, useRef, memo, useMemo } from "react";
 import { IDockviewPanelProps } from "dockview";
 import SearchErrorBoundary from "../../SearchErrorBoundary";
 import GlobalSearchResults from "../GlobalSearchResults";
@@ -7,6 +7,7 @@ import AssetGridContent from "../AssetGridContent";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
+import { shallow } from "zustand/shallow";
 
 export interface AssetFilesPanelParams {
   isHorizontal?: boolean;
@@ -17,24 +18,26 @@ const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
 ) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const setOpenAssetLocal = useAssetGridStore((state) => state.setOpenAsset);
-  const isGlobalSearchActiveLocal = useAssetGridStore(
-    (state) => state.isGlobalSearchActive
-  );
-  const isGlobalSearchModeLocal = useAssetGridStore(
-    (state) => state.isGlobalSearchMode
-  );
-  const globalSearchResultsLocal = useAssetGridStore(
-    (state) => state.globalSearchResults
-  );
-  const setIsGlobalSearchActiveLocal = useAssetGridStore(
-    (state) => state.setIsGlobalSearchActive
-  );
-  const setIsGlobalSearchModeLocal = useAssetGridStore(
-    (state) => state.setIsGlobalSearchMode
-  );
-  const setCurrentFolderIdLocal = useAssetGridStore(
-    (state) => state.setCurrentFolderId
+  // Combine multiple store selectors with shallow to reduce re-renders
+  const {
+    setOpenAsset: setOpenAssetLocal,
+    isGlobalSearchActive: isGlobalSearchActiveLocal,
+    isGlobalSearchMode: isGlobalSearchModeLocal,
+    globalSearchResults: globalSearchResultsLocal,
+    setIsGlobalSearchActive: setIsGlobalSearchActiveLocal,
+    setIsGlobalSearchMode: setIsGlobalSearchModeLocal,
+    setCurrentFolderId: setCurrentFolderIdLocal
+  } = useAssetGridStore(
+    useMemo(() => (state) => ({
+      setOpenAsset: state.setOpenAsset,
+      isGlobalSearchActive: state.isGlobalSearchActive,
+      isGlobalSearchMode: state.isGlobalSearchMode,
+      globalSearchResults: state.globalSearchResults,
+      setIsGlobalSearchActive: state.setIsGlobalSearchActive,
+      setIsGlobalSearchMode: state.setIsGlobalSearchMode,
+      setCurrentFolderId: state.setCurrentFolderId
+    }), []),
+    shallow
   );
 
   const handleDoubleClick = useCallback(

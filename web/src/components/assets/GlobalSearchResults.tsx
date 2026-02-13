@@ -22,6 +22,7 @@ import {
   createAssetDragImage
 } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import { shallow } from "zustand/shallow";
 
 interface GlobalSearchResultsProps {
   results: AssetWithPath[];
@@ -199,21 +200,29 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   const theme = useTheme();
   const { selectedAssetIds, handleSelectAsset } = useAssetSelection(results);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const globalSearchQuery = useAssetGridStore(
-    (state) => state.globalSearchQuery
-  );
-  const setSelectedAssetIds = useAssetGridStore(
-    (state) => state.setSelectedAssetIds
-  );
-  const setSelectedAssets = useAssetGridStore(
-    (state) => state.setSelectedAssets
-  );
-  const selectedAssets = useAssetGridStore(
-    (state) => state.selectedAssets
-  );
+
+  // Combine multiple AssetGridStore selectors to reduce re-renders
+  const { globalSearchQuery, setSelectedAssetIds, setSelectedAssets, selectedAssets } =
+    useAssetGridStore(
+      useMemo(() => (state) => ({
+        globalSearchQuery: state.globalSearchQuery,
+        setSelectedAssetIds: state.setSelectedAssetIds,
+        setSelectedAssets: state.setSelectedAssets,
+        selectedAssets: state.selectedAssets
+      }), []),
+      shallow
+    );
+
   const { isSearching } = useAssetSearch();
-  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
-  const clearDrag = useDragDropStore((s) => s.clearDrag);
+
+  // Combine drag store selectors to reduce re-renders
+  const { setActiveDrag, clearDrag } = useDragDropStore(
+    useMemo(() => (s) => ({
+      setActiveDrag: s.setActiveDrag,
+      clearDrag: s.clearDrag
+    }), []),
+    shallow
+  );
 
   // Memoize static styles to prevent recreation on every render
   const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: "0.5em" }), []);
