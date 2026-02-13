@@ -9,10 +9,12 @@ import { NodeData } from "../NodeData";
 
 describe("NodeSnippetsStore", () => {
   beforeEach(() => {
-    // Clear localStorage before each test
+    // Clear both localStorage and store state
+    jest.restoreAllMocks();
     localStorage.clear();
-    // Store doesn't have a clear method, so we rely on localStorage clearing
-    renderHook(() => useNodeSnippetsStore());
+    act(() => {
+      useNodeSnippetsStore.setState({ snippets: [] });
+    });
   });
 
   const createMockNode = (
@@ -113,22 +115,29 @@ describe("NodeSnippetsStore", () => {
     });
 
     it("should sort snippets by updated time descending", () => {
-      const { result } = renderHook(() => useNodeSnippetsStore());
+      // Mock Date.now to ensure different timestamps
+      let timeValue = 1000;
+      jest.spyOn(Date, "now").mockImplementation(() => timeValue++);
 
-      const nodes = [createMockNode("node1", "TestNode", { x: 0, y: 0 })];
+      try {
+        const { result } = renderHook(() => useNodeSnippetsStore());
 
-      act(() => {
-        result.current.createSnippetFromNodes("First", "Desc1", nodes, []);
-      });
+        const nodes = [createMockNode("node1", "TestNode", { x: 0, y: 0 })];
 
-      // Wait a bit to ensure different timestamp
-      act(() => {
-        result.current.createSnippetFromNodes("Second", "Desc2", nodes, []);
-      });
+        act(() => {
+          result.current.createSnippetFromNodes("First", "Desc1", nodes, []);
+        });
 
-      const snippets = result.current.getSnippets();
-      expect(snippets[0].name).toBe("Second");
-      expect(snippets[1].name).toBe("First");
+        act(() => {
+          result.current.createSnippetFromNodes("Second", "Desc2", nodes, []);
+        });
+
+        const snippets = result.current.getSnippets();
+        expect(snippets[0].name).toBe("Second"); // Created at time 1001
+        expect(snippets[1].name).toBe("First"); // Created at time 1000
+      } finally {
+        jest.restoreAllMocks();
+      }
     });
   });
 
@@ -159,29 +168,37 @@ describe("NodeSnippetsStore", () => {
     });
 
     it("should update updatedAt timestamp on update", () => {
-      const { result } = renderHook(() => useNodeSnippetsStore());
+      // Mock Date.now to ensure different timestamps
+      let timeValue = 2000;
+      jest.spyOn(Date, "now").mockImplementation(() => timeValue++);
 
-      const nodes = [createMockNode("node1", "TestNode", { x: 0, y: 0 })];
+      try {
+        const { result } = renderHook(() => useNodeSnippetsStore());
 
-      let snippetId = "";
-      act(() => {
-        snippetId = result.current.createSnippetFromNodes(
-          "Snippet",
-          "Description",
-          nodes,
-          []
-        );
-      });
+        const nodes = [createMockNode("node1", "TestNode", { x: 0, y: 0 })];
 
-      const originalUpdatedAt = result.current.getSnippet(snippetId)?.updatedAt ?? 0;
+        let snippetId = "";
+        act(() => {
+          snippetId = result.current.createSnippetFromNodes(
+            "Snippet",
+            "Description",
+            nodes,
+            []
+          );
+        });
 
-      // Wait to ensure timestamp difference
-      act(() => {
-        result.current.updateSnippet(snippetId, { name: "Updated" });
-      });
+        const originalUpdatedAt = result.current.getSnippet(snippetId)?.updatedAt ?? 0;
 
-      const updatedSnippet = result.current.getSnippet(snippetId);
-      expect(updatedSnippet?.updatedAt).toBeGreaterThan(originalUpdatedAt);
+        // Wait to ensure timestamp difference
+        act(() => {
+          result.current.updateSnippet(snippetId, { name: "Updated" });
+        });
+
+        const updatedSnippet = result.current.getSnippet(snippetId);
+        expect(updatedSnippet?.updatedAt).toBeGreaterThan(originalUpdatedAt);
+      } finally {
+        jest.restoreAllMocks();
+      }
     });
   });
 

@@ -13,7 +13,7 @@ jest.mock("../useDragHandlers");
 
 describe("useSelectionEvents", () => {
   const mockScreenToFlowPosition = jest.fn().mockReturnValue({ x: 100, y: 200 });
-  const mockReactFlowInstance = {
+  const mockReactFlowInstance: Record<string, jest.Mock> = {
     screenToFlowPosition: mockScreenToFlowPosition,
     getIntersectingNodes: jest.fn().mockReturnValue([]),
     getNodes: jest.fn().mockReturnValue([])
