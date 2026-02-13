@@ -61,25 +61,29 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
 
   const handleRemoveAsset = useCallback(
     (asset: Asset) => {
-      const newAssets = assets.filter((a) => a.id !== asset.id);
-      setAssets(newAssets);
-      onChange(newAssets.map((a) => a.id));
+      setAssets((prevAssets) => {
+        const newAssets = prevAssets.filter((a) => a.id !== asset.id);
+        onChange(newAssets.map((a) => a.id));
+        return newAssets;
+      });
     },
-    [onChange, assets]
+    [onChange]
   );
 
   const { onDrop, onDragOver, uploading } = useFileDrop({
     uploadAsset: true,
-    onChangeAsset: (asset: Asset) => {
+    onChangeAsset: useCallback((asset: Asset) => {
       // Logic to handle new asset drop
       // This part seems to imply we add the new asset to the list
       // But props.onChange expects IDs.
       // We should probably just rely on the parent updating props.
       // But for local state:
-      const newAssets = [...assets, asset];
-      setAssets(newAssets);
-      onChange(newAssets.map((a) => a.id));
-    },
+      setAssets((prevAssets) => {
+        const newAssets = [...prevAssets, asset];
+        onChange(newAssets.map((a) => a.id));
+        return newAssets;
+      });
+    }, [onChange]),
     type: "all",
   });
 
