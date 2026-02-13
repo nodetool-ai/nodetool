@@ -15,14 +15,12 @@ jest.mock("../../contexts/NodeContext", () => ({
     getState: jest.fn(() => ({
       addNodes: jest.fn(),
       addEdges: jest.fn(),
+      nodes: [],
+      edges: [],
+      setNodes: jest.fn(),
+      setEdges: jest.fn(),
       workflowId: "test-workflow"
     }))
-  })),
-  useNodes: jest.fn((selector) => selector({
-    nodes: [],
-    edges: [],
-    setNodes: jest.fn(),
-    setEdges: jest.fn()
   }))
 }));
 
@@ -37,7 +35,7 @@ jest.mock("@xyflow/react", () => {
   };
 });
 
-import { useNodeStoreRef, useNodes } from "../../contexts/NodeContext";
+import { useNodeStoreRef } from "../../contexts/NodeContext";
 
 const createMockNode = (
   id: string,
@@ -116,7 +114,11 @@ describe("useNodeSnippets", () => {
         getState: () => ({
           addNodes: mockAddNodes,
           addEdges: mockAddEdges,
-          workflowId: "test-workflow"
+          workflowId: "test-workflow",
+          nodes: [],
+          edges: [],
+          setNodes: jest.fn(),
+          setEdges: jest.fn()
         })
       });
 
@@ -172,7 +174,11 @@ describe("useNodeSnippets", () => {
         getState: () => ({
           addNodes: mockAddNodes,
           addEdges: jest.fn(),
-          workflowId: "test-workflow"
+          workflowId: "test-workflow",
+          nodes: [],
+          edges: [],
+          setNodes: jest.fn(),
+          setEdges: jest.fn()
         })
       });
 
