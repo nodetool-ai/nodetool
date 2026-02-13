@@ -1,7 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import log from "loglevel";
 import { NodeData } from "../stores/NodeData";
-import ELK from "elkjs";
+import ELK, { ElkNode } from "elkjs";
 
 /**
  * Graph utilities for workflow layout and traversal.
@@ -180,7 +180,7 @@ export const autoLayout = async (
   });
 
   // Helper function to create ELK node structure
-  const createElkNode = (node: Node<NodeData>, children?: any[]): any => ({
+  const createElkNode = (node: Node<NodeData>, children?: ElkNode[]): ElkNode => ({
     id: node.id,
     width: node.measured?.width ?? 100,
     height: node.measured?.height ?? 100,
@@ -207,7 +207,7 @@ export const autoLayout = async (
 
   // Helper function to update node positions
   const updateNodePositions = (
-    layoutNode: any,
+    layoutNode: ElkNode,
     parentX = 0,
     parentY = 0
   ): Node<NodeData> => {

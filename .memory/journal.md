@@ -1,0 +1,7 @@
+## 2024-05-23 - Widespread Test Failures in UI Primitives
+**Learning:** Many component tests (including `SelectionActionToolbar.test.tsx`) fail with `TypeError: Cannot read properties of undefined (reading 'forwardRef')` in `FlexColumn.tsx`. This appears to be a systemic issue with the test environment's handling of React imports in `ui_primitives`, possibly related to ESM/CJS interop in `ts-jest`.
+**Action:** When working on UI components, rely more heavily on `make typecheck` and manual code verification if tests are failing due to this environment issue. Fix mocks for new code paths even if tests fail for other reasons, to ensure correctness when the environment is eventually fixed.
+
+## 2024-05-23 - Fix for FlexColumn/FlexRow Test Failures
+**Learning:** `FlexColumn.tsx` and `FlexRow.tsx` were importing `React` via default import (`import React from "react"`) but accessing `React.forwardRef`. In the Jest environment (likely due to `ts-jest` configuration), the default export was undefined or didn't contain `forwardRef` properly, leading to "Cannot read properties of undefined (reading 'forwardRef')". Other components using named imports (`import { forwardRef } from "react"`) were fine.
+**Action:** Changed imports to `import * as React from "react"` in `FlexColumn.tsx` and `FlexRow.tsx`. This ensures `React` is a namespace object containing all exports, fixing the runtime error in tests. When encountering "undefined" errors on default imports in tests, try namespace imports (`import * as X`) or named imports.

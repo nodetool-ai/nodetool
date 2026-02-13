@@ -3,8 +3,8 @@ import { createAssetFile } from "./createAssetFile";
 
 interface DownloadOptions {
   nodeId: string;
-  previewValue?: any;
-  rawResult?: any;
+  previewValue?: unknown;
+  rawResult?: unknown;
 }
 
 const getDownloadPayload = ({
@@ -14,7 +14,7 @@ const getDownloadPayload = ({
   if (previewValue !== null && previewValue !== undefined) {
     return previewValue;
   }
-  if (rawResult?.output !== undefined) {
+  if (rawResult && typeof rawResult === "object" && "output" in rawResult && rawResult.output !== undefined) {
     return rawResult.output;
   }
   if (rawResult !== undefined) {
@@ -53,7 +53,21 @@ export const downloadPreviewAssets = async ({
     }
     throw error;
   }
-  const electronApi = (window as any)?.electron || (window as any)?.api;
+
+  type ElectronSaveFile = (
+    data: ArrayBuffer,
+    filename: string,
+    filters?: { name: string; extensions: string[] }[]
+  ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
+
+  const electronApi =
+    (
+      window as unknown as {
+        electron?: { saveFile?: ElectronSaveFile };
+        api?: { saveFile?: ElectronSaveFile };
+      }
+    ).electron ||
+    (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
 
   if (!assetFiles.length) {
     throw new Error("No assets generated for download");

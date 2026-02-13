@@ -83,6 +83,7 @@ import {
   JobUpdate,
   Message,
   MessageContent,
+  MessageTextContent,
   NodeProgress,
   NodeUpdate,
   OutputUpdate,
@@ -224,10 +225,10 @@ const generateTitleFromFirstUserMessage = (
   if (typeof firstUserMessage.content === "string") {
     contentText = firstUserMessage.content;
   } else if (Array.isArray(firstUserMessage.content)) {
-    const firstText = (firstUserMessage.content as any[]).find(
-      (c: any) => c?.type === "text" && typeof c.text === "string"
+    const firstText = firstUserMessage.content.find(
+      (c) => c?.type === "text" && typeof c.text === "string"
     );
-    contentText = firstText?.text || "";
+    contentText = (firstText as MessageTextContent | undefined)?.text || "";
   }
 
   const titleBase = contentText || "New conversation";
@@ -264,15 +265,18 @@ const applyEdgeUpdate = (
   state: GlobalChatState,
   update: EdgeUpdate
 ): ReducerResult => {
-  const workflowId =
-    (update as any).workflow_id ?? state.threadWorkflowId[state.currentThreadId ?? ""];
-  if (workflowId) {
+  // EdgeUpdate already has workflow_id in its type definition
+  const workflowId = "workflow_id" in update
+    ? (update as EdgeUpdate & { workflow_id?: string }).workflow_id
+    : undefined;
+  const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+  if (effectiveWorkflowId) {
     useResultsStore
       .getState()
       .setEdge(
-        workflowId, 
-        update.edge_id, 
-        update.status, 
+        effectiveWorkflowId,
+        update.edge_id,
+        update.status,
         update.counter ?? undefined
       );
   }
@@ -283,23 +287,26 @@ const applyNodeUpdate = (
   state: GlobalChatState,
   update: NodeUpdate
 ): ReducerResult => {
-  const workflowId =
-    (update as any).workflow_id ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+  // NodeUpdate may have workflow_id as an optional field
+  const workflowId = "workflow_id" in update
+    ? (update as NodeUpdate & { workflow_id?: string }).workflow_id
+    : undefined;
+  const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
 
-  if (workflowId) {
+  if (effectiveWorkflowId) {
     // Sync with ResultsStore
     // If running, we might want to clear previous error or result?
     // For now, allow multiple updates.
-    
-    // Sync status 
+
+    // Sync status
     useStatusStore
       .getState()
-      .setStatus(workflowId, update.node_id, update.status);
+      .setStatus(effectiveWorkflowId, update.node_id, update.status);
 
     if (update.result) {
       useResultsStore
         .getState()
-        .setResult(workflowId, update.node_id, update.result);
+        .setResult(effectiveWorkflowId, update.node_id, update.result);
     }
   }
 
@@ -449,13 +456,16 @@ const applyOutputUpdate = (
   const thread = state.threads[threadId];
   if (!thread) {return noopUpdate;}
 
-  const workflowId =
-    (update as any).workflow_id ?? state.threadWorkflowId[threadId];
-  if (workflowId) {
+  // OutputUpdate may have workflow_id as an optional field
+  const workflowId = "workflow_id" in update
+    ? (update as OutputUpdate & { workflow_id?: string }).workflow_id
+    : undefined;
+  const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[threadId];
+  if (effectiveWorkflowId) {
     useResultsStore
       .getState()
       .setOutputResult(
-        workflowId,
+        effectiveWorkflowId,
         update.node_id,
         update.value,
         true // append
@@ -610,16 +620,19 @@ const applyAgentExecutionMessage = (
   };
 
   // Debug logging for agent execution messages
-  const anyMsg = msg as any;
+  // These properties exist on agent_execution messages but aren't in the base Message type
+  const agentMsg = msg as Message & {
+    execution_event_type?: string;
+  };
   log.debug("applyAgentExecutionMessage:", {
-    execution_event_type: anyMsg.execution_event_type,
-    content_type: typeof anyMsg.content,
-    content_is_array: Array.isArray(anyMsg.content),
-    has_content: !!anyMsg.content
+    execution_event_type: agentMsg.execution_event_type,
+    content_type: typeof agentMsg.content,
+    content_is_array: Array.isArray(agentMsg.content),
+    has_content: !!agentMsg.content
   });
 
-  if (anyMsg.execution_event_type === "planning_update") {
-    const content = anyMsg.content;
+  if (agentMsg.execution_event_type === "planning_update") {
+    const content = agentMsg.content;
     log.debug("PlanningUpdate content:", content);
     if (content && typeof content === "object" && !Array.isArray(content)) {
       update.currentPlanningUpdate = content as PlanningUpdate;
@@ -627,8 +640,8 @@ const applyAgentExecutionMessage = (
     } else {
       log.warn("PlanningUpdate content is invalid:", content);
     }
-  } else if (anyMsg.execution_event_type === "task_update") {
-    const content = anyMsg.content;
+  } else if (agentMsg.execution_event_type === "task_update") {
+    const content = agentMsg.content;
     if (content && typeof content === "object" && !Array.isArray(content)) {
       update.currentTaskUpdate = content as TaskUpdate;
       update.currentTaskUpdateThreadId = threadId;
@@ -637,8 +650,8 @@ const applyAgentExecutionMessage = (
         [threadId]: content as TaskUpdate
       };
     }
-  } else if (anyMsg.execution_event_type === "log_update") {
-    const content = anyMsg.content;
+  } else if (agentMsg.execution_event_type === "log_update") {
+    const content = agentMsg.content;
     if (content && typeof content === "object" && !Array.isArray(content)) {
       update.currentLogUpdate = content as LogUpdate;
     }
@@ -684,7 +697,7 @@ const applyAssistantMessage = (
     if (typeof message.content === "string") {return message.content;}
     if (Array.isArray(message.content)) {
       return message.content
-        .map((c: any) => (c?.type === "text" ? c.text : ""))
+        .map((c) => (c?.type === "text" ? (c as MessageTextContent).text : ""))
         .join("");
     }
     return "";
@@ -694,7 +707,7 @@ const applyAssistantMessage = (
     typeof msg.content === "string"
       ? msg.content
       : Array.isArray(msg.content)
-      ? msg.content.map((c: any) => (c?.type === "text" ? c.text : "")).join("")
+      ? msg.content.map((c) => (c?.type === "text" ? (c as MessageTextContent).text : "")).join("")
       : "";
   const incomingNormalized = normalizeTextForComparison(incomingText);
 
@@ -702,7 +715,9 @@ const applyAssistantMessage = (
     for (let i = messages.length - 1; i >= 0; i--) {
       const candidate = messages[i];
       if (candidate?.role !== "assistant") {continue;}
-      if ((candidate as any).type !== "message") {continue;}
+      // Messages may have an optional type field that isn't in the base type
+      const candidateWithType = candidate as Message & { type?: string };
+      if (candidateWithType.type !== "message") {continue;}
 
       const candidateId = candidate.id ?? null;
       const isLocalStream =
@@ -837,14 +852,16 @@ const applyNodeProgress = (
   state: GlobalChatState,
   progress: NodeProgress
 ): ReducerResult => {
-  const workflowId =
-    (progress as any).workflow_id ??
-    state.threadWorkflowId[state.currentThreadId ?? ""];
-  if (workflowId) {
+  // NodeProgress may have workflow_id as an optional field
+  const workflowId = "workflow_id" in progress
+    ? (progress as NodeProgress & { workflow_id?: string }).workflow_id
+    : undefined;
+  const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+  if (effectiveWorkflowId) {
     useResultsStore
       .getState()
       .setProgress(
-        workflowId,
+        effectiveWorkflowId,
         progress.node_id,
         progress.progress,
         progress.total
