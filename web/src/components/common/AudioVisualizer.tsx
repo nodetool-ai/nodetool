@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useEffect, useRef } from "react";
+import React from "react";
 
 type AudioVisualizerProps = {
   stream: MediaStream | null;
@@ -7,7 +8,7 @@ type AudioVisualizerProps = {
   height?: number;
 };
 
-const AudioVisualizer = ({
+const AudioVisualizer = React.memo(({
   stream,
   version = 0,
   height = 64
@@ -120,6 +121,11 @@ const AudioVisualizer = ({
   }, [stream, version]);
 
   return <canvas ref={canvasRef} style={{ width: "100%", height }} />;
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if stream reference or version changes
+  return prevProps.stream === nextProps.stream && prevProps.version === nextProps.version && prevProps.height === nextProps.height;
+});
+
+AudioVisualizer.displayName = "AudioVisualizer";
 
 export default AudioVisualizer;

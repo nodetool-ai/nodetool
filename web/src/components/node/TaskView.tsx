@@ -29,7 +29,7 @@ interface TaskViewProps {
   task: Task;
 }
 
-const TaskView: React.FC<TaskViewProps> = ({ task }) => {
+const TaskView: React.FC<TaskViewProps> = React.memo(({ task }) => {
   const theme = useTheme();
   return (
     <div css={styles(theme)} className="noscroll">
@@ -54,6 +54,25 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
       </Paper>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for Task objects
+  return (
+    prevProps.task.id === nextProps.task.id &&
+    prevProps.task.title === nextProps.task.title &&
+    prevProps.task.description === nextProps.task.description &&
+    prevProps.task.steps.length === nextProps.task.steps.length &&
+    prevProps.task.steps.every((step, i) => {
+      const nextStep = nextProps.task.steps[i];
+      return (
+        step.id === nextStep.id &&
+        step.instructions === nextStep.instructions &&
+        step.completed === nextStep.completed &&
+        step.start_time === nextStep.start_time
+      );
+    })
+  );
+});
+
+TaskView.displayName = "TaskView";
 
 export default TaskView;

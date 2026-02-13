@@ -196,7 +196,7 @@ function toArrayBuffer(view: Uint8Array): ArrayBuffer {
   return buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
 }
 
-const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
+const PreviewImageGrid: React.FC<PreviewImageGridProps> = React.memo(({
   images,
   onDoubleClick,
   onOpenInViewer,
@@ -563,6 +563,27 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Compare arrays by reference and length
+  if (prevProps.images !== nextProps.images && prevProps.images.length === nextProps.images.length) {
+    // Check if image references are the same (shallow compare)
+    for (let i = 0; i < prevProps.images.length; i++) {
+      if (prevProps.images[i] !== nextProps.images[i]) {
+        return false;
+      }
+    }
+  }
+  // Compare other props
+  return (
+    prevProps.itemSize === nextProps.itemSize &&
+    prevProps.gap === nextProps.gap &&
+    prevProps.enableSelection === nextProps.enableSelection &&
+    prevProps.showActions === nextProps.showActions &&
+    prevProps.onDoubleClick === nextProps.onDoubleClick &&
+    prevProps.onOpenInViewer === nextProps.onOpenInViewer
+  );
+});
+
+PreviewImageGrid.displayName = "PreviewImageGrid";
 
 export default PreviewImageGrid;
