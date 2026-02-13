@@ -44,12 +44,13 @@ jobs:
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         env:
-          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/zhipu
         with:
           anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
           additional_permissions: |
             actions: read
           claude_args: |
+            --model glm-5
             --allowedTools "Bash,WebFetch,CreatePullRequest,Edit,Read,Replace"
           prompt: |
             # Security Audit
