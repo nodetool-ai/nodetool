@@ -16,7 +16,9 @@ describe("useSelectionEvents", () => {
   const mockReactFlowInstance = {
     screenToFlowPosition: mockScreenToFlowPosition,
     getIntersectingNodes: jest.fn().mockReturnValue([]),
-    getNodes: jest.fn().mockReturnValue([])
+    getNodes: jest.fn().mockReturnValue([]),
+    flowToScreenPosition: jest.fn().mockImplementation((pos: any) => pos),
+    getEdges: jest.fn().mockReturnValue([])
   };
 
   const mockOpenContextMenu = jest.fn();
