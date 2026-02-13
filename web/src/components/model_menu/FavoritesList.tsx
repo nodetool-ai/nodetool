@@ -43,10 +43,17 @@ function FavoritesList<TModel extends ModelSelectorModel>({
   const theme = useTheme();
 
   const handleItemClick = useCallback(
-    (model: TModel) => () => {
-      onSelect(model);
+    (e: React.MouseEvent) => {
+      const modelAttr = e.currentTarget.getAttribute("data-model");
+      if (!modelAttr) {
+        return;
+      }
+      const model = models.find((m) => `${m.provider}:${m.id}` === modelAttr);
+      if (model) {
+        onSelect(model);
+      }
     },
-    [onSelect]
+    [models, onSelect]
   );
 
   const availabilityMap = useMemo(() => {
@@ -98,10 +105,11 @@ function FavoritesList<TModel extends ModelSelectorModel>({
         return (
           <ListItemButton
             key={`favorite:${m.provider}:${m.id}`}
+            data-model={`${m.provider}:${m.id}`}
             className={`model-menu__favorite-item ${
               available ? "" : "is-unavailable"
             } ${fav ? "is-favorite" : ""}`}
-            onClick={handleItemClick(m)}
+            onClick={handleItemClick}
             disabled={!available}
           >
             <ListItemIcon sx={{ minWidth: 30 }}>

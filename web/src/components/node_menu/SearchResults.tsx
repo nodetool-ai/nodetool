@@ -17,10 +17,10 @@ const SearchResults = memo(({
   results,
   handleCreateNode
 }: SearchResultsProps) => {
-  const renderNode = useCallback((node: NodeMetadata) => {
+  const renderNode = useCallback((node: NodeMetadata, index: number) => {
     const words = node.node_type?.split(".");
     return (
-      <ListItemButton key={node.title} onClick={() => handleCreateNode(node)}>
+      <ListItemButton key={`${node.title}-${index}`} onClick={() => handleCreateNode(node)}>
         {words.map((word, idx) => (
           <Box key={idx} sx={{ display: "flex" }}>
             <ListItemText sx={{ ml: 2 }}>
@@ -37,7 +37,7 @@ const SearchResults = memo(({
 
   return (
     <List sx={{ overflowY: "scroll", maxHeight: "55vh" }}>
-      {results.map(renderNode)}
+      {results.map((node, idx) => renderNode(node, idx))}
     </List>
   );
 });
