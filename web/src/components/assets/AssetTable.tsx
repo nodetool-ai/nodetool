@@ -11,6 +11,8 @@ import {
   Box,
   CircularProgress,
 } from "@mui/material";
+import { FixedSizeList as List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -34,11 +36,26 @@ const AssetTableRow = memo(function AssetTableRow({
   }, [asset, onRemove]);
 
   return (
-    <TableRow>
-      <TableCell>
+    <TableRow
+      sx={{
+        display: 'flex',
+        flex: '1 0 auto',
+        width: '100%',
+      }}
+    >
+      <TableCell
+        sx={{
+          flex: '1',
+          minWidth: 0,
+        }}
+      >
         {asset.name} ({asset.content_type})
       </TableCell>
-      <TableCell>
+      <TableCell
+        sx={{
+          flex: '0 0 auto',
+        }}
+      >
         <Button variant="outlined" onClick={handleRemove}>
           Remove
         </Button>
@@ -54,9 +71,14 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
 
   useEffect(() => {
     const promises = assetIds.map((id) => getAsset(id));
-    Promise.all(promises).then((fetchedAssets) => {
-      setAssets(fetchedAssets.filter((a): a is Asset => !!a));
-    });
+    Promise.all(promises)
+      .then((fetchedAssets) => {
+        setAssets(fetchedAssets.filter((a): a is Asset => !!a));
+      })
+      .catch((error) => {
+        console.error("Failed to fetch assets:", error);
+        setAssets([]);
+      });
   }, [getAsset, assetIds]);
 
   const handleRemoveAsset = useCallback(
@@ -92,6 +114,30 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
     justifyContent: "center" as const,
   }), []);
 
+  // Virtualized row renderer for react-window
+  const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const asset = assets[index];
+    if (!asset) {
+      return null;
+    }
+    return (
+      <div style={style}>
+        <AssetTableRow
+          asset={asset}
+          onRemove={handleRemoveAsset}
+        />
+      </div>
+    );
+  }, [assets, handleRemoveAsset]);
+
+  // Calculate list height based on number of items + drop zone row
+  const rowHeight = 53; // Approximate height of a TableRow
+  const dropZoneHeight = 80;
+  const listHeight = Math.min(400, assets.length * rowHeight + dropZoneHeight);
+
+  // For small lists (< 20 items), render the traditional table for simplicity
+  const shouldVirtualize = assets.length >= 20;
+
   return (
     <TableContainer component={Paper}>
       <Table>
@@ -102,13 +148,32 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {assets.map((asset, index) => (
-            <AssetTableRow
-              key={asset.id || index}
-              asset={asset}
-              onRemove={handleRemoveAsset}
-            />
-          ))}
+          {shouldVirtualize ? (
+            <TableRow>
+              <TableCell colSpan={2} sx={{ padding: 0 }}>
+                <AutoSizer disableHeight>
+                  {({ width }: { width: number }) => (
+                    <List
+                      height={listHeight}
+                      itemCount={assets.length}
+                      itemSize={rowHeight}
+                      width={width}
+                    >
+                      {Row}
+                    </List>
+                  )}
+                </AutoSizer>
+              </TableCell>
+            </TableRow>
+          ) : (
+            assets.map((asset, index) => (
+              <AssetTableRow
+                key={asset.id || index}
+                asset={asset}
+                onRemove={handleRemoveAsset}
+              />
+            ))
+          )}
           <TableRow key="last">
             <TableCell>
               {uploading ? (

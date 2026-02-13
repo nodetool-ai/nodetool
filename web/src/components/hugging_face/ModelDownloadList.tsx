@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useCallback, memo } from "react";
 import { Grid, Box } from "@mui/material";
 import { shallow } from "zustand/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -29,18 +29,20 @@ interface ModelDownloadListProps {
 
 const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
   const theme = useTheme();
-  const { downloads } = useModelDownloadStore(
-    (state) => ({
-      startDownload: state.startDownload,
-      downloads: state.downloads
-    }),
+  const downloads = useModelDownloadStore(
+    (state) => state.downloads,
     shallow
   );
+
+  // Memoize empty callback to prevent unnecessary re-renders
+  const handleModelDelete = useCallback(() => {
+    // No-op - model deletion not supported in this view
+  }, []);
 
   return (
     <Box css={styles(theme)}>
       <Grid container spacing={2} className="models-grid">
-        {models.map((model, index) => {
+        {models.map((model) => {
           const modelId = model.id;
           return (
             <Grid
@@ -52,15 +54,14 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
                   lg: "span 12"
                 }
               }}
-              key={index}
+              key={modelId}
             >
               <Box className="model-container">
                 {!downloads[modelId] && (
                   <ModelListItem
-                    key={model.id}
                     model={model}
                     showModelStats={false}
-                    handleModelDelete={() => {}}
+                    handleModelDelete={handleModelDelete}
                   />
                 )}
                 {downloads[modelId] && <DownloadProgress name={modelId} />}
@@ -73,4 +74,4 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
   );
 };
 
-export default ModelDownloadList;
+export default memo(ModelDownloadList);
