@@ -318,12 +318,14 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         </div>
       )}
 
-      <NodeLogsDialog
-        id={id}
-        workflowId={workflowId || nodeWorkflowId || ""}
-        open={logsDialogOpen}
-        onClose={handleCloseLogsDialog}
-      />
+      {logsDialogOpen && (
+        <NodeLogsDialog
+          id={id}
+          workflowId={workflowId || nodeWorkflowId || ""}
+          open={logsDialogOpen}
+          onClose={handleCloseLogsDialog}
+        />
+      )}
     </FlexRow>
   );
 };
