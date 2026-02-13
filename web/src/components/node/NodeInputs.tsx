@@ -152,11 +152,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
 
-  const edges = useNodes((state) => state.edges);
-  const connectedEdges = useMemo(
-    () => edges.filter((e) => e.target === id),
-    [edges, id]
-  );
+  const connectedEdges = useNodes((state) => state.edges.filter((e) => e.target === id));
 
   const findNode = useNodes((state) => state.findNode);
 
