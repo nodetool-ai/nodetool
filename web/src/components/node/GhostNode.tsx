@@ -83,4 +83,17 @@ const GhostNode = memo(function GhostNode({
   );
 });
 
-export default GhostNode;
+// Custom comparison to minimize re-renders during node placement
+const arePropsEqual = (
+  prevProps: GhostNodeProps,
+  nextProps: GhostNodeProps
+) => {
+  return (
+    prevProps.position.x === nextProps.position.x &&
+    prevProps.position.y === nextProps.position.y &&
+    prevProps.label === nextProps.label &&
+    prevProps.nodeType === nextProps.nodeType
+  );
+};
+
+export default memo(GhostNode, arePropsEqual);

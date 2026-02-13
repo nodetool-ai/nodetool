@@ -295,4 +295,6 @@ const EditableTitle = memo(function EditableTitle({
   );
 });
 
-export default EditableTitle;
+export default memo(EditableTitle, (prevProps, nextProps) => {
+  return prevProps.nodeId === nextProps.nodeId && prevProps.title === nextProps.title;
+});

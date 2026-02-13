@@ -186,7 +186,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("warning") ? "filled" : "outlined"
               }
-              onClick={toggleSeverity("warning")}
+              onClick={toggleWarningSeverity}
             />
             <Chip
               size="small"
@@ -195,7 +195,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               variant={
                 selectedSeverities.includes("error") ? "filled" : "outlined"
               }
-              onClick={toggleSeverity("error")}
+              onClick={toggleErrorSeverity}
             />
           </Box>
           <div style={{ padding: 10 }} ref={logsRef}>
