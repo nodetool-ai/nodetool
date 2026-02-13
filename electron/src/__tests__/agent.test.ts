@@ -23,11 +23,11 @@ jest.mock("../logger", () => ({
 }));
 
 import {
-  createClaudeAgentSession,
-  sendClaudeAgentMessage,
-  closeClaudeAgentSession,
-  closeAllClaudeAgentSessions,
-} from "../claudeAgent";
+  createAgentSession,
+  sendAgentMessage,
+  closeAgentSession,
+  closeAllAgentSessions,
+} from "../agent";
 
 function makeMockClaudeProcess(lines: Record<string, unknown>[]) {
   const stdout = new EventEmitter();
@@ -58,13 +58,13 @@ function makeMockClaudeProcess(lines: Record<string, unknown>[]) {
   return processEmitter;
 }
 
-describe("claudeAgent session alias handling", () => {
+describe("agent session alias handling", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   afterEach(() => {
-    closeAllClaudeAgentSessions();
+    closeAllAgentSessions();
   });
 
   it("keeps the original temp session id valid after claude emits a canonical session id", async () => {
@@ -84,15 +84,15 @@ describe("claudeAgent session alias handling", () => {
         ]),
       );
 
-    const tempSessionId = await createClaudeAgentSession({
+    const tempSessionId = await createAgentSession({
       model: "claude-sonnet-4-20250514",
       workspacePath: "/tmp/workspace-test",
     });
 
-    await sendClaudeAgentMessage(tempSessionId, "hi");
+    await sendAgentMessage(tempSessionId, "hi");
 
     await expect(
-      sendClaudeAgentMessage(tempSessionId, "what tools can you do"),
+      sendAgentMessage(tempSessionId, "what tools can you do"),
     ).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -112,16 +112,16 @@ describe("claudeAgent session alias handling", () => {
       ]),
     );
 
-    const tempSessionId = await createClaudeAgentSession({
+    const tempSessionId = await createAgentSession({
       model: "claude-sonnet-4-20250514",
       workspacePath: "/tmp/workspace-test",
     });
 
-    await sendClaudeAgentMessage(tempSessionId, "hi");
-    closeClaudeAgentSession(tempSessionId);
+    await sendAgentMessage(tempSessionId, "hi");
+    closeAgentSession(tempSessionId);
 
     await expect(
-      sendClaudeAgentMessage("sdk-session-1", "should fail"),
+      sendAgentMessage("sdk-session-1", "should fail"),
     ).rejects.toThrow("No active Claude Agent session");
   });
 
@@ -134,12 +134,12 @@ describe("claudeAgent session alias handling", () => {
       ]),
     );
 
-    const tempSessionId = await createClaudeAgentSession({
+    const tempSessionId = await createAgentSession({
       model: "claude-sonnet-4-20250514",
       workspacePath: "/tmp/workspace-test",
     });
 
-    await sendClaudeAgentMessage(tempSessionId, "hi");
+    await sendAgentMessage(tempSessionId, "hi");
 
     expect(mockSpawn).toHaveBeenCalled();
     const [, args] = mockSpawn.mock.calls[0] as [string, string[]];
@@ -157,12 +157,12 @@ describe("claudeAgent session alias handling", () => {
       ]),
     );
 
-    const tempSessionId = await createClaudeAgentSession({
+    const tempSessionId = await createAgentSession({
       model: "claude-sonnet-4-20250514",
       workspacePath: "/tmp/workspace-test",
     });
 
-    await sendClaudeAgentMessage(tempSessionId, "hi");
+    await sendAgentMessage(tempSessionId, "hi");
 
     const spawnedProcess = mockSpawn.mock.results[0]?.value as {
       stdin: { write: jest.Mock };
@@ -207,12 +207,12 @@ describe("claudeAgent session alias handling", () => {
       ]),
     );
 
-    const tempSessionId = await createClaudeAgentSession({
+    const tempSessionId = await createAgentSession({
       model: "claude-sonnet-4-20250514",
       workspacePath: "/tmp/workspace-test",
     });
 
-    await expect(sendClaudeAgentMessage(tempSessionId, "hi")).resolves.toEqual(
+    await expect(sendAgentMessage(tempSessionId, "hi")).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           type: "assistant",
@@ -256,14 +256,26 @@ describe("claudeAgent session alias handling", () => {
       ]),
     );
 
-    const tempSessionId = await createClaudeAgentSession({
+    const tempSessionId = await createAgentSession({
       model: "claude-sonnet-4-20250514",
       workspacePath: "/tmp/workspace-test",
     });
 
-    const messages = await sendClaudeAgentMessage(tempSessionId, "hi");
+    const messages = await sendAgentMessage(tempSessionId, "hi");
     expect(messages).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          type: "assistant",
+          session_id: "modern-session-2",
+          tool_calls: [
+            expect.objectContaining({
+              id: "call_1",
+              function: expect.objectContaining({
+                name: "mcp__nodetool__search_nodes",
+              }),
+            }),
+          ],
+        }),
         expect.objectContaining({
           type: "assistant",
           session_id: "modern-session-2",

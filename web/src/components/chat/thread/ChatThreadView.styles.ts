@@ -47,7 +47,7 @@ export const createStyles = (theme: Theme) => ({
       width: "100%",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
-      marginBottom: "1em",
+      marginBottom: "0.5em",
       padding: "0.5em 0",
       borderRadius: "4px",
       position: "relative",
@@ -59,7 +59,7 @@ export const createStyles = (theme: Theme) => ({
       transition: "border-color 0.25s ease"
     },
     ".chat-message.assistant": {
-      padding: "1em",
+      padding: "0.75em 1em",
       borderRadius: "1em",
       transition: "border-color 0.25s ease"
     },
@@ -71,12 +71,12 @@ export const createStyles = (theme: Theme) => ({
       width: "fit-content",
       maxWidth: "75%",
       minWidth: "2em",
-      margin: "4em 0 2em auto",
+      margin: "1.25em 0 0.6em auto",
       padding: "0",
       border: "none",
       background: "transparent",
       alignItems: "flex-end",
-      fontWeight: 500,
+      fontWeight: 500
     },
 
     // User message content gets the colored background
@@ -106,6 +106,28 @@ export const createStyles = (theme: Theme) => ({
     ".assistant .message-content": {
       borderRadius: ".5em",
       transition: "border-color 0.15s ease"
+    },
+
+    // Keep user->assistant transitions compact.
+    ".chat-message.user + .chat-message.assistant": {
+      marginTop: "0.05em",
+      paddingTop: "0.15em"
+    },
+
+    // Denser stacking for consecutive assistant messages only.
+    // Keep user bubble spacing unchanged.
+    ".chat-message.assistant + .chat-message.assistant": {
+      marginTop: "-0.3em",
+      marginBottom: "0.3em",
+      paddingTop: "0.2em",
+      paddingBottom: "0.2em"
+    },
+
+    ".chat-message.assistant + .chat-message.assistant.tool-calls-only": {
+      marginTop: "-0.4em",
+      marginBottom: "0.08em",
+      paddingTop: "0.04em",
+      paddingBottom: "0.04em"
     },
 
     // Message actions container (copy button, timestamp) - OUTSIDE the bubble
@@ -222,7 +244,7 @@ export const createStyles = (theme: Theme) => ({
       border: "none",
       borderRadius: 4,
       background: "transparent",
-      padding: "1px 2px",
+      padding: "0",
       marginBottom: 0
     },
 
@@ -234,6 +256,44 @@ export const createStyles = (theme: Theme) => ({
       marginBottom: "0.15em",
       padding: "0.1em 0"
     },
+
+    ".chat-message.has-tool-calls:not(.tool-calls-only)": {
+      marginBottom: "0.35em",
+      paddingTop: "0.2em",
+      paddingBottom: "0.2em"
+    },
+
+    ".chat-message.has-tool-calls .message-content": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.1em"
+    },
+
+    ".chat-message.has-tool-calls .tool-call-card + .tool-call-card": {
+      marginTop: "0.05em"
+    },
+
+    ".chat-message.has-tool-calls .markdown": {
+      marginTop: "0.1em"
+    },
+
+    ".chat-message.has-tool-calls .markdown-body p": {
+      margin: "0.2em 0"
+    },
+
+    ".chat-message.has-tool-calls .markdown-body p:first-of-type": {
+      marginTop: "0.05em"
+    },
+
+    ".chat-message.has-tool-calls .markdown-body p:last-child": {
+      marginBottom: 0
+    },
+
+    ".chat-message.has-tool-calls .markdown-body ul, .chat-message.has-tool-calls .markdown-body ol":
+      {
+        marginTop: "0.2em",
+        marginBottom: "0.2em"
+      },
 
     ".chat-message.tool-calls-only .tool-call-card:last-child": {
       marginBottom: 0

@@ -27,7 +27,7 @@ import {
   SystemDirectory,
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
-  ClaudeAgentSessionOptions,
+  AgentSessionOptions,
 } from "./types.d";
 
 // ============================================================================
@@ -619,31 +619,35 @@ const api = {
   },
 
   // ============================================================================
-  // claudeAgent: Claude Agent SDK operations
+  // agent: Claude Agent SDK operations
   // ============================================================================
-  claudeAgent: {
+  agent: {
     /** Create a new Claude Agent session */
-    createSession: (options: ClaudeAgentSessionOptions) =>
-      ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_CREATE_SESSION, options),
+    createSession: (options: AgentSessionOptions) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_CREATE_SESSION, options),
 
     /** List available models for the selected provider */
     listModels: (options?: { provider?: "claude" | "codex"; workspacePath?: string }) =>
-      ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_LIST_MODELS, options || {}),
+      ipcRenderer.invoke(IpcChannels.AGENT_LIST_MODELS, options || {}),
 
     /** Send a message to an active Claude Agent session */
     sendMessage: (sessionId: string, message: string) =>
-      ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_SEND_MESSAGE, {
+      ipcRenderer.invoke(IpcChannels.AGENT_SEND_MESSAGE, {
         sessionId,
         message,
       }),
 
+    /** Stop execution of the currently running turn for a session */
+    stopExecution: (sessionId: string) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_STOP_EXECUTION, sessionId),
+
     /** Close an active Claude Agent session */
     closeSession: (sessionId: string) =>
-      ipcRenderer.invoke(IpcChannels.CLAUDE_AGENT_CLOSE_SESSION, sessionId),
+      ipcRenderer.invoke(IpcChannels.AGENT_CLOSE_SESSION, sessionId),
 
     /** Subscribe to streaming messages from the Claude Agent */
     onStreamMessage: createEventSubscription(
-      IpcChannels.CLAUDE_AGENT_STREAM_MESSAGE,
+      IpcChannels.AGENT_STREAM_MESSAGE,
     ),
   },
 

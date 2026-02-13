@@ -1,8 +1,9 @@
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { logMessage } from "./logger";
-import type { AgentModelDescriptor, ClaudeAgentMessage, FrontendToolManifest } from "./types.d";
+import type { AgentModelDescriptor, AgentMessage, FrontendToolManifest } from "./types.d";
 import type { WebContents } from "electron";
+import { ipcMain } from "electron";
 import { IpcChannels } from "./types.d";
 
 interface RpcRequest {
@@ -41,11 +42,17 @@ interface PendingRequest {
 
 interface TurnTracker {
   text: string;
-  messageId: string | null;
   resolve: (value: string) => void;
   reject: (error: Error) => void;
   timeout: ReturnType<typeof setTimeout>;
 }
+
+interface AgentMessageStreamState {
+  turnId: string;
+  text: string;
+}
+
+const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
 
 function getCodexExecutablePath(): string {
   const whichCommand = process.platform === "win32" ? "where" : "which";
@@ -111,6 +118,130 @@ function asRpcNotification(value: Record<string, unknown>): RpcNotification | nu
     method: value.method,
     params: isRecord(value.params) ? value.params : undefined,
   };
+}
+
+function toJsonString(value: unknown): string {
+  try {
+    return JSON.stringify(value ?? {});
+  } catch {
+    return "{}";
+  }
+}
+
+function normalizeDynamicToolSchema(schema: unknown): Record<string, unknown> {
+  const fallback: Record<string, unknown> = {
+    type: "object",
+    properties: {},
+    additionalProperties: true,
+  };
+
+  let candidate: unknown = schema;
+  if (typeof candidate === "string") {
+    try {
+      candidate = JSON.parse(candidate);
+    } catch {
+      return fallback;
+    }
+  }
+
+  if (!isRecord(candidate)) {
+    return fallback;
+  }
+
+  const type = candidate.type;
+  if (type === undefined) {
+    return {
+      ...candidate,
+      type: "object",
+    };
+  }
+
+  if (type === "object") {
+    return candidate;
+  }
+
+  // Codex/OpenAI tool schemas must have object root.
+  return fallback;
+}
+
+async function requestRendererToolsEvent<T>(
+  webContents: WebContents,
+  requestChannel: string,
+  responseChannel: string,
+  requestPayload: Record<string, unknown>,
+): Promise<T> {
+  const requestId = randomUUID();
+
+  return new Promise<T>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      ipcMain.removeListener(responseChannel, onResponse);
+      reject(
+        new Error(`Timed out waiting for renderer response on ${responseChannel}`),
+      );
+    }, FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS);
+
+    const onResponse = (
+      responseEvent: Electron.IpcMainEvent,
+      response: { requestId?: string; error?: string; manifest?: T; result?: T },
+    ): void => {
+      if (responseEvent.sender !== webContents) {
+        return;
+      }
+      if (!response || response.requestId !== requestId) {
+        return;
+      }
+
+      clearTimeout(timeout);
+      ipcMain.removeListener(responseChannel, onResponse);
+
+      if (response.error) {
+        reject(new Error(response.error));
+        return;
+      }
+
+      if ("manifest" in response && response.manifest !== undefined) {
+        resolve(response.manifest);
+        return;
+      }
+      if ("result" in response && response.result !== undefined) {
+        resolve(response.result);
+        return;
+      }
+
+      reject(new Error(`Renderer response for ${responseChannel} had no payload`));
+    };
+
+    ipcMain.on(responseChannel, onResponse);
+    webContents.send(requestChannel, {
+      requestId,
+      ...requestPayload,
+    });
+  });
+}
+
+async function executeFrontendTool(
+  webContents: WebContents,
+  sessionId: string,
+  toolCallId: string,
+  name: string,
+  args: unknown,
+): Promise<unknown> {
+  const response = await requestRendererToolsEvent<{
+    result: unknown;
+    isError: boolean;
+    error?: string;
+  }>(
+    webContents,
+    IpcChannels.FRONTEND_TOOLS_CALL_REQUEST,
+    IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE,
+    { sessionId, toolCallId, name, args },
+  );
+
+  if (response.isError) {
+    throw new Error(response.error || "Tool execution failed");
+  }
+
+  return response.result;
 }
 
 export async function listCodexModels(
@@ -209,6 +340,7 @@ export class CodexQuerySession {
   private closed = false;
   private readonly model: string;
   private readonly workspacePath: string;
+  private readonly systemPrompt: string;
   private resolvedThreadId: string | null;
   private processHandle: ChildProcessWithoutNullStreams | null = null;
   private stdoutBuffer = "";
@@ -218,18 +350,52 @@ export class CodexQuerySession {
   private nextRequestId = 1;
   private readonly pendingRequests = new Map<number, PendingRequest>();
   private readonly turnTrackers = new Map<string, TurnTracker>();
+  private readonly agentMessageStreams = new Map<string, AgentMessageStreamState>();
+  private currentTurnId: string | null = null;
   private streamContext: {
     webContents: WebContents | null;
     sessionId: string;
   } | null = null;
 
+  private emitAssistantToolCall(
+    toolCallId: string,
+    toolName: string,
+    args: unknown,
+  ): void {
+    if (!this.streamContext?.webContents) {
+      return;
+    }
+    this.streamContext.webContents.send(IpcChannels.AGENT_STREAM_MESSAGE, {
+      sessionId: this.streamContext.sessionId,
+      message: {
+        type: "assistant",
+        uuid: toolCallId,
+        session_id: this.resolvedThreadId ?? this.streamContext.sessionId,
+        content: [],
+        tool_calls: [
+          {
+            id: toolCallId,
+            type: "function",
+            function: {
+              name: toolName,
+              arguments: toJsonString(args),
+            },
+          },
+        ],
+      } satisfies AgentMessage,
+      done: false,
+    });
+  }
+
   constructor(options: {
     model: string;
     workspacePath: string;
     resumeSessionId?: string;
+    systemPrompt?: string;
   }) {
     this.model = options.model;
     this.workspacePath = options.workspacePath;
+    this.systemPrompt = options.systemPrompt ?? "";
     this.resolvedThreadId = options.resumeSessionId ?? null;
   }
 
@@ -319,6 +485,72 @@ export class CodexQuerySession {
       return;
     }
 
+    if (request.method === "item/tool/call") {
+      const params = request.params;
+      const toolCallId = isRecord(params) ? asString(params.callId) : null;
+      const toolName = isRecord(params) ? asString(params.tool) : null;
+      const args = isRecord(params) ? params.arguments : undefined;
+      const context = this.streamContext;
+
+      if (!toolCallId || !toolName) {
+        this.writeRpc({
+          ...responseBase,
+          result: {
+            contentItems: [{ type: "inputText", text: "Invalid dynamic tool request" }],
+            success: false,
+          },
+        });
+        return;
+      }
+
+      this.emitAssistantToolCall(toolCallId, toolName, args);
+
+      if (!context?.webContents) {
+        this.writeRpc({
+          ...responseBase,
+          result: {
+            contentItems: [
+              {
+                type: "inputText",
+                text: `Tool ${toolName} unavailable: no renderer context`,
+              },
+            ],
+            success: false,
+          },
+        });
+        return;
+      }
+
+      try {
+        const result = await executeFrontendTool(
+          context.webContents,
+          context.sessionId,
+          toolCallId,
+          toolName,
+          args,
+        );
+        const text =
+          typeof result === "string" ? result : JSON.stringify(result ?? null);
+        this.writeRpc({
+          ...responseBase,
+          result: {
+            contentItems: [{ type: "inputText", text }],
+            success: true,
+          },
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.writeRpc({
+          ...responseBase,
+          result: {
+            contentItems: [{ type: "inputText", text: `Tool ${toolName} failed: ${message}` }],
+            success: false,
+          },
+        });
+      }
+      return;
+    }
+
     this.writeRpc({ ...responseBase, result: {} });
   }
 
@@ -337,28 +569,82 @@ export class CodexQuerySession {
     if (method === "item/agentMessage/delta" && isRecord(params)) {
       const turnId = asString(params.turnId);
       const delta = asString(params.delta);
-      if (!turnId || !delta) {
+      const itemId = asString(params.itemId);
+      if (!turnId || !delta || !itemId) {
         return;
       }
       const tracker = this.turnTrackers.get(turnId);
       if (tracker) {
-        tracker.text += delta;
-        const itemId = asString(params.itemId);
-        if (itemId) {
-          tracker.messageId = itemId;
-        }
+        const stream =
+          this.agentMessageStreams.get(itemId) ?? {
+            turnId,
+            text: "",
+          };
+        stream.text += delta;
+        this.agentMessageStreams.set(itemId, stream);
         if (this.streamContext?.webContents) {
-          this.streamContext.webContents.send(IpcChannels.CLAUDE_AGENT_STREAM_MESSAGE, {
+          this.streamContext.webContents.send(IpcChannels.AGENT_STREAM_MESSAGE, {
             sessionId: this.streamContext.sessionId,
             message: {
               type: "assistant",
-              uuid: tracker.messageId ?? randomUUID(),
+              uuid: itemId,
               session_id: this.resolvedThreadId ?? this.streamContext.sessionId,
-              content: [{ type: "text", text: tracker.text }],
-            } satisfies ClaudeAgentMessage,
+              content: [{ type: "text", text: stream.text }],
+            } satisfies AgentMessage,
             done: false,
           });
         }
+      }
+      return;
+    }
+
+    if (method === "item/started" && isRecord(params) && isRecord(params.item)) {
+      const itemType = asString(params.item.type);
+      const itemId = asString(params.item.id);
+      if (!itemType || !itemId) {
+        return;
+      }
+
+      if (itemType === "agentMessage") {
+        const turnId = asString(params.turnId);
+        if (turnId) {
+          this.agentMessageStreams.set(itemId, { turnId, text: "" });
+        }
+        return;
+      }
+
+      if (itemType === "commandExecution") {
+        this.emitAssistantToolCall(itemId, "commandExecution", {
+          command: params.item.command,
+          cwd: params.item.cwd,
+        });
+      } else if (itemType === "mcpToolCall") {
+        const toolName =
+          asString(params.item.toolName) ??
+          asString(params.item.name) ??
+          "mcpToolCall";
+        this.emitAssistantToolCall(itemId, toolName, {
+          server: params.item.server,
+          arguments: params.item.arguments,
+        });
+      } else if (itemType === "webSearch") {
+        this.emitAssistantToolCall(itemId, "webSearch", {
+          query: params.item.query,
+        });
+      } else if (itemType === "fileChange") {
+        this.emitAssistantToolCall(itemId, "fileChange", {
+          changes: params.item.changes,
+          summary: params.item.summary,
+        });
+      } else if (itemType === "collabAgentToolCall") {
+        const toolName =
+          asString(params.item.toolName) ??
+          asString(params.item.name) ??
+          "collabAgentToolCall";
+        this.emitAssistantToolCall(itemId, toolName, {
+          arguments: params.item.arguments,
+          result: params.item.result,
+        });
       }
       return;
     }
@@ -367,7 +653,8 @@ export class CodexQuerySession {
       const turnId = asString(params.turnId);
       const itemType = asString(params.item.type);
       const itemText = asString(params.item.text);
-      if (!turnId || itemType !== "agentMessage" || !itemText) {
+      const itemId = asString(params.item.id);
+      if (!turnId || itemType !== "agentMessage") {
         return;
       }
 
@@ -376,8 +663,28 @@ export class CodexQuerySession {
         return;
       }
 
-      if (!tracker.text.trim()) {
-        tracker.text = itemText;
+      const completedText = itemText ?? "";
+      if (itemId) {
+        const stream = this.agentMessageStreams.get(itemId);
+        const streamText = stream?.text.trim() ?? "";
+        if (!streamText && completedText.trim().length > 0 && this.streamContext?.webContents) {
+          this.streamContext.webContents.send(IpcChannels.AGENT_STREAM_MESSAGE, {
+            sessionId: this.streamContext.sessionId,
+            message: {
+              type: "assistant",
+              uuid: itemId,
+              session_id: this.resolvedThreadId ?? this.streamContext.sessionId,
+              content: [{ type: "text", text: completedText }],
+            } satisfies AgentMessage,
+            done: false,
+          });
+        }
+        this.agentMessageStreams.delete(itemId);
+      }
+
+      if (completedText.trim().length > 0) {
+        // Resolve turn with the last completed assistant message in this turn.
+        tracker.text = completedText;
       }
       return;
     }
@@ -396,8 +703,16 @@ export class CodexQuerySession {
 
       this.turnTrackers.delete(turnId);
       clearTimeout(tracker.timeout);
+      for (const [itemId, stream] of this.agentMessageStreams.entries()) {
+        if (stream.turnId === turnId) {
+          this.agentMessageStreams.delete(itemId);
+        }
+      }
+      if (this.currentTurnId === turnId) {
+        this.currentTurnId = null;
+      }
 
-      if (status === "completed") {
+      if (status === "completed" || status === "interrupted" || status === "cancelled") {
         tracker.resolve(tracker.text.trim());
         return;
       }
@@ -543,6 +858,7 @@ export class CodexQuerySession {
       tracker.reject(error);
       this.turnTrackers.delete(turnId);
     }
+    this.agentMessageStreams.clear();
   }
 
   private async ensureInitialized(): Promise<void> {
@@ -555,11 +871,14 @@ export class CodexQuerySession {
         name: "nodetool",
         version: "0.0.0",
       },
+      capabilities: {
+        experimentalApi: true,
+      },
     });
     this.initialized = true;
   }
 
-  private async ensureThread(): Promise<void> {
+  private async ensureThread(manifest: FrontendToolManifest[]): Promise<void> {
     if (this.threadReady && this.resolvedThreadId) {
       return;
     }
@@ -586,8 +905,14 @@ export class CodexQuerySession {
       }
     }
 
+    const dynamicTools = manifest.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: normalizeDynamicToolSchema(tool.parameters),
+    }));
     const startResult = await this.request("thread/start", {
       model: this.model,
+      dynamicTools,
     });
     if (isRecord(startResult) && isRecord(startResult.thread)) {
       const threadId = asString(startResult.thread.id);
@@ -606,12 +931,16 @@ export class CodexQuerySession {
     return new Promise<string>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.turnTrackers.delete(turnId);
+        for (const [itemId, stream] of this.agentMessageStreams.entries()) {
+          if (stream.turnId === turnId) {
+            this.agentMessageStreams.delete(itemId);
+          }
+        }
         reject(new Error(`Codex turn timed out: ${turnId}`));
       }, timeoutMs);
 
       this.turnTrackers.set(turnId, {
         text: "",
-        messageId: null,
         resolve,
         reject,
         timeout,
@@ -619,12 +948,39 @@ export class CodexQuerySession {
     });
   }
 
+  private buildPrompt(message: string): string {
+    const promptParts: string[] = [];
+    if (this.systemPrompt.trim().length > 0) {
+      promptParts.push(`System instructions:\n${this.systemPrompt}`);
+    }
+    promptParts.push(`Workspace: ${this.workspacePath}\n\n${message}`);
+    return promptParts.join("\n\n");
+  }
+
+  private async runTurn(prompt: string): Promise<string> {
+    const turnStart = await this.request("turn/start", {
+      threadId: this.resolvedThreadId,
+      input: [{ type: "text", text: prompt }],
+    });
+
+    const turnId =
+      isRecord(turnStart) && isRecord(turnStart.turn)
+        ? asString(turnStart.turn.id)
+        : null;
+
+    if (!turnId) {
+      throw new Error("Codex turn/start did not return a turn id");
+    }
+    this.currentTurnId = turnId;
+    return this.waitForTurnCompletion(turnId);
+  }
+
   async send(
     message: string,
-    _webContents: WebContents | null,
+    webContents: WebContents | null,
     sessionId: string,
-    _manifest: FrontendToolManifest[],
-  ): Promise<ClaudeAgentMessage[]> {
+    manifest: FrontendToolManifest[],
+  ): Promise<AgentMessage[]> {
     if (this.closed) {
       throw new Error("Cannot send to a closed session");
     }
@@ -636,30 +992,37 @@ export class CodexQuerySession {
 
     try {
       this.streamContext = {
-        webContents: _webContents,
+        webContents,
         sessionId,
       };
       this.startProcessIfNeeded();
       await this.ensureInitialized();
-      await this.ensureThread();
+      await this.ensureThread(manifest);
+      const prompt = this.buildPrompt(message);
 
-      const prompt = `Workspace: ${this.workspacePath}\n\n${message}`;
-      const turnStart = await this.request("turn/start", {
-        threadId: this.resolvedThreadId,
-        input: [{ type: "text", text: prompt }],
-      });
+      let assistantText: string;
+      try {
+        assistantText = await this.runTurn(prompt);
+      } catch (error) {
+        const messageText = error instanceof Error ? error.message : String(error);
+        const isToolSchemaError =
+          messageText.includes("invalid_function_parameters") ||
+          messageText.includes("Invalid schema for function");
 
-      const turnId =
-        isRecord(turnStart) && isRecord(turnStart.turn)
-          ? asString(turnStart.turn.id)
-          : null;
+        if (!isToolSchemaError) {
+          throw error;
+        }
 
-      if (!turnId) {
-        throw new Error("Codex turn/start did not return a turn id");
+        logMessage(
+          "Codex thread has invalid dynamic tool schema; restarting thread and retrying turn",
+          "warn",
+        );
+        this.threadReady = false;
+        this.resolvedThreadId = null;
+        await this.ensureThread(manifest);
+        assistantText = await this.runTurn(prompt);
       }
-
-      const assistantText = await this.waitForTurnCompletion(turnId);
-      const messages: ClaudeAgentMessage[] = [];
+      const messages: AgentMessage[] = [];
       // Return a lightweight marker to let caller update canonical session alias.
       messages.push({
         type: "system",
@@ -670,8 +1033,34 @@ export class CodexQuerySession {
 
       return messages;
     } finally {
+      this.currentTurnId = null;
       this.streamContext = null;
       this.inFlight = false;
+    }
+  }
+
+  async interrupt(): Promise<void> {
+    if (!this.inFlight || !this.resolvedThreadId || !this.currentTurnId) {
+      return;
+    }
+
+    logMessage(
+      `Interrupting Codex turn ${this.currentTurnId} on thread ${this.resolvedThreadId}`,
+    );
+    try {
+      await this.request(
+        "turn/interrupt",
+        {
+          threadId: this.resolvedThreadId,
+          turnId: this.currentTurnId,
+        },
+        10000,
+      );
+    } catch (error) {
+      logMessage(`Failed to interrupt Codex turn: ${error}`, "warn");
+      if (this.processHandle && !this.processHandle.killed) {
+        this.processHandle.kill("SIGINT");
+      }
     }
   }
 
@@ -693,6 +1082,7 @@ export class CodexQuerySession {
       tracker.reject(new Error("Codex session closed"));
     }
     this.turnTrackers.clear();
+    this.agentMessageStreams.clear();
 
     if (this.processHandle && !this.processHandle.killed) {
       this.processHandle.kill();

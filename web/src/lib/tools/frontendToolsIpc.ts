@@ -35,7 +35,7 @@ function isElectron(): boolean {
   return (
     typeof window !== "undefined" &&
     window.api !== undefined &&
-    window.api.claudeAgent !== undefined
+    window.api.agent !== undefined
   );
 }
 

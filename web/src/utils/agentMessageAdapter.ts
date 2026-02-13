@@ -6,7 +6,7 @@
  * while the NodeTool ChatView expects the internal Message type.
  * This module bridges the two.
  *
- * Messages arrive via Electron IPC as serialized ClaudeAgentMessage objects
+ * Messages arrive via Electron IPC as serialized AgentMessage objects
  * (defined in electron/src/types.d.ts) rather than raw SDK types.
  */
 
@@ -14,9 +14,9 @@ import type { Message, MessageContent } from "../stores/ApiTypes";
 
 /**
  * Serialized Claude Agent message received via IPC.
- * Mirrors the ClaudeAgentMessage type from the Electron types.
+ * Mirrors the AgentMessage type from the Electron types.
  */
-interface ClaudeAgentMessage {
+interface AgentMessage {
   type: "assistant" | "user" | "result" | "system" | "status" | "stream_event";
   uuid: string;
   session_id: string;
@@ -40,8 +40,8 @@ interface ClaudeAgentMessage {
  * Convert a serialized Claude Agent message (from IPC) to a NodeTool Message.
  * Returns null for message types that shouldn't be displayed.
  */
-export function claudeAgentMessageToNodeToolMessage(
-  msg: ClaudeAgentMessage
+export function agentMessageToNodeToolMessage(
+  msg: AgentMessage
 ): Message | null {
   switch (msg.type) {
     case "assistant": {
@@ -52,9 +52,6 @@ export function claudeAgentMessageToNodeToolMessage(
             contents.push({ type: "text", text: block.text });
           }
         }
-      }
-      if (contents.length === 0) {
-        contents.push({ type: "text", text: "" });
       }
 
       // Convert OpenAI-style tool_calls to NodeTool format
@@ -74,6 +71,12 @@ export function claudeAgentMessageToNodeToolMessage(
               };
             })
           : undefined;
+
+      // Preserve empty text only when there are no tool calls so stream updates
+      // still have a renderable payload.
+      if (contents.length === 0 && !toolCalls) {
+        contents.push({ type: "text", text: "" });
+      }
 
       return {
         type: "message",

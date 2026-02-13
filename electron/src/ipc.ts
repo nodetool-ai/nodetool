@@ -943,27 +943,27 @@ export function initializeIpcHandlers(): void {
 
   // Claude Agent SDK handlers
   createIpcMainHandler(
-    IpcChannels.CLAUDE_AGENT_CREATE_SESSION,
+    IpcChannels.AGENT_CREATE_SESSION,
     async (_event, options) => {
-      const { createClaudeAgentSession } = await import("./claudeAgent");
-      return await createClaudeAgentSession(options);
+      const { createAgentSession } = await import("./agent");
+      return await createAgentSession(options);
     },
   );
 
   createIpcMainHandler(
-    IpcChannels.CLAUDE_AGENT_LIST_MODELS,
+    IpcChannels.AGENT_LIST_MODELS,
     async (_event, options) => {
-      const { listAgentModels } = await import("./claudeAgent");
+      const { listAgentModels } = await import("./agent");
       return await listAgentModels(options ?? {});
     },
   );
 
   createIpcMainHandler(
-    IpcChannels.CLAUDE_AGENT_SEND_MESSAGE,
+    IpcChannels.AGENT_SEND_MESSAGE,
     async (event, request) => {
-      const { sendClaudeAgentMessageStreaming } = await import("./claudeAgent");
+      const { sendAgentMessageStreaming } = await import("./agent");
       // Use streaming - messages will be sent via IPC events as they arrive
-      await sendClaudeAgentMessageStreaming(
+      await sendAgentMessageStreaming(
         request.sessionId,
         request.message,
         event.sender,
@@ -974,10 +974,18 @@ export function initializeIpcHandlers(): void {
   );
 
   createIpcMainHandler(
-    IpcChannels.CLAUDE_AGENT_CLOSE_SESSION,
+    IpcChannels.AGENT_STOP_EXECUTION,
     async (_event, sessionId) => {
-      const { closeClaudeAgentSession } = await import("./claudeAgent");
-      closeClaudeAgentSession(sessionId);
+      const { stopAgentExecution } = await import("./agent");
+      await stopAgentExecution(sessionId);
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.AGENT_CLOSE_SESSION,
+    async (_event, sessionId) => {
+      const { closeAgentSession } = await import("./agent");
+      closeAgentSession(sessionId);
     },
   );
 

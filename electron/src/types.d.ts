@@ -205,15 +205,16 @@ declare global {
       };
 
       // Claude Agent SDK operations
-      claudeAgent: {
-        createSession: (options: ClaudeAgentSessionOptions) => Promise<string>;
+      agent: {
+        createSession: (options: AgentSessionOptions) => Promise<string>;
         listModels: (
           options?: AgentModelsRequest,
         ) => Promise<AgentModelDescriptor[]>;
         sendMessage: (
           sessionId: string,
           message: string,
-        ) => Promise<ClaudeAgentMessage[]>;
+        ) => Promise<AgentMessage[]>;
+        stopExecution: (sessionId: string) => Promise<void>;
         closeSession: (sessionId: string) => Promise<void>;
       };
     };
@@ -482,12 +483,13 @@ export enum IpcChannels {
   CLIPBOARD_GET_CONTENT_INFO = "clipboard-get-content-info",
   FILE_READ_AS_DATA_URL = "file-read-as-data-url",
   // Claude Agent SDK channels
-  CLAUDE_AGENT_CREATE_SESSION = "claude-agent-create-session",
-  CLAUDE_AGENT_LIST_MODELS = "claude-agent-list-models",
-  CLAUDE_AGENT_SEND_MESSAGE = "claude-agent-send-message",
-  CLAUDE_AGENT_CLOSE_SESSION = "claude-agent-close-session",
+  AGENT_CREATE_SESSION = "agent-create-session",
+  AGENT_LIST_MODELS = "agent-list-models",
+  AGENT_SEND_MESSAGE = "agent-send-message",
+  AGENT_STOP_EXECUTION = "agent-stop-execution",
+  AGENT_CLOSE_SESSION = "agent-close-session",
   // Claude Agent SDK streaming event (sent from main to renderer)
-  CLAUDE_AGENT_STREAM_MESSAGE = "claude-agent-stream-message",
+  AGENT_STREAM_MESSAGE = "agent-stream-message",
   // Frontend tools channels
   FRONTEND_TOOLS_GET_MANIFEST = "frontend-tools-get-manifest",
   FRONTEND_TOOLS_CALL = "frontend-tools-call",
@@ -655,10 +657,11 @@ export interface IpcRequest {
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: void;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string; // filePath
   // Claude Agent SDK
-  [IpcChannels.CLAUDE_AGENT_CREATE_SESSION]: ClaudeAgentSessionOptions;
-  [IpcChannels.CLAUDE_AGENT_LIST_MODELS]: AgentModelsRequest;
-  [IpcChannels.CLAUDE_AGENT_SEND_MESSAGE]: ClaudeAgentSendRequest;
-  [IpcChannels.CLAUDE_AGENT_CLOSE_SESSION]: string; // sessionId
+  [IpcChannels.AGENT_CREATE_SESSION]: AgentSessionOptions;
+  [IpcChannels.AGENT_LIST_MODELS]: AgentModelsRequest;
+  [IpcChannels.AGENT_SEND_MESSAGE]: AgentSendRequest;
+  [IpcChannels.AGENT_STOP_EXECUTION]: string; // sessionId
+  [IpcChannels.AGENT_CLOSE_SESSION]: string; // sessionId
   // Frontend tools
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolsGetManifestRequest;
   [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallRequest;
@@ -742,10 +745,11 @@ export interface IpcResponse {
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: ClipboardContentInfo;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string | null;
   // Claude Agent SDK
-  [IpcChannels.CLAUDE_AGENT_CREATE_SESSION]: string; // sessionId
-  [IpcChannels.CLAUDE_AGENT_LIST_MODELS]: AgentModelDescriptor[];
-  [IpcChannels.CLAUDE_AGENT_SEND_MESSAGE]: ClaudeAgentMessage[];
-  [IpcChannels.CLAUDE_AGENT_CLOSE_SESSION]: void;
+  [IpcChannels.AGENT_CREATE_SESSION]: string; // sessionId
+  [IpcChannels.AGENT_LIST_MODELS]: AgentModelDescriptor[];
+  [IpcChannels.AGENT_SEND_MESSAGE]: AgentMessage[];
+  [IpcChannels.AGENT_STOP_EXECUTION]: void;
+  [IpcChannels.AGENT_CLOSE_SESSION]: void;
   // Frontend tools
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolManifest[];
   [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallResponse;
@@ -765,7 +769,7 @@ export interface IpcEvents {
   [IpcChannels.MENU_EVENT]: MenuEventData;
   [IpcChannels.PACKAGE_UPDATES_AVAILABLE]: PackageUpdateInfo[];
   // Claude Agent streaming events
-  [IpcChannels.CLAUDE_AGENT_STREAM_MESSAGE]: ClaudeAgentStreamEvent;
+  [IpcChannels.AGENT_STREAM_MESSAGE]: AgentStreamEvent;
   // Frontend tools events
   [IpcChannels.FRONTEND_TOOLS_ABORT]: { sessionId: string };
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST]: FrontendToolsManifestRequestEvent;
@@ -857,7 +861,7 @@ export interface PackageUninstallRequest {
 }
 
 // Claude Agent SDK types
-export interface ClaudeAgentSessionOptions {
+export interface AgentSessionOptions {
   provider?: AgentProvider;
   model: string;
   workspacePath?: string;
@@ -877,7 +881,7 @@ export interface AgentModelsRequest {
   workspacePath?: string;
 }
 
-export interface ClaudeAgentSendRequest {
+export interface AgentSendRequest {
   sessionId: string;
   message: string;
 }
@@ -937,7 +941,7 @@ export interface FrontendToolsCallResponseEvent {
  * Serializable representation of an SDK message for IPC transport.
  * Only includes the fields needed for display in the ChatView.
  */
-export interface ClaudeAgentMessage {
+export interface AgentMessage {
   type: "assistant" | "user" | "result" | "system" | "status" | "stream_event";
   uuid: string;
   session_id: string;
@@ -968,8 +972,8 @@ declare module "*.png" {
 }
 
 // Claude Agent streaming event payload
-export interface ClaudeAgentStreamEvent {
+export interface AgentStreamEvent {
   sessionId: string;
-  message: ClaudeAgentMessage;
+  message: AgentMessage;
   done: boolean; // true when the stream is complete
 }

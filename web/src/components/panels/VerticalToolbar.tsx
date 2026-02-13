@@ -26,8 +26,8 @@ interface VerticalToolbarProps {
     handleVersionsToggle: () => void;
     handleWorkflowToggle: () => void;
     handleWorkflowAssetsToggle: () => void;
-    handleClaudeAgentToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "claudeAgent";
+    handleAgentToggle: () => void;
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent";
     panelVisible: boolean;
 }
 
@@ -40,7 +40,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handleVersionsToggle,
     handleWorkflowToggle,
     handleWorkflowAssetsToggle,
-    handleClaudeAgentToggle,
+    handleAgentToggle,
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
@@ -110,11 +110,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
             >
                 <IconButton
                     tabIndex={-1}
-                    onClick={handleClaudeAgentToggle}
+                    onClick={handleAgentToggle}
                     className={
-                        activeView === "claudeAgent" && panelVisible
-                            ? "claudeAgent active"
-                            : "claudeAgent"
+                        activeView === "agent" && panelVisible
+                            ? "agent active"
+                            : "agent"
                     }
                 >
                     <SmartToyIcon />

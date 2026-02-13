@@ -11,7 +11,7 @@ import {
   Tooltip
 } from "@mui/material";
 import ChatView from "../chat/containers/ChatView";
-import useClaudeAgentStore from "../../stores/ClaudeAgentStore";
+import useAgentStore from "../../stores/AgentStore";
 import type { Message, WorkspaceResponse } from "../../stores/ApiTypes";
 import PanelHeadline from "../ui/PanelHeadline";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
@@ -88,7 +88,7 @@ const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
 };
 
 /**
- * ClaudeAgentPanel provides a chat interface for interacting with the
+ * AgentPanel provides a chat interface for interacting with the
  * Claude Agent SDK. It uses the existing ChatView component and adapts
  * the Claude SDK message format to the NodeTool Message type.
  *
@@ -96,7 +96,7 @@ const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
  * with this panel via IPC. When not running in Electron, the panel displays
  * a message indicating the feature requires the desktop app.
  */
-const ClaudeAgentPanel: React.FC = () => {
+const AgentPanel: React.FC = () => {
   const {
     status,
     messages,
@@ -120,7 +120,7 @@ const ClaudeAgentPanel: React.FC = () => {
       availableModels,
       modelsLoading,
       loadModels
-    } = useClaudeAgentStore(
+    } = useAgentStore(
     useMemo(
       () => (state) => ({
         status: state.status,
@@ -305,7 +305,7 @@ const ClaudeAgentPanel: React.FC = () => {
   );
 
   return (
-    <Box css={containerStyles} className="claude-agent-panel">
+    <Box css={containerStyles} className="agent-panel">
       <PanelHeadline title="AI Agent" />
       <Box className="claude-session-controls">
         <FormControl size="small" className="claude-session-select">
@@ -396,4 +396,4 @@ const ClaudeAgentPanel: React.FC = () => {
   );
 };
 
-export default memo(ClaudeAgentPanel);
+export default memo(AgentPanel);

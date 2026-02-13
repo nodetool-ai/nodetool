@@ -12,8 +12,8 @@ import {
   type AgentModelDescriptor,
   type AgentModelsRequest,
   type AgentProvider,
-  type ClaudeAgentSessionOptions,
-  type ClaudeAgentMessage,
+  type AgentSessionOptions,
+  type AgentMessage,
   type FrontendToolManifest,
 } from "./types.d";
 import { CodexQuerySession, listCodexModels } from "./codexAgent";
@@ -55,12 +55,14 @@ function getClaudeCodeExecutablePath(): string {
 
 const HELP_SYSTEM_PROMPT = [
   "You are a Nodetool workflow assistant. Build workflows as Directed Acyclic Graphs (DAGs) where nodes are operations and edges are typed data flows.",
+  "Workflows are managed entirely through UI tools in this session, not by creating or editing workflow files.",
   "",
   "## Rules",
   "- Never invent node types, property names, or IDs.",
   "- Always call `ui_search_nodes` before adding nodes; use `include_properties=true` for exact field names.",
   "- Never assume built-in node availability from memory; resolve every node type via `ui_search_nodes`.",
   "- Do not call tools that are not in the manifest.",
+  "- Never create, edit, or propose workflow JSON/YAML files when UI tools are available.",
   "- Reply in short bullets; no verbose explanations.",
   "",
   "## Execution Policy",
@@ -252,6 +254,16 @@ const HELP_SYSTEM_PROMPT = [
   "If workflow context is provided, use exact `workflow_id`, `thread_id`, node IDs, and handles—never invent them."
 ].join("\n");
 
+const CODEX_SYSTEM_PROMPT = [
+  "You are a Nodetool assistant operating through Codex app-server.",
+  "- Use only tools that are actually available in this Codex session.",
+  "- Workflows in this environment are managed entirely via UI tools (`ui_*`), not files.",
+  "- For workflow creation/edits, perform tool calls to modify the graph directly.",
+  "- Never create or edit workflow files (JSON/YAML/Python) as a substitute for UI tool actions.",
+  "- If a required UI tool is missing from the manifest, ask a concise blocking question instead of generating file-based workflow output.",
+  "- Keep responses concise and actionable.",
+].join("\n");
+
 
 
 
@@ -265,15 +277,20 @@ class ClaudeQuerySession {
   private resolvedSessionId: string | null;
   private readonly model: string;
   private readonly workspacePath: string;
+  private readonly systemPrompt: string;
   private inFlight = false;
+  private activeProcess: ChildProcessWithoutNullStreams | null = null;
+  private interruptRequested = false;
 
   constructor(options: {
     model: string;
     workspacePath: string;
     resumeSessionId?: string;
+    systemPrompt?: string;
   }) {
     this.model = options.model;
     this.workspacePath = options.workspacePath;
+    this.systemPrompt = options.systemPrompt ?? HELP_SYSTEM_PROMPT;
     this.resolvedSessionId = options.resumeSessionId ?? null;
   }
 
@@ -291,7 +308,7 @@ class ClaudeQuerySession {
       "--model",
       this.model,
       "--append-system-prompt",
-      HELP_SYSTEM_PROMPT,
+      this.systemPrompt,
     ];
 
     if (this.resolvedSessionId) {
@@ -323,7 +340,7 @@ class ClaudeQuerySession {
     webContents: WebContents | null,
     sessionId: string,
     manifest: FrontendToolManifest[],
-  ): Promise<ClaudeAgentMessage[]> {
+  ): Promise<AgentMessage[]> {
     if (this.closed) {
       throw new Error("Cannot send to a closed session");
     }
@@ -332,12 +349,14 @@ class ClaudeQuerySession {
     }
 
     this.inFlight = true;
+    this.interruptRequested = false;
     const toolManifestMap = new Map(manifest.map((tool) => [tool.name, tool]));
-    const outputMessages: ClaudeAgentMessage[] = [];
+    const outputMessages: AgentMessage[] = [];
     const processHandle = this.createClaudeProcess(manifest);
+    this.activeProcess = processHandle;
     let stdoutBuffer = "";
 
-    const resultPromise = new Promise<ClaudeAgentMessage[]>((resolve, reject) => {
+    const resultPromise = new Promise<AgentMessage[]>((resolve, reject) => {
       let settled = false;
       const settle = (fn: () => void): void => {
         if (settled) {
@@ -352,12 +371,6 @@ class ClaudeQuerySession {
         toolName: string,
         toolArgs: unknown,
       ): Promise<void> => {
-        // Claude can emit tool_use items for built-in/MCP tools that it executes
-        // internally. Only bridge tool calls that are explicitly exposed by the UI.
-        if (!toolManifestMap.has(toolName)) {
-          return;
-        }
-
         outputMessages.push({
           type: "assistant",
           uuid: randomUUID(),
@@ -374,6 +387,12 @@ class ClaudeQuerySession {
             },
           ],
         });
+
+        // Claude can emit tool_use items for built-in/MCP tools that it executes
+        // internally. Only UI-exposed tools should be bridged back via stdin.
+        if (!toolManifestMap.has(toolName)) {
+          return;
+        }
 
         let toolResult: unknown;
         let isError = false;
@@ -566,7 +585,7 @@ class ClaudeQuerySession {
             // ignore trailing parse errors
           });
         }
-        if (code === 0) {
+        if (code === 0 || this.interruptRequested) {
           settle(() => resolve(outputMessages));
           return;
         }
@@ -589,8 +608,24 @@ class ClaudeQuerySession {
     try {
       return await resultPromise;
     } finally {
+      this.activeProcess = null;
       this.inFlight = false;
     }
+  }
+
+  async interrupt(): Promise<void> {
+    if (!this.inFlight || !this.activeProcess || this.activeProcess.killed) {
+      return;
+    }
+
+    this.interruptRequested = true;
+    logMessage("Interrupting Claude Code execution");
+    this.activeProcess.kill("SIGINT");
+    setTimeout(() => {
+      if (this.activeProcess && !this.activeProcess.killed) {
+        this.activeProcess.kill("SIGTERM");
+      }
+    }, 1000);
   }
 
   close(): void {
@@ -607,7 +642,8 @@ interface AgentQuerySession {
     webContents: WebContents | null,
     sessionId: string,
     manifest: FrontendToolManifest[],
-  ): Promise<ClaudeAgentMessage[]>;
+  ): Promise<AgentMessage[]>;
+  interrupt(): Promise<void>;
   close(): void;
 }
 
@@ -769,8 +805,8 @@ async function executeFrontendTool(
  * Create a new Claude Agent SDK session.
  * Returns the session ID.
  */
-export async function createClaudeAgentSession(
-  options: ClaudeAgentSessionOptions,
+export async function createAgentSession(
+  options: AgentSessionOptions,
 ): Promise<string> {
   if (!options.resumeSessionId && !options.workspacePath) {
     throw new Error(
@@ -795,11 +831,13 @@ export async function createClaudeAgentSession(
           model: options.model,
           workspacePath: options.workspacePath,
           resumeSessionId: options.resumeSessionId,
+          systemPrompt: CODEX_SYSTEM_PROMPT,
         })
       : new ClaudeQuerySession({
           model: options.model,
           workspacePath: options.workspacePath,
           resumeSessionId: options.resumeSessionId,
+          systemPrompt: HELP_SYSTEM_PROMPT,
         });
 
   activeSessions.set(tempId, session);
@@ -811,10 +849,10 @@ export async function createClaudeAgentSession(
  * Send a message to an existing Claude Agent SDK session and collect
  * all response messages.
  */
-export async function sendClaudeAgentMessage(
+export async function sendAgentMessage(
   sessionId: string,
   message: string,
-): Promise<ClaudeAgentMessage[]> {
+): Promise<AgentMessage[]> {
   const session = activeSessions.get(sessionId);
   if (!session) {
     throw new Error(`No active Claude Agent session with ID: ${sessionId}`);
@@ -839,7 +877,7 @@ export async function sendClaudeAgentMessage(
  * Send a message to an existing Claude Agent SDK session and stream
  * response messages to the renderer via IPC events.
  */
-export async function sendClaudeAgentMessageStreaming(
+export async function sendAgentMessageStreaming(
   sessionId: string,
   message: string,
   webContents: WebContents,
@@ -860,20 +898,20 @@ export async function sendClaudeAgentMessageStreaming(
       activeSessions.set(serialized.session_id, session);
     }
     messageCount++;
-    webContents.send(IpcChannels.CLAUDE_AGENT_STREAM_MESSAGE, {
+    webContents.send(IpcChannels.AGENT_STREAM_MESSAGE, {
       sessionId,
       message: serialized,
       done: false,
     });
   }
 
-  webContents.send(IpcChannels.CLAUDE_AGENT_STREAM_MESSAGE, {
+  webContents.send(IpcChannels.AGENT_STREAM_MESSAGE, {
     sessionId,
     message: {
       type: "system",
       uuid: crypto.randomUUID(),
       session_id: sessionId,
-    } as ClaudeAgentMessage,
+    } as AgentMessage,
     done: true,
   });
 
@@ -882,10 +920,18 @@ export async function sendClaudeAgentMessageStreaming(
   );
 }
 
+export async function stopAgentExecution(sessionId: string): Promise<void> {
+  const session = activeSessions.get(sessionId);
+  if (!session) {
+    throw new Error(`No active Claude Agent session with ID: ${sessionId}`);
+  }
+  await session.interrupt();
+}
+
 /**
  * Close a Claude Agent SDK session.
  */
-export function closeClaudeAgentSession(sessionId: string): void {
+export function closeAgentSession(sessionId: string): void {
   const session = activeSessions.get(sessionId);
   if (session) {
     logMessage(`Closing Claude Agent session: ${sessionId}`);
@@ -897,7 +943,7 @@ export function closeClaudeAgentSession(sessionId: string): void {
 /**
  * Close all active Claude Agent sessions (for cleanup on app exit).
  */
-export function closeAllClaudeAgentSessions(): void {
+export function closeAllAgentSessions(): void {
   const uniqueSessions = new Set(activeSessions.values());
   for (const session of uniqueSessions) {
     logMessage("Closing Claude Agent session on shutdown");

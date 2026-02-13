@@ -207,7 +207,18 @@ export const MessageView: React.FC<
       message.tool_calls.length > 0;
     const hasNonEmptyContent =
       (typeof message.content === "string" && message.content.trim().length > 0) ||
-      (Array.isArray(message.content) && message.content.length > 0);
+      (Array.isArray(message.content) &&
+        message.content.some((block) => {
+          if (!block || typeof block !== "object") {
+            return false;
+          }
+          const contentBlock = block as MessageContent;
+          if (contentBlock.type === "text") {
+            return typeof (contentBlock as MessageTextContent).text === "string" &&
+              (contentBlock as MessageTextContent).text.trim().length > 0;
+          }
+          return true;
+        }));
 
     const messageClass = [
       baseClass,

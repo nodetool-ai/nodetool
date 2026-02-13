@@ -1,6 +1,6 @@
 import type { Message } from "../ApiTypes";
 
-describe("ClaudeAgentStore", () => {
+describe("AgentStore", () => {
 const createSessionMock = jest.fn<
   Promise<string>,
   [
@@ -13,6 +13,7 @@ const createSessionMock = jest.fn<
   ]
 >();
   const sendMessageMock = jest.fn<Promise<void>, [string, string]>();
+  const stopExecutionMock = jest.fn<Promise<void>, [string]>();
   const closeSessionMock = jest.fn<Promise<void>, [string]>();
   const onStreamMessageMock = jest.fn<
     () => void,
@@ -66,16 +67,17 @@ const createSessionMock = jest.fn<
     jest.resetModules();
     Object.defineProperty(window, "api", {
       value: {
-        claudeAgent: {
+        agent: {
           createSession: createSessionMock,
           sendMessage: sendMessageMock,
+          stopExecution: stopExecutionMock,
           closeSession: closeSessionMock,
           onStreamMessage: onStreamMessageMock
         }
       },
       configurable: true
     });
-    const module = await import("../ClaudeAgentStore");
+    const module = await import("../AgentStore");
     return module.default;
   }
 
@@ -103,6 +105,7 @@ const createSessionMock = jest.fn<
     });
     createSessionMock.mockResolvedValue("session-1");
     sendMessageMock.mockResolvedValue(undefined);
+    stopExecutionMock.mockResolvedValue(undefined);
     closeSessionMock.mockResolvedValue(undefined);
     onStreamMessageMock.mockImplementation((callback) => {
       streamHandler = callback;
@@ -138,12 +141,12 @@ const createSessionMock = jest.fn<
   }
 
   it("skips duplicate success result when assistant content already streamed", async () => {
-    const useClaudeAgentStore = await loadStore();
-    useClaudeAgentStore
+    const useAgentStore = await loadStore();
+    useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
-    await useClaudeAgentStore.getState().createSession();
-    await useClaudeAgentStore.getState().sendMessage(makeUserMessage("Hi"));
+    await useAgentStore.getState().createSession();
+    await useAgentStore.getState().sendMessage(makeUserMessage("Hi"));
 
     emitStreamMessage({
       type: "assistant",
@@ -159,7 +162,7 @@ const createSessionMock = jest.fn<
       text: "Hello from Claude"
     });
 
-    const assistantMessages = useClaudeAgentStore
+    const assistantMessages = useAgentStore
       .getState()
       .messages.filter((msg) => msg.role === "assistant");
     expect(assistantMessages).toHaveLength(1);
@@ -169,12 +172,12 @@ const createSessionMock = jest.fn<
   });
 
   it("updates an existing streamed message when uuid repeats", async () => {
-    const useClaudeAgentStore = await loadStore();
-    useClaudeAgentStore
+    const useAgentStore = await loadStore();
+    useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
-    await useClaudeAgentStore.getState().createSession();
-    await useClaudeAgentStore
+    await useAgentStore.getState().createSession();
+    await useAgentStore
       .getState()
       .sendMessage(makeUserMessage("What can you do?"));
 
@@ -191,7 +194,7 @@ const createSessionMock = jest.fn<
       content: [{ type: "text", text: "Final answer" }]
     });
 
-    const assistantMessages = useClaudeAgentStore
+    const assistantMessages = useAgentStore
       .getState()
       .messages.filter((msg) => msg.role === "assistant");
     expect(assistantMessages).toHaveLength(1);
@@ -201,12 +204,12 @@ const createSessionMock = jest.fn<
   });
 
   it("keeps success result when no assistant message is present", async () => {
-    const useClaudeAgentStore = await loadStore();
-    useClaudeAgentStore
+    const useAgentStore = await loadStore();
+    useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
-    await useClaudeAgentStore.getState().createSession();
-    await useClaudeAgentStore
+    await useAgentStore.getState().createSession();
+    await useAgentStore
       .getState()
       .sendMessage(makeUserMessage("What can you do?"));
 
@@ -218,7 +221,7 @@ const createSessionMock = jest.fn<
       text: "Final answer"
     });
 
-    const assistantMessages = useClaudeAgentStore
+    const assistantMessages = useAgentStore
       .getState()
       .messages.filter((msg) => msg.role === "assistant");
     expect(assistantMessages).toHaveLength(1);
@@ -228,13 +231,13 @@ const createSessionMock = jest.fn<
   });
 
   it("keeps first user message visible while lazily creating a session", async () => {
-    const useClaudeAgentStore = await loadStore();
-    useClaudeAgentStore
+    const useAgentStore = await loadStore();
+    useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
-    await useClaudeAgentStore.getState().sendMessage(makeUserMessage("Hello"));
+    await useAgentStore.getState().sendMessage(makeUserMessage("Hello"));
 
-    const state = useClaudeAgentStore.getState();
+    const state = useAgentStore.getState();
     expect(state.messages).toHaveLength(1);
     expect(state.messages[0].role).toBe("user");
     expect(state.messages[0].content).toEqual([{ type: "text", text: "Hello" }]);
@@ -247,5 +250,19 @@ const createSessionMock = jest.fn<
       resumeSessionId: undefined
     });
     expect(sendMessageMock).toHaveBeenCalledWith("session-1", "Hello");
+  });
+
+  it("stops active execution without closing the session", async () => {
+    const useAgentStore = await loadStore();
+    useAgentStore
+      .getState()
+      .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
+    await useAgentStore.getState().createSession();
+
+    useAgentStore.getState().stopGeneration();
+
+    expect(stopExecutionMock).toHaveBeenCalledWith("session-1");
+    expect(closeSessionMock).not.toHaveBeenCalled();
+    expect(useAgentStore.getState().sessionId).toBe("session-1");
   });
 });

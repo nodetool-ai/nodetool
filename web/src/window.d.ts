@@ -229,7 +229,7 @@ declare global {
       };
 
       // Claude Agent SDK operations (available in Electron only)
-      claudeAgent?: {
+      agent?: {
         createSession: (options: {
           provider?: "claude" | "codex";
           model: string;
@@ -267,6 +267,7 @@ declare global {
             }>;
           }>
         >;
+        stopExecution: (sessionId: string) => Promise<void>;
         closeSession: (sessionId: string) => Promise<void>;
         /** Subscribe to streaming messages from the Claude Agent */
         onStreamMessage: (

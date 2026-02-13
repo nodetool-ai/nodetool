@@ -511,9 +511,9 @@ app.on("will-quit", () => {
   closeLogStream();
 
   // Clean up Claude Agent sessions
-  import("./claudeAgent")
-    .then(({ closeAllClaudeAgentSessions }) => {
-      closeAllClaudeAgentSessions();
+  import("./agent")
+    .then(({ closeAllAgentSessions }) => {
+      closeAllAgentSessions();
     })
     .catch(() => {
       // Best-effort cleanup

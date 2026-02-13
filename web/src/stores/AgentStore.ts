@@ -1,5 +1,5 @@
 /**
- * ClaudeAgentStore - Zustand store for managing Claude Agent SDK sessions.
+ * AgentStore - Zustand store for managing Claude Agent SDK sessions.
  *
  * This store manages the state for the Claude Agent panel, including:
  * - Session lifecycle (create, send, stream, close)
@@ -15,9 +15,9 @@
 import { create } from "zustand";
 import type { Message } from "./ApiTypes";
 import {
-  claudeAgentMessageToNodeToolMessage,
+  agentMessageToNodeToolMessage,
   nodeToolMessageToText
-} from "../utils/claudeMessageAdapter";
+} from "../utils/agentMessageAdapter";
 
 // Initialize the IPC bridge for frontend tools
 // This registers handlers that allow the Claude Agent to call frontend tools
@@ -30,7 +30,7 @@ export interface AgentModelDescriptor {
   isDefault?: boolean;
 }
 
-export type ClaudeAgentStatus =
+export type AgentStatus =
   | "disconnected"
   | "connecting"
   | "connected"
@@ -38,7 +38,7 @@ export type ClaudeAgentStatus =
   | "streaming"
   | "error";
 
-export interface ClaudeAgentSessionHistoryEntry {
+export interface AgentSessionHistoryEntry {
   id: string;
   provider: AgentProvider;
   model: string;
@@ -48,9 +48,9 @@ export interface ClaudeAgentSessionHistoryEntry {
   lastUsedAt: string;
 }
 
-interface ClaudeAgentState {
+interface AgentState {
   /** Current connection/session status */
-  status: ClaudeAgentStatus;
+  status: AgentStatus;
   /** All messages in the current session */
   messages: Message[];
   /** Current session ID from the Claude Agent SDK */
@@ -76,7 +76,7 @@ interface ClaudeAgentState {
   /** Workspace id selected in UI (if available) */
   workspaceId: string | null;
   /** Recently used Claude session IDs for resume */
-  sessionHistory: ClaudeAgentSessionHistoryEntry[];
+  sessionHistory: AgentSessionHistoryEntry[];
 
   // Actions
   /** Initialize a new Claude Agent session */
@@ -113,15 +113,15 @@ interface ClaudeAgentState {
 /**
  * Check if the Claude Agent SDK IPC bridge is available (Electron environment).
  */
-function isClaudeAgentAvailable(): boolean {
+function isAgentAvailable(): boolean {
   return (
     typeof window !== "undefined" &&
     window.api !== undefined &&
-    window.api.claudeAgent !== undefined
+    window.api.agent !== undefined
   );
 }
 
-interface ClaudeAgentResponseMessage {
+interface AgentResponseMessage {
   type: "assistant" | "user" | "result" | "system" | "status" | "stream_event";
   uuid: string;
   session_id: string;
@@ -142,22 +142,22 @@ interface ClaudeAgentResponseMessage {
 }
 
 function upsertSessionHistory(
-  history: ClaudeAgentSessionHistoryEntry[],
-  session: ClaudeAgentSessionHistoryEntry
-): ClaudeAgentSessionHistoryEntry[] {
+  history: AgentSessionHistoryEntry[],
+  session: AgentSessionHistoryEntry
+): AgentSessionHistoryEntry[] {
   const existing = history.filter((entry) => entry.id !== session.id);
   return [session, ...existing].slice(0, 50);
 }
 
 function replaceSessionHistoryId(
-  history: ClaudeAgentSessionHistoryEntry[],
+  history: AgentSessionHistoryEntry[],
   fromId: string,
   toId: string
-): ClaudeAgentSessionHistoryEntry[] {
+): AgentSessionHistoryEntry[] {
   if (fromId === toId) {
     return history;
   }
-  let replacement: ClaudeAgentSessionHistoryEntry | null = null;
+  let replacement: AgentSessionHistoryEntry | null = null;
   const filtered = history.filter((entry) => {
     if (entry.id === toId) {
       replacement = entry;
@@ -179,12 +179,12 @@ function replaceSessionHistoryId(
   return [replacement, ...filtered].slice(0, 50);
 }
 
-const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
+const useAgentStore = create<AgentState>((set, get) => ({
   status: "disconnected",
   messages: [],
   sessionId: null,
   error: null,
-  isAvailable: isClaudeAgentAvailable(),
+  isAvailable: isAgentAvailable(),
   model: "claude-sonnet-4-20250514",
   availableModels: [],
   modelsLoading: false,
@@ -205,13 +205,13 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
 
   loadModels: async () => {
     const { provider, workspacePath, model } = get();
-    if (!isClaudeAgentAvailable()) {
+    if (!isAgentAvailable()) {
       return;
     }
 
     set({ modelsLoading: true });
     try {
-      const models = await window.api.claudeAgent!.listModels({
+      const models = await window.api.agent!.listModels({
         provider,
         workspacePath: workspacePath ?? undefined
       });
@@ -249,7 +249,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       set({ streamUnsubscribe: null });
     }
 
-    if (!isClaudeAgentAvailable()) {
+    if (!isAgentAvailable()) {
       set({
         error:
           "Agent sessions require the NodeTool desktop app (Electron). Please use the desktop application to access this feature.",
@@ -272,7 +272,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
         error: null
       }));
 
-      const sessionId = await window.api.claudeAgent!.createSession({
+      const sessionId = await window.api.agent!.createSession({
         provider,
         model,
         workspacePath: selectedWorkspacePath,
@@ -293,7 +293,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       }));
 
       // Subscribe to streaming messages for this session
-      const unsubscribe = window.api.claudeAgent!.onStreamMessage(
+      const unsubscribe = window.api.agent!.onStreamMessage(
         (event) => {
           const { sessionId: eventSessionId, message, done } = event;
           const activeSessionId = get().sessionId;
@@ -315,8 +315,8 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
           }
 
           // Convert and add the message to state
-          const converted = claudeAgentMessageToNodeToolMessage(
-            message as ClaudeAgentResponseMessage
+          const converted = agentMessageToNodeToolMessage(
+            message as AgentResponseMessage
           );
           if (converted) {
             const isSuccessResult =
@@ -398,7 +398,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
     set({ messages: [...messages, userMessage], status: "loading" });
     set({ hasAssistantInCurrentTurn: false });
 
-    if (!isClaudeAgentAvailable()) {
+    if (!isAgentAvailable()) {
       set({
         error:
           "Agent sessions require the NodeTool desktop app (Electron).",
@@ -423,7 +423,7 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       }
 
       // Send message - responses will be streamed via the event listener
-      await window.api.claudeAgent!.sendMessage(
+      await window.api.agent!.sendMessage(
         currentSessionId,
         text
       );
@@ -438,12 +438,12 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
 
   stopGeneration: () => {
     const { sessionId } = get();
-    if (sessionId && isClaudeAgentAvailable()) {
-      window.api.claudeAgent!.closeSession(sessionId).catch((err: unknown) => {
-        console.error("Failed to close Claude Agent session:", err);
+    if (sessionId && isAgentAvailable()) {
+      window.api.agent!.stopExecution(sessionId).catch((err: unknown) => {
+        console.error("Failed to stop Claude Agent execution:", err);
       });
     }
-    set({ status: "connected", sessionId: null });
+    set({ status: "connected", hasAssistantInCurrentTurn: false });
   },
 
   newChat: () => {
@@ -454,8 +454,8 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       streamUnsubscribe();
     }
 
-    if (sessionId && isClaudeAgentAvailable()) {
-      window.api.claudeAgent!.closeSession(sessionId).catch((err: unknown) => {
+    if (sessionId && isAgentAvailable()) {
+      window.api.agent!.closeSession(sessionId).catch((err: unknown) => {
         console.error("Failed to close Claude Agent session:", err);
       });
     }
@@ -475,8 +475,8 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       streamUnsubscribe();
       set({ streamUnsubscribe: null });
     }
-    if (sessionId && isClaudeAgentAvailable()) {
-      await window.api.claudeAgent!.closeSession(sessionId).catch((err: unknown) => {
+    if (sessionId && isAgentAvailable()) {
+      await window.api.agent!.closeSession(sessionId).catch((err: unknown) => {
         console.error("Failed to close Claude Agent session:", err);
       });
     }
@@ -504,8 +504,8 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
       streamUnsubscribe();
       set({ streamUnsubscribe: null });
     }
-    if (sessionId && isClaudeAgentAvailable()) {
-      await window.api.claudeAgent!.closeSession(sessionId).catch((err: unknown) => {
+    if (sessionId && isAgentAvailable()) {
+      await window.api.agent!.closeSession(sessionId).catch((err: unknown) => {
         console.error("Failed to close Claude Agent session:", err);
       });
     }
@@ -527,4 +527,4 @@ const useClaudeAgentStore = create<ClaudeAgentState>((set, get) => ({
   }
 }));
 
-export default useClaudeAgentStore;
+export default useAgentStore;
