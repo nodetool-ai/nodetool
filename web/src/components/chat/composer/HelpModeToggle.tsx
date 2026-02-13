@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import HelpIcon from "@mui/icons-material/Help";
 import { StateIconButton } from "../../ui_primitives";
 import { Typography } from "@mui/material";
@@ -9,12 +9,14 @@ interface HelpModeToggleProps {
   disabled?: boolean;
 }
 
-export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
+const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
   helpMode,
   onToggle,
   disabled = false
 }) => {
-  const tooltipContent = (
+  const handleToggle = useCallback(() => onToggle(!helpMode), [onToggle, helpMode]);
+
+  const tooltipContent = useMemo(() => (
     <div style={{ textAlign: "center" }}>
       <Typography variant="inherit">
         {helpMode ? "Help Mode ON" : "Help Mode OFF"}
@@ -25,14 +27,14 @@ export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
           : "Include Nodetool help context for chat."}
       </Typography>
     </div>
-  );
+  ), [helpMode]);
 
   return (
     <StateIconButton
       icon={<HelpIcon fontSize="small" />}
       tooltip={tooltipContent}
       tooltipPlacement="top"
-      onClick={() => onToggle(!helpMode)}
+      onClick={handleToggle}
       disabled={disabled}
       size="small"
       isActive={helpMode}
@@ -41,3 +43,5 @@ export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
     />
   );
 };
+
+export default memo(HelpModeToggle);

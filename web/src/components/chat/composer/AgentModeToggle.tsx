@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import { StateIconButton } from "../../ui_primitives";
 import { Typography } from "@mui/material";
@@ -9,12 +9,14 @@ interface AgentModeToggleProps {
   disabled?: boolean;
 }
 
-export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
+const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
   agentMode,
   onToggle,
   disabled = false
 }) => {
-  const tooltipContent = (
+  const handleToggle = useCallback(() => onToggle(!agentMode), [onToggle, agentMode]);
+
+  const tooltipContent = useMemo(() => (
     <div style={{ textAlign: "center" }}>
       <Typography variant="inherit">
         {agentMode ? "Agent Mode ON" : "Agent Mode OFF"}
@@ -23,14 +25,14 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
         {agentMode ? "Disable" : "Enable"} agent mode
       </Typography>
     </div>
-  );
+  ), [agentMode]);
 
   return (
     <StateIconButton
       icon={<PsychologyIcon fontSize="small" />}
       tooltip={tooltipContent}
       tooltipPlacement="top"
-      onClick={() => onToggle(!agentMode)}
+      onClick={handleToggle}
       disabled={disabled}
       size="small"
       isActive={agentMode}
@@ -39,3 +41,5 @@ export const AgentModeToggle: React.FC<AgentModeToggleProps> = ({
     />
   );
 };
+
+export default memo(AgentModeToggle);
