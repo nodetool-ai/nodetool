@@ -7,6 +7,7 @@
  */
 
 import { logMessage } from "./logger";
+import { getClaudeMcpConfigArg, getCodexMcpConfigArgs } from "./mcpConfig";
 import {
   IpcChannels,
   type AgentModelDescriptor,
@@ -317,6 +318,7 @@ class ClaudeQuerySession {
     if (allowedTools.length > 0) {
       args.push("--allowedTools", allowedTools.join(","));
     }
+    args.push("--mcp-config", getClaudeMcpConfigArg());
 
     const executable = getClaudeCodeExecutablePath();
     logMessage(
@@ -832,6 +834,7 @@ export async function createAgentSession(
           workspacePath: options.workspacePath,
           resumeSessionId: options.resumeSessionId,
           systemPrompt: CODEX_SYSTEM_PROMPT,
+          appServerConfigArgs: getCodexMcpConfigArgs(),
         })
       : new ClaudeQuerySession({
           model: options.model,

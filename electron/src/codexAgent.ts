@@ -352,6 +352,7 @@ export class CodexQuerySession {
   private readonly turnTrackers = new Map<string, TurnTracker>();
   private readonly agentMessageStreams = new Map<string, AgentMessageStreamState>();
   private currentTurnId: string | null = null;
+  private readonly appServerConfigArgs: string[];
   private streamContext: {
     webContents: WebContents | null;
     sessionId: string;
@@ -392,11 +393,13 @@ export class CodexQuerySession {
     workspacePath: string;
     resumeSessionId?: string;
     systemPrompt?: string;
+    appServerConfigArgs?: string[];
   }) {
     this.model = options.model;
     this.workspacePath = options.workspacePath;
     this.systemPrompt = options.systemPrompt ?? "";
     this.resolvedThreadId = options.resumeSessionId ?? null;
+    this.appServerConfigArgs = options.appServerConfigArgs ?? [];
   }
 
   private writeRpc(message: RpcRequest | Record<string, unknown>): void {
@@ -802,7 +805,7 @@ export class CodexQuerySession {
     }
 
     const executable = getCodexExecutablePath();
-    const args = ["app-server"];
+    const args = ["app-server", ...this.appServerConfigArgs];
     logMessage(`Starting Codex app-server process: ${executable} ${args.join(" ")}`);
 
     this.processHandle = spawn(executable, args, {

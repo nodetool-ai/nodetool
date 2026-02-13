@@ -146,6 +146,8 @@ describe("agent session alias handling", () => {
     expect(args).toContain("--output-format");
     expect(args).toContain("stream-json");
     expect(args).toContain("--verbose");
+    expect(args).toContain("--mcp-config");
+    expect(args.join(" ")).toContain("http://localhost:7777/mcp/sse");
   });
 
   it("writes user stream-json payloads to stdin", async () => {
