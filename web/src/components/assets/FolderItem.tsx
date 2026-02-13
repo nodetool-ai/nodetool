@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { Typography } from "@mui/material";
@@ -125,21 +125,24 @@ const FolderItem: React.FC<FolderItemProps> = ({
     handleDelete
   } = useAssetActions(folder);
 
+  // Memoize click handler to prevent recreation on every render
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest(".expand-gutter")) {
+      // Let the click bubble to AccordionSummary to toggle expansion
+      return;
+    }
+    e.stopPropagation();
+    onSelect();
+  }, [onSelect]);
+
   return (
     <div
       css={styles(theme)}
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
-      onClick={(e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest(".expand-gutter")) {
-          // Let the click bubble to AccordionSummary to toggle expansion
-          return;
-        }
-        e.stopPropagation();
-        onSelect();
-      }}
+      onClick={handleClick}
       // onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
       onDragEnd={handleDragEnd}

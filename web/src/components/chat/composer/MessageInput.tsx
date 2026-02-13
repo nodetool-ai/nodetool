@@ -11,6 +11,12 @@ interface MessageInputProps {
 const MAX_HEIGHT = 180;
 const LINE_HEIGHT = 24;
 
+// Memoize input styles to prevent recreation on every render
+const getInputStyles = (): React.CSSProperties => ({
+  maxHeight: `${MAX_HEIGHT}px`,
+  lineHeight: `${LINE_HEIGHT}px`
+});
+
 export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputProps>(
   (
     {
@@ -64,10 +70,7 @@ export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputPro
         spellCheck="false"
         autoComplete="off"
         rows={1}
-        style={{
-          maxHeight: `${MAX_HEIGHT}px`,
-          lineHeight: `${LINE_HEIGHT}px`
-        }}
+        style={getInputStyles()}
       />
     );
   }
