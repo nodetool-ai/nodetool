@@ -20,7 +20,7 @@ import { useReactFlow } from "@xyflow/react";
 import useNodeSnippetsStore, { NodeSnippet } from "../stores/NodeSnippetsStore";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 
 interface UseNodeSnippetsOptions {
   /**
@@ -98,6 +98,8 @@ export const useNodeSnippets = (
     setNodes: state.setNodes,
     setEdges: state.setEdges
   }));
+
+  const nodeStoreRef = useNodeStoreRef();
 
   const { addNodes: rfAddNodes } = useReactFlow();
 
@@ -196,9 +198,9 @@ export const useNodeSnippets = (
       // Add nodes and edges using both ReactFlow and store methods
       rfAddNodes(newNodes);
       setNodes([...nodes, ...newNodes]);
-      setEdges([...(useNodes.getState().edges), ...newEdges]);
+      setEdges([...(nodeStoreRef.getState().edges), ...newEdges]);
     },
-    [getSnippet, nodes, setNodes, setEdges, rfAddNodes, restoreOffset]
+    [getSnippet, nodes, setNodes, setEdges, rfAddNodes, nodeStoreRef, restoreOffset]
   );
 
   /**
