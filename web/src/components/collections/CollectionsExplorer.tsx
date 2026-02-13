@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { memo } from "react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -52,4 +52,4 @@ const CollectionsExplorer: React.FC = () => {
   );
 };
 
-export default CollectionsExplorer;
+export default memo(CollectionsExplorer);

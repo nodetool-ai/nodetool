@@ -5,13 +5,15 @@ import type { Theme } from "@mui/material/styles";
 import WaveSurfer from "wavesurfer.js";
 import Minimap from "wavesurfer.js/dist/plugins/minimap";
 import { Typography } from "@mui/material";
+import isEqual from "lodash/isEqual";
 
 import React, {
   useEffect,
   useState,
   useRef,
   useCallback,
-  useMemo
+  useMemo,
+  memo
 } from "react";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
@@ -442,4 +444,4 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   );
 };
 
-export default AudioPlayer;
+export default memo(AudioPlayer, isEqual);

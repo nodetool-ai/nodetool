@@ -6,7 +6,7 @@ import {
   Box,
   Tooltip
 } from "@mui/material";
-import React from "react";
+import React, { memo } from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
@@ -136,4 +136,4 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
   );
 };
 
-export default ModelsManager;
+export default memo(ModelsManager);
