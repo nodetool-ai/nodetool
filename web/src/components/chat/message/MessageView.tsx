@@ -37,6 +37,23 @@ import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 import StepResultDisplay from "../../node/StepResultDisplay";
 import AgentExecutionView from "./AgentExecutionView";
 
+// Extract PrettyJson component outside to avoid recreating on every render
+const PrettyJson: React.FC<{ value: any }> = React.memo(({ value }) => {
+  const text = useMemo(() => {
+    try {
+      if (typeof value === "string") {
+        const parsed = JSON.parse(value);
+        return JSON.stringify(parsed, null, 2);
+      }
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return typeof value === "string" ? value : String(value);
+    }
+  }, [value]);
+  return <pre className="pretty-json">{text}</pre>;
+});
+PrettyJson.displayName = "PrettyJson";
+
 interface MessageViewProps {
   message: Message;
   expandedThoughts: { [key: string]: boolean };
@@ -299,23 +316,6 @@ export const MessageView: React.FC<
     const content = message.content as
       | Array<MessageTextContent | MessageImageContent>
       | string;
-
-    // Pretty JSON helper
-    const PrettyJson: React.FC<{ value: any }> = React.memo(({ value }) => {
-      const text = useMemo(() => {
-        try {
-          if (typeof value === "string") {
-            const parsed = JSON.parse(value);
-            return JSON.stringify(parsed, null, 2);
-          }
-          return JSON.stringify(value, null, 2);
-        } catch {
-          return typeof value === "string" ? value : String(value);
-        }
-      }, [value]);
-      return <pre className="pretty-json">{text}</pre>;
-    });
-    PrettyJson.displayName = "PrettyJson";
 
     const ToolCallCard: React.FC<{
       tc: ToolCall;
