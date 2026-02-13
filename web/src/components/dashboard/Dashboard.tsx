@@ -158,7 +158,7 @@ const Dashboard: React.FC = () => {
 
   const handleToolsChange = useCallback((tools: string[]) => {
     setSelectedTools((prev) => (isEqual(prev, tools) ? prev : tools));
-  }, []);
+  }, [setSelectedTools]);
 
   const panelParams = useMemo(() => {
     return {

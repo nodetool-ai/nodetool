@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, memo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import {
   workflowQueryKey,
@@ -268,7 +268,7 @@ type TabsNodeEditorProps = {
   hideContent?: boolean;
 };
 
-const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
+const TabsNodeEditor = memo(function TabsNodeEditor({ hideContent = false }: TabsNodeEditorProps) {
   const { openWorkflows, currentWorkflowId } = useWorkflowManager((state) => ({
     openWorkflows: state.openWorkflows,
     currentWorkflowId: hideContent ? undefined : state.currentWorkflowId
@@ -521,6 +521,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       </div>
     </>
   );
-};
+});
 
 export default TabsNodeEditor;

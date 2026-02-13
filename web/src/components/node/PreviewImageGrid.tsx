@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -196,7 +196,7 @@ function toArrayBuffer(view: Uint8Array): ArrayBuffer {
   return buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
 }
 
-const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
+const PreviewImageGrid = memo(function PreviewImageGrid({
   images,
   onDoubleClick,
   onOpenInViewer,
@@ -204,7 +204,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   gap = 8,
   enableSelection = true,
   showActions = true
-}) => {
+}: PreviewImageGridProps) {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -563,6 +563,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default PreviewImageGrid;
