@@ -12,10 +12,17 @@ import { NodeData } from "../../stores/NodeData";
 jest.mock("../../contexts/NodeContext", () => ({
   useNodeStoreRef: jest.fn(() => ({
     getState: jest.fn(() => ({
+      edges: [],
+      nodes: [],
       addNodes: jest.fn(),
       addEdges: jest.fn(),
       workflowId: "test-workflow"
     }))
+  })),
+  useNodes: jest.fn((selector) => selector({
+    nodes: [],
+    setNodes: jest.fn(),
+    setEdges: jest.fn()
   }))
 }));
 

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Tooltip, Typography } from "@mui/material";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
@@ -49,6 +49,14 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     onStop?.();
   }, [onStop]);
 
+  // Memoize send button tooltip
+  const sendButtonTooltip = useMemo(() => (
+    <div style={{ textAlign: "center" }}>
+      <Typography variant="inherit">Send Message</Typography>
+      <Typography variant="inherit">[Enter]</Typography>
+    </div>
+  ), []);
+
   return (
     <div className="chat-action-buttons" css={styles(theme)}>
       {/* {onNewChat && (
@@ -68,12 +76,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       {!showStopButton && (
         <Tooltip
           enterDelay={TOOLTIP_ENTER_DELAY}
-          title={
-            <div style={{ textAlign: "center" }}>
-              <Typography variant="inherit">Send Message</Typography>
-              <Typography variant="inherit">[Enter]</Typography>
-            </div>
-          }
+          title={sendButtonTooltip}
         >
           <span className="button-wrapper">
             <SendMessageButton
