@@ -64,19 +64,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const logCount = logs?.length || 0;
 
-  // Common icon button styles for toggle buttons
-  const toggleIconButtonStyles = {
-    padding: "4px",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    color: "var(--palette-text-primary)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "50%",
-    "&:hover": {
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
-      borderColor: "var(--palette-primary-main)"
-    }
-  };
-
   const headerCss = useMemo(
     () =>
       css({
@@ -297,7 +284,17 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               <IconButton
                 size="small"
                 onClick={handleShowResultsClick}
-                sx={toggleIconButtonStyles}
+                sx={{
+                  padding: "4px",
+                  backgroundColor: "rgba(255, 255, 255, 0.05)",
+                  color: "var(--palette-text-primary)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  borderRadius: "50%",
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    borderColor: "var(--palette-primary-main)"
+                  }
+                }}
               >
                 <Visibility sx={{ fontSize: 16 }} />
               </IconButton>
@@ -309,7 +306,17 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               <IconButton
                 size="small"
                 onClick={handleShowInputsClick}
-                sx={toggleIconButtonStyles}
+                sx={{
+                  padding: "4px",
+                  backgroundColor: "rgba(255, 255, 255, 0.05)",
+                  color: "var(--palette-text-primary)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  borderRadius: "50%",
+                  "&:hover": {
+                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    borderColor: "var(--palette-primary-main)"
+                  }
+                }}
               >
                 <InputOutlined sx={{ fontSize: 16 }} />
               </IconButton>
