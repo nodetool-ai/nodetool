@@ -57,6 +57,7 @@ interface NodeSnippetsStore {
     nodes: Node<NodeData>[],
     edges: Edge[]
   ) => string;
+  _clear: () => void; // For testing only
 }
 
 const MAX_SNIPPETS = 50;
@@ -182,6 +183,10 @@ export const useNodeSnippetsStore = create<NodeSnippetsStore>()(
           nodes: snippetNodes,
           edges: snippetEdges
         });
+      },
+
+      _clear: () => {
+        set({ snippets: [] });
       }
     }),
     {
