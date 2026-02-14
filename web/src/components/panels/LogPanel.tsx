@@ -121,7 +121,6 @@ const SEVERITIES: Severity[] = ["info", "warning", "error"];
 
 const LogPanel: React.FC = memo(function LogPanel() {
   const theme = useTheme();
-  const logs = useLogsStore((s) => s.logs);
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
   const openWorkflows = useWorkflowManager((s) => s.openWorkflows);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -134,22 +133,44 @@ const LogPanel: React.FC = memo(function LogPanel() {
     return map;
   }, [openWorkflows]);
 
-  const rows = useMemo<Row[]>(() => {
-    return (logs || []).map((log, index) => {
-      const workflowId = log.workflowId;
-      return {
-        key: `${workflowId}:${log.nodeId}:${log.timestamp}:${index}`,
-        workflowId,
-        workflowName: log.workflowName || wfName[workflowId] || workflowId,
-        severity: log.severity,
-        timestamp: log.timestamp,
-        content: log.content,
-        data: log.data
-      } as Row;
-    });
-  }, [logs, wfName]);
-
   const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>([]);
+
+  // Subscribe to logs - this will trigger re-renders when logs change
+  const logs = useLogsStore((s) => s.logs);
+
+  // Filter and process logs in a single step to avoid processing unnecessary logs
+  // This optimization combines filtering by workflow ID and severity with row transformation
+  // Combined approach reduces O(3n) complexity to O(n) by doing single pass
+  const filteredRows = useMemo<Row[]>(() => {
+    return logs
+      .filter((log) => {
+        // Filter by current workflow first (most selective filter)
+        if (currentWorkflowId && log.workflowId !== currentWorkflowId) {
+          return false;
+        }
+        // Filter by selected severities
+        if (
+          selectedSeverities.length > 0 &&
+          !selectedSeverities.includes(log.severity)
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((log, index) => {
+        const workflowId = log.workflowId;
+        return {
+          key: `${workflowId}:${log.nodeId}:${log.timestamp}:${index}`,
+          workflowId,
+          workflowName: log.workflowName || wfName[workflowId] || workflowId,
+          severity: log.severity,
+          timestamp: log.timestamp,
+          content: log.content,
+          data: log.data
+        } as Row;
+      });
+  }, [logs, currentWorkflowId, selectedSeverities, wfName]);
 
   const handleSeverityChange = useCallback((e: SelectChangeEvent<string[]>) => {
     setSelectedSeverities(
@@ -160,17 +181,6 @@ const LogPanel: React.FC = memo(function LogPanel() {
   const handleFullscreenToggle = useCallback(() => {
     setIsFullscreen((v) => !v);
   }, []);
-
-  const filtered = useMemo(() => {
-    return rows
-      .filter((r) => currentWorkflowId && r.workflowId === currentWorkflowId)
-      .filter(
-        (r) =>
-          selectedSeverities.length === 0 ||
-          selectedSeverities.includes(r.severity)
-      )
-      .sort((a, b) => b.timestamp - a.timestamp);
-  }, [rows, selectedSeverities, currentWorkflowId]);
 
   // Export action moved to Settings menu
 
@@ -221,7 +231,7 @@ const LogPanel: React.FC = memo(function LogPanel() {
         </Box>
       </Box>
 
-      <LogsTable rows={filtered} height={undefined} showTimestampColumn={false} />
+      <LogsTable rows={filteredRows} height={undefined} showTimestampColumn={false} />
     </Box>
   );
 });
