@@ -1,6 +1,7 @@
-import React from "react";
+import React, { memo } from "react";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
 import { DroppedFile } from "../types/chat.types";
+import isEqual from "lodash/isEqual";
 
 const isValidImageDataUri = (uri: string) =>
   /^data:image\/(jpeg|jpg|png|gif|webp);base64,/.test(uri);
@@ -10,7 +11,7 @@ interface FilePreviewProps {
   onRemove: () => void;
 }
 
-export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
+const FilePreviewComponent: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
   <div className="file-preview">
     {file.type.startsWith("image/") && isValidImageDataUri(file.dataUri) ? (
       <img src={file.dataUri} alt={file.name} />
@@ -30,3 +31,10 @@ export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
     </button>
   </div>
 );
+
+export const FilePreview = memo(FilePreviewComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.file === nextProps.file &&
+    prevProps.onRemove === nextProps.onRemove
+  );
+});

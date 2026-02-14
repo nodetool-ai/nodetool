@@ -3,6 +3,7 @@ import React, {
   useRef,
   useState,
   useCallback,
+  useMemo,
   memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
@@ -48,6 +49,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
 
+  // Memoize key press states to avoid subscription updates on every key change
   const { metaKeyPressed, altKeyPressed, shiftKeyPressed } = useKeyPressed(
     (state) => ({
       metaKeyPressed: state.isKeyPressed("meta"),
@@ -117,25 +119,39 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   // Input is never disabled - messages are always queued by globalWebSocketManager
   const isInputDisabled = false;
 
+  // Memoize styles to prevent recreation on every render
+  const queuedMessageBoxSx = useMemo(
+    () => ({
+      display: "flex",
+      alignItems: "center",
+      gap: 1,
+      px: 1.5,
+      py: 0.75,
+      maxWidth: "400px",
+      borderRadius: 2,
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.primary.main}`,
+      boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}25`
+    }),
+    [theme]
+  );
+
+  const queuedMessageContainerSx = useMemo(
+    () => ({
+      display: "flex",
+      justifyContent: "flex-end",
+      px: 1,
+      mb: 1
+    }),
+    []
+  );
+
   return (
     <div css={createStyles(theme)} className="chat-composer">
       {/* Queued Message Widget */}
       <Collapse in={!!queuedMessage}>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", px: 1, mb: 1 }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              px: 1.5,
-              py: 0.75,
-              maxWidth: "400px",
-              borderRadius: 2,
-              backgroundColor: theme.vars.palette.background.paper,
-              border: `1px solid ${theme.vars.palette.primary.main}`,
-              boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}25`
-            }}
-          >
+        <Box sx={queuedMessageContainerSx}>
+          <Box sx={queuedMessageBoxSx}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography
                 variant="caption"
