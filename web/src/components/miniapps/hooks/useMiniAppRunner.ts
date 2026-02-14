@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useStore } from "zustand";
+import { shallow } from "zustand/shallow";
 
 import {
   JobUpdate,
@@ -37,7 +38,8 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       state: state.state,
       statusMessage: state.statusMessage,
       notifications: state.notifications
-    })
+    }),
+    shallow
   );
   const workflowId = selectedWorkflow?.id;
 
@@ -59,7 +61,8 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       setLastRunDuration: state.setLastRunDuration,
       lastRunDuration: workflowId ? state.apps[workflowId]?.lastRunDuration ?? null : null,
       resetWorkflowState: state.resetWorkflowState
-    })
+    }),
+    shallow
   );
 
   useEffect(() => {

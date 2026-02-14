@@ -1,5 +1,6 @@
 import { useCallback, useContext } from "react";
 import { Node } from "@xyflow/react";
+import { shallow } from "zustand/shallow";
 import { NodeData } from "../../stores/NodeData";
 import { useIsGroupable } from "./useIsGroupable";
 import { useNodes, NodeContext } from "../../contexts/NodeContext";
@@ -7,9 +8,12 @@ import { getGroupBounds } from "./getGroupBounds";
 
 export function useAddToGroup() {
   const { isGroupable, isGroup } = useIsGroupable();
-  const { updateNode } = useNodes((state) => ({
-    updateNode: state.updateNode
-  }));
+  const { updateNode } = useNodes(
+    (state) => ({
+      updateNode: state.updateNode
+    }),
+    shallow
+  );
   const nodeContext = useContext(NodeContext);
 
   const addToGroup = useCallback(

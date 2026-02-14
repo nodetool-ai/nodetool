@@ -2,6 +2,7 @@ import { useCallback } from "react";
 
 import { useNavigate } from "react-router-dom";
 import { Node } from "@xyflow/react";
+import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -57,15 +58,18 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     getSelectedNodes,
     toggleBypass,
     nodes
-  } = useNodes((state) => ({
-    updateNodeData: state.updateNodeData,
-    updateNode: state.updateNode,
-    selectNodesByType: state.selectNodesByType,
-    deleteNode: state.deleteNode,
-    getSelectedNodes: state.getSelectedNodes,
-    toggleBypass: state.toggleBypass,
-    nodes: state.nodes
-  }));
+  } = useNodes(
+    (state) => ({
+      updateNodeData: state.updateNodeData,
+      updateNode: state.updateNode,
+      selectNodesByType: state.selectNodesByType,
+      deleteNode: state.deleteNode,
+      getSelectedNodes: state.getSelectedNodes,
+      toggleBypass: state.toggleBypass,
+      nodes: state.nodes
+    }),
+    shallow
+  );
 
   const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
   const node = rawNode as Node<NodeData> | null;

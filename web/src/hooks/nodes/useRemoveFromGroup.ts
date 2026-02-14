@@ -1,13 +1,17 @@
 import { useCallback } from "react";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
+import { shallow } from "zustand/shallow";
 import { useNodes } from "../../contexts/NodeContext";
 
 export const useRemoveFromGroup = () => {
-  const { updateNode, findNode } = useNodes((state) => ({
-    updateNode: state.updateNode,
-    findNode: state.findNode
-  }));
+  const { updateNode, findNode } = useNodes(
+    (state) => ({
+      updateNode: state.updateNode,
+      findNode: state.findNode
+    }),
+    shallow
+  );
 
   const removeFromGroup = useCallback(
     (nodesToRemove?: Node<NodeData>[]) => {
