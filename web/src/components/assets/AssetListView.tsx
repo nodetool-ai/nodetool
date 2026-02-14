@@ -26,6 +26,17 @@ const ROW_HEIGHT = 40;
 const HEADER_HEIGHT = 50;
 const TYPE_SECTION_HEIGHT = 36;
 
+// Define typeMap outside the component to avoid recreation
+const TYPE_MAP: Record<string, string> = {
+  folder: "Folder",
+  image: "Images",
+  video: "Videos",
+  audio: "Audio",
+  text: "Text",
+  application: "Files",
+  other: "Other"
+};
+
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -314,23 +325,14 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
     [openContextMenu]
   );
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
-  };
+  }, []);
 
-  const getTypeDisplayName = (type: string) => {
-    const typeMap: Record<string, string> = {
-      folder: "Folder",
-      image: "Images",
-      video: "Videos",
-      audio: "Audio",
-      text: "Text",
-      application: "Files",
-      other: "Other"
-    };
-    return typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1);
-  };
+  const getTypeDisplayName = useCallback((type: string) => {
+    return TYPE_MAP[type] || type.charAt(0).toUpperCase() + type.slice(1);
+  }, []);
 
   // Determine which columns to show based on container width and layout
   // In horizontal layout, be more aggressive about hiding columns
@@ -496,7 +498,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
         )}
       </div>
     );
-  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback]);
+  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, emptyCallback, formatDate, getTypeDisplayName]);
 
   if (assets.length === 0) {
     return (
