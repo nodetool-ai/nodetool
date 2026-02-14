@@ -25,7 +25,6 @@ import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
-  Chip,
   Collapse,
   IconButton,
   Tooltip,
@@ -208,7 +207,18 @@ export const MessageView: React.FC<
       message.tool_calls.length > 0;
     const hasNonEmptyContent =
       (typeof message.content === "string" && message.content.trim().length > 0) ||
-      (Array.isArray(message.content) && message.content.length > 0);
+      (Array.isArray(message.content) &&
+        message.content.some((block) => {
+          if (!block || typeof block !== "object") {
+            return false;
+          }
+          const contentBlock = block as MessageContent;
+          if (contentBlock.type === "text") {
+            return typeof (contentBlock as MessageTextContent).text === "string" &&
+              (contentBlock as MessageTextContent).text.trim().length > 0;
+          }
+          return true;
+        }));
 
     const messageClass = [
       baseClass,
@@ -336,28 +346,26 @@ export const MessageView: React.FC<
       }, []);
 
       return (
-        <Box
-          className="tool-call-card"
-          sx={isRunning ? { borderColor: (theme) => theme.vars.palette.info.main } : undefined}
-        >
+        <Box className={`tool-call-card${isRunning ? " running" : ""}`}>
           <Box className="tool-call-header">
-            <Chip
-              color="default"
-              size="small"
-              variant="outlined"
-              className="tool-chip"
-              label={tc.name}
-            />
+            <Typography component="span" variant="caption" className="tool-call-name">
+              {tc.name}
+            </Typography>
             {(isRunning || tc.message) && (
-              <Typography variant="body2" className="tool-message">
+              <Typography component="span" variant="caption" className="tool-message">
                 {isRunning ? runningToolMessage || tc.message : tc.message}
               </Typography>
             )}
-            {isRunning && <CircularProgress size={16} sx={{ ml: 1 }} />}
+            {isRunning && <CircularProgress size={12} sx={{ ml: 0.5 }} />}
             <Box sx={{ flex: 1 }} />
             {hasDetails && (
               <Tooltip title={open ? "Hide details" : "Show details"}>
-                <IconButton size="small" onClick={handleToggleOpen} aria-label={open ? "Hide details" : "Show details"}>
+                <IconButton
+                  size="small"
+                  className="tool-expand-button"
+                  onClick={handleToggleOpen}
+                  aria-label={open ? "Hide details" : "Show details"}
+                >
                   <ExpandMoreIcon
                     className={`expand-icon${open ? " expanded" : ""}`}
                   />
@@ -367,7 +375,7 @@ export const MessageView: React.FC<
           </Box>
           <Collapse in={open} timeout="auto" unmountOnExit>
             {hasArgs && (
-              <Box sx={{ mt: 1 }}>
+              <Box sx={{ mt: 0.25 }}>
                 <Typography variant="caption" className="tool-section-title">
                   Arguments
                 </Typography>

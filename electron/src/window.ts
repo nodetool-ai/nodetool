@@ -3,6 +3,7 @@ import { setMainWindow, getMainWindow, serverState } from "./state";
 import path from "path";
 import { logMessage } from "./logger";
 import { isAppQuitting } from "./main";
+import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 /**
  * Creates the main application window
  * @returns {BrowserWindow} The created window instance
@@ -33,8 +34,14 @@ function createWindow(): BrowserWindow {
   // set window background color
   window.setBackgroundColor("#111111");
 
-  // Load the index.html
-  window.loadFile(path.join("dist-web", "index.html"));
+  if (isElectronDevMode()) {
+    window.loadURL(
+      "data:text/html,<html><body style='margin:0;background:#111;color:#ddd;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;'>Starting NodeTool...</body></html>",
+    );
+  } else {
+    // Load the bundled index.html
+    window.loadFile(path.join("dist-web", "index.html"));
+  }
 
   // DevTools
   // window.webContents.openDevTools();
@@ -212,10 +219,26 @@ function initializePermissionHandlers(): void {
   const isTrustedLocalBackendUrl = (urlOrOrigin: string): boolean => {
     try {
       const url = new URL(urlOrOrigin);
-      const trustedPort = String(serverState?.serverPort ?? 7777);
       const isTrustedHost =
         url.hostname === "127.0.0.1" || url.hostname === "localhost";
-      return url.protocol === "http:" && isTrustedHost && url.port === trustedPort;
+      if (url.protocol !== "http:" || !isTrustedHost) {
+        return false;
+      }
+
+      const trustedPort = String(serverState?.serverPort ?? 7777);
+      if (url.port === trustedPort) {
+        return true;
+      }
+
+      if (!isElectronDevMode()) {
+        return false;
+      }
+
+      const devUrl = new URL(getWebDevServerUrl());
+      return (
+        (devUrl.hostname === "127.0.0.1" || devUrl.hostname === "localhost") &&
+        url.port === devUrl.port
+      );
     } catch {
       return false;
     }

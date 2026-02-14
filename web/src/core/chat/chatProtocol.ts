@@ -98,7 +98,10 @@ import {
   FrontendToolRegistry,
   FrontendToolState
 } from "../../lib/tools/frontendTools";
-import type { GlobalChatState, StepToolCall } from "../../stores/GlobalChatStore";
+import type {
+  GlobalChatState,
+  StepToolCall
+} from "../../stores/GlobalChatStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
@@ -157,12 +160,21 @@ export interface ToolResultMessage {
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
   let mimeType = "application/octet-stream";
-  if (type === "image") {mimeType = "image/png";}
-  else if (type === "audio") {mimeType = "audio/mp3";}
-  else if (type === "video") {mimeType = "video/mp4";}
+  if (type === "image") {
+    mimeType = "image/png";
+  } else if (type === "audio") {
+    mimeType = "audio/mp3";
+  } else if (type === "video") {
+    mimeType = "video/mp4";
+  }
 
-  const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
-  const dataUri = URL.createObjectURL(new Blob([arrayBuffer], { type: mimeType }));
+  const arrayBuffer = data.buffer.slice(
+    data.byteOffset,
+    data.byteOffset + data.byteLength
+  ) as ArrayBuffer;
+  const dataUri = URL.createObjectURL(
+    new Blob([arrayBuffer], { type: mimeType })
+  );
 
   if (type === "image") {
     return {
@@ -214,12 +226,18 @@ const generateTitleFromFirstUserMessage = (
   state: GlobalChatState
 ): string | null => {
   const thread = state.threads[threadId];
-  if (!thread) { return null; }
-  if (thread.title) { return null; }
+  if (!thread) {
+    return null;
+  }
+  if (thread.title) {
+    return null;
+  }
 
   const messages = state.messageCache[threadId] || [];
   const firstUserMessage = messages.find((msg) => msg.role === "user");
-  if (!firstUserMessage) { return null; }
+  if (!firstUserMessage) {
+    return null;
+  }
 
   let contentText = "";
   if (typeof firstUserMessage.content === "string") {
@@ -451,10 +469,14 @@ const applyOutputUpdate = (
   update: OutputUpdate
 ): ReducerResult => {
   const threadId = state.currentThreadId;
-  if (!threadId) {return noopUpdate;}
+  if (!threadId) {
+    return noopUpdate;
+  }
 
   const thread = state.threads[threadId];
-  if (!thread) {return noopUpdate;}
+  if (!thread) {
+    return noopUpdate;
+  }
 
   // OutputUpdate may have workflow_id as an optional field
   const workflowId = "workflow_id" in update
@@ -560,7 +582,9 @@ const applyToolCallUpdate = (
   const agentExecutionId = updateWithMeta.agent_execution_id ?? null;
   const stepId = updateWithMeta.step_id ?? null;
 
-  let agentExecutionToolCalls: GlobalChatState["agentExecutionToolCalls"] | undefined;
+  let agentExecutionToolCalls:
+    | GlobalChatState["agentExecutionToolCalls"]
+    | undefined;
 
   if (toolCallId && agentExecutionId && stepId) {
     const existingExecution =
@@ -694,7 +718,9 @@ const applyAssistantMessage = (
     text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
 
   const extractTextContent = (message: Message): string => {
-    if (typeof message.content === "string") {return message.content;}
+    if (typeof message.content === "string") {
+      return message.content;
+    }
     if (Array.isArray(message.content)) {
       return message.content
         .map((c) => (c?.type === "text" ? (c as MessageTextContent).text : ""))
@@ -721,14 +747,20 @@ const applyAssistantMessage = (
 
       const candidateId = candidate.id ?? null;
       const isLocalStream =
-        typeof candidateId === "string" && candidateId.startsWith("local-stream-");
-      const isServerAuthored = !!candidate.created_at || (!!candidateId && !isLocalStream);
+        typeof candidateId === "string" &&
+        candidateId.startsWith("local-stream-");
+      const isServerAuthored =
+        !!candidate.created_at || (!!candidateId && !isLocalStream);
 
-      if (isServerAuthored) {continue;}
+      if (isServerAuthored) {
+        continue;
+      }
 
       const candidateText = extractTextContent(candidate);
       const candidateNormalized = normalizeTextForComparison(candidateText);
-      if (!candidateNormalized || !incomingNormalized) {continue;}
+      if (!candidateNormalized || !incomingNormalized) {
+        continue;
+      }
 
       if (
         candidateNormalized === incomingNormalized ||
@@ -761,8 +793,10 @@ const applyAssistantMessage = (
 
   const streamPlaceholderIndex = findStreamPlaceholderIndex();
 
-  const isNewAssistantMessage = streamPlaceholderIndex < 0 &&
-    (messages.length === 0 || messages[messages.length - 1]?.role !== "assistant");
+  const isNewAssistantMessage =
+    streamPlaceholderIndex < 0 &&
+    (messages.length === 0 ||
+      messages[messages.length - 1]?.role !== "assistant");
 
   const updatedMessages = (() => {
     if (streamPlaceholderIndex >= 0) {
@@ -784,7 +818,10 @@ const applyAssistantMessage = (
       const currentLastNormalized = normalizeTextForComparison(
         extractTextContent(currentLast)
       );
-      if (currentLastNormalized && currentLastNormalized === incomingNormalized) {
+      if (
+        currentLastNormalized &&
+        currentLastNormalized === incomingNormalized
+      ) {
         return messages;
       }
     }
@@ -792,15 +829,17 @@ const applyAssistantMessage = (
     return [...messages, msg];
   })();
 
-  const postAction = isNewAssistantMessage ? (get: ChatStateGetter) => {
-    const { updateThreadTitle } = get();
-    if (!get().threads[threadId]?.title) {
-      const newTitle = generateTitleFromFirstUserMessage(threadId, get());
-      if (newTitle) {
-        updateThreadTitle(threadId, newTitle);
+  const postAction = isNewAssistantMessage
+    ? (get: ChatStateGetter) => {
+        const { updateThreadTitle } = get();
+        if (!get().threads[threadId]?.title) {
+          const newTitle = generateTitleFromFirstUserMessage(threadId, get());
+          if (newTitle) {
+            updateThreadTitle(threadId, newTitle);
+          }
+        }
       }
-    }
-  } : undefined;
+    : undefined;
 
   return {
     update: {
@@ -818,7 +857,9 @@ const applyAssistantMessage = (
 
 const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
   const threadId = msg.thread_id ?? state.currentThreadId;
-  if (!threadId) {return noopUpdate;}
+  if (!threadId) {
+    return noopUpdate;
+  }
   const messages = state.messageCache[threadId] || [];
 
   if (msg.role === "agent_execution") {
@@ -902,6 +943,8 @@ export async function handleChatWebSocketMessage(
   set: ChatStateSetter,
   get: ChatStateGetter
 ) {
+  console.log("[WS MSG]", data.type, data);
+
   const currentState = get();
 
   if (currentState.status === "stopping") {
@@ -928,7 +971,11 @@ export async function handleChatWebSocketMessage(
   if (data.type === "job_update") {
     const jobUpdate = data as JobUpdate;
     // Clear timeout on terminal job states
-    if (jobUpdate.status === "completed" || jobUpdate.status === "failed" || jobUpdate.status === "cancelled") {
+    if (
+      jobUpdate.status === "completed" ||
+      jobUpdate.status === "failed" ||
+      jobUpdate.status === "cancelled"
+    ) {
       const timeoutId = get().sendMessageTimeoutId;
       if (timeoutId !== null) {
         clearTimeout(timeoutId);
@@ -1014,12 +1061,12 @@ export async function handleChatWebSocketMessage(
         effectiveArgs,
         tool_call_id,
         {
-        getState: () =>
-          ({
-            ...(get().frontendToolState as FrontendToolState),
-            currentWorkflowId:
-              threadWorkflowId ?? get().frontendToolState.currentWorkflowId
-          }) as FrontendToolState
+          getState: () =>
+            ({
+              ...(get().frontendToolState as FrontendToolState),
+              currentWorkflowId:
+                threadWorkflowId ?? get().frontendToolState.currentWorkflowId
+            }) as FrontendToolState
         }
       );
 
@@ -1038,8 +1085,7 @@ export async function handleChatWebSocketMessage(
       }
     } catch (error) {
       const elapsedMs = Date.now() - startTime;
-      const message =
-        error instanceof Error ? error.message : "Unknown error";
+      const message = error instanceof Error ? error.message : "Unknown error";
       log.error(`Tool execution failed for ${name}:`, error);
       try {
         await globalWebSocketManager.send({
@@ -1076,9 +1122,6 @@ export async function handleChatWebSocketMessage(
       clearTimeout(timeoutId);
       set({ sendMessageTimeoutId: null });
     }
-    applyReducer(
-      (_state) => applyError(errorData.message),
-      errorData
-    );
+    applyReducer((_state) => applyError(errorData.message), errorData);
   }
 }

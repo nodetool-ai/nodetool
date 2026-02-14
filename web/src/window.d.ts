@@ -227,6 +227,110 @@ declare global {
           buttonLabel?: string;
         }) => Promise<{ canceled: boolean; filePaths: string[] }>;
       };
+
+      // Claude Agent SDK operations (available in Electron only)
+      agent?: {
+        createSession: (options: {
+          provider?: "claude" | "codex";
+          model: string;
+          workspacePath?: string;
+          resumeSessionId?: string;
+        }) => Promise<string>;
+        listModels: (options?: {
+          provider?: "claude" | "codex";
+          workspacePath?: string;
+        }) => Promise<Array<{
+          id: string;
+          label: string;
+          isDefault?: boolean;
+        }>>;
+        sendMessage: (
+          sessionId: string,
+          message: string
+        ) => Promise<
+          Array<{
+            type: string;
+            uuid: string;
+            session_id: string;
+            text?: string;
+            is_error?: boolean;
+            errors?: string[];
+            subtype?: string;
+            content?: Array<{ type: string; text?: string }>;
+            tool_calls?: Array<{
+              id: string;
+              type: string;
+              function: {
+                name: string;
+                arguments: string;
+              };
+            }>;
+          }>
+        >;
+        stopExecution: (sessionId: string) => Promise<void>;
+        closeSession: (sessionId: string) => Promise<void>;
+        /** Subscribe to streaming messages from the Claude Agent */
+        onStreamMessage: (
+          callback: (event: {
+            sessionId: string;
+            message: {
+              type: string;
+              uuid: string;
+              session_id: string;
+              text?: string;
+              is_error?: boolean;
+              errors?: string[];
+              subtype?: string;
+              content?: Array<{ type: string; text?: string }>;
+              tool_calls?: Array<{
+                id: string;
+                type: string;
+                function: {
+                  name: string;
+                  arguments: string;
+                };
+              }>;
+            };
+            done: boolean;
+          }) => void
+        ) => () => void;
+      };
+
+      // Frontend tools for Claude Agent integration (available in Electron only)
+      frontendTools?: {
+        /** Get the manifest of available frontend tools */
+        getManifest: (sessionId: string) => Promise<
+          Array<{
+            name: string;
+            description: string;
+            parameters: Record<string, unknown>;
+          }>
+        >;
+        /** Call a frontend tool and return its result */
+        call: (
+          sessionId: string,
+          toolCallId: string,
+          name: string,
+          args: unknown
+        ) => Promise<{ result: unknown; isError: boolean; error?: string }>;
+        /** Subscribe to tool abort events */
+        onAbort: (callback: (data: { sessionId: string }) => void) => () => void;
+      };
+
+      // Low-level IPC methods for registering handlers (available in Electron only)
+      ipc?: {
+        /** Invoke a main-process IPC handler */
+        invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
+        /** Send an event to the main process */
+        send: (channel: string, ...args: unknown[]) => void;
+        /** Register a listener for IPC send events from the main process */
+        on: (
+          channel: string,
+          listener: (event: unknown, ...args: unknown[]) => void,
+        ) => void;
+        /** Remove a listener for IPC send events */
+        off: (channel: string, listener: (...args: unknown[]) => void) => void;
+      };
     };
     process: {
       type: string;

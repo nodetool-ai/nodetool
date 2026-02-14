@@ -14,6 +14,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import SvgFileIcon from "../SvgFileIcon";
 
 interface VerticalToolbarProps {
@@ -25,7 +26,8 @@ interface VerticalToolbarProps {
     handleVersionsToggle: () => void;
     handleWorkflowToggle: () => void;
     handleWorkflowAssetsToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets";
+    handleAgentToggle: () => void;
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent";
     panelVisible: boolean;
 }
 
@@ -38,6 +40,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handleVersionsToggle,
     handleWorkflowToggle,
     handleWorkflowAssetsToggle,
+    handleAgentToggle,
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
@@ -96,6 +99,25 @@ const VerticalToolbar = memo(function VerticalToolbar({
                         iconName="assistant"
                         svgProp={{ width: 18, height: 18 }}
                     />
+                </IconButton>
+            </Tooltip>
+
+            {/* Agent Button */}
+            <Tooltip
+                title="Agent"
+                placement="left-start"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+                <IconButton
+                    tabIndex={-1}
+                    onClick={handleAgentToggle}
+                    className={
+                        activeView === "agent" && panelVisible
+                            ? "agent active"
+                            : "agent"
+                    }
+                >
+                    <SmartToyIcon />
                 </IconButton>
             </Tooltip>
 
