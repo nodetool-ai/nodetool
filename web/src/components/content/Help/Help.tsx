@@ -21,6 +21,7 @@ import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
+import ShortcutsReferenceCard from "./ShortcutsReferenceCard";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { Dialog } from "../../ui_primitives";
 
@@ -259,7 +260,8 @@ const Help = ({
               >
                 <Tab label="Shortcuts" id="help-tab-0" />
                 <Tab label="Keyboard" id="help-tab-1" />
-                <Tab label="DataTypes" id="help-tab-2" />
+                <Tab label="Reference Card" id="help-tab-2" />
+                <Tab label="DataTypes" id="help-tab-3" />
               </Tabs>
               <Tooltip title="Open Nodetool Documentation Website" placement="bottom"
                 enterDelay={TOOLTIP_ENTER_DELAY}
@@ -286,6 +288,9 @@ const Help = ({
                 <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
               </TabPanel>
               <TabPanel value={helpIndex} index={2}>
+                <ShortcutsReferenceCard onClose={handleClose} />
+              </TabPanel>
+              <TabPanel value={helpIndex} index={3}>
                 <DataTypesList
                   title="Nodetool Data Types"
                   dataTypes={nodetoolTypes}
