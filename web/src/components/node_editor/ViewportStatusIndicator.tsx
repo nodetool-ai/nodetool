@@ -14,10 +14,13 @@ import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import ViewportBookmarks from "./ViewportBookmarks";
 
 interface ViewportStatusIndicatorProps {
   visible?: boolean;
+  workflowId?: string;
 }
 
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2] as const;
@@ -27,7 +30,8 @@ const ZOOM_CHANGE_THRESHOLD = 0.001;
 type ZoomPreset = (typeof ZOOM_PRESETS)[number];
 
 const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
-  visible = true
+  visible = true,
+  workflowId = ""
 }) => {
   const theme = useTheme();
   const { zoom } = useViewport();
@@ -36,6 +40,9 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     null
   );
   const [isZooming, setIsZooming] = useState(false);
+  const [bookmarksAnchor, setBookmarksAnchor] = useState<HTMLElement | null>(
+    null
+  );
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevZoomRef = useRef<number | null>(null);
 
@@ -230,6 +237,29 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           }}
         />
 
+        {workflowId && (
+          <Tooltip
+            title="View bookmarks"
+            placement="top"
+            arrow
+          >
+            <IconButton
+              onClick={(e) => setBookmarksAnchor(e.currentTarget)}
+              size="small"
+              sx={{
+                padding: "2px",
+                color: theme.vars.palette.text.secondary,
+                "&:hover": {
+                  backgroundColor: theme.vars.palette.action.hover,
+                  color: theme.palette.primary.main
+                }
+              }}
+            >
+              <BookmarkIcon sx={{ fontSize: "1rem" }} />
+            </IconButton>
+          </Tooltip>
+        )}
+
         <Tooltip
           title={getShortcutTooltip("fitView")}
           placement="top"
@@ -300,6 +330,15 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           ))}
         </List>
       </Popover>
+
+      {workflowId && (
+        <ViewportBookmarks
+          workflowId={workflowId}
+          anchorEl={bookmarksAnchor}
+          onClose={() => setBookmarksAnchor(null)}
+          open={Boolean(bookmarksAnchor)}
+        />
+      )}
     </>
   );
 };

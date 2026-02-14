@@ -625,7 +625,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         />
       )}
       <MiniMapNavigator />
-      <ViewportStatusIndicator />
+      <ViewportStatusIndicator workflowId={workflowId} />
     </div>
   );
 };
