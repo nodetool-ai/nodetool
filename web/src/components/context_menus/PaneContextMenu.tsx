@@ -28,6 +28,7 @@ import {
   COMMENT_NODE_METADATA
 } from "../../utils/nodeUtils";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { WORKFLOW_NODE_TYPE } from "../node/WorkflowNode";
 
 interface PaneContextMenuProps {
   top?: number;
@@ -194,6 +195,7 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
       }
       const metadata = getMetadata(nodeType);
       if (!metadata) {
+        console.error(`Metadata not found for node type: ${nodeType}`);
         return;
       }
       const position = reactFlowInstance.screenToFlowPosition({
@@ -410,6 +412,11 @@ const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
           label="Add Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={"Add a group node"}
+        />
+        <ContextMenuItem
+          onClick={handleCreateNode(WORKFLOW_NODE_TYPE)}
+          label="Add Workflow"
+          tooltip={"Add a workflow node"}
         />
       </Menu>
       <Menu

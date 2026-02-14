@@ -24,6 +24,10 @@ import {
   DynamicFalSchemaNode,
   DYNAMIC_FAL_NODE_TYPE
 } from "../node/DynamicFalSchemaNode";
+import {
+  WorkflowNode,
+  WORKFLOW_NODE_TYPE
+} from "../node/WorkflowNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
@@ -276,6 +280,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       "nodetool.compare.CompareImages": CompareImagesNode,
       "nodetool.control.Reroute": RerouteNode,
       [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
+      [WORKFLOW_NODE_TYPE]: WorkflowNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]
