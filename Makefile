@@ -1,4 +1,4 @@
- .PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart
+.PHONY: help install install-web install-electron install-mobile build test test-web test-electron test-mobile test-watch test-coverage test-coverage-web test-coverage-electron test-coverage-mobile lint lint-web lint-electron lint-mobile typecheck typecheck-web typecheck-electron typecheck-mobile clean clean-build check all format quickstart electron-dev
 
 # Default target
 help:
@@ -13,6 +13,7 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  make electron         - Build web and start electron app"
+	@echo "  make electron-dev     - Start Electron against web Vite server (requires active conda env)"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build            - Build all packages"
@@ -74,6 +75,10 @@ electron: $(WEB_BUILD_MARKER)
 	cd electron && npm run vite:build
 	@echo "Starting electron app..."
 	cd electron && npm start
+
+electron-dev:
+	@echo "Starting Electron development mode..."
+	./scripts/electron-dev.sh
 
 # Build targets
 build: build-web build-electron

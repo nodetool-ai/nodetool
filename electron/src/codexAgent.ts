@@ -983,6 +983,7 @@ export class CodexQuerySession {
     webContents: WebContents | null,
     sessionId: string,
     manifest: FrontendToolManifest[],
+    _onMessage?: (message: AgentMessage) => void,
   ): Promise<AgentMessage[]> {
     if (this.closed) {
       throw new Error("Cannot send to a closed session");

@@ -54,6 +54,7 @@ import {
 import { checkAndUpdateCondaPackages } from "./condaPackageChecker";
 import { IpcChannels } from "./types.d";
 import { readSettings, updateSetting, readSettingsAsync } from "./settings";
+import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 
 /**
  * Global application state flags and objects
@@ -217,6 +218,56 @@ async function checkPythonEnvironment(): Promise<boolean> {
   }
 }
 
+function assertActivatedCondaEnvironmentForDevMode(): void {
+  if (process.env.CONDA_PREFIX && process.env.CONDA_PREFIX.trim().length > 0) {
+    return;
+  }
+
+  const message =
+    "Electron dev mode requires an activated conda environment. " +
+    "Please run `conda activate <env>` before starting `make electron-dev`.";
+  dialog.showErrorBox("Conda Environment Required", message);
+  throw new Error(message);
+}
+
+async function waitForWebDevServerReady(
+  baseUrl: string,
+  timeoutMs: number = 60000,
+): Promise<boolean> {
+  const startTime = Date.now();
+  const probeUrl = `${baseUrl}/`;
+  let lastStatus: number | null = null;
+  let attempts = 0;
+
+  while (Date.now() - startTime < timeoutMs) {
+    attempts += 1;
+    try {
+      const response = await fetch(probeUrl, { method: "GET" });
+      lastStatus = response.status;
+      if (response.ok) {
+        logMessage(
+          `Web dev server is ready at ${probeUrl} after ${attempts} attempt(s)`,
+        );
+        return true;
+      }
+      logMessage(
+        `Web dev server not ready yet (${response.status}), retrying...`,
+        "warn",
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logMessage(`Web dev server probe failed (${message}), retrying...`, "warn");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+
+  logMessage(
+    `Timed out waiting for web dev server at ${probeUrl}. Last status: ${lastStatus ?? "none"}`,
+    "warn",
+  );
+  return false;
+}
+
 /**
  * Initializes the application, verifies paths, and starts required servers
  * @throws {Error} When critical permissions are missing
@@ -252,48 +303,65 @@ async function initialize(): Promise<void> {
       return;
     }
 
-    logMessage("Setting up auto updater...");
-    setupAutoUpdater();
-
-    // Check if conda environment is installed
-    logMessage("About to check Python environment...");
-    const hasEnvironment = await checkPythonEnvironment();
-    logMessage(
-      `Python environment check complete, hasEnvironment: ${hasEnvironment}`,
-    );
+    const isDevMode = isElectronDevMode();
+    if (!isDevMode) {
+      logMessage("Setting up auto updater...");
+      setupAutoUpdater();
+    } else {
+      logMessage("Running in Electron dev mode");
+      assertActivatedCondaEnvironmentForDevMode();
+      logMessage(`Using active conda environment: ${process.env.CONDA_PREFIX}`);
+    }
 
     assert(mainWindow, "MainWindow is not initialized");
 
-    if (hasEnvironment) {
-      logMessage(
-        "Environment exists, determining if package checks are needed",
-      );
-
-      // Check and install expected package versions
-      // This is now done synchronously before starting the backend to ensure version consistency
-      const pipUpdatesPerformed = await checkAndInstallExpectedPackages();
-
-      if (pipUpdatesPerformed) {
-        logMessage("Pip packages updated, checking for conda package updates");
-        await checkAndUpdateCondaPackages();
-      } else {
-        logMessage("No pip updates performed, skipping conda package check");
-      }
-
+    if (isDevMode) {
+      logMessage("Skipping environment installation and package update checks");
       logMessage("Starting backend server");
       await initializeBackendServer();
       logMessage("initializeBackendServer() completed");
-      logMessage("Loading web app...");
+      await waitForWebDevServerReady(getWebDevServerUrl());
       const timestamp = new Date().getTime();
-      mainWindow.loadURL(`${serverState.initialURL}?nocache=${timestamp}`);
+      mainWindow.loadURL(`${getWebDevServerUrl()}/?nocache=${timestamp}`);
     } else {
-      // Environment was just installed, proceed normally
-      logMessage("Environment was just installed, initializing backend server");
-      await initializeBackendServer();
-      logMessage("initializeBackendServer() completed");
+      // Check if conda environment is installed
+      logMessage("About to check Python environment...");
+      const hasEnvironment = await checkPythonEnvironment();
+      logMessage(
+        `Python environment check complete, hasEnvironment: ${hasEnvironment}`,
+      );
 
-      logMessage("Setting up workflow shortcuts...");
-      await setupWorkflowShortcuts();
+      if (hasEnvironment) {
+        logMessage(
+          "Environment exists, determining if package checks are needed",
+        );
+
+        // Check and install expected package versions
+        // This is now done synchronously before starting the backend to ensure version consistency
+        const pipUpdatesPerformed = await checkAndInstallExpectedPackages();
+
+        if (pipUpdatesPerformed) {
+          logMessage("Pip packages updated, checking for conda package updates");
+          await checkAndUpdateCondaPackages();
+        } else {
+          logMessage("No pip updates performed, skipping conda package check");
+        }
+
+        logMessage("Starting backend server");
+        await initializeBackendServer();
+        logMessage("initializeBackendServer() completed");
+        logMessage("Loading web app...");
+        const timestamp = new Date().getTime();
+        mainWindow.loadURL(`${serverState.initialURL}?nocache=${timestamp}`);
+      } else {
+        // Environment was just installed, proceed normally
+        logMessage("Environment was just installed, initializing backend server");
+        await initializeBackendServer();
+        logMessage("initializeBackendServer() completed");
+
+        logMessage("Setting up workflow shortcuts...");
+        await setupWorkflowShortcuts();
+      }
     }
 
     void notifyPackageUpdates();

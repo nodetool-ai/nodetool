@@ -77,6 +77,8 @@ interface AgentState {
   workspaceId: string | null;
   /** Recently used Claude session IDs for resume */
   sessionHistory: AgentSessionHistoryEntry[];
+  /** In-memory transcript cache keyed by session id */
+  sessionMessages: Record<string, Message[]>;
 
   // Actions
   /** Initialize a new Claude Agent session */
@@ -194,6 +196,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
   workspacePath: null,
   workspaceId: null,
   sessionHistory: [],
+  sessionMessages: {},
 
   setModel: (model: string) => {
     set({ model });
@@ -326,16 +329,19 @@ const useAgentStore = create<AgentState>((set, get) => ({
             }
 
             set((state) => ({
-              ...(message.session_id && state.sessionId && message.session_id !== state.sessionId
-                ? {
+              ...(() => {
+                if (message.session_id && state.sessionId && message.session_id !== state.sessionId) {
+                  return {
                     sessionId: message.session_id,
                     sessionHistory: replaceSessionHistoryId(
                       state.sessionHistory,
                       state.sessionId,
                       message.session_id
                     )
-                  }
-                : {}),
+                  };
+                }
+                return {};
+              })(),
               messages: (() => {
                 const existingIndex = state.messages.findIndex(
                   (existingMessage) => existingMessage.id === converted.id
@@ -346,6 +352,34 @@ const useAgentStore = create<AgentState>((set, get) => ({
                 const updatedMessages = [...state.messages];
                 updatedMessages[existingIndex] = converted;
                 return updatedMessages;
+              })(),
+              sessionMessages: (() => {
+                const activeKey =
+                  (message.session_id && message.session_id.length > 0
+                    ? message.session_id
+                    : state.sessionId) ?? sessionId;
+                if (!activeKey) {
+                  return state.sessionMessages;
+                }
+                const existingIndex = state.messages.findIndex(
+                  (existingMessage) => existingMessage.id === converted.id
+                );
+                const updatedMessages =
+                  existingIndex === -1
+                    ? [...state.messages, converted]
+                    : (() => {
+                        const next = [...state.messages];
+                        next[existingIndex] = converted;
+                        return next;
+                      })();
+                const nextSessionMessages = {
+                  ...state.sessionMessages,
+                  [activeKey]: updatedMessages
+                };
+                if (message.session_id && state.sessionId && message.session_id !== state.sessionId) {
+                  nextSessionMessages[state.sessionId] = updatedMessages;
+                }
+                return nextSessionMessages;
               })(),
               status: "streaming",
               hasAssistantInCurrentTurn:
@@ -372,7 +406,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   sendMessage: async (message: Message) => {
-    const { sessionId, messages, workspacePath } = get();
+    const { sessionId, workspacePath } = get();
     const text = nodeToolMessageToText(message);
 
     if (!text.trim()) {
@@ -395,8 +429,21 @@ const useAgentStore = create<AgentState>((set, get) => ({
       content: [{ type: "text", text }],
       created_at: new Date().toISOString()
     };
-    set({ messages: [...messages, userMessage], status: "loading" });
-    set({ hasAssistantInCurrentTurn: false });
+    set((state) => {
+      const nextMessages = [...state.messages, userMessage];
+      return {
+        messages: nextMessages,
+        status: "loading",
+        hasAssistantInCurrentTurn: false,
+        sessionMessages:
+          state.sessionId
+            ? {
+                ...state.sessionMessages,
+                [state.sessionId]: nextMessages
+              }
+            : state.sessionMessages
+      };
+    });
 
     if (!isAgentAvailable()) {
       set({
@@ -447,7 +494,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   newChat: () => {
-    const { sessionId, streamUnsubscribe } = get();
+    const { sessionId, streamUnsubscribe, messages } = get();
 
     // Clean up streaming subscription
     if (streamUnsubscribe) {
@@ -465,12 +512,19 @@ const useAgentStore = create<AgentState>((set, get) => ({
       status: "disconnected",
       error: null,
       streamUnsubscribe: null,
-      hasAssistantInCurrentTurn: false
+      hasAssistantInCurrentTurn: false,
+      sessionMessages:
+        sessionId
+          ? {
+              ...get().sessionMessages,
+              [sessionId]: messages
+            }
+          : get().sessionMessages
     });
   },
 
   startNewSession: async () => {
-    const { sessionId, streamUnsubscribe } = get();
+    const { sessionId, streamUnsubscribe, messages } = get();
     if (streamUnsubscribe) {
       streamUnsubscribe();
       set({ streamUnsubscribe: null });
@@ -485,13 +539,20 @@ const useAgentStore = create<AgentState>((set, get) => ({
       sessionId: null,
       status: "disconnected",
       error: null,
-      hasAssistantInCurrentTurn: false
+      hasAssistantInCurrentTurn: false,
+      sessionMessages:
+        sessionId
+          ? {
+              ...get().sessionMessages,
+              [sessionId]: messages
+            }
+          : get().sessionMessages
     });
     await get().createSession();
   },
 
   resumeSession: async (targetSessionId: string) => {
-    const { sessionHistory, sessionId, streamUnsubscribe } = get();
+    const { sessionHistory, sessionId, streamUnsubscribe, messages, sessionMessages } = get();
     const target = sessionHistory.find((entry) => entry.id === targetSessionId);
     if (!target) {
       set({
@@ -510,16 +571,24 @@ const useAgentStore = create<AgentState>((set, get) => ({
       });
     }
     set({
-      messages: [],
+      messages: sessionMessages[targetSessionId] ?? [],
       sessionId: null,
       error: null,
       status: "disconnected",
       hasAssistantInCurrentTurn: false,
       workspacePath: target.workspacePath,
-      workspaceId: target.workspaceId ?? null
+      workspaceId: target.workspaceId ?? null,
+      sessionMessages:
+        sessionId
+          ? {
+              ...sessionMessages,
+              [sessionId]: messages
+            }
+          : sessionMessages
     });
-    set({ provider: target.provider });
+    set({ provider: target.provider, model: target.model });
     await get().createSession({
+      preserveMessages: true,
       workspacePath: target.workspacePath,
       workspaceId: target.workspaceId,
       resumeSessionId: targetSessionId

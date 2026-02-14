@@ -1,6 +1,7 @@
 import { BrowserWindow, app, Menu, screen } from "electron";
 import { getServerPort } from "./utils";
 import path from "path";
+import { getWebDevServerUrl } from "./devMode";
 
 // Map to store workflow windows
 const workflowWindows = new Map<number, BrowserWindow>();
@@ -8,8 +9,12 @@ const workflowWindows = new Map<number, BrowserWindow>();
 // Track the chat window separately
 let chatWindow: BrowserWindow | null = null;
 
-export const appPort = app.isPackaged ? getServerPort() : 5173;
-export const baseUrl = `http://127.0.0.1:${appPort}${app.isPackaged ? "/apps" : ""}/index.html`;
+const webDevBaseUrl = getWebDevServerUrl();
+
+export const appPort = app.isPackaged ? getServerPort() : 3000;
+export const baseUrl = app.isPackaged
+  ? `http://127.0.0.1:${appPort}/apps/index.html`
+  : `${webDevBaseUrl}/index.html`;
 
 /**
  * Creates a new frameless workflow window
@@ -80,11 +85,11 @@ function createMiniAppWindow(workflowId: string, workflowName?: string): Browser
   // Load the mini app route
   // For packaged apps, load the main HTML with a hash route
   // For development, use direct SPA route
-  const port = app.isPackaged ? getServerPort() : 3000;
   if (app.isPackaged) {
+    const port = getServerPort();
     miniAppWindow.loadURL(`http://127.0.0.1:${port}/index.html#/miniapp/${workflowId}`);
   } else {
-    miniAppWindow.loadURL(`http://127.0.0.1:${port}/miniapp/${workflowId}`);
+    miniAppWindow.loadURL(`${webDevBaseUrl}/miniapp/${workflowId}`);
   }
 
   return miniAppWindow;
@@ -125,11 +130,11 @@ function createChatWindow(): BrowserWindow {
   // Load the standalone chat route
   // For packaged apps, load the main HTML with a hash route
   // For development, use direct SPA route
-  const port = app.isPackaged ? getServerPort() : 3000;
   if (app.isPackaged) {
+    const port = getServerPort();
     chatWindow.loadURL(`http://127.0.0.1:${port}/index.html#/standalone-chat`);
   } else {
-    chatWindow.loadURL(`http://127.0.0.1:${port}/standalone-chat`);
+    chatWindow.loadURL(`${webDevBaseUrl}/standalone-chat`);
   }
 
   return chatWindow;

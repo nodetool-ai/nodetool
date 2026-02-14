@@ -102,9 +102,9 @@ const VerticalToolbar = memo(function VerticalToolbar({
                 </IconButton>
             </Tooltip>
 
-            {/* Claude Agent Button */}
+            {/* Agent Button */}
             <Tooltip
-                title="Claude Agent"
+                title="Agent"
                 placement="left-start"
                 enterDelay={TOOLTIP_ENTER_DELAY}
             >

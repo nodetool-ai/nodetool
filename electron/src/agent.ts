@@ -7,7 +7,6 @@
  */
 
 import { logMessage } from "./logger";
-import { getClaudeMcpConfigArg, getCodexMcpConfigArgs } from "./mcpConfig";
 import {
   IpcChannels,
   type AgentModelDescriptor,
@@ -265,6 +264,46 @@ const CODEX_SYSTEM_PROMPT = [
   "- Keep responses concise and actionable.",
 ].join("\n");
 
+const FAST_WORKFLOW_SYSTEM_PROMPT = [
+  "You are a Nodetool workflow assistant.",
+  "Use only frontend UI tools from this session manifest (`ui_*`).",
+  "",
+  "Hard constraints:",
+  "- Never call MCP tools, shell/command tools, Todo tools, or file-editing tools.",
+  "- Never claim UI tools are unavailable if any `ui_*` tool exists in manifest.",
+  "- Do not explain plans between each tool call; execute directly and summarize only at the end.",
+  "",
+  "For workflow-edit requests, use this minimal sequence:",
+  "1. `ui_search_nodes` once per required node type (include booleans as true/false, not strings).",
+  "2. `ui_add_node` for required nodes.",
+  "3. `ui_connect_nodes` with verified handle names.",
+  "4. `ui_get_graph` once to verify final state.",
+  "",
+  "Efficiency rules:",
+  "- Avoid repeated identical searches.",
+  "- If first search result clearly matches, use it; do not run extra exploratory searches.",
+  "- If blocked, ask one concise clarification question and stop.",
+  "",
+  "Response style:",
+  "- Very short bullet points.",
+  "- Include exactly what nodes/connections were changed.",
+].join("\n");
+
+const CLAUDE_DISALLOWED_TOOLS = [
+  "Bash",
+  "Read",
+  "Write",
+  "Edit",
+  "Glob",
+  "Grep",
+  "NotebookEdit",
+  "TodoWrite",
+  "WebFetch",
+  "WebSearch",
+  "Task",
+  "TaskOutput",
+];
+
 
 
 
@@ -291,7 +330,7 @@ class ClaudeQuerySession {
   }) {
     this.model = options.model;
     this.workspacePath = options.workspacePath;
-    this.systemPrompt = options.systemPrompt ?? HELP_SYSTEM_PROMPT;
+    this.systemPrompt = options.systemPrompt ?? FAST_WORKFLOW_SYSTEM_PROMPT;
     this.resolvedSessionId = options.resumeSessionId ?? null;
   }
 
@@ -310,6 +349,8 @@ class ClaudeQuerySession {
       this.model,
       "--append-system-prompt",
       this.systemPrompt,
+      "--permission-mode",
+      "bypassPermissions",
     ];
 
     if (this.resolvedSessionId) {
@@ -318,7 +359,7 @@ class ClaudeQuerySession {
     if (allowedTools.length > 0) {
       args.push("--allowedTools", allowedTools.join(","));
     }
-    args.push("--mcp-config", getClaudeMcpConfigArg());
+    args.push("--disallowedTools", CLAUDE_DISALLOWED_TOOLS.join(","));
 
     const executable = getClaudeCodeExecutablePath();
     logMessage(
@@ -342,6 +383,7 @@ class ClaudeQuerySession {
     webContents: WebContents | null,
     sessionId: string,
     manifest: FrontendToolManifest[],
+    onMessage?: (message: AgentMessage) => void,
   ): Promise<AgentMessage[]> {
     if (this.closed) {
       throw new Error("Cannot send to a closed session");
@@ -354,6 +396,19 @@ class ClaudeQuerySession {
     this.interruptRequested = false;
     const toolManifestMap = new Map(manifest.map((tool) => [tool.name, tool]));
     const outputMessages: AgentMessage[] = [];
+    const toolUseStateById = new Map<string, "resolved" | "runtime_unknown_tool_error">();
+    const toolNameByUseId = new Map<string, string>();
+    const pendingFrontendToolCalls = new Set<string>();
+    const uiSearchCache = new Map<string, unknown>();
+    let sentManifestCorrection = false;
+    const sentUnknownToolCorrections = new Set<string>();
+    let successfulFrontendToolCalls = 0;
+    const emitMessage = (agentMessage: AgentMessage): void => {
+      outputMessages.push(agentMessage);
+      if (onMessage) {
+        onMessage(agentMessage);
+      }
+    };
     const processHandle = this.createClaudeProcess(manifest);
     this.activeProcess = processHandle;
     let stdoutBuffer = "";
@@ -373,7 +428,8 @@ class ClaudeQuerySession {
         toolName: string,
         toolArgs: unknown,
       ): Promise<void> => {
-        outputMessages.push({
+        toolNameByUseId.set(toolUseId, toolName);
+        emitMessage({
           type: "assistant",
           uuid: randomUUID(),
           session_id: this.resolvedSessionId ?? sessionId,
@@ -390,28 +446,78 @@ class ClaudeQuerySession {
           ],
         });
 
+        const existingState = toolUseStateById.get(toolUseId);
+        if (existingState === "resolved") {
+          logMessage(
+            `Skipping tool bridge for ${toolName} (${toolUseId}) because a tool_result already exists`,
+            "warn",
+          );
+          return;
+        }
+
         // Claude can emit tool_use items for built-in/MCP tools that it executes
         // internally. Only UI-exposed tools should be bridged back via stdin.
         if (!toolManifestMap.has(toolName)) {
+          if (!sentManifestCorrection) {
+            sentManifestCorrection = true;
+            const correctivePayload = {
+              type: "user",
+              message: {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text:
+                      "System note: only UI manifest tools are available in this session. Use ui_* tools only; do not call MCP, command, Todo, or file tools.",
+                  },
+                ],
+              },
+            };
+            this.logPipe("stdin", correctivePayload);
+            processHandle.stdin.write(`${JSON.stringify(correctivePayload)}\n`);
+          }
           return;
         }
 
         let toolResult: unknown;
         let isError = false;
-        try {
-          if (!webContents) {
-            throw new Error(`Cannot execute tool ${toolName} without renderer context`);
+        const searchCacheKey =
+          toolName === "ui_search_nodes"
+            ? JSON.stringify(toolArgs ?? {})
+            : null;
+        if (searchCacheKey && uiSearchCache.has(searchCacheKey)) {
+          toolResult = uiSearchCache.get(searchCacheKey);
+        } else {
+          pendingFrontendToolCalls.add(toolUseId);
+          try {
+            if (!webContents) {
+              throw new Error(`Cannot execute tool ${toolName} without renderer context`);
+            }
+            toolResult = await executeFrontendTool(
+              webContents,
+              sessionId,
+              toolUseId,
+              toolName,
+              toolArgs,
+            );
+            if (searchCacheKey) {
+              uiSearchCache.set(searchCacheKey, toolResult);
+            }
+          } catch (error) {
+            isError = true;
+            toolResult = error instanceof Error ? error.message : String(error);
+          } finally {
+            pendingFrontendToolCalls.delete(toolUseId);
           }
-          toolResult = await executeFrontendTool(
-            webContents,
-            sessionId,
-            toolUseId,
-            toolName,
-            toolArgs,
+        }
+
+        const latestState = toolUseStateById.get(toolUseId);
+        if (latestState === "resolved") {
+          logMessage(
+            `Skipping stale frontend tool_result for ${toolName} (${toolUseId})`,
+            "warn",
           );
-        } catch (error) {
-          isError = true;
-          toolResult = error instanceof Error ? error.message : String(error);
+          return;
         }
 
         const toolResultPayload = {
@@ -431,6 +537,10 @@ class ClaudeQuerySession {
             ],
           },
         };
+        toolUseStateById.set(toolUseId, "resolved");
+        if (!isError) {
+          successfulFrontendToolCalls++;
+        }
         this.logPipe("stdin", toolResultPayload);
         processHandle.stdin.write(`${JSON.stringify(toolResultPayload)}\n`);
       };
@@ -472,7 +582,7 @@ class ClaudeQuerySession {
         if (type === "message") {
           const text =
             typeof parsed.content === "string" ? parsed.content : "";
-          outputMessages.push({
+          emitMessage({
             type: "assistant",
             uuid: randomUUID(),
             session_id: this.resolvedSessionId ?? sessionId,
@@ -500,11 +610,24 @@ class ClaudeQuerySession {
               typeof contentItem.type === "string" ? contentItem.type : "";
 
             if (contentType === "text" && typeof contentItem.text === "string") {
-              outputMessages.push({
+              const text = contentItem.text;
+              if (
+                successfulFrontendToolCalls > 0 &&
+                /ui tools?.*not available|tools for workflow management are not available/i.test(
+                  text,
+                )
+              ) {
+                logMessage(
+                  "Suppressing misleading assistant text about unavailable UI tools after successful UI tool calls",
+                  "warn",
+                );
+                continue;
+              }
+              emitMessage({
                 type: "assistant",
                 uuid: randomUUID(),
                 session_id: this.resolvedSessionId ?? sessionId,
-                content: [{ type: "text", text: contentItem.text }],
+                content: [{ type: "text", text }],
               });
               continue;
             }
@@ -533,6 +656,78 @@ class ClaudeQuerySession {
           return;
         }
 
+        if (type === "user") {
+          const messageRecord =
+            parsed.message && typeof parsed.message === "object"
+              ? (parsed.message as Record<string, unknown>)
+              : null;
+          const content = messageRecord?.content;
+          if (!Array.isArray(content)) {
+            return;
+          }
+
+          for (const item of content) {
+            if (!item || typeof item !== "object") {
+              continue;
+            }
+            const contentItem = item as Record<string, unknown>;
+            if (contentItem.type !== "tool_result") {
+              continue;
+            }
+            const toolUseId =
+              typeof contentItem.tool_use_id === "string"
+                ? contentItem.tool_use_id
+                : typeof contentItem.tool_call_id === "string"
+                  ? contentItem.tool_call_id
+                  : "";
+            if (toolUseId) {
+              const isError = contentItem.is_error === true;
+              const contentValue =
+                typeof contentItem.content === "string" ? contentItem.content : "";
+              const isRuntimeUnknownToolError =
+                isError && contentValue.includes("No such tool available:");
+              const existingState = toolUseStateById.get(toolUseId);
+              if (existingState === "resolved") {
+                continue;
+              }
+              const originatingToolName = toolNameByUseId.get(toolUseId) ?? "";
+              const isFrontendUiTool = toolManifestMap.has(originatingToolName);
+              if (
+                isRuntimeUnknownToolError &&
+                isFrontendUiTool &&
+                pendingFrontendToolCalls.has(toolUseId)
+              ) {
+                if (!sentUnknownToolCorrections.has(toolUseId)) {
+                  sentUnknownToolCorrections.add(toolUseId);
+                  const correctivePayload = {
+                    type: "user",
+                    message: {
+                      role: "user",
+                      content: [
+                        {
+                          type: "text",
+                          text:
+                            "System note: ignore runtime 'No such tool available' for ui_* calls. The host bridge executes ui_* tools and will provide the real tool_result.",
+                        },
+                      ],
+                    },
+                  };
+                  this.logPipe("stdin", correctivePayload);
+                  processHandle.stdin.write(`${JSON.stringify(correctivePayload)}\n`);
+                }
+                continue;
+              }
+              toolUseStateById.set(
+                toolUseId,
+                isRuntimeUnknownToolError
+                  ? "runtime_unknown_tool_error"
+                  : "resolved",
+              );
+            }
+          }
+          return;
+        }
+
         if (type === "result") {
           const status =
             parsed.is_error === true
@@ -544,7 +739,7 @@ class ClaudeQuerySession {
                 : "error";
           const text = typeof parsed.result === "string" ? parsed.result : "";
           if (status !== "success") {
-            outputMessages.push({
+            emitMessage({
               type: "result",
               uuid: randomUUID(),
               session_id: this.resolvedSessionId ?? sessionId,
@@ -644,6 +839,7 @@ interface AgentQuerySession {
     webContents: WebContents | null,
     sessionId: string,
     manifest: FrontendToolManifest[],
+    onMessage?: (message: AgentMessage) => void,
   ): Promise<AgentMessage[]>;
   interrupt(): Promise<void>;
   close(): void;
@@ -834,13 +1030,15 @@ export async function createAgentSession(
           workspacePath: options.workspacePath,
           resumeSessionId: options.resumeSessionId,
           systemPrompt: CODEX_SYSTEM_PROMPT,
-          appServerConfigArgs: getCodexMcpConfigArgs(),
         })
       : new ClaudeQuerySession({
           model: options.model,
           workspacePath: options.workspacePath,
           resumeSessionId: options.resumeSessionId,
-          systemPrompt: HELP_SYSTEM_PROMPT,
+          systemPrompt:
+            process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
+              ? HELP_SYSTEM_PROMPT
+              : FAST_WORKFLOW_SYSTEM_PROMPT,
         });
 
   activeSessions.set(tempId, session);
@@ -893,20 +1091,25 @@ export async function sendAgentMessageStreaming(
   logMessage(`Sending message to Claude Agent session ${sessionId} (streaming)`);
 
   const frontendTools = await getFrontendToolsManifest(webContents, sessionId);
-  const messages = await session.send(message, webContents, sessionId, frontendTools);
 
   let messageCount = 0;
-  for (const serialized of messages) {
-    if (serialized.session_id && serialized.session_id !== sessionId) {
-      activeSessions.set(serialized.session_id, session);
-    }
-    messageCount++;
-    webContents.send(IpcChannels.AGENT_STREAM_MESSAGE, {
-      sessionId,
-      message: serialized,
-      done: false,
-    });
-  }
+  await session.send(
+    message,
+    webContents,
+    sessionId,
+    frontendTools,
+    (serialized) => {
+      if (serialized.session_id && serialized.session_id !== sessionId) {
+        activeSessions.set(serialized.session_id, session);
+      }
+      messageCount++;
+      webContents.send(IpcChannels.AGENT_STREAM_MESSAGE, {
+        sessionId,
+        message: serialized,
+        done: false,
+      });
+    },
+  );
 
   webContents.send(IpcChannels.AGENT_STREAM_MESSAGE, {
     sessionId,

@@ -2,6 +2,22 @@ import { z } from "zod";
 import { computeSearchResults } from "../../../utils/nodeSearch";
 import { FrontendToolRegistry } from "../frontendTools";
 
+const booleanLikeOptional = z.preprocess((value) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") {
+      return true;
+    }
+    if (normalized === "false") {
+      return false;
+    }
+  }
+  return value;
+}, z.boolean().optional());
+
 type SearchNodesArgs = {
   query: string;
   input_type?: string;
@@ -20,9 +36,9 @@ FrontendToolRegistry.register({
     query: z.string(),
     input_type: z.string().optional(),
     output_type: z.string().optional(),
-    strict_match: z.boolean().optional(),
-    include_properties: z.boolean().optional(),
-    include_outputs: z.boolean().optional(),
+    strict_match: booleanLikeOptional,
+    include_properties: booleanLikeOptional,
+    include_outputs: booleanLikeOptional,
     limit: z.number().min(1).max(100).optional()
   }),
   async execute(args: SearchNodesArgs, ctx) {
@@ -49,7 +65,6 @@ FrontendToolRegistry.register({
         node_type: node.node_type,
         title: node.title,
         namespace: node.namespace,
-        description: node.description,
         expose_as_tool: node.expose_as_tool ?? false,
       };
 
@@ -57,10 +72,7 @@ FrontendToolRegistry.register({
         const properties = (node.properties || []).map((property) => ({
           name: property.name,
           type: property.type,
-          title: property.title,
           required: property.required,
-          default: property.default,
-          description: property.description,
         }));
         base.properties = properties;
         base.input_handles = properties.map((property) => ({

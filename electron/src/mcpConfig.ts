@@ -12,11 +12,11 @@ export function getClaudeMcpConfigArg(): string {
   });
 }
 
-export function getCodexMcpConfigArgs(): string[] {
+export function getCodexMcpConfigArgs(pythonPath: string): string[] {
   return [
     "-c",
-    `mcp_servers.${NODETOOL_MCP_SERVER_NAME}.transport="sse"`,
+    `mcp_servers.${NODETOOL_MCP_SERVER_NAME}.command="${pythonPath}"`,
     "-c",
-    `mcp_servers.${NODETOOL_MCP_SERVER_NAME}.url="${NODETOOL_MCP_SSE_URL}"`,
+    `mcp_servers.${NODETOOL_MCP_SERVER_NAME}.args=["-m","nodetool.api.run_mcp_server"]`,
   ];
 }

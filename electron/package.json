@@ -8,6 +8,7 @@
     "prebuild": "node scripts/download-micromamba.cjs",
     "download-micromamba": "node scripts/download-micromamba.cjs",
     "start": "electron .",
+    "start:devmode": "electron .",
     "chat": "electron . --chat",
     "build": "tsc && vite build && electron-builder",
     "vite:build": "vite build",

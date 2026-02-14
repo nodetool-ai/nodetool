@@ -27,6 +27,7 @@ import "./builtin/getGraph";
 import "./builtin/searchNodes";
 import "./builtin/deleteNode";
 import "./builtin/deleteEdge";
+import "./builtin/uiActions";
 
 /**
  * Check if we're running in an Electron environment with IPC available.
