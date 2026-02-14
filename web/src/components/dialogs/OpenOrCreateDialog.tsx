@@ -253,11 +253,14 @@ const OpenOrCreateDialog = () => {
 
   // Memoize workflow list items to prevent unnecessary re-renders
   const workflowListItems = useMemo(() =>
-    sortedWorkflows.map((workflow: Workflow, index: number) => (
+    sortedWorkflows.map((workflow: Workflow, index: number) => {
+      // Create stable callback for each workflow to avoid inline function
+      const handleWorkflowClick = () => onClickWorkflow(workflow);
+      return (
       <Box
         key={`${workflow.id}-${index}`}
         className="workflow list"
-        onClick={() => onClickWorkflow(workflow)}
+        onClick={handleWorkflowClick}
       >
         <Box
           className="image-wrapper"
@@ -291,7 +294,8 @@ const OpenOrCreateDialog = () => {
           </Typography>
         </div>
       </Box>
-    )),
+      );
+    }),
     [sortedWorkflows, onClickWorkflow, settings]
   );
 
