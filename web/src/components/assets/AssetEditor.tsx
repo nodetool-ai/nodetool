@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { CircularProgress, Typography } from "@mui/material";
 import { useAssetStore } from "../../stores/AssetStore";
-import { Asset } from "../../stores/ApiTypes";
+import { useAssetById } from "../../serverState/useAssetById";
 import { ImageEditor } from "../node/image_editor";
 import log from "loglevel";
 
@@ -62,43 +62,31 @@ const AssetEditor: React.FC = () => {
     const { assetId } = useParams<{ assetId: string }>();
     const navigate = useNavigate();
 
-    const getAsset = useAssetStore((state) => state.get);
     const updateAsset = useAssetStore((state) => state.update);
     const invalidateQueries = useAssetStore((state) => state.invalidateQueries);
 
-    const [asset, setAsset] = useState<Asset | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Fetch asset on mount
-    useEffect(() => {
-        const fetchAsset = async () => {
-            if (!assetId) {
-                setError("No asset ID provided");
-                setLoading(false);
-                return;
-            }
+    // Fetch asset using useQuery
+    const { data: asset, isLoading: loading, error: queryError } = useAssetById(assetId);
 
-            try {
-                const fetchedAsset = await getAsset(assetId);
-                if (!fetchedAsset) {
-                    setError("Asset not found");
-                } else if (!fetchedAsset.content_type?.startsWith("image/")) {
-                    setError("Asset is not an image");
-                } else {
-                    setAsset(fetchedAsset);
-                }
-            } catch (err) {
-                log.error("[AssetEditor] Failed to fetch asset:", err);
-                setError("Failed to load asset");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAsset();
-    }, [assetId, getAsset]);
+    // Validate asset type and create error message
+    const error = useMemo(() => {
+        if (!assetId) {
+            return "No asset ID provided";
+        }
+        if (queryError) {
+            log.error("[AssetEditor] Failed to fetch asset:", queryError);
+            return "Failed to load asset";
+        }
+        if (!loading && !asset) {
+            return "Asset not found";
+        }
+        if (asset && !asset.content_type?.startsWith("image/")) {
+            return "Asset is not an image";
+        }
+        return null;
+    }, [assetId, asset, loading, queryError]);
 
     // Handle close - navigate back
     const handleClose = useCallback(() => {
@@ -128,7 +116,7 @@ const AssetEditor: React.FC = () => {
                 });
 
                 // Invalidate cache to refresh the asset display
-                invalidateQueries(["assets", asset.id]);
+                invalidateQueries(["asset", asset.id]);
                 if (asset.parent_id) {
                     invalidateQueries(["assets", { parent_id: asset.parent_id }]);
                 }
