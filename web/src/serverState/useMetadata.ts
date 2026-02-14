@@ -27,7 +27,17 @@ const defaultMetadata: Record<string, NodeMetadata> = {
         required: false
       }
     ],
-    outputs: [],
+    outputs: [
+      {
+        name: "output",
+        type: {
+          type: "any",
+          optional: true,
+          type_args: []
+        },
+        stream: false
+      }
+    ],
     the_model_info: {},
     recommended_models: [],
     expose_as_tool: false,

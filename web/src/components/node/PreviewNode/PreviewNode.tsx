@@ -18,9 +18,11 @@ import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
+import { NodeOutputs } from "../NodeOutputs";
 import PreviewActions from "./PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
+import useMetadataStore from "../../../stores/MetadataStore";
 
 const styles = (theme: Theme) =>
   css([
@@ -266,6 +268,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const createAsset = useAssetStore((state) => state.createAsset);
   const hasParent = props.parentId !== undefined;
   const [isContentFocused, setIsContentFocused] = useState(false);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const nodeMetadata = getMetadata(props.type);
 
   const result = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
@@ -444,8 +448,14 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             onAddToAssets={handleAddToAssets}
             copyValue={copyPayloadSource}
           />
+          {nodeMetadata && (
+            <NodeOutputs
+              id={props.id}
+              outputs={nodeMetadata.outputs}
+              isStreamingOutput={nodeMetadata.is_streaming_output}
+            />
+          )}
         </>
-
         <Handle
           style={{ top: "50%" }}
           id="value"

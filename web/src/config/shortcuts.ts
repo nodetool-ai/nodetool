@@ -18,6 +18,8 @@ export interface Shortcut {
   description?: string;
   /** Whether this shortcut is only available in the Electron app */
   electronOnly?: boolean;
+  /** Whether to skip keyboard combo registration in Electron (menu handles it via IPC) */
+  skipInElectron?: boolean;
   /** Whether this shortcut should be registered inside useNodeEditorShortcuts  */
   registerCombo?: boolean;
   /** Additional alternative key combinations that trigger the same shortcut */
@@ -205,7 +207,8 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     keyCombo: ["Control", "C"],
     category: "editor",
     description: "Copy selected nodes",
-    registerCombo: true
+    registerCombo: true,
+    skipInElectron: true
   },
   {
     title: "Cut",
@@ -213,7 +216,8 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     keyCombo: ["Control", "X"],
     category: "editor",
     description: "Cut selected nodes",
-    registerCombo: true
+    registerCombo: true,
+    skipInElectron: true
   },
   {
     title: "Paste",
@@ -221,7 +225,8 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     keyCombo: ["Control", "V"],
     category: "editor",
     description: "Paste nodes from clipboard",
-    registerCombo: true
+    registerCombo: true,
+    skipInElectron: true
   },
   {
     title: "Undo",
