@@ -15,15 +15,13 @@ const ComfyUISettings: React.FC = () => {
   const hasElectronProxyBridge =
     typeof window !== "undefined" &&
     typeof window.api?.localhostProxy?.request === "function";
-  const {
-    baseUrl,
-    isConnected,
-    isConnecting,
-    connectionError,
-    setBaseUrl,
-    connect,
-    disconnect
-  } = useComfyUIStore();
+  const baseUrl = useComfyUIStore((state) => state.baseUrl);
+  const isConnected = useComfyUIStore((state) => state.isConnected);
+  const isConnecting = useComfyUIStore((state) => state.isConnecting);
+  const connectionError = useComfyUIStore((state) => state.connectionError);
+  const setBaseUrl = useComfyUIStore((state) => state.setBaseUrl);
+  const connect = useComfyUIStore((state) => state.connect);
+  const disconnect = useComfyUIStore((state) => state.disconnect);
 
   const [localUrl, setLocalUrl] = useState(baseUrl);
 

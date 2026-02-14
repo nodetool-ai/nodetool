@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { Typography } from "@mui/material";
@@ -125,29 +125,34 @@ const FolderItem: React.FC<FolderItemProps> = ({
     handleDelete
   } = useAssetActions(folder);
 
+  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest(".expand-gutter")) {
+      // Let the click bubble to AccordionSummary to toggle expansion
+      return;
+    }
+    e.stopPropagation();
+    onSelect();
+  }, [onSelect]);
+
+  const handleContextMenuWrapper = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    handleContextMenu(e, enableContextMenu);
+  }, [handleContextMenu, enableContextMenu]);
+
   return (
     <div
       css={styles(theme)}
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
-      onClick={(e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest(".expand-gutter")) {
-          // Let the click bubble to AccordionSummary to toggle expansion
-          return;
-        }
-        e.stopPropagation();
-        onSelect();
-      }}
-      // onDoubleClick={() => handleDoubleClick(folder)}
+      onClick={handleClick}
       onDragStart={handleDrag}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onContextMenu={(e) => handleContextMenu(e, enableContextMenu)}
+      onContextMenu={handleContextMenuWrapper}
       draggable
     >
       <FolderIcon className="folder-icon" />

@@ -149,6 +149,15 @@ const NodeItem = memo(
         [node.node_type, isFavorite, toggleFavorite, addNotification]
       );
 
+      const handleDragStart = useCallback(
+        (e: React.DragEvent<HTMLDivElement>) => {
+          if (!showCheckbox) {
+            onDragStart(node, e);
+          }
+        },
+        [showCheckbox, onDragStart, node]
+      );
+
       // Memoize inline styles to prevent recreation on every render
       const nodeButtonStyle = useMemo(
         () => ({
@@ -195,11 +204,7 @@ const NodeItem = memo(
           }`}
           draggable={!showCheckbox}
           onMouseEnter={onMouseEnter}
-          onDragStart={(e) => {
-            if (!showCheckbox) {
-              onDragStart(node, e);
-            }
-          }}
+          onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
         >
           <div

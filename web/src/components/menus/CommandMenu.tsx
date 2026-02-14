@@ -188,8 +188,8 @@ const NodeCommands = memo(function NodeCommands() {
     y: reactFlowHeight / 2
   });
 
+  const metadata = useMetadataStore((state) => state.metadata);
   const groupedByCategory = useMemo(() => {
-    const metadata = useMetadataStore.getState().metadata;
     return Object.values(metadata).reduce<Record<string, NodeMetadata[]>>(
       (acc, curr) => {
         (acc[curr.namespace] = acc[curr.namespace] || []).push(curr);
@@ -197,7 +197,7 @@ const NodeCommands = memo(function NodeCommands() {
       },
       {}
     );
-  }, []);
+  }, [metadata]);
 
   return (
     <>

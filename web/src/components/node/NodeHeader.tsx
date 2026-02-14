@@ -65,7 +65,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const logCount = logs?.length || 0;
 
   // Common icon button styles for toggle buttons
-  const toggleIconButtonStyles = {
+  const toggleIconButtonStyles = useMemo(() => ({
     padding: "4px",
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     color: "var(--palette-text-primary)",
@@ -75,7 +75,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       backgroundColor: "rgba(255, 255, 255, 0.1)",
       borderColor: "var(--palette-primary-main)"
     }
-  };
+  }), []);
 
   const headerCss = useMemo(
     () =>
@@ -186,6 +186,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     setLogsDialogOpen(false);
   }, []);
 
+  const handleExternalLinkClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(externalLink, "_blank", "noopener,noreferrer");
+  }, [externalLink]);
+
   const hasIcon = Boolean(iconType);
 
   const headerStyle: React.CSSProperties | undefined = useMemo(() => {
@@ -252,11 +257,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           <Tooltip title={externalLinkTitle || "Open link"} arrow enterDelay={TOOLTIP_ENTER_DELAY}>
             <IconButton
               size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(externalLink, "_blank", "noopener,noreferrer");
-              }}
-              sx={{ 
+              onClick={handleExternalLinkClick}
+              sx={{
                 padding: "2px",
                 marginLeft: "2px",
                 color: "rgba(255, 255, 255, 0.4)",
