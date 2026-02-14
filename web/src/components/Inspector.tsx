@@ -129,7 +129,15 @@ const styles = (theme: Theme) =>
 
 const Inspector: React.FC = () => {
   // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
-  const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
+  // We use a custom equality function to avoid re-renders when nodes are moved (position changes)
+  // but their data remains the same.
+  const selectedNodes = useNodes(
+    (state) =>
+      state.nodes
+        .filter((node) => node.selected)
+        .map((node) => ({ id: node.id, type: node.type, data: node.data })),
+    isEqual
+  );
   const findNode = useNodes((state) => state.findNode);
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
