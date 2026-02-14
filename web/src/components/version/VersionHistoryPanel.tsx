@@ -8,7 +8,6 @@ import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Typography,
-  List,
   Paper,
   Button,
   Dialog,
@@ -20,6 +19,8 @@ import {
   Tooltip,
   CircularProgress
 } from "@mui/material";
+import { VariableSizeList as ListVirtualizer } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 import {
   Compare as CompareIcon,
   FilterList as FilterIcon
@@ -40,13 +41,23 @@ interface VersionHistoryPanelProps {
   onClose: () => void;
 }
 
-// Helper function to calculate graph size efficiently
+// Cache for graph size calculations to avoid repeated JSON.stringify calls
+const graphSizeCache = new WeakMap<object, number>();
+
+// Helper function to calculate graph size efficiently with caching
 // Uses a simple approximation instead of creating a Blob
 const getGraphSizeBytes = (graph: any): number => {
   try {
+    // Check cache first to avoid expensive JSON.stringify on repeated calls
+    if (graphSizeCache.has(graph)) {
+      return graphSizeCache.get(graph)!;
+    }
+
     // Use JSON.stringify length as an approximation
     // This is much faster than creating a Blob
-    return JSON.stringify(graph).length * 2; // Approximate UTF-16 byte size
+    const size = JSON.stringify(graph).length * 2; // Approximate UTF-16 byte size
+    graphSizeCache.set(graph, size);
+    return size;
   } catch {
     return 0;
   }
@@ -222,6 +233,34 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
   const handleCloseDeleteDialog = useCallback(() => {
     setDeleteDialogOpen(false);
+  }, []);
+
+  // Virtualized list item renderer for version history
+  // This prevents creating DOM nodes for all 100+ versions at once
+  const VersionListItemRenderer = useCallback(({ style }: { index: number; style: React.CSSProperties }) => {
+    const version = versions[index];
+    return (
+      <div style={style}>
+        <VersionListItem
+          key={version.id}
+          version={version}
+          isSelected={selectedVersionId === version.id}
+          isCompareTarget={compareVersionId === version.id}
+          compareMode={isCompareMode}
+          onSelect={handleSelect}
+          onRestore={handleRestore}
+          onDelete={handleDelete}
+          onCompare={handleCompare}
+          isRestoring={isRestoringVersion}
+        />
+      </div>
+    );
+  }, [versions, selectedVersionId, compareVersionId, isCompareMode, handleSelect, handleRestore, handleDelete, handleCompare, isRestoringVersion]);
+
+  // Get item size for virtualized list - approximate height for each version item
+  const getItemSize = useCallback((_index: number) => {
+    // Base height for version list item (adjust if needed based on actual content)
+    return 80; // approximate height in pixels
   }, []);
 
   if (isLoading) {
@@ -401,7 +440,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </Box>
       )}
 
-      <Box sx={{ flex: 1, overflow: "auto" }}>
+      <Box sx={{ flex: 1, overflow: "hidden" }}>
         {versions.length === 0 ? (
           <Box sx={{ p: 3, textAlign: "center" }}>
             <Typography color="text.secondary">
@@ -412,22 +451,19 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             </Typography>
           </Box>
         ) : (
-          <List dense sx={{ py: 1 }}>
-            {versions.map((version) => (
-              <VersionListItem
-                key={version.id}
-                version={version}
-                isSelected={selectedVersionId === version.id}
-                isCompareTarget={compareVersionId === version.id}
-                compareMode={isCompareMode}
-                onSelect={handleSelect}
-                onRestore={handleRestore}
-                onDelete={handleDelete}
-                onCompare={handleCompare}
-                isRestoring={isRestoringVersion}
-              />
-            ))}
-          </List>
+          <AutoSizer>
+            {({ height, width }) => (
+              <ListVirtualizer
+                height={height}
+                width={width}
+                itemCount={versions.length}
+                itemSize={getItemSize}
+                overscanCount={5}
+              >
+                {VersionListItemRenderer}
+              </ListVirtualizer>
+            )}
+          </AutoSizer>
         )}
       </Box>
 
