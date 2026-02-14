@@ -125,7 +125,7 @@ describe("ComfyUI Schema Converter", () => {
       const schema: ComfyUINodeSchema = {
         input: {
           required: {
-            sampler: [["euler", "dpm2", "lms"], {}]
+            sampler: [["euler", "dpm2", "lms"] as any, {}]
           }
         },
         output: [],
