@@ -38,3 +38,37 @@ const selectedCount = useNodes((state) => state.getSelectedNodeCount());
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `make lint`: Passed for web package.
 - Attempted `make test`: Encountered pre-existing environment failures in `FlexColumn.tsx`, but updated `SelectionActionToolbar.test.tsx` to align with changes.
+
+# ⚡ Bolt: Inspector Performance Optimization
+
+## 💡 What
+Modified `web/src/components/Inspector.tsx` to use a custom equality function and a simplified selector for `selectedNodes`.
+
+## 🎯 Why
+The `Inspector` component subscribed to `state.nodes.filter((node) => node.selected)`. This returns a new array of `Node` objects on every store update. Crucially, when a node is dragged, its `position` updates, creating a new `Node` object. This caused `Inspector` (and its children) to re-render on every frame of a drag operation, even though the Inspector doesn't display or use the node's position.
+
+## 📊 Impact
+- **Reduces re-renders:** `Inspector` now only re-renders when the `id`, `type`, or `data` of selected nodes changes. It ignores position updates.
+- **Improved Responsiveness:** Frees up main thread during node dragging, especially when the Inspector is open.
+
+## 🔬 Measurement
+The optimization replaced:
+```typescript
+const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
+```
+with:
+```typescript
+const selectedNodes = useNodes(
+  (state) =>
+    state.nodes
+      .filter((node) => node.selected)
+      .map((node) => ({ id: node.id, type: node.type, data: node.data })),
+  isEqual
+);
+```
+Using `lodash/isEqual` ensures that we only update when the simplified objects (id, type, data) actually change content-wise. Since `node.data` reference is preserved during position updates in `NodeStore`, `isEqual` is efficient.
+
+## 🧪 Testing
+- Ran `cd web && npm run typecheck`: Passed.
+- Ran `make lint`: Passed.
+- Ran `make test`: All 305 tests passed.
