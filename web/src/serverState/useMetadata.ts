@@ -5,6 +5,8 @@ import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
 
+export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
+
 const defaultMetadata: Record<string, NodeMetadata> = {
   "nodetool.workflows.base_node.Preview": {
     title: "Preview",
@@ -31,6 +33,23 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false
+  },
+  [WORKFLOW_NODE_TYPE]: {
+    title: "Workflow",
+    description:
+      "Execute a sub-workflow. Select a workflow to populate its inputs and outputs dynamically.",
+    namespace: "nodetool.workflows",
+    node_type: WORKFLOW_NODE_TYPE,
+    layout: "default",
+    basic_fields: [],
+    is_dynamic: true,
+    properties: [],
+    outputs: [],
+    the_model_info: {},
+    recommended_models: [],
+    expose_as_tool: false,
+    supports_dynamic_outputs: true,
+    is_streaming_output: true
   }
 };
 

@@ -32,6 +32,7 @@ export interface NodeInputsProps {
     newPropertyName: string
   ) => void;
   onDeleteProperty?: (propertyName: string) => void;
+  editableDynamicInputs?: boolean;
 }
 
 interface NodeInputProps {
@@ -117,7 +118,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   showAdvancedFields,
   basicFields,
   hasAdvancedFields,
-  onToggleAdvancedFields
+  onToggleAdvancedFields,
+  editableDynamicInputs = true
 }) => {
   const rootStyles = useMemo(
     () =>
@@ -265,7 +267,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           }}
           propertyIndex={`dynamic-${index}`}
           data={data}
-          showFields={true}
+          showFields={editableDynamicInputs}
           showHandle={true}
           tabIndex={-1}
           isDynamicProperty={true}
