@@ -23,7 +23,7 @@
     "@react-navigation/native-stack": "^7.9.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/uuid": "10.0.0",
-    "axios": "^1.13.2",
+    "axios": "^1.13.5",
     "expo": "~54.0.30",
     "expo-av": "~16.0.8",
     "expo-document-picker": "~14.0.8",
