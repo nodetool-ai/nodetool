@@ -179,6 +179,11 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
     return edges;
   }, [newGraph, oldGraph]);
 
+  // Memoize old node IDs separately to avoid recomputing on every render
+  const oldNodeIds = useMemo(() => {
+    return new Set(oldGraph?.nodes?.map(n => n.id) || []);
+  }, [oldGraph?.nodes]);
+
   const nodeStatusMap = useMemo(() => {
     const map: Record<string, "added" | "removed" | "modified" | "unchanged"> = {};
 
@@ -194,8 +199,6 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
       map[nodeChange.nodeId] = "modified";
     });
 
-    const oldNodeIds = new Set(oldGraph?.nodes?.map(n => n.id) || []);
-
     [...(newGraph?.nodes || [])].forEach(node => {
       if (!map[node.id] && oldNodeIds.has(node.id)) {
         map[node.id] = "unchanged";
@@ -203,7 +206,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
     });
 
     return map;
-  }, [diff, oldGraph, newGraph]);
+  }, [diff, newGraph, oldNodeIds]);
 
   const nodeWidth = 60;
   const nodeHeight = 30;
