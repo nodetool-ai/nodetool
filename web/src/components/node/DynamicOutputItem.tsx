@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Box, Typography } from "@mui/material";
 import { EditButton, DeleteButton } from "../ui_primitives";
 import NodeOutput from "./NodeOutput";
@@ -34,6 +34,15 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
   const handleDelete = useCallback(
     () => onDelete(output.name),
     [onDelete, output.name]
+  );
+
+  const nodeOutputProps = useMemo(
+    () => ({
+      type: output.type,
+      name: output.name,
+      stream: false
+    }),
+    [output.type, output.name]
   );
 
   return (
@@ -91,11 +100,7 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
 
       <NodeOutput
         id={id}
-        output={{
-          type: output.type,
-          name: output.name,
-          stream: false
-        }}
+        output={nodeOutputProps}
         isDynamic={true}
         isStreamingOutput={isStreamingOutput}
       />
