@@ -35,12 +35,25 @@ describe("customEquality", () => {
     ...overrides
   });
 
+  const defaultWorkflow = {
+    id: "workflow-1",
+    name: "Test",
+    access: "private",
+    description: "",
+    thumbnail: "",
+    tags: [],
+    run_mode: "workflow",
+    settings: {},
+    updated_at: new Date().toISOString(),
+    created_at: new Date().toISOString()
+  };
+
   const createMockStore = (
     overrides?: Partial<PartializedNodeStore>
   ): PartializedNodeStore => ({
     nodes: [],
     edges: [],
-    workflow: { id: "workflow-1", name: "Test" },
+    workflow: defaultWorkflow,
     ...overrides
   }) as PartializedNodeStore;
 
@@ -61,12 +74,12 @@ describe("customEquality", () => {
 
     test("returns false when previous is null", () => {
       const current = createMockStore();
-      expect(customEquality(null, current)).toBe(false);
+      expect(customEquality(undefined, current)).toBe(false);
     });
 
     test("returns false when current is null", () => {
       const previous = createMockStore();
-      expect(customEquality(previous, null)).toBe(false);
+      expect(customEquality(previous, undefined)).toBe(false);
     });
   });
 
@@ -324,17 +337,17 @@ describe("customEquality", () => {
   describe("comparing workflows", () => {
     test("returns false when workflows differ", () => {
       const previous = createMockStore({
-        workflow: { id: "workflow-1", name: "Test" }
+        workflow: { id: "workflow-1", name: "Test", access: "private", description: "", thumbnail: "", tags: [], run_mode: "workflow", settings: {}, updated_at: new Date().toISOString(), created_at: new Date().toISOString() }
       });
       const current = createMockStore({
-        workflow: { id: "workflow-2", name: "Test 2" }
+        workflow: { id: "workflow-2", name: "Test 2", access: "private", description: "", thumbnail: "", tags: [], run_mode: "workflow", settings: {}, updated_at: new Date().toISOString(), created_at: new Date().toISOString() }
       });
 
       expect(customEquality(previous, current)).toBe(false);
     });
 
     test("uses shallow comparison for workflow", () => {
-      const workflow = { id: "workflow-1", name: "Test" };
+      const workflow = { id: "workflow-1", name: "Test", access: "private", description: "", thumbnail: "", tags: [], run_mode: "workflow", settings: {}, updated_at: new Date().toISOString(), created_at: new Date().toISOString() };
       const previous = createMockStore({ workflow });
       const current = createMockStore({ workflow: { ...workflow } });
 
