@@ -25,7 +25,7 @@ type AppIconMenuProps = {
   handleClose: () => void;
 };
 
-const AppIconMenu: React.FC<AppIconMenuProps> = ({ anchorEl, handleClose }) => {
+const AppIconMenu: React.FC<AppIconMenuProps> = memo(({ anchorEl, handleClose }) => {
   const open = Boolean(anchorEl);
   const theme = useTheme();
   return (
@@ -62,6 +62,7 @@ const AppIconMenu: React.FC<AppIconMenuProps> = ({ anchorEl, handleClose }) => {
       </MenuItem>
     </Menu>
   );
-};
+});
+AppIconMenu.displayName = "AppIconMenu";
 
 export default memo(AppIconMenu);
