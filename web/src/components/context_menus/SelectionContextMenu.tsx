@@ -15,8 +15,6 @@ import { useSnippetDialog } from "../../contexts/SnippetDialogContext";
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import SaveIcon from "@mui/icons-material/Save";
-// import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-// import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
