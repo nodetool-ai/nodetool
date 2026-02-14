@@ -1,11 +1,4 @@
 import { handleUpdate, MsgpackData } from "../workflowUpdates";
-import useResultsStore from "../ResultsStore";
-import useStatusStore from "../StatusStore";
-import useLogsStore from "../LogStore";
-import useErrorStore from "../ErrorStore";
-import { useNotificationStore } from "../NotificationStore";
-import useExecutionTimeStore from "../ExecutionTimeStore";
-import { useNodeResultHistoryStore } from "../NodeResultHistoryStore";
 import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
