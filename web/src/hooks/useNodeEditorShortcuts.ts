@@ -75,13 +75,16 @@ export const useNodeEditorShortcuts = (
 
   /* USE STORE */
   const nodeHistory = useTemporalNodes((state) => state);
-  const nodesStore = useNodes((state) => ({
-    selectedNodes: state.getSelectedNodes(),
-    selectedEdgeCount: state.edges.filter((edge) => Boolean(edge.selected)).length,
-    selectAllNodes: state.selectAllNodes,
-    setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
-  }));
+  const nodesStore = useNodes(
+    (state) => ({
+      selectedNodes: state.getSelectedNodes(),
+      selectedEdgeCount: state.edges.filter((edge) => Boolean(edge.selected)).length,
+      selectAllNodes: state.selectAllNodes,
+      setNodes: state.setNodes,
+      toggleBypassSelected: state.toggleBypassSelected
+    }),
+    shallow
+  );
   const reactFlow = useReactFlow();
   const workflowManager = useWorkflowManager((state) => ({
     saveExample: state.saveExample,
