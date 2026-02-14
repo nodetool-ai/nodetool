@@ -13,6 +13,8 @@ import {
 import { Graph, Node as GraphNode, Edge as GraphEdge } from "../stores/ApiTypes";
 import log from "loglevel";
 
+export const COMFY_WORKFLOW_FLAG = "is_comfy_workflow";
+
 /**
  * Convert ComfyUI workflow to NodeTool graph
  */
@@ -290,6 +292,72 @@ export function nodeToolGraphToComfyPrompt(graph: Graph): ComfyUIPrompt {
 }
 
 /**
+ * Convert ComfyUI prompt format (API format) to NodeTool graph.
+ * This format does not include layout data, so nodes are arranged in a simple grid.
+ */
+export function comfyPromptToNodeToolGraph(prompt: ComfyUIPrompt): Graph {
+  const nodes: GraphNode[] = [];
+  const edges: GraphEdge[] = [];
+
+  const nodeIds = Object.keys(prompt).sort((a, b) => {
+    const aNum = Number(a);
+    const bNum = Number(b);
+    if (Number.isNaN(aNum) || Number.isNaN(bNum)) {
+      return a.localeCompare(b);
+    }
+    return aNum - bNum;
+  });
+
+  nodeIds.forEach((nodeId, index) => {
+    const promptNode = prompt[nodeId];
+    const properties: Record<string, unknown> = {};
+
+    Object.entries(promptNode.inputs || {}).forEach(([inputName, inputValue]) => {
+      const isConnectionRef =
+        Array.isArray(inputValue) &&
+        inputValue.length >= 2 &&
+        (typeof inputValue[0] === "string" || typeof inputValue[0] === "number") &&
+        typeof inputValue[1] === "number";
+
+      if (isConnectionRef) {
+        const sourceNodeId = String(inputValue[0]);
+        const outputSlot = Number(inputValue[1]) || 0;
+        edges.push({
+          source: sourceNodeId,
+          target: nodeId,
+          sourceHandle: `output_${outputSlot}`,
+          targetHandle: inputName
+        });
+      } else {
+        properties[inputName] = inputValue;
+      }
+    });
+
+    nodes.push({
+      id: nodeId,
+      type: `comfy.${promptNode.class_type}`,
+      data: properties,
+      sync_mode: "on_any",
+      ui_properties: {
+        position: {
+          x: (index % 4) * 320,
+          y: Math.floor(index / 4) * 220
+        },
+        size: {
+          width: 280,
+          height: 120
+        },
+        selected: false,
+        selectable: true,
+        draggable: true
+      }
+    });
+  });
+
+  return { nodes, edges };
+}
+
+/**
  * Check if a node type is a ComfyUI node
  */
 export function isComfyUINode(nodeType: string): boolean {
@@ -301,4 +369,28 @@ export function isComfyUINode(nodeType: string): boolean {
  */
 export function graphHasComfyUINodes(graph: Graph): boolean {
   return graph.nodes.some((node) => isComfyUINode(node.type));
+}
+
+/**
+ * Check whether workflow settings explicitly mark a workflow as ComfyUI.
+ */
+export function hasComfyWorkflowFlag(
+  settings?: Record<string, unknown> | null
+): boolean {
+  return settings?.[COMFY_WORKFLOW_FLAG] === true;
+}
+
+/**
+ * Determine whether a workflow should be treated as ComfyUI.
+ * Falls back to graph inspection when explicit settings are absent.
+ */
+export function isComfyWorkflow(
+  graph: Graph,
+  settings?: Record<string, unknown> | null
+): boolean {
+  if (hasComfyWorkflowFlag(settings)) {
+    return true;
+  }
+
+  return graphHasComfyUINodes(graph);
 }

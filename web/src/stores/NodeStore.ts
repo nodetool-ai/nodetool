@@ -51,6 +51,7 @@ import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
+import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
 
 /**
  * Generates a default name for input nodes based on their type.
@@ -171,6 +172,7 @@ export interface NodeStoreState {
   ) => void;
   setEdges: (edges: Edge[]) => void;
   getWorkflow: () => Workflow;
+  isComfyWorkflow: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
   validateConnection: (
     connection: Connection,
@@ -848,13 +850,35 @@ export const createNodeStore = (
                 }
               };
             });
+            const settings = workflow.settings || {};
+            const hasComfyNodes = nodes.some(
+              (node) =>
+                typeof node.type === "string" && node.type.startsWith("comfy.")
+            );
+
             return {
               ...workflow,
+              settings: hasComfyNodes
+                ? { ...settings, [COMFY_WORKFLOW_FLAG]: true }
+                : settings,
               graph: {
                 edges: edges.map(reactFlowEdgeToGraphEdge),
                 nodes: nodes.map(reactFlowNodeToGraphNode)
               }
             };
+          },
+          isComfyWorkflow: (): boolean => {
+            const settings = get().workflow.settings as
+              | Record<string, unknown>
+              | undefined;
+            if (settings?.[COMFY_WORKFLOW_FLAG] === true) {
+              return true;
+            }
+
+            return get().nodes.some(
+              (node) =>
+                typeof node.type === "string" && node.type.startsWith("comfy.")
+            );
           },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });

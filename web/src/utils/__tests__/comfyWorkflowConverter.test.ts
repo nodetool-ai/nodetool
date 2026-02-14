@@ -6,8 +6,12 @@ import {
   comfyWorkflowToNodeToolGraph,
   nodeToolGraphToComfyWorkflow,
   nodeToolGraphToComfyPrompt,
+  comfyPromptToNodeToolGraph,
   isComfyUINode,
-  graphHasComfyUINodes
+  graphHasComfyUINodes,
+  hasComfyWorkflowFlag,
+  isComfyWorkflow,
+  COMFY_WORKFLOW_FLAG
 } from "../comfyWorkflowConverter";
 import { ComfyUIWorkflow } from "../../services/ComfyUIService";
 import { Graph } from "../../stores/ApiTypes";
@@ -54,6 +58,32 @@ describe("ComfyUI Workflow Converter", () => {
         edges: []
       };
       expect(graphHasComfyUINodes(graph)).toBe(false);
+    });
+  });
+
+  describe("workflow detection", () => {
+    test("detects Comfy workflow from settings flag", () => {
+      expect(
+        hasComfyWorkflowFlag({
+          [COMFY_WORKFLOW_FLAG]: true
+        })
+      ).toBe(true);
+    });
+
+    test("falls back to graph node inspection when settings flag is absent", () => {
+      const graph: Graph = {
+        nodes: [
+          {
+            id: "1",
+            type: "comfy.KSampler",
+            data: {},
+            sync_mode: "on_any"
+          }
+        ],
+        edges: []
+      };
+
+      expect(isComfyWorkflow(graph, null)).toBe(true);
     });
   });
 
@@ -285,6 +315,38 @@ describe("ComfyUI Workflow Converter", () => {
       expect(prompt["1"].inputs.normal_prop).toBe("value");
       expect(prompt["1"].inputs._comfy_metadata).toBeUndefined();
       expect(prompt["1"].inputs._comfy_widgets).toBeUndefined();
+    });
+  });
+
+  describe("comfyPromptToNodeToolGraph", () => {
+    test("converts Comfy prompt API format to NodeTool graph", () => {
+      const prompt = {
+        "3": {
+          class_type: "KSampler",
+          inputs: {
+            steps: 20,
+            model: ["4", 0]
+          }
+        },
+        "4": {
+          class_type: "CheckpointLoaderSimple",
+          inputs: {
+            ckpt_name: "model.safetensors"
+          }
+        }
+      };
+
+      const graph = comfyPromptToNodeToolGraph(prompt);
+
+      expect(graph.nodes).toHaveLength(2);
+      expect(graph.edges).toHaveLength(1);
+      expect(graph.nodes[0].type.startsWith("comfy.")).toBe(true);
+      expect(graph.edges[0]).toMatchObject({
+        source: "4",
+        target: "3",
+        sourceHandle: "output_0",
+        targetHandle: "model"
+      });
     });
   });
 });

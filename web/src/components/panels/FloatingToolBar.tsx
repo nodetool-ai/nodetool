@@ -416,11 +416,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     }));
 
   const nodeStore = useNodeStoreRef();
-  const { workflow, autoLayout, workflowJSON } = useNodes(
+  const { workflow, autoLayout, workflowJSON, isComfyWorkflow } = useNodes(
     (state) => ({
       workflow: state.workflow,
       autoLayout: state.autoLayout,
-      workflowJSON: state.workflowJSON
+      workflowJSON: state.workflowJSON,
+      isComfyWorkflow: state.isComfyWorkflow()
     })
   );
 
@@ -657,6 +658,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       <Box
         css={styles(theme)}
         className="floating-toolbar"
+        data-comfy-workflow={isComfyWorkflow ? "true" : "false"}
         style={{
           ...(isRightPanelVisible
             ? {
