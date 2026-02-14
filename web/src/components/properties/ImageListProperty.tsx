@@ -233,6 +233,13 @@ const ImageListProperty = (props: PropertyProps) => {
     }
   }, []);
 
+  // Create memoized click handlers for each image item to prevent unnecessary re-renders
+  const removeButtonClickHandlers = useMemo(
+    () =>
+      images.map((_, index) => () => handleRemoveImage(index)),
+    [images, handleRemoveImage]
+  );
+
   // Handle file drops (both internal nodetool assets and external files)
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -503,7 +510,7 @@ const ImageListProperty = (props: PropertyProps) => {
               <Tooltip title="Remove image">
                 <IconButton
                   className="remove-button"
-                  onClick={() => handleRemoveImage(index)}
+                  onClick={removeButtonClickHandlers[index]}
                   size="small"
                 >
                   <CloseIcon />
