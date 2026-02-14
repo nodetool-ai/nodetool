@@ -73,4 +73,17 @@ describe("NODE_EDITOR_SHORTCUTS", () => {
       });
     });
   });
+
+  describe("skipInElectron", () => {
+    it("clipboard shortcuts (copy, cut, paste) should have skipInElectron set", () => {
+      const clipboardSlugs = ["copy", "cut", "paste"];
+      clipboardSlugs.forEach((slug) => {
+        const shortcut = NODE_EDITOR_SHORTCUTS.find(
+          (s: Shortcut) => s.slug === slug
+        );
+        expect(shortcut).toBeDefined();
+        expect(shortcut?.skipInElectron).toBe(true);
+      });
+    });
+  });
 });
