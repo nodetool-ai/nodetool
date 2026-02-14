@@ -6,6 +6,7 @@
 import { describe, test, expect } from "@jest/globals";
 import { customEquality } from "../customEquality";
 import type { PartializedNodeStore } from "../NodeStore";
+import type { WorkflowAttributes } from "../ApiTypes";
 import { Edge, Node } from "@xyflow/react";
 import type { NodeData } from "../NodeData";
 
@@ -35,12 +36,24 @@ describe("customEquality", () => {
     ...overrides
   });
 
+  const createMockWorkflow = (
+    overrides?: Partial<WorkflowAttributes>
+  ): WorkflowAttributes => ({
+    id: "workflow-1",
+    name: "Test",
+    access: "private",
+    created_at: "2025-01-01T00:00:00Z",
+    updated_at: "2025-01-01T00:00:00Z",
+    description: "",
+    ...overrides
+  });
+
   const createMockStore = (
     overrides?: Partial<PartializedNodeStore>
   ): PartializedNodeStore => ({
     nodes: [],
     edges: [],
-    workflow: { id: "workflow-1", name: "Test" },
+    workflow: createMockWorkflow(),
     ...overrides
   }) as PartializedNodeStore;
 
@@ -324,17 +337,17 @@ describe("customEquality", () => {
   describe("comparing workflows", () => {
     test("returns false when workflows differ", () => {
       const previous = createMockStore({
-        workflow: { id: "workflow-1", name: "Test" }
+        workflow: createMockWorkflow({ id: "workflow-1", name: "Test" })
       });
       const current = createMockStore({
-        workflow: { id: "workflow-2", name: "Test 2" }
+        workflow: createMockWorkflow({ id: "workflow-2", name: "Test 2" })
       });
 
       expect(customEquality(previous, current)).toBe(false);
     });
 
     test("uses shallow comparison for workflow", () => {
-      const workflow = { id: "workflow-1", name: "Test" };
+      const workflow = createMockWorkflow({ id: "workflow-1", name: "Test" });
       const previous = createMockStore({ workflow });
       const current = createMockStore({ workflow: { ...workflow } });
 

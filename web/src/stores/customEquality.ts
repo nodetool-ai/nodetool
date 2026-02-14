@@ -26,8 +26,8 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>) {
 }
 
 export function customEquality(
-  previous: PartializedNodeStore | undefined,
-  current: PartializedNodeStore | undefined
+  previous: PartializedNodeStore | undefined | null,
+  current: PartializedNodeStore | undefined | null
 ): boolean {
   /*
   customEquality:
