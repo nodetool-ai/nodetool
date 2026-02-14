@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 
 interface SidebarItem {
   id: string;
@@ -98,4 +98,4 @@ const SettingsSidebar = ({
   );
 };
 
-export default SettingsSidebar;
+export default memo(SettingsSidebar);

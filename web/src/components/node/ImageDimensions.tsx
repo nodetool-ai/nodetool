@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Box } from "@mui/material";
+import { memo } from "react";
 
 interface ImageDimensionsProps {
   width: number;
@@ -34,4 +35,4 @@ const ImageDimensions: React.FC<ImageDimensionsProps> = ({ width, height }) => {
   );
 };
 
-export default ImageDimensions;
+export default memo(ImageDimensions);

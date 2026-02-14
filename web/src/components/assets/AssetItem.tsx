@@ -284,46 +284,34 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     handleDelete
   } = useAssetActions(asset);
 
-  const assetType = useMemo(() => {
-    return asset?.content_type ? asset.content_type.split("/")[0] : "unknown";
-  }, [asset?.content_type]);
+  // Combine related type checks into a single useMemo for better performance
+  const {
+    assetType,
+    assetFileEnding,
+    isImage,
+    isText,
+    isAudio,
+    isVideo,
+    isPdf,
+    isJson,
+    isCsv
+  } = useMemo(() => {
+    const contentType = asset?.content_type || "";
+    const name = asset?.name || "";
+    const parts = contentType.split("/");
 
-  const assetFileEnding = useMemo(() => {
-    return asset?.content_type ? asset.content_type.split("/")[1] : "unknown";
-  }, [asset?.content_type]);
-
-  const isImage = useMemo(
-    () => asset?.content_type?.match("image") !== null,
-    [asset?.content_type]
-  );
-  const isText = useMemo(
-    () => asset?.content_type?.match("text") !== null,
-    [asset?.content_type]
-  );
-  const isAudio = useMemo(
-    () => asset?.content_type?.match("audio") !== null,
-    [asset?.content_type]
-  );
-  const isVideo = useMemo(
-    () => asset?.content_type?.match("video") !== null,
-    [asset?.content_type]
-  );
-  const isPdf = useMemo(
-    () => asset?.content_type?.match("pdf") !== null,
-    [asset?.content_type]
-  );
-  const isJson = useMemo(
-    () =>
-      asset?.content_type?.includes("json") ||
-      asset?.name?.toLowerCase().endsWith(".json"),
-    [asset?.content_type, asset?.name]
-  );
-  const isCsv = useMemo(
-    () =>
-      asset?.content_type?.includes("csv") ||
-      asset?.name?.toLowerCase().endsWith(".csv"),
-    [asset?.content_type, asset?.name]
-  );
+    return {
+      assetType: parts[0] || "unknown",
+      assetFileEnding: parts[1] || "unknown",
+      isImage: contentType.match("image") !== null,
+      isText: contentType.match("text") !== null,
+      isAudio: contentType.match("audio") !== null,
+      isVideo: contentType.match("video") !== null,
+      isPdf: contentType.match("pdf") !== null,
+      isJson: contentType.includes("json") || name.toLowerCase().endsWith(".json"),
+      isCsv: contentType.includes("csv") || name.toLowerCase().endsWith(".csv")
+    };
+  }, [asset?.content_type, asset?.name]);
 
   const handleAudioClick = useCallback(() => {
     onSetCurrentAudioAsset?.(asset);

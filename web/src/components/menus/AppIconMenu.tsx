@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { memo } from "react";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { VERSION } from "../../config/constants";
@@ -64,4 +64,4 @@ const AppIconMenu: React.FC<AppIconMenuProps> = ({ anchorEl, handleClose }) => {
   );
 };
 
-export default AppIconMenu;
+export default memo(AppIconMenu);
