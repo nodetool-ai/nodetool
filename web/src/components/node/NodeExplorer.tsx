@@ -357,4 +357,9 @@ const NodeExplorer: React.FC = () => {
   );
 };
 
-export default NodeExplorer;
+/**
+ * NodeExplorer component - memoized to prevent unnecessary re-renders
+ * This component performs expensive filtering and sorting operations on every render,
+ * so memoization is critical for performance when searching through large node lists.
+ */
+export default React.memo(NodeExplorer);
