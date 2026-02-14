@@ -120,7 +120,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -135,7 +135,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -153,7 +153,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "tag1, tag2",
         metadata: node
       }));
@@ -181,7 +181,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -206,7 +206,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -224,7 +224,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node
       }));
@@ -593,7 +593,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "tag1, tag2",
         metadata: node,
       }));
@@ -615,7 +615,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "tag1, tag2",
         metadata: node,
       }));
@@ -672,7 +672,7 @@ describe("nodeSearch", () => {
         node_type: node.node_type,
         namespace: node.namespace,
         description: node.description,
-        use_cases: [],
+        use_cases: "",
         tags: "",
         metadata: node,
       }));

@@ -8,7 +8,7 @@ export interface ExtendedFuseOptions<T> extends Omit<IFuseOptions<T>, "keys"> {
   findAllMatches?: boolean;
 }
 
-export const fuseOptions: ExtendedFuseOptions<any> = {
+export const fuseOptions: ExtendedFuseOptions<unknown> = {
   keys: [
     // Relative importance
     { name: "title", weight: 0.8 },
