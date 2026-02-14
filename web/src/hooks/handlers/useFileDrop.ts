@@ -145,10 +145,21 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
             if (props.uploadAsset) {
               uploadAsset({
                 file,
+                source:
+                  file.type.startsWith("image/") || props.type === "image"
+                    ? "drop"
+                    : "file",
                 onCompleted: (asset) => {
                   if (props.onChangeAsset) {
                     props.onChangeAsset(asset);
                   }
+                },
+                onFailed: (error) => {
+                  addNotification({
+                    type: "error",
+                    alert: true,
+                    content: error
+                  });
                 }
               });
             } else {

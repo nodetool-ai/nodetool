@@ -4,6 +4,7 @@ import { useReactFlow } from "@xyflow/react";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useAssetUpload } from "../../../serverState/useAssetUpload";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import useAuth from "../../../stores/useAuth";
 import useMetadataStore from "../../../stores/MetadataStore";
 import * as MousePosition from "../../../utils/MousePosition";
@@ -16,6 +17,7 @@ jest.mock("@xyflow/react", () => ({
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../serverState/useAssetUpload");
 jest.mock("../../../stores/AssetGridStore");
+jest.mock("../../../stores/NotificationStore");
 jest.mock("../../../stores/useAuth");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../utils/MousePosition");
@@ -32,6 +34,8 @@ describe("useClipboardContentPaste", () => {
   const mockedUseNodes = useNodes as unknown as jest.Mock;
   const mockedUseAssetUpload = useAssetUpload as unknown as jest.Mock;
   const mockedUseAssetGridStore = useAssetGridStore as unknown as jest.Mock;
+  const mockedUseNotificationStore =
+    useNotificationStore as unknown as jest.Mock;
   const mockedUseAuth = useAuth as unknown as jest.Mock;
   const mockedUseMetadataStore = useMetadataStore as unknown as jest.Mock;
 
@@ -108,6 +112,15 @@ describe("useClipboardContentPaste", () => {
       }
       return { getMetadata: mockGetMetadata };
     });
+
+    mockedUseNotificationStore.mockImplementation((selector) => {
+      if (typeof selector === "function") {
+        return selector({ addNotification: jest.fn() });
+      }
+      return { addNotification: jest.fn() };
+    });
+
+    (window as unknown as { api?: unknown }).api = undefined;
   });
 
   it("returns handleContentPaste and hasClipboardContent functions", () => {
@@ -157,6 +170,45 @@ describe("useClipboardContentPaste", () => {
       });
 
       expect(handled).toBe(false);
+    });
+
+    it("uploads clipboard image with clipboard source", async () => {
+      const pngDataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2W9oQAAAAASUVORK5CYII=";
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        blob: async () =>
+          new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" })
+      } as Response);
+
+      (window as unknown as {
+        api?: {
+          clipboard?: {
+            readImage?: jest.Mock;
+          };
+        };
+      }).api = {
+        clipboard: {
+          readImage: jest.fn().mockResolvedValue(pngDataUrl)
+        }
+      };
+
+      const { result } = renderHook(() => useClipboardContentPaste());
+
+      let handled = false;
+      await act(async () => {
+        handled = await result.current.handleContentPaste();
+      });
+
+      expect(handled).toBe(true);
+      expect(mockUploadAsset).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: "clipboard",
+          workflow_id: "workflow-123",
+          parent_id: "folder-123"
+        })
+      );
+      global.fetch = originalFetch;
     });
   });
 
