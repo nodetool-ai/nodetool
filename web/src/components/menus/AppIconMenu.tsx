@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { memo } from "react";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { VERSION } from "../../config/constants";
@@ -25,7 +25,7 @@ type AppIconMenuProps = {
   handleClose: () => void;
 };
 
-const AppIconMenu: React.FC<AppIconMenuProps> = ({ anchorEl, handleClose }) => {
+const AppIconMenu: React.FC<AppIconMenuProps> = memo(({ anchorEl, handleClose }) => {
   const open = Boolean(anchorEl);
   const theme = useTheme();
   return (
@@ -62,6 +62,7 @@ const AppIconMenu: React.FC<AppIconMenuProps> = ({ anchorEl, handleClose }) => {
       </MenuItem>
     </Menu>
   );
-};
+});
+AppIconMenu.displayName = "AppIconMenu";
 
 export default AppIconMenu;

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { Typography, Box, CircularProgress, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -38,7 +38,7 @@ const InfoRow: React.FC<{
   value: string | null;
   copyable?: boolean;
   onCopy?: (value: string) => void;
-}> = ({ label, value, copyable = false, onCopy }) => {
+}> = memo(({ label, value, copyable = false, onCopy }) => {
   const theme = useTheme();
 
   const handleCopy = () => {
@@ -101,13 +101,14 @@ const InfoRow: React.FC<{
       </FlexRow>
     </FlexRow>
   );
-};
+});
+InfoRow.displayName = "InfoRow";
 
 const FeatureStatus: React.FC<{
   label: string;
   available: boolean;
   version?: string | null;
-}> = ({ label, available, version }) => {
+}> = memo(({ label, available, version }) => {
   const theme = useTheme();
 
   return (
@@ -150,9 +151,10 @@ const FeatureStatus: React.FC<{
       </Box>
     </Box>
   );
-};
+});
+FeatureStatus.displayName = "FeatureStatus";
 
-const AboutMenu: React.FC = () => {
+const AboutMenu: React.FC = memo(() => {
   const theme = useTheme();
   const [systemInfo, setSystemInfo] = useState<SystemInfoData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -426,6 +428,7 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
       </div>
     </Box>
   );
-};
+});
+AboutMenu.displayName = "AboutMenu";
 
 export default AboutMenu;
