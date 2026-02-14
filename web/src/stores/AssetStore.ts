@@ -27,6 +27,11 @@ import { QueryClient, QueryKey } from "@tanstack/react-query";
 import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
 import { AppError, createErrorMessage } from "../utils/errorHandling";
+import {
+  prepareUploadFile,
+  UploadValidationError,
+  UploadSource
+} from "../utils/imageUploadValidation";
 import type { components } from "../api";
 
 type AssetCreatePayload = {
@@ -44,6 +49,9 @@ type UploadProgressEvent = {
 
 const normalizeAssetError = (error: unknown, message: string) => {
   if (typeof AppError === "function" && error instanceof AppError) {
+    throw error;
+  }
+  if (error instanceof UploadValidationError) {
     throw error;
   }
   const normalized = createErrorMessage(error, message);
@@ -151,7 +159,8 @@ export interface AssetStore {
     file: File,
     workflow_id?: string,
     parent_id?: string,
-    onUploadProgress?: (progressEvent: UploadProgressEvent) => void
+    onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
+    source?: UploadSource
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string) => Promise<FolderTree>;
@@ -607,17 +616,27 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     file: File,
     workflow_id?: string,
     parent_id?: string,
-    onUploadProgress?: (progressEvent: UploadProgressEvent) => void
+    onUploadProgress?: (progressEvent: UploadProgressEvent) => void,
+    source: UploadSource = "file"
   ) => {
     try {
+      const preparedFile = await prepareUploadFile(file, source);
+      log.debug("[AssetStore] upload-construction", {
+        source,
+        declaredMime: preparedFile.declaredMime || null,
+        sniffedMime: preparedFile.sniffedMime,
+        size: preparedFile.size,
+        finalMime: preparedFile.finalMime
+      });
+
       const asset = await uploadAsset(
         {
           workflow_id: workflow_id,
           parent_id: parent_id,
-          content_type: file.type,
-          name: file.name
+          content_type: preparedFile.finalMime,
+          name: preparedFile.file.name
         },
-        file,
+        preparedFile.file,
         onUploadProgress
       );
       get().invalidateQueries(["assets", { parent_id: asset.parent_id }]);

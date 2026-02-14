@@ -158,6 +158,10 @@ describe("AssetStore", () => {
   });
 
   describe("createAsset", () => {
+    const pngBytes = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
+    ]);
+
     it("should create an asset with file upload", async () => {
       const mockFile = new File(["test content"], "test.jpg", {
         type: "image/jpeg"
@@ -186,6 +190,107 @@ describe("AssetStore", () => {
         body: expect.any(FormData)
       });
       expect(result).toEqual(mockAsset);
+    });
+
+    it("uploads valid clipboard PNG payload as image", async () => {
+      const mockFile = new File([pngBytes], "clipboard-image.jpeg", {
+        type: "image/jpeg"
+      });
+      const mockAsset: Asset = {
+        id: "new-asset-id",
+        name: "clipboard-image.png",
+        content_type: "image/png",
+        size: 1024,
+        created_at: "2023-01-01T00:00:00Z",
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
+        workflow_id: "test-workflow",
+        thumb_url: "/thumbnail.jpg",
+        metadata: {}
+      };
+
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
+
+      const { createAsset } = useAssetStore.getState();
+      const result = await createAsset(
+        mockFile,
+        "test-workflow",
+        undefined,
+        undefined,
+        "clipboard"
+      );
+
+      expect(client.POST).toHaveBeenCalledWith("/api/assets/", {
+        body: expect.any(FormData)
+      });
+      expect(result).toEqual(mockAsset);
+    });
+
+    it("rejects empty clipboard payload and does not send request", async () => {
+      const mockFile = new File([], "clipboard-image.png", {
+        type: "image/png"
+      });
+
+      const { client } = await import("../ApiClient");
+      const { createAsset } = useAssetStore.getState();
+
+      await expect(
+        createAsset(mockFile, "test-workflow", undefined, undefined, "clipboard")
+      ).rejects.toThrow("Clipboard content is not a valid image");
+      expect(client.POST).not.toHaveBeenCalled();
+    });
+
+    it("blocks invalid clipboard image bytes and does not send request", async () => {
+      const mockFile = new File([new Uint8Array([0x00, 0x01, 0x02])], "test.jpg", {
+        type: "image/jpeg"
+      });
+
+      const { client } = await import("../ApiClient");
+      const { createAsset } = useAssetStore.getState();
+
+      await expect(
+        createAsset(mockFile, "test-workflow", undefined, undefined, "clipboard")
+      ).rejects.toThrow("Clipboard content is not a valid image");
+      expect(client.POST).not.toHaveBeenCalled();
+    });
+
+    it("downgrades invalid dropped image bytes to octet-stream", async () => {
+      const mockFile = new File([new Uint8Array([0x00, 0x01, 0x02])], "test.jpg", {
+        type: "image/jpeg"
+      });
+      const mockAsset: Asset = {
+        id: "new-asset-id",
+        name: "test.jpg",
+        content_type: "application/octet-stream",
+        size: 1024,
+        created_at: "2023-01-01T00:00:00Z",
+        parent_id: "",
+        user_id: "test-user",
+        get_url: "/assets/test-asset-id",
+        workflow_id: "test-workflow",
+        thumb_url: "/thumbnail.jpg",
+        metadata: {}
+      };
+
+      const { client } = await import("../ApiClient");
+      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
+
+      const { createAsset } = useAssetStore.getState();
+      await createAsset(
+        mockFile,
+        "test-workflow",
+        undefined,
+        undefined,
+        "drop"
+      );
+
+      const [[, payload]] = (client.POST as jest.Mock).mock.calls;
+      const formData = payload.body as FormData;
+      const json = JSON.parse(formData.get("json") as string);
+
+      expect(json.content_type).toBe("application/octet-stream");
     });
 
     it("should handle upload progress callback", async () => {

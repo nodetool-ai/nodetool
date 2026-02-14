@@ -15,6 +15,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import { useNodes } from "../../contexts/NodeContext";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import useAuth from "../../stores/useAuth";
 import useMetadataStore from "../../stores/MetadataStore";
 import { Asset } from "../../stores/ApiTypes";
@@ -71,6 +72,7 @@ export const useClipboardContentPaste = () => {
     workflow: state.workflow
   }));
   const { uploadAsset } = useAssetUpload();
+  const addNotification = useNotificationStore((state) => state.addNotification);
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const { user } = useAuth((auth) => ({ user: auth.user }));
   const getMetadata = useMetadataStore((state) => state.getMetadata);
@@ -434,12 +436,18 @@ export const useClipboardContentPaste = () => {
                     // Upload the image as an asset
                     uploadAsset({
                       file,
+                      source: "clipboard",
                       workflow_id: workflow.id,
                       parent_id: currentFolderId || user?.id,
                       onCompleted: (uploadedAsset: Asset) => {
                         createImageNode(uploadedAsset, position);
                       },
                       onFailed: (error: string) => {
+                        addNotification({
+                          type: "error",
+                          alert: true,
+                          content: error
+                        });
                         log.error(
                           "Failed to upload file from clipboard:",
                           error
@@ -483,12 +491,18 @@ export const useClipboardContentPaste = () => {
           // Upload the image as an asset
           uploadAsset({
             file,
+            source: "clipboard",
             workflow_id: workflow.id,
             parent_id: currentFolderId || user?.id,
             onCompleted: (uploadedAsset: Asset) => {
               createImageNode(uploadedAsset, position);
             },
             onFailed: (error: string) => {
+              addNotification({
+                type: "error",
+                alert: true,
+                content: error
+              });
               log.error("Failed to upload clipboard image:", error);
             }
           });
@@ -515,6 +529,7 @@ export const useClipboardContentPaste = () => {
     reactFlow,
     readClipboardContent,
     uploadAsset,
+    addNotification,
     workflow.id,
     currentFolderId,
     user?.id,
