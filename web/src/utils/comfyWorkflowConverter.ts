@@ -267,8 +267,9 @@ export function nodeToolGraphToComfyPrompt(graph: Graph): ComfyUIPrompt {
     // Add connected inputs from edges
     graph.edges.forEach((edge) => {
       if (edge.target === node.id && edge.targetHandle) {
-        // Parse input name from handle
-        const inputName = edge.targetHandle.replace("input_", "");
+        // In NodeTool, targetHandle should be the actual input parameter name
+        // Not a generic "input_0" - use it directly as the input name
+        const inputName = edge.targetHandle;
         const sourceNodeId = edge.source;
         const outputSlot = edge.sourceHandle
           ? parseInt(edge.sourceHandle.replace("output_", ""), 10)

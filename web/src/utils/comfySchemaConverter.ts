@@ -102,9 +102,29 @@ export function comfySchemaToNodeMetadata(
   // Convert required inputs
   if (schema.input.required) {
     Object.entries(schema.input.required).forEach(([name, inputSpec]) => {
-      const property = mapComfyInputToProperty(name, inputSpec);
-      property.required = true;
-      properties.push(property);
+      // Handle array specs (enums)
+      if (Array.isArray(inputSpec) && Array.isArray(inputSpec[0])) {
+        // This is an enum like [["option1", "option2"], {}]
+        const property: Property = {
+          name,
+          type: {
+            type: "str",
+            optional: false,
+            type_args: []
+          },
+          description: "",
+          default: undefined,
+          required: true,
+          json_schema_extra: {
+            enum: inputSpec[0]
+          }
+        };
+        properties.push(property);
+      } else {
+        const property = mapComfyInputToProperty(name, inputSpec as [string, Record<string, any>?]);
+        property.required = true;
+        properties.push(property);
+      }
     });
   }
 
