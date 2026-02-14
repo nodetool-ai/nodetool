@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import { LabeledToggle } from "../ui_primitives";
 import type { TooltipProps } from "@mui/material/Tooltip";
@@ -15,7 +15,7 @@ export interface ReasoningToggleProps {
   className?: string;
 }
 
-export const ReasoningToggle: React.FC<ReasoningToggleProps> = ({
+export const ReasoningToggle: React.FC<ReasoningToggleProps> = memo(function ReasoningToggle({
   isOpen,
   onToggle,
   showLabel = "Show reasoning",
@@ -24,7 +24,7 @@ export const ReasoningToggle: React.FC<ReasoningToggleProps> = ({
   tooltipPlacement = "bottom-start",
   enterDelay = TOOLTIP_ENTER_DELAY,
   className
-}) => {
+}) {
   const handleToggle = useCallback(
     (event?: React.MouseEvent) => {
       if (event) {
@@ -47,6 +47,6 @@ export const ReasoningToggle: React.FC<ReasoningToggleProps> = ({
       className={className}
     />
   );
-};
+});
 
 export default ReasoningToggle;

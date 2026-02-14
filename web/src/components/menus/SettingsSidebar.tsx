@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 
 interface SidebarItem {
   id: string;
@@ -62,11 +62,11 @@ const sidebarStyles = (theme: Theme) => css`
   }
 `;
 
-const SettingsSidebar = ({
+const SettingsSidebar = memo(function SettingsSidebar({
   activeSection,
   sections,
   onSectionClick
-}: SettingsSidebarProps) => {
+}: SettingsSidebarProps) {
   const theme = useTheme();
 
   const handleItemClick = useCallback(
@@ -96,6 +96,6 @@ const SettingsSidebar = ({
       ))}
     </div>
   );
-};
+});
 
 export default SettingsSidebar;
