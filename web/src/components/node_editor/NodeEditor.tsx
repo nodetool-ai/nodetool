@@ -32,8 +32,7 @@ import { useTemporalNodes } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { useTheme } from "@mui/material/styles";
-import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
-import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
+import KeyboardShortcutsDialog from "./KeyboardShortcutsDialog";
 import CommandMenu from "../menus/CommandMenu";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
@@ -170,35 +169,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
-              <Modal
+              <KeyboardShortcutsDialog
                 open={showShortcuts}
-                onClose={(event, reason) => {
-                  if (reason === "backdropClick") {
-                    setShowShortcuts(false);
-                  }
-                }}
-                closeAfterTransition
-              >
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: "250px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "80vw",
-                    maxWidth: "1400px",
-                    padding: 4,
-                    backgroundColor: theme.vars.palette.grey[800],
-                    boxShadow: 24,
-                    borderRadius: 2,
-                    border: 0,
-                    outline: 0,
-                    overflow: "hidden"
-                  }}
-                >
-                  <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
-                </Box>
-              </Modal>
+                onClose={() => setShowShortcuts(false)}
+              />
             </>
           )}
         </Box>
