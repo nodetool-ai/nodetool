@@ -138,7 +138,7 @@ export function useRunFromHere(
       totalCachedPropertiesInjected: totalPropertiesInjected
     });
 
-    run({}, workflow, nodesWithCachedValues, downstream.edges);
+    run({}, workflow, nodesWithCachedValues, downstream.edges, undefined, subgraphNodeIds);
 
     addNotification({
       type: "info",
