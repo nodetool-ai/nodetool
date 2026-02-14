@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { Dialog, DialogContent } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import VibeCodingPanel from "./VibeCodingPanel";
@@ -10,11 +10,11 @@ interface VibeCodingModalProps {
   onClose: () => void;
 }
 
-const VibeCodingModal: React.FC<VibeCodingModalProps> = ({
+const VibeCodingModal: React.FC<VibeCodingModalProps> = memo(function VibeCodingModal({
   open,
   workflow,
   onClose
-}) => {
+}) {
   if (!workflow) {
     return null;
   }
@@ -38,6 +38,12 @@ const VibeCodingModal: React.FC<VibeCodingModalProps> = ({
       </DialogContent>
     </Dialog>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if open changes or workflow id changes
+  return prevProps.open === nextProps.open &&
+         prevProps.workflow?.id === nextProps.workflow?.id;
+});
+
+VibeCodingModal.displayName = "VibeCodingModal";
 
 export default VibeCodingModal;

@@ -6,7 +6,7 @@ import {
   Box,
   Tooltip
 } from "@mui/material";
-import React from "react";
+import React, { memo } from "react";
 import ModelListIndex from "./model_list/ModelListIndex";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
@@ -97,7 +97,7 @@ interface ModelsManagerProps {
   onClose: () => void;
 }
 
-const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
+const ModelsManagerInner: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
   const theme = useTheme();
 
   return (
@@ -135,5 +135,8 @@ const ModelsManager: React.FC<ModelsManagerProps> = ({ open, onClose }) => {
     </Dialog>
   );
 };
+
+const ModelsManager = memo(ModelsManagerInner);
+ModelsManager.displayName = "ModelsManager";
 
 export default ModelsManager;

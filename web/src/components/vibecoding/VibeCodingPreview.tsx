@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useCallback, useRef, useState } from "react";
+import React, { useMemo, useCallback, useRef, useState, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -82,7 +82,7 @@ interface VibeCodingPreviewProps {
   onViewSource?: () => void;
 }
 
-const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
+const VibeCodingPreviewInner: React.FC<VibeCodingPreviewProps> = ({
   html,
   workflowId,
   isGenerating = false,
@@ -189,5 +189,8 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
     </Box>
   );
 };
+
+const VibeCodingPreview = memo(VibeCodingPreviewInner);
+VibeCodingPreview.displayName = "VibeCodingPreview";
 
 export default VibeCodingPreview;
