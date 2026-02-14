@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { Typography, Box, CircularProgress, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -428,4 +428,4 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
   );
 };
 
-export default AboutMenu;
+export default memo(AboutMenu);
