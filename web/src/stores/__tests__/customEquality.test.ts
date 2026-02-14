@@ -1,552 +1,398 @@
+/**
+ * Tests for customEquality.ts
+ * Tests the custom equality function used for Zustand store history optimization
+ */
+
+import { describe, test, expect } from "@jest/globals";
 import { customEquality } from "../customEquality";
-import { PartializedNodeStore } from "../NodeStore";
-import { Edge, Node, Position } from "@xyflow/react";
-import { NodeData } from "../NodeData";
-
-const createMockNode = (
-  id: string,
-  overrides: Partial<Node<NodeData>> = {}
-): Node<NodeData> => ({
-  id,
-  type: "test",
-  position: { x: 0, y: 0 },
-  targetPosition: Position.Left,
-  sourcePosition: Position.Right,
-  selected: false,
-  dragging: false,
-  data: {
-    properties: {},
-    dynamic_properties: {},
-    selectable: true,
-    workflow_id: "workflow-1",
-    collapsed: false,
-    bypassed: false
-  },
-  ...overrides
-});
-
-const createMockEdge = (
-  id: string,
-  source: string,
-  target: string,
-  overrides: Partial<Edge> = {}
-): Edge => ({
-  id,
-  source,
-  target,
-  sourceHandle: null,
-  targetHandle: null,
-  type: "default",
-  selected: false,
-  ...overrides
-});
-
-const createMockWorkflow = (id: string, name: string) => ({
-  id,
-  name,
-  access: "private",
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  description: "",
-  tags: [],
-  thumbnail: null,
-  graph: { nodes: [], edges: [] },
-  input_schema: null,
-  output_schema: null,
-  is_public: false,
-  tool_name: null,
-  required_models: null,
-  metadata: {}
-});
+import type { PartializedNodeStore } from "../NodeStore";
+import { Edge, Node } from "@xyflow/react";
+import type { NodeData } from "../NodeData";
 
 describe("customEquality", () => {
-  describe("edge cases", () => {
-    it("should return false when previous is undefined", () => {
-      const current: PartializedNodeStore = {
-        workflow: createMockWorkflow("wf-1", "Test Workflow"),
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      expect(customEquality(undefined, current)).toBe(false);
-    });
+  const createMockNode = (
+    id: string,
+    overrides?: Partial<Node<NodeData>>
+  ): Node<NodeData> => ({
+    id,
+    type: "testType",
+    data: {
+      properties: {},
+      dynamic_properties: {},
+      workflow_id: "workflow-1"
+    },
+    position: { x: 0, y: 0 },
+    ...overrides
+  } as Node<NodeData>);
 
-    it("should return false when current is undefined", () => {
-      const previous: PartializedNodeStore = {
-        workflow: createMockWorkflow("wf-1", "Test Workflow"),
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      expect(customEquality(previous, undefined)).toBe(false);
-    });
+  const createMockEdge = (
+    id: string,
+    overrides?: Partial<Edge>
+  ): Edge => ({
+    id,
+    source: "source-1",
+    target: "target-1",
+    ...overrides
+  });
 
-    it("should return false when both are undefined", () => {
+  const createMockStore = (
+    overrides?: Partial<PartializedNodeStore>
+  ): PartializedNodeStore => ({
+    nodes: [],
+    edges: [],
+    workflow: { id: "workflow-1", name: "Test" },
+    ...overrides
+  }) as PartializedNodeStore;
+
+  describe("with undefined or null inputs", () => {
+    test("returns false when both previous and current are undefined", () => {
       expect(customEquality(undefined, undefined)).toBe(false);
     });
 
-    it("should return false when previous.nodes is undefined", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: undefined as any,
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
+    test("returns false when previous is undefined", () => {
+      const current = createMockStore();
+      expect(customEquality(undefined, current)).toBe(false);
+    });
+
+    test("returns false when current is undefined", () => {
+      const previous = createMockStore();
+      expect(customEquality(previous, undefined)).toBe(false);
+    });
+
+    test("returns false when previous is null", () => {
+      const current = createMockStore();
+      expect(customEquality(null, current)).toBe(false);
+    });
+
+    test("returns false when current is null", () => {
+      const previous = createMockStore();
+      expect(customEquality(previous, null)).toBe(false);
+    });
+  });
+
+  describe("with different node array lengths", () => {
+    test("returns false when previous has no nodes", () => {
+      const previous = createMockStore({ nodes: undefined });
+      const current = createMockStore({ nodes: [createMockNode("node-1")] });
+
       expect(customEquality(previous, current)).toBe(false);
     });
 
-    it("should return false when current.nodes is undefined", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: undefined as any,
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
+    test("returns false when current has no nodes", () => {
+      const previous = createMockStore({ nodes: [createMockNode("node-1")] });
+      const current = createMockStore({ nodes: undefined });
+
       expect(customEquality(previous, current)).toBe(false);
     });
 
-    it("should return false when previous.edges is undefined", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: undefined as any
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
+    test("returns false when node arrays have different lengths", () => {
+      const previous = createMockStore({
+        nodes: [createMockNode("node-1"), createMockNode("node-2")]
+      });
+      const current = createMockStore({
+        nodes: [createMockNode("node-1")]
+      });
 
-    it("should return false when current.edges is undefined", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: undefined as any
-      };
       expect(customEquality(previous, current)).toBe(false);
     });
   });
 
-  describe("node length comparison", () => {
-    it("should return false when node arrays have different lengths", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
+  describe("with different edge array lengths", () => {
+    test("returns false when previous has no edges", () => {
+      const previous = createMockStore({ edges: undefined });
+      const current = createMockStore({ edges: [createMockEdge("edge-1")] });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when current has no edges", () => {
+      const previous = createMockStore({ edges: [createMockEdge("edge-1")] });
+      const current = createMockStore({ edges: undefined });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when edge arrays have different lengths", () => {
+      const previous = createMockStore({
+        edges: [createMockEdge("edge-1"), createMockEdge("edge-2")]
+      });
+      const current = createMockStore({
+        edges: [createMockEdge("edge-1")]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+  });
+
+  describe("comparing nodes", () => {
+    test("returns false when node ids differ", () => {
+      const previous = createMockStore({
+        nodes: [createMockNode("node-1")]
+      });
+      const current = createMockStore({
+        nodes: [createMockNode("node-2")]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when node types differ", () => {
+      const previous = createMockStore({
+        nodes: [createMockNode("node-1", { type: "type-a" })]
+      });
+      const current = createMockStore({
+        nodes: [createMockNode("node-1", { type: "type-b" })]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when node collapsed state differs", () => {
+      const previous = createMockStore({
         nodes: [
-          createMockNode("node-1"),
-          createMockNode("node-2")
-        ],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when one node array is empty and other is not", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return true when both node arrays are empty", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(true);
-    });
-  });
-
-  describe("edge length comparison", () => {
-    it("should return false when edge arrays have different lengths", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [
-          createMockEdge("edge-1", "node-1", "node-2"),
-          createMockEdge("edge-2", "node-2", "node-3")
+          createMockNode("node-1", {
+            data: { ...createMockNode("node-1").data, collapsed: false } as NodeData
+          })
         ]
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return true when both edge arrays are empty", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(true);
-    });
-  });
-
-  describe("node comparison", () => {
-    it("should return true for identical nodes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { type: "test" })],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { type: "test" })],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(true);
-    });
-
-    it("should return false when node id changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-2")],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when node type changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { type: "type-a" })],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { type: "type-b" })],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when node position changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { position: { x: 0, y: 0 } })],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { position: { x: 100, y: 100 } })],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when node collapsed state changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { data: { properties: {}, dynamic_properties: {}, selectable: true, workflow_id: "workflow-1", collapsed: false, bypassed: false } })],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { data: { properties: {}, dynamic_properties: {}, selectable: true, workflow_id: "workflow-1", collapsed: true, bypassed: false } })],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when node bypassed state changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { data: { properties: {}, dynamic_properties: {}, selectable: true, workflow_id: "workflow-1", collapsed: false, bypassed: false } })],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { data: { properties: {}, dynamic_properties: {}, selectable: true, workflow_id: "workflow-1", collapsed: false, bypassed: true } })],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when node properties change", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { data: { properties: { prop1: "value1" }, dynamic_properties: {}, selectable: true, workflow_id: "workflow-1", collapsed: false, bypassed: false } })],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { data: { properties: { prop1: "value2" }, dynamic_properties: {}, selectable: true, workflow_id: "workflow-1", collapsed: false, bypassed: false } })],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return true when node properties are shallow equal", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { data: { properties: { prop1: "value1", prop2: "value2" }, dynamic_properties: {}, selectable: true, workflow_id: "workflow-1", collapsed: false, bypassed: false } })],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1", { data: { properties: { prop1: "value1", prop2: "value2" }, dynamic_properties: {}, selectable: true, workflow_id: "workflow-1", collapsed: false, bypassed: false } })],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(true);
-    });
-  });
-
-  describe("edge comparison", () => {
-    it("should return true for identical edges", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      expect(customEquality(previous, current)).toBe(true);
-    });
-
-    it("should return false when edge id changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2")],
-        edges: [createMockEdge("edge-2", "node-1", "node-2")]
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when edge source changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2")],
-        edges: [createMockEdge("edge-1", "node-2", "node-2")]
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when edge target changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2")]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2")],
-        edges: [createMockEdge("edge-1", "node-1", "node-1")]
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when edge sourceHandle changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2", { sourceHandle: "handle-1" })]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2", { sourceHandle: "handle-2" })]
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-
-    it("should return false when edge targetHandle changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2", { targetHandle: "handle-1" })]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: [createMockEdge("edge-1", "node-1", "node-2", { targetHandle: "handle-2" })]
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-  });
-
-  describe("workflow comparison", () => {
-    it("should return true when workflow is the same reference", () => {
-      const workflow = createMockWorkflow("wf-1", "Workflow 1");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1")],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(true);
-    });
-
-    it("should return false when workflow name changes", () => {
-      const workflow1 = createMockWorkflow("wf-1", "Workflow 1");
-      const workflow2 = createMockWorkflow("wf-1", "Workflow 2");
-      const previous: PartializedNodeStore = {
-        workflow: workflow1,
-        nodes: [createMockNode("node-1")],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow: workflow2,
-        nodes: [createMockNode("node-1")],
-        edges: []
-      };
-      expect(customEquality(previous, current)).toBe(false);
-    });
-  });
-
-  describe("multiple nodes and edges", () => {
-    it("should return true for multiple identical nodes and edges", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
+      });
+      const current = createMockStore({
         nodes: [
-          createMockNode("node-1"),
-          createMockNode("node-2"),
-          createMockNode("node-3")
-        ],
-        edges: [
-          createMockEdge("edge-1", "node-1", "node-2"),
-          createMockEdge("edge-2", "node-2", "node-3")
+          createMockNode("node-1", {
+            data: { ...createMockNode("node-1").data, collapsed: true } as NodeData
+          })
         ]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [
-          createMockNode("node-1"),
-          createMockNode("node-2"),
-          createMockNode("node-3")
-        ],
-        edges: [
-          createMockEdge("edge-1", "node-1", "node-2"),
-          createMockEdge("edge-2", "node-2", "node-3")
-        ]
-      };
-      expect(customEquality(previous, current)).toBe(true);
-    });
+      });
 
-    it("should return false when one node in array changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [
-          createMockNode("node-1"),
-          createMockNode("node-2", { position: { x: 0, y: 0 } }),
-          createMockNode("node-3")
-        ],
-        edges: []
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [
-          createMockNode("node-1"),
-          createMockNode("node-2", { position: { x: 100, y: 100 } }),
-          createMockNode("node-3")
-        ],
-        edges: []
-      };
       expect(customEquality(previous, current)).toBe(false);
     });
 
-    it("should return false when one edge in array changes", () => {
-      const workflow = createMockWorkflow("wf-1", "Test Workflow");
-      const previous: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2"), createMockNode("node-3")],
-        edges: [
-          createMockEdge("edge-1", "node-1", "node-2"),
-          createMockEdge("edge-2", "node-2", "node-3")
+    test("returns false when node bypassed state differs", () => {
+      const previous = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: { ...createMockNode("node-1").data, bypassed: false } as NodeData
+          })
         ]
-      };
-      const current: PartializedNodeStore = {
-        workflow,
-        nodes: [createMockNode("node-1"), createMockNode("node-2"), createMockNode("node-3")],
-        edges: [
-          createMockEdge("edge-1", "node-1", "node-2"),
-          createMockEdge("edge-2", "node-2", "node-1")
+      });
+      const current = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: { ...createMockNode("node-1").data, bypassed: true } as NodeData
+          })
         ]
-      };
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when node properties differ", () => {
+      const previous = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: {
+              ...createMockNode("node-1").data,
+              properties: { prop1: "value1" }
+            } as NodeData
+          })
+        ]
+      });
+      const current = createMockStore({
+        nodes: [
+          createMockNode("node-1", {
+            data: {
+              ...createMockNode("node-1").data,
+              properties: { prop1: "value2" }
+            } as NodeData
+          })
+        ]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when node position.x differs", () => {
+      const previous = createMockStore({
+        nodes: [createMockNode("node-1", { position: { x: 0, y: 0 } })]
+      });
+      const current = createMockStore({
+        nodes: [createMockNode("node-1", { position: { x: 100, y: 0 } })]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when node position.y differs", () => {
+      const previous = createMockStore({
+        nodes: [createMockNode("node-1", { position: { x: 0, y: 0 } })]
+      });
+      const current = createMockStore({
+        nodes: [createMockNode("node-1", { position: { x: 0, y: 100 } })]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns true when nodes are same", () => {
+      const node = createMockNode("node-1", {
+        position: { x: 100, y: 200 },
+        data: {
+          ...createMockNode("node-1").data,
+          properties: { prop1: "value1", prop2: "value2" },
+          collapsed: true,
+          bypassed: false
+        } as NodeData
+      });
+
+      const previous = createMockStore({ nodes: [node] });
+      const current = createMockStore({ nodes: [{ ...node }] });
+
+      expect(customEquality(previous, current)).toBe(true);
+    });
+  });
+
+  describe("comparing edges", () => {
+    test("returns false when edge ids differ", () => {
+      const previous = createMockStore({
+        edges: [createMockEdge("edge-1")]
+      });
+      const current = createMockStore({
+        edges: [createMockEdge("edge-2")]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when edge source differs", () => {
+      const previous = createMockStore({
+        edges: [createMockEdge("edge-1", { source: "source-a" })]
+      });
+      const current = createMockStore({
+        edges: [createMockEdge("edge-1", { source: "source-b" })]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when edge target differs", () => {
+      const previous = createMockStore({
+        edges: [createMockEdge("edge-1", { target: "target-a" })]
+      });
+      const current = createMockStore({
+        edges: [createMockEdge("edge-1", { target: "target-b" })]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when edge sourceHandle differs", () => {
+      const previous = createMockStore({
+        edges: [createMockEdge("edge-1", { sourceHandle: "handle-a" })]
+      });
+      const current = createMockStore({
+        edges: [createMockEdge("edge-1", { sourceHandle: "handle-b" })]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when edge targetHandle differs", () => {
+      const previous = createMockStore({
+        edges: [createMockEdge("edge-1", { targetHandle: "handle-a" })]
+      });
+      const current = createMockStore({
+        edges: [createMockEdge("edge-1", { targetHandle: "handle-b" })]
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns true when edges are same", () => {
+      const edge = createMockEdge("edge-1", {
+        source: "source-1",
+        target: "target-1",
+        sourceHandle: "source-handle",
+        targetHandle: "target-handle"
+      });
+
+      const previous = createMockStore({ edges: [edge] });
+      const current = createMockStore({ edges: [{ ...edge }] });
+
+      expect(customEquality(previous, current)).toBe(true);
+    });
+  });
+
+  describe("comparing workflows", () => {
+    test("returns false when workflows differ", () => {
+      const previous = createMockStore({
+        workflow: { id: "workflow-1", name: "Test" }
+      });
+      const current = createMockStore({
+        workflow: { id: "workflow-2", name: "Test 2" }
+      });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("uses shallow comparison for workflow", () => {
+      const workflow = { id: "workflow-1", name: "Test" };
+      const previous = createMockStore({ workflow });
+      const current = createMockStore({ workflow: { ...workflow } });
+
+      expect(customEquality(previous, current)).toBe(true);
+    });
+  });
+
+  describe("with multiple nodes and edges", () => {
+    test("returns true when all nodes and edges match", () => {
+      const nodes = [
+        createMockNode("node-1", { position: { x: 0, y: 0 } }),
+        createMockNode("node-2", { position: { x: 100, y: 100 } }),
+        createMockNode("node-3", { position: { x: 200, y: 200 } })
+      ];
+
+      const edges = [
+        createMockEdge("edge-1", { source: "node-1", target: "node-2" }),
+        createMockEdge("edge-2", { source: "node-2", target: "node-3" })
+      ];
+
+      const previous = createMockStore({ nodes, edges });
+      const current = createMockStore({
+        nodes: nodes.map(n => ({ ...n })),
+        edges: edges.map(e => ({ ...e }))
+      });
+
+      expect(customEquality(previous, current)).toBe(true);
+    });
+
+    test("returns false when one node differs", () => {
+      const nodes1 = [
+        createMockNode("node-1", { position: { x: 0, y: 0 } }),
+        createMockNode("node-2", { position: { x: 100, y: 100 } })
+      ];
+
+      const nodes2 = [
+        createMockNode("node-1", { position: { x: 0, y: 0 } }),
+        createMockNode("node-2", { position: { x: 999, y: 999 } })
+      ];
+
+      const previous = createMockStore({ nodes: nodes1 });
+      const current = createMockStore({ nodes: nodes2 });
+
+      expect(customEquality(previous, current)).toBe(false);
+    });
+
+    test("returns false when one edge differs", () => {
+      const edges1 = [
+        createMockEdge("edge-1", { source: "node-1", target: "node-2" })
+      ];
+
+      const edges2 = [
+        createMockEdge("edge-1", { source: "node-1", target: "node-999" })
+      ];
+
+      const previous = createMockStore({ edges: edges1 });
+      const current = createMockStore({ edges: edges2 });
+
       expect(customEquality(previous, current)).toBe(false);
     });
   });
