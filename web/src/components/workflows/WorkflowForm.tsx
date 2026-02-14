@@ -467,6 +467,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           >
             <MenuItem value="workflow">Workflow</MenuItem>
             <MenuItem value="chat">Chat</MenuItem>
+            <MenuItem value="comfy">Comfy</MenuItem>
             <MenuItem value="app">App</MenuItem>
             <MenuItem value="tool">Tool</MenuItem>
           </TextField>

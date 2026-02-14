@@ -26,6 +26,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { executeViaComfyUI } from "../../utils/comfyExecutor";
 
 // Icons
 import LayoutIcon from "@mui/icons-material/ViewModule";
@@ -482,6 +483,9 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
           <MenuItem tabIndex={-1} value="chat">
             Chat
           </MenuItem>
+          <MenuItem tabIndex={-1} value="comfy">
+            Comfy
+          </MenuItem>
           <MenuItem tabIndex={-1} value="tool">
             Tool
           </MenuItem>
@@ -510,10 +514,19 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
     saveWorkflow: state.saveWorkflow
   }));
 
-  const handleRun = useCallback(() => {
+  const handleRun = useCallback(async () => {
     if (!isWorkflowRunning) {
-      // Access current state directly when running, not in render
-      run({}, workflow, nodeStore.getState().nodes, nodeStore.getState().edges);
+      const currentState = nodeStore.getState();
+      const currentWorkflow = currentState.getWorkflow();
+      const shouldRunViaComfy =
+        currentWorkflow.run_mode === "comfy" || currentState.isComfyWorkflow();
+
+      if (shouldRunViaComfy) {
+        await executeViaComfyUI(currentWorkflow.graph, undefined, currentWorkflow);
+      } else {
+        // Access current state directly when running, not in render
+        run({}, workflow, currentState.nodes, currentState.edges);
+      }
     }
     setTimeout(() => {
       const w = getWorkflow(workflow.id);

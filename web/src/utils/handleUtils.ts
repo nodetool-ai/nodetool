@@ -76,6 +76,8 @@ export function findOutputHandle(
   handleName: string,
   metadata: NodeMetadata
 ): OutputHandle | undefined {
+  const isComfyNode = metadata.node_type.startsWith("comfy.");
+
   // First check static outputs
   const staticOutput = metadata.outputs.find(
     (output: OutputSlot) => output.name === handleName
@@ -113,6 +115,28 @@ export function findOutputHandle(
     };
   }
 
+  // Compatibility: imported Comfy graphs may still use slot-style handle names
+  // (e.g. output_0) while metadata exposes named outputs (e.g. MODEL).
+  if (isComfyNode) {
+    const match = /^output_(\d+)$/.exec(handleName);
+    if (match) {
+      const outputIndex = Number(match[1]);
+      if (
+        Number.isInteger(outputIndex) &&
+        outputIndex >= 0 &&
+        outputIndex < metadata.outputs.length
+      ) {
+        const indexedOutput = metadata.outputs[outputIndex];
+        return {
+          name: indexedOutput.name,
+          type: indexedOutput.type,
+          stream: indexedOutput.stream,
+          isDynamic: false
+        };
+      }
+    }
+  }
+
   return undefined;
 }
 
@@ -125,6 +149,8 @@ export function findInputHandle(
   handleName: string,
   metadata: NodeMetadata
 ): InputHandle | undefined {
+  const isComfyNode = metadata.node_type.startsWith("comfy.");
+
   // First check static properties
   const staticProperty = metadata.properties.find(
     (property: Property) => property.name === handleName
@@ -162,6 +188,27 @@ export function findInputHandle(
         type,
         isDynamic: true
       };
+    }
+  }
+
+  // Compatibility: imported Comfy graphs may still use slot-style handle names
+  // (e.g. input_0) while metadata exposes named inputs.
+  if (isComfyNode) {
+    const match = /^input_(\d+)$/.exec(handleName);
+    if (match) {
+      const inputIndex = Number(match[1]);
+      if (
+        Number.isInteger(inputIndex) &&
+        inputIndex >= 0 &&
+        inputIndex < metadata.properties.length
+      ) {
+        const indexedProperty = metadata.properties[inputIndex];
+        return {
+          name: indexedProperty.name,
+          type: indexedProperty.type,
+          isDynamic: false
+        };
+      }
     }
   }
 

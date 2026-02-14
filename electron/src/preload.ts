@@ -17,6 +17,9 @@ import {
   InstallLocationData,
   IpcChannels,
   IpcEvents,
+  LocalhostProxyWsCloseRequest,
+  LocalhostProxyWsOpenRequest,
+  LocalhostProxyWsSendRequest,
   MenuEventData,
   PackageUpdateInfo,
   PythonPackages,
@@ -28,6 +31,7 @@ import {
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
   AgentSessionOptions,
+  LocalhostProxyRequest,
 } from "./types.d";
 
 // ============================================================================
@@ -563,6 +567,21 @@ const api = {
         IpcChannels.SHELL_READ_SHORTCUT_LINK,
         validatePath(shortcutPath),
       ),
+  },
+
+  // ============================================================================
+  // localhostProxy: Generic localhost-only HTTP requests via main process
+  // ============================================================================
+  localhostProxy: {
+    request: (request: LocalhostProxyRequest) =>
+      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_REQUEST, request),
+    wsOpen: (request: LocalhostProxyWsOpenRequest) =>
+      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_WS_OPEN, request),
+    wsSend: (request: LocalhostProxyWsSendRequest) =>
+      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_WS_SEND, request),
+    wsClose: (request: LocalhostProxyWsCloseRequest) =>
+      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_WS_CLOSE, request),
+    onWsEvent: createEventSubscription(IpcChannels.LOCALHOST_PROXY_WS_EVENT),
   },
 
   // ============================================================================
