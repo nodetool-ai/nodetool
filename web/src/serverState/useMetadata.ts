@@ -5,7 +5,7 @@ import { client } from "../stores/ApiClient";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
 
-export const WORKFLOW_NODE_TYPE = "nodetool.workflows.base_node.WorkflowNode";
+export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 
 const defaultMetadata: Record<string, NodeMetadata> = {
   "nodetool.workflows.base_node.Preview": {

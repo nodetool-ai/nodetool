@@ -6,8 +6,11 @@ import NodeProgress from "../NodeProgress";
 import NodePropertyForm from "../NodePropertyForm";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
 import { WorkflowLoader } from "./WorkflowLoader";
-import type { NodeMetadata } from "../../../stores/ApiTypes";
+import type { NodeMetadata, Workflow } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
+import { useQuery } from "@tanstack/react-query";
+import { client } from "../../../stores/ApiClient";
+import { LoadingSpinner } from "../../ui_primitives";
 
 export interface WorkflowNodeContentProps {
   id: string;
@@ -44,10 +47,19 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
       id,
       data.dynamic_properties as Record<string, unknown>
     );
+    const subWorkflowId = data.workflow_id as string | undefined;
 
-    const workflowName = (
-      data.properties?.workflow_json as Record<string, unknown> | undefined
-    )?.name as string | undefined;
+    // const { isLoading, isError, data: subWorkflow } = useQuery({
+    //   queryKey: ["workflow", subWorkflowId],
+    //   queryFn: async () => {
+    //     if (!subWorkflowId) return null;
+    //     const workflow = await client.GET("/api/workflows/{id}", {
+    //       params: { path: { id: subWorkflowId } }
+    //     }).then((res) => res.data as Workflow);
+    //     return workflow;
+    //   },
+    //   enabled: Boolean(subWorkflowId)
+    // });
 
     return (
       <Box
@@ -57,7 +69,8 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
           height: "100%",
           minHeight: 0,
           display: "flex",
-          flexDirection: "column"
+          flexDirection: "column",
+          paddingTop: 3,
         }}
       >
         <WorkflowLoader nodeId={id} data={data} />
@@ -108,6 +121,7 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             nodeType={nodeType}
             data={data}
             showHandle={true}
+            editableDynamicInputs={false}
             hasAdvancedFields={hasAdvancedFields}
             showAdvancedFields={showAdvancedFields}
             basicFields={basicFields}
@@ -116,15 +130,15 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
         </Box>
         {(nodeMetadata.is_dynamic ||
           nodeMetadata.supports_dynamic_outputs) && (
-          <NodePropertyForm
-            id={id}
-            isDynamic={nodeMetadata.is_dynamic}
-            supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
-            dynamicOutputs={data.dynamic_outputs || {}}
-            onAddProperty={handleAddProperty}
-            nodeType={nodeType}
-          />
-        )}
+            <NodePropertyForm
+              id={id}
+              isDynamic={nodeMetadata.is_dynamic}
+              supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
+              dynamicOutputs={data.dynamic_outputs || {}}
+              onAddProperty={handleAddProperty}
+              nodeType={nodeType}
+            />
+          )}
         <Box sx={{ flexShrink: 0 }}>
           <NodeOutputs
             id={id}
@@ -136,6 +150,14 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
           <NodeProgress id={id} workflowId={workflowId} />
         )}
         {/* Workflow info footer */}
+        {/* {isLoading && (
+          <LoadingSpinner />
+        )}
+        {isError && (
+          <Typography variant="caption" color="error">
+            Error loading workflow
+          </Typography>
+        )} */}
         <Box
           sx={{
             flexShrink: 0,
@@ -147,8 +169,7 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
           }}
         >
           <Typography variant="caption" color="text.secondary">
-            Sub-Workflow
-            {workflowName && <> · {workflowName}</>}
+            {/* {subWorkflow?.name && <> · {subWorkflow.name}</>} */}
           </Typography>
         </Box>
       </Box>
