@@ -216,26 +216,56 @@ export function useProcessedEdges({
     const processedResultEdges = edges.map((edge) => {
       const sourceNode = getNode(edge.source);
       const targetNode = getNode(edge.target);
+      let normalizedSourceHandle = edge.sourceHandle;
+      let normalizedTargetHandle = edge.targetHandle;
+
+      if (sourceNode?.type && edge.sourceHandle) {
+        const sourceMetadata = getMetadata(sourceNode.type);
+        if (sourceMetadata) {
+          const sourceHandle = findOutputHandle(
+            sourceNode as any,
+            edge.sourceHandle,
+            sourceMetadata
+          );
+          if (sourceHandle?.name) {
+            normalizedSourceHandle = sourceHandle.name;
+          }
+        }
+      }
+
+      if (targetNode?.type && edge.targetHandle) {
+        const targetMetadata = getMetadata(targetNode.type);
+        if (targetMetadata) {
+          const targetHandle = findInputHandle(
+            targetNode as any,
+            edge.targetHandle,
+            targetMetadata
+          );
+          if (targetHandle?.name) {
+            normalizedTargetHandle = targetHandle.name;
+          }
+        }
+      }
 
       let sourceTypeSlug = "any";
       let sourceColor = defaultColor;
       let sourceTypeLabel = "Any";
       let targetTypeSlug = "any";
 
-      if (sourceNode && edge.sourceHandle) {
+      if (sourceNode && normalizedSourceHandle) {
         const effective = getEffectiveSourceType(
           sourceNode.id,
-          edge.sourceHandle
+          normalizedSourceHandle
         );
         sourceTypeSlug = effective.slug;
         sourceColor = effective.color;
         sourceTypeLabel = effective.label;
       }
 
-      if (targetNode && edge.targetHandle) {
+      if (targetNode && normalizedTargetHandle) {
         if (
           targetNode.type === REROUTE_TYPE &&
-          edge.targetHandle === REROUTE_INPUT
+          normalizedTargetHandle === REROUTE_INPUT
         ) {
           targetTypeSlug = sourceTypeSlug;
         } else if (targetNode.type) {
@@ -243,7 +273,7 @@ export function useProcessedEdges({
           if (targetMetadata) {
             const inputHandle = findInputHandle(
               targetNode as any,
-              edge.targetHandle,
+              normalizedTargetHandle,
               targetMetadata
             );
             if (inputHandle?.type?.type) {
@@ -307,6 +337,8 @@ export function useProcessedEdges({
 
       return {
         ...edge,
+        sourceHandle: normalizedSourceHandle,
+        targetHandle: normalizedTargetHandle,
         className: [edge.className, ...classes].filter(Boolean).join(" "),
         style: {
           ...edge.style,

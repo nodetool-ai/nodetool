@@ -46,6 +46,7 @@ import {
   openSystemDirectory,
 } from "./fileExplorer";
 import { exportDebugBundle } from "./debug";
+import WebSocket from "ws";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -79,6 +80,98 @@ export type IpcOnceHandler<T extends keyof IpcEvents> = (
 // Channels that should have their payloads redacted for security
 const SENSITIVE_CHANNELS = ["clipboard:write-text", "clipboard:read-text"];
 const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
+
+const LOCALHOST_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
+const LOCALHOST_PROXY_WS_STATES = new Map<
+  string,
+  {
+    senderId: number;
+    socket: WebSocket;
+  }
+>();
+const LOCALHOST_PROXY_WS_IDS_BY_SENDER = new Map<number, Set<string>>();
+
+function assertLocalhostUrl(
+  urlValue: string,
+  allowedProtocols: string[] = ["http:", "https:"],
+): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(urlValue);
+  } catch {
+    throw new Error("Invalid proxy URL");
+  }
+
+  if (!allowedProtocols.includes(parsed.protocol)) {
+    throw new Error(
+      `Only ${allowedProtocols.join("/")} URLs are allowed`,
+    );
+  }
+  if (!LOCALHOST_HOSTNAMES.has(parsed.hostname)) {
+    throw new Error("Only localhost URLs are allowed");
+  }
+  return parsed;
+}
+
+function sanitizeProxyMethod(method?: string): string {
+  const normalized = (method || "GET").toUpperCase();
+  const allowedMethods = new Set([
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "HEAD",
+    "OPTIONS",
+  ]);
+  if (!allowedMethods.has(normalized)) {
+    throw new Error(`Unsupported method: ${normalized}`);
+  }
+  return normalized;
+}
+
+function cleanupLocalhostProxyWsConnection(connectionId: string): void {
+  const existing = LOCALHOST_PROXY_WS_STATES.get(connectionId);
+  if (!existing) {
+    return;
+  }
+
+  const senderConnections = LOCALHOST_PROXY_WS_IDS_BY_SENDER.get(
+    existing.senderId,
+  );
+  if (senderConnections) {
+    senderConnections.delete(connectionId);
+    if (senderConnections.size === 0) {
+      LOCALHOST_PROXY_WS_IDS_BY_SENDER.delete(existing.senderId);
+    }
+  }
+
+  LOCALHOST_PROXY_WS_STATES.delete(connectionId);
+}
+
+function closeAllLocalhostProxyWsForSender(senderId: number): void {
+  const senderConnections = LOCALHOST_PROXY_WS_IDS_BY_SENDER.get(senderId);
+  if (!senderConnections) {
+    return;
+  }
+
+  for (const connectionId of senderConnections) {
+    const existing = LOCALHOST_PROXY_WS_STATES.get(connectionId);
+    if (existing) {
+      try {
+        existing.socket.close();
+      } catch (error) {
+        logMessage(
+          `Error closing localhost proxy websocket ${connectionId}: ${String(
+            error,
+          )}`,
+          "warn",
+        );
+      }
+    }
+    cleanupLocalhostProxyWsConnection(connectionId);
+  }
+}
 
 function requestRendererEvent<T>(
   event: Electron.IpcMainInvokeEvent,
@@ -794,6 +887,195 @@ export function initializeIpcHandlers(): void {
     const { isOllamaInstalled } = await import("./python");
     return await isOllamaInstalled();
   });
+
+  createIpcMainHandler(
+    IpcChannels.LOCALHOST_PROXY_REQUEST,
+    async (_event, request) => {
+      const parsedUrl = assertLocalhostUrl(request.url);
+      const method = sanitizeProxyMethod(request.method);
+      logMessage(
+        `[localhost-proxy] HTTP ${method} ${parsedUrl.toString()}`,
+        "info",
+      );
+
+      let response: Response;
+      try {
+        response = await fetch(parsedUrl.toString(), {
+          method,
+          headers: request.headers,
+          body: request.body,
+        });
+      } catch (error) {
+        logMessage(
+          `[localhost-proxy] HTTP ${method} ${parsedUrl.toString()} failed: ${String(error)}`,
+          "error",
+        );
+        throw error;
+      }
+
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+
+      const responseType = request.responseType || "text";
+      const data =
+        responseType === "json"
+          ? await response.json()
+          : await response.text();
+
+      logMessage(
+        `[localhost-proxy] HTTP ${method} ${parsedUrl.toString()} -> ${response.status}`,
+        response.ok ? "info" : "warn",
+      );
+
+      return {
+        status: response.status,
+        ok: response.ok,
+        headers: responseHeaders,
+        data,
+      };
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.LOCALHOST_PROXY_WS_OPEN,
+    async (event, request) => {
+      const parsedUrl = assertLocalhostUrl(request.url, ["ws:", "wss:"]);
+      const senderId = event.sender.id;
+      const connectionId = randomUUID();
+      logMessage(
+        `[localhost-proxy] WS open requested ${parsedUrl.toString()} (sender=${senderId})`,
+        "info",
+      );
+      const socket = new WebSocket(parsedUrl.toString(), request.protocols, {
+        headers: request.headers,
+      });
+
+      LOCALHOST_PROXY_WS_STATES.set(connectionId, { senderId, socket });
+      let senderConnections = LOCALHOST_PROXY_WS_IDS_BY_SENDER.get(senderId);
+      if (!senderConnections) {
+        senderConnections = new Set<string>();
+        LOCALHOST_PROXY_WS_IDS_BY_SENDER.set(senderId, senderConnections);
+        event.sender.once("destroyed", () => {
+          closeAllLocalhostProxyWsForSender(senderId);
+        });
+      }
+      senderConnections.add(connectionId);
+
+      socket.on("open", () => {
+        logMessage(
+          `[localhost-proxy] WS open ${connectionId} ${parsedUrl.toString()}`,
+          "info",
+        );
+        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+          connectionId,
+          event: "open",
+        });
+      });
+
+      socket.on("message", (data) => {
+        const textData =
+          typeof data === "string"
+            ? data
+            : Array.isArray(data)
+              ? Buffer.concat(data).toString("utf8")
+              : Buffer.from(data).toString("utf8");
+        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+          connectionId,
+          event: "message",
+          data: textData,
+        });
+        logMessage(
+          `[localhost-proxy] WS message ${connectionId} (${textData.length} bytes)`,
+          "info",
+        );
+      });
+
+      socket.on("error", (error) => {
+        logMessage(
+          `[localhost-proxy] WS error ${connectionId}: ${error.message}`,
+          "error",
+        );
+        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+          connectionId,
+          event: "error",
+          error: error.message,
+        });
+      });
+
+      socket.on("close", (code, reason) => {
+        logMessage(
+          `[localhost-proxy] WS close ${connectionId} code=${code} reason=${reason.toString("utf8")}`,
+          "info",
+        );
+        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+          connectionId,
+          event: "close",
+          code,
+          reason: reason.toString("utf8"),
+        });
+        cleanupLocalhostProxyWsConnection(connectionId);
+      });
+
+      return { connectionId };
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.LOCALHOST_PROXY_WS_SEND,
+    async (event, request) => {
+      logMessage(
+        `[localhost-proxy] WS send ${request.connectionId} (${request.data.length} bytes)`,
+        "info",
+      );
+      const connection = LOCALHOST_PROXY_WS_STATES.get(request.connectionId);
+      if (!connection) {
+        logMessage(
+          `[localhost-proxy] WS send failed: connection ${request.connectionId} not found`,
+          "warn",
+        );
+        throw new Error("WebSocket connection not found");
+      }
+      if (connection.senderId !== event.sender.id) {
+        logMessage(
+          `[localhost-proxy] WS send denied for ${request.connectionId}: sender mismatch`,
+          "warn",
+        );
+        throw new Error("WebSocket connection belongs to another renderer");
+      }
+      if (connection.socket.readyState !== WebSocket.OPEN) {
+        logMessage(
+          `[localhost-proxy] WS send failed for ${request.connectionId}: socket not open`,
+          "warn",
+        );
+        throw new Error("WebSocket is not open");
+      }
+      connection.socket.send(request.data);
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.LOCALHOST_PROXY_WS_CLOSE,
+    async (event, request) => {
+      logMessage(
+        `[localhost-proxy] WS close requested ${request.connectionId}`,
+        "info",
+      );
+      const connection = LOCALHOST_PROXY_WS_STATES.get(request.connectionId);
+      if (!connection) {
+        logMessage(
+          `[localhost-proxy] WS close noop: ${request.connectionId} not found`,
+          "warn",
+        );
+        return;
+      }
+      if (connection.senderId !== event.sender.id) {
+        throw new Error("WebSocket connection belongs to another renderer");
+      }
+      connection.socket.close(request.code, request.reason);
+    },
+  );
 
   // Shell module handlers
   createIpcMainHandler(

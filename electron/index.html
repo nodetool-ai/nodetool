@@ -11,7 +11,7 @@
       frame-src 'self' http://127.0.0.1:7777;
       img-src 'self' data: blob: https:;
       media-src 'self' blob: mediadevices: *;
-      connect-src 'self' http://127.0.0.1:7777 mediadevices: * blob: data:;
+      connect-src 'self' http://127.0.0.1:7777 http://localhost:8000 http://127.0.0.1:8000 ws://localhost:8000 ws://127.0.0.1:8000 mediadevices: * blob: data:;
       child-src 'self' http://127.0.0.1:7777;
     "
     />

@@ -177,6 +177,21 @@ declare global {
         readShortcutLink: (shortcutPath: string) => ShortcutDetails;
       };
 
+      // Generic localhost-only HTTP proxy via main process
+      localhostProxy: {
+        request: (
+          request: LocalhostProxyRequest,
+        ) => Promise<LocalhostProxyResponse>;
+        wsOpen: (
+          request: LocalhostProxyWsOpenRequest,
+        ) => Promise<LocalhostProxyWsOpenResponse>;
+        wsSend: (request: LocalhostProxyWsSendRequest) => Promise<void>;
+        wsClose: (request: LocalhostProxyWsCloseRequest) => Promise<void>;
+        onWsEvent: (
+          callback: (data: LocalhostProxyWsEvent) => void,
+        ) => () => void;
+      };
+
       // Settings
       settings: {
         getCloseBehavior: () => Promise<WindowCloseAction>;
@@ -398,6 +413,62 @@ export interface ShortcutDetails {
   toastActivatorClsid?: string;
 }
 
+export type LocalhostProxyMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE"
+  | "HEAD"
+  | "OPTIONS";
+
+export type LocalhostProxyResponseType = "text" | "json";
+
+export interface LocalhostProxyRequest {
+  url: string;
+  method?: LocalhostProxyMethod;
+  headers?: Record<string, string>;
+  body?: string;
+  responseType?: LocalhostProxyResponseType;
+}
+
+export interface LocalhostProxyResponse {
+  status: number;
+  ok: boolean;
+  headers: Record<string, string>;
+  data: unknown;
+}
+
+export interface LocalhostProxyWsOpenRequest {
+  url: string;
+  headers?: Record<string, string>;
+  protocols?: string[];
+}
+
+export interface LocalhostProxyWsOpenResponse {
+  connectionId: string;
+}
+
+export interface LocalhostProxyWsSendRequest {
+  connectionId: string;
+  data: string;
+}
+
+export interface LocalhostProxyWsCloseRequest {
+  connectionId: string;
+  code?: number;
+  reason?: string;
+}
+
+export interface LocalhostProxyWsEvent {
+  connectionId: string;
+  event: "open" | "message" | "error" | "close";
+  data?: string;
+  error?: string;
+  code?: number;
+  reason?: string;
+}
+
 // IPC Channel names as const enum for type safety
 export enum IpcChannels {
   GET_SERVER_STATE = "get-server-state",
@@ -494,10 +565,15 @@ export enum IpcChannels {
   FRONTEND_TOOLS_GET_MANIFEST = "frontend-tools-get-manifest",
   FRONTEND_TOOLS_CALL = "frontend-tools-call",
   FRONTEND_TOOLS_ABORT = "frontend-tools-abort",
+  LOCALHOST_PROXY_REQUEST = "localhost-proxy-request",
   FRONTEND_TOOLS_GET_MANIFEST_REQUEST = "frontend-tools-get-manifest-request",
   FRONTEND_TOOLS_GET_MANIFEST_RESPONSE = "frontend-tools-get-manifest-response",
   FRONTEND_TOOLS_CALL_REQUEST = "frontend-tools-call-request",
   FRONTEND_TOOLS_CALL_RESPONSE = "frontend-tools-call-response",
+  LOCALHOST_PROXY_WS_OPEN = "localhost-proxy-ws-open",
+  LOCALHOST_PROXY_WS_SEND = "localhost-proxy-ws-send",
+  LOCALHOST_PROXY_WS_CLOSE = "localhost-proxy-ws-close",
+  LOCALHOST_PROXY_WS_EVENT = "localhost-proxy-ws-event",
 }
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
@@ -666,6 +742,10 @@ export interface IpcRequest {
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolsGetManifestRequest;
   [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallRequest;
   [IpcChannels.FRONTEND_TOOLS_ABORT]: string; // sessionId
+  [IpcChannels.LOCALHOST_PROXY_REQUEST]: LocalhostProxyRequest;
+  [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenRequest;
+  [IpcChannels.LOCALHOST_PROXY_WS_SEND]: LocalhostProxyWsSendRequest;
+  [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: LocalhostProxyWsCloseRequest;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -754,6 +834,10 @@ export interface IpcResponse {
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolManifest[];
   [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallResponse;
   [IpcChannels.FRONTEND_TOOLS_ABORT]: void;
+  [IpcChannels.LOCALHOST_PROXY_REQUEST]: LocalhostProxyResponse;
+  [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenResponse;
+  [IpcChannels.LOCALHOST_PROXY_WS_SEND]: void;
+  [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: void;
 }
 
 // Event types for each IPC channel
@@ -776,6 +860,7 @@ export interface IpcEvents {
   [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_RESPONSE]: FrontendToolsManifestResponseEvent;
   [IpcChannels.FRONTEND_TOOLS_CALL_REQUEST]: FrontendToolsCallRequestEvent;
   [IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE]: FrontendToolsCallResponseEvent;
+  [IpcChannels.LOCALHOST_PROXY_WS_EVENT]: LocalhostProxyWsEvent;
 }
 
 export type PythonPackages = string[];
