@@ -1,11 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 import { Box } from "@mui/material";
 
 interface MiniAppBackgroundProps {
   children: React.ReactNode;
 }
 
-const MiniAppBackground: React.FC<MiniAppBackgroundProps> = ({ children }) => {
+const MiniAppBackground: React.FC<MiniAppBackgroundProps> = memo(function MiniAppBackground({ children }) {
   return (
     <Box
       sx={{
@@ -19,6 +19,6 @@ const MiniAppBackground: React.FC<MiniAppBackgroundProps> = ({ children }) => {
       {children}
     </Box>
   );
-};
+});
 
 export default MiniAppBackground;
