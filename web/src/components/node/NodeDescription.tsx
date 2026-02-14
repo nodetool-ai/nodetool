@@ -60,11 +60,6 @@ const NodeDescription = React.memo(
       [onTagClick]
     );
 
-    const createTagClickHandler = useCallback(
-      (tag: string) => () => handleTagClick(tag),
-      [handleTagClick]
-    );
-
     if (!description) {
       return null;
     }
@@ -96,7 +91,7 @@ const NodeDescription = React.memo(
               <span
                 key={index}
                 className="tag"
-                onClick={createTagClickHandler(tag)}
+                onClick={() => handleTagClick(tag)}
                 style={{ cursor: onTagClick ? "pointer" : "default" }}
               >
                 {tag}
