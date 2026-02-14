@@ -648,6 +648,9 @@ export const useNodeEditorShortcuts = (
       if (sc.electronOnly && !electronDetails.isElectron) {
         return;
       }
+      if (sc.skipInElectron && electronDetails.isElectron) {
+        return;
+      }
 
       const meta = shortcutMeta[sc.slug];
       if (!meta) {
