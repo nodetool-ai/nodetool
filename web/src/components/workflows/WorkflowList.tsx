@@ -137,8 +137,10 @@ const WorkflowList = () => {
     }
 
     if (showFavoritesOnly) {
+      // Optimize: Use Set for O(1) lookup instead of O(n) array.includes
+      const favoriteSet = new Set(favoriteWorkflowIds);
       filtered = filtered.filter((workflow) =>
-        favoriteWorkflowIds.includes(workflow.id)
+        favoriteSet.has(workflow.id)
       );
     }
 

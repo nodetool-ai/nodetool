@@ -148,12 +148,14 @@ const Inspector: React.FC = () => {
     () => new Set(selectedNodes.map((node) => node.id)),
     [selectedNodes]
   );
-  const edges = useNodes((state) =>
-    state.edges.filter(
+
+  // Memoize edge filtering to prevent creating new arrays on unrelated edge changes
+  const edges = useNodes((state) => {
+    return state.edges.filter(
       (edge) =>
         selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)
-    )
-  );
+    );
+  });
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);

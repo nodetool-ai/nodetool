@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Button,
@@ -21,6 +21,7 @@ import type { Node } from "@xyflow/react";
 import type { NodeData } from "../../stores/NodeData";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import PanelHeadline from "../ui/PanelHeadline";
+import isEqual from "lodash/isEqual";
 
 type ExplorerEntry = {
   node: Node<NodeData>;
@@ -357,4 +358,4 @@ const NodeExplorer: React.FC = () => {
   );
 };
 
-export default NodeExplorer;
+export default memo(NodeExplorer, isEqual);
