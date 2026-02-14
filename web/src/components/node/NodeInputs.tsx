@@ -106,7 +106,7 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
 },
 isEqual);
 
-export const NodeInputs: React.FC<NodeInputsProps> = ({
+const NodeInputsInner: React.FC<NodeInputsProps> = ({
   id,
   properties,
   data,
@@ -344,4 +344,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   );
 };
 
-export default memo(NodeInputs, isEqual);
+export default memo(NodeInputsInner, isEqual);
+
+// Export with backward compatible name
+export const NodeInputs = NodeInputsInner;
