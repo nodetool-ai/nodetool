@@ -340,6 +340,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const threadSubscriptions: Record<string, () => void> = {};
         const stateThreads = Object.keys(get().threads);
         stateThreads.forEach((threadId) => {
+          // Unsubscribe any handler that was registered between the
+          // initial cleanup and this point (possible during the await)
+          const existing = get().wsThreadSubscriptions[threadId];
+          if (existing) {
+            existing();
+          }
           threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
             threadId,
             (data: MsgpackData) => {
@@ -471,17 +477,27 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Ensure we have a WS subscription for this thread before sending,
         // otherwise streamed chunks/messages will be routed with no handler.
         if (!get().wsThreadSubscriptions[threadId]) {
-          set((state) => ({
-            wsThreadSubscriptions: {
-              ...state.wsThreadSubscriptions,
-              [threadId]: globalWebSocketManager.subscribe(
-                threadId as string,
-                (data: MsgpackData) => {
-                  handleChatWebSocketMessage(data, set, get);
-                }
-              )
+          const unsub = globalWebSocketManager.subscribe(
+            threadId as string,
+            (data: MsgpackData) => {
+              handleChatWebSocketMessage(data, set, get);
             }
-          }));
+          );
+          set((state) => {
+            // Guard against a race: if another path registered a handler
+            // between our check and this set(), clean ours up to avoid a leak.
+            const existing = state.wsThreadSubscriptions[threadId as string];
+            if (existing) {
+              unsub();
+              return {};
+            }
+            return {
+              wsThreadSubscriptions: {
+                ...state.wsThreadSubscriptions,
+                [threadId as string]: unsub
+              }
+            };
+          });
         }
 
         set((state) => ({
@@ -620,7 +636,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
           return data;
         } catch (error: unknown) {
           const isNotFound =
-            error && typeof error === "object" && "status" in error && error.status === 404;
+            error &&
+            typeof error === "object" &&
+            "status" in error &&
+            error.status === 404;
           if (!isNotFound) {
             log.error("Failed to fetch thread:", error);
           }
@@ -639,6 +658,20 @@ const useGlobalChatStore = create<GlobalChatState>()(
           updated_at: now
         } as Thread;
 
+        // Subscribe first, then atomically store the unsubscribe handle.
+        // This avoids the closure being created inside set() where a stale
+        // read of wsThreadSubscriptions could leak an old handler.
+        const existingUnsub = get().wsThreadSubscriptions[id];
+        if (existingUnsub) {
+          existingUnsub();
+        }
+        const newUnsub = globalWebSocketManager.subscribe(
+          id,
+          (data: MsgpackData) => {
+            handleChatWebSocketMessage(data, set, get);
+          }
+        );
+
         set((state) => ({
           threads: {
             ...state.threads,
@@ -656,9 +689,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           },
           wsThreadSubscriptions: {
             ...state.wsThreadSubscriptions,
-            [id]: globalWebSocketManager.subscribe(id, (data: MsgpackData) => {
-              handleChatWebSocketMessage(data, set, get);
-            })
+            [id]: newUnsub
           }
         }));
 
@@ -672,17 +703,25 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
 
         if (!get().wsThreadSubscriptions[threadId]) {
-          set((state) => ({
-            wsThreadSubscriptions: {
-              ...state.wsThreadSubscriptions,
-              [threadId]: globalWebSocketManager.subscribe(
-                threadId,
-                (data: MsgpackData) => {
-                  handleChatWebSocketMessage(data, set, get);
-                }
-              )
+          const unsub = globalWebSocketManager.subscribe(
+            threadId,
+            (data: MsgpackData) => {
+              handleChatWebSocketMessage(data, set, get);
             }
-          }));
+          );
+          set((state) => {
+            const existing = state.wsThreadSubscriptions[threadId];
+            if (existing) {
+              unsub();
+              return {};
+            }
+            return {
+              wsThreadSubscriptions: {
+                ...state.wsThreadSubscriptions,
+                [threadId]: unsub
+              }
+            };
+          });
         }
 
         set((state) => ({

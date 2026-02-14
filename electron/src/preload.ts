@@ -27,6 +27,7 @@ import {
   SystemDirectory,
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
+  AgentSessionOptions,
 } from "./types.d";
 
 // ============================================================================
@@ -615,6 +616,96 @@ const api = {
     /** Open a native folder selection dialog */
     openFolder: (options?: DialogOpenFolderRequest) =>
       ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
+  },
+
+  // ============================================================================
+  // agent: Claude Agent SDK operations
+  // ============================================================================
+  agent: {
+    /** Create a new Claude Agent session */
+    createSession: (options: AgentSessionOptions) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_CREATE_SESSION, options),
+
+    /** List available models for the selected provider */
+    listModels: (options?: { provider?: "claude" | "codex"; workspacePath?: string }) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_LIST_MODELS, options || {}),
+
+    /** Send a message to an active Claude Agent session */
+    sendMessage: (sessionId: string, message: string) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_SEND_MESSAGE, {
+        sessionId,
+        message,
+      }),
+
+    /** Stop execution of the currently running turn for a session */
+    stopExecution: (sessionId: string) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_STOP_EXECUTION, sessionId),
+
+    /** Close an active Claude Agent session */
+    closeSession: (sessionId: string) =>
+      ipcRenderer.invoke(IpcChannels.AGENT_CLOSE_SESSION, sessionId),
+
+    /** Subscribe to streaming messages from the Claude Agent */
+    onStreamMessage: createEventSubscription(
+      IpcChannels.AGENT_STREAM_MESSAGE,
+    ),
+  },
+
+  // ============================================================================
+  // frontendTools: Frontend tools for Claude Agent integration
+  // ============================================================================
+  frontendTools: {
+    /** Get the manifest of available frontend tools */
+    getManifest: (sessionId: string) =>
+      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_GET_MANIFEST, {
+        sessionId,
+      }),
+
+    /** Call a frontend tool and return its result */
+    call: (
+      sessionId: string,
+      toolCallId: string,
+      name: string,
+      args: unknown,
+    ) =>
+      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_CALL, {
+        sessionId,
+        toolCallId,
+        name,
+        args,
+      }),
+
+    /** Subscribe to tool abort events */
+    onAbort: createEventSubscription(IpcChannels.FRONTEND_TOOLS_ABORT),
+  },
+
+  // ============================================================================
+  // ipc: Low-level IPC methods for registering handlers
+  // ============================================================================
+  ipc: {
+    /** Invoke a main-process IPC handler */
+    invoke: (channel: string, ...args: unknown[]) =>
+      ipcRenderer.invoke(channel, ...args),
+
+    /** Send an event to the main process */
+    send: (channel: string, ...args: unknown[]) =>
+      ipcRenderer.send(channel, ...args),
+
+    /** Register a listener for IPC send events from the main process */
+    on: (
+      channel: string,
+      listener: (event: Electron.IpcRendererEvent, ...args: unknown[]) => void,
+    ) => {
+      ipcRenderer.on(channel, listener);
+    },
+
+    /** Remove a listener for IPC send events */
+    off: (
+      channel: string,
+      listener: (...args: unknown[]) => void,
+    ) => {
+      ipcRenderer.removeListener(channel, listener);
+    },
   },
 };
 

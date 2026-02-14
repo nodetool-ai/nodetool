@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { FrontendToolRegistry } from "../frontendTools";
 import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
 
@@ -5,18 +6,13 @@ FrontendToolRegistry.register({
   name: "ui_connect_nodes",
   description:
     "Connect two nodes by handles. Requires source/target ids and handles.",
-  hidden: true,
-  parameters: {
-    type: "object",
-    properties: {
-      source_id: { type: "string" },
-      source_handle: { type: "string" },
-      target_id: { type: "string" },
-      target_handle: { type: "string" },
-      workflow_id: optionalWorkflowIdSchema
-    },
-    required: ["source_id", "source_handle", "target_id", "target_handle"]
-  },
+  parameters: z.object({
+    source_id: z.string(),
+    source_handle: z.string(),
+    target_id: z.string(),
+    target_handle: z.string(),
+    workflow_id: optionalWorkflowIdSchema
+  }),
   async execute(
     { source_id, source_handle, target_id, target_handle, workflow_id },
     ctx

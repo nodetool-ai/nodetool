@@ -3,17 +3,14 @@ import { FrontendToolRegistry } from "../frontendTools";
 import { optionalWorkflowIdSchema, resolveWorkflowId } from "./workflow";
 
 FrontendToolRegistry.register({
-  name: "ui_move_node",
-  description: "Move a node to an absolute canvas position.",
+  name: "ui_delete_edge",
+  description: "Delete an edge from the workflow graph.",
+  requireUserConsent: true,
   parameters: z.object({
-    node_id: z.string(),
-    position: z.object({
-      x: z.number(),
-      y: z.number()
-    }),
+    edge_id: z.string(),
     workflow_id: optionalWorkflowIdSchema
   }),
-  async execute({ node_id, position, workflow_id }, ctx) {
+  async execute({ edge_id, workflow_id }, ctx) {
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
@@ -21,18 +18,12 @@ FrontendToolRegistry.register({
       throw new Error(`No node store for workflow ${workflowId}`);
     }
 
-    const node = nodeStore.findNode(node_id);
-    if (!node) {
-      throw new Error(`Node not found: ${node_id}`);
+    const edge = nodeStore.findEdge(edge_id);
+    if (!edge) {
+      throw new Error(`Edge not found: ${edge_id}`);
     }
 
-    nodeStore.updateNode(node_id, {
-      position: {
-        x: position.x,
-        y: position.y
-      }
-    });
-
-    return { ok: true, node_id, position };
+    nodeStore.deleteEdge(edge_id);
+    return { ok: true, edge_id };
   }
 });

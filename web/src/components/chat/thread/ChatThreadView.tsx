@@ -221,7 +221,39 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
 
     // Memoize filtered messages and last user message index to avoid recalculations on each render
     const { filteredMessages, lastUserMessageIndex } = useMemo(() => {
-      const filtered = messages.filter((m) => m.role !== "tool");
+      const filtered = messages.filter((m) => {
+        // Always hide tool role messages
+        if (m.role === "tool") {
+          return false;
+        }
+
+        // Check if message has any visible content
+        const hasToolCalls = Array.isArray(m.tool_calls) && m.tool_calls.length > 0;
+        const hasExecutionEvent = !!m.execution_event_type || m.role === "agent_execution";
+
+        let hasContent = false;
+        if (typeof m.content === "string") {
+          hasContent = m.content.trim().length > 0;
+        } else if (Array.isArray(m.content)) {
+          hasContent = m.content.some((block: any) => {
+            if (!block || typeof block !== "object") {
+              return false;
+            }
+            if (block.type === "text") {
+              return typeof block.text === "string" && block.text.trim().length > 0;
+            }
+            if (block.type === "image_url" || block.type === "image") {
+              return true;
+            }
+            return true; // Other content types are considered non-empty
+          });
+        } else if (m.content != null) {
+          hasContent = true; // Non-null/non-string/non-array content (e.g. object)
+        }
+
+        // Keep the message if it has any visible element
+        return hasContent || hasToolCalls || hasExecutionEvent;
+      });
       const lastUserIdx = filtered.reduce(
         (lastIdx, msg, idx) => (msg.role === "user" ? idx : lastIdx),
         -1
@@ -341,7 +373,7 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
         )}
         <div ref={bottomRef} style={{ height: 1 }} />
         {/* Dynamic spacer that adapts based on viewport and content needs */}
-        <DynamicScrollSpacer 
+        <DynamicScrollSpacer
           lastUserMessageRef={lastUserMessageRef}
           bottomRef={bottomRef}
           scrollHost={scrollHost}
@@ -492,11 +524,11 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       // Calculate the exact position to scroll to for precise top alignment
       const elementRect = el.getBoundingClientRect();
       const scrollHostRect = scrollHost?.getBoundingClientRect();
-      
+
       if (scrollHostRect) {
         const currentScrollTop = scrollHost?.scrollTop || 0;
         const targetScrollTop = currentScrollTop + elementRect.top - scrollHostRect.top;
-        
+
         scrollHost?.scrollTo({
           top: targetScrollTop,
           behavior: 'smooth'
@@ -504,7 +536,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       } else {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-      
+
       userHasScrolledUpRef.current = false;
       // Set flag to prevent auto-scroll to bottom during streaming
       scrolledToUserMessageRef.current = true;
@@ -557,7 +589,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       messages.length > 0 ? messages[messages.length - 1] : null;
     if (lastMessage?.role === "user") {
       scrollToLastUserMessage();
-      
+
       // Clear the flag after a short delay to allow the scroll to complete
       // but still prevent immediate auto-scroll during streaming
       setTimeout(() => {

@@ -106,6 +106,10 @@ import "./lib/tools/builtin/updateNodeData";
 import "./lib/tools/builtin/moveNode";
 import "./lib/tools/builtin/setNodeTitle";
 import "./lib/tools/builtin/graph";
+import "./lib/tools/builtin/getGraph";
+import "./lib/tools/builtin/searchNodes";
+import "./lib/tools/builtin/deleteNode";
+import "./lib/tools/builtin/deleteEdge";
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
 (window as any).log = log;

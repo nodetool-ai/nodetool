@@ -515,6 +515,7 @@ async function startServer(): Promise<void> {
     "serve",
     "--port",
     String(selectedPort),
+    "--mcp",
     "--static-folder",
     webPath,
   ];
