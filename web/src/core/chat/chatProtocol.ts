@@ -90,6 +90,7 @@ import {
   LogUpdate,
   PlanningUpdate,
   Prediction,
+  SaveUpdate,
   StepResult,
   TaskUpdate,
   ToolCallUpdate
@@ -137,6 +138,8 @@ export type MsgpackData =
   | NodeUpdate
   | EdgeUpdate
   | Message
+  | LogUpdate
+  | SaveUpdate
   | ToolCallUpdate
   | TaskUpdate
   | PlanningUpdate

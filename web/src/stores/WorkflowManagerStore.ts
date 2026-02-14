@@ -150,6 +150,7 @@ export type WorkflowManagerState = {
   // Track notified autosave versions to prevent duplicate notifications
   notifiedAutosaveVersions: Record<string, Set<string>>;
   getSystemStats: () => SystemStats | null;
+  setSystemStats: (stats: SystemStats) => void;
   getCurrentLoadingState: () => undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;

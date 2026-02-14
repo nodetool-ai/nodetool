@@ -12,9 +12,11 @@ import {
   PreviewUpdate,
   EdgeUpdate,
   LogUpdate,
+  SaveUpdate,
   StepResult,
   Message,
-  Chunk
+  Chunk,
+  ErrorMessage
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
@@ -127,6 +129,7 @@ export type MsgpackData =
   | NodeUpdate
   | Message
   | LogUpdate
+  | SaveUpdate
   | ToolCallUpdate
   | ToolResultUpdate
   | TaskUpdate
@@ -135,6 +138,7 @@ export type MsgpackData =
   | StepResult
   | PreviewUpdate
   | EdgeUpdate
+  | ErrorMessage
   | Notification;
 
 interface JobRunState {
@@ -521,5 +525,20 @@ export const handleUpdate = (
     //     });
     //   }
     // }
+  }
+
+  if (data.type === "save_update") {
+    const save = data as SaveUpdate;
+    setResult(workflow.id, save.node_id, save.value);
+  }
+
+  if (data.type === "error") {
+    const error = data as ErrorMessage;
+    log.error("Workflow error:", error.message);
+    runner.addNotification({
+      type: "error",
+      alert: true,
+      content: error.message
+    });
   }
 };

@@ -36,3 +36,6 @@ export const DOWNLOAD_URL = getWebSocketUrl("/ws/download");
 
 /** WebSocket URL for the terminal endpoint. */
 export const TERMINAL_URL = getWebSocketUrl("/ws/terminal");
+
+/** WebSocket URL for system updates (stats and resource changes). */
+export const UPDATES_WS_URL = getWebSocketUrl("/ws/updates");
