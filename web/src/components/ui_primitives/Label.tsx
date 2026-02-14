@@ -5,7 +5,7 @@
  * Provides consistent label styling across the application.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -41,7 +41,7 @@ export interface LabelProps extends Omit<TypographyProps, 'variant'> {
  * // Disabled label
  * <Label disabled>Disabled Field</Label>
  */
-export const Label: React.FC<LabelProps> = ({
+export const Label: React.FC<LabelProps> = memo(({
   size = "normal",
   required = false,
   disabled = false,
@@ -100,4 +100,7 @@ export const Label: React.FC<LabelProps> = ({
       )}
     </Typography>
   );
-};
+});
+Label.displayName = "Label";
+
+export default Label;

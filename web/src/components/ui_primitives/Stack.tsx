@@ -5,7 +5,7 @@
  * Similar to MUI Stack but with simplified API optimized for vertical layouts.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -45,7 +45,7 @@ export interface StackProps extends Omit<BoxProps, 'display' | 'flexDirection'> 
  *   <TextField label="Email" />
  * </Stack>
  */
-export const Stack: React.FC<StackProps> = ({
+export const Stack: React.FC<StackProps> = memo(({
   spacing = 0,
   padding,
   divider,
@@ -83,4 +83,7 @@ export const Stack: React.FC<StackProps> = ({
         : children}
     </Box>
   );
-};
+});
+Stack.displayName = "Stack";
+
+export default Stack;

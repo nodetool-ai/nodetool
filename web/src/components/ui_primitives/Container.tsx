@@ -5,7 +5,7 @@
  * Eliminates repetitive padding patterns across the app.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -55,7 +55,7 @@ const PADDING_VARIANTS = {
  *   <Typography>Centered content</Typography>
  * </Container>
  */
-export const Container: React.FC<ContainerProps> = ({
+export const Container: React.FC<ContainerProps> = memo(({
   padding = "normal",
   scrollable = false,
   maxWidth,
@@ -84,4 +84,7 @@ export const Container: React.FC<ContainerProps> = ({
       {children}
     </Box>
   );
-};
+});
+Container.displayName = "Container";
+
+export default Container;

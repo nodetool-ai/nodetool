@@ -5,7 +5,7 @@
  * Useful for creating sections within a page or dialog.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import { Box, BoxProps, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -80,7 +80,7 @@ const PADDING_VARIANTS = {
  *   <AdvancedSettings />
  * </Panel>
  */
-export const Panel: React.FC<PanelProps> = ({
+export const Panel: React.FC<PanelProps> = memo(({
   title,
   subtitle,
   headerAction,
@@ -195,4 +195,7 @@ export const Panel: React.FC<PanelProps> = ({
       )}
     </Box>
   );
-};
+});
+Panel.displayName = "Panel";
+
+export default Panel;

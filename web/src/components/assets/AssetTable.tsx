@@ -53,19 +53,31 @@ const AssetTable: React.FC<AssetTableProps> = (props) => {
   const getAsset = useAssetStore((state) => state.get);
 
   useEffect(() => {
+    let cancelled = false;
     const promises = assetIds.map((id) => getAsset(id));
     Promise.all(promises).then((fetchedAssets) => {
-      setAssets(fetchedAssets.filter((a): a is Asset => !!a));
+      // Only update state if component hasn't unmounted
+      if (!cancelled) {
+        setAssets(fetchedAssets.filter((a): a is Asset => !!a));
+      }
     });
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      cancelled = true;
+    };
   }, [getAsset, assetIds]);
 
   const handleRemoveAsset = useCallback(
     (asset: Asset) => {
-      const newAssets = assets.filter((a) => a.id !== asset.id);
-      setAssets(newAssets);
-      onChange(newAssets.map((a) => a.id));
+      // Use functional state update to avoid depending on `assets` array
+      setAssets((prevAssets) => {
+        const newAssets = prevAssets.filter((a) => a.id !== asset.id);
+        onChange(newAssets.map((a) => a.id));
+        return newAssets;
+      });
     },
-    [onChange, assets]
+    [onChange]
   );
 
   const { onDrop, onDragOver, uploading } = useFileDrop({

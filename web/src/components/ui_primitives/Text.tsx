@@ -5,7 +5,7 @@
  * Simplifies common typography patterns across the application.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -55,7 +55,7 @@ export interface TextProps extends Omit<TypographyProps, 'variant'> {
  *   This is a long paragraph that will be clamped to 2 lines with ellipsis
  * </Text>
  */
-export const Text: React.FC<TextProps> = ({
+export const Text: React.FC<TextProps> = memo(({
   size = "normal",
   color = "inherit",
   weight = "normal",
@@ -133,4 +133,7 @@ export const Text: React.FC<TextProps> = ({
       {children}
     </Typography>
   );
-};
+});
+Text.displayName = "Text";
+
+export default Text;

@@ -5,7 +5,7 @@
  * Provides consistent card appearance across the application.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -57,7 +57,7 @@ const PADDING_VARIANTS = {
  *   <Typography>Elevated content</Typography>
  * </Card>
  */
-export const Card: React.FC<CardProps> = ({
+export const Card: React.FC<CardProps> = memo(({
   padding = "normal",
   elevation = 1,
   variant = "default",
@@ -124,4 +124,7 @@ export const Card: React.FC<CardProps> = ({
       {children}
     </Box>
   );
-};
+});
+Card.displayName = "Card";
+
+export default Card;
