@@ -121,7 +121,8 @@ const PathPreview = ({
 
 const BasePathProperty = (props: BasePathPropertyProps) => {
   const theme = useTheme();
-  const id = `${props.pathType}-${props.property.name}-${props.propertyIndex}`;
+  const { onChange: propsOnChange, value, onlyDirs, dialogTitle, pathType, property, propertyIndex } = props;
+  const id = `${pathType}-${property.name}-${propertyIndex}`;
   const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false);
 
   const handleBrowseClick = useCallback(async () => {
@@ -129,25 +130,25 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
     // Note: The second check is required for TypeScript type narrowing
     if (hasNativeDialog() && window.api.dialog) {
       try {
-        const currentValue = typeof props.value === "string" ? props.value : undefined;
+        const currentValue = typeof value === "string" ? value : undefined;
 
-        if (props.onlyDirs) {
+        if (onlyDirs) {
           // Folder selection
           const result = await window.api.dialog.openFolder({
-            title: props.dialogTitle,
+            title: dialogTitle,
             defaultPath: currentValue
           });
           if (!result.canceled && result.filePaths.length > 0) {
-            props.onChange(result.filePaths[0]);
+            propsOnChange(result.filePaths[0]);
           }
         } else {
           // File selection
           const result = await window.api.dialog.openFile({
-            title: props.dialogTitle,
+            title: dialogTitle,
             defaultPath: currentValue
           });
           if (!result.canceled && result.filePaths.length > 0) {
-            props.onChange(result.filePaths[0]);
+            propsOnChange(result.filePaths[0]);
           }
         }
       } catch (error) {
@@ -159,18 +160,18 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
       // No native dialog available, use custom FileBrowserDialog
       setIsFileBrowserOpen(true);
     }
-  }, [props]);
+  }, [propsOnChange, value, onlyDirs, dialogTitle]);
 
   const handleClear = useCallback(() => {
-    props.onChange("");
-  }, [props]);
+    propsOnChange("");
+  }, [propsOnChange]);
 
   const handleConfirm = useCallback(
     (path: string) => {
-      props.onChange(path);
+      propsOnChange(path);
       setIsFileBrowserOpen(false);
     },
-    [props]
+    [propsOnChange]
   );
 
   const handleCancel = useCallback(() => {
@@ -180,25 +181,25 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
   return (
     <div css={createPathPropertyStyles(theme)} className="path-picker">
       <PropertyLabel
-        name={props.property.name}
-        description={props.property.description}
+        name={property.name}
+        description={property.description}
         id={id}
       />
 
       <PathPreview
-        value={props.value}
+        value={value}
         onBrowseClick={handleBrowseClick}
         onClear={handleClear}
-        ariaLabel={`Clear ${props.pathType.split("_")[0]} selection`}
+        ariaLabel={`Clear ${pathType.split("_")[0]} selection`}
       />
 
       <FileBrowserDialog
         open={isFileBrowserOpen}
         onClose={handleCancel}
         onConfirm={handleConfirm}
-        title={props.dialogTitle}
-        initialPath={typeof props.value === "string" ? props.value : "~"}
-        selectionMode={props.onlyDirs ? "directory" : "file"}
+        title={dialogTitle}
+        initialPath={typeof value === "string" ? value : "~"}
+        selectionMode={onlyDirs ? "directory" : "file"}
       />
     </div>
   );

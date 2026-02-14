@@ -12,6 +12,7 @@ const WorkflowListProperty = (props: PropertyProps) => {
   const id = `workflow-list-${props.property.name}-${props.propertyIndex}`;
   const workflowIds: string[] = props.value?.map((workflow: { id: string }) => workflow.id) || [];
   const load = useWorkflowManager((state) => state.load);
+  const { onChange: propsOnChange } = props;
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
     queryKey: ["workflows"],
@@ -33,9 +34,9 @@ const WorkflowListProperty = (props: PropertyProps) => {
   const handleChange = useCallback(
     (e: SelectChangeEvent<unknown>) => {
       const ids = e.target.value as string[];
-      props.onChange(ids.map((id) => ({ type: "workflow", id })));
+      propsOnChange(ids.map((id) => ({ type: "workflow", id })));
     },
-    [props]
+    [propsOnChange]
   );
 
   const renderSelectedValue = useCallback(

@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import { Autocomplete, Chip, Box, useTheme } from "@mui/material";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -9,13 +9,7 @@ const StringListProperty = (props: PropertyProps) => {
   const theme = useTheme();
   const id = `string-list-${props.property.name}-${props.propertyIndex}`;
   const strings = props.value || [];
-
-  const onChange = useCallback(
-    (newValues: string[]) => {
-      props.onChange(newValues);
-    },
-    [props]
-  );
+  const { onChange: propsOnChange } = props;
 
   return (
     <Box sx={{ mb: 1, width: "100%" }}>
@@ -60,7 +54,7 @@ const StringListProperty = (props: PropertyProps) => {
             margin: "2px"
           }
         }}
-        onChange={(_, newValue) => onChange(newValue as string[])}
+        onChange={(_, newValue) => propsOnChange(newValue as string[])}
         renderTags={(value: readonly string[], getTagProps) =>
           value.map((option: string, index: number) => (
             <Chip
