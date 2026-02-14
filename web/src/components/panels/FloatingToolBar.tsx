@@ -43,6 +43,7 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { cn } from "../editor_ui/editorUtils";
+import { executeViaComfyUI } from "../../utils/comfyExecutor";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -469,9 +470,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         }
       }
 
+      const currentState = nodeStore.getState();
+      const currentWorkflow = currentState.getWorkflow();
+      const shouldRunViaComfy =
+        currentWorkflow.run_mode === "comfy" || currentState.isComfyWorkflow();
+
       // Access current state directly to avoid re-renders on every node drag
-      const { nodes, edges } = nodeStore.getState();
-      run({}, workflow, nodes, edges, undefined);
+      const { nodes, edges } = currentState;
+      if (shouldRunViaComfy) {
+        await executeViaComfyUI(currentWorkflow.graph, undefined, currentWorkflow);
+      } else {
+        run({}, workflow, nodes, edges, undefined);
+      }
     }
     setTimeout(() => {
       const w = getWorkflowById(workflow.id);

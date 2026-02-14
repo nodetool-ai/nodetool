@@ -52,7 +52,10 @@ import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
-import { getComfyUIService } from "../services/ComfyUIService";
+import {
+  getComfyUIService,
+  normalizeComfyBaseUrl
+} from "../services/ComfyUIService";
 import { comfyObjectInfoToMetadataMap } from "../utils/comfySchemaConverter";
 
 /**
@@ -234,7 +237,7 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
         const service = getComfyUIService();
         const configuredComfyUrl = localStorage.getItem("comfyui_base_url");
         if (configuredComfyUrl) {
-          service.setBaseUrl(configuredComfyUrl);
+          service.setBaseUrl(normalizeComfyBaseUrl(configuredComfyUrl));
         }
         log.info("[NodeStore] Hydrating missing ComfyUI metadata", {
           missingComfyTypes,

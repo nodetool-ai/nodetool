@@ -50,7 +50,11 @@ import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
-import { getComfyUIService } from "./services/ComfyUIService";
+import {
+  getComfyUIService,
+  getDefaultComfyBaseUrl,
+  normalizeComfyBaseUrl
+} from "./services/ComfyUIService";
 import { comfyObjectInfoToMetadataMap } from "./utils/comfySchemaConverter";
 import {
   FetchCurrentWorkflow,
@@ -343,8 +347,9 @@ const root = ReactDOM.createRoot(
 
 const preloadComfyMetadata = async (): Promise<void> => {
   try {
-    const configuredComfyUrl =
-      localStorage.getItem("comfyui_base_url") || "http://127.0.0.1:8188";
+    const configuredComfyUrl = normalizeComfyBaseUrl(
+      localStorage.getItem("comfyui_base_url") || getDefaultComfyBaseUrl()
+    );
     const service = getComfyUIService();
     service.setBaseUrl(configuredComfyUrl);
 

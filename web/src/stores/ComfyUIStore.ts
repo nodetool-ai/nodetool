@@ -5,7 +5,12 @@
  */
 
 import { create } from "zustand";
-import { getComfyUIService, ComfyUIObjectInfo } from "../services/ComfyUIService";
+import {
+  getComfyUIService,
+  ComfyUIObjectInfo,
+  getDefaultComfyBaseUrl,
+  normalizeComfyBaseUrl
+} from "../services/ComfyUIService";
 import log from "loglevel";
 
 interface ComfyUIState {
@@ -37,21 +42,25 @@ interface ComfyUIState {
   reset: () => void;
 }
 
-const DEFAULT_COMFY_URL = "http://127.0.0.1:8188";
+const DEFAULT_COMFY_URL = getDefaultComfyBaseUrl();
 
 /**
  * Load ComfyUI URL from localStorage or use default
  */
 function loadComfyUIUrl(): string {
   const stored = localStorage.getItem("comfyui_base_url");
-  return stored || DEFAULT_COMFY_URL;
+  const resolved = normalizeComfyBaseUrl(stored || DEFAULT_COMFY_URL);
+  if (stored !== resolved) {
+    localStorage.setItem("comfyui_base_url", resolved);
+  }
+  return resolved;
 }
 
 /**
  * Save ComfyUI URL to localStorage
  */
 function saveComfyUIUrl(url: string): void {
-  localStorage.setItem("comfyui_base_url", url);
+  localStorage.setItem("comfyui_base_url", normalizeComfyBaseUrl(url));
 }
 
 export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
@@ -72,10 +81,11 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
   // Actions
   setBaseUrl: (url: string) => {
     const service = getComfyUIService();
-    service.setBaseUrl(url);
-    saveComfyUIUrl(url);
+    const normalizedUrl = normalizeComfyBaseUrl(url);
+    service.setBaseUrl(normalizedUrl);
+    saveComfyUIUrl(normalizedUrl);
     set({
-      baseUrl: url,
+      baseUrl: normalizedUrl,
       isConnected: false,
       objectInfo: null
     });

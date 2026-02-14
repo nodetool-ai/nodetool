@@ -7,6 +7,110 @@
 
 import log from "loglevel";
 
+const COMFY_DEV_PROXY_BASE_URL = "/comfy-api";
+const COMFY_DIRECT_DEFAULT_BASE_URL = "http://localhost:8000/api";
+
+const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
+const isAbsoluteHttpUrl = (value: string): boolean => /^https?:\/\//i.test(value);
+const hasLocalhostProxyBridge = (): boolean =>
+  typeof window !== "undefined" &&
+  typeof window.api?.localhostProxy?.request === "function";
+
+interface ProcessLike {
+  env?: Record<string, string | undefined>;
+}
+
+const getProcessEnvVar = (name: string): string | undefined => {
+  const processLike = (globalThis as { process?: ProcessLike }).process;
+  return processLike?.env?.[name];
+};
+
+const isDevEnvironment = getProcessEnvVar("NODE_ENV") === "development";
+
+const isLocalComfyApiUrl = (value: string): boolean => {
+  const normalized = trimTrailingSlash(value);
+  return (
+    normalized === "http://localhost:8000/api" ||
+    normalized === "http://127.0.0.1:8000/api"
+  );
+};
+
+export const getDefaultComfyBaseUrl = (): string => {
+  const configured = getProcessEnvVar("VITE_COMFYUI_BASE_URL");
+  if (configured && configured.trim().length > 0) {
+    return trimTrailingSlash(configured.trim());
+  }
+  // In Electron renderer, prefer direct localhost URL so requests can use
+  // the main-process localhost proxy bridge.
+  if (hasLocalhostProxyBridge()) {
+    return COMFY_DIRECT_DEFAULT_BASE_URL;
+  }
+  return isDevEnvironment ? COMFY_DEV_PROXY_BASE_URL : COMFY_DIRECT_DEFAULT_BASE_URL;
+};
+
+export const normalizeComfyBaseUrl = (url: string): string => {
+  const trimmed = trimTrailingSlash(url.trim());
+  if (!trimmed) {
+    return getDefaultComfyBaseUrl();
+  }
+
+  // In Electron renderer, recover persisted dev proxy URLs to a direct URL.
+  if (hasLocalhostProxyBridge() && trimmed === COMFY_DEV_PROXY_BASE_URL) {
+    return COMFY_DIRECT_DEFAULT_BASE_URL;
+  }
+
+  // If a dev-only proxy URL is persisted in localStorage, recover to direct URL
+  // in non-dev environments (e.g. Electron packaged app).
+  if (!isDevEnvironment && trimmed === COMFY_DEV_PROXY_BASE_URL) {
+    return COMFY_DIRECT_DEFAULT_BASE_URL;
+  }
+
+  // In local web dev, route default local Comfy URLs through Vite proxy to avoid CORS.
+  if (isDevEnvironment && isLocalComfyApiUrl(trimmed)) {
+    return COMFY_DEV_PROXY_BASE_URL;
+  }
+
+  return trimmed;
+};
+
+const buildComfyUrl = (baseUrl: string, path: string): string => {
+  const normalizedBase = trimTrailingSlash(baseUrl);
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
+
+const getComfyWsBaseUrl = (baseUrl: string): string => {
+  if (isAbsoluteHttpUrl(baseUrl)) {
+    return baseUrl.replace(/^http/i, "ws");
+  }
+
+  if (baseUrl.startsWith("/") && typeof window !== "undefined") {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}${baseUrl}`;
+  }
+
+  return baseUrl;
+};
+
+const isLocalhostAbsoluteUrl = (urlValue: string): boolean => {
+  try {
+    const parsed = new URL(urlValue);
+    return ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+};
+
+interface ComfyWebSocketConnection {
+  readyState: number;
+  close: (code?: number, reason?: string) => void;
+}
+
+const WS_CONNECTING = 0;
+const WS_OPEN = 1;
+const WS_CLOSING = 2;
+const WS_CLOSED = 3;
+
 // ComfyUI node schema types based on /object_info response
 export interface ComfyUIInputSpec {
   type: string;
@@ -103,12 +207,15 @@ export interface ComfyUIPromptResponse {
 export class ComfyUIService {
   private baseUrl: string;
   private clientId: string;
-  private wsConnection: WebSocket | null = null;
+  private wsConnection: ComfyWebSocketConnection | null = null;
+  private wsProxyConnectionId: string | null = null;
+  private wsProxyUnsubscribe: (() => void) | null = null;
+  private wsProxyPendingOpen = false;
   private objectInfoCache: ComfyUIObjectInfo | null = null;
   private objectInfoPromise: Promise<ComfyUIObjectInfo> | null = null;
 
-  constructor(baseUrl: string = "http://127.0.0.1:8188") {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl: string = getDefaultComfyBaseUrl()) {
+    this.baseUrl = normalizeComfyBaseUrl(baseUrl);
     this.clientId = this.generateClientId();
   }
 
@@ -116,11 +223,76 @@ export class ComfyUIService {
     return `nodetool-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  private async comfyRequest<T = unknown>(
+    path: string,
+    options?: {
+      method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
+      body?: string;
+      responseType?: "json" | "text";
+    }
+  ): Promise<{ ok: boolean; status: number; data: T; statusText: string }> {
+    const method = options?.method || "GET";
+    const responseType = options?.responseType || "json";
+    const requestBaseUrl =
+      hasLocalhostProxyBridge() && this.baseUrl === COMFY_DEV_PROXY_BASE_URL
+        ? COMFY_DIRECT_DEFAULT_BASE_URL
+        : this.baseUrl;
+    const url = buildComfyUrl(requestBaseUrl, path);
+
+    if (
+      typeof window !== "undefined" &&
+      window.api?.localhostProxy?.request &&
+      isLocalhostAbsoluteUrl(url)
+    ) {
+      const proxyResponse = await window.api.localhostProxy.request({
+        url,
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: options?.body,
+        responseType
+      });
+      return {
+        ok: proxyResponse.ok,
+        status: proxyResponse.status,
+        data: proxyResponse.data as T,
+        statusText: String(proxyResponse.headers["status-text"] || "")
+      };
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: options?.body
+    });
+    const data =
+      responseType === "json"
+        ? ((await response.json()) as T)
+        : ((await response.text()) as T);
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      data
+    };
+  }
+
+  private parseJsonValue<T>(value: unknown, context: string): T {
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value) as T;
+      } catch (error) {
+        throw new Error(`Invalid JSON response for ${context}: ${String(error)}`);
+      }
+    }
+    return value as T;
+  }
+
   /**
    * Set the ComfyUI backend URL
    */
   setBaseUrl(url: string): void {
-    this.baseUrl = url;
+    this.baseUrl = normalizeComfyBaseUrl(url);
     // Clear cache when URL changes
     this.objectInfoCache = null;
     this.objectInfoPromise = null;
@@ -138,9 +310,9 @@ export class ComfyUIService {
    */
   async checkConnection(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/system_stats`, {
+      const response = await this.comfyRequest("/object_info", {
         method: "GET",
-        headers: { "Content-Type": "application/json" }
+        responseType: "text"
       });
       return response.ok;
     } catch (error) {
@@ -170,16 +342,19 @@ export class ComfyUIService {
 
   private async fetchObjectInfoInternal(): Promise<ComfyUIObjectInfo> {
     try {
-      const response = await fetch(`${this.baseUrl}/object_info`, {
+      const response = await this.comfyRequest<string>("/object_info", {
         method: "GET",
-        headers: { "Content-Type": "application/json" }
+        responseType: "text"
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch object_info: ${response.statusText}`);
+        throw new Error(`Failed to fetch object_info: HTTP ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = this.parseJsonValue<ComfyUIObjectInfo>(
+        response.data,
+        "object_info"
+      );
       this.objectInfoCache = data;
       this.objectInfoPromise = null;
       return data;
@@ -207,18 +382,20 @@ export class ComfyUIService {
         (request as any).extra_data = extraData;
       }
 
-      const response = await fetch(`${this.baseUrl}/prompt`, {
+      const response = await this.comfyRequest<string>("/prompt", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request)
+        body: JSON.stringify(request),
+        responseType: "text"
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to submit prompt: ${errorText}`);
+        throw new Error(`Failed to submit prompt: ${String(response.data)}`);
       }
 
-      return await response.json();
+      return this.parseJsonValue<ComfyUIPromptResponse>(
+        response.data,
+        "prompt"
+      );
     } catch (error) {
       log.error("Failed to submit ComfyUI prompt:", error);
       throw error;
@@ -230,13 +407,13 @@ export class ComfyUIService {
    */
   async cancelPrompt(_promptId: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/interrupt`, {
+      const response = await this.comfyRequest("/interrupt", {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        responseType: "text"
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to cancel prompt: ${response.statusText}`);
+        throw new Error(`Failed to cancel prompt: HTTP ${response.status}`);
       }
     } catch (error) {
       log.error("Failed to cancel ComfyUI prompt:", error);
@@ -249,16 +426,16 @@ export class ComfyUIService {
    */
   async getQueue(): Promise<any> {
     try {
-      const response = await fetch(`${this.baseUrl}/queue`, {
+      const response = await this.comfyRequest<string>("/queue", {
         method: "GET",
-        headers: { "Content-Type": "application/json" }
+        responseType: "text"
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get queue: ${response.statusText}`);
+        throw new Error(`Failed to get queue: HTTP ${response.status}`);
       }
 
-      return await response.json();
+      return this.parseJsonValue<any>(response.data, "queue");
     } catch (error) {
       log.error("Failed to get ComfyUI queue:", error);
       throw error;
@@ -270,20 +447,17 @@ export class ComfyUIService {
    */
   async getHistory(promptId?: string): Promise<any> {
     try {
-      const url = promptId
-        ? `${this.baseUrl}/history/${promptId}`
-        : `${this.baseUrl}/history`;
-
-      const response = await fetch(url, {
+      const path = promptId ? `/history/${promptId}` : "/history";
+      const response = await this.comfyRequest<string>(path, {
         method: "GET",
-        headers: { "Content-Type": "application/json" }
+        responseType: "text"
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get history: ${response.statusText}`);
+        throw new Error(`Failed to get history: HTTP ${response.status}`);
       }
 
-      return await response.json();
+      return this.parseJsonValue<any>(response.data, "history");
     } catch (error) {
       log.error("Failed to get ComfyUI history:", error);
       throw error;
@@ -298,38 +472,187 @@ export class ComfyUIService {
     onError?: (error: Event) => void,
     onClose?: (event: CloseEvent) => void
   ): void {
-    if (this.wsConnection?.readyState === WebSocket.OPEN) {
+    if (this.wsConnection?.readyState === WS_OPEN) {
       log.warn("WebSocket already connected");
       return;
     }
 
-    const wsUrl = this.baseUrl.replace(/^http/, "ws") + `/ws?clientId=${this.clientId}`;
+    const wsBaseUrl = getComfyWsBaseUrl(
+      hasLocalhostProxyBridge() && this.baseUrl === COMFY_DEV_PROXY_BASE_URL
+        ? COMFY_DIRECT_DEFAULT_BASE_URL
+        : this.baseUrl
+    );
+    const wsUrl = `${trimTrailingSlash(wsBaseUrl)}/ws?clientId=${this.clientId}`;
+
+    if (
+      hasLocalhostProxyBridge() &&
+      isLocalhostAbsoluteUrl(wsUrl) &&
+      window.api?.localhostProxy?.wsOpen &&
+      window.api?.localhostProxy?.onWsEvent &&
+      window.api?.localhostProxy?.wsClose
+    ) {
+      const proxyConnection: ComfyWebSocketConnection = {
+        readyState: WS_CONNECTING,
+        close: (code?: number, reason?: string) => {
+          const connectionId = this.wsProxyConnectionId;
+          if (!connectionId || !window.api?.localhostProxy?.wsClose) {
+            return;
+          }
+          proxyConnection.readyState = WS_CLOSING;
+          void window.api.localhostProxy.wsClose({
+            connectionId,
+            code,
+            reason,
+          });
+        },
+      };
+
+      this.wsConnection = proxyConnection;
+      this.wsProxyPendingOpen = true;
+
+      this.wsProxyUnsubscribe = window.api.localhostProxy.onWsEvent((event) => {
+        if (
+          this.wsProxyConnectionId &&
+          event.connectionId !== this.wsProxyConnectionId
+        ) {
+          return;
+        }
+        if (!this.wsProxyConnectionId) {
+          this.wsProxyConnectionId = event.connectionId;
+        }
+
+        if (event.event === "open") {
+          proxyConnection.readyState = WS_OPEN;
+          log.info("ComfyUI WebSocket connected (proxied)");
+          return;
+        }
+
+        if (event.event === "message") {
+          if (!event.data) {
+            log.warn("ComfyUI WebSocket proxied message event with empty payload");
+            return;
+          }
+          log.info(
+            `ComfyUI WebSocket proxied message received (${event.data.length} chars)`
+          );
+          try {
+            const data = JSON.parse(event.data);
+            const typed = data as { type?: string; data?: unknown };
+            log.info("ComfyUI WebSocket proxied parsed message", {
+              type: typed?.type ?? "unknown",
+              hasData: typed?.data !== undefined,
+            });
+            onMessage(data);
+          } catch (error) {
+            log.error("Failed to parse proxied WebSocket message:", error);
+          }
+          return;
+        }
+
+        if (event.event === "error") {
+          log.error("ComfyUI WebSocket proxy error:", event.error);
+          if (onError) {
+            onError(new Event("error"));
+          }
+          return;
+        }
+
+        if (event.event === "close") {
+          this.wsProxyPendingOpen = false;
+          proxyConnection.readyState = WS_CLOSED;
+          log.info("ComfyUI WebSocket closed (proxied)");
+
+          if (this.wsProxyUnsubscribe) {
+            this.wsProxyUnsubscribe();
+            this.wsProxyUnsubscribe = null;
+          }
+          this.wsProxyConnectionId = null;
+          this.wsConnection = null;
+
+          if (onClose) {
+            onClose({
+              code: event.code || 1000,
+              reason: event.reason || "",
+              wasClean: true,
+            } as CloseEvent);
+          }
+        }
+      });
+
+      void window.api.localhostProxy
+        .wsOpen({ url: wsUrl })
+        .then((result) => {
+          if (
+            !this.wsProxyPendingOpen ||
+            this.wsConnection !== proxyConnection ||
+            !this.wsProxyUnsubscribe
+          ) {
+            if (window.api?.localhostProxy?.wsClose) {
+              void window.api.localhostProxy.wsClose({
+                connectionId: result.connectionId,
+              });
+            }
+            return;
+          }
+          this.wsProxyConnectionId = result.connectionId;
+          this.wsProxyPendingOpen = false;
+        })
+        .catch((error) => {
+          this.wsProxyPendingOpen = false;
+          proxyConnection.readyState = WS_CLOSED;
+          log.error("Failed to open proxied ComfyUI WebSocket:", error);
+          if (this.wsProxyUnsubscribe) {
+            this.wsProxyUnsubscribe();
+            this.wsProxyUnsubscribe = null;
+          }
+          this.wsProxyConnectionId = null;
+          this.wsConnection = null;
+          if (onError) {
+            onError(new Event("error"));
+          }
+        });
+
+      return;
+    }
 
     try {
-      this.wsConnection = new WebSocket(wsUrl);
+      const browserSocket = new WebSocket(wsUrl);
+      this.wsConnection = browserSocket;
 
-      this.wsConnection.onopen = () => {
+      browserSocket.onopen = () => {
         log.info("ComfyUI WebSocket connected");
       };
 
-      this.wsConnection.onmessage = (event) => {
+      browserSocket.onmessage = (event) => {
+        const rawData = typeof event.data === "string"
+          ? event.data
+          : String(event.data);
+        log.info(
+          `ComfyUI WebSocket message received (${rawData.length} chars)`
+        );
         try {
           const data = JSON.parse(event.data);
+          const typed = data as { type?: string; data?: unknown };
+          log.info("ComfyUI WebSocket parsed message", {
+            type: typed?.type ?? "unknown",
+            hasData: typed?.data !== undefined,
+          });
           onMessage(data);
         } catch (error) {
           log.error("Failed to parse WebSocket message:", error);
         }
       };
 
-      this.wsConnection.onerror = (error) => {
+      browserSocket.onerror = (error) => {
         log.error("ComfyUI WebSocket error:", error);
         if (onError) {
           onError(error);
         }
       };
 
-      this.wsConnection.onclose = (event) => {
+      browserSocket.onclose = (event) => {
         log.info("ComfyUI WebSocket closed");
+        this.wsConnection = null;
         if (onClose) {
           onClose(event);
         }
@@ -344,17 +667,23 @@ export class ComfyUIService {
    * Disconnect WebSocket
    */
   disconnectWebSocket(): void {
+    this.wsProxyPendingOpen = false;
     if (this.wsConnection) {
       this.wsConnection.close();
       this.wsConnection = null;
     }
+    if (this.wsProxyUnsubscribe) {
+      this.wsProxyUnsubscribe();
+      this.wsProxyUnsubscribe = null;
+    }
+    this.wsProxyConnectionId = null;
   }
 
   /**
    * Get WebSocket connection status
    */
   isWebSocketConnected(): boolean {
-    return this.wsConnection?.readyState === WebSocket.OPEN;
+    return this.wsConnection?.readyState === WS_OPEN;
   }
 }
 

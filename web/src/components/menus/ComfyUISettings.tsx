@@ -12,6 +12,9 @@ import { useTheme } from "@mui/material/styles";
 
 const ComfyUISettings: React.FC = () => {
   const theme = useTheme();
+  const hasElectronProxyBridge =
+    typeof window !== "undefined" &&
+    typeof window.api?.localhostProxy?.request === "function";
   const {
     baseUrl,
     isConnected,
@@ -53,7 +56,11 @@ const ComfyUISettings: React.FC = () => {
         value={localUrl}
         onChange={(e) => setLocalUrl(e.target.value)}
         disabled={isConnecting || isConnected}
-        placeholder="http://127.0.0.1:8188"
+        placeholder={
+          hasElectronProxyBridge
+            ? "http://localhost:8000/api"
+            : "/comfy-api (dev) or http://localhost:8000/api"
+        }
         sx={{ mb: 2 }}
       />
 

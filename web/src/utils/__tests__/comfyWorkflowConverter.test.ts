@@ -101,6 +101,13 @@ describe("ComfyUI Workflow Converter", () => {
             flags: {},
             order: 0,
             mode: 0,
+            outputs: [
+              {
+                name: "MODEL",
+                type: "MODEL",
+                links: [1]
+              }
+            ],
             properties: { model: "v1-5-pruned.ckpt" },
             widgets_values: []
           },
@@ -112,6 +119,13 @@ describe("ComfyUI Workflow Converter", () => {
             flags: {},
             order: 1,
             mode: 0,
+            inputs: [
+              {
+                name: "model",
+                type: "MODEL",
+                link: 1
+              }
+            ],
             properties: { steps: 20, cfg: 7.0 },
             widgets_values: []
           }
@@ -149,8 +163,8 @@ describe("ComfyUI Workflow Converter", () => {
       // Check edge conversion
       expect(graph.edges[0].source).toBe("1");
       expect(graph.edges[0].target).toBe("2");
-      expect(graph.edges[0].sourceHandle).toBe("output_0");
-      expect(graph.edges[0].targetHandle).toBe("input_0");
+      expect(graph.edges[0].sourceHandle).toBe("MODEL");
+      expect(graph.edges[0].targetHandle).toBe("model");
     });
 
     test("preserves ComfyUI metadata", () => {
@@ -223,6 +237,53 @@ describe("ComfyUI Workflow Converter", () => {
       expect(workflow.nodes[0].pos).toEqual([100, 100]);
       expect(workflow.nodes[0].size).toEqual([300, 80]);
       expect(workflow.nodes[0].properties.model).toBe("v1-5-pruned.ckpt");
+    });
+
+    test("maps named handles to Comfy slot indexes using metadata", () => {
+      const graph: Graph = {
+        nodes: [
+          {
+            id: "4",
+            type: "comfy.CheckpointLoaderSimple",
+            data: {
+              _comfy_metadata: {
+                outputs: [
+                  { name: "MODEL" },
+                  { name: "CLIP" },
+                  { name: "VAE" }
+                ]
+              }
+            },
+            sync_mode: "on_any"
+          },
+          {
+            id: "3",
+            type: "comfy.KSampler",
+            data: {
+              _comfy_metadata: {
+                inputs: [
+                  { name: "model" },
+                  { name: "positive" }
+                ]
+              }
+            },
+            sync_mode: "on_any"
+          }
+        ],
+        edges: [
+          {
+            source: "4",
+            target: "3",
+            sourceHandle: "MODEL",
+            targetHandle: "model"
+          }
+        ]
+      };
+
+      const workflow = nodeToolGraphToComfyWorkflow(graph);
+      expect(workflow.links).toHaveLength(1);
+      expect(workflow.links[0].origin_slot).toBe(0);
+      expect(workflow.links[0].target_slot).toBe(0);
     });
   });
 

@@ -8,10 +8,12 @@ import { ComfyUINodeSchema, ComfyUIObjectInfo } from "../services/ComfyUIService
 import { NodeMetadata, Property, OutputSlot } from "../stores/ApiTypes";
 import log from "loglevel";
 
+type ComfyInputSpec = [unknown, unknown?];
+
 /**
  * Map ComfyUI type to NodeTool type
  */
-function mapComfyTypeToNodeToolType(comfyType: string): string {
+function mapComfyTypeToNodeToolType(comfyType: unknown): string {
   const typeMap: Record<string, string> = {
     "INT": "int",
     "FLOAT": "float",
@@ -36,7 +38,37 @@ function mapComfyTypeToNodeToolType(comfyType: string): string {
     "TAESD": "comfy.taesd"
   };
 
-  return typeMap[comfyType] || `comfy.${comfyType.toLowerCase()}`;
+  if (typeof comfyType === "string" && comfyType.length > 0) {
+    const normalizedType = comfyType.toUpperCase();
+    return typeMap[normalizedType] || `comfy.${comfyType.toLowerCase()}`;
+  }
+
+  if (Array.isArray(comfyType) && comfyType.length > 0) {
+    // Some Comfy schemas use union-like type descriptors (e.g. ["CLIP", "CLIP_VISION"]).
+    // Prefer first string type in the union; otherwise fallback to string.
+    const firstStringType = comfyType.find(
+      (value): value is string => typeof value === "string"
+    );
+    if (firstStringType) {
+      return mapComfyTypeToNodeToolType(firstStringType);
+    }
+  }
+
+  return "str";
+}
+
+function isRecord(value: unknown): value is Record<string, any> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function extractEnumOptions(typeDescriptor: unknown): string[] | undefined {
+  if (!Array.isArray(typeDescriptor)) {
+    return undefined;
+  }
+  const options = typeDescriptor.filter(
+    (value): value is string => typeof value === "string"
+  );
+  return options.length > 0 ? options : undefined;
 }
 
 /**
@@ -44,9 +76,13 @@ function mapComfyTypeToNodeToolType(comfyType: string): string {
  */
 function mapComfyInputToProperty(
   name: string,
-  inputSpec: [string, Record<string, any>?]
+  inputSpec: ComfyInputSpec
 ): Property {
-  const [comfyType, config = {}] = inputSpec;
+  const [rawType, rawConfig] = inputSpec;
+  const comfyType = rawType;
+  const comfyTypeName = typeof comfyType === "string" ? comfyType.toUpperCase() : "";
+  const config = isRecord(rawConfig) ? rawConfig : {};
+  const enumOptions = extractEnumOptions(rawType);
   const nodeToolType = mapComfyTypeToNodeToolType(comfyType);
 
   const property: Property = {
@@ -62,7 +98,7 @@ function mapComfyInputToProperty(
   };
 
   // Handle number constraints
-  if (comfyType === "INT" || comfyType === "FLOAT") {
+  if (comfyTypeName === "INT" || comfyTypeName === "FLOAT") {
     if (config.min !== undefined) {
       property.min = config.min;
     }
@@ -72,14 +108,14 @@ function mapComfyInputToProperty(
   }
 
   // Handle enums (combo boxes) - store in json_schema_extra
-  if (Array.isArray(config)) {
+  if (enumOptions) {
     property.json_schema_extra = {
-      enum: config
+      enum: enumOptions
     };
   }
 
   // Handle multiline strings - store in json_schema_extra  
-  if (comfyType === "STRING" && typeof config === "object" && !Array.isArray(config) && config.multiline) {
+  if (comfyTypeName === "STRING" && config.multiline) {
     property.json_schema_extra = {
       ...(property.json_schema_extra || {}),
       multiline: true
@@ -102,36 +138,16 @@ export function comfySchemaToNodeMetadata(
   // Convert required inputs
   if (schema.input.required) {
     Object.entries(schema.input.required).forEach(([name, inputSpec]) => {
-      // Handle array specs (enums)
-      if (Array.isArray(inputSpec) && Array.isArray(inputSpec[0])) {
-        // This is an enum like [["option1", "option2"], {}]
-        const property: Property = {
-          name,
-          type: {
-            type: "str",
-            optional: false,
-            type_args: []
-          },
-          description: "",
-          default: undefined,
-          required: true,
-          json_schema_extra: {
-            enum: inputSpec[0]
-          }
-        };
-        properties.push(property);
-      } else {
-        const property = mapComfyInputToProperty(name, inputSpec as [string, Record<string, any>?]);
-        property.required = true;
-        properties.push(property);
-      }
+      const property = mapComfyInputToProperty(name, inputSpec as ComfyInputSpec);
+      property.required = true;
+      properties.push(property);
     });
   }
 
   // Convert optional inputs
   if (schema.input.optional) {
     Object.entries(schema.input.optional).forEach(([name, inputSpec]) => {
-      const property = mapComfyInputToProperty(name, inputSpec);
+      const property = mapComfyInputToProperty(name, inputSpec as ComfyInputSpec);
       property.required = false;
       properties.push(property);
     });
@@ -164,7 +180,7 @@ export function comfySchemaToNodeMetadata(
     layout: "default",
     the_model_info: {},
     recommended_models: [],
-    basic_fields: [],
+    basic_fields: properties.map((property) => property.name),
     is_dynamic: false,
     is_streaming_output: false,
     expose_as_tool: false,

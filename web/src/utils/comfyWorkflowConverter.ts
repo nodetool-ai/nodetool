@@ -36,9 +36,18 @@ export function comfyWorkflowToNodeToolGraph(
     nodes.push(nodeToolNode);
   });
 
+  const nodeById = new Map<number, ComfyUINode>();
+  comfyWorkflow.nodes.forEach((node) => {
+    nodeById.set(node.id, node);
+  });
+
   // Convert links to edges
   comfyWorkflow.links.forEach((link) => {
-    const edge = comfyLinkToNodeToolEdge(link);
+    const edge = comfyLinkToNodeToolEdge(
+      link,
+      nodeById.get(link.origin_id),
+      nodeById.get(link.target_id)
+    );
     edges.push(edge);
   });
 
@@ -91,7 +100,9 @@ function comfyNodeToNodeToolNode(comfyNode: ComfyUINode): GraphNode {
       original_type: comfyNode.type,
       order: comfyNode.order,
       mode: comfyNode.mode,
-      flags: comfyNode.flags
+      flags: comfyNode.flags,
+      inputs: comfyNode.inputs || [],
+      outputs: comfyNode.outputs || []
     };
   }
 
@@ -101,12 +112,25 @@ function comfyNodeToNodeToolNode(comfyNode: ComfyUINode): GraphNode {
 /**
  * Convert a ComfyUI link to NodeTool edge
  */
-function comfyLinkToNodeToolEdge(link: ComfyUILink): GraphEdge {
+function comfyLinkToNodeToolEdge(
+  link: ComfyUILink,
+  sourceNode?: ComfyUINode,
+  targetNode?: ComfyUINode
+): GraphEdge {
+  const sourceHandle =
+    sourceNode?.outputs && link.origin_slot >= 0 && link.origin_slot < sourceNode.outputs.length
+      ? sourceNode.outputs[link.origin_slot].name
+      : `output_${link.origin_slot}`;
+  const targetHandle =
+    targetNode?.inputs && link.target_slot >= 0 && link.target_slot < targetNode.inputs.length
+      ? targetNode.inputs[link.target_slot].name
+      : `input_${link.target_slot}`;
+
   return {
     source: String(link.origin_id),
     target: String(link.target_id),
-    sourceHandle: `output_${link.origin_slot}`,
-    targetHandle: `input_${link.target_slot}`
+    sourceHandle,
+    targetHandle
   };
 }
 
@@ -129,6 +153,8 @@ export function nodeToolGraphToComfyWorkflow(
     maxLinkId = existingWorkflow.last_link_id || 0;
   }
 
+  const nodeById = new Map<string, GraphNode>();
+
   // Convert nodes
   graph.nodes.forEach((nodeToolNode) => {
     const nodeId = parseInt(nodeToolNode.id, 10);
@@ -138,12 +164,18 @@ export function nodeToolGraphToComfyWorkflow(
 
     const comfyNode = nodeToolNodeToComfyNode(nodeToolNode);
     nodes.push(comfyNode);
+    nodeById.set(nodeToolNode.id, nodeToolNode);
   });
 
   // Convert edges to links
   graph.edges.forEach((edge, index) => {
     const linkId = maxLinkId + index + 1;
-    const link = nodeToolEdgeToComfyLink(edge, linkId);
+    const link = nodeToolEdgeToComfyLink(
+      edge,
+      linkId,
+      nodeById.get(edge.source),
+      nodeById.get(edge.target)
+    );
     links.push(link);
   });
 
@@ -217,14 +249,62 @@ function nodeToolNodeToComfyNode(nodeToolNode: GraphNode): ComfyUINode {
 /**
  * Convert NodeTool edge to ComfyUI link
  */
-function nodeToolEdgeToComfyLink(edge: GraphEdge, linkId: number): ComfyUILink {
-  // Parse slot indices from handle names
-  const sourceSlot = edge.sourceHandle
-    ? parseInt(edge.sourceHandle.replace("output_", ""), 10)
-    : 0;
-  const targetSlot = edge.targetHandle
-    ? parseInt(edge.targetHandle.replace("input_", ""), 10)
-    : 0;
+function parseComfySlotFromHandle(
+  handle: string | undefined,
+  prefix: "output_" | "input_"
+): number | undefined {
+  if (!handle) {
+    return undefined;
+  }
+  const match = new RegExp(`^${prefix}(\\d+)$`).exec(handle);
+  if (!match) {
+    return undefined;
+  }
+  const parsed = Number(match[1]);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function resolveComfySlotByName(
+  node: GraphNode | undefined,
+  handleName: string | undefined,
+  direction: "source" | "target"
+): number | undefined {
+  if (!node || !handleName) {
+    return undefined;
+  }
+  const data = (node.data || {}) as Record<string, unknown>;
+  const metadata = (data._comfy_metadata || {}) as Record<string, unknown>;
+  const slotKey = direction === "source" ? "outputs" : "inputs";
+  const slotsUnknown = metadata[slotKey];
+  if (!Array.isArray(slotsUnknown)) {
+    return undefined;
+  }
+
+  const slotIndex = slotsUnknown.findIndex((slot) => {
+    if (typeof slot !== "object" || slot === null) {
+      return false;
+    }
+    const name = (slot as { name?: unknown }).name;
+    return typeof name === "string" && name === handleName;
+  });
+
+  return slotIndex >= 0 ? slotIndex : undefined;
+}
+
+function nodeToolEdgeToComfyLink(
+  edge: GraphEdge,
+  linkId: number,
+  sourceNode?: GraphNode,
+  targetNode?: GraphNode
+): ComfyUILink {
+  const sourceSlot =
+    parseComfySlotFromHandle(edge.sourceHandle, "output_") ??
+    resolveComfySlotByName(sourceNode, edge.sourceHandle, "source") ??
+    0;
+  const targetSlot =
+    parseComfySlotFromHandle(edge.targetHandle, "input_") ??
+    resolveComfySlotByName(targetNode, edge.targetHandle, "target") ??
+    0;
 
   return {
     id: linkId,
@@ -241,6 +321,10 @@ function nodeToolEdgeToComfyLink(edge: GraphEdge, linkId: number): ComfyUILink {
  */
 export function nodeToolGraphToComfyPrompt(graph: Graph): ComfyUIPrompt {
   const prompt: ComfyUIPrompt = {};
+  const nodeById = new Map<string, GraphNode>();
+  graph.nodes.forEach((node) => {
+    nodeById.set(node.id, node);
+  });
 
   graph.nodes.forEach((node) => {
     // Skip if not a ComfyUI node
@@ -269,13 +353,14 @@ export function nodeToolGraphToComfyPrompt(graph: Graph): ComfyUIPrompt {
     // Add connected inputs from edges
     graph.edges.forEach((edge) => {
       if (edge.target === node.id && edge.targetHandle) {
-        // In NodeTool, targetHandle should be the actual input parameter name
-        // Not a generic "input_0" - use it directly as the input name
-        const inputName = edge.targetHandle;
+        const inputName =
+          resolveComfyInputName(edge.targetHandle, node) || edge.targetHandle;
         const sourceNodeId = edge.source;
-        const outputSlot = edge.sourceHandle
-          ? parseInt(edge.sourceHandle.replace("output_", ""), 10)
-          : 0;
+        const sourceNode = nodeById.get(sourceNodeId);
+        const outputSlot =
+          parseComfySlotFromHandle(edge.sourceHandle, "output_") ??
+          resolveComfySlotByName(sourceNode, edge.sourceHandle, "source") ??
+          0;
 
         // ComfyUI format for connected inputs: [source_node_id, output_slot]
         inputs[inputName] = [sourceNodeId, outputSlot];
@@ -289,6 +374,31 @@ export function nodeToolGraphToComfyPrompt(graph: Graph): ComfyUIPrompt {
   });
 
   return prompt;
+}
+
+function resolveComfyInputName(
+  handleName: string,
+  targetNode: GraphNode
+): string | undefined {
+  const parsedSlot = parseComfySlotFromHandle(handleName, "input_");
+  if (parsedSlot == null) {
+    return handleName;
+  }
+
+  const data = (targetNode.data || {}) as Record<string, unknown>;
+  const metadata = (data._comfy_metadata || {}) as Record<string, unknown>;
+  const inputs = metadata.inputs;
+  if (!Array.isArray(inputs) || parsedSlot < 0 || parsedSlot >= inputs.length) {
+    return undefined;
+  }
+
+  const inputSlot = inputs[parsedSlot];
+  if (typeof inputSlot !== "object" || inputSlot === null) {
+    return undefined;
+  }
+
+  const inputName = (inputSlot as { name?: unknown }).name;
+  return typeof inputName === "string" ? inputName : undefined;
 }
 
 /**

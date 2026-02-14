@@ -268,33 +268,40 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             log.warn("[saveWorkflow] Failed to create version:", versionResponse.error);
           }
 
+          const persistedWorkflow: Workflow = {
+            ...data,
+            run_mode: workflow.run_mode ?? data.run_mode
+          };
+
           if (window.api) {
-            window.api.onUpdateWorkflow(data);
+            window.api.onUpdateWorkflow(persistedWorkflow);
           }
 
           set((state) => {
-            const nodeStore = state.nodeStores[data.id];
+            const nodeStore = state.nodeStores[persistedWorkflow.id];
             if (nodeStore) {
               nodeStore.setState({
-                workflow: data
+                workflow: persistedWorkflow
               });
               nodeStore.getState().setWorkflowDirty(false);
             }
 
             return {
               openWorkflows: state.openWorkflows.map((w) =>
-                w.id === data.id ? omit(data, ["graph"]) : w
+                w.id === persistedWorkflow.id
+                  ? omit(persistedWorkflow, ["graph"])
+                  : w
               )
             };
           });
 
           get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
           get().queryClient?.invalidateQueries({
-            queryKey: ["workflow", data.id]
+            queryKey: ["workflow", persistedWorkflow.id]
           });
           get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
           get().queryClient?.invalidateQueries({
-            queryKey: ["workflow", data.id, "versions"]
+            queryKey: ["workflow", persistedWorkflow.id, "versions"]
           });
         },
 
