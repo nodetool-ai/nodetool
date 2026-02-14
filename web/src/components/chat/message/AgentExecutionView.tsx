@@ -428,12 +428,13 @@ const normalizeExecutionMessage = (msg: Message) => {
   let content = msg.content as any;
   let eventType = msg.execution_event_type;
 
+  // Normalize message content by parsing JSON strings (including double-encoded)
   if (typeof content === "string") {
     try {
       content = JSON.parse(content);
       if (typeof content === "string") {
-        try { 
-          content = JSON.parse(content); 
+        try {
+          content = JSON.parse(content);
         } catch {
           // Double-encoded JSON parse failed, keep as string
         }
