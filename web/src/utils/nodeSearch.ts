@@ -13,6 +13,16 @@ export type SearchResultGroup = {
   nodes: NodeMetadata[];
 };
 
+interface SearchEntry {
+  title: string;
+  node_type: string;
+  namespace: string;
+  description: string;
+  use_cases: string;
+  tags: string;
+  metadata: NodeMetadata;
+}
+
 // Global prefix tree instance for fast prefix searches
 // Cache is keyed by the metadata array to enable proper reuse
 let globalPrefixTree: PrefixTreeSearch | null = null;
@@ -57,7 +67,7 @@ function shouldUsePrefixTree(term: string): boolean {
 }
 
 export function performGroupedSearch(
-  entries: any[],
+  entries: SearchEntry[],
   term: string
 ): SearchResultGroup[] {
   // Extract node metadata from entries
@@ -138,10 +148,10 @@ export function performGroupedSearch(
     ignoreLocation: true,
     includeMatches: true,
     useExtendedSearch: true
-  } as ExtendedFuseOptions<any>);
+  } as ExtendedFuseOptions<SearchEntry>);
 
   // Collect all results with their scores for ranking
-  const allResults: Array<{ node: any; score: number; source: string }> = [];
+  const allResults: Array<{ node: NodeMetadata; score: number; source: string }> = [];
 
   // Title matches (highest priority - score boost)
   titleFuse.search(term).forEach((result) => {
@@ -150,7 +160,11 @@ export function performGroupedSearch(
         ...result.item.metadata,
         searchInfo: {
           score: result.score,
-          matches: result.matches
+          matches: result.matches ? result.matches.map(m => ({
+            key: m.key || "",
+            value: m.value || "",
+            indices: Array.from(m.indices || [])
+          })) : undefined
         }
       },
       score: (result.score || 0) * 0.5, // Boost title matches
@@ -169,7 +183,11 @@ export function performGroupedSearch(
         ...result.item.metadata,
         searchInfo: {
           score: result.score,
-          matches: result.matches
+          matches: result.matches ? result.matches.map(m => ({
+            key: m.key || "",
+            value: m.value || "",
+            indices: Array.from(m.indices || [])
+          })) : undefined
         }
       },
       score: (result.score || 0) * 0.7, // Slight boost for namespace/tags
@@ -179,6 +197,7 @@ export function performGroupedSearch(
 
   // Description matches
   const termNoSpaces = term.replace(/\s+/g, "");
+  // Using any here because Fuse.FuseResult type is complex and varies
   const descResults = new Map<string, any>();
   [
     ...descriptionFuse.search(term),
@@ -200,7 +219,11 @@ export function performGroupedSearch(
         ...result.item.metadata,
         searchInfo: {
           score: result.score,
-          matches: result.matches
+          matches: result.matches ? result.matches.map((m: any) => ({
+            key: m.key || "",
+            value: m.value || "",
+            indices: Array.from(m.indices || [])
+          })) : undefined
         }
       },
       score: result.score || 0,
@@ -299,7 +322,7 @@ export function computeSearchResults(
   }
 
   // Only perform search operations if we have a search term
-  const allEntries = pathFilteredMetadata.map((node: NodeMetadata) => {
+  const allEntries: SearchEntry[] = pathFilteredMetadata.map((node: NodeMetadata) => {
     const { description, tags, useCases } = formatNodeDocumentation(
       node.description
     );
