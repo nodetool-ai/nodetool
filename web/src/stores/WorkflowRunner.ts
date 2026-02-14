@@ -87,7 +87,8 @@ export type WorkflowRunner = {
     workflow: WorkflowAttributes,
     nodes: Node<NodeData>[],
     edges: Edge[],
-    resource_limits?: Record<string, unknown>
+    resource_limits?: Record<string, unknown>,
+    subgraphNodeIds?: Set<string>
   ) => Promise<void>;
   reconnect: (jobId: string) => Promise<void>;
   reconnectWithWorkflow: (
@@ -249,13 +250,16 @@ export const createWorkflowRunnerStore = (
 
     /**
      * Run the current workflow.
+     * If subgraphNodeIds is provided, only clears results/previews/outputs for those specific nodes,
+     * preserving state for nodes outside the subgraph.
      */
     run: async (
       params: Record<string, unknown>,
       workflow: WorkflowAttributes,
       nodes: Node<NodeData>[],
       edges: Edge[],
-      resource_limits?: Record<string, unknown>
+      resource_limits?: Record<string, unknown>,
+      subgraphNodeIds?: Set<string>
     ) => {
       log.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
@@ -294,17 +298,23 @@ export const createWorkflowRunnerStore = (
         statusMessage: "Workflow starting..."
       });
 
-      clearStatuses(workflow.id);
-      clearEdges(workflow.id);
-      clearErrors(workflow.id);
-      clearResults(workflow.id);
-      clearOutputResults(workflow.id);
-      clearPreviews(workflow.id);
-      clearProgress(workflow.id);
-      clearToolCalls(workflow.id);
-      clearTasks(workflow.id);
-      clearPlanningUpdates(workflow.id);
-      clearChunks(workflow.id);
+      // When running a subgraph, only clear state for the subgraph nodes.
+      // Derive edge IDs from edges that belong to the subgraph.
+      const subgraphEdgeIds = subgraphNodeIds
+        ? new Set(edges.map((e) => e.id))
+        : undefined;
+
+      clearStatuses(workflow.id, subgraphNodeIds);
+      clearEdges(workflow.id, subgraphEdgeIds);
+      clearErrors(workflow.id, subgraphNodeIds);
+      clearResults(workflow.id, subgraphNodeIds);
+      clearOutputResults(workflow.id, subgraphNodeIds);
+      clearPreviews(workflow.id, subgraphNodeIds);
+      clearProgress(workflow.id, subgraphNodeIds);
+      clearToolCalls(workflow.id, subgraphNodeIds);
+      clearTasks(workflow.id, subgraphNodeIds);
+      clearPlanningUpdates(workflow.id, subgraphNodeIds);
+      clearChunks(workflow.id, subgraphNodeIds);
 
       set({
         state: "running",

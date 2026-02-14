@@ -458,7 +458,9 @@ describe("useNodeContextMenu", () => {
         {},
         mockWorkflow,
         [mockNode],
-        []
+        [],
+        undefined,
+        new Set(["node-1"])
       );
       expect(mockAddNotification).toHaveBeenCalledWith({
         type: "info",

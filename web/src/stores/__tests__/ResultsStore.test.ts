@@ -347,4 +347,90 @@ describe("ResultsStore", () => {
       expect(useResultsStore.getState().getPreview(workflowId2, nodeId1)).toEqual({ data: "2" });
     });
   });
+
+  describe("node-specific clearing", () => {
+    it("should clear results only for specified nodes", () => {
+      useResultsStore.getState().setResult(workflowId1, nodeId1, "result-1");
+      useResultsStore.getState().setResult(workflowId1, nodeId2, "result-2");
+      useResultsStore.getState().setResult(workflowId2, nodeId1, "result-other");
+
+      useResultsStore.getState().clearResults(workflowId1, new Set([nodeId1]));
+
+      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getResult(workflowId1, nodeId2)).toBe("result-2");
+      expect(useResultsStore.getState().getResult(workflowId2, nodeId1)).toBe("result-other");
+    });
+
+    it("should clear previews only for specified nodes", () => {
+      useResultsStore.getState().setPreview(workflowId1, nodeId1, "preview-1");
+      useResultsStore.getState().setPreview(workflowId1, nodeId2, "preview-2");
+
+      useResultsStore.getState().clearPreviews(workflowId1, new Set([nodeId1]));
+
+      expect(useResultsStore.getState().getPreview(workflowId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getPreview(workflowId1, nodeId2)).toBe("preview-2");
+    });
+
+    it("should clear output results only for specified nodes", () => {
+      useResultsStore.getState().setOutputResult(workflowId1, nodeId1, "out-1");
+      useResultsStore.getState().setOutputResult(workflowId1, nodeId2, "out-2");
+
+      useResultsStore.getState().clearOutputResults(workflowId1, new Set([nodeId1]));
+
+      expect(useResultsStore.getState().getOutputResult(workflowId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getOutputResult(workflowId1, nodeId2)).toBe("out-2");
+    });
+
+    it("should clear progress only for specified nodes", () => {
+      useResultsStore.getState().setProgress(workflowId1, nodeId1, 50, 100);
+      useResultsStore.getState().setProgress(workflowId1, nodeId2, 30, 60);
+
+      useResultsStore.getState().clearProgress(workflowId1, new Set([nodeId1]));
+
+      expect(useResultsStore.getState().getProgress(workflowId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getProgress(workflowId1, nodeId2)).toEqual({ progress: 30, total: 60, chunk: "" });
+    });
+
+    it("should clear edges only for specified edge IDs", () => {
+      useResultsStore.getState().setEdge(workflowId1, edgeId1, "active");
+      useResultsStore.getState().setEdge(workflowId1, "edge-2", "inactive");
+
+      useResultsStore.getState().clearEdges(workflowId1, new Set([edgeId1]));
+
+      expect(useResultsStore.getState().getEdge(workflowId1, edgeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getEdge(workflowId1, "edge-2")).toEqual({ status: "inactive", counter: undefined });
+    });
+
+    it("should clear chunks only for specified nodes", () => {
+      useResultsStore.getState().addChunk(workflowId1, nodeId1, "chunk-1");
+      useResultsStore.getState().addChunk(workflowId1, nodeId2, "chunk-2");
+
+      useResultsStore.getState().clearChunks(workflowId1, new Set([nodeId1]));
+
+      expect(useResultsStore.getState().getChunk(workflowId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getChunk(workflowId1, nodeId2)).toBe("chunk-2");
+    });
+
+    it("should clear all workflow data when nodeIds is not provided", () => {
+      useResultsStore.getState().setResult(workflowId1, nodeId1, "result-1");
+      useResultsStore.getState().setResult(workflowId1, nodeId2, "result-2");
+
+      useResultsStore.getState().clearResults(workflowId1);
+
+      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getResult(workflowId1, nodeId2)).toBeUndefined();
+    });
+
+    it("should handle clearing with multiple node IDs", () => {
+      useResultsStore.getState().setResult(workflowId1, nodeId1, "result-1");
+      useResultsStore.getState().setResult(workflowId1, nodeId2, "result-2");
+      useResultsStore.getState().setResult(workflowId1, "node-3", "result-3");
+
+      useResultsStore.getState().clearResults(workflowId1, new Set([nodeId1, nodeId2]));
+
+      expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getResult(workflowId1, nodeId2)).toBeUndefined();
+      expect(useResultsStore.getState().getResult(workflowId1, "node-3")).toBe("result-3");
+    });
+  });
 });

@@ -4,7 +4,7 @@ type NodeError = Error | string | null | Record<string, unknown>;
 
 type ErrorStore = {
   errors: Record<string, NodeError>;
-  clearErrors: (workflowId: string) => void;
+  clearErrors: (workflowId: string, nodeIds?: Set<string>) => void;
   clearNodeErrors: (workflowId: string, nodeId: string) => void;
   setError: (workflowId: string, nodeId: string, error: NodeError) => void;
   getError: (workflowId: string, nodeId: string) => NodeError;
@@ -17,17 +17,32 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
   errors: {},
   /**
    * Clear the errors for a workflow.
+   * If nodeIds is provided, only clears errors for those specific nodes.
    *
    * @param workflowId The id of the workflow.
+   * @param nodeIds Optional set of node IDs to clear. If omitted, clears all nodes in the workflow.
    */
-  clearErrors: (workflowId: string) => {
-    set((state) => ({
-      errors: Object.fromEntries(
-        Object.entries(state.errors).filter(
-          ([key]) => !key.startsWith(workflowId)
+  clearErrors: (workflowId: string, nodeIds?: Set<string>) => {
+    if (nodeIds) {
+      const keysToRemove = new Set(
+        Array.from(nodeIds).map((id) => hashKey(workflowId, id))
+      );
+      set((state) => ({
+        errors: Object.fromEntries(
+          Object.entries(state.errors).filter(
+            ([key]) => !keysToRemove.has(key)
+          )
         )
-      )
-    }));
+      }));
+    } else {
+      set((state) => ({
+        errors: Object.fromEntries(
+          Object.entries(state.errors).filter(
+            ([key]) => !key.startsWith(workflowId)
+          )
+        )
+      }));
+    }
   },
   /**
    * Clear the errors for a specific node.
