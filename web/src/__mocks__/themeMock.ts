@@ -74,6 +74,10 @@ const mockTheme = createTheme({
       secondary: "#bdbdbd",
       disabled: "#9e9e9e"
     },
+    // Add inputPlaceholder for TextField component
+    inputPlaceholder: {
+      opacity: 0.7
+    },
     Paper: {
       paper: "#232323"
     },
