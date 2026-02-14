@@ -165,6 +165,18 @@ export type JobListResponse = components["schemas"]["JobListResponse"];
 export type CalendarEvent = components["schemas"]["CalendarEvent"];
 export type Datetime = components["schemas"]["Datetime"];
 
+// Resource change update type for WebSocket notifications
+export interface ResourceChangeUpdate {
+  type: "resource_change";
+  event: "created" | "updated" | "deleted";
+  resource_type: string; // e.g. "workflow", "asset", "thread", "job"
+  resource: {
+    id: string;
+    etag?: string;
+    [key: string]: unknown; // Additional resource properties
+  };
+}
+
 // Job types
 export type Job = JobResponse;
 

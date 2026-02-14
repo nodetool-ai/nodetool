@@ -1,6 +1,8 @@
 import { TextEncoder, TextDecoder } from "util";
 import { FrontendToolRegistry } from "../../tools/frontendTools";
 import { globalWebSocketManager } from "../GlobalWebSocketManager";
+import { handleResourceChange } from "../../../stores/resourceChangeHandler";
+import { ResourceChangeUpdate } from "../../../stores/ApiTypes";
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
@@ -35,7 +37,16 @@ jest.mock("../../tools/frontendTools", () => ({
   }
 }));
 
+// Mock resourceChangeHandler
+jest.mock("../../../stores/resourceChangeHandler", () => ({
+  handleResourceChange: jest.fn()
+}));
+
 describe("GlobalWebSocketManager", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe("sendToolsManifest", () => {
     it("sends tools manifest when connection opens", () => {
       // This test verifies the sendToolsManifest method is called
@@ -56,6 +67,88 @@ describe("GlobalWebSocketManager", () => {
 
       expect(handler).toHaveBeenCalledWith({ job_id: "job-123" });
       unsubscribe();
+    });
+
+    it("routes messages by workflow_id", () => {
+      const handler = jest.fn();
+      const unsubscribe = globalWebSocketManager.subscribe("workflow-456", handler);
+
+      (globalWebSocketManager as any).routeMessage({ workflow_id: "workflow-456" });
+
+      expect(handler).toHaveBeenCalledWith({ workflow_id: "workflow-456" });
+      unsubscribe();
+    });
+
+    it("routes messages by thread_id", () => {
+      const handler = jest.fn();
+      const unsubscribe = globalWebSocketManager.subscribe("thread-789", handler);
+
+      (globalWebSocketManager as any).routeMessage({ thread_id: "thread-789" });
+
+      expect(handler).toHaveBeenCalledWith({ thread_id: "thread-789" });
+      unsubscribe();
+    });
+  });
+
+  describe("resource change handling", () => {
+    it("handles resource_change messages", () => {
+      const resourceChangeMessage: ResourceChangeUpdate = {
+        type: "resource_change",
+        event: "updated",
+        resource_type: "workflow",
+        resource: {
+          id: "workflow-123",
+          etag: "abc123"
+        }
+      };
+
+      (globalWebSocketManager as any).routeMessage(resourceChangeMessage);
+
+      expect(handleResourceChange).toHaveBeenCalledWith(resourceChangeMessage);
+    });
+
+    it("does not route resource_change messages to regular handlers", () => {
+      const handler = jest.fn();
+      const unsubscribe = globalWebSocketManager.subscribe("workflow-123", handler);
+
+      const resourceChangeMessage: ResourceChangeUpdate = {
+        type: "resource_change",
+        event: "created",
+        resource_type: "workflow",
+        resource: {
+          id: "workflow-123",
+          etag: "xyz"
+        }
+      };
+
+      (globalWebSocketManager as any).routeMessage(resourceChangeMessage);
+
+      // Regular handler should NOT be called for resource_change messages
+      expect(handler).not.toHaveBeenCalled();
+      // But the resource change handler should be called
+      expect(handleResourceChange).toHaveBeenCalled();
+
+      unsubscribe();
+    });
+
+    it("handles resource_change messages for different events", () => {
+      const events: Array<"created" | "updated" | "deleted"> = ["created", "updated", "deleted"];
+
+      events.forEach((event) => {
+        const message: ResourceChangeUpdate = {
+          type: "resource_change",
+          event,
+          resource_type: "asset",
+          resource: {
+            id: `asset-${event}`,
+            etag: "test"
+          }
+        };
+
+        (globalWebSocketManager as any).routeMessage(message);
+
+        expect(handleResourceChange).toHaveBeenCalledWith(message);
+      });
     });
   });
 });
