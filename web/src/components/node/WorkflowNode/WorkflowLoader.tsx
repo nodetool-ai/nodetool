@@ -15,7 +15,7 @@ import { NodeData } from "../../../stores/NodeData";
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.base_node.WorkflowNode";
 
 /** Map input node types to TypeMetadata types */
-const INPUT_TYPE_MAP: Record<string, string> = {
+export const INPUT_TYPE_MAP: Record<string, string> = {
   "nodetool.input.StringInput": "str",
   "nodetool.input.IntegerInput": "int",
   "nodetool.input.FloatInput": "float",
@@ -27,7 +27,7 @@ const INPUT_TYPE_MAP: Record<string, string> = {
 };
 
 /** Map output node types to TypeMetadata types */
-const OUTPUT_TYPE_MAP: Record<string, string> = {
+export const OUTPUT_TYPE_MAP: Record<string, string> = {
   "nodetool.output.StringOutput": "str",
   "nodetool.output.IntegerOutput": "int",
   "nodetool.output.FloatOutput": "float",
@@ -76,7 +76,7 @@ const fetchWorkflowById = async (id: string): Promise<Workflow> => {
  * Extract dynamic inputs and outputs from a workflow's input/output nodes.
  * Input nodes become dynamic inputs; Output nodes become dynamic outputs.
  */
-function extractDynamicIO(workflow: Workflow) {
+export function extractDynamicIO(workflow: Workflow) {
   const graph = workflow.graph;
   if (!graph || !graph.nodes) {
     return { dynamic_inputs: {}, dynamic_outputs: {}, dynamic_properties: {} };
