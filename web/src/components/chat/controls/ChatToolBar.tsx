@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { memo } from "react";
 import { AgentModeToggle } from "../composer/AgentModeToggle";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
@@ -200,4 +200,4 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   );
 };
 
-export default ChatToolBar;
+export default memo(ChatToolBar);
