@@ -14,6 +14,13 @@ export default defineConfig(async ({ mode }) => {
       changeOrigin: true,
       secure: false
     },
+    "/comfy-api": {
+      target: "http://localhost:8000",
+      changeOrigin: true,
+      secure: false,
+      ws: true,
+      rewrite: (path) => path.replace(/^\/comfy-api/, "/api")
+    },
     "/ws": {
       target: "http://localhost:7777",
       ws: true,

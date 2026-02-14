@@ -14,6 +14,7 @@ import {
   extractFiles
 } from "../../lib/dragdrop";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
+import log from "loglevel";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -29,6 +30,8 @@ const NODES_PER_ROW = 2;
  * @returns Detected type: "png", "json", "csv", "document", or "unknown"
  */
 function detectFileType(file: File): string {
+  const fileName = file.name.toLowerCase();
+
   switch (file.type) {
     case "image/png":
       return "png";
@@ -45,9 +48,39 @@ function detectFileType(file: File): string {
     case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
       return "document";
     default:
+      if (fileName.endsWith(".png")) {
+        return "png";
+      }
+      if (fileName.endsWith(".json")) {
+        return "json";
+      }
+      if (fileName.endsWith(".csv")) {
+        return "csv";
+      }
+      if (
+        fileName.endsWith(".pdf") ||
+        fileName.endsWith(".docx") ||
+        fileName.endsWith(".xlsx") ||
+        fileName.endsWith(".pptx")
+      ) {
+        return "document";
+      }
       return "unknown";
   }
 }
+
+const isAssetResult = (value: unknown): value is Asset => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === "string" &&
+    typeof record.name === "string" &&
+    typeof record.content_type === "string"
+  );
+};
 
 /**
  * Hook for handling drop events on the ReactFlow canvas.
@@ -153,8 +186,17 @@ export const useDropHandler = () => {
       // Handle external file drops
       if (hasExternalFiles(event.dataTransfer) && user) {
         const files = extractFiles(event.dataTransfer);
+        log.info("[drop] External files detected", {
+          count: files.length,
+          names: files.map((file) => file.name)
+        });
         for (const file of files) {
           const fileType = detectFileType(file);
+          log.info("[drop] Processing file", {
+            name: file.name,
+            mime: file.type || "(empty)",
+            detectedType: fileType
+          });
           let result: FileHandlerResult;
 
           switch (fileType) {
@@ -172,17 +214,23 @@ export const useDropHandler = () => {
           }
 
           if (result.success) {
-            if (result.data && "id" in result.data) {
+            if (isAssetResult(result.data)) {
               addNodeFromAsset(result.data, position);
             }
           } else {
-            addNotification({
-              type: "error",
-              content: `Failed to process file: ${result.error}`,
-              alert: true
-            });
+              addNotification({
+                type: "error",
+                content: `Failed to process file: ${result.error}`,
+                alert: true
+              });
+              log.error("[drop] File processing failed", {
+                name: file.name,
+                error: result.error
+              });
+            }
           }
-        }
+      } else if (hasExternalFiles(event.dataTransfer) && !user) {
+        log.warn("[drop] Ignoring external file drop: no authenticated user");
       }
     },
     [

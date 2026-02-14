@@ -15,16 +15,24 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import { createErrorMessage, AppError } from "../../utils/errorHandling";
+import {
+  comfyWorkflowToNodeToolGraph,
+  comfyPromptToNodeToolGraph,
+  COMFY_WORKFLOW_FLAG
+} from "../../utils/comfyWorkflowConverter";
+import { ComfyUIWorkflow, ComfyUIPrompt } from "../../services/ComfyUIService";
+import { Graph, Workflow } from "../../stores/ApiTypes";
+import log from "loglevel";
 
 export type FileHandlerResult = {
   success: boolean;
-  data?: any;
+  data?: Asset | Workflow | null;
   error?: string;
 };
 
 export const extractWorkflowFromPng = async (
   file: File
-): Promise<Record<string, never> | null> => {
+): Promise<ComfyUIWorkflow | null> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -69,7 +77,7 @@ export const extractWorkflowFromPng = async (
               uint8Array.slice(keywordEnd + 1, offset + chunkLength)
             );
             try {
-              const workflow = JSON.parse(textContent);
+              const workflow = JSON.parse(textContent) as ComfyUIWorkflow;
               resolve(workflow);
               return;
             } catch {
@@ -93,12 +101,55 @@ export const extractWorkflowFromPng = async (
   });
 };
 
-export const isComfyWorkflowJson = (json: any): boolean => {
-  return json.last_node_id && json.last_link_id && json.nodes;
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null;
 };
 
-export const isNodetoolWorkflowJson = (json: any): boolean => {
-  return json.graph;
+export const isComfyWorkflowJson = (
+  json: unknown
+): json is ComfyUIWorkflow => {
+  if (!isRecord(json)) {
+    return false;
+  }
+
+  const hasLastNodeId = typeof json.last_node_id === "number";
+  const hasLastLinkId = typeof json.last_link_id === "number";
+  const hasNodes = Array.isArray(json.nodes);
+  const hasLinks = Array.isArray(json.links);
+
+  return hasLastNodeId && hasLastLinkId && hasNodes && hasLinks;
+};
+
+export const isNodetoolWorkflowJson = (
+  json: unknown
+): json is { name?: string; graph: Graph } => {
+  if (!isRecord(json) || !isRecord(json.graph)) {
+    return false;
+  }
+
+  return Array.isArray(json.graph.nodes) && Array.isArray(json.graph.edges);
+};
+
+export const isComfyPromptJson = (json: unknown): json is ComfyUIPrompt => {
+  if (!isRecord(json) || Array.isArray(json)) {
+    return false;
+  }
+
+  const entries = Object.entries(json);
+  if (entries.length === 0) {
+    return false;
+  }
+
+  return entries.every(([key, value]) => {
+    if (!/^\d+$/.test(key) || !isRecord(value)) {
+      return false;
+    }
+
+    return (
+      typeof value.class_type === "string" &&
+      isRecord(value.inputs)
+    );
+  });
 };
 
 export const useFileHandlers = () => {
@@ -179,11 +230,15 @@ export const useFileHandlers = () => {
 
         if (workflow) {
           try {
+            const graph = comfyWorkflowToNodeToolGraph(workflow);
             const createdWorkflow = await createWorkflow({
               name: file.name,
               description: "created from comfy",
               access: "private",
-              comfy_workflow: workflow
+              graph,
+              settings: {
+                [COMFY_WORKFLOW_FLAG]: true
+              }
             });
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
@@ -211,19 +266,31 @@ export const useFileHandlers = () => {
   const handleJsonFile = useCallback(
     async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
       try {
+        log.info("[drop/json] Reading JSON file", { name: file.name });
         const jsonContent = await file.text();
-        const jsonData = JSON.parse(jsonContent);
+        const jsonData = JSON.parse(jsonContent) as unknown;
         if (isComfyWorkflowJson(jsonData)) {
+          log.info("[drop/json] Detected ComfyUI workflow JSON", {
+            name: file.name
+          });
           try {
+            const graph = comfyWorkflowToNodeToolGraph(jsonData);
             const createdWorkflow = await createWorkflow({
               name: file.name,
               description: "created from comfy",
               access: "private",
-              comfy_workflow: jsonData
+              graph,
+              settings: {
+                [COMFY_WORKFLOW_FLAG]: true
+              }
             });
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error) {
+            log.error("[drop/json] Failed creating workflow from Comfy JSON", {
+              name: file.name,
+              error
+            });
             const err = createErrorMessage(error, "Failed to create workflow");
             return {
               success: false,
@@ -231,9 +298,12 @@ export const useFileHandlers = () => {
             };
           }
         } else if (isNodetoolWorkflowJson(jsonData)) {
+          log.info("[drop/json] Detected NodeTool workflow JSON", {
+            name: file.name
+          });
           try {
             const createdWorkflow = await createWorkflow({
-              name: jsonData.name,
+              name: jsonData.name || file.name,
               description: "created from json",
               access: "private",
               graph: jsonData.graph
@@ -241,17 +311,59 @@ export const useFileHandlers = () => {
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error) {
+            log.error("[drop/json] Failed creating workflow from NodeTool JSON", {
+              name: file.name,
+              error
+            });
             const err = createErrorMessage(error, "Failed to create workflow");
             return {
               success: false,
               error: err instanceof AppError ? err.detail : err.message
             };
           }
+        } else if (isComfyPromptJson(jsonData)) {
+          log.info("[drop/json] Detected ComfyUI prompt JSON (API format)", {
+            name: file.name
+          });
+          try {
+            const graph = comfyPromptToNodeToolGraph(jsonData);
+            const createdWorkflow = await createWorkflow({
+              name: file.name,
+              description: "created from comfy prompt json",
+              access: "private",
+              graph,
+              settings: {
+                [COMFY_WORKFLOW_FLAG]: true
+              }
+            });
+            navigate(`/editor/${createdWorkflow.id}`);
+            return { success: true, data: createdWorkflow };
+          } catch (error) {
+            log.error("[drop/json] Failed creating workflow from Comfy prompt JSON", {
+              name: file.name,
+              error
+            });
+            const err = createErrorMessage(
+              error,
+              "Failed to create workflow from Comfy prompt"
+            );
+            return {
+              success: false,
+              error: err instanceof AppError ? err.detail : err.message
+            };
+          }
         } else {
+          log.info("[drop/json] JSON not recognized as workflow, uploading as asset", {
+            name: file.name
+          });
           // Handle as regular JSON file
           return await handleGenericFile(file, position);
         }
       } catch (error) {
+        log.error("[drop/json] Failed to parse/process JSON file", {
+          name: file.name,
+          error
+        });
         const err = createErrorMessage(error, "Failed to process JSON file");
         return {
           success: false,
