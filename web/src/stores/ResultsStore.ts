@@ -25,15 +25,15 @@ type ResultsStore = {
   planningUpdates: Record<string, PlanningUpdate>;
   previews: Record<string, unknown>;
   deleteResult: (workflowId: string, nodeId: string) => void;
-  clearResults: (workflowId: string) => void;
-  clearOutputResults: (workflowId: string) => void;
-  clearProgress: (workflowId: string) => void;
-  clearToolCalls: (workflowId: string) => void;
-  clearTasks: (workflowId: string) => void;
-  clearChunks: (workflowId: string) => void;
-  clearPlanningUpdates: (workflowId: string) => void;
-  clearPreviews: (workflowId: string) => void;
-  clearEdges: (workflowId: string) => void;
+  clearResults: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearProgress: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearToolCalls: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearTasks: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearChunks: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearPlanningUpdates: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearPreviews: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearEdges: (workflowId: string, edgeIds?: Set<string>) => void;
   setEdge: (
     workflowId: string,
     edgeId: string,
@@ -103,6 +103,29 @@ type ResultsStore = {
 export const hashKey = (workflowId: string, nodeId: string) =>
   `${workflowId}:${nodeId}`;
 
+/**
+ * Filter a record by removing entries matching the given workflow.
+ * If specificIds is provided, only removes entries for those specific IDs within the workflow.
+ * Otherwise, removes all entries for the workflow.
+ */
+const filterRecord = <T>(
+  record: Record<string, T>,
+  workflowId: string,
+  specificIds?: Set<string>
+): Record<string, T> => {
+  if (specificIds) {
+    const keysToRemove = new Set(
+      Array.from(specificIds).map((id) => hashKey(workflowId, id))
+    );
+    return Object.fromEntries(
+      Object.entries(record).filter(([key]) => !keysToRemove.has(key))
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(record).filter(([key]) => !key.startsWith(workflowId))
+  );
+};
+
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
   outputResults: {},
@@ -113,13 +136,9 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   edges: {},
   planningUpdates: {},
   previews: {},
-  clearEdges: (workflowId: string) => {
+  clearEdges: (workflowId: string, edgeIds?: Set<string>) => {
     set((state) => ({
-      edges: Object.fromEntries(
-        Object.entries(state.edges).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
+      edges: filterRecord(state.edges, workflowId, edgeIds)
     }));
   },
   /**
@@ -271,94 +290,62 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * Clear the results for a workflow.
    * The results are removed from the results map.
    */
-  clearResults: (workflowId: string) => {
+  clearResults: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      results: Object.fromEntries(
-        Object.entries(state.results).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
+      results: filterRecord(state.results, workflowId, nodeIds)
     }));
   },
-  clearOutputResults: (workflowId: string) => {
+  clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      outputResults: Object.fromEntries(
-        Object.entries(state.outputResults).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
+      outputResults: filterRecord(state.outputResults, workflowId, nodeIds)
     }));
   },
   /**
    * Clear the progress for a workflow.
    */
-  clearProgress: (workflowId: string) => {
+  clearProgress: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      progress: Object.fromEntries(
-        Object.entries(state.progress).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
+      progress: filterRecord(state.progress, workflowId, nodeIds)
     }));
   },
   /**
    * Clear the previews for a workflow.
    */
-  clearPreviews: (workflowId: string) => {
+  clearPreviews: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      previews: Object.fromEntries(
-        Object.entries(state.previews).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
+      previews: filterRecord(state.previews, workflowId, nodeIds)
     }));
   },
   /**
    * Clear the tool calls for a workflow.
    */
-  clearToolCalls: (workflowId: string) => {
+  clearToolCalls: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      toolCalls: Object.fromEntries(
-        Object.entries(state.toolCalls).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
+      toolCalls: filterRecord(state.toolCalls, workflowId, nodeIds)
     }));
   },
   /**
    * Clear the tasks for a workflow.
    */
-  clearTasks: (workflowId: string) => {
+  clearTasks: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      tasks: Object.fromEntries(
-        Object.entries(state.tasks).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
+      tasks: filterRecord(state.tasks, workflowId, nodeIds)
     }));
   },
   /**
    * Clear the planning updates for a workflow.
    */
-  clearPlanningUpdates: (workflowId: string) => {
+  clearPlanningUpdates: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      planningUpdates: Object.fromEntries(
-        Object.entries(state.planningUpdates).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
+      planningUpdates: filterRecord(state.planningUpdates, workflowId, nodeIds)
     }));
   },
   /**
    * Clear the chunks for a workflow.
    */
-  clearChunks: (workflowId: string) => {
+  clearChunks: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      chunks: Object.fromEntries(
-        Object.entries(state.chunks).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
+      chunks: filterRecord(state.chunks, workflowId, nodeIds)
     }));
   },
   /**

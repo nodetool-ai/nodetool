@@ -268,4 +268,50 @@ describe("ErrorStore", () => {
       expect(useErrorStore.getState().getError("workflow2", "nodeB")).toBe("Error B2");
     });
   });
+
+  describe("clearErrors with nodeIds", () => {
+    it("should clear errors only for specified nodes", () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
+        useErrorStore.getState().setError("workflow1", "node2", "Error 2");
+        useErrorStore.getState().setError("workflow1", "node3", "Error 3");
+      });
+
+      act(() => {
+        useErrorStore.getState().clearErrors("workflow1", new Set(["node1", "node3"]));
+      });
+
+      expect(useErrorStore.getState().getError("workflow1", "node1")).toBeUndefined();
+      expect(useErrorStore.getState().getError("workflow1", "node2")).toBe("Error 2");
+      expect(useErrorStore.getState().getError("workflow1", "node3")).toBeUndefined();
+    });
+
+    it("should not affect other workflows when clearing specific nodes", () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
+        useErrorStore.getState().setError("workflow2", "node1", "Error 2");
+      });
+
+      act(() => {
+        useErrorStore.getState().clearErrors("workflow1", new Set(["node1"]));
+      });
+
+      expect(useErrorStore.getState().getError("workflow1", "node1")).toBeUndefined();
+      expect(useErrorStore.getState().getError("workflow2", "node1")).toBe("Error 2");
+    });
+
+    it("should clear all workflow errors when nodeIds is not provided", () => {
+      act(() => {
+        useErrorStore.getState().setError("workflow1", "node1", "Error 1");
+        useErrorStore.getState().setError("workflow1", "node2", "Error 2");
+      });
+
+      act(() => {
+        useErrorStore.getState().clearErrors("workflow1");
+      });
+
+      expect(useErrorStore.getState().getError("workflow1", "node1")).toBeUndefined();
+      expect(useErrorStore.getState().getError("workflow1", "node2")).toBeUndefined();
+    });
+  });
 });

@@ -18,7 +18,7 @@ type StatusStore = {
   statuses: Record<string, StatusValue>;
   setStatus: (workflowId: string, nodeId: string, status: StatusValue) => void;
   getStatus: (workflowId: string, nodeId: string) => StatusValue | undefined;
-  clearStatuses: (workflowId: string) => void;
+  clearStatuses: (workflowId: string, nodeIds?: Set<string>) => void;
 };
 
 export const hashKey = (workflowId: string, nodeId: string) =>
@@ -29,17 +29,32 @@ const useStatusStore = create<StatusStore>((set, get) => ({
 
   /**
    * Clear the statuses for a workflow.
+   * If nodeIds is provided, only clears statuses for those specific nodes.
    *
    * @param workflowId The id of the workflow.
+   * @param nodeIds Optional set of node IDs to clear. If omitted, clears all nodes in the workflow.
    */
-  clearStatuses: (workflowId: string) => {
-    const statuses = get().statuses;
-    for (const key in statuses) {
-      if (key.startsWith(workflowId)) {
-        delete statuses[key];
+  clearStatuses: (workflowId: string, nodeIds?: Set<string>) => {
+    if (nodeIds) {
+      const keysToRemove = new Set(
+        Array.from(nodeIds).map((id) => hashKey(workflowId, id))
+      );
+      set((state) => ({
+        statuses: Object.fromEntries(
+          Object.entries(state.statuses).filter(
+            ([key]) => !keysToRemove.has(key)
+          )
+        )
+      }));
+    } else {
+      const statuses = get().statuses;
+      for (const key in statuses) {
+        if (key.startsWith(workflowId)) {
+          delete statuses[key];
+        }
       }
+      set({ statuses });
     }
-    set({ statuses });
   },
 
   /**
