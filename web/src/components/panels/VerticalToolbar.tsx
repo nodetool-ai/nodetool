@@ -15,6 +15,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import SvgFileIcon from "../SvgFileIcon";
+import ErrorIcon from "@mui/icons-material/Error";
 
 interface VerticalToolbarProps {
     handleInspectorToggle: () => void;
@@ -25,7 +26,8 @@ interface VerticalToolbarProps {
     handleVersionsToggle: () => void;
     handleWorkflowToggle: () => void;
     handleWorkflowAssetsToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets";
+    handleErrorsToggle: () => void;
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "errors";
     panelVisible: boolean;
 }
 
@@ -38,6 +40,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handleVersionsToggle,
     handleWorkflowToggle,
     handleWorkflowAssetsToggle,
+    handleErrorsToggle,
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
@@ -234,6 +237,23 @@ const VerticalToolbar = memo(function VerticalToolbar({
                     }
                 >
                     <WorkHistoryIcon />
+                </IconButton>
+            </Tooltip>
+
+            {/* Errors Button */}
+            <Tooltip
+                title="Workflow Errors"
+                placement="left-start"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+                <IconButton
+                    tabIndex={-1}
+                    onClick={handleErrorsToggle}
+                    className={
+                        activeView === "errors" && panelVisible ? "errors active" : "errors"
+                    }
+                >
+                    <ErrorIcon />
                 </IconButton>
             </Tooltip>
         </div>

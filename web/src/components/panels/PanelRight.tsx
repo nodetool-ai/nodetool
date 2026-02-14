@@ -107,6 +107,7 @@ const styles = (theme: Theme) =>
 import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 import JobsPanel from "./jobs/JobsPanel";
 import VerticalToolbar from "./VerticalToolbar";
+import WorkflowErrorSummary from "../errors/WorkflowErrorSummary";
 
 const PanelRight: React.FC = () => {
   const theme = useTheme();
@@ -244,6 +245,17 @@ const PanelRight: React.FC = () => {
                       <WorkflowAssetPanel />
                     </Box>
                   </Box>
+                ) : activeView === "errors" ? (
+                  <Box
+                    className="errors-panel"
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      overflow: "hidden"
+                    }}
+                  >
+                    <WorkflowErrorSummary />
+                  </Box>
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -269,6 +281,7 @@ const PanelRight: React.FC = () => {
         handleVersionsToggle={() => handlePanelToggle("versions")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
+        handleErrorsToggle={() => handlePanelToggle("errors")}
         activeView={activeView}
         panelVisible={isVisible}
       />
