@@ -6,6 +6,7 @@ import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { VariableSizeList as VirtualList } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
+import { shallow } from "zustand/shallow";
 
 import { useModels } from "./useModels";
 import ModelListHeader from "./ModelListHeader";
@@ -127,10 +128,18 @@ const ModelListIndex: React.FC = () => {
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
   const filterStatus = useModelManagerStore((state) => state.filterStatus);
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
-  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
-  const cachePending = useHfCacheStatusStore((state) => state.pending);
-  const cacheVersion = useHfCacheStatusStore((state) => state.version);
-  const ensureStatuses = useHfCacheStatusStore((state) => state.ensureStatuses);
+
+  // Optimize HfCacheStatusStore subscriptions using shallow equality
+  // This prevents unnecessary re-renders when only individual cache statuses change
+  const { cacheStatuses, cachePending, cacheVersion, ensureStatuses } = useHfCacheStatusStore(
+    (state) => ({
+      cacheStatuses: state.statuses,
+      cachePending: state.pending,
+      cacheVersion: state.version,
+      ensureStatuses: state.ensureStatuses
+    }),
+    shallow
+  );
 
   const {
     modelTypes,
