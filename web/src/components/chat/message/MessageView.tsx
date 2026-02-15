@@ -36,6 +36,88 @@ import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 import StepResultDisplay from "../../node/StepResultDisplay";
 import AgentExecutionView from "./AgentExecutionView";
 
+/**
+ * PrettyJson - Memoized component for displaying formatted JSON.
+ * Extracted outside MessageView to prevent recreation on every render.
+ */
+const PrettyJson: React.FC<{ value: any }> = React.memo(({ value }) => {
+  const text = useMemo(() => {
+    try {
+      if (typeof value === "string") {
+        const parsed = JSON.parse(value);
+        return JSON.stringify(parsed, null, 2);
+      }
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return typeof value === "string" ? value : String(value);
+    }
+  }, [value]);
+  return <pre className="pretty-json">{text}</pre>;
+});
+PrettyJson.displayName = "PrettyJson";
+
+/**
+ * ToolCallCard - Memoized component for displaying tool calls.
+ * Extracted outside MessageView to prevent recreation on every render.
+ */
+const ToolCallCard: React.FC<{
+  tc: ToolCall;
+  result?: { name?: string | null; content: any };
+}> = React.memo(({ tc, result: _result }) => {
+  const [open, setOpen] = useState(false);
+  const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
+  const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
+  const hasArgs = (tc as any)?.args && Object.keys((tc as any).args).length > 0;
+  const hasDetails = !!hasArgs;
+  const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
+
+  const handleToggleOpen = useCallback(() => {
+    setOpen((v) => !v);
+  }, []);
+
+  return (
+    <Box className={`tool-call-card${isRunning ? " running" : ""}`}>
+      <Box className="tool-call-header">
+        <Typography component="span" variant="caption" className="tool-call-name">
+          {tc.name}
+        </Typography>
+        {(isRunning || tc.message) && (
+          <Typography component="span" variant="caption" className="tool-message">
+            {isRunning ? runningToolMessage || tc.message : tc.message}
+          </Typography>
+        )}
+        {isRunning && <CircularProgress size={12} sx={{ ml: 0.5 }} />}
+        <Box sx={{ flex: 1 }} />
+        {hasDetails && (
+          <Tooltip title={open ? "Hide details" : "Show details"}>
+            <IconButton
+              size="small"
+              className="tool-expand-button"
+              onClick={handleToggleOpen}
+              aria-label={open ? "Hide details" : "Show details"}
+            >
+              <ExpandMoreIcon
+                className={`expand-icon${open ? " expanded" : ""}`}
+              />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        {hasArgs && (
+          <Box sx={{ mt: 0.25 }}>
+            <Typography variant="caption" className="tool-section-title">
+              Arguments
+            </Typography>
+            <PrettyJson value={(tc as any).args} />
+          </Box>
+        )}
+      </Collapse>
+    </Box>
+  );
+});
+ToolCallCard.displayName = "ToolCallCard";
+
 interface MessageViewProps {
   message: Message;
   expandedThoughts: { [key: string]: boolean };
@@ -309,85 +391,6 @@ export const MessageView: React.FC<
     const content = message.content as
       | Array<MessageTextContent | MessageImageContent>
       | string;
-
-    // Pretty JSON helper
-    const PrettyJson: React.FC<{ value: any }> = React.memo(({ value }) => {
-      const text = useMemo(() => {
-        try {
-          if (typeof value === "string") {
-            const parsed = JSON.parse(value);
-            return JSON.stringify(parsed, null, 2);
-          }
-          return JSON.stringify(value, null, 2);
-        } catch {
-          return typeof value === "string" ? value : String(value);
-        }
-      }, [value]);
-      return <pre className="pretty-json">{text}</pre>;
-    });
-    PrettyJson.displayName = "PrettyJson";
-
-    const ToolCallCard: React.FC<{
-      tc: ToolCall;
-      result?: { name?: string | null; content: any };
-    }> = React.memo(({ tc, result: _result }) => {
-      const [open, setOpen] = useState(false);
-      const runningToolCallId = useGlobalChatStore(
-        (s) => s.currentRunningToolCallId
-      );
-      const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
-      const hasArgs =
-        (tc as any)?.args && Object.keys((tc as any).args).length > 0;
-      const hasDetails = !!hasArgs;
-      const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
-
-      const handleToggleOpen = useCallback(() => {
-        setOpen((v) => !v);
-      }, []);
-
-      return (
-        <Box className={`tool-call-card${isRunning ? " running" : ""}`}>
-          <Box className="tool-call-header">
-            <Typography component="span" variant="caption" className="tool-call-name">
-              {tc.name}
-            </Typography>
-            {(isRunning || tc.message) && (
-              <Typography component="span" variant="caption" className="tool-message">
-                {isRunning ? runningToolMessage || tc.message : tc.message}
-              </Typography>
-            )}
-            {isRunning && <CircularProgress size={12} sx={{ ml: 0.5 }} />}
-            <Box sx={{ flex: 1 }} />
-            {hasDetails && (
-              <Tooltip title={open ? "Hide details" : "Show details"}>
-                <IconButton
-                  size="small"
-                  className="tool-expand-button"
-                  onClick={handleToggleOpen}
-                  aria-label={open ? "Hide details" : "Show details"}
-                >
-                  <ExpandMoreIcon
-                    className={`expand-icon${open ? " expanded" : ""}`}
-                  />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            {hasArgs && (
-              <Box sx={{ mt: 0.25 }}>
-                <Typography variant="caption" className="tool-section-title">
-                  Arguments
-                </Typography>
-                <PrettyJson value={(tc as any).args} />
-              </Box>
-            )}
-
-          </Collapse>
-        </Box>
-      );
-    });
-    ToolCallCard.displayName = "ToolCallCard";
 
     // Format timestamp for display
     const formatTime = (dateStr?: string | null) => {

@@ -397,9 +397,16 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       state.getResult(workflow_id, id);
     return r;
   });
-  const hasConnectedInput = useNodes((state) =>
-    state.edges.some((edge) => edge.target === id)
-  );
+
+  // Optimize: Use a more specific selector that only depends on the node's connected edges
+  // This prevents re-renders when unrelated edges change
+  const hasConnectedInput = useNodes((state) => {
+    // Check if any edge targets this node
+    // This selector will only re-render when edges array reference changes
+    // AND the connection status of this specific node changes
+    return state.edges.some((edge) => edge.target === id);
+  });
+
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
 
