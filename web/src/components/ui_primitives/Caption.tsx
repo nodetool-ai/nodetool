@@ -1,11 +1,11 @@
 /**
  * Caption Component
- * 
+ *
  * A small secondary text component for captions, hints, and helper text.
  * Provides consistent styling for supplementary text content.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -39,7 +39,7 @@ export interface CaptionProps extends Omit<TypographyProps, 'variant'> {
  * // Italic caption
  * <Caption italic>Optional field</Caption>
  */
-export const Caption: React.FC<CaptionProps> = ({
+const CaptionInternal: React.FC<CaptionProps> = ({
   size = "small",
   color = "secondary",
   italic = false,
@@ -85,3 +85,5 @@ export const Caption: React.FC<CaptionProps> = ({
     </Typography>
   );
 };
+
+export const Caption = memo(CaptionInternal);

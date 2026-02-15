@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme, useColorScheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -34,7 +34,7 @@ export interface ThemeToggleButtonProps {
   className?: string;
 }
 
-export const ThemeToggleButton: React.FC<ThemeToggleButtonProps> = ({
+export const ThemeToggleButtonInternal: React.FC<ThemeToggleButtonProps> = ({
   variant = "icon",
   buttonSize = "small",
   lightLabel = "Light",
@@ -104,4 +104,5 @@ export const ThemeToggleButton: React.FC<ThemeToggleButtonProps> = ({
   );
 };
 
+export const ThemeToggleButton = memo(ThemeToggleButtonInternal);
 export default ThemeToggleButton;

@@ -72,16 +72,18 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   // Auto-expand all folders when tree data changes
   const expandedItems = useMemo(() => Object.keys(folderTree), [folderTree]);
 
+  const createTreeButtonClickHandler = useCallback((nodeId: string) => {
+    return (event: React.MouseEvent) => {
+      event.stopPropagation();
+      onSelect(nodeId);
+    };
+  }, [onSelect]);
+
   const renderTree = useCallback((node: AssetTreeNode): React.ReactNode => {
     if (!node.id) {
       log.error("Node with undefined id found:", node);
       return null;
     }
-
-    const handleButtonClick = (event: React.MouseEvent) => {
-      event.stopPropagation();
-      onSelect(node.id);
-    };
 
     return (
       <TreeItem
@@ -91,7 +93,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
         label={
           <div>
             {node.name}
-            <EditorButton onClick={handleButtonClick} density="compact">{">"}</EditorButton>
+            <EditorButton onClick={createTreeButtonClickHandler(node.id)} density="compact">{">"}</EditorButton>
           </div>
         }
       >
@@ -100,7 +102,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
           : null}
       </TreeItem>
     );
-  }, [onSelect]);
+  }, [createTreeButtonClickHandler]);
 
   return (
     <Box className="folder-tree" css={styles(theme)}>

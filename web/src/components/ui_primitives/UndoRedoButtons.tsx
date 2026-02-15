@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -75,7 +75,7 @@ const styles = (theme: Theme) => css`
   }
 `;
 
-export const UndoRedoButtons: React.FC<UndoRedoButtonsProps> = ({
+const UndoRedoButtonsInternal: React.FC<UndoRedoButtonsProps> = ({
   canUndo,
   canRedo,
   onUndo,
@@ -135,4 +135,5 @@ export const UndoRedoButtons: React.FC<UndoRedoButtonsProps> = ({
   );
 };
 
+export const UndoRedoButtons = memo(UndoRedoButtonsInternal);
 export default UndoRedoButtons;

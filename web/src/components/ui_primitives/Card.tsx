@@ -1,11 +1,11 @@
 /**
  * Card Component
- * 
+ *
  * A card component with standardized styling, elevation, and padding.
  * Provides consistent card appearance across the application.
  */
 
-import React from "react";
+import React, { memo } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -57,7 +57,7 @@ const PADDING_VARIANTS = {
  *   <Typography>Elevated content</Typography>
  * </Card>
  */
-export const Card: React.FC<CardProps> = ({
+const CardInternal: React.FC<CardProps> = ({
   padding = "normal",
   elevation = 1,
   variant = "default",
@@ -125,3 +125,5 @@ export const Card: React.FC<CardProps> = ({
     </Box>
   );
 };
+
+export const Card = memo(CardInternal);
