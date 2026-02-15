@@ -74,9 +74,13 @@ export function extractDynamicIO(workflow: Workflow) {
   for (const node of nodes) {
     const nodeType = (node as { type?: string }).type ?? "";
     const nodeData = (node as { data?: Record<string, unknown> }).data ?? {};
+    const properties =
+      (nodeData.properties as Record<string, unknown> | undefined) ?? {};
+    const typeNameFallback = nodeType.split(".").pop() ?? "input";
     const inputName =
-      (nodeData.name as string) ??
-      "input";
+      (properties.name as string | undefined) ??
+      (nodeData.title as string | undefined) ??
+      typeNameFallback;
 
     if (INPUT_TYPE_MAP[nodeType]) {
       const resolvedType = INPUT_TYPE_MAP[nodeType];
@@ -84,16 +88,17 @@ export function extractDynamicIO(workflow: Workflow) {
         type: resolvedType,
         optional: true,
         type_args: [] as TypeMetadata[],
-        description: (nodeData.description as string) ?? ""
+        description: (properties.description as string) ?? ""
       };
-      dynamic_properties[inputName] = nodeData.value ?? "";
+      dynamic_properties[inputName] = properties.value ?? "";
     }
 
     if (OUTPUT_TYPE_MAP[nodeType]) {
       const resolvedType = OUTPUT_TYPE_MAP[nodeType];
       const outputName =
-        (nodeData.name as string) ??
-        "output";
+        (properties.name as string | undefined) ??
+        (nodeData.title as string | undefined) ??
+        typeNameFallback;
       dynamic_outputs[outputName] = {
         type: resolvedType,
         optional: false,
