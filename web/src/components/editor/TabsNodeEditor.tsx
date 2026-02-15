@@ -333,12 +333,6 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     }
   }, [currentWorkflowId, activeNodeStore]);
 
-  // const electronDetectionDetails = getIsElectronDetails();
-  // const isElectron = electronDetectionDetails.isElectron;
-  // const isMac = normalizedPlatform.includes("mac");
-  // const platform = window.navigator.platform;
-  // const normalizedPlatform = platform.toLowerCase();
-
   // Determine tab ids: storage open ids + currently loaded ones + active id
   // Seed from localStorage on mount to show placeholders during hydration,
   // then keep this in sync with store updates so UI reflects removals immediately.

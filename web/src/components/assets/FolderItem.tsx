@@ -140,7 +140,6 @@ const FolderItem: React.FC<FolderItemProps> = ({
         e.stopPropagation();
         onSelect();
       }}
-      // onDoubleClick={() => handleDoubleClick(folder)}
       onDragStart={handleDrag}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
