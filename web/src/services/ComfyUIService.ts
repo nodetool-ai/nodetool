@@ -244,19 +244,32 @@ export class ComfyUIService {
       window.api?.localhostProxy?.request &&
       isLocalhostAbsoluteUrl(url)
     ) {
-      const proxyResponse = await window.api.localhostProxy.request({
-        url,
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: options?.body,
-        responseType
-      });
-      return {
-        ok: proxyResponse.ok,
-        status: proxyResponse.status,
-        data: proxyResponse.data as T,
-        statusText: String(proxyResponse.headers["status-text"] || "")
-      };
+      try {
+        const proxyResponse = await window.api.localhostProxy.request({
+          url,
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: options?.body,
+          responseType
+        });
+        return {
+          ok: proxyResponse.ok,
+          status: proxyResponse.status,
+          data: proxyResponse.data as T,
+          statusText: String(proxyResponse.headers["status-text"] || "")
+        };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log.warn(
+          `[ComfyUIService] Localhost proxy request failed for ${method} ${url}: ${errorMessage}`
+        );
+        return {
+          ok: false,
+          status: 0,
+          data: (responseType === "json" ? null : "") as T,
+          statusText: errorMessage
+        };
+      }
     }
 
     const response = await fetch(url, {
