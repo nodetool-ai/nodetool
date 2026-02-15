@@ -3,6 +3,7 @@ import { BACKEND_API_URL } from "./support/backend";
 import { setupMockApiRoutes, models } from "./fixtures/mockData";
 import {
   navigateToPage,
+  waitForAnimation,
 } from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
@@ -57,8 +58,8 @@ if (process.env.JEST_WORKER_ID) {
     test("should display mocked HuggingFace models", async ({ page }) => {
       await navigateToPage(page, "/models");
 
-      // Wait for any async data loading
-      await page.waitForTimeout(2000);
+      // Wait for page to stabilize
+      await waitForAnimation(page);
 
       // Verify page is functional
       const bodyText = await page.textContent("body");
@@ -268,8 +269,8 @@ if (process.env.JEST_WORKER_ID) {
       // Navigate to models page
       await navigateToPage(page, "/models");
       
-      // Give it time for API calls
-      await page.waitForTimeout(2000);
+      // Wait for API calls to be made
+      await waitForAnimation(page);
       
       // Verify that at least some models API calls were made
       expect(apiCalls.length).toBeGreaterThan(0);

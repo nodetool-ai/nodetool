@@ -13,6 +13,7 @@
 
 import { test, expect } from "@playwright/test";
 import { playwrightDescribe } from "./testUtils";
+import { waitForAnimation } from "./helpers/waitHelpers";
 
 // Skip entire describe block in CI environment
 if (process.env.CI === "true") {

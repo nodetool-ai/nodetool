@@ -350,7 +350,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
         // Wait for potential WebSocket connection
-        await page.waitForTimeout(2000);
+        await waitForAnimation(page);
 
         // WebSocket connections might be established for real-time updates
         // Just verify the page is functional

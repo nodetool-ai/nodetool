@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import {
   navigateToPage,
+  waitForAnimation,
 } from "./helpers/waitHelpers";
 
 // Skip when run by Jest
@@ -118,8 +119,8 @@ if (process.env.JEST_WORKER_ID) {
         }
       });
       
-      // Wait a bit to catch any delayed errors
-      await page.waitForTimeout(2000);
+      // Wait to catch any delayed errors
+      await waitForAnimation(page);
       
       // Filter out known harmless warnings
       const actualErrors = consoleErrors.filter(
