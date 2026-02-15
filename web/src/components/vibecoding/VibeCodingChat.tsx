@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, memo, useRef, useState } from "react";
+import React, { useCallback, useMemo, memo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Box, Typography, Chip } from "@mui/material";
@@ -11,6 +11,7 @@ import { BASE_URL } from "../../stores/BASE_URL";
 import { authHeader } from "../../stores/ApiClient";
 import ChatView from "../chat/containers/ChatView";
 import type { Theme } from "@mui/material/styles";
+import { useVibecodingTemplates, Template } from "../../hooks/useVibecodingTemplates";
 
 const createStyles = (theme: Theme) =>
   css({
@@ -45,13 +46,6 @@ const createStyles = (theme: Theme) =>
     }
   });
 
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-  prompt: string;
-}
-
 interface VibeCodingChatProps {
   workflow: Workflow;
   onHtmlGenerated: (html: string) => void;
@@ -72,30 +66,10 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   const setCurrentHtml = useVibeCodingStore((state) => state.setCurrentHtml);
 
   const session = getSession(workflow.id);
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const { templates } = useVibecodingTemplates();
   const [isStreaming, setIsStreaming] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const accumulatedResponseRef = useRef<string>("");
-
-  // Load templates on mount
-  useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const headers = await authHeader();
-        const response = await fetch(`${BASE_URL}/api/vibecoding/templates`, {
-          headers
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setTemplates(data as Template[]);
-        }
-      } catch (error) {
-        // Templates are optional, just log error
-        console.error("Failed to load templates:", error);
-      }
-    };
-    loadTemplates();
-  }, []);
 
   // Send message to VibeCoding agent
   const sendMessage = useCallback(
@@ -304,7 +278,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
         </Typography>
       </div>
 
-      {templates.length > 0 && session.messages.length === 0 && (
+      {templates && templates.length > 0 && session.messages.length === 0 && (
         <div className="template-chips">
           {templates.map((template) => (
             <Chip
