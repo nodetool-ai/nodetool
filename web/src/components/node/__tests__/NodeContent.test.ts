@@ -25,7 +25,6 @@ function makeProps(overrides: Record<string, unknown> = {}) {
       properties: [{ name: "value", type: { type: "str", type_args: [], optional: false } }],
       outputs: []
     },
-    isConstantNode: true,
     isOutputNode: false,
     data: {
       properties: { value: "" },

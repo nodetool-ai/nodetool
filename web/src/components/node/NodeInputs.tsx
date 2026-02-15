@@ -71,8 +71,6 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
   isDynamicProperty,
   isConnected
 }) {
-  const isConstantNode = property.type.type.startsWith("nodetool.constant");
-
   const isBasicField = useMemo(() => {
     return basicFields?.includes(property.name);
   }, [basicFields, property.name]);
@@ -98,7 +96,7 @@ const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
       property={property}
       propertyIndex={propertyIndex}
       showFields={showFields}
-      showHandle={showHandle && !isConstantNode}
+      showHandle={showHandle}
       tabIndex={tabIndex}
       isDynamicProperty={isDynamicProperty}
       data={data}
