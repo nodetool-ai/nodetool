@@ -4,6 +4,9 @@ import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { isLocalhost } from "../../stores/ApiClient";
 import log from "loglevel";
 import { FrontendToolRegistry } from "../tools/frontendTools";
+import { handleResourceChange } from "../../stores/resourceChangeHandler";
+import { handleSystemStats } from "../../stores/systemStatsHandler";
+import { ResourceChangeUpdate } from "../../stores/ApiTypes";
 
 type MessageHandler = (message: any) => void;
 type GlobalWebSocketEvent =
@@ -136,8 +139,33 @@ class GlobalWebSocketManager extends EventEmitter {
    * Route incoming message to registered handlers.
    * Each handler is called at most once per message, even if the message
    * matches multiple routing keys (thread_id, workflow_id, job_id).
+   *
+   * Special handling for resource_change and system_stats messages which don't
+   * have routing keys but should update global state.
    */
   private routeMessage(message: any): void {
+    // Handle resource_change messages separately
+    if (message.type === "resource_change") {
+      try {
+        handleResourceChange(message as ResourceChangeUpdate);
+      } catch (error) {
+        log.error("GlobalWebSocketManager: Error handling resource change:", error);
+      }
+      // Resource change messages are not routed to specific handlers
+      // They only trigger cache invalidation
+      return;
+    }
+
+    // Handle system_stats messages separately
+    if (message.type === "system_stats") {
+      try {
+        handleSystemStats(message);
+      } catch (error) {
+        log.error("GlobalWebSocketManager: Error handling system stats:", error);
+      }
+      return;
+    }
+
     const routingKeys = new Set<string>();
 
     if (message.thread_id) {
