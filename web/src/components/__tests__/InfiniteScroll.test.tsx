@@ -1,9 +1,9 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, waitFor } from '@testing-library/react';
 import InfiniteScroll from '../InfiniteScroll';
 
 describe('InfiniteScroll', () => {
-  it('calls next when scrolled near bottom', () => {
+  it('calls next when scrolled near bottom', async () => {
     const next = jest.fn();
     const { container } = render(
       <InfiniteScroll next={next} hasMore loader={<div>loading</div>}>
@@ -16,7 +16,7 @@ describe('InfiniteScroll', () => {
     Object.defineProperty(div, 'scrollHeight', { value: 200, writable: true });
     Object.defineProperty(div, 'clientHeight', { value: 100, writable: true });
     fireEvent.scroll(div);
-    expect(next).toHaveBeenCalled();
+    await waitFor(() => expect(next).toHaveBeenCalled());
   });
 
   it('shows loader when hasMore is true', () => {

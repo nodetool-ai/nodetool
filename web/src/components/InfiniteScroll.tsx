@@ -18,14 +18,24 @@ const InfiniteScroll: React.FC<InfiniteScrollProps> = memo(function InfiniteScro
     className = '',
 }) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const ticking = useRef(false);
 
     const handleScroll = useCallback(() => {
-        if (!scrollRef.current || !hasMore) {return;}
-
-        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-        if (scrollHeight - scrollTop - clientHeight < threshold) {
-            next();
+        if (!scrollRef.current || !hasMore || ticking.current) {
+            return;
         }
+
+        window.requestAnimationFrame(() => {
+            if (scrollRef.current && hasMore) {
+                const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+                if (scrollHeight - scrollTop - clientHeight < threshold) {
+                    next();
+                }
+            }
+            ticking.current = false;
+        });
+
+        ticking.current = true;
     }, [hasMore, next, threshold]);
 
     useEffect(() => {
