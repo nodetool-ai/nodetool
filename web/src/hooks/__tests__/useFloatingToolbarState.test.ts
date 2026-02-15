@@ -39,7 +39,7 @@ describe("useFloatingToolbarState", () => {
       const mockElement = document.createElement("button");
       const mockEvent = {
         currentTarget: mockElement
-      } as React.MouseEvent<HTMLElement>;
+      } as unknown as React.MouseEvent<HTMLElement>;
 
       act(() => {
         result.current.handleOpenActionsMenu(mockEvent);
@@ -53,7 +53,7 @@ describe("useFloatingToolbarState", () => {
       const mockElement = document.createElement("button");
       const mockEvent = {
         currentTarget: mockElement
-      } as React.MouseEvent<HTMLElement>;
+      } as unknown as React.MouseEvent<HTMLElement>;
 
       act(() => {
         result.current.handleOpenActionsMenu(mockEvent);
@@ -70,7 +70,7 @@ describe("useFloatingToolbarState", () => {
       const mockElement = document.createElement("button");
       const mockEvent = {
         currentTarget: mockElement
-      } as React.MouseEvent<HTMLElement>;
+      } as unknown as React.MouseEvent<HTMLElement>;
 
       act(() => {
         result.current.handleOpenAdvancedMenu(mockEvent);
@@ -84,7 +84,7 @@ describe("useFloatingToolbarState", () => {
       const mockElement = document.createElement("button");
       const mockEvent = {
         currentTarget: mockElement
-      } as React.MouseEvent<HTMLElement>;
+      } as unknown as React.MouseEvent<HTMLElement>;
 
       act(() => {
         result.current.handleOpenAdvancedMenu(mockEvent);
@@ -101,10 +101,10 @@ describe("useFloatingToolbarState", () => {
     const mockElement2 = document.createElement("div");
     const mockEvent1 = {
       currentTarget: mockElement1
-    } as React.MouseEvent<HTMLElement>;
+    } as unknown as React.MouseEvent<HTMLElement>;
     const mockEvent2 = {
       currentTarget: mockElement2
-    } as React.MouseEvent<HTMLElement>;
+    } as unknown as React.MouseEvent<HTMLElement>;
 
     act(() => {
       result.current.handleOpenPaneMenu();

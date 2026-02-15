@@ -136,7 +136,10 @@ describe("useFloatingToolbarActions", () => {
     } as any);
 
     mockTriggerAutosave.mockResolvedValue(undefined);
-    mockExecuteViaComfyUI.mockResolvedValue(undefined);
+    mockExecuteViaComfyUI.mockResolvedValue({
+      success: true,
+      promptId: "test-prompt-id"
+    });
 
     jest.useFakeTimers();
   });
