@@ -92,7 +92,7 @@ conda activate nodetool
 # Install
 uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
 
-# Run
+# Run (backend on port 7777, frontend on port 3000)
 nodetool serve --reload &
 cd web && npm install && npm start
 ```
@@ -135,7 +135,7 @@ cd electron && npm test && npm run lint
 cd web && npm test && npm run lint
 
 # End-to-end tests
-# Web e2e (needs backend server)
+# Web e2e (needs backend server running on port 7777)
 cd web && npm run test:e2e
 
 # Electron e2e (requires xvfb on Linux headless)
