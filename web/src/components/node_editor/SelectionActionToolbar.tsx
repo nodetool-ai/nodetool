@@ -12,10 +12,12 @@ import {
   Delete,
   ContentCopy,
   Layers,
-  PowerSettingsNew
+  PowerSettingsNew,
+  PlayArrow
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
+import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { ToolbarIconButton } from "../ui_primitives";
 
@@ -81,6 +83,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   // Use getSelectedNodeCount to avoid re-renders when nodes are moved (getSelectedNodes returns new array on move)
   const selectedCount = useNodes((state) => state.getSelectedNodeCount());
   const selectionActions = useSelectionActions();
+  const { runSelectedNodes, isWorkflowRunning } = useRunSelectedNodes();
 
   const canAlign = selectedCount >= 2;
   const canDistribute = selectedCount >= 2;
@@ -167,6 +170,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   const actionButtons: ButtonItem[] = useMemo(
     () => [
       {
+        icon: <PlayArrow fontSize="small" />,
+        label: "Run Selected",
+        slug: "runSelected",
+        action: runSelectedNodes,
+        disabled: selectedCount === 0 || isWorkflowRunning
+      },
+      {
         icon: <ContentCopy fontSize="small" />,
         label: "Duplicate",
         slug: "duplicate",
@@ -193,7 +203,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions]
+    [canGroup, selectionActions, runSelectedNodes, isWorkflowRunning, selectedCount]
   );
 
   // Memoize the combined button array to avoid creating new references on every render

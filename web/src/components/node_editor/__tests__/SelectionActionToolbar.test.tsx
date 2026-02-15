@@ -5,7 +5,16 @@ import SelectionActionToolbar from "../SelectionActionToolbar";
 import mockTheme from "../../../__mocks__/themeMock";
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
+  useNodes: jest.fn(),
+  useNodeStoreRef: jest.fn(() => ({
+    getState: () => ({
+      nodes: [],
+      edges: [],
+      workflow: { id: "workflow-test" },
+      findNode: jest.fn(),
+      getSelectedNodes: () => []
+    })
+  }))
 }));
 
 jest.mock("../../../hooks/useSelectionActions", () => ({
