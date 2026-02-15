@@ -513,7 +513,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try save shortcut
           await page.keyboard.press("Meta+s");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Page should remain functional
           await expect(canvas).toBeVisible();
@@ -552,7 +552,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for nodes to render
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Look for rendered nodes
           const nodes = page.locator(".react-flow__node");

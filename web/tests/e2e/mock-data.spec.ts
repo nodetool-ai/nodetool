@@ -235,7 +235,7 @@ if (process.env.JEST_WORKER_ID) {
       });
       
       await navigateToPage(page, "/dashboard");
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       
       // The mock should have been used
       // Note: This might not always be true depending on page behavior
@@ -372,7 +372,7 @@ if (process.env.JEST_WORKER_ID) {
       expect(threadMessages.length).toBeGreaterThan(2);
       
       await navigateToPage(page, `/chat/${thread.id}`);
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       
       // Page should be functional
       const bodyText = await page.textContent("body");

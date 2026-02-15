@@ -72,7 +72,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('login-page.png'), 'Screenshot already exists');
       await page.goto('/login');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'login-page.png');
     });
 
@@ -169,12 +169,12 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('chat-model-selector.png'), 'Screenshot already exists');
       await page.goto('/chat');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Click model selector if exists
       const modelSelector = page.locator('[data-testid*="model"], .model-selector, button:has-text("Model")').first();
       if (await modelSelector.count() > 0) {
         await modelSelector.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'chat-model-selector.png');
     });
@@ -183,12 +183,12 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('chat-tools-menu.png'), 'Screenshot already exists');
       await page.goto('/chat');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Look for tools button/menu
       const toolsButton = page.locator('[data-testid*="tools"], button:has-text("Tools"), [aria-label*="Tools"]').first();
       if (await toolsButton.count() > 0) {
         await toolsButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'chat-tools-menu.png');
     });
@@ -197,12 +197,12 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('agent-mode-enabled.png'), 'Screenshot already exists');
       await page.goto('/chat');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Look for agent mode toggle
       const agentToggle = page.locator('[data-testid*="agent"], .agent-mode, [aria-label*="Agent"]').first();
       if (await agentToggle.count() > 0) {
         await agentToggle.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'agent-mode-enabled.png');
     });
@@ -277,7 +277,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('node-menu-open.png'), 'Screenshot already exists');
       await page.goto('/editor');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Double-click to open node menu
       await page.mouse.dblclick(600, 400);
       await page.waitForTimeout(800);
@@ -288,13 +288,13 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('node-menu-open-detailed.png'), 'Screenshot already exists');
       await page.goto('/editor');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Double-click to open node menu
       await page.mouse.dblclick(600, 400);
-      await page.waitForTimeout(500);
+      await waitForAnimation(page);
       // Type search query
       await page.keyboard.type('image');
-      await page.waitForTimeout(500);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'node-menu-open-detailed.png');
     });
 
@@ -318,12 +318,12 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('left-panel-assets.png'), 'Screenshot already exists');
       await page.goto('/editor');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Look for assets tab in left panel
       const assetsTab = page.locator('[data-testid*="assets"], button:has-text("Assets")').first();
       if (await assetsTab.count() > 0) {
         await assetsTab.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'left-panel-assets.png');
     });
@@ -332,10 +332,10 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('context-menu-node.png'), 'Screenshot already exists');
       await page.goto('/editor');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Right-click to open context menu
       await page.mouse.click(600, 400, { button: 'right' });
-      await page.waitForTimeout(500);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'context-menu-node.png');
     });
 
@@ -343,9 +343,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('context-menu-canvas.png'), 'Screenshot already exists');
       await page.goto('/editor');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       await page.mouse.click(800, 500, { button: 'right' });
-      await page.waitForTimeout(500);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'context-menu-canvas.png');
     });
 
@@ -370,7 +370,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('app-header.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Try to screenshot header element
       const saved = await saveElementScreenshot(page, 'header, [data-testid*="header"], .app-header', 'app-header.png');
       if (!saved) {
@@ -391,11 +391,11 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('notification-panel.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       const notifButton = page.locator('[data-testid*="notification"], [aria-label*="Notification"], button:has-text("Notifications")').first();
       if (await notifButton.count() > 0) {
         await notifButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'notification-panel.png');
     });
@@ -413,12 +413,12 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('settings-dialog.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Open settings
       const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
       if (await settingsButton.count() > 0) {
         await settingsButton.click();
-        await page.waitForTimeout(1000);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'settings-dialog.png');
     });
@@ -427,11 +427,11 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('settings-general.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
       if (await settingsButton.count() > 0) {
         await settingsButton.click();
-        await page.waitForTimeout(1000);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'settings-general.png');
     });
@@ -440,16 +440,16 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('settings-api-keys.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
       if (await settingsButton.count() > 0) {
         await settingsButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
         // Look for API keys tab/section
         const apiTab = page.locator('button:has-text("API"), button:has-text("Keys"), [data-testid*="api"]').first();
         if (await apiTab.count() > 0) {
           await apiTab.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
       }
       await saveScreenshot(page, 'settings-api-keys.png');
@@ -459,15 +459,15 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('settings-api-secrets.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
       if (await settingsButton.count() > 0) {
         await settingsButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
         const secretsTab = page.locator('button:has-text("Secrets"), [data-testid*="secrets"]').first();
         if (await secretsTab.count() > 0) {
           await secretsTab.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
       }
       await saveScreenshot(page, 'settings-api-secrets.png');
@@ -477,15 +477,15 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('settings-folders.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
       if (await settingsButton.count() > 0) {
         await settingsButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
         const foldersTab = page.locator('button:has-text("Folders"), [data-testid*="folders"]').first();
         if (await foldersTab.count() > 0) {
           await foldersTab.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
       }
       await saveScreenshot(page, 'settings-folders.png');
@@ -495,15 +495,15 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('settings-auth.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
       if (await settingsButton.count() > 0) {
         await settingsButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
         const authTab = page.locator('button:has-text("Auth"), button:has-text("Authentication"), [data-testid*="auth"]').first();
         if (await authTab.count() > 0) {
           await authTab.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
       }
       await saveScreenshot(page, 'settings-auth.png');
@@ -513,15 +513,15 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('about-menu.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       const settingsButton = page.locator('[aria-label*="Settings"], [data-testid*="settings"], button:has-text("Settings")').first();
       if (await settingsButton.count() > 0) {
         await settingsButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
         const aboutTab = page.locator('button:has-text("About"), [data-testid*="about"]').first();
         if (await aboutTab.count() > 0) {
           await aboutTab.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
       }
       await saveScreenshot(page, 'about-menu.png');
@@ -540,9 +540,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('command-menu.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       await page.keyboard.press('Control+k');
-      await page.waitForTimeout(500);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'command-menu.png');
     });
 
@@ -550,11 +550,11 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('command-menu-search.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       await page.keyboard.press('Control+k');
       await waitForAnimation(page);
       await page.keyboard.type('new workflow');
-      await page.waitForTimeout(500);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'command-menu-search.png');
     });
   });
@@ -571,12 +571,12 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('open-create-dialog.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Try to open "New Workflow" or similar dialog
       const newButton = page.locator('button:has-text("New"), button:has-text("Create"), [aria-label*="New"]').first();
       if (await newButton.count() > 0) {
         await newButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'open-create-dialog.png');
     });
@@ -616,7 +616,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       const assetItem = page.locator('.asset-item, [data-testid*="asset"]').first();
       if (await assetItem.count() > 0) {
         await assetItem.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'asset-preview.png');
     });
@@ -625,9 +625,9 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('asset-context-menu.png'), 'Screenshot already exists');
       await page.goto('/assets');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       await page.mouse.click(600, 400, { button: 'right' });
-      await page.waitForTimeout(500);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'asset-context-menu.png');
     });
 
@@ -673,7 +673,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       const modelCard = page.locator('.model-card, [data-testid*="model"]').first();
       if (await modelCard.count() > 0) {
         await modelCard.hover();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'model-card-actions.png');
     });
@@ -928,12 +928,12 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('panel-left-collapsed.png'), 'Screenshot already exists');
       await page.goto('/editor');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Look for panel collapse button
       const collapseButton = page.locator('[data-testid*="collapse"], [aria-label*="Collapse"], .panel-toggle').first();
       if (await collapseButton.count() > 0) {
         await collapseButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'panel-left-collapsed.png');
     });
@@ -950,12 +950,12 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('log-panel.png'), 'Screenshot already exists');
       await page.goto('/editor');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Look for log panel toggle
       const logButton = page.locator('[data-testid*="log"], button:has-text("Logs"), [aria-label*="Log"]').first();
       if (await logButton.count() > 0) {
         await logButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'log-panel.png');
     });
@@ -981,12 +981,12 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('workflow-assistant-chat.png'), 'Screenshot already exists');
       await page.goto('/editor');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       // Look for assistant button
       const assistantButton = page.locator('[data-testid*="assistant"], button:has-text("Assistant"), [aria-label*="Assistant"]').first();
       if (await assistantButton.count() > 0) {
         await assistantButton.click();
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'workflow-assistant-chat.png');
     });
@@ -1009,7 +1009,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       const hfButton = page.locator('button:has-text("HuggingFace"), button:has-text("Hugging Face"), [data-testid*="hugging"]').first();
       if (await hfButton.count() > 0) {
         await hfButton.click();
-        await page.waitForTimeout(1000);
+        await waitForAnimation(page);
       }
       await saveScreenshot(page, 'huggingface-browser.png');
     });
@@ -1027,7 +1027,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('error-404.png'), 'Screenshot already exists');
       await page.goto('/nonexistent-page-12345');
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'error-404.png');
     });
 

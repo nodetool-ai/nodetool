@@ -143,7 +143,7 @@ if (process.env.JEST_WORKER_ID) {
       
       for (const viewport of viewports) {
         await page.setViewportSize(viewport);
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
         
         // Verify that the page is still visible and functional
         const body = page.locator("body");

@@ -168,7 +168,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try submitting with keyboard shortcut (save)
           await page.keyboard.press("Meta+s");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Should not crash
           await expect(canvas).toBeVisible();

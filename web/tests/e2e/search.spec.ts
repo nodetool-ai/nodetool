@@ -47,7 +47,7 @@ if (process.env.JEST_WORKER_ID) {
         const searchInput = page.locator('[data-testid="search-input-field"]');
         if ((await searchInput.count()) > 0) {
           await searchInput.first().fill("test");
-          await page.waitForTimeout(500); // Wait for debounce
+          await waitForAnimation(page); // Wait for debounce
 
           // The page should update (we can't verify specific results)
           const bodyText = await page.textContent("body");
@@ -134,7 +134,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try to open command palette with keyboard shortcut
           await page.keyboard.press("Meta+k");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // The page should still be functional
           const bodyText = await page.textContent("body");
@@ -173,7 +173,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try to open node menu with Tab key
           await page.keyboard.press("Tab");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Look for any search input that might appear
           const nodeMenuSearch = page.locator(

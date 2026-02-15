@@ -53,7 +53,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try command palette shortcut
           await page.keyboard.press("Meta+k");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Check for command palette or any modal
           const body = await page.locator("body");
@@ -311,7 +311,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Press Enter (might send message or create new line)
           await page.keyboard.press("Enter");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Page should remain functional
           const bodyText = await page.textContent("body");
@@ -370,7 +370,7 @@ if (process.env.JEST_WORKER_ID) {
           const canvas = page.locator(".react-flow");
           await canvas.click();
           await page.keyboard.press("Tab");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Press Escape to close any open menu/modal
           await page.keyboard.press("Escape");

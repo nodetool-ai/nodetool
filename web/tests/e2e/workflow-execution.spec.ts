@@ -104,7 +104,7 @@ if (process.env.JEST_WORKER_ID) {
 
           if (await runButton.count() > 0) {
             await runButton.click();
-            await page.waitForTimeout(1000);
+            await waitForAnimation(page);
 
             // Should not crash the app
             await expect(canvas).toBeVisible();
@@ -139,11 +139,11 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try common run shortcuts
           await page.keyboard.press("F5");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Also try Cmd/Ctrl+Enter
           await page.keyboard.press("Meta+Enter");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Should not crash
           await expect(canvas).toBeVisible();
@@ -179,7 +179,7 @@ if (process.env.JEST_WORKER_ID) {
 
           if (await runButton.count() > 0) {
             await runButton.click();
-            await page.waitForTimeout(1000);
+            await waitForAnimation(page);
 
             // Should handle gracefully (might show warning or do nothing)
             await expect(canvas).toBeVisible();
@@ -320,7 +320,7 @@ if (process.env.JEST_WORKER_ID) {
 
           if (await cancelButton.count() > 0 && await cancelButton.isVisible()) {
             await cancelButton.click();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
           }
 
           // Editor should remain functional
@@ -459,7 +459,7 @@ if (process.env.JEST_WORKER_ID) {
 
           if (await historyElements.count() > 0) {
             await historyElements.first().click();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
           }
 
           // Editor should remain functional

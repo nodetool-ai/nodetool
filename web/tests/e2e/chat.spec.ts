@@ -98,13 +98,13 @@ if (process.env.JEST_WORKER_ID) {
 
       // Load first thread
       await navigateToPage(page, `/chat/${thread1.id}`);
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
       
       expect(page.url()).toContain(thread1.id);
 
       // Navigate to second thread
       await navigateToPage(page, `/chat/${thread2.id}`);
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
 
       expect(page.url()).toContain(thread2.id);
 

@@ -225,7 +225,7 @@ if (process.env.JEST_WORKER_ID) {
             );
             await page.mouse.up();
 
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
 
             // Edge might have been created (implementation dependent)
             const finalEdgeCount = await page.locator(".react-flow__edge").count();
@@ -367,7 +367,7 @@ if (process.env.JEST_WORKER_ID) {
         
         if (await fileInput.count() > 0) {
           await fileInput.setInputFiles(testFilePath);
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
 
         // Canvas should remain functional
@@ -395,11 +395,11 @@ if (process.env.JEST_WORKER_ID) {
 
         // Try to open node palette with Tab or Space
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Or try right-click
         await canvas.click({ button: "right" });
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Canvas should remain functional
         await expect(canvas).toBeVisible();
@@ -415,7 +415,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Try opening node palette
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Look for any draggable node items in the UI
         // This is implementation specific

@@ -57,7 +57,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Try common help shortcuts
         await page.keyboard.press("F1");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Page should remain functional
         const body = page.locator("body");
@@ -81,7 +81,7 @@ if (process.env.JEST_WORKER_ID) {
         if (await node.count() > 0) {
           // Hover over node
           await node.hover();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Tooltip or info might appear
           // Just verify the action doesn't crash
@@ -102,7 +102,7 @@ if (process.env.JEST_WORKER_ID) {
         if (await node.count() > 0) {
           // Click to select node
           await node.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Look for inspector or properties panel
           const inspectorElements = page.locator(
@@ -125,7 +125,7 @@ if (process.env.JEST_WORKER_ID) {
         if (await node.count() > 0) {
           // Right-click for context menu
           await node.click({ button: "right" });
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Look for docs or info option in menu
           const docsOption = page.locator(
@@ -134,7 +134,7 @@ if (process.env.JEST_WORKER_ID) {
 
           if (await docsOption.count() > 0) {
             await docsOption.first().click();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
           }
 
           // Close any menu by pressing Escape
@@ -159,7 +159,7 @@ if (process.env.JEST_WORKER_ID) {
 
         if (await buttons.count() > 0) {
           await buttons.first().hover();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Tooltip might appear
           const tooltips = page.locator('[role="tooltip"], .MuiTooltip-popper');
@@ -180,7 +180,7 @@ if (process.env.JEST_WORKER_ID) {
 
         if (await handle.count() > 0) {
           await handle.hover();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Tooltip with handle type info might appear
           await expect(canvas).toBeVisible();
@@ -199,14 +199,14 @@ if (process.env.JEST_WORKER_ID) {
         const node = page.locator(".react-flow__node").first();
         if (await node.count() > 0) {
           await node.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Hover over property labels
           const labels = page.locator("label, .MuiFormLabel-root");
 
           if (await labels.count() > 0) {
             await labels.first().hover();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
           }
 
           await expect(canvas).toBeVisible();
@@ -286,7 +286,7 @@ if (process.env.JEST_WORKER_ID) {
 
         if (await settingsButton.count() > 0) {
           await settingsButton.first().click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Look for about section in settings
           const aboutSection = page.locator('text="About", text="Version"');
@@ -408,11 +408,11 @@ if (process.env.JEST_WORKER_ID) {
 
         // Try to open keyboard shortcuts help (common: ? or Cmd/Ctrl+/)
         await page.keyboard.press("?");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Or try Cmd+/
         await page.keyboard.press("Meta+/");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Page should remain functional
         const body = page.locator("body");
@@ -429,7 +429,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Try to open shortcuts reference
         await page.keyboard.press("?");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Look for shortcuts list or dialog
         const shortcutsDialog = page.locator(
@@ -486,7 +486,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Open node menu
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Look for help or info in the menu
         const helpInMenu = page.locator(
@@ -510,7 +510,7 @@ if (process.env.JEST_WORKER_ID) {
 
         if (await node.count() > 0) {
           await node.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Look for help icons next to properties
           const helpIcons = page.locator(

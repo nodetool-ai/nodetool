@@ -123,14 +123,14 @@ if (process.env.JEST_WORKER_ID) {
 
         // Switch to tablet
         await page.setViewportSize(VIEWPORTS.tablet);
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         bodyText = await page.textContent("body");
         expect(bodyText).not.toContain("500");
 
         // Switch to mobile
         await page.setViewportSize(VIEWPORTS.mobile);
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         bodyText = await page.textContent("body");
         expect(bodyText).not.toContain("500");
@@ -214,15 +214,15 @@ if (process.env.JEST_WORKER_ID) {
 
         // Resize to tablet
         await page.setViewportSize(VIEWPORTS.tablet);
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Resize to mobile
         await page.setViewportSize(VIEWPORTS.mobile);
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Resize back to desktop
         await page.setViewportSize(VIEWPORTS.desktop);
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Page should still be functional
         const bodyText = await page.textContent("body");
@@ -240,7 +240,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Resize to mobile
         await page.setViewportSize(VIEWPORTS.mobile);
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // URL should remain the same
         await expect(page).toHaveURL(/\/templates/);
@@ -343,7 +343,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Test on laptop size
           await page.setViewportSize(VIEWPORTS.laptop);
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Editor should still be visible
           await expect(canvas).toBeVisible();
@@ -368,14 +368,14 @@ if (process.env.JEST_WORKER_ID) {
 
         // Switch to landscape
         await page.setViewportSize(VIEWPORTS.mobileLandscape);
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         bodyText = await page.textContent("body");
         expect(bodyText).not.toContain("500");
 
         // Switch back to portrait
         await page.setViewportSize(VIEWPORTS.mobile);
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         bodyText = await page.textContent("body");
         expect(bodyText).not.toContain("500");
@@ -391,7 +391,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Tablet landscape
         await page.setViewportSize({ width: 1024, height: 768 });
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         bodyText = await page.textContent("body");
         expect(bodyText).not.toContain("500");

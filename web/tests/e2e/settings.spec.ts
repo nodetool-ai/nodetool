@@ -193,7 +193,7 @@ if (process.env.JEST_WORKER_ID) {
               canvasBounds.y + 100
             );
             await page.mouse.wheel(0, 100);
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
           }
 
           // The canvas should still be visible

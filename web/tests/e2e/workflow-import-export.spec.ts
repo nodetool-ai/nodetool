@@ -42,7 +42,7 @@ if (process.env.JEST_WORKER_ID) {
 
           if (await menuButton.count() > 0) {
             await menuButton.first().click();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
             await page.keyboard.press("Escape");
             await waitForAnimation(page);
           }
@@ -78,7 +78,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try common export shortcut (Cmd/Ctrl+Shift+E)
           await page.keyboard.press("Meta+Shift+e");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Should not crash
           await expect(canvas).toBeVisible();
@@ -112,7 +112,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try to copy (might trigger export to clipboard)
           await page.keyboard.press("Meta+Shift+c");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Editor should remain functional
           await expect(canvas).toBeVisible();
@@ -184,7 +184,7 @@ import {
 
           // Try paste shortcut
           await page.keyboard.press("Meta+v");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Should handle gracefully
           await expect(canvas).toBeVisible();
@@ -357,7 +357,7 @@ import {
 
         if (await useTemplateButton.count() > 0) {
           await useTemplateButton.first().click();
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Should handle the action
           const body = page.locator("body");
@@ -396,7 +396,7 @@ import {
 
           if (await duplicateButton.count() > 0) {
             await duplicateButton.first().click();
-            await page.waitForTimeout(1000);
+            await waitForAnimation(page);
           }
 
           // Editor should remain functional
@@ -431,7 +431,7 @@ import {
 
           // Try duplicate shortcut
           await page.keyboard.press("Meta+Shift+d");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           await expect(canvas).toBeVisible();
         } finally {
@@ -509,7 +509,7 @@ import {
 
           if (await versionsButton.count() > 0) {
             await versionsButton.first().click();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
 
             // Close any dialog
             await page.keyboard.press("Escape");
@@ -556,7 +556,7 @@ import {
 
           if (await shareButton.count() > 0) {
             await shareButton.first().click();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
 
             // Close any dialog
             await page.keyboard.press("Escape");

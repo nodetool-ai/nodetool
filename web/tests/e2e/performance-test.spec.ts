@@ -196,7 +196,7 @@ if (process.env.CI === "true") {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await waitForAnimation(page);
 
       console.log("Testing selection performance...");
       const selectionStart = Date.now();

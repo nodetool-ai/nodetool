@@ -161,7 +161,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try to open a dialog/modal (command palette)
           await page.keyboard.press("Meta+k");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Tab several times - focus should stay in modal if one is open
           for (let i = 0; i < 5; i++) {

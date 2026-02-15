@@ -110,7 +110,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Press Delete key
           await page.keyboard.press("Delete");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Node count should decrease (or at least not increase)
           const finalCount = await page.locator(".react-flow__node").count();
@@ -132,7 +132,7 @@ if (process.env.JEST_WORKER_ID) {
           await waitForAnimation(page);
 
           await page.keyboard.press("Backspace");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           const finalCount = await page.locator(".react-flow__node").count();
           expect(finalCount).toBeLessThanOrEqual(initialCount);
@@ -159,7 +159,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Delete selected nodes
           await page.keyboard.press("Delete");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           const finalCount = await page.locator(".react-flow__node").count();
           expect(finalCount).toBeLessThan(nodeCount);
@@ -262,7 +262,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try to duplicate with Cmd/Ctrl+D
           await page.keyboard.press("Meta+d");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Count nodes again (may or may not have increased depending on implementation)
           const finalCount = await page.locator(".react-flow__node").count();
@@ -283,7 +283,7 @@ if (process.env.JEST_WORKER_ID) {
         if (await node.count() > 0) {
           // Right-click on node
           await node.click({ button: "right" });
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Context menu might appear (implementation dependent)
           // Just verify the action doesn't crash the app
@@ -368,7 +368,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Press delete
           await page.keyboard.press("Delete");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Edge count should decrease or stay the same
           const finalEdgeCount = await page.locator(".react-flow__edge").count();
@@ -396,7 +396,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try to group (implementation dependent, may use Cmd/Ctrl+G)
           await page.keyboard.press("Meta+g");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Verify canvas is still functional
           expect(canvas).toBeVisible();
@@ -421,7 +421,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Delete all
           await page.keyboard.press("Delete");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Node count should decrease significantly
           const finalCount = await page.locator(".react-flow__node").count();
@@ -449,7 +449,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Paste
           await page.keyboard.press("Meta+v");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Node count might increase (implementation dependent)
           const finalCount = await page.locator(".react-flow__node").count();

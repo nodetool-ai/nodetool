@@ -32,7 +32,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Press Tab to open node menu
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Node menu might be visible - just verify no crash
         const bodyText = await page.textContent("body");
@@ -52,7 +52,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Right-click on canvas
         await canvas.click({ button: "right" });
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Verify no crash
         await expect(canvas).toBeVisible();
@@ -71,7 +71,7 @@ if (process.env.JEST_WORKER_ID) {
         // Focus and open node menu
         await canvas.click();
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Try to type in the search
         await page.keyboard.type("text");
@@ -95,7 +95,7 @@ if (process.env.JEST_WORKER_ID) {
         // Open node menu
         await canvas.click();
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Navigate with arrow keys
         await page.keyboard.press("ArrowDown");
@@ -186,7 +186,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for node to render
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Try to click on a node
           const node = page.locator(".react-flow__node").first();
@@ -233,7 +233,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for node to render
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Select all
           await canvas.click();
@@ -284,7 +284,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for node to render
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Select all
           await canvas.click();
@@ -331,7 +331,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for node
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Select all
           await canvas.click();
@@ -377,7 +377,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for node
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Select all
           await canvas.click();
@@ -445,7 +445,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for rendering
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Edges should render (even if we can't see them in test)
           const edges = page.locator(".react-flow__edge");
@@ -500,7 +500,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for rendering
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Try to click on an edge and delete
           const edge = page.locator(".react-flow__edge").first();
@@ -746,7 +746,7 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for nodes
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Select all
           await canvas.click();
@@ -824,13 +824,13 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for node
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Try to click on a node
           const node = page.locator(".react-flow__node").first();
           if ((await node.count()) > 0) {
             await node.click();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
           }
 
           // Just verify no crash
@@ -869,13 +869,13 @@ if (process.env.JEST_WORKER_ID) {
         const canvas = page.locator(".react-flow");
 
           // Wait for node
-          await page.waitForTimeout(1000);
+          await waitForAnimation(page);
 
           // Click on node
           const node = page.locator(".react-flow__node").first();
           if ((await node.count()) > 0) {
             await node.click();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
 
             // Look for input fields in the node inspector panel
             // Use more specific selectors to target inspector inputs, not other page inputs

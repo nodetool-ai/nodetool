@@ -225,7 +225,7 @@ if (process.env.JEST_WORKER_ID) {
           await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
 
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
 
         // Should be on last workflow without memory issues
@@ -260,7 +260,7 @@ if (process.env.JEST_WORKER_ID) {
         
         if (await runButton.count() > 0) {
           await runButton.first().click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
 
         // Navigate away during execution
