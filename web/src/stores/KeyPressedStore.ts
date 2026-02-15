@@ -121,12 +121,11 @@ const executeComboCallbacks = (
       //    If a global combo (e.g., a global Ctrl+F) is not handled by Slate internally,
       //    this logic will prevent it from firing when Slate (or other inputs) are focused.
       
-      // Allow copy/paste shortcuts even when inputs are focused (for text copying)
-      // Also allow Escape to close modals/editors
-      if (pressedKeysString === "c+meta" || pressedKeysString === "meta+v" || pressedKeysString === "meta+x" || pressedKeysString === "escape") {
-        // Allow these to proceed - they can handle both text and global actions
-      } else {
-        return; // Suppress other global combos in focused inputs.
+      // Suppress global combos (including copy/cut/paste) when inputs are focused.
+      // The browser's native clipboard handling will take care of text copy/cut/paste.
+      // Only allow Escape to proceed to close modals/editors.
+      if (pressedKeysString !== "escape") {
+        return;
       }
     }
     // If we reach here while isInputFocused is true, it means the combo is "shift+enter",
@@ -277,16 +276,22 @@ const initKeyListeners = () => {
             "meta"
           ].includes(normalizedKey);
           if (!isEventKeyAModifier) {
-            const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
-              (combo) =>
-                event.key === combo.key &&
-                event.shiftKey === (combo.shiftKey || false) &&
-                event.ctrlKey === (combo.ctrlKey || false) &&
-                event.altKey === (combo.altKey || false) &&
-                event.metaKey === (combo.metaKey || false)
-            );
-            if (!isCombinationAllowed) {
-              return; // Block unallowed keydown in textarea
+            // Allow modifier key combos (Ctrl+C, Cmd+V, etc.) to pass through
+            // so the browser can handle native clipboard and other system shortcuts.
+            const hasModifier = event.ctrlKey || event.metaKey;
+
+            if (!hasModifier) {
+              const isCombinationAllowed = ALLOWED_TEXTAREA_COMBOS.some(
+                (combo) =>
+                  event.key === combo.key &&
+                  event.shiftKey === (combo.shiftKey || false) &&
+                  event.ctrlKey === (combo.ctrlKey || false) &&
+                  event.altKey === (combo.altKey || false) &&
+                  event.metaKey === (combo.metaKey || false)
+              );
+              if (!isCombinationAllowed) {
+                return; // Block unallowed keydown in textarea
+              }
             }
           }
           // Allow modifier keydowns in textarea to be processed
