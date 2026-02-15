@@ -18,10 +18,6 @@ jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: jest.fn()
 }));
 
-jest.mock("../../../core/graph", () => ({
-  subgraph: jest.fn()
-}));
-
 jest.mock("loglevel", () => ({
   __esModule: true,
   default: {
@@ -36,13 +32,11 @@ import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import { subgraph } from "../../../core/graph";
 
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
-const mockSubgraph = subgraph as jest.Mock;
 
 describe("useRunSelectedNodes", () => {
   const mockRun = jest.fn();
@@ -112,14 +106,9 @@ describe("useRunSelectedNodes", () => {
     mockFindNode.mockImplementation((id: string) =>
       [nodeA, nodeB, nodeC].find((n) => n.id === id)
     );
-
-    mockSubgraph.mockReturnValue({
-      nodes: [nodeA, nodeB, nodeC],
-      edges: defaultEdges
-    });
   });
 
-  it("includes selected start nodes in the subgraph passed to run", () => {
+  it("only includes selected nodes in the nodes passed to run", () => {
     const { result } = renderHook(() => useRunSelectedNodes());
 
     act(() => {
@@ -129,11 +118,30 @@ describe("useRunSelectedNodes", () => {
     expect(mockRun).toHaveBeenCalledTimes(1);
     const nodesPassedToRun = mockRun.mock.calls[0][2];
 
-    // The selected start node (nodeA) must be included
+    // Only the selected node (nodeA) must be included, not downstream nodes
     const nodeIds = nodesPassedToRun.map((n: { id: string }) => n.id);
     expect(nodeIds).toContain("node-a");
-    expect(nodeIds).toContain("node-b");
-    expect(nodeIds).toContain("node-c");
+    expect(nodeIds).not.toContain("node-b");
+    expect(nodeIds).not.toContain("node-c");
+  });
+
+  it("does not include downstream nodes when running selected nodes", () => {
+    // nodeA is selected, nodeB and nodeC are downstream but not selected
+    mockGetSelectedNodes.mockReturnValue([nodeA]);
+
+    const { result } = renderHook(() => useRunSelectedNodes());
+
+    act(() => {
+      result.current.runSelectedNodes();
+    });
+
+    expect(mockRun).toHaveBeenCalledTimes(1);
+    const nodesPassedToRun = mockRun.mock.calls[0][2];
+    const nodeIds = nodesPassedToRun.map((n: { id: string }) => n.id);
+
+    expect(nodeIds).toEqual(["node-a"]);
+    expect(nodeIds).not.toContain("node-b");
+    expect(nodeIds).not.toContain("node-c");
   });
 
   it("does not run when workflow is already running", () => {
@@ -190,17 +198,6 @@ describe("useRunSelectedNodes", () => {
       })
     });
 
-    // First call for nodeA
-    mockSubgraph.mockImplementation((_edges: unknown, _nodes: unknown, startNode: { id: string }) => {
-      if (startNode.id === "node-a") {
-        return { nodes: [nodeA, nodeB, nodeC], edges: [edges[0], edges[2]] };
-      }
-      if (startNode.id === "node-d") {
-        return { nodes: [nodeD, nodeB, nodeC], edges: [edges[1], edges[2]] };
-      }
-      return { nodes: [], edges: [] };
-    });
-
     const { result } = renderHook(() => useRunSelectedNodes());
 
     act(() => {
@@ -211,17 +208,17 @@ describe("useRunSelectedNodes", () => {
     const nodesPassedToRun = mockRun.mock.calls[0][2];
     const nodeIds = nodesPassedToRun.map((n: { id: string }) => n.id);
 
-    // All 4 nodes should be present
+    // Only selected nodes (nodeA and nodeD) should be present, not downstream nodeB and nodeC
     expect(nodeIds).toContain("node-a");
-    expect(nodeIds).toContain("node-b");
-    expect(nodeIds).toContain("node-c");
     expect(nodeIds).toContain("node-d");
+    expect(nodeIds).not.toContain("node-b");
+    expect(nodeIds).not.toContain("node-c");
 
     // No duplicates
-    expect(nodeIds.length).toBe(4);
+    expect(nodeIds.length).toBe(2);
   });
 
-  it("passes subgraphNodeIds to run", () => {
+  it("passes selectedNodeIds to run", () => {
     const { result } = renderHook(() => useRunSelectedNodes());
 
     act(() => {
@@ -229,11 +226,11 @@ describe("useRunSelectedNodes", () => {
     });
 
     expect(mockRun).toHaveBeenCalledTimes(1);
-    const subgraphNodeIds = mockRun.mock.calls[0][5];
-    expect(subgraphNodeIds).toBeInstanceOf(Set);
-    expect(subgraphNodeIds.has("node-a")).toBe(true);
-    expect(subgraphNodeIds.has("node-b")).toBe(true);
-    expect(subgraphNodeIds.has("node-c")).toBe(true);
+    const selectedNodeIds = mockRun.mock.calls[0][5];
+    expect(selectedNodeIds).toBeInstanceOf(Set);
+    expect(selectedNodeIds.has("node-a")).toBe(true);
+    expect(selectedNodeIds.has("node-b")).toBe(false);
+    expect(selectedNodeIds.has("node-c")).toBe(false);
   });
 
   it("shows notification after triggering run", () => {
