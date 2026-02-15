@@ -25,7 +25,7 @@ function makeWorkflow(nodes: unknown[]): Workflow {
 describe("WORKFLOW_NODE_TYPE", () => {
   it("has the correct value", () => {
     expect(WORKFLOW_NODE_TYPE).toBe(
-      "nodetool.workflows.base_node.WorkflowNode"
+      "nodetool.workflows.workflow_node.Workflow"
     );
   });
 });
