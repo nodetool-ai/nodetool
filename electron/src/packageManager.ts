@@ -278,7 +278,6 @@ export async function fetchAllNodes(
         allNodes.push(...result.value);
       }
     }
-    console.log("allNodes", allNodes);
     nodeCache = allNodes;
     return allNodes;
   } catch (error: any) {
