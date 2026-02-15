@@ -19,6 +19,10 @@ export type { DialogActionButtonsProps } from "./DialogActionButtons";
 export { ToolbarIconButton } from "./ToolbarIconButton";
 export type { ToolbarIconButtonProps } from "./ToolbarIconButton";
 
+// Export shortcut hint component
+export { ShortcutHint } from "./ShortcutHint";
+export type { ShortcutHintProps } from "./ShortcutHint";
+
 export { NavButton } from "./NavButton";
 export type { NavButtonProps } from "./NavButton";
 
