@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 // Pre-defined mock workflow ID for testing
 const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
@@ -9,16 +14,17 @@ if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
   test.describe("Workflow Editor", () => {
+    // Shared setup for all tests
+    test.beforeEach(async ({ page }) => {
+      await setupMockApiRoutes(page);
+    });
+
     test.describe("Workflow Creation", () => {
       test("should open an existing workflow in the editor", async ({
         page
       }) => {
-        // Set up mock API routes
-        await setupMockApiRoutes(page);
-
         // Navigate to the editor with the workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
         // Verify we're on the editor page
         await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_ID}`));
@@ -29,21 +35,20 @@ if (process.env.JEST_WORKER_ID) {
         expect(bodyText).not.toContain("Internal Server Error");
 
         // Check that the ReactFlow canvas is present
+        await waitForEditorReady(page);
         const reactFlowContainer = page.locator(".react-flow");
-        await expect(reactFlowContainer).toBeVisible({ timeout: 10000 });
+        await expect(reactFlowContainer).toBeVisible();
       });
 
       test("should display editor toolbar and controls", async ({
         page
       }) => {
-        // Set up mock API routes
-        await setupMockApiRoutes(page);
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        // Wait for editor to be ready
+        await waitForEditorReady(page);
 
         // Check for the presence of editor controls
-        // Look for zoom controls or other editor UI elements
         const body = page.locator("body");
         await expect(body).not.toBeEmpty();
 
@@ -53,21 +58,17 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle workflow save action", async ({ page }) => {
-        // Set up mock API routes
-        await setupMockApiRoutes(page);
-
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
         // Wait for editor to be ready
-        await page.waitForSelector(".react-flow", { timeout: 10000 });
+        await waitForEditorReady(page);
 
         // Try keyboard shortcut for save (Meta maps to Cmd on macOS, Windows key on Windows)
         // The app handles both Cmd+S and Ctrl+S
         await page.keyboard.press("Meta+s");
 
-        // Wait a moment for any save operation
-        await page.waitForTimeout(1000);
+        // Wait for any save operation to complete using animation frame
+        await waitForAnimation(page);
 
         // The page should still be functional after save attempt
         const bodyText = await page.textContent("body");
@@ -78,17 +79,11 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Editor Canvas", () => {
       test("should allow panning the canvas", async ({ page }) => {
-        // Set up mock API routes
-        await setupMockApiRoutes(page);
-
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
         // Wait for the ReactFlow canvas
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
-
-        // Get the viewport element
         const viewport = page.locator(".react-flow__viewport");
         await expect(viewport).toBeVisible();
 
@@ -106,8 +101,8 @@ if (process.env.JEST_WORKER_ID) {
           );
           await page.mouse.up({ button: "middle" });
 
-          // Wait for transform to update
-          await page.waitForTimeout(500);
+          // Wait for transform to update using animation frame
+          await waitForAnimation(page);
         }
 
         // Verify the canvas is still functional
@@ -115,23 +110,19 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should support zoom controls", async ({ page }) => {
-        // Set up mock API routes
-        await setupMockApiRoutes(page);
-
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
         // Wait for the canvas
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Test keyboard zoom (Cmd/Ctrl + +)
         await page.keyboard.press("Meta+=");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // Test keyboard zoom out (Cmd/Ctrl + -)
         await page.keyboard.press("Meta+-");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // The canvas should still be visible and functional
         await expect(canvas).toBeVisible();
@@ -140,19 +131,15 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Menu", () => {
       test("should open node menu on right-click", async ({ page }) => {
-        // Set up mock API routes
-        await setupMockApiRoutes(page);
-
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
         // Wait for the canvas
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Right-click on the canvas to open context menu
         await canvas.click({ button: "right" });
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // The page should still be functional (context menu may or may not appear)
         const bodyText = await page.textContent("body");
@@ -162,22 +149,18 @@ if (process.env.JEST_WORKER_ID) {
       test("should open node menu with keyboard shortcut", async ({
         page
       }) => {
-        // Set up mock API routes
-        await setupMockApiRoutes(page);
-
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
         // Wait for the canvas
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Focus on the canvas
         await canvas.click();
 
         // Press space or tab to open node menu (common shortcuts)
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // The page should still be functional
         const bodyText = await page.textContent("body");
@@ -187,24 +170,25 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("API Integration", () => {
       test("should fetch workflow data on load", async ({ page }) => {
-        // Set up mock API routes
-        await setupMockApiRoutes(page);
-
         // Set up request interceptor to track API calls
         const apiCalls: string[] = [];
 
-        page.on("response", (response) => {
+        const responseHandler = (response: any) => {
           const url = response.url();
           if (url.includes(`/api/workflows/${MOCK_WORKFLOW_ID}`)) {
             apiCalls.push(url);
           }
-        });
+        };
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        page.on("response", responseHandler);
+
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
         // Wait for the editor to load
-        await page.waitForSelector(".react-flow", { timeout: 10000 });
+        await waitForEditorReady(page);
+
+        // Clean up listener
+        page.off("response", responseHandler);
 
         // Verify that the workflow API was called (mocked)
         // With mock routes, the call should have been intercepted
@@ -214,13 +198,9 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle workflow not found gracefully", async ({ page }) => {
-        // Set up mock API routes
-        await setupMockApiRoutes(page);
-        
         // Try to load a non-existent workflow
         const fakeWorkflowId = "non-existent-workflow-id-12345";
-        await page.goto(`/editor/${fakeWorkflowId}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${fakeWorkflowId}`);
 
         // The page should handle this gracefully (redirect or error message)
         const bodyText = await page.textContent("body");

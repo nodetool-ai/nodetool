@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+  waitForPageReady,
+} from "./helpers/waitHelpers";
 
 // Pre-defined mock workflow ID for testing
 const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
@@ -14,8 +20,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should have help or info accessible from dashboard", async ({
         page
       }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for help button/icon
         const helpElements = page.locator(
@@ -33,11 +38,10 @@ if (process.env.JEST_WORKER_ID) {
       test("should display help icon in editor", async ({ page }) => {
         await setupMockApiRoutes(page);
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for help elements in the editor
         const helpElements = page.locator(
@@ -49,12 +53,11 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have keyboard shortcut for help", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Try common help shortcuts
         await page.keyboard.press("F1");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Page should remain functional
         const body = page.locator("body");
@@ -68,18 +71,17 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should display node info on hover", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
 
         if (await node.count() > 0) {
           // Hover over node
           await node.hover();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Tooltip or info might appear
           // Just verify the action doesn't crash
@@ -90,18 +92,17 @@ if (process.env.JEST_WORKER_ID) {
       test("should display node details in inspector panel", async ({
         page
       }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
 
         if (await node.count() > 0) {
           // Click to select node
           await node.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Look for inspector or properties panel
           const inspectorElements = page.locator(
@@ -114,18 +115,17 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should show node type documentation", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
 
         if (await node.count() > 0) {
           // Right-click for context menu
           await node.click({ button: "right" });
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Look for docs or info option in menu
           const docsOption = page.locator(
@@ -134,12 +134,12 @@ if (process.env.JEST_WORKER_ID) {
 
           if (await docsOption.count() > 0) {
             await docsOption.first().click();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
           }
 
           // Close any menu by pressing Escape
           await page.keyboard.press("Escape");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           await expect(canvas).toBeVisible();
         }
@@ -152,15 +152,14 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should display tooltips on buttons", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Hover over a button that might have a tooltip
         const buttons = page.locator("button");
 
         if (await buttons.count() > 0) {
           await buttons.first().hover();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Tooltip might appear
           const tooltips = page.locator('[role="tooltip"], .MuiTooltip-popper');
@@ -172,17 +171,16 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should display tooltips on node handles", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const handle = page.locator(".react-flow__handle").first();
 
         if (await handle.count() > 0) {
           await handle.hover();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Tooltip with handle type info might appear
           await expect(canvas).toBeVisible();
@@ -192,24 +190,23 @@ if (process.env.JEST_WORKER_ID) {
       test("should display property tooltips in inspector", async ({
         page
       }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Select a node to show inspector
         const node = page.locator(".react-flow__node").first();
         if (await node.count() > 0) {
           await node.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Hover over property labels
           const labels = page.locator("label, .MuiFormLabel-root");
 
           if (await labels.count() > 0) {
             await labels.first().hover();
-            await page.waitForTimeout(500);
+            await waitForAnimation(page);
           }
 
           await expect(canvas).toBeVisible();
@@ -219,8 +216,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Metadata API", () => {
       test("should fetch node metadata from API", async ({ page, request }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Make API request for node metadata
         const response = await request.get(
@@ -241,8 +237,7 @@ if (process.env.JEST_WORKER_ID) {
         page,
         request
       }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         const response = await request.get(
           `${BACKEND_API_URL}/nodes/metadata`
@@ -268,8 +263,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("About Information", () => {
       test("should display version information", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for version display
         const versionElements = page.locator(
@@ -283,8 +277,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have settings/about section", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for settings button
         const settingsButton = page.locator(
@@ -293,14 +286,14 @@ if (process.env.JEST_WORKER_ID) {
 
         if (await settingsButton.count() > 0) {
           await settingsButton.first().click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Look for about section in settings
           const aboutSection = page.locator('text="About", text="Version"');
 
           // Close settings
           await page.keyboard.press("Escape");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
         }
 
         // Page should remain functional
@@ -312,8 +305,7 @@ if (process.env.JEST_WORKER_ID) {
     test.describe("Error Messages and Feedback", () => {
       test("should display clear error messages", async ({ page }) => {
         // Navigate to invalid route
-        await page.goto("/invalid-route-test");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/invalid-route-test");
 
         // Should show some error indication, not just blank page
         const bodyText = await page.textContent("body");
@@ -340,11 +332,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Look for input fields that might show validation
           const inputs = page.locator('input, textarea');
@@ -354,7 +345,7 @@ if (process.env.JEST_WORKER_ID) {
             await input.click();
             await input.fill("");
             await input.blur();
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
           }
 
           // Canvas should remain functional
@@ -373,7 +364,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Reload
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // Page should load without crashing
         const bodyText = await page.textContent("body");
@@ -382,8 +373,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have templates for learning", async ({ page }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         // Verify templates page loads
         await expect(page).toHaveURL(/\/templates/);
@@ -394,21 +384,19 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should navigate to examples easily", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for templates/examples link
         const templatesLink = page.locator('a[href*="/templates"]');
 
         if (await templatesLink.count() > 0) {
           await templatesLink.first().click();
-          await page.waitForLoadState("networkidle");
+          await waitForPageReady(page);
 
           await expect(page).toHaveURL(/\/templates/);
         } else {
           // Navigate directly
-          await page.goto("/templates");
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, "/templates");
           await expect(page).toHaveURL(/\/templates/);
         }
       });
@@ -416,16 +404,15 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Keyboard Shortcut Reference", () => {
       test("should have keyboard shortcuts documentation", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Try to open keyboard shortcuts help (common: ? or Cmd/Ctrl+/)
         await page.keyboard.press("?");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Or try Cmd+/
         await page.keyboard.press("Meta+/");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Page should remain functional
         const body = page.locator("body");
@@ -435,15 +422,14 @@ if (process.env.JEST_WORKER_ID) {
       test("should list available shortcuts in editor", async ({ page }) => {
         await setupMockApiRoutes(page);
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Try to open shortcuts reference
         await page.keyboard.press("?");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Look for shortcuts list or dialog
         const shortcutsDialog = page.locator(
@@ -452,7 +438,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Close any open dialog
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         await expect(canvas).toBeVisible();
       });
@@ -460,8 +446,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("External Documentation Links", () => {
       test("should have links to external docs", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for documentation links
         const docLinks = page.locator(
@@ -475,8 +460,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have community/support links", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for community links
         const communityLinks = page.locator(
@@ -495,15 +479,14 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should show contextual help in node menu", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Open node menu
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(500);
+        await waitForAnimation(page);
 
         // Look for help or info in the menu
         const helpInMenu = page.locator(
@@ -512,23 +495,22 @@ if (process.env.JEST_WORKER_ID) {
 
         // Close menu
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         await expect(canvas).toBeVisible();
       });
 
       test("should provide help for node properties", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
 
         if (await node.count() > 0) {
           await node.click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Look for help icons next to properties
           const helpIcons = page.locator(
@@ -540,11 +522,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should show model recommendation info", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for model selection or recommendation elements
         const modelElements = page.locator(

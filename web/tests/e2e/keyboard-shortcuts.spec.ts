@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 // Note: These tests use "Meta" modifier which maps to Command on macOS and Windows key on Windows.
 // Playwright handles this cross-platform, but the actual shortcuts in the app may differ by platform.
@@ -12,12 +17,11 @@ if (process.env.JEST_WORKER_ID) {
   test.describe("Keyboard Shortcuts", () => {
     test.describe("Global Shortcuts", () => {
       test("should handle Escape key to close dialogs", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Press Escape - should not cause errors
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // Page should still be functional
         const bodyText = await page.textContent("body");
@@ -44,13 +48,12 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Try command palette shortcut
           await page.keyboard.press("Meta+k");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Check for command palette or any modal
           const body = await page.locator("body");
@@ -80,9 +83,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Focus on canvas
           const canvas = page.locator(".react-flow");
@@ -90,7 +92,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try undo shortcut
           await page.keyboard.press("Meta+z");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Page should still be functional
           await expect(canvas).toBeVisible();
@@ -117,9 +119,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Focus on canvas
           const canvas = page.locator(".react-flow");
@@ -127,7 +128,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try redo shortcut
           await page.keyboard.press("Meta+Shift+z");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Page should still be functional
           await expect(canvas).toBeVisible();
@@ -154,9 +155,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Focus on canvas
           const canvas = page.locator(".react-flow");
@@ -164,7 +164,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try select all shortcut
           await page.keyboard.press("Meta+a");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Page should still be functional
           await expect(canvas).toBeVisible();
@@ -188,9 +188,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Focus on canvas
           const canvas = page.locator(".react-flow");
@@ -198,11 +197,11 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try copy shortcut
           await page.keyboard.press("Meta+c");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Try paste shortcut
           await page.keyboard.press("Meta+v");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Page should still be functional
           await expect(canvas).toBeVisible();
@@ -226,9 +225,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Focus on canvas
           const canvas = page.locator(".react-flow");
@@ -236,9 +234,9 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try delete/backspace
           await page.keyboard.press("Delete");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
           await page.keyboard.press("Backspace");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Page should still be functional
           await expect(canvas).toBeVisible();
@@ -262,9 +260,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Focus on canvas
           const canvas = page.locator(".react-flow");
@@ -272,7 +269,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Try fit to screen shortcut (commonly F or 0)
           await page.keyboard.press("f");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Page should still be functional
           await expect(canvas).toBeVisible();
@@ -286,12 +283,11 @@ if (process.env.JEST_WORKER_ID) {
       test("should not navigate away with prevented shortcuts", async ({
         page
       }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Try browser back shortcut - should be handled by app
         await page.keyboard.press("Alt+ArrowLeft");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // The app may prevent or allow this - just verify no crash
         const bodyText = await page.textContent("body");
@@ -301,8 +297,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Chat Shortcuts", () => {
       test("should handle Enter to send message", async ({ page }) => {
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat");
 
         // Look for chat input
         const chatInput = page.locator(
@@ -312,11 +307,11 @@ if (process.env.JEST_WORKER_ID) {
         if ((await chatInput.count()) > 0) {
           await chatInput.first().click();
           await chatInput.first().fill("Test message");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Press Enter (might send message or create new line)
           await page.keyboard.press("Enter");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Page should remain functional
           const bodyText = await page.textContent("body");
@@ -325,8 +320,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle Shift+Enter for new line", async ({ page }) => {
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat");
 
         // Look for chat input
         const chatInput = page.locator(
@@ -336,15 +330,15 @@ if (process.env.JEST_WORKER_ID) {
         if ((await chatInput.count()) > 0) {
           await chatInput.first().click();
           await chatInput.first().fill("Line 1");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Press Shift+Enter for new line
           await page.keyboard.press("Shift+Enter");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Continue typing
           await page.keyboard.type("Line 2");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Page should remain functional
           const bodyText = await page.textContent("body");
@@ -369,19 +363,18 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Try opening node menu
           const canvas = page.locator(".react-flow");
           await canvas.click();
           await page.keyboard.press("Tab");
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
 
           // Press Escape to close any open menu/modal
           await page.keyboard.press("Escape");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Page should remain functional
           await expect(canvas).toBeVisible();
@@ -407,9 +400,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Focus on canvas
           const canvas = page.locator(".react-flow");
@@ -420,7 +412,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Zoom in
           await page.keyboard.press("Meta+=");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Canvas should still be visible
           await expect(canvas).toBeVisible();
@@ -444,9 +436,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Focus on canvas
           const canvas = page.locator(".react-flow");
@@ -454,7 +445,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Zoom out
           await page.keyboard.press("Meta+-");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Canvas should still be visible
           await expect(canvas).toBeVisible();
@@ -478,9 +469,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Focus on canvas
           const canvas = page.locator(".react-flow");
@@ -488,11 +478,11 @@ if (process.env.JEST_WORKER_ID) {
 
           // Zoom in first
           await page.keyboard.press("Meta+=");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Reset zoom
           await page.keyboard.press("Meta+0");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Canvas should still be visible
           await expect(canvas).toBeVisible();

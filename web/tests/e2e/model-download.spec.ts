@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_URL, BACKEND_WS_URL } from "./support/backend";
+import {
+  navigateToPage,
+} from "./helpers/waitHelpers";
 
 // Test timeouts
 const TEST_TIMEOUT_MS = 180000;  // 3 minutes for the overall test
@@ -19,8 +22,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.setTimeout(TEST_TIMEOUT_MS);
 
       // Navigate to models page
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
 
       // Start the download and wait for completion using WebSocket inside the page context
       const downloadResult = await page.evaluate(async ({ repoId, wsUrl, timeoutMs }: { repoId: string; wsUrl: string; timeoutMs: number }) => {
@@ -103,8 +105,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
 
     test("should connect to download WebSocket endpoint", async ({ page }) => {
       // Navigate to models page
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
 
       // Test that we can connect to the WebSocket endpoint
       const canConnect = await page.evaluate(async (wsUrl: string) => {

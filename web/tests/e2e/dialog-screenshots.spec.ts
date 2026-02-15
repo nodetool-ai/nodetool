@@ -7,6 +7,9 @@
 
 import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes } from "./fixtures/mockData";
+import {
+  navigateToPage,
+} from "./helpers/waitHelpers";
 
 // Skip when run by Jest or in CI (this is a screenshot utility, not a functional test)
 if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
@@ -19,8 +22,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
 
     test("capture FileBrowserDialog screenshot", async ({ page }) => {
-      await page.goto("/editor");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/editor");
       
       // Take a screenshot of the page
       await page.screenshot({ 
@@ -30,8 +32,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
 
     test("capture RequiredModelsDialog screenshot", async ({ page }) => {
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
       
       // Take a screenshot
       await page.screenshot({ 
@@ -41,8 +42,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
 
     test("capture RecommendedModelsDialog screenshot", async ({ page }) => {
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
       
       // Take a screenshot
       await page.screenshot({ 
@@ -52,8 +52,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
 
     test("capture DownloadManagerDialog screenshot", async ({ page }) => {
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
       
       // Take a screenshot
       await page.screenshot({ 
@@ -63,8 +62,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
     });
 
     test("capture WorkflowFormModal screenshot", async ({ page }) => {
-      await page.goto("/editor");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/editor");
       
       // Take a screenshot
       await page.screenshot({ 
