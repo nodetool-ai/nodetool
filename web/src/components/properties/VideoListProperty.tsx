@@ -124,21 +124,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Helper to get MIME type from file extension
-const getVideoMimeType = (fileName: string): string => {
-  const ext = fileName.toLowerCase().split(".").pop();
-  const mimeTypes: Record<string, string> = {
-    mp4: "video/mp4",
-    avi: "video/x-msvideo",
-    mov: "video/quicktime",
-    wmv: "video/x-ms-wmv",
-    flv: "video/x-flv",
-    webm: "video/webm",
-    mkv: "video/x-matroska"
-  };
-  return mimeTypes[ext || ""] || "video/mp4";
-};
-
 // Helper to flatten potentially nested arrays of items (handles constants + lists)
 const flattenVideoItems = (items: unknown): VideoItem[] => {
   if (!items) {
@@ -330,18 +315,15 @@ const VideoListProperty = (props: PropertyProps) => {
 
       if (!result.canceled && result.filePaths.length > 0) {
         const uploadPromises = result.filePaths.map(async (filePath: string) => {
-          const dataUrl = await window.api.clipboard?.readFileAsDataURL(filePath);
-          if (!dataUrl) {
+          const result = await window.api.clipboard?.readFileBuffer(filePath);
+          if (!result) {
             throw new Error("Failed to read file");
           }
-
-          const response = await fetch(dataUrl);
-          const blob = await response.blob();
 
           const pathSegments = filePath.split(/[\\/]/);
           const fileName = pathSegments[pathSegments.length - 1] || "video.mp4";
 
-          const file = new File([blob], fileName, { type: getVideoMimeType(fileName) });
+          const file = new File([result.buffer], fileName, { type: result.mimeType });
 
           return new Promise<VideoItem>((resolve, reject) => {
             uploadAsset({
