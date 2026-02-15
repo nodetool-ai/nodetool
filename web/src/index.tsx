@@ -120,17 +120,21 @@ const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
-  import("./lib/tools/builtin/addNode");
-  import("./lib/tools/builtin/setNodeSyncMode");
-  import("./lib/tools/builtin/connectNodes");
-  import("./lib/tools/builtin/updateNodeData");
-  import("./lib/tools/builtin/moveNode");
-  import("./lib/tools/builtin/setNodeTitle");
-  import("./lib/tools/builtin/graph");
-  import("./lib/tools/builtin/getGraph");
-  import("./lib/tools/builtin/searchNodes");
-  import("./lib/tools/builtin/deleteNode");
-  import("./lib/tools/builtin/deleteEdge");
+  Promise.all([
+    import("./lib/tools/builtin/addNode"),
+    import("./lib/tools/builtin/setNodeSyncMode"),
+    import("./lib/tools/builtin/connectNodes"),
+    import("./lib/tools/builtin/updateNodeData"),
+    import("./lib/tools/builtin/moveNode"),
+    import("./lib/tools/builtin/setNodeTitle"),
+    import("./lib/tools/builtin/graph"),
+    import("./lib/tools/builtin/getGraph"),
+    import("./lib/tools/builtin/searchNodes"),
+    import("./lib/tools/builtin/deleteNode"),
+    import("./lib/tools/builtin/deleteEdge"),
+  ]).catch((error) => {
+    console.error("Failed to register frontend tools:", error);
+  });
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
