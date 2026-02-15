@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { Node } from "@xyflow/react";
+import { shallow } from "zustand/shallow";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useResultsStore from "../../stores/ResultsStore";
@@ -25,12 +26,15 @@ interface UseRunFromHereReturn {
 export function useRunFromHere(
   node: Node<NodeData> | null | undefined
 ): UseRunFromHereReturn {
-  const { nodes, edges, workflow, findNode } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    workflow: state.workflow,
-    findNode: state.findNode
-  }));
+  const { nodes, edges, workflow, findNode } = useNodes(
+    (state) => ({
+      nodes: state.nodes,
+      edges: state.edges,
+      workflow: state.workflow,
+      findNode: state.findNode
+    }),
+    shallow
+  );
 
   const run = useWebsocketRunner((state) => state.run);
   const isWorkflowRunning = useWebsocketRunner(

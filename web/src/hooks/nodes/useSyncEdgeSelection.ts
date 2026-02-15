@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { shallow } from "zustand/shallow";
 import { useNodes } from "../../contexts/NodeContext";
 
 export const useSyncEdgeSelection = (
@@ -8,12 +9,15 @@ export const useSyncEdgeSelection = (
   // Only subscribe to helper functions, not the full `edges` array,
   // to avoid re-rendering every node whenever edges change.
   const { getInputEdges, getOutputEdges, findNode, setEdgeSelectionState } =
-    useNodes((state) => ({
-      getInputEdges: state.getInputEdges,
-      getOutputEdges: state.getOutputEdges,
-      findNode: state.findNode,
-      setEdgeSelectionState: state.setEdgeSelectionState
-    }));
+    useNodes(
+      (state) => ({
+        getInputEdges: state.getInputEdges,
+        getOutputEdges: state.getOutputEdges,
+        findNode: state.findNode,
+        setEdgeSelectionState: state.setEdgeSelectionState
+      }),
+      shallow
+    );
 
   useEffect(() => {
     const inputEdges = getInputEdges(nodeId);

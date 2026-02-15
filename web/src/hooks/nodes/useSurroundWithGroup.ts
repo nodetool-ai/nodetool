@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { GROUP_NODE_METADATA } from "../../utils/nodeUtils";
+import { shallow } from "zustand/shallow";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
@@ -31,10 +32,13 @@ type SurroundWithGroupOptions = {
  */
 export const useSurroundWithGroup = () => {
   const theme = useTheme();
-  const { createNode, setNodes } = useNodes((state) => ({
-    createNode: state.createNode,
-    setNodes: state.setNodes
-  }));
+  const { createNode, setNodes } = useNodes(
+    (state) => ({
+      createNode: state.createNode,
+      setNodes: state.setNodes
+    }),
+    shallow
+  );
   const { pause, resume } = useTemporalNodes((state) => ({
     pause: state.pause,
     resume: state.resume
