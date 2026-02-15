@@ -74,7 +74,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
   // Undo/Redo for CommandMenu
-  const nodeHistory = useTemporalNodes((state) => state);
+  // Optimization: Select only undo/redo to avoid re-renders on every history change
+  const { undo, redo } = useTemporalNodes((state) => ({
+    undo: state.undo,
+    redo: state.redo
+  }));
+
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux)
@@ -165,8 +170,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <CommandMenu
                 open={commandMenuOpen}
                 setOpen={setCommandMenuOpen}
-                undo={() => nodeHistory.undo()}
-                redo={() => nodeHistory.redo()}
+                undo={undo}
+                redo={redo}
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
