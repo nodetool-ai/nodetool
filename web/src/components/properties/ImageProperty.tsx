@@ -34,15 +34,13 @@ const ImageProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {!isConnected && (
-        <PropertyDropzone
-          asset={asset}
-          uri={uri}
-          onChange={props.onChange}
-          contentType="image"
-          props={props}
-        />
-      )}
+      <PropertyDropzone
+        asset={asset}
+        uri={uri}
+        onChange={props.onChange}
+        contentType="image"
+        props={props}
+      />
     </div>
   );
 };
