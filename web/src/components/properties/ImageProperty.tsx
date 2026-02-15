@@ -13,13 +13,6 @@ const ImageProperty = (props: PropertyProps) => {
 
   const { asset, uri } = useAsset({ image: props.value });
 
-  const isConnected = useNodes((state) => {
-    return state.edges.some(
-      (edge) =>
-        edge.target === props.nodeId && edge.targetHandle === props.property.name
-    );
-  });
-
   return (
     <div
       className="image-property"
