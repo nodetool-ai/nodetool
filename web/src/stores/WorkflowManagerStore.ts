@@ -30,6 +30,7 @@ import { fetchWorkflowVersions } from "../serverState/useWorkflowVersions";
 import log from "loglevel";
 import { useRightPanelStore } from "./RightPanelStore";
 import { useVersionHistoryStore } from "./VersionHistoryStore";
+import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -770,6 +771,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (cached) {
           get().addWorkflow(cached);
           get().setCurrentWorkflowId(workflowId);
+          await hydrateWorkflowResultsFromAssets(workflowId);
           // Check for newer autosaves when loading from cache
           checkForNewerAutosave(cached);
           return cached;
@@ -787,6 +789,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           }
           get().addWorkflow(data);
           get().setCurrentWorkflowId(data.id);
+          await hydrateWorkflowResultsFromAssets(data.id);
           // Check for newer autosaves when freshly loaded
           checkForNewerAutosave(data);
           return data;

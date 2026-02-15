@@ -324,9 +324,12 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
 
   // Check for local models (Ollama)
   const { data: ollamaModels } = useQuery({
-    queryKey: ["ollama-models"],
+    queryKey: ["ollamaModels"],
     queryFn: async () => {
-      const { data } = await client.GET("/api/models/ollama");
+      const { data, error } = await client.GET("/api/models/ollama", {});
+      if (error) {
+        throw error;
+      }
       // Handle potential response structures (array or object with models property)
       if (Array.isArray(data)) { return data; }
 
@@ -334,7 +337,11 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
       if (responseData?.models && Array.isArray(responseData.models)) { return responseData.models; }
       return [];
     },
-    refetchInterval: 5000 // Poll every 5s to check for new downloads
+    enabled: shouldShowLocalModels,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: (query) => (query.state.error ? false : 15000)
   });
 
   const hasLocalModels = (ollamaModels?.length ?? 0) > 0;
