@@ -5,7 +5,6 @@ This directory contains instructions for various AI coding agents working with t
 ## Available Instruction Files
 
 - **[copilot-instructions.md](../copilot-instructions.md)** - GitHub Copilot specific patterns and code generation guidelines
-- **[claude-instructions.md](../claude-instructions.md)** - Claude AI instructions for setup, testing, and development
 - **[Main AGENTS.md](../../AGENTS.md)** - Comprehensive project documentation and agent rules
 
 ## Quick E2E Test Setup

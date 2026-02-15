@@ -939,7 +939,7 @@ npx playwright show-trace test-results/path-to-trace/trace.zip
 
 ### 8. Electron E2E CI/CD
 
-The `.github/workflows/electron-e2e.yml` workflow:
+The `.github/workflows/e2e.yml` workflow:
 - Runs on Ubuntu, macOS, and Windows
 - Installs dependencies and Playwright browsers
 - Builds the Electron app
