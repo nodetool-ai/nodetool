@@ -67,7 +67,7 @@ Tests handle this by:
 
 ### CI/CD
 
-GitHub Actions (`.github/workflows/electron-e2e.yml`):
+GitHub Actions (`.github/workflows/e2e.yml`):
 1. Sets up conda with Python 3.11
 2. Installs nodetool packages
 3. Builds Electron app

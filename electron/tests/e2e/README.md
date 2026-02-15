@@ -218,7 +218,7 @@ The CI workflow:
 - Runs all e2e tests
 - Uploads artifacts on failure
 
-See `.github/workflows/electron-e2e.yml` for CI configuration.
+See `.github/workflows/e2e.yml` for CI configuration.
 
 ## Future Enhancements
 
