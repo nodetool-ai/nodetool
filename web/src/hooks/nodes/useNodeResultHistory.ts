@@ -7,8 +7,51 @@
  */
 
 import { useCallback } from "react";
+import { useMemo } from "react";
 import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
+import { HistoricalResult } from "../../stores/NodeResultHistoryStore";
 import { useNodeAssets } from "../../serverState/useNodeAssets";
+
+const resolveHistoryUri = (uri: string): string | null => {
+  if (uri.startsWith("asset://")) {
+    const assetId = uri.slice("asset://".length);
+    return `/api/storage/${assetId}`;
+  }
+
+  if (uri.startsWith("memory://")) {
+    return null;
+  }
+
+  return uri;
+};
+
+const normalizeHistoryResultUris = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeHistoryResultUris(item));
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const normalized: Record<string, unknown> = {};
+
+  for (const [key, raw] of Object.entries(record)) {
+    if (key === "uri" && typeof raw === "string") {
+      const resolved = resolveHistoryUri(raw);
+      if (resolved === null) {
+        continue;
+      }
+      normalized[key] = resolved;
+      continue;
+    }
+
+    normalized[key] = normalizeHistoryResultUris(raw);
+  }
+
+  return normalized;
+};
 
 export const useNodeResultHistory = (
   workflowId: string | null,
@@ -39,9 +82,18 @@ export const useNodeResultHistory = (
     }
   }, [workflowId, nodeId, clearNodeHistory]);
 
+  const normalizedSessionHistory = useMemo<HistoricalResult[]>(
+    () =>
+      sessionHistory.map((item) => ({
+        ...item,
+        result: normalizeHistoryResultUris(item.result)
+      })),
+    [sessionHistory]
+  );
+
   return {
     // Session history (in-memory)
-    sessionHistory,
+    sessionHistory: normalizedSessionHistory,
     historyCount,
     clearHistory,
 
