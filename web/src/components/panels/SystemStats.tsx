@@ -6,7 +6,7 @@ import {
   LinearProgress,
   Popover
 } from "@mui/material";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 
 // Memoized inline styles for progress bars
 const progressSx = {
@@ -38,7 +38,7 @@ const statsBoxSx = {
 
 const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const systemStats = useWorkflowManager((state) => state.getSystemStats());
+  const systemStats = useSystemStatsStore((state) => state.stats);
 
   const stats = useMemo(
     () => [
