@@ -97,6 +97,7 @@ describe("PropertyDropzone", () => {
       },
       clipboard: {
         readFileAsDataURL: jest.fn(),
+        readFileBuffer: jest.fn(),
       },
     };
 

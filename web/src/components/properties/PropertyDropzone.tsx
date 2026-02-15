@@ -289,17 +289,13 @@ const PropertyDropzone = ({
       if (!result.canceled && result.filePaths.length > 0) {
         const filePath = result.filePaths[0];
 
-        // Read the file as data URL using Electron's IPC
-        const dataUrl = await window.api.clipboard?.readFileAsDataURL(filePath);
+        // Read the file buffer using Electron's IPC
+        const fileData = await window.api.clipboard?.readFileBuffer(filePath);
 
-        if (!dataUrl) {
+        if (!fileData) {
           console.error("Failed to read file");
           return;
         }
-
-        // Convert data URL to Blob
-        const response = await fetch(dataUrl);
-        const blob = await response.blob();
 
         // Get filename with fallback that includes an extension
         const pathSegments = filePath.split(/[\\/]/);
@@ -311,8 +307,8 @@ const PropertyDropzone = ({
           fileName = `file.${ext}`;
         }
 
-        // Use contentType for consistency, not blob.type which may be incorrect
-        const file = new File([blob], fileName, { type: contentType });
+        // Use contentType for consistency
+        const file = new File([fileData.buffer], fileName, { type: contentType });
 
         // Upload the file as an asset
         uploadAssetFn({

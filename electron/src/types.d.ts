@@ -554,6 +554,7 @@ export enum IpcChannels {
   CLIPBOARD_READ_BUFFER = "clipboard-read-buffer",
   CLIPBOARD_GET_CONTENT_INFO = "clipboard-get-content-info",
   FILE_READ_AS_DATA_URL = "file-read-as-data-url",
+  FILE_READ_BUFFER = "file-read-buffer",
   // Claude Agent SDK channels
   AGENT_CREATE_SESSION = "agent-create-session",
   AGENT_LIST_MODELS = "agent-list-models",
@@ -733,6 +734,7 @@ export interface IpcRequest {
   [IpcChannels.CLIPBOARD_READ_BUFFER]: string; // format name
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: void;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string; // filePath
+  [IpcChannels.FILE_READ_BUFFER]: string; // filePath
   // Claude Agent SDK
   [IpcChannels.AGENT_CREATE_SESSION]: AgentSessionOptions;
   [IpcChannels.AGENT_LIST_MODELS]: AgentModelsRequest;
@@ -825,6 +827,7 @@ export interface IpcResponse {
   [IpcChannels.CLIPBOARD_READ_BUFFER]: string | null; // base64 encoded buffer
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: ClipboardContentInfo;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string | null;
+  [IpcChannels.FILE_READ_BUFFER]: { buffer: Buffer; mimeType: string } | null;
   // Claude Agent SDK
   [IpcChannels.AGENT_CREATE_SESSION]: string; // sessionId
   [IpcChannels.AGENT_LIST_MODELS]: AgentModelDescriptor[];
