@@ -4,7 +4,6 @@ import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useResultsStore from "../../stores/ResultsStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { subgraph } from "../../core/graph";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import log from "loglevel";
@@ -27,7 +26,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
       return;
     }
 
-    const { nodes, edges, workflow, findNode, getSelectedNodes } =
+    const { edges, workflow, findNode, getSelectedNodes } =
       nodeStore.getState();
 
     const selectedNodes = getSelectedNodes();
@@ -35,38 +34,17 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
       return;
     }
 
-    const processedNodeIds = new Set<string>();
-    const allDownstreamNodes: Node<NodeData>[] = [];
-    const allDownstreamEdges: Edge[] = [];
-    const downstreamEdgeIds = new Set<string>();
+    const selectedNodeIds = new Set(selectedNodes.map((n: Node<NodeData>) => n.id));
 
-    for (const node of selectedNodes) {
-      if (processedNodeIds.has(node.id)) {
-        continue;
-      }
+    // Only include edges where both source and target are selected
+    const selectedEdges = edges.filter(
+      (edge: Edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)
+    );
 
-      const downstream = subgraph(edges, nodes, node);
-
-      for (const n of downstream.nodes) {
-        if (!processedNodeIds.has(n.id)) {
-          allDownstreamNodes.push(n);
-          processedNodeIds.add(n.id);
-        }
-      }
-      for (const edge of downstream.edges) {
-        if (downstreamEdgeIds.has(edge.id)) {
-          continue;
-        }
-        downstreamEdgeIds.add(edge.id);
-        allDownstreamEdges.push(edge);
-      }
-    }
-
-    const subgraphNodeIds = new Set(allDownstreamNodes.map((n) => n.id));
-
+    // Find edges coming into selected nodes from non-selected nodes
     const externalInputEdges = edges.filter(
-      (edge) =>
-        subgraphNodeIds.has(edge.target) && !subgraphNodeIds.has(edge.source)
+      (edge: Edge) =>
+        selectedNodeIds.has(edge.target) && !selectedNodeIds.has(edge.source)
     );
 
     const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
@@ -104,7 +82,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
       );
     }
 
-    const nodesWithCachedValues = allDownstreamNodes.map((n) => {
+    const nodesWithCachedValues = selectedNodes.map((n: Node<NodeData>) => {
       const overrides = nodePropertyOverrides.get(n.id);
       if (overrides && Object.keys(overrides).length > 0) {
         const dynamicProps = n.data?.dynamic_properties || {};
@@ -137,12 +115,12 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
     });
 
     log.info("Running workflow from selected nodes", {
-      startNodeIds: selectedNodes.map((n) => n.id),
+      startNodeIds: selectedNodes.map((n: Node<NodeData>) => n.id),
       nodeCount: nodesWithCachedValues.length,
-      edgeCount: allDownstreamEdges.length
+      edgeCount: selectedEdges.length
     });
 
-    run({}, workflow, nodesWithCachedValues, allDownstreamEdges, undefined, subgraphNodeIds);
+    run({}, workflow, nodesWithCachedValues, selectedEdges, undefined, selectedNodeIds);
 
     addNotification({
       type: "info",
