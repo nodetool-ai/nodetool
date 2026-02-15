@@ -48,15 +48,18 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
     },
   ];
 
-  const errors: string[] = [];
+  const results = await Promise.all(
+    pathsToCheck.map(async ({ path, mode, desc }) => {
+      const { accessible, error } = await checkPermissions(path, mode);
+      logMessage(`Checking ${desc} permissions: ${accessible ? "OK" : "FAILED"}`);
+      if (!accessible && error) {
+        return `${desc}: ${error}`;
+      }
+      return null;
+    })
+  );
 
-  for (const { path, mode, desc } of pathsToCheck) {
-    const { accessible, error } = await checkPermissions(path, mode);
-    logMessage(`Checking ${desc} permissions: ${accessible ? "OK" : "FAILED"}`);
-    if (!accessible && error) {
-      errors.push(`${desc}: ${error}`);
-    }
-  }
+  const errors = results.filter((e): e is string => e !== null);
 
   return {
     valid: errors.length === 0,
@@ -89,37 +92,40 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
   logMessage(`Python executable path: ${pythonExecutablePath}`);
   logMessage(`UV executable path: ${uvExecutablePath}`);
 
-  // Check Python executable
-  try {
-    logMessage("Attempting to access Python executable...");
-    await fs.access(pythonExecutablePath);
-    logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
-  } catch (error) {
-    logMessage(
-      `✗ Python executable not found at ${pythonExecutablePath}`,
-      "error",
-    );
-    logMessage(`Access error: ${error}`, "error");
-    return false;
-  }
+  // Check Python and UV executables in parallel
+  const [pythonExists, uvExists] = await Promise.all([
+    fs.access(pythonExecutablePath).then(
+      () => {
+        logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `✗ Python executable not found at ${pythonExecutablePath}`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        return false;
+      }
+    ),
+    fs.access(uvExecutablePath).then(
+      () => {
+        logMessage(`✓ UV executable found at ${uvExecutablePath}`);
+        return true;
+      },
+      (error) => {
+        logMessage(
+          `✗ UV executable not found at ${uvExecutablePath} - environment appears incomplete`,
+          "error",
+        );
+        logMessage(`Access error: ${error}`, "error");
+        logMessage("Will trigger reinstallation to complete the environment setup");
+        return false;
+      }
+    ),
+  ]);
 
-  // Check uv executable - important for detecting partial/corrupted installs
-  // This can happen if installation was interrupted (e.g., by macOS permission dialog)
-  try {
-    logMessage("Attempting to access uv executable...");
-    await fs.access(uvExecutablePath);
-    logMessage(`✓ UV executable found at ${uvExecutablePath}`);
-  } catch (error) {
-    logMessage(
-      `✗ UV executable not found at ${uvExecutablePath} - environment appears incomplete`,
-      "error",
-    );
-    logMessage(`Access error: ${error}`, "error");
-    logMessage("Will trigger reinstallation to complete the environment setup");
-    return false;
-  }
-
-  return true;
+  return pythonExists && uvExists;
 }
 
 /**

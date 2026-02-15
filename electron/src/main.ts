@@ -446,19 +446,18 @@ async function checkMediaPermissions(): Promise<void> {
 let isInitialized = false;
 
 app.on("ready", async () => {
-  // Warm up settings cache asynchronously
-  try {
-    await readSettingsAsync();
-  } catch (error) {
+  // Run settings warmup, IPC setup, and media permission check in parallel
+  const settingsPromise = readSettingsAsync().catch((error) => {
     logMessage(`Failed to warm up settings cache: ${error}`, "warn");
-  }
+  });
 
-  await initializeIpcHandlers();
+  const ipcPromise = initializeIpcHandlers();
 
-  // Skip media permissions check in test mode
-  if (process.env.NODE_ENV !== "test") {
-    await checkMediaPermissions();
-  }
+  const mediaPromise = process.env.NODE_ENV !== "test"
+    ? checkMediaPermissions()
+    : Promise.resolve();
+
+  await Promise.all([settingsPromise, ipcPromise, mediaPromise]);
 
   mainWindow = createWindow();
   mainWindow.on("ready-to-show", async () => {
@@ -469,8 +468,8 @@ app.on("ready", async () => {
 
       // Skip menu/tray creation in test mode
       if (process.env.NODE_ENV !== "test") {
-        await buildMenu();
-        await createTray();
+        // Build menu and tray in parallel
+        await Promise.all([buildMenu(), createTray()]);
       }
 
       await initialize();
