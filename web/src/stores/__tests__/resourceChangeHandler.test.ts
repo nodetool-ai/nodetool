@@ -47,7 +47,7 @@ describe("handleResourceChange", () => {
 
     // Should invalidate workflow versions query
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["workflow_versions", "workflow-123"]
+      queryKey: ["workflow", "workflow-123", "versions"]
     });
   });
 
