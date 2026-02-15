@@ -4,7 +4,7 @@ import {
   unregisterComboCallback
 } from "../stores/KeyPressedStore";
 import { NODE_EDITOR_SHORTCUTS } from "../config/shortcuts";
-import { getIsElectronDetails } from "../utils/browser";
+import { getIsElectronDetails, isTextInputActive } from "../utils/browser";
 import { getMousePosition } from "../utils/MousePosition";
 import { useNodes, useTemporalNodes } from "../contexts/NodeContext";
 import { useCopyPaste } from "./handlers/useCopyPaste";
@@ -312,6 +312,9 @@ export const useNodeEditorShortcuts = (
       }
       switch (data.type) {
         case "copy":
+          if (isTextInputActive()) {
+            return;
+          }
           handleCopy();
           break;
         case "paste":
