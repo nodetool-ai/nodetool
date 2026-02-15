@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Box } from "@mui/material";
 import { EditorButton } from "../ui_primitives";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
-import { useAssetStore, type AssetTreeNode } from "../../stores/AssetStore";
+import { type AssetTreeNode } from "../../stores/AssetStore";
+import { useFolderTree } from "../../serverState/useFolderTree";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -64,20 +65,12 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   sortBy = "name"
 }) => {
   const theme = useTheme();
-  const loadFolderTree = useAssetStore((state) => state.loadFolderTree);
-  const [folderTree, setFolderTree] = useState<Record<string, AssetTreeNode>>(
-    {}
-  );
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  
+  // Fetch folder tree using useQuery
+  const { data: folderTree = {} } = useFolderTree(sortBy);
 
-  useEffect(() => {
-    const fetchFolderTree = async () => {
-      const tree = await loadFolderTree(sortBy);
-      setFolderTree(tree);
-      setExpandedItems(Object.keys(tree));
-    };
-    fetchFolderTree();
-  }, [loadFolderTree, sortBy]);
+  // Auto-expand all folders when tree data changes
+  const expandedItems = useMemo(() => Object.keys(folderTree), [folderTree]);
 
   const renderTree = useCallback((node: AssetTreeNode): React.ReactNode => {
     if (!node.id) {
@@ -114,7 +107,6 @@ const FolderTree: React.FC<FolderTreeProps> = ({
       <SimpleTreeView
         className="tree-view"
         expandedItems={expandedItems}
-        onExpandedItemsChange={(event, nodeIds) => setExpandedItems(nodeIds)}
       >
         {Object.values(folderTree).map((rootFolder) =>
           rootFolder.id ? renderTree(rootFolder) : null
