@@ -21,8 +21,9 @@ import {
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useState, useCallback, useMemo, memo } from "react";
+import { useState, useCallback, useMemo, memo, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -52,6 +53,14 @@ const SecretsMenu = memo(() => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const searchFilter = useSettingsStore((state) => state.searchFilter);
+
+  // Sync searchFilter from store into local searchTerm when it changes
+  useEffect(() => {
+    if (searchFilter) {
+      setSearchTerm(searchFilter);
+    }
+  }, [searchFilter]);
 
   // Use React Query to trigger fetch, but use store state directly
   const { isLoading: queryLoading } = useQuery({
@@ -68,7 +77,7 @@ const SecretsMenu = memo(() => {
   const secretsByStatus = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase().trim();
     const filterSecrets = (secrets: any[]) => {
-      if (!lowerSearchTerm) {return secrets;}
+      if (!lowerSearchTerm) { return secrets; }
       return secrets.filter(
         (s: any) =>
           s.key.toLowerCase().includes(lowerSearchTerm) ||
@@ -289,22 +298,22 @@ const SecretsMenu = memo(() => {
                             flexShrink: 0
                           }}
                         >
-                           <Tooltip title="Update secret">
-                             <IconButton
-                               size="small"
-                               onClick={handleOpenEditDialog(secret)}
-                               disabled={updateMutation.isPending}
-                             >
+                          <Tooltip title="Update secret">
+                            <IconButton
+                              size="small"
+                              onClick={handleOpenEditDialog(secret)}
+                              disabled={updateMutation.isPending}
+                            >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                           <Tooltip title="Delete secret">
-                             <IconButton
-                               size="small"
-                               color="error"
-                               onClick={handleDeleteClick(secret.key)}
-                               disabled={deleteMutation.isPending}
-                             >
+                          <Tooltip title="Delete secret">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={handleDeleteClick(secret.key)}
+                              disabled={deleteMutation.isPending}
+                            >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -356,12 +365,12 @@ const SecretsMenu = memo(() => {
                             flexShrink: 0
                           }}
                         >
-                           <Tooltip title="Set secret">
-                             <IconButton
-                               size="small"
-                               onClick={handleOpenEditDialog(secret)}
-                               disabled={updateMutation.isPending}
-                             >
+                          <Tooltip title="Set secret">
+                            <IconButton
+                              size="small"
+                              onClick={handleOpenEditDialog(secret)}
+                              disabled={updateMutation.isPending}
+                            >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -474,8 +483,8 @@ const SecretsMenu = memo(() => {
             {updateMutation.isPending
               ? "Saving..."
               : editingSecret?.is_configured
-              ? "Update"
-              : "Set"}
+                ? "Update"
+                : "Set"}
           </Button>
         </DialogActions>
       </Dialog>
