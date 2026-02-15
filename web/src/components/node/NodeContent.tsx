@@ -13,7 +13,6 @@ interface NodeContentProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;
-  isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
   basicFields: string[];
@@ -40,7 +39,6 @@ const arePropsEqual = (
   if (
     prevProps.id !== nextProps.id ||
     prevProps.nodeType !== nextProps.nodeType ||
-    prevProps.isConstantNode !== nextProps.isConstantNode ||
     prevProps.isOutputNode !== nextProps.isOutputNode ||
     prevProps.showAdvancedFields !== nextProps.showAdvancedFields ||
     prevProps.hasAdvancedFields !== nextProps.hasAdvancedFields ||
@@ -156,7 +154,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
   id,
   nodeType,
   nodeMetadata,
-  isConstantNode,
   isOutputNode,
   data,
   basicFields,
@@ -216,7 +213,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
             properties={nodeMetadata.properties}
             nodeType={nodeType}
             data={data}
-            showHandle={!isConstantNode}
             hasAdvancedFields={hasAdvancedFields}
             showAdvancedFields={showAdvancedFields}
             basicFields={basicFields}
@@ -277,7 +273,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         properties={nodeMetadata.properties}
         nodeType={nodeType}
         data={data}
-        showHandle={!isConstantNode}
         hasAdvancedFields={hasAdvancedFields}
         showAdvancedFields={showAdvancedFields}
         basicFields={basicFields}

@@ -397,6 +397,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       state.getResult(workflow_id, id);
     return r;
   });
+  const hasConnectedInput = useNodes((state) =>
+    state.edges.some((edge) => edge.target === id)
+  );
+  const isConstantInputLockedResult =
+    nodeType.isConstantNode && hasConnectedInput;
 
   // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
@@ -404,22 +409,50 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     if (status === "running" || status === "starting") {
       setShowResultOverlay(false);
     }
+    // Constant nodes with connected input are always locked to results view.
+    else if (result && isConstantInputLockedResult) {
+      setShowResultOverlay(true);
+    }
+    // Other constant nodes default to showing results when available,
+    // unless user explicitly switched back to inputs.
+    else if (
+      result &&
+      nodeType.isConstantNode &&
+      data.showResultPreference !== false
+    ) {
+      setShowResultOverlay(true);
+    }
     // When node completes with result, respect user's saved preference
-    // Only for non-output nodes (output nodes always show results)
-    else if (result && !nodeType.isOutputNode && status === "completed") {
+    // for regular non-output nodes.
+    else if (
+      result &&
+      !nodeType.isOutputNode &&
+      !nodeType.isConstantNode &&
+      status === "completed"
+    ) {
       // Only show result overlay if user has explicitly saved that preference
       if (data.showResultPreference === true) {
         setShowResultOverlay(true);
       }
       // Otherwise stay on inputs view (default behavior)
     }
-  }, [result, nodeType.isOutputNode, status, data.showResultPreference]);
+  }, [
+    result,
+    isConstantInputLockedResult,
+    nodeType.isOutputNode,
+    nodeType.isConstantNode,
+    status,
+    data.showResultPreference
+  ]);
 
   const handleShowInputs = useCallback(() => {
+    if (isConstantInputLockedResult) {
+      return;
+    }
     setShowResultOverlay(false);
     // Save preference: user wants to see inputs after workflow runs
     updateNodeData(id, { showResultPreference: false });
-  }, [id, updateNodeData]);
+  }, [isConstantInputLockedResult, id, updateNodeData]);
 
   const handleShowResults = useCallback(() => {
     setShowResultOverlay(true);
@@ -430,11 +463,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
   const isEmptyResult = (obj: unknown) =>
     obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
+  const shouldAlwaysShowResult =
+    nodeType.isOutputNode || isConstantInputLockedResult;
   const isOverlayVisible =
-    showResultOverlay && result && !isEmptyResult(result);
+    shouldAlwaysShowResult
+      ? result && !isEmptyResult(result)
+      : showResultOverlay && result && !isEmptyResult(result);
   const hasToggleableResult =
-    !nodeType.isOutputNode &&
-    !nodeType.isConstantNode &&
+    !shouldAlwaysShowResult &&
     result &&
     !isEmptyResult(result);
 
@@ -554,7 +590,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       sx={containerSx}
     >
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
-      {/* {hasToggleableResult && <NodeResizeHandle minWidth={150} minHeight={150} />} */}
       <NodeResizeHandle minWidth={150} minHeight={150} />
       <NodeHeader
         id={id}
@@ -567,7 +602,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         iconBaseColor={baseColor}
         workflowId={workflow_id}
         showResultButton={Boolean(!isOverlayVisible && hasToggleableResult)}
-        showInputsButton={Boolean(isOverlayVisible)}
+        showInputsButton={Boolean(isOverlayVisible && hasToggleableResult)}
         onShowResults={handleShowResults}
         onShowInputs={handleShowInputs}
       />
@@ -594,7 +629,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           id={id}
           nodeType={type}
           nodeMetadata={metadata}
-          isConstantNode={nodeType.isConstantNode}
           isOutputNode={nodeType.isOutputNode}
           data={data}
           hasAdvancedFields={meta.hasAdvancedFields}
@@ -603,7 +637,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           basicFields={meta.nodeBasicFields}
           status={status}
           workflowId={workflow_id}
-          showResultOverlay={showResultOverlay}
+          showResultOverlay={
+            isConstantInputLockedResult ? true : showResultOverlay
+          }
           result={result}
           onShowInputs={handleShowInputs}
           onShowResults={handleShowResults}
