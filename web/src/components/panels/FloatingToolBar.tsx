@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useState, useEffect, useRef } from "react";
+import React, { memo, useCallback } from "react";
 import {
   Fab,
   Box,
@@ -17,14 +17,9 @@ import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useLocation } from "react-router-dom";
+import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { triggerAutosaveForWorkflow } from "../../hooks/useAutosave";
-
-import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -43,7 +38,11 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { cn } from "../editor_ui/editorUtils";
-import { executeViaComfyUI } from "../../utils/comfyExecutor";
+import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
+import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
+import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
+import { useRunningTime } from "../../hooks/useRunningTime";
+import { formatRunningTime } from "../../utils/timeFormat";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -100,60 +99,13 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(
 
 // Format seconds into precise time display
 // Returns text and size key: "smaller" | "tiny" | "tinyer"
-const formatRunningTime = (
-  seconds: number
-): { text: string; sizeKey: "smaller" | "tiny" | "tinyer" } => {
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  if (hrs > 0) {
-    // H:MM:SS format
-    const text = `${hrs}:${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-    return { text, sizeKey: "tinyer" };
-  }
-  if (mins >= 10) {
-    // MM:SS format
-    const text = `${mins}:${secs.toString().padStart(2, "0")}`;
-    return { text, sizeKey: "tiny" };
-  }
-  // M:SS format
-  return {
-    text: `${mins}:${secs.toString().padStart(2, "0")}`,
-    sizeKey: "smaller"
-  };
-};
+// NOTE: This function is now in utils/timeFormat.ts and imported above
 
 // Running time display component
 const RunningTime: React.FC<{ isRunning: boolean }> = memo(
   function RunningTime({ isRunning }) {
     const theme = useTheme();
-    const [elapsedSeconds, setElapsedSeconds] = useState(0);
-    const startTimeRef = useRef<number | null>(null);
-
-    useEffect(() => {
-      if (isRunning) {
-        startTimeRef.current = Date.now();
-        setElapsedSeconds(0);
-
-        const interval = setInterval(() => {
-          if (startTimeRef.current) {
-            const elapsed = Math.floor(
-              (Date.now() - startTimeRef.current) / 1000
-            );
-            setElapsedSeconds(elapsed);
-          }
-        }, 1000);
-
-        return () => clearInterval(interval);
-      } else {
-        startTimeRef.current = null;
-        setElapsedSeconds(0);
-      }
-    }, [isRunning]);
-
+    const elapsedSeconds = useRunningTime(isRunning);
     const { text, sizeKey } = formatRunningTime(elapsedSeconds);
     const fontSizeMap = {
       smaller: theme.fontSizeSmaller,
@@ -383,134 +335,76 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const theme = useTheme();
   const location = useLocation();
   const path = location.pathname;
-  const navigate = useNavigate();
-  const [paneMenuOpen, setPaneMenuOpen] = useState(false);
-  const [actionsMenuAnchor, setActionsMenuAnchor] =
-    useState<null | HTMLElement>(null);
-  const [advancedMenuAnchor, setAdvancedMenuAnchor] =
-    useState<null | HTMLElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const { isRightPanelVisible, rightPanelSize, toggleWorkflowPanel } =
-    useRightPanelStore((state) => ({
+
+  // Use extracted hooks
+  const {
+    paneMenuOpen,
+    actionsMenuAnchor,
+    advancedMenuAnchor,
+    handleOpenPaneMenu,
+    handleClosePaneMenu,
+    handleOpenActionsMenu,
+    handleCloseActionsMenu,
+    handleOpenAdvancedMenu,
+    handleCloseAdvancedMenu
+  } = useFloatingToolbarState();
+
+  const {
+    handleRun,
+    handleStop,
+    handleResume,
+    handleSave,
+    handleDownload,
+    handleAutoLayout,
+    handleRunAsApp,
+    handleEditWorkflow,
+    handleToggleNodeMenu,
+    handleToggleTerminal,
+    handleToggleMiniMap,
+    isWorkflowRunning,
+    isPaused,
+    isSuspended
+  } = useFloatingToolbarActions();
+
+  const { isRightPanelVisible, rightPanelSize } = useRightPanelStore(
+    (state) => ({
       isRightPanelVisible: state.panel.isVisible,
-      rightPanelSize: state.panel.panelSize,
-      toggleWorkflowPanel: () => state.handleViewChange("workflow")
-    }));
+      rightPanelSize: state.panel.panelSize
+    })
+  );
   const bottomPanelVisible = useBottomPanelStore(
     (state) => state.panel.isVisible
   );
   const bottomPanelSize = useBottomPanelStore((state) => state.panel.panelSize);
-  const toggleBottomPanel = useBottomPanelStore(
-    (state) => state.handleViewChange
+
+  const toolbarPosition = useFloatingToolbarPosition(
+    isRightPanelVisible,
+    rightPanelSize,
+    bottomPanelVisible,
+    bottomPanelSize
   );
 
-  const { instantUpdate, setInstantUpdate, autosave } = useSettingsStore((state) => ({
+  const { instantUpdate, setInstantUpdate } = useSettingsStore((state) => ({
     instantUpdate: state.settings.instantUpdate,
-    setInstantUpdate: state.setInstantUpdate,
-    autosave: state.settings.autosave
+    setInstantUpdate: state.setInstantUpdate
   }));
 
-  const { visible: isMiniMapVisible, toggleVisible: toggleMiniMap } =
-    useMiniMapStore((state) => ({
-      visible: state.visible,
-      toggleVisible: state.toggleVisible
-    }));
+  const { visible: isMiniMapVisible } = useMiniMapStore((state) => ({
+    visible: state.visible
+  }));
 
-  const nodeStore = useNodeStoreRef();
-  const { workflow, autoLayout, workflowJSON, isComfyWorkflow } = useNodes(
-    (state) => ({
-      workflow: state.workflow,
-      autoLayout: state.autoLayout,
-      workflowJSON: state.workflowJSON,
-      isComfyWorkflow: state.isComfyWorkflow()
-    })
-  );
+  const { workflow, isComfyWorkflow } = useNodes((state) => ({
+    workflow: state.workflow,
+    isComfyWorkflow: state.isComfyWorkflow()
+  }));
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(
     (state) => state.nodes.length === 0 && state.edges.length === 0
   );
 
-  const {
-    run,
-    isWorkflowRunning,
-    isPaused,
-    isSuspended,
-    cancel,
-    pause,
-    resume
-  } = useWebsocketRunner((state) => ({
-    run: state.run,
-    isWorkflowRunning: state.state === "running",
-    isPaused: state.state === "paused",
-    isSuspended: state.state === "suspended",
-    cancel: state.cancel,
-    pause: state.pause,
-    resume: state.resume
-  }));
-
-  const { getWorkflow: getWorkflowById, saveWorkflow } = useWorkflowManager(
-    (state) => ({
-      getWorkflow: state.getWorkflow,
-      saveWorkflow: state.saveWorkflow
-    })
-  );
-
-  const handleRun = useCallback(async () => {
-    if (!isWorkflowRunning) {
-      // Create a checkpoint version before execution if enabled
-      if (autosave?.saveBeforeRun) {
-        const w = getWorkflowById(workflow.id);
-        if (w?.graph?.nodes && w.graph.nodes.length > 0) {
-          await triggerAutosaveForWorkflow(workflow.id, w.graph, "checkpoint", {
-            description: "Before execution",
-            force: true,
-            maxVersions: autosave.maxVersionsPerWorkflow
-          });
-        }
-      }
-
-      const currentState = nodeStore.getState();
-      const currentWorkflow = currentState.getWorkflow();
-      const shouldRunViaComfy =
-        currentWorkflow.run_mode === "comfy" || currentState.isComfyWorkflow();
-
-      // Access current state directly to avoid re-renders on every node drag
-      const { nodes, edges } = currentState;
-      if (shouldRunViaComfy) {
-        await executeViaComfyUI(currentWorkflow.graph, undefined, currentWorkflow);
-      } else {
-        run({}, workflow, nodes, edges, undefined);
-      }
-    }
-    setTimeout(() => {
-      const w = getWorkflowById(workflow.id);
-      if (w) {
-        saveWorkflow(w);
-      }
-    }, 100);
-  }, [
-    isWorkflowRunning,
-    run,
-    workflow,
-    nodeStore,
-    getWorkflowById,
-    saveWorkflow,
-    autosave
-  ]);
-
-  const handleStop = useCallback(() => {
-    cancel();
-  }, [cancel]);
-
-  const _handlePause = useCallback(() => {
-    pause();
-  }, [pause]);
-
-  const handleResume = useCallback(() => {
-    resume();
-  }, [resume]);
-
+  // Keyboard shortcuts
   useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
   useCombo(["meta", "enter"], handleRun, true, !isWorkflowRunning);
   useCombo(
@@ -520,119 +414,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isWorkflowRunning || isPaused || isSuspended
   );
 
-  const handleSave = useCallback(() => {
-    if (!workflow) {
-      return;
-    }
-    const w = getWorkflowById(workflow.id);
-    if (w) {
-      saveWorkflow(w);
-    }
-  }, [getWorkflowById, saveWorkflow, workflow]);
-
-  const handleDownload = useCallback(() => {
-    if (!workflow) {
-      return;
-    }
-    const blob = new Blob([workflowJSON()], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.download = `${workflow.name}.json`;
-    link.href = url;
-    link.click();
-  }, [workflow, workflowJSON]);
-
-  const handleAutoLayout = useCallback(() => {
-    autoLayout();
-  }, [autoLayout]);
-
-  const _handleOpenInMiniApp = useCallback(() => {
-    if (!workflow?.id) {
-      return;
-    }
-    navigate(`/apps/${workflow.id}`);
-  }, [navigate, workflow?.id]);
-
-  const handleRunAsApp = useCallback(() => {
-    const workflowId = path.split("/").pop();
-    if (workflowId) {
-      navigate(`/apps/${workflowId}`);
-    }
-  }, [navigate, path]);
-
-  const handleEditWorkflow = useCallback(() => {
-    toggleWorkflowPanel();
-  }, [toggleWorkflowPanel]);
-
-  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
-    (state) => ({
-      openNodeMenu: state.openNodeMenu,
-      closeNodeMenu: state.closeNodeMenu,
-      isMenuOpen: state.isMenuOpen
-    })
-  );
-
-  const handleToggleNodeMenu = useCallback(() => {
-    if (isMenuOpen) {
-      closeNodeMenu();
-    } else {
-      const FALLBACK_MENU_WIDTH = 950;
-      const FALLBACK_MENU_HEIGHT = 900;
-      const CURSOR_ANCHOR_OFFSET_Y = 40;
-      const x = Math.floor(window.innerWidth / 2 - FALLBACK_MENU_WIDTH / 2);
-      const y = Math.floor(
-        window.innerHeight / 2 -
-          FALLBACK_MENU_HEIGHT / 2 +
-          CURSOR_ANCHOR_OFFSET_Y
-      );
-      openNodeMenu({ x, y });
-    }
-  }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
-
-  const shouldHighlightNodeMenu =
-    isEmptyWorkflow && workflow?.name === "New Workflow";
-
-  const handleOpenPaneMenu = useCallback(() => {
-    setPaneMenuOpen(true);
-  }, []);
-
-  const handleClosePaneMenu = useCallback(() => {
-    setPaneMenuOpen(false);
-  }, []);
-
-  const handleOpenActionsMenu = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      setActionsMenuAnchor(e.currentTarget);
-    },
-    []
-  );
-
-  const handleCloseActionsMenu = useCallback(() => {
-    setActionsMenuAnchor(null);
-  }, []);
-
-  const handleOpenAdvancedMenu = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      setAdvancedMenuAnchor(e.currentTarget);
-    },
-    []
-  );
-
-  const handleCloseAdvancedMenu = useCallback(() => {
-    setAdvancedMenuAnchor(null);
-  }, []);
-
-  const handleToggleTerminal = useCallback(() => {
-    toggleBottomPanel("terminal");
-  }, [toggleBottomPanel]);
-
   const handleToggleInstantUpdate = useCallback(() => {
     setInstantUpdate(!instantUpdate);
   }, [instantUpdate, setInstantUpdate]);
 
-  const handleToggleMiniMap = useCallback(() => {
-    toggleMiniMap();
-  }, [toggleMiniMap]);
+  const shouldHighlightNodeMenu =
+    isEmptyWorkflow && workflow?.name === "New Workflow";
 
   const handleToggleTerminalAndCloseMenu = useCallback(() => {
     handleToggleTerminal();
@@ -669,26 +456,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         css={styles(theme)}
         className="floating-toolbar"
         data-comfy-workflow={isComfyWorkflow ? "true" : "false"}
-        style={{
-          ...(isRightPanelVisible
-            ? {
-                left: "auto",
-                transform: "none",
-                right: `${Math.max(rightPanelSize + 20, 72)}px`
-              }
-            : {}),
-          bottom: bottomPanelVisible
-            ? `${Math.max(
-                Math.min(
-                  bottomPanelSize,
-                  typeof window !== "undefined"
-                    ? Math.max(200, window.innerHeight * 0.6)
-                    : bottomPanelSize
-                ) + 20,
-                80
-              )}px`
-            : "20px"
-        }}
+        style={toolbarPosition}
       >
         {isMobile && (
           <ToolbarButton
