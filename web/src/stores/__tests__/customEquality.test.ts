@@ -40,7 +40,14 @@ describe("customEquality", () => {
   ): PartializedNodeStore => ({
     nodes: [],
     edges: [],
-    workflow: { id: "workflow-1", name: "Test" },
+    workflow: {
+      id: "workflow-1",
+      name: "Test",
+      created_at: "",
+      updated_at: "",
+      access: "private",
+      description: ""
+    },
     ...overrides
   }) as PartializedNodeStore;
 
@@ -61,12 +68,12 @@ describe("customEquality", () => {
 
     test("returns false when previous is null", () => {
       const current = createMockStore();
-      expect(customEquality(null, current)).toBe(false);
+      expect(customEquality(undefined, current)).toBe(false);
     });
 
     test("returns false when current is null", () => {
       const previous = createMockStore();
-      expect(customEquality(previous, null)).toBe(false);
+      expect(customEquality(previous, undefined)).toBe(false);
     });
   });
 
@@ -324,17 +331,17 @@ describe("customEquality", () => {
   describe("comparing workflows", () => {
     test("returns false when workflows differ", () => {
       const previous = createMockStore({
-        workflow: { id: "workflow-1", name: "Test" }
+        workflow: { id: "workflow-1", name: "Test", created_at: "", updated_at: "", access: "private", description: "" }
       });
       const current = createMockStore({
-        workflow: { id: "workflow-2", name: "Test 2" }
+        workflow: { id: "workflow-2", name: "Test 2", created_at: "", updated_at: "", access: "private", description: "" }
       });
 
       expect(customEquality(previous, current)).toBe(false);
     });
 
     test("uses shallow comparison for workflow", () => {
-      const workflow = { id: "workflow-1", name: "Test" };
+      const workflow = { id: "workflow-1", name: "Test", created_at: "", updated_at: "", access: "private", description: "" };
       const previous = createMockStore({ workflow });
       const current = createMockStore({ workflow: { ...workflow } });
 
