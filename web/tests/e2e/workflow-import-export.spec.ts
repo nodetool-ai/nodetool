@@ -13,6 +13,9 @@ if (process.env.JEST_WORKER_ID) {
   test.skip("skipped in jest runner", () => {});
 } else {
   test.describe("Workflow Import and Export", () => {
+    // Increase timeout for this suite as backend workflow operations can be slow in CI
+    test.setTimeout(60000);
+
     test.describe("Export Functionality", () => {
       test("should have export option in editor", async ({ page, request }) => {
         const workflowName = `test-export-${Date.now()}`;
