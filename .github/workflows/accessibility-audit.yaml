@@ -35,6 +35,9 @@ jobs:
         env:
           ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
           ANTHROPIC_MODEL: "GLM-5"
+          ANTHROPIC_DEFAULT_OPUS_MODEL: "GLM-5"
+          ANTHROPIC_DEFAULT_SONNET_MODEL: "GLM-5"
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: "GLM-5"
         with:
           anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
           additional_permissions: |
