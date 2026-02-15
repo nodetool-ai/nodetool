@@ -990,7 +990,7 @@ export function initializeIpcHandlers(): void {
             ? data
             : Array.isArray(data)
               ? Buffer.concat(data).toString("utf8")
-              : Buffer.from(data).toString("utf8");
+              : Buffer.from(data as any).toString("utf8");
         event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
           connectionId,
           event: "message",
