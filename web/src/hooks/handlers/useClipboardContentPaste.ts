@@ -418,19 +418,16 @@ export const useClipboardContentPaste = () => {
             const ext = filePath.split(".").pop()?.toLowerCase() || "";
 
             if (IMAGE_FILE_EXTENSIONS.includes(ext)) {
-              // Read image file as data URL using Electron API
-              if (window.api?.clipboard?.readFileAsDataURL) {
+              // Read image file using Electron API
+              if (window.api?.clipboard?.readFileBuffer) {
                 try {
-                  const dataUrl =
-                    await window.api.clipboard.readFileAsDataURL(filePath);
-                  if (dataUrl) {
-                    // Convert data URL to Blob
-                    const response = await fetch(dataUrl);
-                    const blob = await response.blob();
+                  const result =
+                    await window.api.clipboard.readFileBuffer(filePath);
+                  if (result) {
                     const fileName =
                       filePath.split(/[/\\]/).pop() || `file.${ext}`;
-                    const file = new File([blob], fileName, {
-                      type: blob.type
+                    const file = new File([result.buffer], fileName, {
+                      type: result.mimeType
                     });
 
                     // Upload the image as an asset

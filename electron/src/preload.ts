@@ -438,6 +438,13 @@ const api = {
         IpcChannels.FILE_READ_AS_DATA_URL,
         validatePath(filePath),
       ),
+
+    /** Read file content as buffer */
+    readFileBuffer: (filePath: string) =>
+      ipcRenderer.invoke(
+        IpcChannels.FILE_READ_BUFFER,
+        validatePath(filePath),
+      ),
   },
 
   // ============================================================================

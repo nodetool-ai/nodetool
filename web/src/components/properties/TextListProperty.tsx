@@ -149,27 +149,6 @@ const isTextAsset = (contentType: string | undefined): boolean => {
   return TEXT_MIME_TYPES.some((type) => contentType.startsWith(type));
 };
 
-// Helper to get MIME type from file extension
-const getTextMimeType = (fileName: string): string => {
-  const ext = fileName.toLowerCase().split(".").pop();
-  const mimeTypes: Record<string, string> = {
-    txt: "text/plain",
-    md: "text/markdown",
-    json: "application/json",
-    csv: "text/csv",
-    xml: "application/xml",
-    html: "text/html",
-    htm: "text/html",
-    yaml: "application/yaml",
-    yml: "application/yaml",
-    log: "text/plain",
-    ini: "text/plain",
-    cfg: "text/plain",
-    conf: "text/plain"
-  };
-  return mimeTypes[ext || ""] || "text/plain";
-};
-
 // Helper to flatten potentially nested arrays of items (handles constants + lists)
 const flattenTextItems = (items: unknown): TextItem[] => {
   if (!items) {
@@ -378,18 +357,15 @@ const TextListProperty = (props: PropertyProps) => {
 
       if (!result.canceled && result.filePaths.length > 0) {
         const uploadPromises = result.filePaths.map(async (filePath: string) => {
-          const dataUrl = await window.api.clipboard?.readFileAsDataURL(filePath);
-          if (!dataUrl) {
+          const result = await window.api.clipboard?.readFileBuffer(filePath);
+          if (!result) {
             throw new Error("Failed to read file");
           }
-
-          const response = await fetch(dataUrl);
-          const blob = await response.blob();
 
           const pathSegments = filePath.split(/[\\/]/);
           const fileName = pathSegments[pathSegments.length - 1] || "file.txt";
 
-          const file = new File([blob], fileName, { type: getTextMimeType(fileName) });
+          const file = new File([result.buffer], fileName, { type: result.mimeType });
 
           return new Promise<TextItem>((resolve, reject) => {
             uploadAsset({
