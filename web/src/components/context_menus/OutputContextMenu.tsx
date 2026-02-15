@@ -20,6 +20,7 @@ import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
+import { constantForType } from "../../utils/NodeTypeMapping";
 import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -275,6 +276,33 @@ const OutputContextMenu: React.FC = () => {
     [saveNodeMetadata, createNodeWithEdge]
   );
 
+  const constantNodeType = sourceType?.type ? constantForType(sourceType.type) : null;
+
+  const createConstantNode = useCallback(
+    (event: React.MouseEvent) => {
+      if (!constantNodeType) {
+        return;
+      }
+      const metadata = getMetadata(constantNodeType);
+      if (!metadata) {
+        return;
+      }
+      const targetHandle =
+        metadata.properties?.[0]?.name ??
+        getTargetHandle(sourceType?.type || "", "constant");
+      createNodeWithEdge(
+        metadata,
+        {
+          x: event.clientX - 230,
+          y: event.clientY - 170
+        },
+        "constant",
+        targetHandle
+      );
+    },
+    [constantNodeType, getMetadata, getTargetHandle, sourceType, createNodeWithEdge]
+  );
+
   const handleOpenNodeMenu = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
@@ -335,6 +363,15 @@ const OutputContextMenu: React.FC = () => {
     }
     closeContextMenu();
   }, [createSaveNode, closeContextMenu]);
+
+  const handleCreateConstantNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      createConstantNode(event);
+    }
+    closeContextMenu();
+  }, [createConstantNode, closeContextMenu]);
 
   const handleShowConnectableNodes = (
     event?: React.MouseEvent<HTMLElement>
@@ -428,6 +465,14 @@ const OutputContextMenu: React.FC = () => {
             IconComponent={<SaveAltIcon />}
           />
         )}
+        {constantNodeType && (
+          <ContextMenuItem
+            onClick={handleCreateConstantNode}
+            label="Create Constant Node"
+            addButtonClassName="create-constant-node"
+            IconComponent={<DataObjectIcon />}
+          />
+        )}
         <Divider />
         <ContextMenuItem
           onClick={handleShowConnectableNodes}
@@ -447,4 +492,3 @@ const OutputContextMenu: React.FC = () => {
 };
 
 export default memo(OutputContextMenu);
-
