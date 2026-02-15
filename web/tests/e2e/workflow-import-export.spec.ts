@@ -23,11 +23,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Look for export button or menu item
           const exportButton = page.locator(
@@ -45,7 +44,7 @@ if (process.env.JEST_WORKER_ID) {
             await menuButton.first().click();
             await page.waitForTimeout(500);
             await page.keyboard.press("Escape");
-            await page.waitForTimeout(200);
+            await waitForAnimation(page);
           }
 
           await expect(canvas).toBeVisible();
@@ -72,11 +71,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Try common export shortcut (Cmd/Ctrl+Shift+E)
           await page.keyboard.press("Meta+Shift+e");
@@ -107,11 +105,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Try to copy (might trigger export to clipboard)
           await page.keyboard.press("Meta+Shift+c");
@@ -129,8 +126,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should have import option in dashboard or editor", async ({
         page
       }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for import button
         const importButton = page.locator(
@@ -146,8 +142,13 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle import via file input", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+  waitForPageReady,
+} from "./helpers/waitHelpers";
+        await navigateToPage(page, "/dashboard");
 
         // Look for file input for import
         const fileInput = page.locator('input[type="file"]');
@@ -176,11 +177,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Try paste shortcut
           await page.keyboard.press("Meta+v");
@@ -210,8 +210,7 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
           // Make direct API call to get workflow data
           const response = await request.get(
@@ -262,11 +261,10 @@ if (process.env.JEST_WORKER_ID) {
           expect(workflow.name).toBe(workflowName);
 
           // Verify we can open it in editor
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
         } finally {
           await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
         }
@@ -304,11 +302,10 @@ if (process.env.JEST_WORKER_ID) {
           expect(updatedWorkflow.name).toBe(`${workflowName}-updated`);
 
           // Verify in editor
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
         } finally {
           await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
         }
@@ -321,8 +318,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should load template from templates page", async ({ page }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         await expect(page).toHaveURL(/\/templates/);
 
@@ -332,8 +328,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should navigate from template to editor", async ({ page }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         // Look for template cards or links
         const templateLinks = page.locator(
@@ -342,7 +337,7 @@ if (process.env.JEST_WORKER_ID) {
 
         if (await templateLinks.count() > 0) {
           await templateLinks.first().click();
-          await page.waitForLoadState("networkidle");
+          await waitForPageReady(page);
 
           // Should either navigate to editor or show template details
           const bodyText = await page.textContent("body");
@@ -351,8 +346,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should create workflow from template", async ({ page }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         // Look for "use template" or "create from template" buttons
         const useTemplateButton = page.locator(
@@ -388,11 +382,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Look for duplicate option
           const duplicateButton = page.locator(
@@ -431,11 +424,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Try duplicate shortcut
           await page.keyboard.press("Meta+Shift+d");
@@ -467,8 +459,7 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
           // Make API call for versions
           const versionsResponse = await request.get(
@@ -504,11 +495,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Look for versions or history button
           const versionsButton = page.locator(
@@ -523,7 +513,7 @@ if (process.env.JEST_WORKER_ID) {
 
             // Close any dialog
             await page.keyboard.press("Escape");
-            await page.waitForTimeout(200);
+            await waitForAnimation(page);
           }
 
           await expect(canvas).toBeVisible();
@@ -552,11 +542,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Look for share button
           const shareButton = page.locator(
@@ -571,7 +560,7 @@ if (process.env.JEST_WORKER_ID) {
 
             // Close any dialog
             await page.keyboard.press("Escape");
-            await page.waitForTimeout(200);
+            await waitForAnimation(page);
           }
 
           await expect(canvas).toBeVisible();
@@ -611,11 +600,10 @@ if (process.env.JEST_WORKER_ID) {
           expect(updatedWorkflow.access).toBe("public");
 
           // Verify in editor
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
         } finally {
           await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
         }
@@ -661,8 +649,7 @@ if (process.env.JEST_WORKER_ID) {
           });
         });
 
-        await page.goto("/editor/test-id");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/editor/test-id");
 
         // Should handle gracefully
         const body = page.locator("body");

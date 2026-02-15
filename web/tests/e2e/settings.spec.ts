@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForPageReady,
+} from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -10,8 +15,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should have settings accessible from dashboard", async ({
         page
       }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for settings icon or button
         const _settingsButton = page.locator(
@@ -25,8 +29,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should display settings in sidebar or header", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for common settings indicators in the UI
         const _settingsElements = page.locator(
@@ -41,8 +44,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Theme Settings", () => {
       test("should support dark/light mode", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check if the page has dark mode classes or styles
         const body = page.locator("body");
@@ -57,8 +59,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should persist theme preference", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check localStorage for theme settings
         const _themeSettings = await page.evaluate(() => {
@@ -75,8 +76,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Local Storage Persistence", () => {
       test("should save settings to localStorage", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for various localStorage keys used by the app
         const storageKeyCount = await page.evaluate(() => {
@@ -92,8 +92,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should restore settings on page reload", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Get current localStorage
         const _beforeReload = await page.evaluate(() => {
@@ -102,7 +101,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Reload the page
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // Get localStorage after reload
         const _afterReload = await page.evaluate(() => {
@@ -117,8 +116,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Panel Settings", () => {
       test("should remember panel layout", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for layout storage
         const _layoutData = await page.evaluate(() => {
@@ -144,8 +142,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle panel resize", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for resizable panel handles
         const resizeHandles = page.locator(
@@ -178,9 +175,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Pan the canvas
           const canvas = page.locator(".react-flow");
@@ -212,8 +208,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Model Preferences", () => {
       test("should remember selected model", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for model selection in localStorage
         const _selectedModel = await page.evaluate(() => {
@@ -229,8 +224,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should display model settings in chat interface", async ({
         page
       }) => {
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat");
 
         // Look for model selector or indicator
         const _modelSelectors = page.locator(
@@ -245,8 +239,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("API Key Settings", () => {
       test("should have API key configuration option", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Look for API key or provider settings
         const _apiKeyElements = page.locator(
@@ -262,8 +255,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Workspace Settings", () => {
       test("should support workflow organization", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for workflow order settings
         const _workflowOrder = await page.evaluate(() => {
@@ -286,8 +278,7 @@ if (process.env.JEST_WORKER_ID) {
 
       test("should remember open workflows", async ({ page }) => {
         // Navigate to dashboard first to establish context
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for open workflows persistence
         const _openWorkflows = await page.evaluate(() => {
@@ -301,8 +292,7 @@ if (process.env.JEST_WORKER_ID) {
 
       test("should remember current workflow", async ({ page }) => {
         // Navigate to dashboard first to establish context
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for current workflow persistence
         const _currentWorkflow = await page.evaluate(() => {
@@ -317,8 +307,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Chat Settings", () => {
       test("should remember agent mode preference", async ({ page }) => {
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat");
 
         // Look for agent mode toggle or indicator
         const _agentModeElements = page.locator(
@@ -332,8 +321,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should remember selected tools", async ({ page }) => {
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat");
 
         // Look for tool selection elements
         const _toolElements = page.locator(
@@ -356,7 +344,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Reload the page
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // The app should handle empty localStorage gracefully
         const bodyText = await page.textContent("body");

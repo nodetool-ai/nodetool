@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -8,8 +13,7 @@ if (process.env.JEST_WORKER_ID) {
   test.describe("Search Functionality", () => {
     test.describe("Template Search", () => {
       test("should have search input on templates page", async ({ page }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         // Look for search input element
         const searchInput = page.locator(
@@ -31,8 +35,7 @@ if (process.env.JEST_WORKER_ID) {
         page,
         request
       }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         // Search for templates via API first to ensure we have data
         const searchResponse = await request.get(
@@ -53,8 +56,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should clear search results", async ({ page }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         const searchInput = page.locator('[data-testid="search-input-field"]');
         const clearButton = page.locator('[data-testid="search-clear-btn"]');
@@ -62,7 +64,7 @@ if (process.env.JEST_WORKER_ID) {
         if ((await searchInput.count()) > 0) {
           // Type in the search input
           await searchInput.first().fill("test query");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Click clear button if available
           if ((await clearButton.count()) > 0) {
@@ -80,8 +82,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should have search functionality on assets page", async ({
         page
       }) => {
-        await page.goto("/assets");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/assets");
 
         // Page should load successfully
         await expect(page).toHaveURL(/\/assets/);
@@ -93,8 +94,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle asset search API", async ({ page, request }) => {
-        await page.goto("/assets");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/assets");
 
         // Test the asset search API endpoint
         const searchResponse = await request.get(
@@ -127,11 +127,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
           // Wait for editor to load
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await waitForEditorReady(page);
 
           // Try to open command palette with keyboard shortcut
           await page.keyboard.press("Meta+k");
@@ -163,11 +162,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
           // Wait for editor to load
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await waitForEditorReady(page);
 
           // Focus on the canvas
           const canvas = page.locator(".react-flow");
@@ -185,7 +183,7 @@ if (process.env.JEST_WORKER_ID) {
           if ((await nodeMenuSearch.count()) > 0) {
             // Type to search for nodes
             await nodeMenuSearch.first().fill("text");
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
           }
 
           // Page should remain functional
@@ -201,8 +199,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should support keyboard navigation in search results", async ({
         page
       }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         const searchInput = page.locator('[data-testid="search-input-field"]');
 
@@ -210,7 +207,7 @@ if (process.env.JEST_WORKER_ID) {
           // Focus on search input
           await searchInput.first().click();
           await searchInput.first().fill("test");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Try arrow key navigation
           await page.keyboard.press("ArrowDown");
@@ -229,16 +226,15 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should focus search with keyboard shortcut", async ({ page }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         // Try common search focus shortcuts
         await page.keyboard.press("Meta+f");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // Or Ctrl+F on Windows/Linux
         await page.keyboard.press("Control+f");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // Page should still be functional
         const bodyText = await page.textContent("body");

@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
 import { setupMockApiRoutes } from "./fixtures/mockData";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForPageReady,
+} from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -9,8 +14,7 @@ if (process.env.JEST_WORKER_ID) {
   test.describe("Error Handling and Recovery", () => {
     test.describe("Page Error Handling", () => {
       test("should handle invalid workflow ID gracefully", async ({ page }) => {
-        await page.goto("/editor/invalid-workflow-id-12345");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/editor/invalid-workflow-id-12345");
 
         // Page should not crash
         const bodyText = await page.textContent("body");
@@ -20,8 +24,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle invalid route gracefully", async ({ page }) => {
-        await page.goto("/non-existent-route-abcdef");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/non-existent-route-abcdef");
 
         // Should redirect or show appropriate message
         const bodyText = await page.textContent("body");
@@ -32,16 +35,13 @@ if (process.env.JEST_WORKER_ID) {
 
       test("should recover from navigation to bad URL", async ({ page }) => {
         // Start on a valid page
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
         
         // Navigate to invalid route
-        await page.goto("/invalid-route");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/invalid-route");
 
         // Navigate back to valid page
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Should load correctly
         await expect(page).toHaveURL(/\/(dashboard|login)/);
@@ -50,8 +50,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle deep invalid routes", async ({ page }) => {
-        await page.goto("/editor/workflow/extra/path/segments");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/editor/workflow/extra/path/segments");
 
         // Page should handle gracefully
         const bodyText = await page.textContent("body");
@@ -67,8 +66,7 @@ if (process.env.JEST_WORKER_ID) {
           route.abort("failed");
         });
 
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Page should load without crashing
         const bodyText = await page.textContent("body");
@@ -105,8 +103,7 @@ if (process.env.JEST_WORKER_ID) {
           });
         });
 
-        await page.goto("/editor/non-existent");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/editor/non-existent");
 
         // Should handle gracefully
         const bodyText = await page.textContent("body");
@@ -122,8 +119,7 @@ if (process.env.JEST_WORKER_ID) {
           });
         });
 
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Page should still load without showing raw error
         const body = page.locator("body");
@@ -139,8 +135,7 @@ if (process.env.JEST_WORKER_ID) {
           });
         });
 
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Page should not crash
         const body = page.locator("body");
@@ -165,12 +160,11 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
           // Wait for editor to load
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Try submitting with keyboard shortcut (save)
           await page.keyboard.press("Meta+s");
@@ -186,12 +180,11 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("State Recovery", () => {
       test("should recover state after page refresh", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Refresh the page
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // Should load correctly
         const bodyText = await page.textContent("body");
@@ -202,8 +195,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should handle localStorage corruption gracefully", async ({
         page
       }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Corrupt localStorage
         await page.evaluate(() => {
@@ -213,7 +205,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Reload the page
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // Should handle gracefully and not crash
         const bodyText = await page.textContent("body");
@@ -222,15 +214,14 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle cleared localStorage", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Clear localStorage
         await page.evaluate(() => localStorage.clear());
 
         // Reload
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // Should load with default state
         const bodyText = await page.textContent("body");
@@ -243,8 +234,7 @@ if (process.env.JEST_WORKER_ID) {
         await setupMockApiRoutes(page);
 
         // Navigate to a page and verify it loads
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // The page should be functional
         const body = page.locator("body");
@@ -253,12 +243,10 @@ if (process.env.JEST_WORKER_ID) {
 
       test("should allow navigation after error", async ({ page }) => {
         // Start with an error condition
-        await page.goto("/invalid-route-12345");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/invalid-route-12345");
 
         // Navigate to valid route
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Should be on dashboard
         await expect(page).toHaveURL(/\/(dashboard|login)/);
@@ -267,19 +255,16 @@ if (process.env.JEST_WORKER_ID) {
       test("should preserve navigation history after error", async ({
         page
       }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         // Navigate to bad route
-        await page.goto("/bad-route");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/bad-route");
 
         // Go back should still work
         await page.goBack();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // Should be back at templates
         await expect(page).toHaveURL(/\/templates/);
@@ -305,8 +290,7 @@ if (process.env.JEST_WORKER_ID) {
           });
         });
 
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Page should not crash despite multiple errors
         const body = page.locator("body");
@@ -335,8 +319,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Chat Error Handling", () => {
       test("should handle chat with invalid thread ID", async ({ page }) => {
-        await page.goto("/chat/invalid-thread-id-12345");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat/invalid-thread-id-12345");
 
         // Should not crash
         const bodyText = await page.textContent("body");
@@ -348,8 +331,7 @@ if (process.env.JEST_WORKER_ID) {
         // Block WebSocket connections
         await page.route("**/ws**", (route) => route.abort());
 
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat");
 
         // Should show connection status, not crash
         const body = page.locator("body");
@@ -375,8 +357,7 @@ if (process.env.JEST_WORKER_ID) {
           });
         });
 
-        await page.goto("/editor/test-id");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/editor/test-id");
 
         // Should handle gracefully
         const body = page.locator("body");
@@ -407,8 +388,7 @@ if (process.env.JEST_WORKER_ID) {
           });
         });
 
-        await page.goto("/editor/test-id");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/editor/test-id");
 
         // Should not crash
         const body = page.locator("body");

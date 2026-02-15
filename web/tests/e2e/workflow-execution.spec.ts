@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 // Pre-defined mock workflow ID for testing
 const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
@@ -16,12 +21,11 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should display run button in editor", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
         // Wait for editor to load
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for run button (various possible selectors)
         const runButton = page.locator(
@@ -38,11 +42,10 @@ if (process.env.JEST_WORKER_ID) {
       test("should have stop/cancel button when workflow might be running", async ({
         page
       }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for stop/cancel button (might be hidden until execution starts)
         const stopButton = page.locator(
@@ -55,11 +58,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should display execution status area", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for status indicators or progress areas
         // This might include job status, progress bars, etc.
@@ -90,11 +92,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Look for and click run button
           const runButton = page.locator(
@@ -131,11 +132,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Try common run shortcuts
           await page.keyboard.press("F5");
@@ -167,11 +167,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Try to run empty workflow
           const runButton = page.locator(
@@ -197,11 +196,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should track execution progress", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for progress indicators
         const progressElements = page.locator(
@@ -213,11 +211,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should show node execution state", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for nodes that might show execution state
         const nodes = page.locator(".react-flow__node");
@@ -228,11 +225,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should display job status after execution", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for job status elements
         const statusElements = page.locator(
@@ -252,11 +248,10 @@ if (process.env.JEST_WORKER_ID) {
       test("should display output preview after execution", async ({
         page
       }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for output/preview panels
         const previewElements = page.locator(
@@ -268,11 +263,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle execution errors", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // App should handle execution errors gracefully
         // Just verify the editor remains functional
@@ -282,8 +276,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Jobs API Integration", () => {
       test("should fetch jobs list from API", async ({ page, request }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Make API request for jobs
         const response = await request.get(`${BACKEND_API_URL}/jobs/`);
@@ -315,11 +308,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Try to find and click stop/cancel button
           const cancelButton = page.locator(
@@ -352,11 +344,10 @@ if (process.env.JEST_WORKER_ID) {
           wsConnections.push(ws.url());
         });
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Wait for potential WebSocket connection
         await page.waitForTimeout(2000);
@@ -369,11 +360,10 @@ if (process.env.JEST_WORKER_ID) {
       test("should handle real-time execution updates", async ({ page }) => {
         await setupMockApiRoutes(page);
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Editor should support real-time updates
         await expect(canvas).toBeVisible();
@@ -384,11 +374,10 @@ if (process.env.JEST_WORKER_ID) {
       test("should display execution queue status", async ({ page }) => {
         await setupMockApiRoutes(page);
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for queue indicators
         const queueElements = page.locator(
@@ -417,11 +406,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Try running multiple times
           const runButton = page.locator(
@@ -430,9 +418,9 @@ if (process.env.JEST_WORKER_ID) {
 
           if (await runButton.count() > 0) {
             await runButton.click();
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
             await runButton.click();
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
 
             // Should handle gracefully
             await expect(canvas).toBeVisible();
@@ -459,11 +447,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Look for history/runs tab or panel
           const historyElements = page.locator(
@@ -485,8 +472,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Mini App Execution", () => {
       test("should load mini app execution view", async ({ page }) => {
-        await page.goto("/apps");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/apps");
 
         // Verify we're on the apps page
         await expect(page).toHaveURL(/\/apps/);
@@ -500,8 +486,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should handle mini app with workflow ID", async ({ page }) => {
         await setupMockApiRoutes(page);
 
-        await page.goto(`/apps/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/apps/${MOCK_WORKFLOW_ID}`);
 
         // Should handle the route
         const bodyText = await page.textContent("body");
@@ -512,8 +497,7 @@ if (process.env.JEST_WORKER_ID) {
       test("should handle standalone mini app route", async ({ page }) => {
         await setupMockApiRoutes(page);
 
-        await page.goto(`/miniapp/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/miniapp/${MOCK_WORKFLOW_ID}`);
 
         // Should handle the route
         const bodyText = await page.textContent("body");

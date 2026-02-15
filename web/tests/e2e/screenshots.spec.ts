@@ -15,6 +15,9 @@ import { test, Page } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
+import {
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const SCREENSHOT_DIR = path.join(CURRENT_DIR, '../../../docs/assets/screenshots');
@@ -549,7 +552,7 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(1000);
       await page.keyboard.press('Control+k');
-      await page.waitForTimeout(300);
+      await waitForAnimation(page);
       await page.keyboard.type('new workflow');
       await page.waitForTimeout(500);
       await saveScreenshot(page, 'command-menu-search.png');
@@ -1050,14 +1053,14 @@ if (process.env.JEST_WORKER_ID || process.env.CI === "true") {
       test.skip(shouldSkip('dashboard-loading.png'), 'Screenshot already exists');
       await page.goto('/dashboard');
       // Capture early before network idle
-      await page.waitForTimeout(200);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'dashboard-loading.png');
     });
 
     test('Editor Loading', async ({ page }) => {
       test.skip(shouldSkip('editor-loading.png'), 'Screenshot already exists');
       await page.goto('/editor');
-      await page.waitForTimeout(200);
+      await waitForAnimation(page);
       await saveScreenshot(page, 'editor-loading.png');
     });
   });

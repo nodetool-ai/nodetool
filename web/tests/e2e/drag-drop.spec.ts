@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
 import * as path from "path";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 // Pre-defined mock workflow ID for testing
 const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
@@ -16,11 +21,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Canvas Dragging", () => {
       test("should drag canvas with middle mouse button", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Get viewport element
         const viewport = page.locator(".react-flow__viewport");
@@ -40,7 +44,7 @@ if (process.env.JEST_WORKER_ID) {
           await page.mouse.move(centerX + 100, centerY + 100, { steps: 10 });
           await page.mouse.up({ button: "middle" });
 
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Transform should have changed
           const finalTransform = await viewport.getAttribute("style");
@@ -50,11 +54,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should drag canvas with spacebar + mouse", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const canvasBounds = await canvas.boundingBox();
         if (canvasBounds) {
@@ -71,7 +74,7 @@ if (process.env.JEST_WORKER_ID) {
           
           await page.keyboard.up("Space");
 
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Canvas should still be visible
           await expect(canvas).toBeVisible();
@@ -81,11 +84,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Dragging", () => {
       test("should drag node to reposition", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
         
@@ -106,7 +108,7 @@ if (process.env.JEST_WORKER_ID) {
             );
             await page.mouse.up();
 
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
 
             // Node should still be visible
             await expect(node).toBeVisible();
@@ -127,11 +129,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should snap node to grid during drag", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
         
@@ -152,7 +153,7 @@ if (process.env.JEST_WORKER_ID) {
             );
             await page.mouse.up();
 
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
 
             // Node should still exist
             await expect(node).toBeVisible();
@@ -161,11 +162,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should prevent node drag outside canvas bounds", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
         
@@ -187,7 +187,7 @@ if (process.env.JEST_WORKER_ID) {
             );
             await page.mouse.up();
 
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
 
             // Node should still exist (may have been constrained)
             await expect(node).toBeVisible();
@@ -198,11 +198,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Edge Dragging", () => {
       test("should create edge by dragging from handle", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for output handles
         const sourceHandle = page.locator(".react-flow__handle.react-flow__handle-right").first();
@@ -236,11 +235,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should show edge path preview during drag", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const sourceHandle = page.locator(".react-flow__handle.react-flow__handle-right").first();
         
@@ -262,12 +260,12 @@ if (process.env.JEST_WORKER_ID) {
               { steps: 5 }
             );
 
-            await page.waitForTimeout(200);
+            await waitForAnimation(page);
 
             // Cancel by releasing outside any handle
             await page.mouse.up();
 
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
 
             // Canvas should still be functional
             await expect(canvas).toBeVisible();
@@ -276,11 +274,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should validate handle compatibility during connection", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for source and target handles
         const sourceHandles = page.locator(".react-flow__handle.react-flow__handle-right");
@@ -296,11 +293,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Selection Box Dragging", () => {
       test("should create selection box by dragging on canvas", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const canvasBounds = await canvas.boundingBox();
         
@@ -314,7 +310,7 @@ if (process.env.JEST_WORKER_ID) {
           await page.mouse.move(startX + 200, startY + 200, { steps: 10 });
           await page.mouse.up();
 
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Canvas should still be functional
           await expect(canvas).toBeVisible();
@@ -322,11 +318,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should select multiple nodes with selection box", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const nodes = page.locator(".react-flow__node");
         const nodeCount = await nodes.count();
@@ -348,7 +343,7 @@ if (process.env.JEST_WORKER_ID) {
             await page.mouse.move(maxX, maxY, { steps: 15 });
             await page.mouse.up();
 
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
 
             // Nodes should be selected (implementation dependent)
             expect(await nodes.count()).toBeGreaterThanOrEqual(2);
@@ -359,11 +354,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("File Drop on Canvas", () => {
       test("should handle file drop on canvas", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Create a test file
         const testFilePath = path.join(__dirname, 'fixtures', 'test-document.txt');
@@ -381,11 +375,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should prevent dropping invalid files", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // App should handle invalid file types gracefully
         // Canvas should remain functional
@@ -395,11 +388,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Palette Drag", () => {
       test("should open node palette", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Try to open node palette with Tab or Space
         await page.keyboard.press("Tab");
@@ -414,11 +406,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle drag from node palette to canvas", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const initialNodeCount = await page.locator(".react-flow__node").count();
 
@@ -438,11 +429,10 @@ if (process.env.JEST_WORKER_ID) {
         // Set mobile viewport
         await page.setViewportSize({ width: 375, height: 667 });
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
         
@@ -456,7 +446,7 @@ if (process.env.JEST_WORKER_ID) {
               bounds.y + bounds.height / 2
             );
             
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
 
             // Node should still be visible
             await expect(node).toBeVisible();
@@ -468,11 +458,10 @@ if (process.env.JEST_WORKER_ID) {
         // Set mobile viewport
         await page.setViewportSize({ width: 375, height: 667 });
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Canvas should be functional on mobile
         await expect(canvas).toBeVisible();

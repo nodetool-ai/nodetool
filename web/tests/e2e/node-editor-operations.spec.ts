@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 // Pre-defined mock workflow ID for testing
 const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
@@ -16,15 +21,14 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should open node menu on Tab key", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Focus on canvas
         await canvas.click();
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         // Press Tab to open node menu
         await page.keyboard.press("Tab");
@@ -37,15 +41,14 @@ if (process.env.JEST_WORKER_ID) {
 
         // Close menu
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
       });
 
       test("should open node menu on right-click", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Right-click on canvas
         await canvas.click({ button: "right" });
@@ -56,15 +59,14 @@ if (process.env.JEST_WORKER_ID) {
 
         // Close context menu
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
       });
 
       test("should search in node menu", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Focus and open node menu
         await canvas.click();
@@ -73,7 +75,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Try to type in the search
         await page.keyboard.type("text");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // Verify no crash
         const bodyText = await page.textContent("body");
@@ -81,15 +83,14 @@ if (process.env.JEST_WORKER_ID) {
 
         // Close menu
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
       });
 
       test("should navigate node menu with arrow keys", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Open node menu
         await canvas.click();
@@ -109,7 +110,7 @@ if (process.env.JEST_WORKER_ID) {
 
         // Close menu
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
       });
     });
 
@@ -119,39 +120,37 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should select all nodes with Cmd+A", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Focus on canvas
         await canvas.click();
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         // Select all
         await page.keyboard.press("Meta+a");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // Verify no crash
         await expect(canvas).toBeVisible();
       });
 
       test("should deselect nodes with Escape", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Focus and select all
         await canvas.click();
         await page.keyboard.press("Meta+a");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         // Deselect with Escape
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         // Verify no crash
         await expect(canvas).toBeVisible();
@@ -181,11 +180,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for node to render
           await page.waitForTimeout(1000);
@@ -194,7 +192,7 @@ if (process.env.JEST_WORKER_ID) {
           const node = page.locator(".react-flow__node").first();
           if ((await node.count()) > 0) {
             await node.click();
-            await page.waitForTimeout(200);
+            await waitForAnimation(page);
           }
 
           // Verify no crash
@@ -229,11 +227,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for node to render
           await page.waitForTimeout(1000);
@@ -241,15 +238,15 @@ if (process.env.JEST_WORKER_ID) {
           // Select all
           await canvas.click();
           await page.keyboard.press("Meta+a");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Copy
           await page.keyboard.press("Meta+c");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Paste
           await page.keyboard.press("Meta+v");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Verify no crash
           await expect(canvas).toBeVisible();
@@ -281,11 +278,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for node to render
           await page.waitForTimeout(1000);
@@ -293,11 +289,11 @@ if (process.env.JEST_WORKER_ID) {
           // Select all
           await canvas.click();
           await page.keyboard.press("Meta+a");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Delete
           await page.keyboard.press("Delete");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Verify no crash
           await expect(canvas).toBeVisible();
@@ -329,11 +325,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for node
           await page.waitForTimeout(1000);
@@ -341,11 +336,11 @@ if (process.env.JEST_WORKER_ID) {
           // Select all
           await canvas.click();
           await page.keyboard.press("Meta+a");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Delete with Backspace
           await page.keyboard.press("Backspace");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           await expect(canvas).toBeVisible();
         } finally {
@@ -376,11 +371,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for node
           await page.waitForTimeout(1000);
@@ -388,7 +382,7 @@ if (process.env.JEST_WORKER_ID) {
           // Select all
           await canvas.click();
           await page.keyboard.press("Meta+a");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Move with arrow keys
           await page.keyboard.press("ArrowUp");
@@ -445,11 +439,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for rendering
           await page.waitForTimeout(1000);
@@ -501,11 +494,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for rendering
           await page.waitForTimeout(1000);
@@ -514,9 +506,9 @@ if (process.env.JEST_WORKER_ID) {
           const edge = page.locator(".react-flow__edge").first();
           if ((await edge.count()) > 0) {
             await edge.click();
-            await page.waitForTimeout(200);
+            await waitForAnimation(page);
             await page.keyboard.press("Delete");
-            await page.waitForTimeout(200);
+            await waitForAnimation(page);
           }
 
           await expect(canvas).toBeVisible();
@@ -539,18 +531,17 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Focus canvas
           await canvas.click();
 
           // Try undo
           await page.keyboard.press("Meta+z");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           await expect(canvas).toBeVisible();
         } finally {
@@ -570,20 +561,19 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Focus canvas
           await canvas.click();
 
           // Undo then redo
           await page.keyboard.press("Meta+z");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
           await page.keyboard.press("Meta+Shift+z");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           await expect(canvas).toBeVisible();
         } finally {
@@ -603,20 +593,19 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Focus canvas
           await canvas.click();
 
           // Undo then redo with Cmd+Y
           await page.keyboard.press("Meta+z");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
           await page.keyboard.press("Meta+y");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           await expect(canvas).toBeVisible();
         } finally {
@@ -631,62 +620,58 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should zoom in with Cmd++", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Focus canvas
         await canvas.click();
 
         // Zoom in
         await page.keyboard.press("Meta+=");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         await expect(canvas).toBeVisible();
       });
 
       test("should zoom out with Cmd+-", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Focus canvas
         await canvas.click();
 
         // Zoom out
         await page.keyboard.press("Meta+-");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         await expect(canvas).toBeVisible();
       });
 
       test("should fit view with F key", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Focus canvas
         await canvas.click();
 
         // Fit view
         await page.keyboard.press("f");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         await expect(canvas).toBeVisible();
       });
 
       test("should pan canvas with mouse drag", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const canvasBounds = await canvas.boundingBox();
         if (canvasBounds) {
@@ -699,18 +684,17 @@ if (process.env.JEST_WORKER_ID) {
           await page.mouse.move(centerX + 50, centerY + 50);
           await page.mouse.up({ button: "middle" });
 
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
         }
 
         await expect(canvas).toBeVisible();
       });
 
       test("should pan canvas with scroll", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const canvasBounds = await canvas.boundingBox();
         if (canvasBounds) {
@@ -719,7 +703,7 @@ if (process.env.JEST_WORKER_ID) {
 
           await page.mouse.move(centerX, centerY);
           await page.mouse.wheel(0, 100);
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
         }
 
         await expect(canvas).toBeVisible();
@@ -756,11 +740,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for nodes
           await page.waitForTimeout(1000);
@@ -768,11 +751,11 @@ if (process.env.JEST_WORKER_ID) {
           // Select all
           await canvas.click();
           await page.keyboard.press("Meta+a");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Try to group
           await page.keyboard.press("Meta+g");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           await expect(canvas).toBeVisible();
         } finally {
@@ -792,18 +775,17 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Focus canvas
           await canvas.click();
 
           // Try to ungroup
           await page.keyboard.press("Meta+Shift+g");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           await expect(canvas).toBeVisible();
         } finally {
@@ -836,11 +818,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for node
           await page.waitForTimeout(1000);
@@ -882,11 +863,10 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
           // Wait for node
           await page.waitForTimeout(1000);
@@ -906,7 +886,7 @@ if (process.env.JEST_WORKER_ID) {
               if (await firstInput.isVisible()) {
                 await firstInput.click();
                 await page.keyboard.type("test");
-                await page.waitForTimeout(200);
+                await waitForAnimation(page);
               }
             }
           }

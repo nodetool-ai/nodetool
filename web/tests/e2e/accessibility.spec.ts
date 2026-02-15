@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 // Pre-defined mock workflow ID for testing
 const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
@@ -12,8 +17,7 @@ if (process.env.JEST_WORKER_ID) {
   test.describe("Accessibility", () => {
     test.describe("Keyboard Navigation", () => {
       test("should navigate dashboard with Tab key", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Tab through focusable elements
         for (let i = 0; i < 5; i++) {
@@ -32,8 +36,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should navigate with Shift+Tab in reverse", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Tab forward first
         for (let i = 0; i < 3; i++) {
@@ -53,15 +56,14 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle Enter key on buttons", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Find first button
         const button = page.locator("button").first();
         if ((await button.count()) > 0) {
           await button.focus();
           await page.keyboard.press("Enter");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
         }
 
         // Page should remain functional
@@ -70,14 +72,13 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle Space key on buttons", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         const button = page.locator("button").first();
         if ((await button.count()) > 0) {
           await button.focus();
           await page.keyboard.press("Space");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
         }
 
         // Page should remain functional
@@ -97,9 +98,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Tab through elements
           for (let i = 0; i < 3; i++) {
@@ -118,12 +118,11 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Focus Management", () => {
       test("should have visible focus indicators", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Tab to a focusable element
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         // Get focused element
         const focusedElement = page.locator(":focus");
@@ -134,8 +133,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should maintain focus after actions", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Tab to an element
         await page.keyboard.press("Tab");
@@ -158,9 +156,8 @@ if (process.env.JEST_WORKER_ID) {
         const workflow = await createResponse.json();
 
         try {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
-          await page.waitForSelector(".react-flow", { timeout: 10000 });
+          await navigateToPage(page, `/editor/${workflow.id}`);
+          await waitForEditorReady(page);
 
           // Try to open a dialog/modal (command palette)
           await page.keyboard.press("Meta+k");
@@ -174,7 +171,7 @@ if (process.env.JEST_WORKER_ID) {
 
           // Close any modal
           await page.keyboard.press("Escape");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Page should remain functional
           const canvas = page.locator(".react-flow");
@@ -187,8 +184,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("ARIA Attributes", () => {
       test("should have main landmark on dashboard", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for main content area
         const body = page.locator("body");
@@ -196,8 +192,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have proper button roles", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for buttons with proper role
         const buttons = page.locator('button, [role="button"]');
@@ -206,8 +201,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have accessible links", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for links
         const links = page.locator("a");
@@ -220,8 +214,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have aria-labels on icon buttons", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for buttons with aria-label
         const labeledButtons = page.locator('button[aria-label]');
@@ -234,8 +227,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have proper form labels in chat", async ({ page }) => {
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat");
 
         // Look for input fields
         const inputs = page.locator('input, textarea, [role="textbox"]');
@@ -249,16 +241,14 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Screen Reader Support", () => {
       test("should have page titles", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         const title = await page.title();
         expect(title).toBeTruthy();
       });
 
       test("should have headings on templates page", async ({ page }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         // Check for heading structure
         const headings = page.locator("h1, h2, h3, h4, h5, h6");
@@ -270,8 +260,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have alt text on images", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check images for alt attribute
         const images = page.locator("img");
@@ -299,8 +288,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should announce status changes", async ({ page }) => {
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat");
 
         // Look for aria-live regions
         const liveRegions = page.locator('[aria-live], [role="alert"], [role="status"]');
@@ -313,8 +301,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Color Contrast", () => {
       test("should have readable text", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Just verify content is visible
         const body = page.locator("body");
@@ -325,8 +312,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should support dark mode", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Check for dark mode indicators
         const html = page.locator("html");
@@ -343,15 +329,14 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have accessible canvas in editor", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Canvas should be keyboard accessible
         await canvas.focus();
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         // Page should remain functional
         const bodyText = await page.textContent("body");
@@ -359,35 +344,33 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should navigate nodes with keyboard", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Focus the canvas
         await canvas.click();
         
         // Use Tab to potentially focus nodes
         await page.keyboard.press("Tab");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         // Page should remain functional
         await expect(canvas).toBeVisible();
       });
 
       test("should have accessible zoom controls", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Zoom controls should work with keyboard
         await page.keyboard.press("Meta+=");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
         await page.keyboard.press("Meta+-");
-        await page.waitForTimeout(200);
+        await waitForAnimation(page);
 
         await expect(canvas).toBeVisible();
       });
@@ -395,8 +378,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Form Accessibility", () => {
       test("should have accessible search forms", async ({ page }) => {
-        await page.goto("/templates");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/templates");
 
         // Look for search input
         const searchInput = page.locator('[data-testid="search-input-field"], input[type="search"], input[type="text"]');
@@ -412,19 +394,18 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should support form submission with Enter", async ({ page }) => {
-        await page.goto("/chat");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/chat");
 
         // Find chat input
         const chatInput = page.locator('textarea, input[type="text"], [role="textbox"]');
         
         if ((await chatInput.count()) > 0) {
           await chatInput.first().fill("Test message");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
           
           // Enter should attempt to submit (or be handled)
           await page.keyboard.press("Enter");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
           
           // Page should remain functional
           const bodyText = await page.textContent("body");
@@ -433,8 +414,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have accessible collection creation", async ({ page }) => {
-        await page.goto("/collections");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/collections");
 
         // Page should load
         const bodyText = await page.textContent("body");
@@ -452,8 +432,7 @@ if (process.env.JEST_WORKER_ID) {
         // Emulate reduced motion
         await page.emulateMedia({ reducedMotion: "reduce" });
         
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Page should still function with reduced motion
         const bodyText = await page.textContent("body");
@@ -461,8 +440,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have pausable animations", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Just verify page loads - animation control is a UX concern
         const body = page.locator("body");
@@ -472,8 +450,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Error Accessibility", () => {
       test("should announce errors accessibly", async ({ page }) => {
-        await page.goto("/editor/non-existent-workflow-id");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/editor/non-existent-workflow-id");
 
         // Page should handle error gracefully
         const bodyText = await page.textContent("body");
@@ -482,12 +459,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have accessible error recovery", async ({ page }) => {
-        await page.goto("/invalid-route");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/invalid-route");
 
         // Should be able to navigate away
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         const bodyText = await page.textContent("body");
         expect(bodyText).not.toContain("500");
@@ -496,8 +471,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Touch Target Size", () => {
       test("should have adequate button sizes", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         const buttons = page.locator("button");
         const buttonCount = await buttons.count();
@@ -516,8 +490,7 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should have clickable navigation items", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Find navigation links
         const navLinks = page.locator("a, button, [role='button']");

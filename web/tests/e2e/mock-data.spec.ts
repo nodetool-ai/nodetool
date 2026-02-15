@@ -1,6 +1,9 @@
 import { setupMockApiRoutes, setupSelectiveMockRoutes, workflows, threads, messages, models, templates } from "./fixtures/mockData";
 import { test, expect, Page } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
+import {
+  navigateToPage,
+} from "./helpers/waitHelpers";
 
 /**
  * Tests for loading data from the mock server.
@@ -45,8 +48,7 @@ async function trackApiCallsAndNavigate(
     }
   });
 
-  await page.goto(path);
-  await page.waitForLoadState("networkidle");
+  await navigateToPage(page, path);
 
   // Wait for specific API response if pattern provided
   if (apiPattern) {
@@ -198,8 +200,7 @@ if (process.env.JEST_WORKER_ID) {
       await setupMockApiRoutes(page);
       
       // Navigate to a page that uses workflows
-      await page.goto("/dashboard");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/dashboard");
       
       // Page should load successfully with mocked data
       const bodyText = await page.textContent("body");
@@ -213,8 +214,7 @@ if (process.env.JEST_WORKER_ID) {
       });
       
       // Navigate to templates page
-      await page.goto("/templates");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/templates");
       
       // Page should load successfully
       const bodyText = await page.textContent("body");
@@ -234,8 +234,7 @@ if (process.env.JEST_WORKER_ID) {
         }
       });
       
-      await page.goto("/dashboard");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/dashboard");
       await page.waitForTimeout(1000);
       
       // The mock should have been used
@@ -247,8 +246,7 @@ if (process.env.JEST_WORKER_ID) {
     test("should handle template search with mock data", async ({ page }) => {
       await setupMockApiRoutes(page);
       
-      await page.goto("/templates");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/templates");
       
       // The page should be functional with mock templates
       const bodyText = await page.textContent("body");
@@ -258,8 +256,7 @@ if (process.env.JEST_WORKER_ID) {
     test("should handle model requests with mock data", async ({ page }) => {
       await setupMockApiRoutes(page);
       
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
       
       // The page should be functional with mock models
       const bodyText = await page.textContent("body");
@@ -269,8 +266,7 @@ if (process.env.JEST_WORKER_ID) {
     test("should handle chat/thread requests with mock data", async ({ page }) => {
       await setupMockApiRoutes(page);
       
-      await page.goto("/chat");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/chat");
       
       // The page should be functional with mock chat data
       const bodyText = await page.textContent("body");
@@ -292,8 +288,7 @@ if (process.env.JEST_WORKER_ID) {
       expect(imageWorkflow).toBeDefined();
       expect(imageWorkflow!.graph.nodes.length).toBeGreaterThan(0);
       
-      await page.goto("/dashboard");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/dashboard");
     });
 
     test("should have realistic chat conversations", async ({ page }) => {
@@ -311,8 +306,7 @@ if (process.env.JEST_WORKER_ID) {
         expect(currTime).toBeGreaterThanOrEqual(prevTime);
       }
       
-      await page.goto("/chat");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/chat");
     });
 
     test("should have realistic model metadata", async ({ page }) => {
@@ -325,8 +319,7 @@ if (process.env.JEST_WORKER_ID) {
       expect(sdxlModel!.size_on_disk).toBeGreaterThan(0);
       expect(sdxlModel!.downloads).toBeGreaterThan(0);
       
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
     });
 
     test("should have templates with proper tags", async ({ page }) => {
@@ -343,8 +336,7 @@ if (process.env.JEST_WORKER_ID) {
       
       expect(allTags.size).toBeGreaterThan(2);
       
-      await page.goto("/templates");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/templates");
     });
   });
 
@@ -370,8 +362,7 @@ if (process.env.JEST_WORKER_ID) {
         expect(targetExists).toBe(true);
       });
       
-      await page.goto("/dashboard");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/dashboard");
     });
 
     test("should support chat thread with multiple messages", async ({ page }) => {
@@ -380,8 +371,7 @@ if (process.env.JEST_WORKER_ID) {
       
       expect(threadMessages.length).toBeGreaterThan(2);
       
-      await page.goto(`/chat/${thread.id}`);
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, `/chat/${thread.id}`);
       await page.waitForTimeout(1000);
       
       // Page should be functional
@@ -400,8 +390,7 @@ if (process.env.JEST_WORKER_ID) {
       expect(requiresKey).toBe(true);
       expect(noKeyNeeded).toBe(true);
       
-      await page.goto("/models");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/models");
     });
 
     test("should support template categorization", async ({ page }) => {
@@ -418,8 +407,7 @@ if (process.env.JEST_WORKER_ID) {
       
       expect(tagCategories.size).toBeGreaterThan(2);
       
-      await page.goto("/templates");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/templates");
     });
   });
 }

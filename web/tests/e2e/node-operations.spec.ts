@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+} from "./helpers/waitHelpers";
 
 // Pre-defined mock workflow ID for testing
 const MOCK_WORKFLOW_ID = workflows.workflows[0].id;
@@ -15,19 +20,18 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Selection", () => {
       test("should select a single node on click", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
         // Wait for ReactFlow to load
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Look for any node
         const node = page.locator(".react-flow__node").first();
         
         if (await node.count() > 0) {
           await node.click();
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Verify node is selected (should have selected class or style)
           const nodeClasses = await node.getAttribute("class");
@@ -36,11 +40,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should support multi-select with Cmd/Ctrl+click", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Get all nodes
         const nodes = page.locator(".react-flow__node");
@@ -49,11 +52,11 @@ if (process.env.JEST_WORKER_ID) {
         if (nodeCount >= 2) {
           // Click first node
           await nodes.nth(0).click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Cmd/Ctrl+click second node
           await nodes.nth(1).click({ modifiers: ["ControlOrMeta"] });
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Both nodes should now be selectable
           expect(nodeCount).toBeGreaterThanOrEqual(2);
@@ -61,18 +64,17 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should clear selection on canvas click", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
         
         if (await node.count() > 0) {
           // Select a node
           await node.click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Click on empty canvas area
           const canvasBounds = await canvas.boundingBox();
@@ -81,7 +83,7 @@ if (process.env.JEST_WORKER_ID) {
               canvasBounds.x + 20,
               canvasBounds.y + 20
             );
-            await page.waitForTimeout(200);
+            await waitForAnimation(page);
           }
 
           // Nodes should be deselected
@@ -92,11 +94,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Deletion", () => {
       test("should delete node with Delete key", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Get initial node count
         const initialCount = await page.locator(".react-flow__node").count();
@@ -105,7 +106,7 @@ if (process.env.JEST_WORKER_ID) {
           // Select first node
           const node = page.locator(".react-flow__node").first();
           await node.click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Press Delete key
           await page.keyboard.press("Delete");
@@ -118,18 +119,17 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should delete node with Backspace key", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const initialCount = await page.locator(".react-flow__node").count();
 
         if (initialCount > 0) {
           const node = page.locator(".react-flow__node").first();
           await node.click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           await page.keyboard.press("Backspace");
           await page.waitForTimeout(500);
@@ -140,11 +140,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should delete multiple selected nodes", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const nodes = page.locator(".react-flow__node");
         const nodeCount = await nodes.count();
@@ -152,11 +151,11 @@ if (process.env.JEST_WORKER_ID) {
         if (nodeCount >= 2) {
           // Select first node
           await nodes.nth(0).click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Cmd/Ctrl+click second node
           await nodes.nth(1).click({ modifiers: ["ControlOrMeta"] });
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Delete selected nodes
           await page.keyboard.press("Delete");
@@ -170,11 +169,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Dragging", () => {
       test("should drag node to new position", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
         
@@ -195,7 +193,7 @@ if (process.env.JEST_WORKER_ID) {
             );
             await page.mouse.up();
 
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
 
             // Node should still exist
             await expect(node).toBeVisible();
@@ -204,11 +202,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should drag multiple selected nodes together", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const nodes = page.locator(".react-flow__node");
         const nodeCount = await nodes.count();
@@ -216,11 +213,11 @@ if (process.env.JEST_WORKER_ID) {
         if (nodeCount >= 2) {
           // Select first node
           await nodes.nth(0).click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Cmd/Ctrl+click second node
           await nodes.nth(1).click({ modifiers: ["ControlOrMeta"] });
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Drag one of the selected nodes
           const firstNode = nodes.nth(0);
@@ -239,7 +236,7 @@ if (process.env.JEST_WORKER_ID) {
             );
             await page.mouse.up();
 
-            await page.waitForTimeout(300);
+            await waitForAnimation(page);
 
             // Nodes should still be visible
             expect(await nodes.count()).toBeGreaterThanOrEqual(2);
@@ -250,11 +247,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Duplication", () => {
       test("should duplicate node with Cmd/Ctrl+D", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const initialCount = await page.locator(".react-flow__node").count();
 
@@ -262,7 +258,7 @@ if (process.env.JEST_WORKER_ID) {
           // Select a node
           const node = page.locator(".react-flow__node").first();
           await node.click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Try to duplicate with Cmd/Ctrl+D
           await page.keyboard.press("Meta+d");
@@ -277,11 +273,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Context Menu", () => {
       test("should open context menu on right-click", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const node = page.locator(".react-flow__node").first();
         
@@ -299,22 +294,21 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Select All", () => {
       test("should select all nodes with Cmd/Ctrl+A", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const nodeCount = await page.locator(".react-flow__node").count();
 
         if (nodeCount > 0) {
           // Click on canvas to focus
           await canvas.click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Select all
           await page.keyboard.press("Meta+a");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // All nodes should potentially be selected
           // This is implementation dependent, so we just verify no crash
@@ -325,11 +319,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Connections", () => {
       test("should handle edge creation between nodes", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Check for handles on nodes
         const handles = page.locator(".react-flow__handle");
@@ -345,11 +338,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should display existing edges", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Check for any edges
         const edges = page.locator(".react-flow__edge");
@@ -360,11 +352,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should delete edge on click and delete", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const edges = page.locator(".react-flow__edge");
         const initialEdgeCount = await edges.count();
@@ -373,7 +364,7 @@ if (process.env.JEST_WORKER_ID) {
           // Try to click on an edge
           const edge = edges.first();
           await edge.click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Press delete
           await page.keyboard.press("Delete");
@@ -388,11 +379,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Node Grouping", () => {
       test("should support node grouping operations", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const nodes = page.locator(".react-flow__node");
         const nodeCount = await nodes.count();
@@ -400,9 +390,9 @@ if (process.env.JEST_WORKER_ID) {
         if (nodeCount >= 2) {
           // Select multiple nodes
           await nodes.nth(0).click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
           await nodes.nth(1).click({ modifiers: ["ControlOrMeta"] });
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Try to group (implementation dependent, may use Cmd/Ctrl+G)
           await page.keyboard.press("Meta+g");
@@ -416,11 +406,10 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Bulk Operations", () => {
       test("should perform bulk delete on multiple nodes", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const initialCount = await page.locator(".react-flow__node").count();
 
@@ -428,7 +417,7 @@ if (process.env.JEST_WORKER_ID) {
           // Select all nodes
           await canvas.click();
           await page.keyboard.press("Meta+a");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Delete all
           await page.keyboard.press("Delete");
@@ -441,11 +430,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle copy-paste of nodes", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_ID}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const initialCount = await page.locator(".react-flow__node").count();
 
@@ -453,11 +441,11 @@ if (process.env.JEST_WORKER_ID) {
           // Select a node
           const node = page.locator(".react-flow__node").first();
           await node.click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Copy
           await page.keyboard.press("Meta+c");
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Paste
           await page.keyboard.press("Meta+v");

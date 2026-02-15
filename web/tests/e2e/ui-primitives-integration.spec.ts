@@ -1,4 +1,7 @@
 import { test, expect } from "@playwright/test";
+import {
+  navigateToPage,
+} from "./helpers/waitHelpers";
 
 // Skip when run by Jest
 if (process.env.JEST_WORKER_ID) {
@@ -7,8 +10,7 @@ if (process.env.JEST_WORKER_ID) {
   test.describe("UI Primitives Integration", () => {
     test.beforeEach(async ({ page }) => {
       // Navigate to the dashboard where the refactored components are used
-      await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await navigateToPage(page, "/");
     });
 
     test("SetupPanel uses FlexColumn and Card primitives correctly", async ({ page }) => {
