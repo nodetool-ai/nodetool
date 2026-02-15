@@ -9,18 +9,20 @@
  * <ToolbarIconButton
  *   icon={<SaveIcon />}
  *   tooltip="Save"
+ *   shortcut={["Ctrl", "S"]}
  *   onClick={handleSave}
  * />
  */
 
 import React, { forwardRef, memo } from "react";
-import { IconButton, IconButtonProps, Tooltip } from "@mui/material";
+import { IconButton, IconButtonProps, Tooltip, Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { ShortcutHint } from "./ShortcutHint";
 
 export interface ToolbarIconButtonProps
   extends Omit<IconButtonProps, "children"> {
@@ -60,10 +62,15 @@ export interface ToolbarIconButtonProps
    */
   variant?: "default" | "primary" | "error";
   /**
-   * Whether the button is in active/selected state
+   * Whether button is in active/selected state
    * @default false
    */
   active?: boolean;
+  /**
+   * Keyboard shortcut to display in tooltip, e.g., ["Ctrl", "S"]
+   * Will be shown as a compact badge
+   */
+  shortcut?: string[];
 }
 
 /**
@@ -79,6 +86,7 @@ export const ToolbarIconButton = memo(
         nodrag = true,
         variant = "default",
         active = false,
+        shortcut,
         className,
         size = "small",
         sx,
@@ -119,9 +127,24 @@ export const ToolbarIconButton = memo(
 
       const variantStyles = getVariantStyles();
 
+      // Build tooltip content with optional shortcut hint
+      const tooltipContent = shortcut ? (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 0.5,
+          }}
+        >
+          <Box>{tooltip}</Box>
+          <ShortcutHint shortcut={shortcut} size="small" variant="subtle" />
+        </Box>
+      ) : tooltip;
+
       return (
         <Tooltip
-          title={tooltip}
+          title={tooltipContent}
           enterDelay={TOOLTIP_ENTER_DELAY}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
