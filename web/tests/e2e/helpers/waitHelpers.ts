@@ -58,7 +58,7 @@ export async function waitForPageReady(page: Page): Promise<void> {
       },
       { timeout: 10000 }
     );
-  } catch (error) {
+  } catch (_error) {
     // If React hydration check fails, that's okay - page might still be functional
     // This can happen if the backend is not responding
   }
