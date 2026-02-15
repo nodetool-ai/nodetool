@@ -46,7 +46,6 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
       }
 
       const downstream = subgraph(edges, nodes, node);
-      processedNodeIds.add(node.id);
 
       for (const n of downstream.nodes) {
         if (!processedNodeIds.has(n.id)) {
