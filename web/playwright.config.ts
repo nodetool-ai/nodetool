@@ -45,14 +45,21 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  // Increased workers for better parallelization
+  workers: process.env.CI ? 4 : undefined,
   reporter: 'html',
-  timeout: process.env.CI ? 20_000 : 30_000,
-  globalTimeout: process.env.CI ? 30 * 60_000 : 0,
+  // Reduced timeout since we optimized waiting patterns
+  timeout: process.env.CI ? 15_000 : 20_000,
+  // Increased global timeout to account for more parallel workers
+  globalTimeout: process.env.CI ? 40 * 60_000 : 0,
   use: {
     baseURL: FRONTEND_URL,
     trace: 'on-first-retry',
     tsconfig: './tsconfig.e2e.json',
+    // Reasonable navigation timeout to handle slow starts
+    navigationTimeout: 30_000,
+    // Reasonable action timeout for optimized waits
+    actionTimeout: 15_000,
   },
   projects: [
     {
