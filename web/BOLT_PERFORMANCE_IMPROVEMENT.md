@@ -72,3 +72,55 @@ Using `lodash/isEqual` ensures that we only update when the simplified objects (
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `make lint`: Passed.
 - Ran `make test`: All 305 tests passed.
+
+# ⚡ Bolt: NodeEditor Shortcuts & History Performance Optimization
+
+## 💡 What
+Optimized `web/src/hooks/useNodeEditorShortcuts.ts` and `web/src/components/node_editor/NodeEditor.tsx`.
+
+1. **useNodeEditorShortcuts**: Replaced subscription to `state.getSelectedNodes()` with `state.getSelectedNodeCount()`. Used `useNodeStoreRef()` to access selected nodes imperatively within callbacks.
+2. **NodeEditor**: Replaced subscription to entire temporal history state with specific `{ undo, redo }` functions.
+
+## 🎯 Why
+- `useNodeEditorShortcuts` was subscribing to `getSelectedNodes()`, which returns a new array of Node objects whenever any node property (including position) changes. This caused `NodeEditor` (which uses this hook) to re-render on **every frame** of a drag operation.
+- `NodeEditor` was subscribing to the full temporal state, causing it to re-render whenever the history stack changed (e.g., on drag end).
+- `CommandMenu` was receiving new `undo`/`redo` function references on every render, breaking its memoization.
+
+## 📊 Impact
+- **Eliminates re-renders during drag:** `NodeEditor` no longer re-renders while dragging nodes, as `useNodeEditorShortcuts` only listens to `count` (stable during drag).
+- **Reduces re-renders on history change:** `NodeEditor` only re-renders if `undo`/`redo` functions change (which is rare/never), instead of every history update.
+- **Stabilizes CommandMenu:** `CommandMenu` props are now stable, preventing unnecessary re-renders.
+
+## 🔬 Measurement
+The optimization in `useNodeEditorShortcuts.ts` replaced:
+```typescript
+const nodesStore = useNodes((state) => ({
+  selectedNodes: state.getSelectedNodes(),
+  // ...
+}));
+```
+with:
+```typescript
+const nodesStore = useNodes((state) => ({
+  selectedNodeCount: state.getSelectedNodeCount(),
+  // ...
+}));
+// And using nodeStore.getState().getSelectedNodes() in callbacks
+```
+
+And in `NodeEditor.tsx`:
+```typescript
+const nodeHistory = useTemporalNodes((state) => state);
+```
+with:
+```typescript
+const { undo, redo } = useTemporalNodes((state) => ({
+  undo: state.undo,
+  redo: state.redo
+}));
+```
+
+## 🧪 Testing
+- Ran `cd web && npm run typecheck`: Passed.
+- Ran `make lint`: Passed (web).
+- Ran `make test`: Passed (web).

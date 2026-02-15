@@ -1,0 +1,3 @@
+## 2024-05-23 - [React Flow Node Drag Performance]
+**Learning:** Subscribing to `state.getSelectedNodes()` (or `state.nodes.filter(...)`) in any component or hook causes re-renders on EVERY frame of a drag operation because `Node` objects are immutable and their reference changes when position updates.
+**Action:** Always use `useNodeStoreRef()` and `store.getState().getSelectedNodes()` inside event handlers/callbacks if you only need the nodes at that moment. For reactivity (e.g. enabling buttons), subscribe to `state.getSelectedNodeCount()` (stable number) or `state.getSelectedNodeIds()` (stable array of strings if using shallow comparison).
