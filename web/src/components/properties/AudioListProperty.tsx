@@ -132,20 +132,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Helper to get MIME type from file extension
-const getAudioMimeType = (fileName: string): string => {
-  const ext = fileName.toLowerCase().split(".").pop();
-  const mimeTypes: Record<string, string> = {
-    mp3: "audio/mpeg",
-    wav: "audio/wav",
-    ogg: "audio/ogg",
-    m4a: "audio/mp4",
-    flac: "audio/flac",
-    aac: "audio/aac"
-  };
-  return mimeTypes[ext || ""] || "audio/mpeg";
-};
-
 // Helper to flatten potentially nested arrays of items (handles constants + lists)
 const flattenAudioItems = (items: unknown): AudioItem[] => {
   if (!items) {
@@ -349,18 +335,15 @@ const AudioListProperty = (props: PropertyProps) => {
 
       if (!result.canceled && result.filePaths.length > 0) {
         const uploadPromises = result.filePaths.map(async (filePath: string) => {
-          const dataUrl = await window.api.clipboard?.readFileAsDataURL(filePath);
-          if (!dataUrl) {
+          const result = await window.api.clipboard?.readFileBuffer(filePath);
+          if (!result) {
             throw new Error("Failed to read file");
           }
-
-          const response = await fetch(dataUrl);
-          const blob = await response.blob();
 
           const pathSegments = filePath.split(/[\\/]/);
           const fileName = pathSegments[pathSegments.length - 1] || "audio.mp3";
 
-          const file = new File([blob], fileName, { type: getAudioMimeType(fileName) });
+          const file = new File([result.buffer], fileName, { type: result.mimeType });
 
           return new Promise<AudioItem>((resolve, reject) => {
             uploadAsset({

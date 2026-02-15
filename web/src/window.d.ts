@@ -184,6 +184,8 @@ declare global {
         /** Get comprehensive clipboard content info for smart paste decisions */
         getContentInfo: () => Promise<ClipboardContentInfo>;
         readFileAsDataURL: (filePath: string) => Promise<string | null>;
+        /** Read file content as buffer */
+        readFileBuffer: (filePath: string) => Promise<{ buffer: Uint8Array; mimeType: string } | null>;
       };
       openLogFile: () => Promise<void>;
       showItemInFolder: (fullPath: string) => Promise<void>;
