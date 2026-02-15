@@ -44,16 +44,16 @@ export interface DropzoneProps {
   children?: React.ReactNode;
 }
 
-const Dropzone: React.FC<DropzoneProps> = (props) => {
+const Dropzone: React.FC<DropzoneProps> = React.memo(function Dropzone({ onDrop, children }: DropzoneProps) {
   const theme = useTheme();
   const [isExternalDrag, setIsExternalDrag] = useState(false);
   const leaveTimeoutId = useRef<NodeJS.Timeout | null>(null);
-  const clearLeaveTimeout = () => {
+  const clearLeaveTimeout = useCallback(() => {
     if (leaveTimeoutId.current) {
       clearTimeout(leaveTimeoutId.current);
       leaveTimeoutId.current = null;
     }
-  };
+  }, []);
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -65,7 +65,7 @@ const Dropzone: React.FC<DropzoneProps> = (props) => {
       (item) => item.kind === "file"
     );
     setIsExternalDrag(hasFiles);
-  }, []);
+  }, [clearLeaveTimeout]);
 
   const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -85,17 +85,17 @@ const Dropzone: React.FC<DropzoneProps> = (props) => {
       // If dropped items are files, handle them
       if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
         const files = Array.from(e.dataTransfer.files);
-        props.onDrop(files);
+        onDrop(files);
       }
     },
-    [props]
+    [onDrop, clearLeaveTimeout]
   );
 
   useEffect(() => {
     return () => {
       clearLeaveTimeout();
     };
-  }, []);
+  }, [clearLeaveTimeout]);
 
   return (
     <div
@@ -108,9 +108,11 @@ const Dropzone: React.FC<DropzoneProps> = (props) => {
     >
       {isExternalDrag && <div className="dragging-overlay" />}
       {/* Upload button moved into the toolbar; keep drag-and-drop active here */}
-      {props.children}
+      {children}
     </div>
   );
-};
+});
+
+Dropzone.displayName = "Dropzone";
 
 export default Dropzone;

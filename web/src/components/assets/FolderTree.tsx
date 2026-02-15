@@ -60,12 +60,12 @@ const styles = (theme: Theme) =>
     }
   });
 
-const FolderTree: React.FC<FolderTreeProps> = ({
+const FolderTree: React.FC<FolderTreeProps> = React.memo(function FolderTree({
   onSelect,
   sortBy = "name"
-}) => {
+}) {
   const theme = useTheme();
-  
+
   // Fetch folder tree using useQuery
   const { data: folderTree = {} } = useFolderTree(sortBy);
 
@@ -116,6 +116,8 @@ const FolderTree: React.FC<FolderTreeProps> = ({
       </SimpleTreeView>
     </Box>
   );
-};
+});
+
+FolderTree.displayName = "FolderTree";
 
 export default FolderTree;
