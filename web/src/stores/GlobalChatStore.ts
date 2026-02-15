@@ -487,7 +487,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             // Guard against a race: if another path registered a handler
             // between our check and this set(), clean ours up to avoid a leak.
             const existing = state.wsThreadSubscriptions[threadId as string];
-            if (existing) {
+            if (existing !== undefined) {
               unsub();
               return {};
             }
@@ -711,7 +711,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           );
           set((state) => {
             const existing = state.wsThreadSubscriptions[threadId];
-            if (existing) {
+            if (existing !== undefined) {
               unsub();
               return {};
             }
