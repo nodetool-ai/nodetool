@@ -1,9 +1,8 @@
-import React from "react";
 import { StateIconButton } from "../ui_primitives";
 import { useColorScheme } from "@mui/material/styles";
 import { LightMode, DarkMode } from "@mui/icons-material";
 
-export const ThemeToggle: React.FC = () => {
+export const ThemeToggle = () => {
   const { mode, setMode } = useColorScheme();
 
   const toggleTheme = () => {
