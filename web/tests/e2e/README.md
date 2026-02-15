@@ -2,6 +2,22 @@
 
 This directory contains end-to-end tests for the NodeTool web application using Playwright.
 
+## Prerequisites
+
+Before running the e2e tests, you must install Playwright browsers:
+
+```bash
+cd web
+npx playwright install chromium
+```
+
+Or with system dependencies (recommended for CI):
+
+```bash
+cd web
+npx playwright install --with-deps chromium
+```
+
 ## Test Organization
 
 ### Standard Tests (With Real Backend)

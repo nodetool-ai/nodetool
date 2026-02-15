@@ -2,6 +2,33 @@
 
 This directory contains end-to-end tests for the NodeTool Electron desktop application using Playwright.
 
+## Prerequisites
+
+Before running the e2e tests, you must:
+
+1. **Install Playwright browsers:**
+   ```bash
+   cd electron
+   npx playwright install chromium
+   ```
+
+   Or with system dependencies (recommended for CI):
+   ```bash
+   cd electron
+   npx playwright install --with-deps chromium
+   ```
+
+2. **Build the Electron app:**
+   ```bash
+   cd electron
+   npm run vite:build
+   npx tsc
+   ```
+
+3. **Install xvfb (Linux only, for headless testing):**
+   - Ubuntu/Debian: `sudo apt-get install xvfb`
+   - The npm scripts automatically use xvfb-run on Linux
+
 ## Test Organization
 
 ### 1. app-loads.spec.ts
