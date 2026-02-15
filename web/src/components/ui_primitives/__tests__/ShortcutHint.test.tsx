@@ -61,18 +61,11 @@ describe("ShortcutHint", () => {
     expect(hint).toHaveStyle({ fontSize: "11px" });
   });
 
-  it("applies variant styles correctly", () => {
-    const { container: defaultContainer } = render(
-      <ShortcutHint shortcut={["Ctrl", "S"]} variant="default" />
-    );
-    const defaultHint = defaultContainer.querySelector(".shortcut-hint");
-    expect(defaultHint).toHaveClass("shortcut-hint");
-
-    const { container: subtleContainer } = render(
-      <ShortcutHint shortcut={["Ctrl", "S"]} variant="subtle" />
-    );
-    const subtleHint = subtleContainer.querySelector(".shortcut-hint");
-    expect(subtleHint).toHaveClass("shortcut-hint");
+  it("applies default class and layout styles", () => {
+    const { container } = render(<ShortcutHint shortcut={["Ctrl", "S"]} />);
+    const hint = container.querySelector(".shortcut-hint");
+    expect(hint).toHaveClass("shortcut-hint");
+    expect(hint).toHaveStyle({ display: "inline-flex" });
   });
 
   it("passes through className prop", () => {

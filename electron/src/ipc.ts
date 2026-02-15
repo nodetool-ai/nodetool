@@ -893,6 +893,7 @@ export function initializeIpcHandlers(): void {
     async (_event, request) => {
       const parsedUrl = assertLocalhostUrl(request.url);
       const method = sanitizeProxyMethod(request.method);
+      const responseType = request.responseType || "text";
       logMessage(
         `[localhost-proxy] HTTP ${method} ${parsedUrl.toString()}`,
         "info",
@@ -906,11 +907,21 @@ export function initializeIpcHandlers(): void {
           body: request.body,
         });
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         logMessage(
-          `[localhost-proxy] HTTP ${method} ${parsedUrl.toString()} failed: ${String(error)}`,
-          "error",
+          `[localhost-proxy] HTTP ${method} ${parsedUrl.toString()} failed: ${message}`,
+          "warn",
         );
-        throw error;
+        return {
+          status: 0,
+          ok: false,
+          headers: {
+            "status-text": message,
+            "x-localhost-proxy-error": "1",
+          },
+          error: message,
+          data: responseType === "json" ? null : "",
+        };
       }
 
       const responseHeaders: Record<string, string> = {};
@@ -918,7 +929,6 @@ export function initializeIpcHandlers(): void {
         responseHeaders[key] = value;
       });
 
-      const responseType = request.responseType || "text";
       const data =
         responseType === "json"
           ? await response.json()

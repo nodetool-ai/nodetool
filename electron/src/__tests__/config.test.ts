@@ -300,7 +300,7 @@ describe('Config', () => {
   });
 
   describe('getCondaLockFilePath', () => {
-    const lockFileName = 'environment.lock.yml';
+    const fallbackLockFileName = 'environment.lock.yml';
     const originalIsPackaged = app.isPackaged;
     const originalResourcesPath = (process as unknown as { resourcesPath?: string }).resourcesPath;
 
@@ -328,21 +328,20 @@ describe('Config', () => {
 
       const result = getCondaLockFilePath();
 
-      expect(result).toBe(path.join('/mock/resources', lockFileName));
+      expect(result).toBe(path.join('/mock/resources', fallbackLockFileName));
     });
 
     it('should resolve to the local resources path during development', () => {
       (app as unknown as { isPackaged: boolean }).isPackaged = false;
 
-      const expected = path.join(
+      const result = getCondaLockFilePath();
+      const expectedResourcesDir = path.join(
         path.resolve(__dirname, '..', '..'),
-        'resources',
-        lockFileName
+        'resources'
       );
 
-      const result = getCondaLockFilePath();
-
-      expect(result).toBe(expected);
+      expect(path.dirname(result)).toBe(expectedResourcesDir);
+      expect(path.basename(result)).toMatch(/^environment.*\.lock\.yml$/);
     });
   });
 

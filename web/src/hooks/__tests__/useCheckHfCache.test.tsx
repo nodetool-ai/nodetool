@@ -3,6 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCheckHfCache } from "../useCheckHfCache";
 import * as checkHfCacheModule from "../../serverState/checkHfCache";
+import { HfCacheCheckResponse } from "../../serverState/checkHfCache";
 
 // Mock the checkHfCache function
 jest.mock("../../serverState/checkHfCache");
@@ -180,8 +181,8 @@ describe("useCheckHfCache", () => {
 
   describe("loading states", () => {
     it("sets isLoading to true during initial fetch", async () => {
-      let resolvePromise: (value: any) => void;
-      const promise = new Promise((resolve) => {
+      let resolvePromise!: (value: HfCacheCheckResponse) => void;
+      const promise = new Promise<HfCacheCheckResponse>((resolve) => {
         resolvePromise = resolve;
       });
       mockCheckHfCache.mockReturnValueOnce(promise);

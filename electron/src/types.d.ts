@@ -437,6 +437,7 @@ export interface LocalhostProxyResponse {
   ok: boolean;
   headers: Record<string, string>;
   data: unknown;
+  error?: string;
 }
 
 export interface LocalhostProxyWsOpenRequest {

@@ -138,7 +138,7 @@ export const ToolbarIconButton = memo(
           }}
         >
           <Box>{tooltip}</Box>
-          <ShortcutHint shortcut={shortcut} size="small" variant="subtle" />
+          <ShortcutHint shortcut={shortcut} size="small" />
         </Box>
       ) : tooltip;
 
