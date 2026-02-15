@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
 import { setupMockApiRoutes } from "./fixtures/mockData";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+  waitForPageReady,
+} from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
 if (process.env.JEST_WORKER_ID) {
@@ -142,12 +148,6 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should handle import via file input", async ({ page }) => {
-import {
-  navigateToPage,
-  waitForEditorReady,
-  waitForAnimation,
-  waitForPageReady,
-} from "./helpers/waitHelpers";
         await navigateToPage(page, "/dashboard");
 
         // Look for file input for import
