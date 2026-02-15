@@ -41,9 +41,18 @@ export const useOllamaModels = () => {
     queryFn: async () => {
       const { data, error } = await client.GET("/api/models/ollama", {});
       if (error) {throw error;}
-      return data;
+      if (Array.isArray(data)) {
+        return data;
+      }
+      const responseData = data as { models?: unknown } | undefined;
+      if (Array.isArray(responseData?.models)) {
+        return responseData.models;
+      }
+      return [];
     },
-    refetchOnWindowFocus: false
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false
   });
 
   return {
