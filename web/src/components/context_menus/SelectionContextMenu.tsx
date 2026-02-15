@@ -10,11 +10,11 @@ import useAlignNodes from "../../hooks/useAlignNodes";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useSelectConnected } from "../../hooks/useSelectConnected";
-import { useSnippetDialog } from "../../contexts/SnippetDialogContext";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
-import SaveIcon from "@mui/icons-material/Save";
+// import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+// import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
@@ -31,10 +31,9 @@ interface SelectionContextMenuProps {
 
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { handleCopy } = useCopyPaste();
-  const { deleteNode, toggleBypassSelected, edges } = useNodes((state) => ({
+  const { deleteNode, toggleBypassSelected } = useNodes((state) => ({
     deleteNode: state.deleteNode,
-    toggleBypassSelected: state.toggleBypassSelected,
-    edges: state.edges
+    toggleBypassSelected: state.toggleBypassSelected
   }));
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
@@ -43,7 +42,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const selectConnectedAll = useSelectConnected({ direction: "both" });
   const selectConnectedInputs = useSelectConnected({ direction: "upstream" });
   const selectConnectedOutputs = useSelectConnected({ direction: "downstream" });
-  const { openSaveSnippetDialog } = useSnippetDialog();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -129,11 +127,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     handleAlignNodes(true);
   }, [handleAlignNodes]);
 
-  const handleSaveAsSnippet = useCallback(() => {
-    openSaveSnippetDialog(selectedNodes, edges);
-    closeContextMenu();
-  }, [openSaveSnippetDialog, selectedNodes, edges, closeContextMenu]);
-
   if (!menuPosition) {
     return null;
   }
@@ -186,12 +179,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
             </div>
           </div>
         }
-      />
-      <ContextMenuItem
-        onClick={handleSaveAsSnippet}
-        label="Save as Snippet"
-        IconComponent={<SaveIcon />}
-        tooltip="Save selected nodes as a reusable snippet"
       />
       {/* <ContextMenuItem
         onClick={() => handleCollapseAll(false)}
