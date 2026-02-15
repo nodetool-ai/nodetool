@@ -20,9 +20,16 @@ import {
 
 import ErrorBoundary from "./ErrorBoundary";
 
-import PanelLeft from "./components/panels/PanelLeft";
-import PanelRight from "./components/panels/PanelRight";
-import PanelBottom from "./components/panels/PanelBottom";
+// Lazy-load panel components to reduce initial bundle size
+const PanelLeft = React.lazy(
+  () => import("./components/panels/PanelLeft")
+);
+const PanelRight = React.lazy(
+  () => import("./components/panels/PanelRight")
+);
+const PanelBottom = React.lazy(
+  () => import("./components/panels/PanelBottom")
+);
 import { CircularProgress } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
@@ -62,12 +69,18 @@ import {
 } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
-import DownloadManagerDialog from "./components/hugging_face/DownloadManagerDialog";
+const DownloadManagerDialog = React.lazy(
+  () => import("./components/hugging_face/DownloadManagerDialog")
+);
 
 import log from "loglevel";
-import Alert from "./components/node_editor/Alert";
+const Alert = React.lazy(
+  () => import("./components/node_editor/Alert")
+);
 import MobileClassProvider from "./components/MobileClassProvider";
-import AppHeader from "./components/panels/AppHeader";
+const AppHeader = React.lazy(
+  () => import("./components/panels/AppHeader")
+);
 
 // Lazy-loaded route components for code splitting
 const Dashboard = React.lazy(
@@ -105,18 +118,20 @@ const TemplateGrid = React.lazy(
 );
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 
-// Register frontend tools
-import "./lib/tools/builtin/addNode";
-import "./lib/tools/builtin/setNodeSyncMode";
-import "./lib/tools/builtin/connectNodes";
-import "./lib/tools/builtin/updateNodeData";
-import "./lib/tools/builtin/moveNode";
-import "./lib/tools/builtin/setNodeTitle";
-import "./lib/tools/builtin/graph";
-import "./lib/tools/builtin/getGraph";
-import "./lib/tools/builtin/searchNodes";
-import "./lib/tools/builtin/deleteNode";
-import "./lib/tools/builtin/deleteEdge";
+// Defer frontend tool registrations until after initial render
+const registerFrontendTools = () => {
+  import("./lib/tools/builtin/addNode");
+  import("./lib/tools/builtin/setNodeSyncMode");
+  import("./lib/tools/builtin/connectNodes");
+  import("./lib/tools/builtin/updateNodeData");
+  import("./lib/tools/builtin/moveNode");
+  import("./lib/tools/builtin/setNodeTitle");
+  import("./lib/tools/builtin/graph");
+  import("./lib/tools/builtin/getGraph");
+  import("./lib/tools/builtin/searchNodes");
+  import("./lib/tools/builtin/deleteNode");
+  import("./lib/tools/builtin/deleteEdge");
+};
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
 (window as any).log = log;
@@ -392,6 +407,9 @@ const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
 
   useEffect(() => {
+    // Register frontend tools after initial render
+    registerFrontendTools();
+
     // Existing effect for loading metadata
     loadMetadata()
       .then((data) => {
