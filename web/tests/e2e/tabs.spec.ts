@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
+import {
+  navigateToPage,
+  waitForEditorReady,
+  waitForAnimation,
+  waitForPageReady,
+} from "./helpers/waitHelpers";
 
 // Pre-defined mock workflow IDs for testing
 const MOCK_WORKFLOW_1 = workflows.workflows[0].id;
@@ -16,30 +22,26 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Tab Creation", () => {
       test("should open workflow in new tab", async ({ page }) => {
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Navigate to first workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Verify URL
         await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_1}`));
       });
 
       test("should handle multiple workflow tabs via navigation", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
         let canvas = page.locator(".react-flow");
         await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Navigate to second workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         canvas = page.locator(".react-flow");
         await expect(canvas).toBeVisible({ timeout: 10000 });
@@ -49,15 +51,13 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should open workflow in same tab by default", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Navigate to another workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         // Should still have one page (tab)
         expect(page).toBeTruthy();
@@ -66,43 +66,38 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Tab Switching", () => {
       test("should switch between workflows via browser navigation", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
         let canvas = page.locator(".react-flow");
         await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Navigate to second workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         canvas = page.locator(".react-flow");
         await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Go back to first workflow
         await page.goBack();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // Should be back at first workflow
         await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_1}`));
       });
 
       test("should maintain workflow state when switching tabs", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Get initial node count
         const initialNodeCount = await page.locator(".react-flow__node").count();
 
         // Navigate away and back
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
         await expect(canvas).toBeVisible({ timeout: 10000 });
 
@@ -112,29 +107,27 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should preserve zoom level when switching workflows", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Zoom in
         await page.keyboard.press("Meta+=");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // Get viewport transform
         const viewport = page.locator(".react-flow__viewport");
         const transformAfterZoom = await viewport.getAttribute("style");
 
         // Navigate to another workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Go back
         await page.goBack();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // Zoom level might reset (implementation dependent)
         const finalTransform = await viewport.getAttribute("style");
@@ -142,11 +135,10 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should preserve canvas position when switching workflows", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Pan canvas
         const canvasBounds = await canvas.boundingBox();
@@ -161,15 +153,13 @@ if (process.env.JEST_WORKER_ID) {
             canvasBounds.y + canvasBounds.height / 2 + 100
           );
           await page.mouse.up({ button: "middle" });
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
         }
 
         // Navigate away and back
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
         // Canvas should still be visible
         await expect(canvas).toBeVisible({ timeout: 10000 });
@@ -178,21 +168,19 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Tab State Management", () => {
       test("should handle unsaved changes when switching workflows", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Make a change (try to add a node or modify something)
         const node = page.locator(".react-flow__node").first();
         if (await node.count() > 0) {
           await node.click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
 
           // Try to navigate away
-          await page.goto("/dashboard");
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, "/dashboard");
 
           // Should either navigate or show warning (implementation dependent)
           // Page should remain functional
@@ -201,36 +189,30 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should track active workflow ID", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
         // Verify we're on the correct workflow
         await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_1}`));
 
         // Navigate to different workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_2}`));
       });
 
       test("should handle rapid tab switching", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
         // Rapidly switch between workflows
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         // Should end on last workflow without errors
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
       });
     });
 
@@ -238,13 +220,12 @@ if (process.env.JEST_WORKER_ID) {
       test("should handle opening multiple workflows sequentially", async ({ page }) => {
         // Open several workflows in sequence
         for (const workflow of workflows.workflows.slice(0, 3)) {
-          await page.goto(`/editor/${workflow.id}`);
-          await page.waitForLoadState("networkidle");
+          await navigateToPage(page, `/editor/${workflow.id}`);
 
-          const canvas = page.locator(".react-flow");
-          await expect(canvas).toBeVisible({ timeout: 10000 });
+          await waitForEditorReady(page);
+        const canvas = page.locator(".react-flow");
 
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
 
         // Should be on last workflow without memory issues
@@ -253,42 +234,37 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should cleanup resources when leaving workflow", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Navigate away
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Go back
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
         // Should load cleanly
         await expect(canvas).toBeVisible({ timeout: 10000 });
       });
 
       test("should not interfere with workflow execution state", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Try to run workflow (if run button exists)
         const runButton = page.locator('button:has-text("Run")').or(page.locator('[aria-label*="Run"]'));
         
         if (await runButton.count() > 0) {
           await runButton.first().click();
-          await page.waitForTimeout(500);
+          await waitForAnimation(page);
         }
 
         // Navigate away during execution
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Should handle gracefully
         expect(page).toBeTruthy();
@@ -297,37 +273,35 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Keyboard Shortcuts Across Tabs", () => {
       test("should respect workflow-specific shortcuts", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Try save shortcut
         await page.keyboard.press("Meta+s");
-        await page.waitForTimeout(300);
+        await waitForAnimation(page);
 
         // Should not throw error
         await expect(canvas).toBeVisible();
       });
 
       test("should handle undo/redo across workflow switches", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Make a change
         const node = page.locator(".react-flow__node").first();
         if (await node.count() > 0) {
           await node.click();
           await page.keyboard.press("Delete");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Try undo
           await page.keyboard.press("Meta+z");
-          await page.waitForTimeout(300);
+          await waitForAnimation(page);
 
           // Canvas should still be functional
           await expect(canvas).toBeVisible();
@@ -337,8 +311,7 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Error Handling in Multi-Tab Context", () => {
       test("should handle workflow not found in one tab", async ({ page }) => {
-        await page.goto("/editor/non-existent-workflow-id");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/editor/non-existent-workflow-id");
 
         // Should show error or redirect gracefully
         const bodyText = await page.textContent("body");
@@ -350,29 +323,25 @@ if (process.env.JEST_WORKER_ID) {
 
       test("should recover from failed workflow load", async ({ page }) => {
         // Try to load a bad workflow
-        await page.goto("/editor/bad-workflow-id");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/editor/bad-workflow-id");
 
         // Navigate to valid workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
         // Should load successfully
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
       });
 
       test("should handle network errors during tab switch", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Simulate network issue by navigating to another workflow
         // In real scenario, network might fail
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         // Should handle gracefully
         expect(page).toBeTruthy();
@@ -381,40 +350,35 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Tab Order and Navigation", () => {
       test("should maintain browser history for tab navigation", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
-        await page.goto("/dashboard");
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, "/dashboard");
 
         // Go back
         await page.goBack();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
         await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_2}`));
 
         // Go back again
         await page.goBack();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
         await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_1}`));
       });
 
       test("should support forward navigation", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         // Go back
         await page.goBack();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         // Go forward
         await page.goForward();
-        await page.waitForLoadState("networkidle");
+        await waitForPageReady(page);
 
         await expect(page).toHaveURL(new RegExp(`/editor/${MOCK_WORKFLOW_2}`));
       });
@@ -422,17 +386,15 @@ if (process.env.JEST_WORKER_ID) {
 
     test.describe("Tab Isolation", () => {
       test("should isolate workflow changes between tabs", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         const initialCount1 = await page.locator(".react-flow__node").count();
 
         // Navigate to second workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         await expect(canvas).toBeVisible({ timeout: 10000 });
 
@@ -444,22 +406,20 @@ if (process.env.JEST_WORKER_ID) {
       });
 
       test("should not share selection state between workflows", async ({ page }) => {
-        await page.goto(`/editor/${MOCK_WORKFLOW_1}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_1}`);
 
+        await waitForEditorReady(page);
         const canvas = page.locator(".react-flow");
-        await expect(canvas).toBeVisible({ timeout: 10000 });
 
         // Select a node
         const node = page.locator(".react-flow__node").first();
         if (await node.count() > 0) {
           await node.click();
-          await page.waitForTimeout(200);
+          await waitForAnimation(page);
         }
 
         // Navigate to second workflow
-        await page.goto(`/editor/${MOCK_WORKFLOW_2}`);
-        await page.waitForLoadState("networkidle");
+        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_2}`);
 
         await expect(canvas).toBeVisible({ timeout: 10000 });
 
