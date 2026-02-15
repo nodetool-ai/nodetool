@@ -55,12 +55,12 @@ describe("fileExplorer", () => {
   });
 
   describe("getOllamaModelsDir", () => {
-    it("should use OLLAMA_MODELS env var when set", () => {
+    it("should use OLLAMA_MODELS env var when set", async () => {
       // Create temp directory to simulate the env var path
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "ollama-test-"));
       process.env.OLLAMA_MODELS = tmpDir;
 
-      const result = getOllamaModelsDir();
+      const result = await getOllamaModelsDir();
 
       expect(result).toBe(tmpDir);
       expect(logMessage).toHaveBeenCalledWith(
@@ -72,11 +72,11 @@ describe("fileExplorer", () => {
       fs.rmdirSync(tmpDir);
     });
 
-    it("should return resolved path for OLLAMA_MODELS", () => {
+    it("should return resolved path for OLLAMA_MODELS", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "ollama-test-"));
       process.env.OLLAMA_MODELS = tmpDir;
 
-      const result = getOllamaModelsDir();
+      const result = await getOllamaModelsDir();
 
       expect(result).toBe(path.resolve(tmpDir));
 
@@ -84,10 +84,10 @@ describe("fileExplorer", () => {
       fs.rmdirSync(tmpDir);
     });
 
-    it("should return undefined when default directories do not exist", () => {
+    it("should return undefined when default directories do not exist", async () => {
       // Without OLLAMA_MODELS set and no .ollama directory
       // This will try default paths that likely don't exist in CI
-      const result = getOllamaModelsDir();
+      const result = await getOllamaModelsDir();
 
       // Result depends on whether .ollama exists on the system
       // It should be either a valid path or undefined
@@ -96,11 +96,11 @@ describe("fileExplorer", () => {
   });
 
   describe("getHuggingFaceCacheDir", () => {
-    it("should use HF_HUB_CACHE env var when set", () => {
+    it("should use HF_HUB_CACHE env var when set", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hf-test-"));
       process.env.HF_HUB_CACHE = tmpDir;
 
-      const result = getHuggingFaceCacheDir();
+      const result = await getHuggingFaceCacheDir();
 
       expect(result).toBe(tmpDir);
 
@@ -108,11 +108,11 @@ describe("fileExplorer", () => {
       fs.rmdirSync(tmpDir);
     });
 
-    it("should use HUGGINGFACE_HUB_CACHE env var when set", () => {
+    it("should use HUGGINGFACE_HUB_CACHE env var when set", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hf-test-"));
       process.env.HUGGINGFACE_HUB_CACHE = tmpDir;
 
-      const result = getHuggingFaceCacheDir();
+      const result = await getHuggingFaceCacheDir();
 
       expect(result).toBe(tmpDir);
 
@@ -120,13 +120,13 @@ describe("fileExplorer", () => {
       fs.rmdirSync(tmpDir);
     });
 
-    it("should use HF_HOME env var when set", () => {
+    it("should use HF_HOME env var when set", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "hf-test-"));
       const hubDir = path.join(tmpDir, "hub");
       fs.mkdirSync(hubDir);
       process.env.HF_HOME = tmpDir;
 
-      const result = getHuggingFaceCacheDir();
+      const result = await getHuggingFaceCacheDir();
 
       expect(result).toBe(hubDir);
 
@@ -135,13 +135,13 @@ describe("fileExplorer", () => {
       fs.rmdirSync(tmpDir);
     });
 
-    it("should use XDG_CACHE_HOME when set", () => {
+    it("should use XDG_CACHE_HOME when set", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "xdg-test-"));
       const hfDir = path.join(tmpDir, "huggingface", "hub");
       fs.mkdirSync(hfDir, { recursive: true });
       process.env.XDG_CACHE_HOME = tmpDir;
 
-      const result = getHuggingFaceCacheDir();
+      const result = await getHuggingFaceCacheDir();
 
       expect(result).toBe(hfDir);
 
@@ -149,14 +149,14 @@ describe("fileExplorer", () => {
       fs.rmSync(tmpDir, { recursive: true });
     });
 
-    it("should return undefined when no directories exist", () => {
+    it("should return undefined when no directories exist", async () => {
       // Set env vars to non-existent paths
       process.env.HF_HUB_CACHE = "/nonexistent/path/that/does/not/exist";
       process.env.HUGGINGFACE_HUB_CACHE = "/another/nonexistent/path";
       process.env.HF_HOME = "/yet/another/nonexistent";
       process.env.XDG_CACHE_HOME = "/final/nonexistent";
 
-      const result = getHuggingFaceCacheDir();
+      const result = await getHuggingFaceCacheDir();
 
       // It might still find the default home directory cache, so just check the type
       expect(typeof result === "string" || result === undefined).toBe(true);
@@ -311,11 +311,11 @@ describe("fileExplorer", () => {
   });
 
   describe("getInstallationDir", () => {
-    it("should return conda env path when it exists", () => {
+    it("should return conda env path when it exists", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "conda-test-"));
       (getCondaEnvPath as jest.Mock).mockReturnValue(tmpDir);
 
-      const result = getInstallationDir();
+      const result = await getInstallationDir();
 
       expect(result).toBe(tmpDir);
 
@@ -323,20 +323,20 @@ describe("fileExplorer", () => {
       fs.rmdirSync(tmpDir);
     });
 
-    it("should return undefined when conda env path does not exist", () => {
+    it("should return undefined when conda env path does not exist", async () => {
       (getCondaEnvPath as jest.Mock).mockReturnValue("/nonexistent/conda/env");
 
-      const result = getInstallationDir();
+      const result = await getInstallationDir();
 
       expect(result).toBeUndefined();
     });
 
-    it("should log error and return undefined on exception", () => {
+    it("should log error and return undefined on exception", async () => {
       (getCondaEnvPath as jest.Mock).mockImplementation(() => {
         throw new Error("Config error");
       });
 
-      const result = getInstallationDir();
+      const result = await getInstallationDir();
 
       expect(result).toBeUndefined();
       expect(logMessage).toHaveBeenCalledWith(
@@ -347,10 +347,10 @@ describe("fileExplorer", () => {
   });
 
   describe("getLogsDir", () => {
-    it("should return logs directory when it exists", () => {
+    it("should return logs directory when it exists", async () => {
       // This test depends on the LOG_FILE mock
       // The directory /mock/logs likely doesn't exist
-      const result = getLogsDir();
+      const result = await getLogsDir();
 
       // Since /mock/logs doesn't exist, it should return undefined
       expect(result).toBeUndefined();
