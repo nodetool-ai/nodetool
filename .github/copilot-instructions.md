@@ -627,7 +627,7 @@ export async function calculateLayout(
 ## Resources
 
 - Main AGENTS.md: `/AGENTS.md` - Complete project documentation
-- Web README: `/web/README.md` - Web-specific documentation  
+- Web UI Guide: `/web/src/AGENTS.md` - Web-specific guidelines
 - Testing Guide: `/web/TESTING.md` - Comprehensive test documentation
 - Component Guide: `/web/src/components/AGENTS.md` - Component architecture
 - Store Guide: `/web/src/stores/AGENTS.md` - State management patterns
