@@ -3,6 +3,7 @@ import { test, expect, Page } from "@playwright/test";
 import { BACKEND_API_URL } from "./support/backend";
 import {
   navigateToPage,
+  waitForAnimation,
 } from "./helpers/waitHelpers";
 
 /**

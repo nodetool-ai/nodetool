@@ -3,6 +3,7 @@ import { BACKEND_API_URL } from "./support/backend";
 import {
   navigateToPage,
   waitForEditorReady,
+  waitForAnimation,
 } from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.

@@ -5,6 +5,7 @@ import {
   navigateToPage,
   waitForEditorReady,
   waitForPageReady,
+  waitForAnimation,
 } from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
@@ -86,8 +87,8 @@ if (process.env.JEST_WORKER_ID) {
 
         await page.goto("/dashboard");
         
-        // Wait for page to eventually load
-        await page.waitForTimeout(4000);
+        // Wait for page to stabilize
+        await waitForPageReady(page);
         
         // Page should still be functional
         const body = page.locator("body");
@@ -308,8 +309,8 @@ if (process.env.JEST_WORKER_ID) {
 
         await page.goto("/dashboard");
 
-        // Wait for a reasonable time
-        await page.waitForTimeout(5000);
+        // Wait for page to stabilize
+        await waitForPageReady(page);
 
         // Page should still be rendered
         const body = page.locator("body");

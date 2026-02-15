@@ -4,6 +4,7 @@ import {
   navigateToPage,
   waitForEditorReady,
   waitForPageReady,
+  waitForAnimation,
 } from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.

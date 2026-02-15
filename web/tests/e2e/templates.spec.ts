@@ -4,6 +4,7 @@ import { setupMockApiRoutes, templates } from "./fixtures/mockData";
 import {
   navigateToPage,
   waitForPageReady,
+  waitForAnimation,
 } from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
@@ -115,8 +116,8 @@ if (process.env.JEST_WORKER_ID) {
     test("should display mocked template workflows", async ({ page }) => {
       await navigateToPage(page, "/templates");
 
-      // Wait for any async data loading
-      await page.waitForTimeout(2000);
+      // Wait for page to stabilize
+      await waitForAnimation(page);
 
       // Verify page is functional
       const bodyText = await page.textContent("body");

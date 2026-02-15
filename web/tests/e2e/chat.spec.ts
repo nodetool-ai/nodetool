@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes, threads, messages } from "./fixtures/mockData";
 import {
   navigateToPage,
+  waitForAnimation,
 } from "./helpers/waitHelpers";
 
 // Skip when executed by Jest; Playwright tests are meant to run via `npx playwright test`.
@@ -52,8 +53,8 @@ if (process.env.JEST_WORKER_ID) {
     test("should display mocked threads", async ({ page }) => {
       await navigateToPage(page, "/chat");
 
-      // Wait for threads to potentially load
-      await page.waitForTimeout(2000);
+      // Wait for page to stabilize
+      await waitForAnimation(page);
 
       // Check that page is functional
       const bodyText = await page.textContent("body");
@@ -65,8 +66,8 @@ if (process.env.JEST_WORKER_ID) {
       
       await navigateToPage(page, `/chat/${testThread.id}`);
 
-      // Wait for any async loading
-      await page.waitForTimeout(2000);
+      // Wait for page to stabilize
+      await waitForAnimation(page);
 
       // Verify we're on the correct thread URL
       expect(page.url()).toContain(testThread.id);
@@ -82,8 +83,8 @@ if (process.env.JEST_WORKER_ID) {
       
       await navigateToPage(page, `/chat/${threadWithTools.id}`);
 
-      // Wait for messages to potentially render
-      await page.waitForTimeout(2000);
+      // Wait for page to stabilize
+      await waitForAnimation(page);
 
       // Verify page loaded without errors
       const bodyText = await page.textContent("body");
