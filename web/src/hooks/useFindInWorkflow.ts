@@ -269,7 +269,7 @@ export const useFindInWorkflow = () => {
   // Re-run search when filters change (if there's a search term)
   // Note: We intentionally don't include performSearch and searchTerm in dependencies
   // because we want to re-run the search when filters change, not when performSearch changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   useEffect(() => {
     if (searchTerm.trim()) {
       performSearch(searchTerm);
