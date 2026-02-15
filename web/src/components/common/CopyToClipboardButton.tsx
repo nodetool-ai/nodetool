@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { IconButtonProps } from "@mui/material";
 import { CopyButton } from "../ui_primitives";
 import { serializeValue } from "../../utils/serializeValue";
@@ -29,10 +29,10 @@ const mapButtonSize = (
 /**
  * CopyToClipboardButton - A wrapper around CopyButton from ui_primitives
  * that adds special serialization for complex values.
- * 
+ *
  * @deprecated Consider using CopyButton from ui_primitives directly for new code.
  */
-export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
+export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = memo(function CopyToClipboardButton({
   copyValue,
   onCopySuccess,
   onCopyError,
@@ -41,7 +41,7 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
   tooltipPlacement = "bottom",
   sx,
   ...props
-}) => {
+}) {
   const theme = useTheme();
   
   // Serialize value using the existing serializeValue utility for backward compatibility
@@ -86,4 +86,4 @@ export const CopyToClipboardButton: React.FC<CopyToClipboardButtonProps> = ({
       {...props}
     />
   );
-};
+});
