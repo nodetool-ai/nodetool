@@ -58,6 +58,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         env:
           ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+          ANTHROPIC_MODEL: "GLM-5"
         with:
           anthropic_api_key: ${{ secrets.ZAI_API_KEY }}
           additional_permissions: |
