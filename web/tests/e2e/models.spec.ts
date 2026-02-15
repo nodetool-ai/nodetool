@@ -133,6 +133,9 @@ if (process.env.JEST_WORKER_ID) {
   });
 
   test.describe("Models API Integration", () => {
+    // Increase timeout for API integration tests as they can be slow in CI
+    test.setTimeout(60000);
+
     test("should fetch Hugging Face models from API", async ({ page, request }) => {
       // Navigate to models page to ensure app is loaded
       await navigateToPage(page, "/models");

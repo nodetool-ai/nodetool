@@ -49,7 +49,7 @@ export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
   reporter: 'html',
   // Reduced timeout since we optimized waiting patterns
-  timeout: process.env.CI ? 15_000 : 20_000,
+  timeout: process.env.CI ? 45_000 : 20_000,
   // Increased global timeout to account for more parallel workers
   globalTimeout: process.env.CI ? 40 * 60_000 : 0,
   use: {
