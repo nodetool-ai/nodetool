@@ -950,13 +950,15 @@ export async function installExpectedPackages(): Promise<{
 
   const expectedVersion = getAppVersion();
 
-  for (const pkg of packagesNeedingUpdate) {
-    const packageName = pkg.packageName;
-
+  if (packagesNeedingUpdate.length > 0) {
     try {
-      const packageSpec = `${packageName}==${expectedVersion}`;
+      const packageSpecs = packagesNeedingUpdate.map(
+        (pkg) => `${pkg.packageName}==${expectedVersion}`
+      );
 
-      const message = `Installing ${packageName} v${expectedVersion}...`;
+      const message = `Installing packages: ${packagesNeedingUpdate
+        .map((p) => p.packageName)
+        .join(", ")}...`;
       logMessage(message);
       emitServerLog(message);
 
@@ -971,7 +973,7 @@ export async function installExpectedPackages(): Promise<{
         "--index-strategy",
         "unsafe-best-match",
         "--system",
-        packageSpec,
+        ...packageSpecs,
       ];
 
       const torchIndexUrl = getTorchIndexUrl();
@@ -980,20 +982,20 @@ export async function installExpectedPackages(): Promise<{
       }
 
       await runUvCommand(args);
-      const successMessage = `Successfully installed ${packageName} v${expectedVersion}`;
+      const successMessage = `Successfully installed ${packagesNeedingUpdate.length} packages`;
       logMessage(successMessage);
       emitServerLog(successMessage);
 
-      packagesUpdated++;
+      packagesUpdated += packagesNeedingUpdate.length;
     } catch (error: any) {
-      logMessage(
-        `Failed to install ${packageName}: ${error.message}`,
-        "error"
-      );
-      failures.push({
-        packageName,
-        error: error.message,
-      });
+      logMessage(`Failed to install packages: ${error.message}`, "error");
+      // Mark all as failed since we don't know which one specifically failed in batch mode
+      for (const pkg of packagesNeedingUpdate) {
+        failures.push({
+          packageName: pkg.packageName,
+          error: error.message,
+        });
+      }
     }
   }
 
