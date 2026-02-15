@@ -207,9 +207,6 @@ const Alert: React.FC = memo(() => {
     }, TRANSITION_DURATION);
   };
 
-  // const handleCopy = async (content: string) => {
-  //   await writeClipboard(content, true);
-  // };
   return (
     <TransitionGroup component="ul" css={styles()} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {

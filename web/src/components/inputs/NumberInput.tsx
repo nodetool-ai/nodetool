@@ -101,8 +101,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
     setSpeedFactorState
   );
 
-  // const handleFocusPan = useFocusPan(props.nodeId);
-
   useCombo(
     ["Escape"],
     useCallback(() => {
