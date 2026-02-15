@@ -6,11 +6,8 @@ import NodeProgress from "../NodeProgress";
 import NodePropertyForm from "../NodePropertyForm";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
 import { WorkflowLoader } from "./WorkflowLoader";
-import type { NodeMetadata, Workflow } from "../../../stores/ApiTypes";
+import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { useQuery } from "@tanstack/react-query";
-import { client } from "../../../stores/ApiClient";
-import { LoadingSpinner } from "../../ui_primitives";
 
 export interface WorkflowNodeContentProps {
   id: string;
@@ -47,8 +44,9 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
       id,
       data.dynamic_properties as Record<string, unknown>
     );
-    const subWorkflowId = data.workflow_id as string | undefined;
 
+    // TODO: Add workflow info display when needed
+    // const subWorkflowId = data.workflow_id as string | undefined;
     // const { isLoading, isError, data: subWorkflow } = useQuery({
     //   queryKey: ["workflow", subWorkflowId],
     //   queryFn: async () => {
