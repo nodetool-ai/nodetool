@@ -18,6 +18,7 @@ import {
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
 import { wouldCreateCycle } from "../../utils/graphCycle";
+import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
@@ -123,6 +124,22 @@ export default function useConnectionHandlers() {
         );
         return;
       }
+
+      // Control edge: skip type validation, delegate to NodeStore
+      if (targetHandle === CONTROL_HANDLE_ID) {
+        if (wouldCreateCycle(edges, source, target)) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: "Cannot create a cyclic connection"
+          });
+          return;
+        }
+        connectionCreated.current = true;
+        onConnect(connection);
+        return;
+      }
+
       const sourceMetadata = getMetadata(sourceNode.type || "");
       const targetMetadata = getMetadata(targetNode.type || "");
 
@@ -336,6 +353,22 @@ export default function useConnectionHandlers() {
             targetHandle: PREVIEW_VALUE_HANDLE
           };
           handleOnConnect(previewConnection);
+          endConnecting();
+          return;
+        }
+
+        // Auto-create control edge when dragging from an Agent node output onto a node body
+        if (
+          connectDirection === "source" &&
+          connectNode.type?.toLowerCase().includes("agent")
+        ) {
+          const controlConnection: Connection = {
+            source: connectNodeId || "",
+            sourceHandle: connectHandleId || "",
+            target: nodeId,
+            targetHandle: CONTROL_HANDLE_ID
+          };
+          handleOnConnect(controlConnection);
           endConnecting();
           return;
         }

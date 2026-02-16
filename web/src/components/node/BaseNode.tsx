@@ -7,6 +7,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Handle,
   Node,
   NodeProps,
   NodeResizer,
@@ -48,6 +49,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isProduction } from "../../stores/ApiClient";
+import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -408,6 +410,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return state.edges.some((edge) => edge.target === id);
   });
 
+  // Check if this node has an incoming control edge (to show the control handle)
+  const hasControlEdge = useNodes((state) => {
+    return state.edges.some(
+      (edge) => edge.target === id && edge.targetHandle === CONTROL_HANDLE_ID
+    );
+  });
+
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
 
@@ -597,6 +606,26 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       className={styleProps.className}
       sx={containerSx}
     >
+      {hasControlEdge && (
+        <Handle
+          type="target"
+          id={CONTROL_HANDLE_ID}
+          position={Position.Top}
+          className="control-handle"
+          isConnectable={true}
+          style={{
+            top: -6,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 14,
+            height: 8,
+            borderRadius: "4px 4px 0 0",
+            background: "#f59e0b",
+            border: "1px solid #d97706",
+            zIndex: 1000
+          }}
+        />
+      )}
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
       <NodeResizeHandle minWidth={150} minHeight={150} />
       <NodeHeader

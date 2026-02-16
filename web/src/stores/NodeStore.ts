@@ -34,7 +34,7 @@ import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
-import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
+import { graphEdgeToReactFlowEdge, CONTROL_HANDLE_ID } from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -580,6 +580,9 @@ export const createNodeStore = (
             if (!connection.targetHandle) {
               return;
             }
+
+            const isControlEdge = connection.targetHandle === CONTROL_HANDLE_ID;
+
             const isDynamicProperty =
               targetNode?.data.dynamic_properties[connection.targetHandle] !==
               undefined;
@@ -588,16 +591,25 @@ export const createNodeStore = (
               !targetNode ||
               !(
                 isDynamicProperty ||
+                isControlEdge ||
                 get().validateConnection(connection, srcNode, targetNode)
               )
             ) {
               return;
             }
 
+            // For control edges, validate that source is an Agent node
+            if (isControlEdge) {
+              const isAgent = srcNode.type?.toLowerCase().includes("agent") ?? false;
+              if (!isAgent) {
+                return;
+              }
+            }
+
             // Check if the target handle is a "collect" handle (list[T])
             // Collect handles allow multiple incoming connections
             let isCollectHandle = false;
-            if (targetNode && connection.targetHandle) {
+            if (targetNode && connection.targetHandle && !isControlEdge) {
               const targetMetadata = useMetadataStore
                 .getState()
                 .getMetadata(targetNode.type || "");
@@ -639,7 +651,8 @@ export const createNodeStore = (
               ...connection,
               id: get().generateEdgeId(),
               sourceHandle: connection.sourceHandle || null,
-              targetHandle: connection.targetHandle || null
+              targetHandle: connection.targetHandle || null,
+              ...(isControlEdge ? { type: "control", data: { edge_type: "control" } } : {})
             } as Edge;
 
             // Normalize handles to null if undefined for consistency
@@ -1094,6 +1107,30 @@ export const createNodeStore = (
             // Basic validation: ensure handles are provided
             if (!connection.sourceHandle || !connection.targetHandle) {
               return false;
+            }
+
+            // Control edge validation: only Agent nodes can create control edges
+            if (connection.targetHandle === CONTROL_HANDLE_ID) {
+              const isAgent = srcNode.type?.toLowerCase().includes("agent") ?? false;
+              if (!isAgent) {
+                return false;
+              }
+              // Check for existing control connection between same source and target
+              const edges = get().edges;
+              const existingConnection = edges.find(
+                (edge) =>
+                  edge.source === connection.source &&
+                  edge.target === connection.target &&
+                  edge.targetHandle === CONTROL_HANDLE_ID
+              );
+              if (existingConnection) {
+                return false;
+              }
+              return !wouldCreateCycle(
+                edges,
+                connection.source,
+                connection.target
+              );
             }
 
             const srcMetadata = useMetadataStore

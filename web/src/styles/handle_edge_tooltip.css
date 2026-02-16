@@ -186,6 +186,38 @@
   transition: all 0.2s;
 }
 
+/* CONTROL EDGE - dashed edge from Agent nodes to controlled nodes */
+.react-flow .react-flow__edge.control-edge .react-flow__edge-path {
+  stroke: #f59e0b;
+  stroke-dasharray: 8 4;
+  stroke-width: 2 !important;
+  stroke-opacity: 0.7;
+}
+
+.react-flow .react-flow__edge.control-edge:hover .react-flow__edge-path {
+  stroke-width: 3 !important;
+  stroke-opacity: 1;
+}
+
+.react-flow
+  .react-flow__edges
+  .react-flow__edge.control-edge.selected
+  .react-flow__edge-path {
+  stroke: #f59e0b !important;
+  stroke-width: 3 !important;
+  stroke-opacity: 1;
+  filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.5));
+}
+
+/* CONTROL HANDLE - special handle at the top of controlled nodes */
+.react-flow__node .react-flow__handle.control-handle {
+  width: 14px;
+  height: 8px;
+  border-radius: 4px 4px 0 0;
+  background: #f59e0b;
+  border: 1px solid #d97706;
+}
+
 /* HANDLE */
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
