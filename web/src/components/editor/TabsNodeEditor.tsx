@@ -16,6 +16,7 @@ import { generateCSS } from "../themes/GenerateCSS";
 import { Box } from "@mui/material";
 
 import TabsBar from "./TabsBar";
+import FileTabContent from "./FileTabContent";
 import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
@@ -28,6 +29,7 @@ import {
 } from "../../hooks/useAutosave";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import type { NodeStore } from "../../stores/NodeStore";
+import { useFileTabsStore } from "../../stores/FileTabsStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -445,6 +447,16 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
 
   const theme = useTheme();
 
+  const activeFileTabId = useFileTabsStore((state) => state.activeFileTabId);
+  const openFileTabs = useFileTabsStore((state) => state.openFileTabs);
+  const activeFileTab = useMemo(
+    () =>
+      activeFileTabId
+        ? openFileTabs.find((t) => t.asset.id === activeFileTabId)
+        : undefined,
+    [activeFileTabId, openFileTabs]
+  );
+
   return (
     <>
       <div
@@ -465,51 +477,69 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
             css={generateCSS}
             style={{ flex: 1, minHeight: 0, minWidth: 0 }}
           >
-            <Box
-              key={currentWorkflowId}
-              sx={{
-                overflow: "hidden",
-                position: "absolute",
-                width: "100%",
-                height: "100%",
-                minHeight: 0,
-                minWidth: 0,
-                display: "flex",
-                flexDirection: "column"
-              }}
-            >
-              {activeNodeStore && (
-                <NodeContext.Provider value={activeNodeStore}>
-                  <ReactFlowProvider>
-                    <ContextMenuProvider>
-                      <ConnectableNodesProvider>
-                        <KeyboardProvider>
-                          <div className="status-message-container">
-                            <StatusMessage />
-                          </div>
-                          <div
-                            style={{
-                              flex: 1,
-                              minHeight: 0,
-                              position: "relative",
-                              width: "100%",
-                              height: "100%"
-                            }}
-                          >
-                            <NodeEditor
-                              workflowId={currentWorkflowId!}
-                              active={true}
-                            />
-                          </div>
+            {activeFileTab ? (
+              <Box
+                key={`file-${activeFileTab.asset.id}`}
+                sx={{
+                  overflow: "hidden",
+                  position: "absolute",
+                  width: "100%",
+                  height: "100%",
+                  minHeight: 0,
+                  minWidth: 0,
+                  display: "flex",
+                  flexDirection: "column"
+                }}
+              >
+                <FileTabContent asset={activeFileTab.asset} />
+              </Box>
+            ) : (
+              <Box
+                key={currentWorkflowId}
+                sx={{
+                  overflow: "hidden",
+                  position: "absolute",
+                  width: "100%",
+                  height: "100%",
+                  minHeight: 0,
+                  minWidth: 0,
+                  display: "flex",
+                  flexDirection: "column"
+                }}
+              >
+                {activeNodeStore && (
+                  <NodeContext.Provider value={activeNodeStore}>
+                    <ReactFlowProvider>
+                      <ContextMenuProvider>
+                        <ConnectableNodesProvider>
+                          <KeyboardProvider>
+                            <div className="status-message-container">
+                              <StatusMessage />
+                            </div>
+                            <div
+                              style={{
+                                flex: 1,
+                                minHeight: 0,
+                                position: "relative",
+                                width: "100%",
+                                height: "100%"
+                              }}
+                            >
+                              <NodeEditor
+                                workflowId={currentWorkflowId!}
+                                active={true}
+                              />
+                            </div>
 
-                          <FloatingToolBar />
-                        </KeyboardProvider>
-                      </ConnectableNodesProvider>
-                    </ContextMenuProvider>
-                  </ReactFlowProvider>
-                </NodeContext.Provider>
-              )}
-            </Box>
+                            <FloatingToolBar />
+                          </KeyboardProvider>
+                        </ConnectableNodesProvider>
+                      </ContextMenuProvider>
+                    </ReactFlowProvider>
+                  </NodeContext.Provider>
+                )}
+              </Box>
+            )}
           </div>
         )}
       </div>

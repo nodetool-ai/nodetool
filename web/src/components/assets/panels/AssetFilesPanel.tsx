@@ -5,6 +5,7 @@ import SearchErrorBoundary from "../../SearchErrorBoundary";
 import GlobalSearchResults from "../GlobalSearchResults";
 import AssetGridContent from "../AssetGridContent";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
+import { useFileTabsStore } from "../../../stores/FileTabsStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 
@@ -18,6 +19,7 @@ const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
   const containerRef = useRef<HTMLDivElement>(null);
 
   const setOpenAssetLocal = useAssetGridStore((state) => state.setOpenAsset);
+  const openFileTab = useFileTabsStore((state) => state.openFileTab);
   const isGlobalSearchActiveLocal = useAssetGridStore(
     (state) => state.isGlobalSearchActive
   );
@@ -39,16 +41,24 @@ const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
 
   const handleDoubleClick = useCallback(
     (asset: Asset) => {
-      setOpenAssetLocal(asset);
+      if (asset.content_type === "folder") {
+        setOpenAssetLocal(asset);
+      } else {
+        openFileTab(asset);
+      }
     },
-    [setOpenAssetLocal]
+    [setOpenAssetLocal, openFileTab]
   );
 
   const handleGlobalSearchAssetDoubleClick = useCallback(
     (asset: AssetWithPath) => {
-      setOpenAssetLocal(asset);
+      if (asset.content_type === "folder") {
+        setOpenAssetLocal(asset);
+      } else {
+        openFileTab(asset);
+      }
     },
-    [setOpenAssetLocal]
+    [setOpenAssetLocal, openFileTab]
   );
 
   const handleNavigateToFolder = useCallback(
