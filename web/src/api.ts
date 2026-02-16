@@ -1442,6 +1442,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Skills */
+        get: operations["list_skills_api_skills_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/{skill_name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Skill */
+        get: operations["get_skill_api_skills__skill_name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows/": {
         parameters: {
             query?: never;
@@ -2170,6 +2204,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fal/resolve-dynamic-schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Fal Dynamic Schema
+         * @description Resolve FAL dynamic schema from model_info (pasted llms.txt, URL, or endpoint id).
+         *     Returns dynamic_properties and dynamic_outputs for the UI to update the node.
+         *     Requires nodetool-fal to be installed.
+         */
+        post: operations["resolve_fal_dynamic_schema_api_fal_resolve_dynamic_schema_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/fonts/": {
         parameters: {
             query?: never;
@@ -2672,6 +2728,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/collections/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Collections
+         * @description List all collections
+         */
+        get: operations["list_collections_api_collections__get"];
+        put?: never;
+        /**
+         * Create Collection
+         * @description Create a new collection
+         *
+         *     Args:
+         *         req: Collection creation request with:
+         *             - name: Collection name
+         *             - embedding_model: Model ID for embeddings (e.g., "text-embedding-3-small", "nomic-embed-text")
+         *             - embedding_provider: Optional provider (e.g., "openai", "ollama"). Auto-detected if not specified.
+         */
+        post: operations["create_collection_api_collections__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/collections/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get
+         * @description Get a specific collection by name
+         */
+        get: operations["get_api_collections__name__get"];
+        /**
+         * Update Collection
+         * @description Update a collection
+         */
+        put: operations["update_collection_api_collections__name__put"];
+        post?: never;
+        /**
+         * Delete Collection
+         * @description Delete a collection
+         */
+        delete: operations["delete_collection_api_collections__name__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/collections/{name}/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Index */
+        post: operations["index_api_collections__name__index_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users
+         * @description List all users (tokens masked).
+         *
+         *     Requires admin role for multi_user auth.
+         *     For other auth providers, returns empty list or error.
+         */
+        get: operations["list_users_api_users__get"];
+        put?: never;
+        /**
+         * Add User
+         * @description Add a new user.
+         *
+         *     Returns plaintext token (only shown on creation).
+         *     Requires admin role for multi_user auth.
+         */
+        post: operations["add_user_api_users__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{username}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User
+         * @description Get specific user information (token masked).
+         *
+         *     Requires admin role for multi_user auth.
+         */
+        get: operations["get_user_api_users__username__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete User
+         * @description Remove a user.
+         *
+         *     Requires admin role for multi_user auth.
+         */
+        delete: operations["delete_user_api_users__username__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/reset-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset Token
+         * @description Generate new bearer token for a user.
+         *
+         *     Returns plaintext token.
+         *     Requires admin role for multi_user auth.
+         */
+        post: operations["reset_token_api_users_reset_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/list": {
         parameters: {
             query?: never;
@@ -2755,7 +2967,151 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/collections/": {
+    "/admin/models/huggingface/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download Huggingface Model Endpoint
+         * @description Download HuggingFace model with optional streaming progress.
+         */
+        post: operations["download_huggingface_model_endpoint_admin_models_huggingface_download_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/models/ollama/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download Ollama Model Endpoint
+         * @description Download Ollama model with optional streaming progress.
+         */
+        post: operations["download_ollama_model_endpoint_admin_models_ollama_download_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/cache/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Scan Cache
+         * @description Scan HuggingFace cache directory.
+         */
+        get: operations["scan_cache_admin_cache_scan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/cache/size": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cache Size
+         * @description Calculate total cache size.
+         */
+        get: operations["get_cache_size_admin_cache_size_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/models/huggingface/{repo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Huggingface Model Endpoint
+         * @description Delete HuggingFace model from cache.
+         */
+        delete: operations["delete_huggingface_model_endpoint_admin_models_huggingface__repo_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/db/{table}/save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Db Save
+         * @description Save an item to the specified table using the database adapter.
+         */
+        post: operations["db_save_admin_db__table__save_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/db/{table}/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Db Get
+         * @description Get an item by primary key from the specified table.
+         */
+        get: operations["db_get_admin_db__table___key__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Db Delete
+         * @description Delete an item by primary key from the specified table.
+         */
+        delete: operations["db_delete_admin_db__table___key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/collections": {
         parameters: {
             query?: never;
             header?: never;
@@ -2764,28 +3120,22 @@ export interface paths {
         };
         /**
          * List Collections
-         * @description List all collections
+         * @description List all collections.
          */
-        get: operations["list_collections_api_collections__get"];
+        get: operations["list_collections_admin_collections_get"];
         put?: never;
         /**
          * Create Collection
-         * @description Create a new collection
-         *
-         *     Args:
-         *         req: Collection creation request with:
-         *             - name: Collection name
-         *             - embedding_model: Model ID for embeddings (e.g., "text-embedding-3-small", "nomic-embed-text")
-         *             - embedding_provider: Optional provider (e.g., "openai", "ollama"). Auto-detected if not specified.
+         * @description Create a new collection.
          */
-        post: operations["create_collection_api_collections__post"];
+        post: operations["create_collection_admin_collections_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/collections/{name}": {
+    "/admin/collections/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2793,27 +3143,95 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get
-         * @description Get a specific collection by name
+         * Get Collection
+         * @description Get a specific collection by name.
          */
-        get: operations["get_api_collections__name__get"];
+        get: operations["get_collection_admin_collections__name__get"];
         /**
          * Update Collection
-         * @description Update a collection
+         * @description Update a collection.
          */
-        put: operations["update_collection_api_collections__name__put"];
+        put: operations["update_collection_admin_collections__name__put"];
         post?: never;
         /**
          * Delete Collection
-         * @description Delete a collection
+         * @description Delete a collection.
          */
-        delete: operations["delete_collection_api_collections__name__delete"];
+        delete: operations["delete_collection_admin_collections__name__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/collections/{name}/index": {
+    "/admin/collections/{name}/add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add To Collection
+         * @description Add a file to a collection.
+         */
+        post: operations["add_to_collection_admin_collections__name__add_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Assets
+         * @description List assets (admin endpoint - no user restrictions).
+         */
+        get: operations["list_assets_admin_assets_get"];
+        put?: never;
+        /**
+         * Create Asset
+         * @description Create a new asset (admin endpoint - no user restrictions).
+         */
+        post: operations["create_asset_admin_assets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Asset
+         * @description Get a single asset by ID (admin endpoint - no user restrictions).
+         */
+        get: operations["get_asset_admin_assets__asset_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Asset
+         * @description Delete an asset (recursive for folders) (admin endpoint - no user restrictions).
+         */
+        delete: operations["delete_asset_admin_assets__asset_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{name}/index": {
         parameters: {
             query?: never;
             header?: never;
@@ -2823,10 +3241,122 @@ export interface paths {
         get?: never;
         put?: never;
         /** Index */
-        post: operations["index_api_collections__name__index_post"];
+        post: operations["index_collections__name__index_post"];
         delete?: never;
         options?: never;
         head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/storage/assets/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Get Asset
+         * @description Returns an asset file as a stream with range support.
+         */
+        get: operations["admin_get_asset_admin_storage_assets__key__get"];
+        /**
+         * Admin Put Asset
+         * @description Uploads or updates an asset file.
+         */
+        put: operations["admin_put_asset_admin_storage_assets__key__put"];
+        post?: never;
+        /**
+         * Admin Delete Asset
+         * @description Deletes an asset file.
+         */
+        delete: operations["admin_delete_asset_admin_storage_assets__key__delete"];
+        options?: never;
+        /**
+         * Admin Head Asset
+         * @description Returns metadata for an asset file.
+         */
+        head: operations["admin_head_asset_admin_storage_assets__key__head"];
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/storage/temp/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Get Temp
+         * @description Returns a temp file as a stream with range support.
+         */
+        get: operations["admin_get_temp_admin_storage_temp__key__get"];
+        /**
+         * Admin Put Temp
+         * @description Uploads or updates a temp file.
+         */
+        put: operations["admin_put_temp_admin_storage_temp__key__put"];
+        post?: never;
+        /**
+         * Admin Delete Temp
+         * @description Deletes a temp file.
+         */
+        delete: operations["admin_delete_temp_admin_storage_temp__key__delete"];
+        options?: never;
+        /**
+         * Admin Head Temp
+         * @description Returns metadata for a temp file.
+         */
+        head: operations["admin_head_temp_admin_storage_temp__key__head"];
+        patch?: never;
+        trace?: never;
+    };
+    "/storage/assets/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Get Asset
+         * @description Returns an asset file as a stream with range support (public).
+         */
+        get: operations["public_get_asset_storage_assets__key__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        /**
+         * Public Head Asset
+         * @description Returns metadata for an asset file (public).
+         */
+        head: operations["public_head_asset_storage_assets__key__head"];
+        patch?: never;
+        trace?: never;
+    };
+    "/storage/temp/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Get Temp
+         * @description Returns a temp file as a stream with range support (public).
+         */
+        get: operations["public_get_temp_storage_temp__key__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        /**
+         * Public Head Temp
+         * @description Returns metadata for a temp file (public).
+         */
+        head: operations["public_head_temp_storage_temp__key__head"];
         patch?: never;
         trace?: never;
     };
@@ -2839,6 +3369,26 @@ export interface paths {
         };
         /** Health Check */
         get: operations["health_check_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ping
+         * @description Health check with system information.
+         */
+        get: operations["ping_ping_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2891,6 +3441,32 @@ export interface components {
             /** Path */
             path?: string | null;
         };
+        /** AddToCollection */
+        AddToCollection: {
+            /** Documents */
+            documents: string[];
+            /** Ids */
+            ids: string[];
+            /** Metadatas */
+            metadatas: {
+                [key: string]: string;
+            }[];
+            /** Embeddings */
+            embeddings: number[][];
+        };
+        /**
+         * AddUserRequest
+         * @description Request model for adding a user.
+         */
+        AddUserRequest: {
+            /** Username */
+            username: string;
+            /**
+             * Role
+             * @default user
+             */
+            role: string;
+        };
         /** Asset */
         Asset: {
             /** Id */
@@ -2923,6 +3499,8 @@ export interface components {
             node_id?: string | null;
             /** Job Id */
             job_id?: string | null;
+            /** Etag */
+            etag?: string | null;
         };
         /** AssetDownloadRequest */
         AssetDownloadRequest: {
@@ -3192,6 +3770,14 @@ export interface components {
              */
             file: string;
         };
+        /** Body_index_collections__name__index_post */
+        Body_index_collections__name__index_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+        };
         /** Body_upload_file_api_files_upload__path__post */
         Body_upload_file_api_files_upload__path__post: {
             /**
@@ -3325,25 +3911,6 @@ export interface components {
              */
             thinking: boolean;
         };
-        /** CollectionCreate */
-        CollectionCreate: {
-            /** Name */
-            name: string;
-            /**
-             * Embedding Model
-             * @default all-minilm:latest
-             */
-            embedding_model: string;
-            /** Embedding Provider */
-            embedding_provider?: string | null;
-        };
-        /** CollectionList */
-        CollectionList: {
-            /** Collections */
-            collections: components["schemas"]["CollectionResponse"][];
-            /** Count */
-            count: number;
-        };
         /** CollectionModify */
         CollectionModify: {
             /** Name */
@@ -3352,19 +3919,6 @@ export interface components {
             metadata?: {
                 [key: string]: string;
             } | null;
-        };
-        /** CollectionResponse */
-        CollectionResponse: {
-            /** Name */
-            name: string;
-            /** Count */
-            count: number;
-            /** Metadata */
-            metadata: {
-                [key: string]: unknown;
-            };
-            /** Workflow Name */
-            workflow_name?: string | null;
         };
         /** ColumnDef */
         ColumnDef: {
@@ -3539,6 +4093,12 @@ export interface components {
             ui_properties?: {
                 [key: string]: string;
             } | null;
+            /**
+             * Edge Type
+             * @default data
+             * @enum {string}
+             */
+            edge_type: "data" | "control";
         };
         /**
          * EdgeUpdate
@@ -5250,6 +5810,8 @@ export interface components {
              * @default false
              */
             is_resumable: boolean;
+            /** Etag */
+            etag?: string | null;
         };
         /** JobUpdate */
         JobUpdate: {
@@ -5735,6 +6297,11 @@ export interface components {
          * Model3DRef
          * @description A reference to a 3D model asset.
          *     Supports common 3D formats like GLB, GLTF, OBJ, FBX, STL, PLY, USDZ.
+         *
+         *     For formats that require multiple files (e.g., OBJ with MTL and textures):
+         *     - format: The primary 3D model format (e.g., "obj")
+         *     - material_file: Reference to material file (e.g., MTL file for OBJ models)
+         *     - texture_files: List of texture image references used by the model
          */
         Model3DRef: {
             /**
@@ -5758,6 +6325,9 @@ export interface components {
             } | null;
             /** Format */
             format?: string | null;
+            material_file?: components["schemas"]["AssetRef"] | null;
+            /** Texture Files */
+            texture_files?: components["schemas"]["ImageRef"][];
         };
         /**
          * ModelAggregateResponse
@@ -6000,6 +6570,11 @@ export interface components {
              */
             basic_fields: string[];
             /**
+             * Required Settings
+             * @description Environment setting/secret keys required to run the node
+             */
+            required_settings: string[];
+            /**
              * Is Dynamic
              * @description Whether the node is dynamic
              * @default false
@@ -6028,11 +6603,6 @@ export interface components {
              * @description Model packs associated with this node
              */
             model_packs?: components["schemas"]["ModelPack"][];
-            /**
-             * Required Settings
-             * @description List of required setting environment variables that must be configured for this node to function
-             */
-            required_settings?: string[];
         };
         /**
          * NodeProgress
@@ -6473,7 +7043,7 @@ export interface components {
          * Provider
          * @enum {string}
          */
-        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "cerebras" | "groq" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "together" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "zai" | "mistral" | "empty" | "mlx" | "fal_ai" | "fake" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai";
+        Provider: "aime" | "openai" | "openrouter" | "anthropic" | "cerebras" | "groq" | "minimax" | "replicate" | "ollama" | "lmstudio" | "kie" | "together" | "comfy_local" | "comfy_runpod" | "local" | "llama_cpp" | "gemini" | "vllm" | "zai" | "mistral" | "empty" | "mlx" | "fal_ai" | "fake" | "huggingface" | "huggingface_cohere" | "huggingface_fal_ai" | "huggingface_featherless_ai" | "huggingface_fireworks_ai" | "huggingface_groq" | "huggingface_cerebras" | "huggingface_hf_inference" | "huggingface_hyperbolic" | "huggingface_nebius" | "huggingface_novita" | "huggingface_nscale" | "huggingface_openai" | "huggingface_replicate" | "huggingface_sambanova" | "huggingface_scaleway" | "huggingface_together" | "huggingface_zai" | "meshy" | "rodin";
         /**
          * ProviderAggregateResponse
          * @description Response model for provider-level aggregation.
@@ -6512,6 +7082,19 @@ export interface components {
              * @default false
              */
             downloaded: boolean;
+        };
+        /**
+         * ResetTokenRequest
+         * @description Request model for resetting a token.
+         */
+        ResetTokenRequest: {
+            /** Username */
+            username: string;
+        };
+        /** ResolveFalDynamicSchemaRequest */
+        ResolveFalDynamicSchemaRequest: {
+            /** Model Info */
+            model_info: string;
         };
         /**
          * ResourceLimits
@@ -6759,6 +7342,24 @@ export interface components {
             secrets: {
                 [key: string]: unknown;
             };
+        };
+        /** SkillListResponse */
+        SkillListResponse: {
+            /** Count */
+            count: number;
+            /** Skills */
+            skills: components["schemas"]["SkillResponse"][];
+        };
+        /** SkillResponse */
+        SkillResponse: {
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Path */
+            path: string;
+            /** Instructions */
+            instructions?: string | null;
         };
         /**
          * Step
@@ -7073,6 +7674,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Etag */
+            etag?: string | null;
         };
         /**
          * ThreadCreateRequest
@@ -7433,6 +8036,8 @@ export interface components {
             required_models?: string[] | null;
             /** Html App */
             html_app?: string | null;
+            /** Etag */
+            etag?: string | null;
         };
         /**
          * WorkflowGenerateNameRequest
@@ -7642,6 +8247,38 @@ export interface components {
              */
             is_default?: boolean | null;
         };
+        /** CollectionCreate */
+        nodetool__api__collection__CollectionCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Embedding Model
+             * @default all-minilm:latest
+             */
+            embedding_model: string;
+            /** Embedding Provider */
+            embedding_provider?: string | null;
+        };
+        /** CollectionList */
+        nodetool__api__collection__CollectionList: {
+            /** Collections */
+            collections: components["schemas"]["nodetool__api__collection__CollectionResponse"][];
+            /** Count */
+            count: number;
+        };
+        /** CollectionResponse */
+        nodetool__api__collection__CollectionResponse: {
+            /** Name */
+            name: string;
+            /** Count */
+            count: number;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            };
+            /** Workflow Name */
+            workflow_name?: string | null;
+        };
         /** FileInfo */
         nodetool__api__file__FileInfo: {
             /** Name */
@@ -7670,6 +8307,33 @@ export interface components {
             is_dir: boolean;
             /** Modified At */
             modified_at: string;
+        };
+        /** CollectionCreate */
+        nodetool__deploy__admin_routes__CollectionCreate: {
+            /** Name */
+            name: string;
+            /** Embedding Model */
+            embedding_model: string;
+        };
+        /** CollectionList */
+        nodetool__deploy__admin_routes__CollectionList: {
+            /** Collections */
+            collections: components["schemas"]["nodetool__deploy__admin_routes__CollectionResponse"][];
+            /** Count */
+            count: number;
+        };
+        /** CollectionResponse */
+        nodetool__deploy__admin_routes__CollectionResponse: {
+            /** Name */
+            name: string;
+            /** Count */
+            count: number;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            } | null;
+            /** Workflow Name */
+            workflow_name?: string | null;
         };
     };
     responses: never;
@@ -9793,6 +10457,71 @@ export interface operations {
             };
         };
     };
+    list_skills_api_skills_get: {
+        parameters: {
+            query?: {
+                include_instructions?: boolean;
+                skill_dir?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_skill_api_skills__skill_name__get: {
+        parameters: {
+            query?: {
+                skill_dir?: string[] | null;
+            };
+            header?: never;
+            path: {
+                skill_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     index_api_workflows__get: {
         parameters: {
             query?: {
@@ -11076,6 +11805,41 @@ export interface operations {
             };
         };
     };
+    resolve_fal_dynamic_schema_api_fal_resolve_dynamic_schema_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveFalDynamicSchemaRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_system_fonts_api_fonts__get: {
         parameters: {
             query?: never;
@@ -11724,6 +12488,363 @@ export interface operations {
             };
         };
     };
+    list_collections_api_collections__get: {
+        parameters: {
+            query?: {
+                _offset?: number | null;
+                _limit?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["nodetool__api__collection__CollectionList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_collection_api_collections__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["nodetool__api__collection__CollectionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["nodetool__api__collection__CollectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_api_collections__name__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["nodetool__api__collection__CollectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_collection_api_collections__name__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionModify"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_collection_api_collections__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    index_api_collections__name__index_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "-authorization"?: string | null;
+            };
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_index_api_collections__name__index_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_api_users__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    add_user_api_users__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_api_users__username__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                username: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_user_api_users__username__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                username: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_token_api_users_reset_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_files_api_files_list_get: {
         parameters: {
             query?: {
@@ -11852,11 +12973,70 @@ export interface operations {
             };
         };
     };
-    list_collections_api_collections__get: {
+    download_huggingface_model_endpoint_admin_models_huggingface_download_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    download_ollama_model_endpoint_admin_models_ollama_download_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    scan_cache_admin_cache_scan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_cache_size_admin_cache_size_get: {
         parameters: {
             query?: {
-                _offset?: number | null;
-                _limit?: number | null;
+                cache_dir?: string;
             };
             header?: never;
             path?: never;
@@ -11870,7 +13050,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CollectionList"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11884,16 +13064,51 @@ export interface operations {
             };
         };
     };
-    create_collection_api_collections__post: {
+    delete_huggingface_model_endpoint_admin_models_huggingface__repo_id__delete: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                repo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    db_save_admin_db__table__save_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CollectionCreate"];
+                "application/json": {
+                    [key: string]: unknown;
+                };
             };
         };
         responses: {
@@ -11903,7 +13118,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CollectionResponse"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11917,7 +13132,136 @@ export interface operations {
             };
         };
     };
-    get_api_collections__name__get: {
+    db_get_admin_db__table___key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    db_delete_admin_db__table___key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                table: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_collections_admin_collections_get: {
+        parameters: {
+            query?: {
+                offset?: number | null;
+                limit?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["nodetool__deploy__admin_routes__CollectionList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_collection_admin_collections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["nodetool__deploy__admin_routes__CollectionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["nodetool__deploy__admin_routes__CollectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_collection_admin_collections__name__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -11934,7 +13278,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CollectionResponse"];
+                    "application/json": components["schemas"]["nodetool__deploy__admin_routes__CollectionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -11948,7 +13292,7 @@ export interface operations {
             };
         };
     };
-    update_collection_api_collections__name__put: {
+    update_collection_admin_collections__name__put: {
         parameters: {
             query?: never;
             header?: never;
@@ -11983,7 +13327,7 @@ export interface operations {
             };
         };
     };
-    delete_collection_api_collections__name__delete: {
+    delete_collection_admin_collections__name__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -12014,12 +13358,10 @@ export interface operations {
             };
         };
     };
-    index_api_collections__name__index_post: {
+    add_to_collection_admin_collections__name__add_post: {
         parameters: {
             query?: never;
-            header?: {
-                "-authorization"?: string | null;
-            };
+            header?: never;
             path: {
                 name: string;
             };
@@ -12027,7 +13369,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_index_api_collections__name__index_post"];
+                "application/json": components["schemas"]["AddToCollection"];
             };
         };
         responses: {
@@ -12037,7 +13379,550 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IndexResponse"];
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_assets_admin_assets_get: {
+        parameters: {
+            query?: {
+                user_id?: string | null;
+                parent_id?: string | null;
+                content_type?: string | null;
+                cursor?: string | null;
+                page_size?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_asset_admin_assets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Asset"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_asset_admin_assets__asset_id__get: {
+        parameters: {
+            query?: {
+                user_id?: string | null;
+            };
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Asset"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_asset_admin_assets__asset_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    index_collections__name__index_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_index_collections__name__index_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_asset_admin_storage_assets__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_put_asset_admin_storage_assets__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_delete_asset_admin_storage_assets__key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_head_asset_admin_storage_assets__key__head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_get_temp_admin_storage_temp__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_put_temp_admin_storage_temp__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_delete_temp_admin_storage_temp__key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_head_temp_admin_storage_temp__key__head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_get_asset_storage_assets__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_head_asset_storage_assets__key__head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_get_temp_storage_temp__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_head_temp_storage_temp__key__head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12067,6 +13952,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+        };
+    };
+    ping_ping_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
