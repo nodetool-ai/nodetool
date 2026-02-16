@@ -1,4 +1,3 @@
-import React from "react";
 import { Box, Popover, List, ListItem } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
 import { useState } from "react";

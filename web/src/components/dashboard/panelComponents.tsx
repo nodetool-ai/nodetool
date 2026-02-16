@@ -1,4 +1,3 @@
-import React from "react";
 import { Box } from "@mui/material";
 import { IDockviewPanelProps } from "dockview";
 import ChatView from "../chat/containers/ChatView";
