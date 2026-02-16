@@ -9,7 +9,7 @@ import rehypeRaw from "rehype-raw";
 import "../../../styles/markdown/nodetool-markdown.css";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
-import "../../../styles/markdown/github-markdown-dark.css";
+import "../../../styles/markdown/github-markdown.css";
 
 interface ChatMarkdownProps {
   content: string;
@@ -29,7 +29,7 @@ const styles = (_theme: Theme) =>
       justifyContent: "space-between",
       alignItems: "center",
       backgroundColor: "var(--palette-grey-800)",
-      color: "var(--palette-grey-200)",
+      color: "var(--palette-text-primary)",
       paddingTop: "5px",
       paddingBottom: "5px",
       paddingLeft: "1em",
