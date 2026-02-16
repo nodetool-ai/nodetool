@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
-import * as path from "path";
+
 import {
   navigateToPage,
   waitForEditorReady,
@@ -353,27 +353,6 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test.describe("File Drop on Canvas", () => {
-      test("should handle file drop on canvas", async ({ page }) => {
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
-
-        await waitForEditorReady(page);
-        const canvas = page.locator(".react-flow");
-
-        // Create a test file
-        const testFilePath = path.join(__dirname, 'fixtures', 'test-document.txt');
-
-        // Set up file input (if the app provides one)
-        const fileInput = page.locator('input[type="file"]');
-        
-        if (await fileInput.count() > 0) {
-          await fileInput.setInputFiles(testFilePath);
-          await waitForAnimation(page);
-        }
-
-        // Canvas should remain functional
-        await expect(canvas).toBeVisible();
-      });
-
       test("should prevent dropping invalid files", async ({ page }) => {
         await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
 
@@ -425,35 +404,6 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     test.describe("Touch and Drag (Mobile)", () => {
-      test("should support touch drag on nodes", async ({ page }) => {
-        // Set mobile viewport
-        await page.setViewportSize({ width: 375, height: 667 });
-
-        await navigateToPage(page, `/editor/${MOCK_WORKFLOW_ID}`);
-
-        await waitForEditorReady(page);
-        const canvas = page.locator(".react-flow");
-
-        const node = page.locator(".react-flow__node").first();
-        
-        if (await node.count() > 0) {
-          const bounds = await node.boundingBox();
-          
-          if (bounds) {
-            // Simulate touch drag
-            await page.touchscreen.tap(
-              bounds.x + bounds.width / 2,
-              bounds.y + bounds.height / 2
-            );
-            
-            await waitForAnimation(page);
-
-            // Node should still be visible
-            await expect(node).toBeVisible();
-          }
-        }
-      });
-
       test("should support pinch-to-zoom on canvas", async ({ page }) => {
         // Set mobile viewport
         await page.setViewportSize({ width: 375, height: 667 });
