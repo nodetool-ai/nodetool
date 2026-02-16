@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -402,9 +402,9 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
       <div
         className="grid"
-        style={{
+        style={useMemo(() => ({
           gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`
-        }}
+        }), [itemSize])}
       >
         {images.map((img, idx) => {
           // Skip null/undefined images
@@ -412,9 +412,11 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             return null;
           }
           const isSelected = selectedIndices.has(idx);
+          // Use stable key: for strings use the URL, for Uint8Array use index
+          const key = typeof img === 'string' ? img : `bytes-${idx}`;
           return (
             <div
-              key={idx}
+              key={key}
               className={`tile ${isSelected ? "selected" : ""}`}
               onDoubleClick={() => {
                 if (selectionMode) { return; }

@@ -140,23 +140,37 @@ export const MessageView: React.FC<
   const insertIntoEditor = useEditorInsertion();
 
   // Memoize JSON parsing to avoid repeated parsing on every render
+  // Use string comparison to avoid re-parsing identical content
   const { executionContent, executionEventType } = useMemo(() => {
     let executionContent = message.content as any;
     let executionEventType = message.execution_event_type;
 
-    if (typeof executionContent === "string") {
-      try {
-        executionContent = JSON.parse(executionContent);
-        if (typeof executionContent === "string") {
-          try {
-            executionContent = JSON.parse(executionContent);
-          } catch {
-            // Keep intermediate string if nested JSON parsing fails.
-          }
-        }
-      } catch {
-        // Keep original string if JSON parsing fails.
+    // Fast path: if content is not a string, no parsing needed
+    if (typeof executionContent !== "string") {
+      if (
+        !executionEventType &&
+        executionContent &&
+        typeof executionContent === "object" &&
+        "type" in executionContent
+      ) {
+        executionEventType = (executionContent as any).type;
       }
+      return { executionContent, executionEventType };
+    }
+
+    // Only parse if content is a string
+    try {
+      executionContent = JSON.parse(executionContent);
+      // Handle double-encoded JSON (common in some API responses)
+      if (typeof executionContent === "string") {
+        try {
+          executionContent = JSON.parse(executionContent);
+        } catch {
+          // Keep intermediate string if nested JSON parsing fails
+        }
+      }
+    } catch {
+      // Keep original string if JSON parsing fails
     }
 
     if (
