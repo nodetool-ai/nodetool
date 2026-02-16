@@ -25,6 +25,9 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SyncIcon from "@mui/icons-material/Sync";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 
+import { BookmarkButton } from "./BookmarkButton";
+import { useNodeBookmarks } from "../../hooks/useNodeBookmarks";
+
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
@@ -69,6 +72,8 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const syncMode = nodeData?.sync_mode || "on_any";
   const hasCommentTitle = Boolean(nodeData?.title?.trim());
   const isBypassed = Boolean(nodeData?.bypassed);
+  const { addNodeBookmark, removeNodeBookmark, getNodeBookmark } = useNodeBookmarks();
+  const nodeBookmark = nodeId ? getNodeBookmark(nodeId) : undefined;
   const isInGroup = Boolean(node?.parentId);
 
   const handleDelete = useCallback(() => {
@@ -151,6 +156,18 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const handleCloseDropdown = useCallback(() => {
     setAnchorEl(null);
   }, []);
+
+  const handleSetBookmark = useCallback((index: number) => {
+    if (nodeId) {
+      addNodeBookmark(nodeId, index);
+    }
+  }, [nodeId, addNodeBookmark]);
+
+  const handleRemoveBookmark = useCallback(() => {
+    if (nodeId) {
+      removeNodeBookmark(nodeId);
+    }
+  }, [nodeId, removeNodeBookmark]);
 
   if (!nodeId) { return null; }
 
@@ -268,6 +285,16 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           </IconButton>
         </Tooltip>
 
+
+        {/* Bookmark Button */}
+        <BookmarkButton
+          isBookmarked={!!nodeBookmark}
+          bookmarkIndex={nodeBookmark?.index}
+          onSetBookmark={handleSetBookmark}
+          onRemoveBookmark={handleRemoveBookmark}
+          addTooltip="Add bookmark (Ctrl+Shift+1-9)"
+          removeTooltip={nodeBookmark ? `Remove bookmark (${nodeBookmark.index})` : "Remove bookmark"}
+        />
 
         {/* More Actions Dropdown */}
         <Tooltip
