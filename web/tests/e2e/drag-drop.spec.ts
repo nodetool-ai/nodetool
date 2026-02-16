@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { setupMockApiRoutes, workflows } from "./fixtures/mockData";
-
 import {
   navigateToPage,
   waitForEditorReady,
