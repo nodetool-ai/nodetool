@@ -1,9 +1,9 @@
 /**
  * PrefixTreeSearch - Optimized search using Trie data structure
- * 
+ *
  * This module provides a fast prefix-based search implementation using a Trie (prefix tree).
  * It dramatically reduces search time from O(n*m) to O(m) where m is the search term length.
- * 
+ *
  * Key features:
  * - O(m) search complexity for prefix matches
  * - Case-insensitive search
@@ -13,6 +13,46 @@
  */
 
 import { NodeMetadata } from "../stores/ApiTypes";
+
+/** Common stop words to exclude from indexing individual words */
+const STOP_WORDS = new Set([
+  "a",
+  "an",
+  "the",
+  "is",
+  "in",
+  "on",
+  "of",
+  "for",
+  "and",
+  "or",
+  "by",
+  "with",
+  "from",
+  "at",
+  "as",
+  "it",
+  "be",
+  "do",
+  "no",
+  "so",
+  "if",
+  "up",
+  "to",
+  "not",
+  "but",
+  "are",
+  "was",
+  "has",
+  "its",
+  "all",
+  "into",
+  "that",
+  "this",
+  "can",
+  "will",
+  "may"
+]);
 
 /**
  * A single node in the Trie data structure
@@ -58,7 +98,7 @@ const DEFAULT_SEARCH_FIELDS: SearchField[] = [
   { field: "title", weight: 1.0 },
   { field: "namespace", weight: 0.8 },
   { field: "tags", weight: 0.6 },
-  { field: "description", weight: 0.4 },
+  { field: "description", weight: 0.4 }
 ];
 
 /**
@@ -83,7 +123,7 @@ export class PrefixTreeSearch {
   getStats(): { nodeCount: number; fields: string[] } {
     return {
       nodeCount: this.nodeCount,
-      fields: Array.from(this.roots.keys()),
+      fields: Array.from(this.roots.keys())
     };
   }
 
@@ -97,11 +137,15 @@ export class PrefixTreeSearch {
     nodes.forEach((node) => {
       this.fields.forEach((fieldConfig) => {
         const root = this.roots.get(fieldConfig.field);
-        if (!root) {return;}
+        if (!root) {
+          return;
+        }
 
         const values = this.getFieldValues(node, fieldConfig.field);
         values.forEach((value) => {
-          if (!value) {return;}
+          if (!value) {
+            return;
+          }
           this.insertWord(
             root,
             value,
@@ -122,20 +166,26 @@ export class PrefixTreeSearch {
     field: "title" | "namespace" | "description" | "tags"
   ): string[] {
     switch (field) {
-      case "title":
-        return [node.title];
+      case "title": {
+        // Index full title, spaceless variant, and individual non-stop words
+        const titleWords = node.title
+          .split(/\s+/)
+          .filter((w) => w.length > 0 && !STOP_WORDS.has(w.toLowerCase()));
+        const noSpaces = node.title.replace(/\s+/g, "");
+        return [node.title, noSpaces, ...titleWords];
+      }
       case "namespace": {
         // Index both full namespace and individual parts
         const parts = node.namespace.split(".");
         return [node.namespace, ...parts];
       }
       case "description":
-        // Split description into words for indexing
+        // Split description into words for indexing, excluding stop words
         return node.description
           ? node.description
               .toLowerCase()
               .split(/\s+/)
-              .filter((word) => word.length > 2)
+              .filter((word) => word.length > 2 && !STOP_WORDS.has(word))
           : [];
       case "tags":
         // Note: tags would need to be extracted from description if available
@@ -156,7 +206,9 @@ export class PrefixTreeSearch {
     _field: string
   ): void {
     const normalized = word.toLowerCase().trim();
-    if (!normalized) {return;}
+    if (!normalized) {
+      return;
+    }
 
     let current = root;
 
@@ -188,7 +240,7 @@ export class PrefixTreeSearch {
     const {
       maxResults = 100,
       minScore = 0.1,
-      fields = this.fields.map((f) => f.field),
+      fields = this.fields.map((f) => f.field)
     } = options;
 
     if (!query || query.trim().length === 0) {
@@ -201,7 +253,9 @@ export class PrefixTreeSearch {
     // Search in each specified field
     fields.forEach((field) => {
       const root = this.roots.get(field);
-      if (!root) {return;}
+      if (!root) {
+        return;
+      }
 
       // Find the node in the trie corresponding to the query prefix
       let current: TrieNode | null = root;
@@ -245,24 +299,30 @@ export class PrefixTreeSearch {
     minScore: number,
     maxResults: number
   ): void {
-    if (results.size >= maxResults) {return;}
+    if (results.size >= maxResults) {
+      return;
+    }
 
     // Add nodes at current position
     node.nodeRefs.forEach((ref, nodeKey) => {
-      if (ref.score < minScore) {return;}
+      if (ref.score < minScore) {
+        return;
+      }
 
       const existing = results.get(nodeKey);
       if (!existing || existing.score < ref.score) {
         // Determine match type: exact if this is end of indexed word and matches query length
         // Otherwise it's a prefix match
-        const matchType = node.isEndOfWord && 
-          ref.node.title.toLowerCase() === prefix ? "exact" : "prefix";
-        
+        const matchType =
+          node.isEndOfWord && ref.node.title.toLowerCase() === prefix
+            ? "exact"
+            : "prefix";
+
         results.set(nodeKey, {
           node: ref.node,
           score: ref.score,
           matchedField: field,
-          matchType: matchType,
+          matchType: matchType
         });
       }
     });
@@ -270,14 +330,7 @@ export class PrefixTreeSearch {
     // Recursively collect from children
     node.children.forEach((child) => {
       if (results.size < maxResults) {
-        this.collectNodes(
-          child,
-          prefix,
-          field,
-          results,
-          minScore,
-          maxResults
-        );
+        this.collectNodes(child, prefix, field, results, minScore, maxResults);
       }
     });
   }
@@ -333,13 +386,19 @@ export class PrefixTreeSearch {
     minScore: number,
     maxResults: number
   ): void {
-    if (results.length >= maxResults) {return;}
+    if (results.length >= maxResults) {
+      return;
+    }
 
     // Check if current word contains the query
     if (currentWord.length >= query.length && currentWord.includes(query)) {
       node.nodeRefs.forEach((ref, nodeKey) => {
-        if (seen.has(nodeKey)) {return;}
-        if (ref.score < minScore) {return;}
+        if (seen.has(nodeKey)) {
+          return;
+        }
+        if (ref.score < minScore) {
+          return;
+        }
 
         // Bonus score if query is at the start
         const bonus = currentWord.startsWith(query) ? 0.2 : 0;
@@ -347,7 +406,7 @@ export class PrefixTreeSearch {
           node: ref.node,
           score: ref.score + bonus,
           matchedField: field,
-          matchType: "contains",
+          matchType: "contains"
         });
         seen.add(nodeKey);
       });

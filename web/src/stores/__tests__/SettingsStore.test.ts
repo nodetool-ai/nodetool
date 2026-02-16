@@ -1,6 +1,10 @@
-import { useSettingsStore, defaultSettings, defaultAutosaveSettings } from '../SettingsStore';
+import {
+  useSettingsStore,
+  defaultSettings,
+  defaultAutosaveSettings
+} from "../SettingsStore";
 
-describe('SettingsStore', () => {
+describe("SettingsStore", () => {
   const initialState = useSettingsStore.getState();
 
   afterEach(() => {
@@ -8,17 +12,17 @@ describe('SettingsStore', () => {
     localStorage.clear();
   });
 
-  describe('Initial State', () => {
-    test('has correct default settings', () => {
+  describe("Initial State", () => {
+    test("has correct default settings", () => {
       const settings = useSettingsStore.getState().settings;
       expect(settings.gridSnap).toBe(1);
       expect(settings.connectionSnap).toBe(20);
-      expect(settings.panControls).toBe('LMB');
-      expect(settings.selectionMode).toBe('partial');
-      expect(settings.workflowOrder).toBe('name');
-      expect(settings.assetsOrder).toBe('name');
+      expect(settings.panControls).toBe("LMB");
+      expect(settings.selectionMode).toBe("partial");
+      expect(settings.workflowOrder).toBe("name");
+      expect(settings.assetsOrder).toBe("name");
       expect(settings.assetItemSize).toBe(2);
-      expect(settings.timeFormat).toBe('12h');
+      expect(settings.timeFormat).toBe("12h");
       expect(settings.alertBeforeTabClose).toBe(true);
       expect(settings.selectNodesOnDrag).toBe(false);
       expect(settings.showWelcomeOnStartup).toBe(true);
@@ -26,130 +30,149 @@ describe('SettingsStore', () => {
       expect(settings.instantUpdate).toBe(false);
     });
 
-    test('isMenuOpen and settingsTab have correct defaults', () => {
+    test("isMenuOpen and settingsTab have correct defaults", () => {
       expect(useSettingsStore.getState().isMenuOpen).toBe(false);
       expect(useSettingsStore.getState().settingsTab).toBe(0);
+      expect(useSettingsStore.getState().searchFilter).toBe("");
     });
   });
 
-  describe('Grid and Connection Settings', () => {
-    test('setGridSnap updates value', () => {
+  describe("Grid and Connection Settings", () => {
+    test("setGridSnap updates value", () => {
       useSettingsStore.getState().setGridSnap(5);
       expect(useSettingsStore.getState().settings.gridSnap).toBe(5);
     });
 
-    test('setGridSnap defaults to 1 when falsy value passed', () => {
+    test("setGridSnap defaults to 1 when falsy value passed", () => {
       useSettingsStore.getState().setGridSnap(0);
       expect(useSettingsStore.getState().settings.gridSnap).toBe(1);
     });
 
-    test('setConnectionSnap updates value', () => {
+    test("setConnectionSnap updates value", () => {
       useSettingsStore.getState().setConnectionSnap(15);
       expect(useSettingsStore.getState().settings.connectionSnap).toBe(15);
     });
 
-    test('setConnectionSnap defaults to 20 when falsy value passed', () => {
+    test("setConnectionSnap defaults to 20 when falsy value passed", () => {
       useSettingsStore.getState().setConnectionSnap(0);
       expect(useSettingsStore.getState().settings.connectionSnap).toBe(20);
     });
   });
 
-  describe('Control Settings', () => {
-    test('setPanControls updates value', () => {
-      useSettingsStore.getState().setPanControls('RMB');
-      expect(useSettingsStore.getState().settings.panControls).toBe('RMB');
+  describe("Control Settings", () => {
+    test("setPanControls updates value", () => {
+      useSettingsStore.getState().setPanControls("RMB");
+      expect(useSettingsStore.getState().settings.panControls).toBe("RMB");
     });
 
-    test('setPanControls defaults to LMB when falsy value passed', () => {
-      useSettingsStore.getState().setPanControls('');
-      expect(useSettingsStore.getState().settings.panControls).toBe('LMB');
+    test("setPanControls defaults to LMB when falsy value passed", () => {
+      useSettingsStore.getState().setPanControls("");
+      expect(useSettingsStore.getState().settings.panControls).toBe("LMB");
     });
 
-    test('setSelectionMode updates value', () => {
-      useSettingsStore.getState().setSelectionMode('full');
-      expect(useSettingsStore.getState().settings.selectionMode).toBe('full');
+    test("setSelectionMode updates value", () => {
+      useSettingsStore.getState().setSelectionMode("full");
+      expect(useSettingsStore.getState().settings.selectionMode).toBe("full");
     });
 
-    test('setSelectionMode defaults to partial when falsy value passed', () => {
-      useSettingsStore.getState().setSelectionMode('');
-      expect(useSettingsStore.getState().settings.selectionMode).toBe('partial');
-    });
-  });
-
-  describe('Order Settings', () => {
-    test('setWorkflowOrder updates to date', () => {
-      useSettingsStore.getState().setWorkflowOrder('date');
-      expect(useSettingsStore.getState().settings.workflowOrder).toBe('date');
-    });
-
-    test('setWorkflowOrder defaults to name when falsy value passed', () => {
-      useSettingsStore.getState().setWorkflowOrder('' as 'name' | 'date');
-      expect(useSettingsStore.getState().settings.workflowOrder).toBe('name');
-    });
-
-    test('setAssetsOrder updates to date', () => {
-      useSettingsStore.getState().setAssetsOrder('date');
-      expect(useSettingsStore.getState().settings.assetsOrder).toBe('date');
-    });
-
-    test('setAssetsOrder updates to size', () => {
-      useSettingsStore.getState().setAssetsOrder('size');
-      expect(useSettingsStore.getState().settings.assetsOrder).toBe('size');
-    });
-
-    test('setAssetsOrder defaults to name when falsy value passed', () => {
-      useSettingsStore.getState().setAssetsOrder('' as 'name' | 'date' | 'size');
-      expect(useSettingsStore.getState().settings.assetsOrder).toBe('name');
+    test("setSelectionMode defaults to partial when falsy value passed", () => {
+      useSettingsStore.getState().setSelectionMode("");
+      expect(useSettingsStore.getState().settings.selectionMode).toBe(
+        "partial"
+      );
     });
   });
 
-  describe('Display Settings', () => {
-    test('setAssetItemSize updates value', () => {
+  describe("Order Settings", () => {
+    test("setWorkflowOrder updates to date", () => {
+      useSettingsStore.getState().setWorkflowOrder("date");
+      expect(useSettingsStore.getState().settings.workflowOrder).toBe("date");
+    });
+
+    test("setWorkflowOrder defaults to name when falsy value passed", () => {
+      useSettingsStore.getState().setWorkflowOrder("" as "name" | "date");
+      expect(useSettingsStore.getState().settings.workflowOrder).toBe("name");
+    });
+
+    test("setAssetsOrder updates to date", () => {
+      useSettingsStore.getState().setAssetsOrder("date");
+      expect(useSettingsStore.getState().settings.assetsOrder).toBe("date");
+    });
+
+    test("setAssetsOrder updates to size", () => {
+      useSettingsStore.getState().setAssetsOrder("size");
+      expect(useSettingsStore.getState().settings.assetsOrder).toBe("size");
+    });
+
+    test("setAssetsOrder defaults to name when falsy value passed", () => {
+      useSettingsStore
+        .getState()
+        .setAssetsOrder("" as "name" | "date" | "size");
+      expect(useSettingsStore.getState().settings.assetsOrder).toBe("name");
+    });
+  });
+
+  describe("Display Settings", () => {
+    test("setAssetItemSize updates value", () => {
       useSettingsStore.getState().setAssetItemSize(3);
       expect(useSettingsStore.getState().settings.assetItemSize).toBe(3);
     });
 
-    test('setTimeFormat updates to 24h', () => {
-      useSettingsStore.getState().setTimeFormat('24h');
-      expect(useSettingsStore.getState().settings.timeFormat).toBe('24h');
+    test("setTimeFormat updates to 24h", () => {
+      useSettingsStore.getState().setTimeFormat("24h");
+      expect(useSettingsStore.getState().settings.timeFormat).toBe("24h");
     });
 
-    test('setTimeFormat defaults to 12h when falsy value passed', () => {
-      useSettingsStore.getState().setTimeFormat('' as '12h' | '24h');
-      expect(useSettingsStore.getState().settings.timeFormat).toBe('12h');
+    test("setTimeFormat defaults to 12h when falsy value passed", () => {
+      useSettingsStore.getState().setTimeFormat("" as "12h" | "24h");
+      expect(useSettingsStore.getState().settings.timeFormat).toBe("12h");
     });
   });
 
-  describe('Behavior Settings', () => {
-    test('setAlertBeforeTabClose toggles value', () => {
+  describe("Behavior Settings", () => {
+    test("setAlertBeforeTabClose toggles value", () => {
       useSettingsStore.getState().setAlertBeforeTabClose(false);
-      expect(useSettingsStore.getState().settings.alertBeforeTabClose).toBe(false);
+      expect(useSettingsStore.getState().settings.alertBeforeTabClose).toBe(
+        false
+      );
       useSettingsStore.getState().setAlertBeforeTabClose(true);
-      expect(useSettingsStore.getState().settings.alertBeforeTabClose).toBe(true);
+      expect(useSettingsStore.getState().settings.alertBeforeTabClose).toBe(
+        true
+      );
     });
 
-    test('setSelectNodesOnDrag toggles value', () => {
+    test("setSelectNodesOnDrag toggles value", () => {
       useSettingsStore.getState().setSelectNodesOnDrag(true);
       expect(useSettingsStore.getState().settings.selectNodesOnDrag).toBe(true);
       useSettingsStore.getState().setSelectNodesOnDrag(false);
-      expect(useSettingsStore.getState().settings.selectNodesOnDrag).toBe(false);
+      expect(useSettingsStore.getState().settings.selectNodesOnDrag).toBe(
+        false
+      );
     });
 
-    test('setShowWelcomeOnStartup toggles value', () => {
+    test("setShowWelcomeOnStartup toggles value", () => {
       useSettingsStore.getState().setShowWelcomeOnStartup(false);
-      expect(useSettingsStore.getState().settings.showWelcomeOnStartup).toBe(false);
+      expect(useSettingsStore.getState().settings.showWelcomeOnStartup).toBe(
+        false
+      );
       useSettingsStore.getState().setShowWelcomeOnStartup(true);
-      expect(useSettingsStore.getState().settings.showWelcomeOnStartup).toBe(true);
+      expect(useSettingsStore.getState().settings.showWelcomeOnStartup).toBe(
+        true
+      );
     });
 
-    test('setSoundNotifications toggles value', () => {
+    test("setSoundNotifications toggles value", () => {
       useSettingsStore.getState().setSoundNotifications(false);
-      expect(useSettingsStore.getState().settings.soundNotifications).toBe(false);
+      expect(useSettingsStore.getState().settings.soundNotifications).toBe(
+        false
+      );
       useSettingsStore.getState().setSoundNotifications(true);
-      expect(useSettingsStore.getState().settings.soundNotifications).toBe(true);
+      expect(useSettingsStore.getState().settings.soundNotifications).toBe(
+        true
+      );
     });
 
-    test('setInstantUpdate toggles value', () => {
+    test("setInstantUpdate toggles value", () => {
       useSettingsStore.getState().setInstantUpdate(true);
       expect(useSettingsStore.getState().settings.instantUpdate).toBe(true);
       useSettingsStore.getState().setInstantUpdate(false);
@@ -157,93 +180,126 @@ describe('SettingsStore', () => {
     });
   });
 
-  describe('updateSettings', () => {
-    test('updateSettings merges partial settings', () => {
-      useSettingsStore.getState().updateSettings({ panControls: 'RMB', alertBeforeTabClose: false });
+  describe("updateSettings", () => {
+    test("updateSettings merges partial settings", () => {
+      useSettingsStore
+        .getState()
+        .updateSettings({ panControls: "RMB", alertBeforeTabClose: false });
       const settings = useSettingsStore.getState().settings;
-      expect(settings.panControls).toBe('RMB');
+      expect(settings.panControls).toBe("RMB");
       expect(settings.alertBeforeTabClose).toBe(false);
     });
 
-    test('updateSettings preserves other settings', () => {
+    test("updateSettings preserves other settings", () => {
       useSettingsStore.getState().setGridSnap(10);
-      useSettingsStore.getState().updateSettings({ panControls: 'RMB' });
+      useSettingsStore.getState().updateSettings({ panControls: "RMB" });
       const settings = useSettingsStore.getState().settings;
       expect(settings.gridSnap).toBe(10);
-      expect(settings.panControls).toBe('RMB');
+      expect(settings.panControls).toBe("RMB");
     });
 
-    test('updateSettings with multiple properties', () => {
+    test("updateSettings with multiple properties", () => {
       useSettingsStore.getState().updateSettings({
         gridSnap: 5,
         connectionSnap: 30,
-        selectionMode: 'full',
+        selectionMode: "full",
         soundNotifications: false
       });
       const settings = useSettingsStore.getState().settings;
       expect(settings.gridSnap).toBe(5);
       expect(settings.connectionSnap).toBe(30);
-      expect(settings.selectionMode).toBe('full');
+      expect(settings.selectionMode).toBe("full");
       expect(settings.soundNotifications).toBe(false);
     });
   });
 
-  describe('resetSettings', () => {
-    test('resetSettings restores all defaults', () => {
+  describe("resetSettings", () => {
+    test("resetSettings restores all defaults", () => {
       useSettingsStore.getState().setGridSnap(3);
-      useSettingsStore.getState().setPanControls('RMB');
-      useSettingsStore.getState().setSelectionMode('full');
+      useSettingsStore.getState().setPanControls("RMB");
+      useSettingsStore.getState().setSelectionMode("full");
       useSettingsStore.getState().setSoundNotifications(false);
       useSettingsStore.getState().setInstantUpdate(true);
-      
+
       useSettingsStore.getState().resetSettings();
-      
+
       expect(useSettingsStore.getState().settings).toEqual(defaultSettings);
     });
   });
 
-  describe('Menu and Tab State', () => {
-    test('setMenuOpen opens menu with default tab', () => {
+  describe("Menu and Tab State", () => {
+    test("setMenuOpen opens menu with default tab", () => {
       useSettingsStore.getState().setMenuOpen(true);
       expect(useSettingsStore.getState().isMenuOpen).toBe(true);
       expect(useSettingsStore.getState().settingsTab).toBe(0);
+      expect(useSettingsStore.getState().searchFilter).toBe("");
     });
 
-    test('setMenuOpen opens menu with specific tab', () => {
+    test("setMenuOpen opens menu with specific tab", () => {
       useSettingsStore.getState().setMenuOpen(true, 2);
       expect(useSettingsStore.getState().isMenuOpen).toBe(true);
       expect(useSettingsStore.getState().settingsTab).toBe(2);
+      expect(useSettingsStore.getState().searchFilter).toBe("");
     });
 
-    test('setMenuOpen closes menu', () => {
+    test("setMenuOpen opens menu with search filter", () => {
+      useSettingsStore.getState().setMenuOpen(true, 3, "OPENAI_API_KEY");
+      expect(useSettingsStore.getState().isMenuOpen).toBe(true);
+      expect(useSettingsStore.getState().settingsTab).toBe(3);
+      expect(useSettingsStore.getState().searchFilter).toBe("OPENAI_API_KEY");
+    });
+
+    test("setMenuOpen clears search filter when not provided", () => {
+      useSettingsStore.getState().setMenuOpen(true, 3, "OPENAI_API_KEY");
+      useSettingsStore.getState().setMenuOpen(true, 0);
+      expect(useSettingsStore.getState().searchFilter).toBe("");
+    });
+
+    test("setMenuOpen closes menu", () => {
       useSettingsStore.getState().setMenuOpen(true);
       useSettingsStore.getState().setMenuOpen(false);
       expect(useSettingsStore.getState().isMenuOpen).toBe(false);
     });
   });
 
-  describe('Autosave Settings', () => {
-    test('default autosave settings are present', () => {
+  describe("Autosave Settings", () => {
+    test("default autosave settings are present", () => {
       const settings = useSettingsStore.getState().settings;
       expect(settings.autosave).toBeDefined();
       expect(settings.autosave.enabled).toBe(defaultAutosaveSettings.enabled);
-      expect(settings.autosave.intervalMinutes).toBe(defaultAutosaveSettings.intervalMinutes);
-      expect(settings.autosave.saveBeforeRun).toBe(defaultAutosaveSettings.saveBeforeRun);
-      expect(settings.autosave.saveOnClose).toBe(defaultAutosaveSettings.saveOnClose);
-      expect(settings.autosave.maxVersionsPerWorkflow).toBe(defaultAutosaveSettings.maxVersionsPerWorkflow);
-      expect(settings.autosave.keepManualVersionsDays).toBe(defaultAutosaveSettings.keepManualVersionsDays);
-      expect(settings.autosave.keepAutosaveVersionsDays).toBe(defaultAutosaveSettings.keepAutosaveVersionsDays);
+      expect(settings.autosave.intervalMinutes).toBe(
+        defaultAutosaveSettings.intervalMinutes
+      );
+      expect(settings.autosave.saveBeforeRun).toBe(
+        defaultAutosaveSettings.saveBeforeRun
+      );
+      expect(settings.autosave.saveOnClose).toBe(
+        defaultAutosaveSettings.saveOnClose
+      );
+      expect(settings.autosave.maxVersionsPerWorkflow).toBe(
+        defaultAutosaveSettings.maxVersionsPerWorkflow
+      );
+      expect(settings.autosave.keepManualVersionsDays).toBe(
+        defaultAutosaveSettings.keepManualVersionsDays
+      );
+      expect(settings.autosave.keepAutosaveVersionsDays).toBe(
+        defaultAutosaveSettings.keepAutosaveVersionsDays
+      );
     });
 
-    test('updateAutosaveSettings updates only autosave properties', () => {
-      useSettingsStore.getState().updateAutosaveSettings({ enabled: false, intervalMinutes: 5 });
+    test("updateAutosaveSettings updates only autosave properties", () => {
+      useSettingsStore
+        .getState()
+        .updateAutosaveSettings({ enabled: false, intervalMinutes: 5 });
       const settings = useSettingsStore.getState().settings;
       expect(settings.autosave.enabled).toBe(false);
       expect(settings.autosave.intervalMinutes).toBe(5);
-      expect(settings.autosave.saveBeforeRun).toBe(defaultAutosaveSettings.saveBeforeRun);
+      expect(settings.autosave.saveBeforeRun).toBe(
+        defaultAutosaveSettings.saveBeforeRun
+      );
     });
 
-    test('updateAutosaveSettings preserves other settings', () => {
+    test("updateAutosaveSettings preserves other settings", () => {
       useSettingsStore.getState().setGridSnap(10);
       useSettingsStore.getState().updateAutosaveSettings({ enabled: false });
       const settings = useSettingsStore.getState().settings;
@@ -251,7 +307,7 @@ describe('SettingsStore', () => {
       expect(settings.autosave.enabled).toBe(false);
     });
 
-    test('updateAutosaveSettings with multiple properties', () => {
+    test("updateAutosaveSettings with multiple properties", () => {
       useSettingsStore.getState().updateAutosaveSettings({
         enabled: false,
         intervalMinutes: 30,
@@ -272,8 +328,8 @@ describe('SettingsStore', () => {
     });
   });
 
-  describe('Default Values', () => {
-    test('defaultSettings has correct structure', () => {
+  describe("Default Values", () => {
+    test("defaultSettings has correct structure", () => {
       expect(defaultSettings.gridSnap).toBeDefined();
       expect(defaultSettings.connectionSnap).toBeDefined();
       expect(defaultSettings.panControls).toBeDefined();
@@ -290,7 +346,7 @@ describe('SettingsStore', () => {
       expect(defaultSettings.autosave).toBeDefined();
     });
 
-    test('defaultAutosaveSettings has correct structure', () => {
+    test("defaultAutosaveSettings has correct structure", () => {
       expect(defaultAutosaveSettings.enabled).toBe(true);
       expect(defaultAutosaveSettings.intervalMinutes).toBe(10);
       expect(defaultAutosaveSettings.saveBeforeRun).toBe(true);
