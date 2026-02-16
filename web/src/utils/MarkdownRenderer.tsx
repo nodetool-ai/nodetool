@@ -14,6 +14,8 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { getShortcutTooltip } from "../config/shortcuts";
 import { CopyButton, Dialog } from "../components/ui_primitives";
+import "../styles/markdown/github-markdown.css";
+import "../styles/markdown/nodetool-markdown.css";
 
 interface MarkdownRendererProps {
   content: string;
