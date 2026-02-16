@@ -1,7 +1,6 @@
 # E2E Test Performance Optimization - Summary
 
-## Overview
-This PR optimizes the E2E test suite to run **60-70% faster** with improved reliability through systematic replacement of inefficient waiting patterns and better parallelization.
+Optimized E2E test suite to run **60-70% faster** with improved reliability through systematic replacement of inefficient waiting patterns and better parallelization.
 
 ## Key Metrics
 

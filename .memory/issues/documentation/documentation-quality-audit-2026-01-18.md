@@ -65,7 +65,7 @@ Recent features documented:
 - Added @see references to related hooks and stores
 
 #### 2. Added JSDoc to `useSelectionActions.ts`
-- Added comprehensive module documentation explaining batch operations
+- Added module documentation explaining batch operations
 - Documented alignment (left, center, right, top, middle, bottom)
 - Documented distribution (horizontal, vertical)
 - Documented operations (delete, duplicate, group, bypass)
@@ -102,7 +102,7 @@ All verified documentation files are:
 
 ### Related Memory Files
 
-- [Documentation Audit 2026-01-16](documentation-audit-2026-01-16.md) - Previous comprehensive audit
+- [Documentation Audit 2026-01-16](documentation-audit-2026-01-16.md) - Previous audit
 - [Documentation Quality Audit 2026-01-17](documentation-quality-assurance-2026-01-17.md) - Previous quality check
 - [Documentation Best Practices](../code-quality/documentation-best-practices.md) - Standards guide
 - [Features List](../../features.md) - Current feature inventory

@@ -1,11 +1,6 @@
 # Screenshot List for NodeTool Documentation
 
-This document provides a comprehensive list of screenshots needed to improve the NodeTool documentation. Each entry includes:
-- **Page**: The documentation page where the screenshot should be placed
-- **Position**: Where in the page the screenshot should appear
-- **Description**: What the screenshot should show
-- **Priority**: High, Medium, or Low based on documentation impact
-- **Notes**: Additional guidance for capturing the screenshot
+Screenshots needed for NodeTool documentation. Each entry includes page location, position, description, priority, and notes.
 
 ---
 

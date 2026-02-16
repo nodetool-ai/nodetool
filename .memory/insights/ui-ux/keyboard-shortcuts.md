@@ -1,6 +1,6 @@
 # Keyboard Shortcuts
 
-**Insight**: The node editor has comprehensive keyboard shortcuts via `useNodeEditorShortcuts` hook.
+**Insight**: The node editor has keyboard shortcuts via `useNodeEditorShortcuts` hook.
 
 **Implementation**: Single hook manages all editor shortcuts (copy, paste, delete, undo, redo, etc.)
 

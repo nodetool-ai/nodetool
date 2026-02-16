@@ -4,7 +4,7 @@
 
 **Issues Fixed**: Three stores lacked module-level JSDoc documentation
 
-**Improvements Made**: Added comprehensive JSDoc documentation to 3 stores:
+**Improvements Made**: Added JSDoc documentation to 3 stores:
 
 1. **ResultsStore.ts** - Workflow execution results and streaming data
    - Added module-level documentation explaining store responsibilities
@@ -12,7 +12,7 @@
    - Listed all data types managed (results, progress, tool calls, planning updates)
 
 2. **AssetStore.ts** - File asset and folder management
-   - Added comprehensive module documentation covering:
+   - Added module documentation covering:
      - CRUD operations for assets and folders
      - Folder tree management and navigation
      - Asset search and upload progress tracking

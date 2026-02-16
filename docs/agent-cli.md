@@ -266,7 +266,7 @@ The agent will:
 2. Search for relevant information
 3. Browse competitor websites
 4. Extract and organize findings
-5. Generate a comprehensive report
+5. Generate a report
 
 ### Code Generation and Refactoring
 

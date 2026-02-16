@@ -4,7 +4,7 @@
 
 **Issues Fixed**: Multiple critical hooks lacked JSDoc documentation
 
-**Improvements Made**: Added comprehensive JSDoc documentation to 5 critical hooks:
+**Improvements Made**: Added JSDoc documentation to 5 critical hooks:
 
 1. **useChatService.ts** - Chat service interface
    - Added module-level documentation explaining the hook's purpose
@@ -13,7 +13,7 @@
    - Documented complex thread management and message sending logic
 
 2. **useNodeEditorShortcuts.ts** - Editor keyboard shortcuts (largest hook, 19KB)
-   - Added comprehensive module documentation
+   - Added module documentation
    - Documented all supported keyboard shortcuts
    - Included examples of common shortcuts (Ctrl+C, Ctrl+V, etc.)
    - Explained shortcut registration pattern with KeyPressedStore
@@ -28,7 +28,7 @@
 4. **useProcessedEdges.ts** - Edge processing and type resolution
    - Added documentation to ProcessedEdgesOptions interface
    - Added documentation to ProcessedEdgesResult interface
-   - Added comprehensive module documentation explaining:
+   - Added module documentation explaining:
      - Type resolution through Reroute nodes
      - Visual styling based on data types
      - Execution status tracking
@@ -37,7 +37,7 @@
 
 5. **useNamespaceTree.ts** - Namespace tree for node organization
    - Added documentation to NamespaceTree interface
-   - Added comprehensive module documentation explaining:
+   - Added module documentation explaining:
      - Tree structure and organization pattern
      - API key validation and namespace disabling
      - Sorting and first-disabled tracking
