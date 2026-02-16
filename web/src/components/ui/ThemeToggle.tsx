@@ -1,14 +1,15 @@
 import { StateIconButton } from "../ui_primitives";
 import { useColorScheme } from "@mui/material/styles";
 import { LightMode, DarkMode } from "@mui/icons-material";
+import { memo, useCallback } from "react";
 
-export const ThemeToggle = () => {
+export const ThemeToggle = memo(function ThemeToggle() {
   const { mode, setMode } = useColorScheme();
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     const newMode = mode === "dark" ? "light" : "dark";
     setMode(newMode);
-  };
+  }, [mode, setMode]);
 
   // Don't render until we have the mode
   if (!mode) {
@@ -30,6 +31,8 @@ export const ThemeToggle = () => {
       }}
     />
   );
-};
+});
+
+ThemeToggle.displayName = "ThemeToggle";
 
 export default ThemeToggle;
