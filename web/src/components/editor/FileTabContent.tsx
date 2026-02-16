@@ -43,19 +43,45 @@ const getLanguageFromAsset = (asset: Asset): string | undefined => {
   const name = asset.name.toLowerCase();
   const type = asset.content_type || "";
 
-  if (name.endsWith(".js") || name.endsWith(".jsx")) {return "javascript";}
-  if (name.endsWith(".ts") || name.endsWith(".tsx")) {return "typescript";}
-  if (name.endsWith(".py")) {return "python";}
-  if (name.endsWith(".json")) {return "json";}
-  if (name.endsWith(".css")) {return "css";}
-  if (name.endsWith(".html") || name.endsWith(".htm")) {return "html";}
-  if (name.endsWith(".xml")) {return "xml";}
-  if (name.endsWith(".yaml") || name.endsWith(".yml")) {return "yaml";}
-  if (name.endsWith(".md") || name.endsWith(".markdown")) {return "markdown";}
-  if (name.endsWith(".sh") || name.endsWith(".bash")) {return "shell";}
-  if (name.endsWith(".sql")) {return "sql";}
-  if (name.endsWith(".csv")) {return "plaintext";}
-  if (type.startsWith("text/")) {return "plaintext";}
+  if (name.endsWith(".js") || name.endsWith(".jsx")) {
+    return "javascript";
+  }
+  if (name.endsWith(".ts") || name.endsWith(".tsx")) {
+    return "typescript";
+  }
+  if (name.endsWith(".py")) {
+    return "python";
+  }
+  if (name.endsWith(".json")) {
+    return "json";
+  }
+  if (name.endsWith(".css")) {
+    return "css";
+  }
+  if (name.endsWith(".html") || name.endsWith(".htm")) {
+    return "html";
+  }
+  if (name.endsWith(".xml")) {
+    return "xml";
+  }
+  if (name.endsWith(".yaml") || name.endsWith(".yml")) {
+    return "yaml";
+  }
+  if (name.endsWith(".md") || name.endsWith(".markdown")) {
+    return "markdown";
+  }
+  if (name.endsWith(".sh") || name.endsWith(".bash")) {
+    return "shell";
+  }
+  if (name.endsWith(".sql")) {
+    return "sql";
+  }
+  if (name.endsWith(".csv")) {
+    return "plaintext";
+  }
+  if (type.startsWith("text/")) {
+    return "plaintext";
+  }
   return undefined;
 };
 
