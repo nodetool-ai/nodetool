@@ -390,8 +390,16 @@ export const createNodeStore = (
           },
           getSelectedNodes: (): Node<NodeData>[] =>
             get().nodes.filter((node) => node.selected),
-          getSelectedNodeCount: (): number =>
-            get().nodes.filter((node) => node.selected).length,
+          getSelectedNodeCount: (): number => {
+            let count = 0;
+            const nodes = get().nodes;
+            for (const node of nodes) {
+              if (node.selected) {
+                count++;
+              }
+            }
+            return count;
+          },
           setSelectedNodes: (nodes: Node<NodeData>[]): void => {
             set({
               nodes: get().nodes.map((node) => ({
@@ -439,10 +447,16 @@ export const createNodeStore = (
               })
             });
           },
-          getSelectedNodeIds: (): string[] =>
-            get()
-              .getSelectedNodes()
-              .map((node) => node.id),
+          getSelectedNodeIds: (): string[] => {
+            const ids: string[] = [];
+            const nodes = get().nodes;
+            for (const node of nodes) {
+              if (node.selected) {
+                ids.push(node.id);
+              }
+            }
+            return ids;
+          },
           setEdgeUpdateSuccessful: (value: boolean): void =>
             set({ edgeUpdateSuccessful: value }),
           onNodesChange: (changes: NodeChange<Node<NodeData>>[]): void => {

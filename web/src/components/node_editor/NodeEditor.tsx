@@ -28,7 +28,7 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import isEqual from "lodash/isEqual";
 import { shallow } from "zustand/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
-import { useTemporalNodes } from "../../contexts/NodeContext";
+import { useTemporalNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
 import { useTheme } from "@mui/material/styles";
@@ -60,8 +60,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const theme = useTheme();
   /* USE STORE */
   const { isUploading } = useAssetUpload();
-  // Use getSelectedNodeIds to avoid re-renders when nodes are moved (getSelectedNodes returns new array reference on move)
-  const selectedNodeIds = useNodes((state) => state.getSelectedNodeIds());
+  // Use getSelectedNodeCount to avoid re-renders when nodes are moved (getSelectedNodes returns new array reference on move)
+  const selectedNodeCount = useNodes((state) => state.getSelectedNodeCount());
+  const store = useNodeStoreRef();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -98,8 +99,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   useCombo(
     nodeInfoCombo,
     () => {
-      if (active && selectedNodeIds.length > 0) {
-        toggleInspectedNode(selectedNodeIds[0]);
+      if (active) {
+        const selectedIds = store.getState().getSelectedNodeIds();
+        if (selectedIds.length > 0) {
+          toggleInspectedNode(selectedIds[0]);
+        }
       }
     },
     true,
@@ -161,7 +165,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           {active && (
             <>
               <SelectionActionToolbar
-                visible={selectedNodeIds.length >= 2}
+                visible={selectedNodeCount >= 2}
               />
               <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
