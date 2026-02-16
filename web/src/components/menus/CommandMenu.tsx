@@ -22,6 +22,67 @@ import { create } from "zustand";
 import NodeInfo from "../node_menu/NodeInfo";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
+import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
+import { useDuplicateNodes } from "../../hooks/useDuplicate";
+import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
+import { useFitView } from "../../hooks/useFitView";
+import { useReactFlow } from "@xyflow/react";
+import { useSelectionActions } from "../../hooks/useSelectionActions";
+import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { usePanelStore } from "../../stores/PanelStore";
+
+// Icons — Workflow
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
+import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
+import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+
+// Icons — Edit
+import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
+import RedoRoundedIcon from "@mui/icons-material/RedoRounded";
+import ContentCutRoundedIcon from "@mui/icons-material/ContentCutRounded";
+import ContentPasteRoundedIcon from "@mui/icons-material/ContentPasteRounded";
+import FileCopyRoundedIcon from "@mui/icons-material/FileCopyRounded";
+import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import GroupWorkRoundedIcon from "@mui/icons-material/GroupWorkRounded";
+import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+
+// Icons — Layout & Alignment
+import AlignVerticalCenterRoundedIcon from "@mui/icons-material/AlignVerticalCenterRounded";
+import SpaceBarRoundedIcon from "@mui/icons-material/SpaceBarRounded";
+import AlignHorizontalLeftRoundedIcon from "@mui/icons-material/AlignHorizontalLeftRounded";
+import AlignHorizontalCenterRoundedIcon from "@mui/icons-material/AlignHorizontalCenterRounded";
+import AlignHorizontalRightRoundedIcon from "@mui/icons-material/AlignHorizontalRightRounded";
+import VerticalAlignTopRoundedIcon from "@mui/icons-material/VerticalAlignTopRounded";
+import VerticalAlignCenterRoundedIcon from "@mui/icons-material/VerticalAlignCenterRounded";
+import VerticalAlignBottomRoundedIcon from "@mui/icons-material/VerticalAlignBottomRounded";
+import ViewColumnRoundedIcon from "@mui/icons-material/ViewColumnRounded";
+
+// Icons — View
+import MapRoundedIcon from "@mui/icons-material/MapRounded";
+import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
+import FitScreenRoundedIcon from "@mui/icons-material/FitScreenRounded";
+import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
+import ZoomOutRoundedIcon from "@mui/icons-material/ZoomOutRounded";
+import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
+
+// Icons — Panels
+import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
+import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import PermMediaRoundedIcon from "@mui/icons-material/PermMediaRounded";
+import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+
+// Icons — Nodes & Workflows list
+import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
+import WidgetsRoundedIcon from "@mui/icons-material/WidgetsRounded";
 
 type CommandMenuProps = {
   open: boolean;
@@ -62,12 +123,28 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const navigate = useNavigate();
+
+  const {
+    saveWorkflow,
+    saveExample,
+    getCurrentWorkflow,
+    createNew,
+    removeWorkflow,
+    openWorkflows
+  } = useWorkflowManager((state) => ({
+    saveWorkflow: state.saveWorkflow,
+    saveExample: state.saveExample,
+    getCurrentWorkflow: state.getCurrentWorkflow,
+    createNew: state.createNew,
+    removeWorkflow: state.removeWorkflow,
+    openWorkflows: state.openWorkflows
+  }));
 
   const runWorkflow = useCallback(() => {
     run({}, currentWorkflow, nodes, edges);
   }, [run, currentWorkflow, nodes, edges]);
 
-  const saveExample = useWorkflowManager((state) => state.saveExample);
   const downloadWorkflow = useCallback(() => {
     const blob = new Blob([workflowJSON()], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -86,26 +163,73 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     });
   }, [writeClipboard, workflowJSON, addNotification]);
 
+  const handleSave = useCallback(async () => {
+    const workflow = getCurrentWorkflow();
+    if (workflow) {
+      try {
+        await saveWorkflow(workflow);
+        addNotification({
+          content: `Workflow "${workflow.name}" saved`,
+          type: "success",
+          alert: true
+        });
+      } catch (error) {
+        addNotification({
+          content: `Failed to save workflow: ${error instanceof Error ? error.message : "Unknown error"}`,
+          type: "error",
+          alert: true
+        });
+      }
+    }
+  }, [saveWorkflow, getCurrentWorkflow, addNotification]);
+
+  const handleNewWorkflow = useCallback(async () => {
+    const newWorkflow = await createNew();
+    navigate(`/editor/${newWorkflow.id}`);
+  }, [createNew, navigate]);
+
+  const handleCloseWorkflow = useCallback(() => {
+    const workflow = getCurrentWorkflow();
+    if (workflow) {
+      removeWorkflow(workflow.id);
+      const remaining = openWorkflows.filter((w) => w.id !== workflow.id);
+      if (remaining.length > 0) {
+        navigate(`/editor/${remaining[remaining.length - 1].id}`);
+      } else {
+        navigate("/editor");
+      }
+    }
+  }, [removeWorkflow, getCurrentWorkflow, openWorkflows, navigate]);
+
   return (
     <Command.Group heading="Workflow">
       <Command.Item onSelect={() => executeAndClose(runWorkflow)}>
-        Run Workflow
+        <PlayArrowRoundedIcon /> Run Workflow
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(handleSave)}>
+        <SaveRoundedIcon /> Save Workflow
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(handleNewWorkflow)}>
+        <AddRoundedIcon /> New Workflow
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(handleCloseWorkflow)}>
+        <CloseRoundedIcon /> Close Workflow
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(downloadWorkflow)}>
-        Download Workflow as JSON
+        <FileDownloadRoundedIcon /> Download Workflow as JSON
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(copyWorkflow)}>
-        Copy Workflow as JSON
+        <ContentCopyRoundedIcon /> Copy Workflow as JSON
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(cancel)}>
-        Cancel Workflow
+        <CancelRoundedIcon /> Cancel Workflow
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(autoLayout)}>
-        Auto Layout
+        <AutoFixHighRoundedIcon /> Auto Layout
       </Command.Item>
       {isDevelopment && (
         <Command.Item onSelect={() => executeAndClose(() => saveExample(""))}>
-          Save as Example
+          <SaveRoundedIcon /> Save as Example
         </Command.Item>
       )}
     </Command.Group>
@@ -117,16 +241,65 @@ interface HistoryActions {
   redo: () => void;
 }
 
-const UndoCommands = memo(function UndoCommands({
+const EditCommands = memo(function EditCommands({
   undo,
   redo
 }: HistoryActions) {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const { handleCopy, handlePaste, handleCut } = useCopyPaste();
+  const selectAllNodes = useNodes((state) => state.selectAllNodes);
+  const duplicateNodes = useDuplicateNodes();
+  const duplicateNodesVertical = useDuplicateNodes(true);
+  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  const surroundWithGroup = useSurroundWithGroup();
+  const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
+  const selectionActions = useSelectionActions();
+  const { openFind } = useFindInWorkflow();
+
+  const handleGroup = useCallback(() => {
+    if (selectedNodes.length) {
+      surroundWithGroup({ selectedNodes });
+    }
+  }, [surroundWithGroup, selectedNodes]);
 
   return (
-    <Command.Group heading="Undo">
-      <Command.Item onSelect={() => executeAndClose(undo)}>Undo</Command.Item>
-      <Command.Item onSelect={() => executeAndClose(redo)}>Redo</Command.Item>
+    <Command.Group heading="Edit">
+      <Command.Item onSelect={() => executeAndClose(undo)}>
+        <UndoRoundedIcon /> Undo
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(redo)}>
+        <RedoRoundedIcon /> Redo
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(handleCopy)}>
+        <FileCopyRoundedIcon /> Copy
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(handleCut)}>
+        <ContentCutRoundedIcon /> Cut
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(handlePaste)}>
+        <ContentPasteRoundedIcon /> Paste
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(selectAllNodes)}>
+        <SelectAllRoundedIcon /> Select All
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(selectionActions.deleteSelected)}>
+        <DeleteRoundedIcon /> Delete Selected
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(duplicateNodes)}>
+        <ContentCopyRoundedIcon /> Duplicate
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(duplicateNodesVertical)}>
+        <ContentCopyRoundedIcon /> Duplicate Vertical
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(handleGroup)}>
+        <GroupWorkRoundedIcon /> Group Selected
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(toggleBypassSelected)}>
+        <BlockRoundedIcon /> Bypass Node
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(openFind)}>
+        <SearchRoundedIcon /> Find in Workflow
+      </Command.Item>
     </Command.Group>
   );
 });
@@ -134,24 +307,46 @@ const UndoCommands = memo(function UndoCommands({
 const LayoutCommands = memo(function LayoutCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const alignNodes = useAlignNodes();
+  const selectionActions = useSelectionActions();
 
   return (
-    <Command.Group heading="Layout">
+    <Command.Group heading="Layout & Alignment">
       <Command.Item
         onSelect={() =>
           executeAndClose(() => alignNodes({ arrangeSpacing: false }))
         }
       >
-        Align Nodes
+        <AlignVerticalCenterRoundedIcon /> Align Nodes
       </Command.Item>
       <Command.Item
         onSelect={() =>
           executeAndClose(() => alignNodes({ arrangeSpacing: true }))
         }
       >
-        Align Nodes with Spacing
+        <SpaceBarRoundedIcon /> Align Nodes with Spacing
       </Command.Item>
-      </Command.Group>
+      <Command.Item onSelect={() => executeAndClose(selectionActions.alignLeft)}>
+        <AlignHorizontalLeftRoundedIcon /> Align Left
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(selectionActions.alignCenter)}>
+        <AlignHorizontalCenterRoundedIcon /> Align Center
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(selectionActions.alignRight)}>
+        <AlignHorizontalRightRoundedIcon /> Align Right
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(selectionActions.alignTop)}>
+        <VerticalAlignTopRoundedIcon /> Align Top
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(selectionActions.alignMiddle)}>
+        <VerticalAlignCenterRoundedIcon /> Align Middle
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(selectionActions.alignBottom)}>
+        <VerticalAlignBottomRoundedIcon /> Align Bottom
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(selectionActions.distributeHorizontal)}>
+        <ViewColumnRoundedIcon /> Distribute Horizontally
+      </Command.Item>
+    </Command.Group>
   );
 });
 
@@ -159,13 +354,82 @@ const ViewCommands = memo(function ViewCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const visible = useMiniMapStore((state) => state.visible);
   const toggleVisible = useMiniMapStore((state) => state.toggleVisible);
+  const handleFitView = useFitView();
+  const reactFlow = useReactFlow();
 
   return (
     <Command.Group heading="View">
       <Command.Item
         onSelect={() => executeAndClose(toggleVisible)}
       >
+        {visible ? <MapOutlinedIcon /> : <MapRoundedIcon />}
         {visible ? "Hide Mini Map" : "Show Mini Map"}
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => handleFitView({ padding: 0.4 }))}
+      >
+        <FitScreenRoundedIcon /> Fit View
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => reactFlow.zoomIn({ duration: 200 }))}
+      >
+        <ZoomInRoundedIcon /> Zoom In
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => reactFlow.zoomOut({ duration: 200 }))}
+      >
+        <ZoomOutRoundedIcon /> Zoom Out
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => reactFlow.zoomTo(0.5, { duration: 200 }))}
+      >
+        <RestartAltRoundedIcon /> Reset Zoom (50%)
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => reactFlow.zoomTo(1, { duration: 200 }))}
+      >
+        <ZoomInRoundedIcon /> Zoom to 100%
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => reactFlow.zoomTo(2, { duration: 200 }))}
+      >
+        <ZoomInRoundedIcon /> Zoom to 200%
+      </Command.Item>
+    </Command.Group>
+  );
+});
+
+const PanelCommands = memo(function PanelCommands() {
+  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  const rightPanelToggle = useRightPanelStore((state) => state.handleViewChange);
+  const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
+
+  return (
+    <Command.Group heading="Panels">
+      <Command.Item
+        onSelect={() => executeAndClose(() => rightPanelToggle("inspector"))}
+      >
+        <InfoRoundedIcon /> Toggle Inspector
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => rightPanelToggle("workflow"))}
+      >
+        <SettingsRoundedIcon /> Toggle Workflow Settings
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => rightPanelToggle("assistant"))}
+      >
+        <ChatRoundedIcon /> Toggle Chat
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => leftPanelToggle("assets"))}
+      >
+        <PermMediaRoundedIcon /> Toggle Assets
+      </Command.Item>
+      <Command.Item
+        onSelect={() => executeAndClose(() => leftPanelToggle("workflowGrid"))}
+      >
+        <AccountTreeRoundedIcon /> Toggle Workflows Panel
       </Command.Item>
     </Command.Group>
   );
@@ -216,7 +480,7 @@ const NodeCommands = memo(function NodeCommands() {
                 key={idx}
                 onSelect={() => executeAndClose(() => handleCreateNode(meta))}
               >
-                {meta.title}
+                <WidgetsRoundedIcon /> {meta.title}
               </Command.Item>
             </Tooltip>
           ))}
@@ -226,38 +490,33 @@ const NodeCommands = memo(function NodeCommands() {
   );
 });
 
-const ExampleCommands = memo(function ExampleCommands() {
+const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const navigate = useNavigate();
-  const { loadTemplates, copy } = useWorkflowManager((state) => ({
-    loadTemplates: state.loadTemplates,
-    copy: state.copy
-  }));
+  const load = useWorkflowManager((state) => state.load);
 
-  const { data: examples } = useQuery<WorkflowList>({
-    queryKey: ["templates"],
-    queryFn: loadTemplates
+  const { data: workflows } = useQuery<WorkflowList>({
+    queryKey: ["workflows"],
+    queryFn: () => load()
   });
 
-  const loadExample = useCallback(
+  const openWorkflow = useCallback(
     (workflow: Workflow) => {
-      copy(workflow).then((workflow) => {
-        navigate("/editor/" + workflow.id);
-      });
+      navigate("/editor/" + workflow.id);
     },
-    [copy, navigate]
+    [navigate]
   );
 
-  if (!examples) {return null;}
+  if (!workflows) { return null; }
 
   return (
-    <Command.Group heading="Templates">
-      {examples.workflows.map((example, idx) => (
+    <Command.Group heading="Workflows">
+      {workflows.workflows.map((workflow, idx) => (
         <Command.Item
           key={idx}
-          onSelect={() => executeAndClose(() => loadExample(example))}
+          onSelect={() => executeAndClose(() => openWorkflow(workflow))}
         >
-          {example.name}
+          <FolderOpenRoundedIcon /> {workflow.name}
         </Command.Item>
       ))}
     </Command.Group>
@@ -269,7 +528,7 @@ const useCommandMenu = create<{
   executeAndClose: (action: () => void) => void;
   reactFlowWrapper: React.RefObject<HTMLDivElement>;
 }>((_set) => ({
-  executeAndClose: () => {},
+  executeAndClose: () => { },
   reactFlowWrapper: { current: null }
 }));
 
@@ -327,11 +586,11 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
           <WorkflowCommands />
-          <UndoCommands undo={undo} redo={redo} />
+          <EditCommands undo={undo} redo={redo} />
           <LayoutCommands />
           <ViewCommands />
-          <NodeCommands />
-          <ExampleCommands />
+          <PanelCommands />
+          <OpenWorkflowCommands />
         </Command.List>
       </Command>
     </Dialog>
