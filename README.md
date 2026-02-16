@@ -149,6 +149,8 @@ cd electron && npm run test:e2e
   - Playwright browsers: `cd electron && npx playwright install chromium`
   - On Linux headless: xvfb (test scripts handle this automatically)
 
+For detailed testing documentation, see **[web/TESTING.md](web/TESTING.md)**.
+
 ## Contributing
 
 We welcome:

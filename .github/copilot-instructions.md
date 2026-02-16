@@ -6,12 +6,13 @@ This file provides specific guidance for GitHub Copilot when generating code sug
 
 NodeTool is a React/TypeScript application for building AI workflows visually. Key technologies:
 
-- **Frontend**: React 18.2, TypeScript 5.7, Vite 6, Material-UI (MUI) v7
-- **State Management**: Zustand 4.5.7 with temporal (undo/redo) support
+- **Frontend (Web)**: React 18.2, TypeScript 5.7, Vite 6, Material-UI (MUI) v7
+- **State Management**: Zustand 4.5.7 (web), 5.0.3 (electron) with temporal (undo/redo) support
 - **Flow Editor**: ReactFlow (@xyflow/react) v12.10.0
 - **Data Fetching**: TanStack Query (React Query) v5.62.3
-- **Testing**: Jest 29.7.0 + React Testing Library 16.1.0
+- **Testing**: Jest 29.7.0 + React Testing Library 16.1.0 + Playwright for E2E
 - **Routing**: React Router v7.12.0
+- **Desktop**: Electron 35.7.5 with React 19.1.0
 
 ## Code Generation Guidelines
 
@@ -626,11 +627,13 @@ export async function calculateLayout(
 
 ## Resources
 
-- Main AGENTS.md: `/AGENTS.md` - Complete project documentation
-- Web UI Guide: `/web/src/AGENTS.md` - Web-specific guidelines
-- Testing Guide: `/web/TESTING.md` - Comprehensive test documentation
-- Component Guide: `/web/src/components/AGENTS.md` - Component architecture
-- Store Guide: `/web/src/stores/AGENTS.md` - State management patterns
+- **Main AGENTS.md**: `/AGENTS.md` - Complete project documentation
+- **Web UI Guide**: `/web/src/AGENTS.md` - Web-specific guidelines
+- **Testing Guide**: `/web/TESTING.md` - Comprehensive test documentation (Jest, RTL, Playwright)
+- **Electron Guide**: `/electron/src/AGENTS.md` - Desktop app guidelines
+- **Component Guide**: `/web/src/components/AGENTS.md` - Component architecture
+- **Store Guide**: `/web/src/stores/AGENTS.md` - State management patterns
+- **Mobile Guide**: `/mobile/README.md` - React Native mobile app
 
 ## Mandatory Post-Change Verification
 
@@ -950,6 +953,7 @@ For more details, see `electron/README.md`.
 
 ## Version Information
 
+### Web Package
 - React: 18.2.0
 - TypeScript: 5.7.2
 - Vite: 6.4.1
@@ -960,6 +964,12 @@ For more details, see `electron/README.md`.
 - React Router: 7.12.0
 - Jest: 29.7.0
 - React Testing Library: 16.1.0
+
+### Electron Package
+- Electron: 35.7.5
+- React: 19.1.0
+- TypeScript: 5.3.3
+- Zustand: 5.0.3
 
 ---
 
