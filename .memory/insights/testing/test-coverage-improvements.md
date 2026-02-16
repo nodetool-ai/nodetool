@@ -24,7 +24,7 @@
 - **Total Tests**: 3,092 (3,089 passing, 3 skipped)
 
 **Key Learnings**:
-1. Monaco editor requires comprehensive module-level mocking for AMD modules
+1. Monaco editor requires module-level mocking for AMD modules
 2. Hooks using Zustand stores via `useNodeStoreRef` need proper store state mocking
 3. Tests with complex async mocking should use `jest.useFakeTimers()` carefully
 4. Performance tests are inherently flaky and should be skipped or made non-timing-dependent
@@ -1046,9 +1046,9 @@ it("falls back to URI when createAssetFile fails", async () => {
 - **0 tests** failing
 
 **Coverage Summary**:
-- ✅ All critical stores have comprehensive tests
-- ✅ All major hooks have comprehensive tests
-- ✅ All important utilities have comprehensive tests
+- ✅ All critical stores have tests
+- ✅ All major hooks have tests
+- ✅ All important utilities have tests
 - ✅ Edge conversion utilities (graphEdgeToReactFlowEdge, reactFlowEdgeToGraphEdge)
 - ✅ Node hooks (useIsGroupable, useSelect, useRemoveFromGroup, etc.)
 - ✅ Utility functions (nodeDisplay, titleizeString, formatDateAndTime)

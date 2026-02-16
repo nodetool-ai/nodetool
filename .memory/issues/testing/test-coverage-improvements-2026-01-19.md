@@ -2,7 +2,7 @@
 
 ## Summary
 
-Added comprehensive unit tests for critical graph utilities and workflow execution components to improve test coverage.
+Added unit tests for critical graph utilities and workflow execution components to improve test coverage.
 
 ## Files Added
 

@@ -6,13 +6,13 @@
 
 **Improvements Made**:
 
-1. **ExecutionTimeStore.ts** - Added comprehensive module-level JSDoc:
+1. **ExecutionTimeStore.ts** - Added module-level JSDoc:
    - Documented purpose: Tracks node execution timing for performance monitoring
    - Listed consumers: NodeExecutionTime component, performance analysis
    - Included @example code block showing usage patterns
    - Documented automatic timing clear behavior
 
-2. **NodeFocusStore.ts** - Added comprehensive module-level JSDoc:
+2. **NodeFocusStore.ts** - Added module-level JSDoc:
    - Documented purpose: Manages keyboard navigation focus state
    - Listed features: Tab navigation, directional arrows, focus history
    - Included @example code block showing usage patterns

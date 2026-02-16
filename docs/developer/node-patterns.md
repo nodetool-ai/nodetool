@@ -163,4 +163,4 @@ Nodes are organized by category in `src/nodetool/nodes/`:
 - **`lib/`**: Wrappers for standard libraries (json, math, pillow).
 - **`openai/`, `gemini/`, etc.**: Provider-specific integrations.
 
-To add a new node, simply create a new file in the appropriate directory (or add to an existing one). The system automatically discovers all classes inheriting from `BaseNode`.
+To add a new node, create a new file in the appropriate directory (or add to an existing one). The system automatically discovers all classes inheriting from `BaseNode`.

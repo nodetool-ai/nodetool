@@ -2,7 +2,7 @@
 
 **Audit Scope**: Added JSDoc documentation to frequently-used hooks that were previously undocumented.
 
-**Summary**: Added comprehensive JSDoc documentation to 29 critical hooks across multiple batches. All hooks now follow the established documentation patterns with @param, @returns, and @example tags.
+**Summary**: Added JSDoc documentation to 29 critical hooks across multiple batches. All hooks now follow the established documentation patterns with @param, @returns, and @example tags.
 
 ---
 
@@ -19,7 +19,7 @@
    - Included drag-and-drop usage examples
 
 3. **`useSelectionActions.ts`**:
-   - Added comprehensive documentation for node alignment functions
+   - Added documentation for node alignment functions
    - Documented distribution, deletion, and grouping operations
    - Included examples for alignLeft, distributeHorizontal, etc.
 
@@ -69,7 +69,7 @@
     - Documented provider inference logic
 
 12. **`useFileDrop.ts`**:
-    - Added comprehensive documentation for file drag-and-drop
+    - Added documentation for file drag-and-drop
     - Documented FileDropProps type with all options
     - Documented FileDropResult return type
     - Included detailed usage example
@@ -94,7 +94,7 @@
     - Added documentation for canvas pane events
     - Documented UsePaneEventsProps interface
     - Documented node placement and menu handling
-    - Included comprehensive usage example
+    - Included usage example
 
 17. **`useEdgeHandlers.ts`**:
     - Added documentation for edge interaction handlers
@@ -207,6 +207,6 @@
 
 ### Related Memory Files
 
-- [Documentation Quality Assurance 2026-01-17](documentation-quality-assurance-2026-01-17.md) - Previous comprehensive audit
+- [Documentation Quality Assurance 2026-01-17](documentation-quality-assurance-2026-01-17.md) - Previous audit
 - [Documentation Best Practices](../../insights/code-quality/documentation-best-practices.md) - Standards guide
 - [JSDoc Improvements 2026-01-17](jsdoc-improvements-2026-01-17.md) - Previous JSDoc additions
