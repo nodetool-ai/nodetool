@@ -3,8 +3,10 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useCallback, useEffect, useRef, useState } from "react";
 import TabHeader from "./TabHeader";
+import FileTabHeader from "./FileTabHeader";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useFileTabsStore } from "../../stores/FileTabsStore";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 
@@ -135,7 +137,10 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
   );
 
   const handleNavigate = useCallback(
-    (id: string) => navigate(`/editor/${id}`),
+    (id: string) => {
+      useFileTabsStore.getState().setActiveFileTab(null);
+      navigate(`/editor/${id}`);
+    },
     [navigate]
   );
 
@@ -156,6 +161,30 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     workflowsToClose.forEach((id) => removeWorkflow(id));
     navigate("/editor");
   }, [navigate, removeWorkflow, workflows]);
+
+  // File tab state and handlers
+  const openFileTabs = useFileTabsStore((state) => state.openFileTabs);
+  const activeFileTabId = useFileTabsStore((state) => state.activeFileTabId);
+  const closeFileTab = useFileTabsStore((state) => state.closeFileTab);
+  const setActiveFileTab = useFileTabsStore((state) => state.setActiveFileTab);
+  const closeAllFileTabs = useFileTabsStore((state) => state.closeAllFileTabs);
+  const closeOtherFileTabs = useFileTabsStore(
+    (state) => state.closeOtherFileTabs
+  );
+
+  const handleFileTabSelect = useCallback(
+    (assetId: string) => {
+      setActiveFileTab(assetId);
+    },
+    [setActiveFileTab]
+  );
+
+  const handleFileTabClose = useCallback(
+    (assetId: string) => {
+      closeFileTab(assetId);
+    },
+    [closeFileTab]
+  );
 
   const checkScrollability = useCallback(() => {
     if (tabsRef.current) {
@@ -238,7 +267,9 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
             <TabHeader
               key={workflow.id}
               workflow={workflow}
-              isActive={workflow.id === currentWorkflowId}
+              isActive={
+                workflow.id === currentWorkflowId && activeFileTabId === null
+              }
               isEditing={editingWorkflowId === workflow.id}
               dropTarget={dropTarget}
               onNavigate={handleNavigate}
@@ -255,6 +286,17 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
             />
           );
         })}
+        {openFileTabs.map((fileTab) => (
+          <FileTabHeader
+            key={`file-${fileTab.asset.id}`}
+            asset={fileTab.asset}
+            isActive={activeFileTabId === fileTab.asset.id}
+            onSelect={handleFileTabSelect}
+            onClose={handleFileTabClose}
+            onCloseOthers={closeOtherFileTabs}
+            onCloseAll={closeAllFileTabs}
+          />
+        ))}
         <button
           tabIndex={-1}
           className="new-workflow-button"

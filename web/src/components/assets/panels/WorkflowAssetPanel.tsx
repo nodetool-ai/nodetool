@@ -6,6 +6,7 @@ import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { useWorkflowAssets } from "../../../serverState/useWorkflowAssets";
 import { Asset } from "../../../stores/ApiTypes";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
+import { useFileTabsStore } from "../../../stores/FileTabsStore";
 import AssetGridContent from "../AssetGridContent";
 import AssetViewer from "../AssetViewer";
 import AssetDeleteConfirmation from "../AssetDeleteConfirmation";
@@ -28,6 +29,7 @@ const WorkflowAssetPanel: React.FC = () => {
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
   const openAsset = useAssetGridStore((state) => state.openAsset);
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
+  const openFileTab = useFileTabsStore((state) => state.openFileTab);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
 
   // Subscribe to results store to detect new results
@@ -89,9 +91,13 @@ const WorkflowAssetPanel: React.FC = () => {
 
   const handleDoubleClick = useCallback(
     (asset: Asset) => {
-      setOpenAsset(asset);
+      if (asset.content_type === "folder") {
+        setOpenAsset(asset);
+      } else {
+        openFileTab(asset);
+      }
     },
-    [setOpenAsset]
+    [setOpenAsset, openFileTab]
   );
 
   const handleCloseViewer = useCallback(() => {
