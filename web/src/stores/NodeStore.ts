@@ -581,7 +581,7 @@ export const createNodeStore = (
               return;
             }
 
-            const isControlEdge = connection.targetHandle === CONTROL_HANDLE_ID;
+            const isControlEdge = connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID;
 
             const isDynamicProperty =
               targetNode?.data.dynamic_properties[connection.targetHandle] !==
@@ -1110,7 +1110,7 @@ export const createNodeStore = (
             }
 
             // Control edge validation: only Agent nodes can create control edges
-            if (connection.targetHandle === CONTROL_HANDLE_ID) {
+            if (connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID) {
               const isAgent = srcNode.type?.toLowerCase().includes("agent") ?? false;
               if (!isAgent) {
                 return false;

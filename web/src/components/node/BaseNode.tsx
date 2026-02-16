@@ -337,7 +337,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       isOutputNode:
         type.startsWith("nodetool.output") ||
         type === "comfy.image.SaveImage" ||
-        type === "comfy.image.PreviewImage"
+        type === "comfy.image.PreviewImage",
+      isAgentNode: type.toLowerCase().includes("agent")
     }),
     [type]
   );
@@ -695,6 +696,28 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       {chunk && <ChunkDisplay chunk={chunk} />}
       {task && <TaskView task={task} />}
+
+      {/* Agent control output handle - positioned at the bottom of Agent nodes */}
+      {nodeType.isAgentNode && (
+        <Handle
+          type="source"
+          id={CONTROL_HANDLE_ID}
+          position={Position.Bottom}
+          className="control-handle"
+          isConnectable={true}
+          style={{
+            bottom: -6,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 14,
+            height: 8,
+            borderRadius: "0 0 4px 4px",
+            background: "#f59e0b",
+            border: "1px solid #d97706",
+            zIndex: 1000
+          }}
+        />
+      )}
 
       {isFocused && (
         <Box

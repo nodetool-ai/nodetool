@@ -36,7 +36,7 @@ export const isValidEdge = (
   }
 
   // Control edges use __control__ targetHandle and don't need regular handle validation
-  if (edge.targetHandle === CONTROL_HANDLE_ID) {
+  if (edge.targetHandle === CONTROL_HANDLE_ID || edge.sourceHandle === CONTROL_HANDLE_ID) {
     return true;
   }
 

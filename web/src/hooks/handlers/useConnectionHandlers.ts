@@ -126,7 +126,7 @@ export default function useConnectionHandlers() {
       }
 
       // Control edge: skip type validation, delegate to NodeStore
-      if (targetHandle === CONTROL_HANDLE_ID) {
+      if (targetHandle === CONTROL_HANDLE_ID || sourceHandle === CONTROL_HANDLE_ID) {
         if (wouldCreateCycle(edges, source, target)) {
           addNotification({
             type: "warning",
@@ -135,8 +135,15 @@ export default function useConnectionHandlers() {
           });
           return;
         }
+        // Normalize: control edges always use __control__ for both handles
+        const controlConnection: Connection = {
+          source,
+          sourceHandle: CONTROL_HANDLE_ID,
+          target,
+          targetHandle: CONTROL_HANDLE_ID
+        };
         connectionCreated.current = true;
-        onConnect(connection);
+        onConnect(controlConnection);
         return;
       }
 
@@ -357,10 +364,10 @@ export default function useConnectionHandlers() {
           return;
         }
 
-        // Auto-create control edge when dragging from an Agent node output onto a node body
+        // Auto-create control edge when dragging from an Agent's control handle onto a node body
         if (
           connectDirection === "source" &&
-          connectNode.type?.toLowerCase().includes("agent")
+          connectHandleId === CONTROL_HANDLE_ID
         ) {
           const controlConnection: Connection = {
             source: connectNodeId || "",
