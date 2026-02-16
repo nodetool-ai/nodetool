@@ -25,6 +25,7 @@ import useErrorStore from "../../stores/ErrorStore";
 import ModelRecommendations from "./ModelRecommendations";
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
+import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import NodeToolButtons from "./NodeToolButtons";
@@ -621,6 +622,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           <ModelRecommendations nodeType={type} />
         )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
+      <RequiredSettingsWarning nodeType={type} />
       <InputNodeNameWarning nodeType={type} name={data.properties?.name as string | undefined} />
       <Box
         className="node-content-container"

@@ -6028,6 +6028,11 @@ export interface components {
              * @description Model packs associated with this node
              */
             model_packs?: components["schemas"]["ModelPack"][];
+            /**
+             * Required Settings
+             * @description List of required setting environment variables that must be configured for this node to function
+             */
+            required_settings?: string[];
         };
         /**
          * NodeProgress
