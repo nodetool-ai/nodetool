@@ -209,13 +209,25 @@
   filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.5));
 }
 
-/* CONTROL HANDLE - special handle at the top of controlled nodes */
+/* CONTROL HANDLE - special handle at the top/bottom of controlled nodes */
 .react-flow__node .react-flow__handle.control-handle {
   width: 14px;
   height: 8px;
-  border-radius: 4px 4px 0 0;
   background: #f59e0b;
   border: 1px solid #d97706;
+  z-index: 1000;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.react-flow__node .react-flow__handle.control-handle-top {
+  top: -6px;
+  border-radius: 4px 4px 0 0;
+}
+
+.react-flow__node .react-flow__handle.control-handle-bottom {
+  bottom: -6px;
+  border-radius: 0 0 4px 4px;
 }
 
 /* HANDLE */

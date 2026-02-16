@@ -34,7 +34,7 @@ import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
-import { graphEdgeToReactFlowEdge, CONTROL_HANDLE_ID } from "./graphEdgeToReactFlowEdge";
+import { graphEdgeToReactFlowEdge, CONTROL_HANDLE_ID, isAgentNodeType } from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -600,8 +600,7 @@ export const createNodeStore = (
 
             // For control edges, validate that source is an Agent node
             if (isControlEdge) {
-              const isAgent = srcNode.type?.toLowerCase().includes("agent") ?? false;
-              if (!isAgent) {
+              if (!isAgentNodeType(srcNode.type)) {
                 return;
               }
             }
@@ -1111,8 +1110,7 @@ export const createNodeStore = (
 
             // Control edge validation: only Agent nodes can create control edges
             if (connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID) {
-              const isAgent = srcNode.type?.toLowerCase().includes("agent") ?? false;
-              if (!isAgent) {
+              if (!isAgentNodeType(srcNode.type)) {
                 return false;
               }
               // Check for existing control connection between same source and target

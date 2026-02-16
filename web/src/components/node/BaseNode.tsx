@@ -49,7 +49,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isProduction } from "../../stores/ApiClient";
-import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
+import { CONTROL_HANDLE_ID, isAgentNodeType } from "../../stores/graphEdgeToReactFlowEdge";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -338,7 +338,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         type.startsWith("nodetool.output") ||
         type === "comfy.image.SaveImage" ||
         type === "comfy.image.PreviewImage",
-      isAgentNode: type.toLowerCase().includes("agent")
+      isAgentNode: isAgentNodeType(type)
     }),
     [type]
   );
@@ -612,19 +612,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           type="target"
           id={CONTROL_HANDLE_ID}
           position={Position.Top}
-          className="control-handle"
+          className="control-handle control-handle-top"
           isConnectable={true}
-          style={{
-            top: -6,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 14,
-            height: 8,
-            borderRadius: "4px 4px 0 0",
-            background: "#f59e0b",
-            border: "1px solid #d97706",
-            zIndex: 1000
-          }}
         />
       )}
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
@@ -703,19 +692,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           type="source"
           id={CONTROL_HANDLE_ID}
           position={Position.Bottom}
-          className="control-handle"
+          className="control-handle control-handle-bottom"
           isConnectable={true}
-          style={{
-            bottom: -6,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 14,
-            height: 8,
-            borderRadius: "0 0 4px 4px",
-            background: "#f59e0b",
-            border: "1px solid #d97706",
-            zIndex: 1000
-          }}
         />
       )}
 

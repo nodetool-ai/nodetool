@@ -1,5 +1,22 @@
-import { graphEdgeToReactFlowEdge } from "../graphEdgeToReactFlowEdge";
+import { graphEdgeToReactFlowEdge, isAgentNodeType } from "../graphEdgeToReactFlowEdge";
 import { Edge as GraphEdge } from "../ApiTypes";
+
+describe("isAgentNodeType", () => {
+  it("returns true for agent node types", () => {
+    expect(isAgentNodeType("nodetool.agents.Agent")).toBe(true);
+    expect(isAgentNodeType("nodetool.agents.ControlAgent")).toBe(true);
+  });
+
+  it("returns false for non-agent node types", () => {
+    expect(isAgentNodeType("nodetool.constant.String")).toBe(false);
+    expect(isAgentNodeType("nodetool.image.Generate")).toBe(false);
+  });
+
+  it("returns false for undefined/empty", () => {
+    expect(isAgentNodeType(undefined)).toBe(false);
+    expect(isAgentNodeType("")).toBe(false);
+  });
+});
 
 describe("graphEdgeToReactFlowEdge", () => {
   describe("basic edge conversion", () => {
