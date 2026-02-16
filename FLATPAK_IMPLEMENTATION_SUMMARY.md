@@ -1,8 +1,6 @@
 # Flatpak CI Implementation Summary
 
-## Overview
-
-This implementation successfully removes Flatpak and Snap from the release workflow and creates an independent, non-blocking Flatpak CI workflow according to the specified requirements.
+Removed Flatpak and Snap from the release workflow and created an independent, non-blocking Flatpak CI workflow.
 
 ## Changes Made
 
