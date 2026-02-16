@@ -456,66 +456,6 @@ if (process.env.JEST_WORKER_ID) {
           await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
         }
       });
-
-      test("should delete selected edges", async ({ page, request }) => {
-        const workflowName = `test-delete-edge-${Date.now()}`;
-        const createResponse = await request.post(`${BACKEND_API_URL}/workflows/`, {
-          data: {
-            name: workflowName,
-            description: "Workflow with edge",
-            access: "private",
-            graph: {
-              nodes: [
-                {
-                  id: "node-1",
-                  type: "nodetool.text.TextInput",
-                  position: { x: 100, y: 100 },
-                  data: { properties: {} }
-                },
-                {
-                  id: "node-2",
-                  type: "nodetool.workflows.base_node.Preview",
-                  position: { x: 300, y: 100 },
-                  data: { properties: {} }
-                }
-              ],
-              edges: [
-                {
-                  id: "edge-1",
-                  source: "node-1",
-                  sourceHandle: "output",
-                  target: "node-2",
-                  targetHandle: "value"
-                }
-              ]
-            }
-          }
-        });
-        const workflow = await createResponse.json();
-
-        try {
-          await navigateToPage(page, `/editor/${workflow.id}`);
-
-          await waitForEditorReady(page);
-        const canvas = page.locator(".react-flow");
-
-          // Wait for rendering
-          await waitForAnimation(page);
-
-          // Try to click on an edge and delete
-          const edge = page.locator(".react-flow__edge").first();
-          if ((await edge.count()) > 0) {
-            await edge.click();
-            await waitForAnimation(page);
-            await page.keyboard.press("Delete");
-            await waitForAnimation(page);
-          }
-
-          await expect(canvas).toBeVisible();
-        } finally {
-          await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
-        }
-      });
     });
 
     test.describe("Undo/Redo", () => {

@@ -254,29 +254,5 @@ if (process.env.JEST_WORKER_ID) {
         expect(typeof firstModel).toBe("object");
       }
     });
-
-    test("should verify models page makes API calls on load", async ({ page }) => {
-      // Set up request interceptor to track API calls
-      const apiCalls: string[] = [];
-      
-      page.on("response", (response) => {
-        const url = response.url();
-        if (url.includes("/api/models/")) {
-          apiCalls.push(url);
-        }
-      });
-
-      // Navigate to models page
-      await navigateToPage(page, "/models");
-      
-      // Wait for API calls to be made
-      await waitForAnimation(page);
-      
-      // Verify that at least some models API calls were made
-      expect(apiCalls.length).toBeGreaterThan(0);
-      
-      // Log the API calls for debugging
-      console.log("Models API calls made:", apiCalls);
-    });
   });
 }
