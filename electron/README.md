@@ -27,6 +27,12 @@ Output in `dist-electron/` for distribution.
 
 End-to-end tests verify desktop integration, IPC handlers, and server management using Playwright with Electron.
 
+**Prerequisites:**
+```bash
+# Install Playwright browsers (one time)
+npx playwright install chromium
+```
+
 **Run tests:**
 
 ```bash

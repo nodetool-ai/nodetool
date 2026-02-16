@@ -8,6 +8,7 @@ Guidelines for working with code in this repository. These are linter-like rules
   - [Components](web/src/components/AGENTS.md), [Stores](web/src/stores/AGENTS.md), [Contexts](web/src/contexts/AGENTS.md), [Hooks](web/src/hooks/AGENTS.md), [Utils](web/src/utils/AGENTS.md), [ServerState](web/src/serverState/AGENTS.md), [Lib](web/src/lib/AGENTS.md), [Config](web/src/config/AGENTS.md)
 - **[Testing](web/TESTING.md)** — Web testing guide (Jest, React Testing Library, Playwright)
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
+- **[Mobile](mobile/README.md)** — React Native mobile app
 - **[Documentation](docs/AGENTS.md)** — Docs site
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
 - **[Workflow Runner](workflow_runner/AGENTS.md)** — Standalone workflow runner
@@ -160,7 +161,7 @@ All three must pass before the task is complete.
 
 ## E2E Testing Setup
 
-E2E tests require the Python backend and Node.js frontend:
+E2E tests require the Python backend and Node.js frontend. For comprehensive E2E testing documentation, see **[web/TESTING.md](web/TESTING.md)**.
 
 ```bash
 # Install and run
@@ -175,6 +176,18 @@ npm run test:e2e           # Automatically starts servers
 # Terminal 3: cd web && npx playwright test
 ```
 
+### Electron E2E Tests
+
+```bash
+cd electron
+npm install
+npx playwright install chromium
+npm run vite:build && npx tsc  # Build first
+npm run test:e2e               # Run E2E tests
+```
+
+See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific testing.
+
 ## Security
 
 - Use `DOMPurify.sanitize()` for user input rendered as HTML.
@@ -184,8 +197,15 @@ npm run test:e2e           # Automatically starts servers
 
 ## Technologies
 
+### Web
 - **React 18.2.0**, **TypeScript 5.7.2**, **Vite 6.4.1**
 - **MUI v7.2.0** + Emotion, **Zustand 4.5.7**, **ReactFlow 12.10.0**
 - **TanStack Query v5.62.3**, **React Router v7.12.0**
 - **Jest 29.7.0** + React Testing Library 16.1.0, **Playwright** for E2E
-- **Electron** for desktop
+
+### Electron
+- **Electron 35.7.5**, **React 19.1.0**, **TypeScript 5.3.3**
+- **Zustand 5.0.3**, **Vite 6.4.1**
+
+### Mobile
+- **React Native / Expo** - See [mobile/README.md](mobile/README.md)
