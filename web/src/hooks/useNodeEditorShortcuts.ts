@@ -463,8 +463,17 @@ export const useNodeEditorShortcuts = (
   const electronDetails = getIsElectronDetails();
 
   // Helper to swap Control with Meta on macOS for registration purposes
+  // Also maps Delete to Backspace on macOS since Mac keyboards send "Backspace" for the delete key
   const mapComboForOS = (combo: string[]): string[] =>
-    combo.map((k) => (k === "Control" ? ControlOrMeta : k));
+    combo.map((k) => {
+      if (k === "Control") {
+        return ControlOrMeta;
+      }
+      if (isMac() && k === "Delete") {
+        return "Backspace";
+      }
+      return k;
+    });
 
   // Mapping slug -> registration meta (callback, preventDefault, active)
   const shortcutMeta = useMemo(() => {
