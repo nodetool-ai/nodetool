@@ -2,22 +2,14 @@
  * Validation utilities for identifiers (property names, output names, etc.)
  */
 
-/**
- * Result of identifier validation
- */
+/** Result of identifier validation */
 export interface ValidationResult {
   isValid: boolean;
   error?: string;
 }
 
 /**
- * Validates that a name is a valid identifier.
- * Identifiers must:
- * - Not start with a number (0-9)
- * - Not be empty (after trimming)
- *
- * @param name - The identifier name to validate
- * @returns ValidationResult with isValid flag and optional error message
+ * Validates that a name is a valid identifier (cannot start with number or be empty).
  */
 export function validateIdentifierName(name: string): ValidationResult {
   const trimmedName = name.trim();
@@ -42,11 +34,7 @@ export function validateIdentifierName(name: string): ValidationResult {
   };
 }
 
-/**
- * Checks if a name starts with a number
- * @param name - The name to check
- * @returns true if name starts with a number, false otherwise
- */
+/** Checks if a name starts with a number. */
 export function startsWithNumber(name: string): boolean {
   return /^[0-9]/.test(name.trim());
 }

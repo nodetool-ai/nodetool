@@ -1,9 +1,4 @@
-/**
- * Extract HTML content from a chat message response.
- *
- * The agent returns HTML wrapped in ```html ... ``` code blocks.
- * This function extracts the HTML content from those blocks.
- */
+/** Extract HTML content from chat message code blocks. */
 export function extractHtmlFromResponse(content: string): string | null {
   if (!content) {
     return null;
@@ -42,9 +37,7 @@ export function extractHtmlFromResponse(content: string): string | null {
   return null;
 }
 
-/**
- * Check if a string looks like a valid HTML document.
- */
+/** Check if a string looks like a valid HTML document. */
 export function isValidHtmlDocument(html: string): boolean {
   if (!html) {
     return false;
@@ -58,9 +51,7 @@ export function isValidHtmlDocument(html: string): boolean {
   return hasHtmlTag && (hasHead || hasBody);
 }
 
-/**
- * Inject runtime configuration into HTML document.
- */
+/** Inject runtime configuration into HTML document. */
 export function injectRuntimeConfig(
   html: string,
   config: {

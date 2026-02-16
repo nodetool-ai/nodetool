@@ -7,25 +7,12 @@ import { useNodes } from "../contexts/NodeContext";
 import { useRecentNodesStore } from "../stores/RecentNodesStore";
 
 /**
- * Custom hook for creating new nodes in the workflow editor.
- * 
- * Handles translating screen coordinates to ReactFlow coordinates and
- * creates nodes with proper metadata and positioning.
- * 
- * @param centerPosition - Optional fixed position for the new node. 
- *                         If not provided, uses the current click position from the node menu.
- * @returns Callback function to create a new node with the given metadata
+ * Hook for creating new nodes in the workflow editor.
  * 
  * @example
- * ```typescript
  * const handleCreateNode = useCreateNode();
- * 
- * // Create node at menu position
- * handleCreateNode(metadata);
- * 
- * // Create node at specific position
- * handleCreateNode(metadata, { x: 100, y: 200 });
- * ```
+ * handleCreateNode(metadata); // at menu position
+ * handleCreateNode(metadata, { x: 100, y: 200 }); // at specific position
  */
 export const useCreateNode = (
   centerPosition: { x: number; y: number } | undefined = undefined

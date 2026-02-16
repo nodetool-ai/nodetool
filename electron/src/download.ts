@@ -7,11 +7,7 @@ import { checkPermissions } from "./utils";
 import * as https from "https";
 import { IncomingMessage } from "http";
 
-/**
- * Get file size from URL using HEAD request
- * @param url - The URL to get the file size from
- * @returns The file size
- */
+/** Get file size from URL using HEAD request */
 async function getFileSizeFromUrl(url: string): Promise<number> {
   return new Promise((resolve, reject) => {
     const request = https.request(url, { method: "HEAD" }, (response) => {
@@ -40,11 +36,7 @@ async function getFileSizeFromUrl(url: string): Promise<number> {
   });
 }
 
-/**
- * Download a file's contents directly to a string
- * @param filePath - The path to the file to download
- * @returns The file contents
- */
+/** Download a file's contents directly to a string */
 async function downloadFromFile(filePath: string): Promise<string> {
   try {
     const data = await fs.readFile(filePath, "utf8");

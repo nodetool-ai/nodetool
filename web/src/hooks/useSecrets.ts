@@ -5,24 +5,11 @@ import { useCallback } from "react";
 /**
  * Hook to fetch and manage API secrets (API keys) from the backend.
  *
- * Provides cached access to user-stored secrets for various AI providers.
- * The secrets are stored securely and fetched via the SecretsStore.
- *
- * @returns Object containing:
- *   - secrets: Array of stored secrets with key and value
- *   - isLoading: Loading state for the query
- *   - isSuccess: Whether the query completed successfully
- *   - isApiKeySet: Callback function to check if a specific API key is configured
- *
  * @example
- * ```typescript
- * const { secrets, isLoading, isApiKeySet } = useSecrets();
- *
- * const hasOpenAI = isApiKeySet("openai_api_key");
- * if (hasOpenAI) {
+ * const { secrets, isApiKeySet } = useSecrets();
+ * if (isApiKeySet("openai_api_key")) {
  *   console.log("OpenAI API key is configured");
  * }
- * ```
  */
 export const useSecrets = () => {
   const {

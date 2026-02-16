@@ -68,8 +68,7 @@ const STORAGE_KEYS = {
   OPEN_WORKFLOWS: "openWorkflows"
 } as const;
 
-// Provides a set of utility functions to interact with localStorage,
-// including debounced writes to avoid excessive operations.
+// localStorage utilities with debounced writes
 const storage = {
   // Retrieve the current workflow ID from localStorage.
   getCurrentWorkflow: () => localStorage.getItem(STORAGE_KEYS.CURRENT_WORKFLOW),

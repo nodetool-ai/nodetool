@@ -2,9 +2,7 @@ import { useCallback } from "react";
 import { NodeData } from "../stores/NodeData";
 import { useNodes } from "../contexts/NodeContext";
 
-/**
- * Configuration options for aligning nodes.
- */
+/** Configuration options for aligning nodes. */
 type AlignNodesOptions = {
   /** Whether to arrange nodes with equal spacing between them */
   arrangeSpacing: boolean;
@@ -13,24 +11,12 @@ type AlignNodesOptions = {
 };
 
 /**
- * Custom hook for aligning selected nodes in the workflow editor.
- * 
- * Provides functionality to align nodes either vertically (left-aligned)
- * or horizontally (top-aligned) based on the node distribution.
- * Optionally arranges nodes with equal spacing and sets collapsed state.
- * 
- * @returns Callback function to align selected nodes with the specified options
+ * Hook for aligning selected nodes in the workflow editor.
  * 
  * @example
- * ```typescript
  * const alignNodes = useAlignNodes();
- * 
- * // Simple left/top alignment
- * alignNodes({ arrangeSpacing: false });
- * 
- * // Alignment with equal spacing
- * alignNodes({ arrangeSpacing: true, collapsed: false });
- * ```
+ * alignNodes({ arrangeSpacing: false }); // Simple alignment
+ * alignNodes({ arrangeSpacing: true, collapsed: false }); // With spacing
  */
 const useAlignNodes = () => {
   const VERTICAL_SPACING = 20;

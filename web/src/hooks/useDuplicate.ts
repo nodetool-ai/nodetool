@@ -6,32 +6,16 @@ import { DUPLICATE_SPACING } from "../config/constants";
 import { useNodes } from "../contexts/NodeContext";
 
 /**
- * Custom hook for duplicating selected nodes and their connected edges in the workflow editor.
+ * Hook for duplicating selected nodes and their connected edges.
  *
- * Generates new unique IDs for duplicated nodes and adjusts their positions.
- * Handles parent-child relationships and preserves edge connections between duplicated nodes.
- * By default, preserves upstream connections (edges from non-selected nodes into selected nodes).
- *
- * @param vertical - If true, duplicates nodes vertically (below original).
- *                   If false, duplicates horizontally (to the right of original).
- * @param keepUpstreamConnections - If true (default), preserves incoming edges from non-selected nodes.
- *                                   If false, only duplicates edges between selected nodes.
- * @returns Callback function to duplicate selected nodes
+ * @param vertical - If true, duplicates vertically; if false, horizontally
+ * @param keepUpstreamConnections - If true (default), preserves incoming edges from non-selected nodes
  *
  * @example
- * ```typescript
- * // Duplicate horizontally with upstream connections preserved (default)
  * const duplicateNodes = useDuplicateNodes();
- * duplicateNodes();
- *
- * // Duplicate vertically with upstream connections preserved
- * const duplicateNodesVertical = useDuplicateNodes(true);
- * duplicateNodesVertical();
- *
- * // Duplicate without upstream connections
- * const duplicateNodesIsolated = useDuplicateNodes(false, false);
- * duplicateNodesIsolated();
- * ```
+ * duplicateNodes(); // Duplicate horizontally
+ * const duplicateVertical = useDuplicateNodes(true);
+ * const duplicateIsolated = useDuplicateNodes(false, false);
  */
 export const useDuplicateNodes = (
   vertical: boolean = false,
