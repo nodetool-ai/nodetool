@@ -1,10 +1,5 @@
 /**
  * Hook for editing and saving images in the asset system.
- * 
- * Handles the flow of:
- * 1. Converting edited image blob to base64
- * 2. Updating the asset via AssetStore
- * 3. Invalidating cache and showing notifications
  */
 
 import { useCallback } from "react";
@@ -19,9 +14,7 @@ interface UseAssetImageEditorResult {
   ) => Promise<void>;
 }
 
-/**
- * Convert a Blob to a base64 data URL
- */
+/** Convert a Blob to a base64 data URL */
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -34,10 +27,7 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   });
 };
 
-/**
- * Hook for editing images from the asset panel.
- * Provides functionality to save edited images back to the asset backend.
- */
+/** Hook for editing images from the asset panel. */
 export const useAssetImageEditor = (): UseAssetImageEditorResult => {
   const updateAsset = useAssetStore((state) => state.update);
   const invalidateQueries = useAssetStore((state) => state.invalidateQueries);

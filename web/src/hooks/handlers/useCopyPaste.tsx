@@ -1,11 +1,4 @@
-/**
- * Custom hook that provides copy, cut, and paste functionality for nodes and edges in the flow editor.
- * Handles both single node and multi-node operations, preserves connections between copied nodes,
- * and supports both Electron clipboard API and localStorage fallback for data persistence.
- *
- * Also handles pasting of clipboard content like images, HTML, RTF, and text by creating
- * appropriate constant nodes.
- */
+/** Hook for copy/paste functionality of nodes and edges in the flow editor. */
 
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";

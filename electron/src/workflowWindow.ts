@@ -16,11 +16,7 @@ export const baseUrl = app.isPackaged
   ? `http://127.0.0.1:${appPort}/apps/index.html`
   : `${webDevBaseUrl}/index.html`;
 
-/**
- * Creates a new frameless workflow window
- * @param workflowId - The workflow ID to create a window for
- * @returns The created window
- */
+/** Creates a new frameless workflow window */
 function createWorkflowWindow(workflowId: string): BrowserWindow {
   // Remove application menu
   Menu.setApplicationMenu(null);
@@ -51,12 +47,7 @@ function createWorkflowWindow(workflowId: string): BrowserWindow {
   return workflowWindow;
 }
 
-/**
- * Creates a dedicated window for a mini app workflow
- * @param workflowId - The workflow ID to create a mini app window for
- * @param workflowName - The workflow name for the window title
- * @returns The created window
- */
+/** Creates a dedicated window for a mini app workflow */
 function createMiniAppWindow(workflowId: string, workflowName?: string): BrowserWindow {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   const windowWidth = Math.min(1200, Math.floor(width * 0.8));

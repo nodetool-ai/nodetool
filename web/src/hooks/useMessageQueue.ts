@@ -31,33 +31,14 @@ interface UseMessageQueueReturn {
 }
 
 /**
- * Custom hook for managing message queuing in chat interfaces.
- * 
- * Handles queuing messages when a response is streaming or loading,
- * and automatically sends queued messages when the system becomes ready.
- * 
- * @param options - Configuration options
- * @returns Object containing queued message state and control functions
+ * Hook for managing message queuing in chat interfaces.
  * 
  * @example
- * ```typescript
- * const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } = useMessageQueue({
+ * const { queuedMessage, sendMessage, cancelQueued } = useMessageQueue({
  *   isLoading,
  *   isStreaming,
- *   onSendMessage,
- *   onStop,
- *   textareaRef
+ *   onSendMessage
  * });
- * 
- * // Send a message (will be queued if busy, sent immediately if ready)
- * sendMessage(content, prompt, agentMode);
- * 
- * // Cancel a queued message
- * cancelQueued();
- * 
- * // Force send queued message now (interrupts current response)
- * sendQueuedNow();
- * ```
  */
 export function useMessageQueue({
   isLoading,

@@ -1,16 +1,5 @@
 /**
- * NodeMenuStore
- *
- * This module manages the state and behavior of the node selection menu in the application.
- * It handles:
- * - Opening/closing the node menu
- * - Node searching and filtering
- * - Type-based filtering
- * - Path/namespace navigation
- * - Node documentation display
- * - Connection direction for node linking
- *
- * The store uses Zustand for state management and Fuse.js for fuzzy searching.
+ * NodeMenuStore manages the state and behavior of the node selection menu.
  */
 
 import { create } from "zustand";

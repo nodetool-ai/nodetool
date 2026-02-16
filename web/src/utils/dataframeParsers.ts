@@ -5,11 +5,7 @@
 import readXlsxFile, { Row } from "read-excel-file";
 import { DataframeRef, ColumnDef } from "../stores/ApiTypes";
 
-/**
- * Infer the data type from a value.
- * @param value - The value to analyze
- * @returns The inferred data type
- */
+/** Infer the data type from a value. */
 function inferDataType(
   value: unknown
 ): "int" | "float" | "datetime" | "string" | "object" {
@@ -64,12 +60,7 @@ function inferDataType(
   return "string";
 }
 
-/**
- * Infer column type from all values in a column.
- * Uses majority voting for type inference.
- * @param values - Array of values from a column
- * @returns The inferred data type
- */
+/** Infer column type from all values using majority voting. */
 function inferColumnType(
   values: unknown[]
 ): "int" | "float" | "datetime" | "string" | "object" {

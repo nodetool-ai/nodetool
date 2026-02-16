@@ -1,58 +1,31 @@
 import { useState, useCallback, useRef } from "react";
 
 interface UseCopyToClipboardOptions {
-  /**
-   * Duration in milliseconds to show the "copied" feedback
-   * @default 1500
-   */
+  /** Duration in milliseconds to show the "copied" feedback */
   feedbackDuration?: number;
-  /**
-   * Callback function to execute after successful copy
-   */
+  /** Callback after successful copy */
   onCopySuccess?: (text: string) => void;
-  /**
-   * Callback function to execute when copy fails
-   */
+  /** Callback when copy fails */
   onCopyError?: (error: Error) => void;
 }
 
 interface UseCopyToClipboardReturn {
-  /**
-   * Whether the text was recently copied (during feedback duration)
-   */
+  /** Whether text was recently copied (during feedback duration) */
   isCopied: boolean;
-  /**
-   * Copy text to clipboard
-   * @param text - The text to copy
-   * @returns Promise that resolves when copy is complete
-   */
+  /** Copy text to clipboard */
   copyToClipboard: (text: string) => Promise<void>;
-  /**
-   * The most recently copied text
-   */
+  /** The most recently copied text */
   copiedText: string | null;
 }
 
 /**
- * Custom hook for copying text to clipboard with user feedback.
- * 
- * Provides a simple interface for copying text to clipboard with
- * temporary feedback state to show success indicators.
- * 
- * @param options - Configuration options
- * @returns Object containing copy function and feedback state
+ * Hook for copying text to clipboard with user feedback.
  * 
  * @example
- * ```typescript
- * const { isCopied, copyToClipboard } = useCopyToClipboard({
- *   feedbackDuration: 2000,
- *   onCopySuccess: (text) => console.log('Copied:', text)
- * });
- * 
- * <Button onClick={() => copyToClipboard('Hello World')}>
+ * const { isCopied, copyToClipboard } = useCopyToClipboard();
+ * <Button onClick={() => copyToClipboard('Hello')}>
  *   {isCopied ? 'Copied!' : 'Copy'}
  * </Button>
- * ```
  */
 export function useCopyToClipboard(
   options: UseCopyToClipboardOptions = {}

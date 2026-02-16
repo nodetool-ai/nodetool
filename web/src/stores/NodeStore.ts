@@ -1,14 +1,4 @@
-/**
- * NodeStore manages workflow graph state for a single editor tab.
- *
- * Responsibilities:
- * - Track nodes/edges, selection, viewport, and hover state
- * - Enforce connection validity (handle types, prevent cycles) via
- *   `isValidEdge`/`sanitizeGraph`
- * - Run ELK auto-layout when requested and resize group nodes accordingly
- * - Provide serialization helpers to/from backend graph shapes
- * - Offer temporal undo/redo on nodes/edges/workflow via zundo (limit 1000)
- */
+/** NodeStore manages workflow graph state for a single editor tab. */
 
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
