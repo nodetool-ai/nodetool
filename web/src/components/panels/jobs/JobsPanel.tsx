@@ -1,11 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { Box, CircularProgress, Typography, List, ListItem } from "@mui/material";
 import { useRunningJobs } from "../../../hooks/useRunningJobs";
 import { Job } from "../../../stores/ApiTypes";
 import { groupByDate } from "../../../utils/groupByDate";
 import JobItem from "./JobItem";
 
-const JobGroupHeader = ({ label }: { label: string }) => (
+const JobGroupHeader = memo(function JobGroupHeader({ label }: { label: string }) {
+    return (
     <ListItem sx={{ pt: 1, pb: 0.5, px: 2 }}>
         <Typography
             variant="caption"
@@ -24,7 +25,10 @@ const JobGroupHeader = ({ label }: { label: string }) => (
             {label}
         </Typography>
     </ListItem>
-);
+    );
+});
+
+JobGroupHeader.displayName = "JobGroupHeader";
 
 const JobsListContent = ({ jobs }: { jobs: Job[] }) => {
     const items = useMemo(() => {
@@ -53,7 +57,7 @@ const JobsListContent = ({ jobs }: { jobs: Job[] }) => {
     return <>{items}</>;
 };
 
-const JobsPanel = () => {
+const JobsPanel = memo(function JobsPanel() {
     const { data: jobs, isLoading, error } = useRunningJobs();
 
     if (isLoading) {
@@ -71,6 +75,8 @@ const JobsPanel = () => {
             <JobsListContent jobs={jobs} />
         </List>
     );
-};
+});
+
+JobsPanel.displayName = "JobsPanel";
 
 export default JobsPanel;
