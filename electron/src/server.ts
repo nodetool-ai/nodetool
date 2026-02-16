@@ -30,21 +30,9 @@ let llamaWatchdog: Watchdog | null = null;
 const OLLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "ollama.pid");
 const LLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "llama-server.pid");
 
-/**
- * Server Management Module
- *
- * This module handles the lifecycle and management of the NodeTool backend server.
- * It provides functionality for starting, stopping, and monitoring the Python-based
- * backend server process, including health checks, port availability verification,
- * and process management. The module also handles Ollama AI service dependencies
- * and server output logging.
- */
+/** Server Management Module */
 
-/**
- * Checks if a specific port is available for use
- * @param port - The port number to check
- * @returns Promise resolving to true if port is available, false otherwise
- */
+/** Checks if a specific port is available for use */
 async function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net

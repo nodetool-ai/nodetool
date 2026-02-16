@@ -11,11 +11,6 @@ const SINGLE_NODE_MIN_HEIGHT = 800;
 
 /**
  * Calculates the bounding box that contains all specified nodes.
- * Takes into account parent node positions and node dimensions.
- * 
- * @param nodesToBound - Array of nodes to calculate bounds for
- * @param nodesById - Map of node IDs to their absolute positions
- * @returns Object with xMin, xMax, yMin, yMax coordinates, or null if nodes array is empty
  */
 export function getNodesBounds(
   nodesToBound: Node<NodeData>[],
@@ -45,27 +40,13 @@ export function getNodesBounds(
 }
 
 /**
- * Custom hook for fitting the workflow editor viewport to display specified nodes.
- * 
- * Animates the viewport to center and zoom appropriately to show all nodes
- * within the viewport. Supports fitting to selected nodes, specific node IDs,
- * or all nodes in the workflow.
- * 
- * @returns Callback function to fit the viewport with optional configuration
+ * Hook for fitting the workflow editor viewport to display specified nodes.
  * 
  * @example
- * ```typescript
  * const fitView = useFitView();
- * 
- * // Fit all nodes to viewport
- * fitView();
- * 
- * // Fit with custom padding
- * fitView({ padding: 0.2 });
- * 
- * // Fit to specific nodes
- * fitView({ nodeIds: ['node-1', 'node-2'] });
- * ```
+ * fitView(); // Fit all nodes
+ * fitView({ padding: 0.2 }); // Custom padding
+ * fitView({ nodeIds: ['node-1', 'node-2'] }); // Specific nodes
  */
 export const useFitView = () => {
   const reactFlowInstance = useReactFlow();
