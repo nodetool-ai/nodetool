@@ -2,7 +2,7 @@
 
 ## What Was Added
 
-This PR adds comprehensive Flatpak support for Nodetool on Linux, providing a sandboxed, distribution-independent packaging format.
+Flatpak support for Nodetool on Linux, providing sandboxed, distribution-independent packaging.
 
 ### New Files
 
@@ -21,10 +21,8 @@ This PR adds comprehensive Flatpak support for Nodetool on Linux, providing a sa
    - Defines runtime, SDK, and permissions
 
 4. **electron/FLATPAK.md**
-   - Comprehensive documentation for Flatpak support
-   - Build instructions
-   - Installation guide
-   - Troubleshooting tips
+   - Documentation for Flatpak support
+   - Build instructions, installation guide, troubleshooting
 
 5. **electron/validate-flatpak.sh**
    - Validation script to check Flatpak configuration
@@ -100,8 +98,8 @@ Users can install the Flatpak in several ways:
 
 1. **Distribution-independent:** Works on any Linux distribution with Flatpak
 2. **Sandboxed:** Enhanced security through containerization
-3. **Automatic dependencies:** Runtime and dependencies are managed automatically
-4. **Easy updates:** Flatpak handles updates seamlessly
+3. **Automatic dependencies:** Runtime and dependencies managed automatically
+4. **Easy updates:** Flatpak manages updates
 5. **Consistent experience:** Same runtime across all distributions
 
 ### For Developers
