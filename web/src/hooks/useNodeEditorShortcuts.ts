@@ -453,6 +453,10 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const handleDocumentationToggle = useCallback(() => {
+    inspectorToggle("documentation");
+  }, [inspectorToggle]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -495,6 +499,7 @@ export const useNodeEditorShortcuts = (
       groupSelected: { callback: handleGroup },
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
+      toggleDocumentation: { callback: handleDocumentationToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
@@ -608,6 +613,7 @@ export const useNodeEditorShortcuts = (
     handleGroup,
     handleInspectorToggle,
     handleWorkflowSettingsToggle,
+    handleDocumentationToggle,
     handleShowKeyboardShortcuts,
     handleSave,
     handleSaveExample,

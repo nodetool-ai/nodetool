@@ -27,6 +27,7 @@ import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
+import WorkflowDocumentation from "../workflows/WorkflowDocumentation";
 import AgentPanel from "./AgentPanel";
 
 const TOOLBAR_WIDTH = 50;
@@ -506,6 +507,10 @@ const PanelRight: React.FC = () => {
                       />
                     </Box>
                   ) : null
+                ) : activeView === "documentation" ? (
+                  currentWorkflowId ? (
+                    <WorkflowDocumentation workflowId={currentWorkflowId} />
+                  ) : null
                 ) : activeView === "workflowAssets" ? (
                   <Box
                     className="workflow-assets-panel"
@@ -554,6 +559,7 @@ const PanelRight: React.FC = () => {
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
         handleAgentToggle={() => handlePanelToggle("agent")}
+        handleDocumentationToggle={() => handlePanelToggle("documentation")}
         activeView={activeView}
         panelVisible={isVisible}
       />
