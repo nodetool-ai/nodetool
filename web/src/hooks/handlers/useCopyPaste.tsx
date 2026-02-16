@@ -42,7 +42,8 @@ export const useCopyPaste = () => {
     })
   );
 
-  const { handleContentPaste, readClipboardContent } = useClipboardContentPaste();
+  const { handleContentPaste, readClipboardContent, readClipboardText } =
+    useClipboardContentPaste();
 
   const selectedNodes = useMemo(() => {
     return nodes.filter((node) => node.selected);
@@ -132,55 +133,61 @@ export const useCopyPaste = () => {
       return;
     }
 
-    const clipboardContent = await readClipboardContent();
+    // 1. Check plain text clipboard for valid node JSON first.
+    //    This must happen before readClipboardContent() because that function
+    //    prioritizes image/HTML formats which can intercept node JSON text
+    //    (e.g. some environments wrap clipboard text in HTML tags).
     let clipboardData: string | null = null;
-
-    // 1. Content is an Image or File -> Handle as content immediately
-    if (clipboardContent.type === "image" || clipboardContent.type === "file") {
-      await handleContentPaste();
-      return;
+    const clipboardText = await readClipboardText();
+    if (clipboardText) {
+      try {
+        const parsed = JSON.parse(clipboardText);
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          Array.isArray((parsed as any).nodes) &&
+          Array.isArray((parsed as any).edges) &&
+          (parsed as any).nodes.every(isValidNode) &&
+          (parsed as any).edges.every(isValidEdge)
+        ) {
+          clipboardData = clipboardText;
+        }
+      } catch {
+        // Not JSON, continue to other checks
+      }
     }
 
-    // 2. Content is Text/HTML/RTF -> Check if it is valid Node Data
-    if (
-      clipboardContent.type === "text" ||
-      clipboardContent.type === "html" ||
-      clipboardContent.type === "rtf"
-    ) {
-      if (typeof clipboardContent.data === "string") {
-        try {
-          const parsed = JSON.parse(clipboardContent.data);
-          if (
-            parsed &&
-            typeof parsed === "object" &&
-            Array.isArray((parsed as any).nodes) &&
-            Array.isArray((parsed as any).edges) &&
-            (parsed as any).nodes.every(isValidNode) &&
-            (parsed as any).edges.every(isValidEdge)
-          ) {
-            // It is valid node data, so use it
-            clipboardData = clipboardContent.data;
-          }
-        } catch {
-          // Not JSON
-        }
-      }
+    // 2. If clipboard text is not valid node data, check for images/files/other content
+    if (!clipboardData) {
+      const clipboardContent = await readClipboardContent();
 
-      // If it is NOT valid nodes data, handle as content (string node)
-      if (!clipboardData) {
+      if (
+        clipboardContent.type === "image" ||
+        clipboardContent.type === "file"
+      ) {
         await handleContentPaste();
         return;
       }
-    }
 
-    // 3. Fallback to localStorage if system clipboard matches nothing known
-    if (clipboardContent.type === "unknown" && !clipboardData) {
-      clipboardData = localStorage.getItem("copiedNodesData");
-    }
+      // For text/HTML/RTF types that aren't node JSON, handle as content paste
+      if (
+        clipboardContent.type === "text" ||
+        clipboardContent.type === "html" ||
+        clipboardContent.type === "rtf"
+      ) {
+        await handleContentPaste();
+        return;
+      }
 
-    if (!clipboardData) {
-      log.debug("No valid data found in clipboard or localStorage");
-      return;
+      // 3. Fallback to localStorage if system clipboard matches nothing known
+      if (clipboardContent.type === "unknown") {
+        clipboardData = localStorage.getItem("copiedNodesData");
+      }
+
+      if (!clipboardData) {
+        log.debug("No valid data found in clipboard or localStorage");
+        return;
+      }
     }
 
     let parsedData: unknown;
@@ -318,7 +325,8 @@ export const useCopyPaste = () => {
 
     workflowId,
     handleContentPaste,
-    readClipboardContent
+    readClipboardContent,
+    readClipboardText
   ]);
 
   return { handleCopy, handleCut, handlePaste };
