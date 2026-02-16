@@ -1,25 +1,21 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Command, CommandInput } from "cmdk";
-import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
-import { useCallback, useEffect, useState, useRef, memo, useMemo } from "react";
-import { Tooltip } from "@mui/material";
+import { Workflow, WorkflowList } from "../../stores/ApiTypes";
+import { useCallback, useEffect, useState, useRef, memo } from "react";
 import { Dialog } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { useCreateNode } from "../../hooks/useCreateNode";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import isEqual from "lodash/isEqual";
 import React from "react";
-import useMetadataStore from "../../stores/MetadataStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
-import NodeInfo from "../node_menu/NodeInfo";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
@@ -82,7 +78,6 @@ import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 
 // Icons — Nodes & Workflows list
 import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
-import WidgetsRoundedIcon from "@mui/icons-material/WidgetsRounded";
 
 type CommandMenuProps = {
   open: boolean;
@@ -432,61 +427,6 @@ const PanelCommands = memo(function PanelCommands() {
         <AccountTreeRoundedIcon /> Toggle Workflows Panel
       </Command.Item>
     </Command.Group>
-  );
-});
-
-const NodeCommands = memo(function NodeCommands() {
-  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
-  const reactFlowWrapper = useCommandMenu((state) => state.reactFlowWrapper);
-  const { width: reactFlowWidth, height: reactFlowHeight } = useMemo(
-    () =>
-      reactFlowWrapper.current?.getBoundingClientRect() ?? {
-        width: 800,
-        height: 600
-      },
-    [reactFlowWrapper]
-  );
-
-  const handleCreateNode = useCreateNode({
-    x: reactFlowWidth / 2,
-    y: reactFlowHeight / 2
-  });
-
-  const groupedByCategory = useMemo(() => {
-    const metadata = useMetadataStore.getState().metadata;
-    return Object.values(metadata).reduce<Record<string, NodeMetadata[]>>(
-      (acc, curr) => {
-        (acc[curr.namespace] = acc[curr.namespace] || []).push(curr);
-        return acc;
-      },
-      {}
-    );
-  }, []);
-
-  return (
-    <>
-      {Object.entries(groupedByCategory).map(([category, metadata], idx) => (
-        <Command.Group key={idx} heading={category}>
-          {metadata.map((meta, idx) => (
-            <Tooltip
-              key={idx}
-              title={<NodeInfo nodeMetadata={meta} />}
-              placement="right"
-              enterDelay={0}
-              leaveDelay={0}
-              TransitionProps={{ timeout: 0 }}
-            >
-              <Command.Item
-                key={idx}
-                onSelect={() => executeAndClose(() => handleCreateNode(meta))}
-              >
-                <WidgetsRoundedIcon /> {meta.title}
-              </Command.Item>
-            </Tooltip>
-          ))}
-        </Command.Group>
-      ))}
-    </>
   );
 });
 
