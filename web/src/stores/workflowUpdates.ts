@@ -28,6 +28,7 @@ import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
+import useWorkflowStatsStore from "./WorkflowStatsStore";
 
 type WorkflowSubscription = {
   workflowId: string;
@@ -343,6 +344,10 @@ export const handleUpdate = (
           alert: true,
           content: `Job completed in ${job.duration?.toPrecision(2)} seconds`
         });
+        // Record workflow execution stats
+        if (job.duration) {
+          useWorkflowStatsStore.getState().recordExecution(workflow.id, job.duration * 1000);
+        }
         // Note: Don't clear edges on completion - keep the stream item counts visible
         // Edges are cleared when a new run starts (in WorkflowRunner.ts)
         clearProgress(workflow.id);
