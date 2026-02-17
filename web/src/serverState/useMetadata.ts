@@ -42,7 +42,8 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     recommended_models: [],
     expose_as_tool: false,
     supports_dynamic_outputs: false,
-    is_streaming_output: false
+    is_streaming_output: false,
+    required_settings: []
   },
   [WORKFLOW_NODE_TYPE]: {
     title: "Workflow",
@@ -59,7 +60,8 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     recommended_models: [],
     expose_as_tool: false,
     supports_dynamic_outputs: true,
-    is_streaming_output: true
+    is_streaming_output: true,
+    required_settings: []
   }
 };
 
