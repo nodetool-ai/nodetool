@@ -80,20 +80,39 @@ jobs:
             3. Check `.memory/issues/` and `.memory/insights/` for relevant solutions
 
             ## Quality Rules
-            - `make typecheck && make lint && make test` must all pass
+            Before submitting any changes, you MUST run and pass all quality checks:
+            ```bash
+            make lint       # All lint checks must pass
+            make typecheck  # All type checks must pass
+            make test       # All tests must pass
+            ```
+            Additional rules:
             - Use `make lint-fix` to auto-fix many issues
             - Never make quality worse than before
             - TypeScript strict: no `any`, use `===`, use `Array.isArray()`
             - React: selective Zustand subscriptions, useCallback for child props, MUI theme values
+
+            ## Code Review for Regressions
+            After making any code changes, review for potential regressions:
+            - Run the affected features manually to ensure they work
+            - Check that existing tests still pass
+            - Look for unintended side effects in related code
+            - Verify no new TypeScript errors or lint warnings were introduced
+            - Test edge cases and error handling
 
             ## Your Task
             Review the issue comment and provide helpful assistance. 
             
             **If you make code changes to fix an issue or implement a feature:**
             1. Make the changes and test them thoroughly
-            2. Commit your changes with a clear message
-            3. Push your branch
-            4. **Create a Pull Request** with a clear description of what you did and why
+            2. Run all quality checks (make lint, make typecheck, make test)
+            3. Review for regressions
+            4. Commit your changes with a clear message
+            5. Push your branch
+            6. **Create a Pull Request** with:
+               - Clear description of what you did and why
+               - Quality check results (all passing)
+               - Any potential regressions you identified and how you addressed them
 
       - name: Post-change verification
         if: always()

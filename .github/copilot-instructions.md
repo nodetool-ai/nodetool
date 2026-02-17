@@ -657,6 +657,19 @@ This ensures:
 - Consistent code style and patterns
 - No regressions in existing functionality
 
+## Code Review for Regressions
+
+After making changes and before submitting a PR, review your code for potential regressions:
+
+1. **Manual Testing**: Run the affected features manually to ensure they work correctly
+2. **Test Coverage**: Verify that existing tests still pass and cover the changes
+3. **Side Effects**: Look for unintended side effects in related code
+4. **Quality Checks**: Confirm no new TypeScript errors or lint warnings were introduced
+5. **Edge Cases**: Test edge cases and error handling scenarios
+6. **Performance**: Consider any performance implications of your changes
+
+This review helps catch issues before they reach production and ensures your changes don't break existing functionality.
+
 ---
 
 ## Quick Reference Commands (Make)
