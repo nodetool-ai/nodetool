@@ -12,7 +12,7 @@ import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
 import { Button, TextField, Tooltip } from "@mui/material";
 import AssetViewer from "../assets/AssetViewer";
-import Model3DViewer from "../asset_viewer/Model3DViewer";
+import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 
 const styles = (theme: Theme) =>
   css({
@@ -222,7 +222,7 @@ const Model3DProperty = (props: PropertyProps) => {
           >
             {uri ? (
               <div className="model-preview">
-                <Model3DViewer url={uri} compact={true} onClick={handlePreviewClick} />
+                <LazyModel3DViewer url={uri} compact={true} onClick={handlePreviewClick} />
               </div>
             ) : (
               <p className="prop-drop">Drop 3D model (GLB, GLTF)</p>
