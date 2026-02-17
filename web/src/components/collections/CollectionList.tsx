@@ -19,6 +19,7 @@ import EmptyCollectionState from "./EmptyCollectionState";
 import CollectionItem from "./CollectionItem";
 import { useCollectionStore } from "../../stores/CollectionStore";
 import { DialogActionButtons } from "../ui_primitives";
+import { CollectionResponse } from "../../stores/ApiTypes";
 
 const CollectionList = () => {
   // Group related state to reduce selector calls
@@ -210,7 +211,7 @@ const CollectionList = () => {
               }}
             >
               <List>
-                {collections?.collections.map((collection: { name: string }) => (
+                {collections?.collections.map((collection: CollectionResponse) => (
                   <CollectionItem
                     key={collection.name}
                     collection={collection}

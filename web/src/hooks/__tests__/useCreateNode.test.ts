@@ -81,6 +81,7 @@ describe("useCreateNode", () => {
       recommended_models: [],
       basic_fields: [],
       is_streaming_output: false,
+      required_settings: [],
     };
 
     act(() => {
@@ -107,6 +108,7 @@ describe("useCreateNode", () => {
       recommended_models: [],
       basic_fields: [],
       is_streaming_output: false,
+      required_settings: [],
     };
 
     act(() => {
@@ -136,6 +138,7 @@ describe("useCreateNode", () => {
       recommended_models: [],
       basic_fields: [],
       is_streaming_output: false,
+      required_settings: [],
     };
 
     act(() => {
@@ -163,6 +166,7 @@ describe("useCreateNode", () => {
       recommended_models: [],
       basic_fields: [],
       is_streaming_output: false,
+      required_settings: [],
     };
 
     act(() => {
@@ -192,6 +196,7 @@ describe("useCreateNode", () => {
       recommended_models: [],
       basic_fields: [],
       is_streaming_output: false,
+      required_settings: [],
     };
 
     act(() => {
@@ -218,6 +223,7 @@ describe("useCreateNode", () => {
       recommended_models: [],
       basic_fields: [],
       is_streaming_output: false,
+      required_settings: [],
     };
 
     act(() => {
