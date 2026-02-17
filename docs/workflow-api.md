@@ -125,47 +125,8 @@ while (true) {
 
 ## WebSocket API
 
-The WebSocket API uses a binary protocol for efficiency and allows cancelling jobs. See
-[`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a full client implementation.
-
-```javascript
-const socket = new WebSocket("ws://localhost:7777/predict");
-
-const request = {
-  type: "run_job_request",
-  workflow_id: "YOUR_WORKFLOW_ID",
-  params: {
-    /* workflow parameters */
-  },
-};
-
-// Run a workflow
-socket.send(
-  msgpack.encode({
-    command: "run_job",
-    data: request,
-  })
-);
-
-// Handle messages from the server
-socket.onmessage = async (event) => {
-  const data = msgpack.decode(new Uint8Array(await event.data.arrayBuffer()));
-  if (data.type === "job_update" && data.status === "completed") {
-    console.log("Workflow completed:", data.result);
-  } else if (data.type === "node_update") {
-    console.log("Node update:", data.node_name, data.status, data.error);
-  } else if (data.type === "node_progress") {
-    console.log("Progress:", (data.progress / data.total) * 100);
-  }
-  // Handle other message types as needed
-};
-
-// Cancel a running job
-socket.send(msgpack.encode({ command: "cancel_job" }));
-
-// Get the status of the job
-socket.send(msgpack.encode({ command: "get_status" }));
-```
+For real-time streaming and job control over WebSocket, see the dedicated
+[WebSocket API](websocket-api.md) page.
 
 ## API Demo
 
