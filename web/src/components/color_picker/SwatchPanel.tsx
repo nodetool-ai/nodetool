@@ -284,7 +284,19 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
             </Tooltip>
           ))}
           <Tooltip title="Save current color">
-            <div className="add-swatch-button" onClick={handleAddSwatch}>
+            <div
+              className="add-swatch-button"
+              onClick={handleAddSwatch}
+              role="button"
+              tabIndex={0}
+              aria-label="Save current color as swatch"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleAddSwatch();
+                }
+              }}
+            >
               <AddIcon sx={{ fontSize: 16 }} />
             </div>
           </Tooltip>

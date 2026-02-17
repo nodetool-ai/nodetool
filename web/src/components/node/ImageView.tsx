@@ -194,7 +194,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
       <img
         ref={imageRef}
         src={imageUrl}
-        alt=""
+        alt="Output image"
         onLoad={handleImageLoad}
         style={imageStyle}
         onDoubleClick={handleDoubleClick}

@@ -144,6 +144,8 @@ const FolderProperty = (props: PropertyProps) => {
         </DialogTitle>
         <DialogContent className="dialog-content">
           <TextField
+            id="folder-name-input"
+            label="Folder Name"
             className="input-field"
             inputRef={inputRef}
             placeholder="Folder Name"

@@ -514,10 +514,11 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           size="small"
                           onClick={createUpdateHandler(workspace.id)}
                           color="primary"
+                          aria-label="Confirm workspace name"
                         >
                           <CheckIcon />
                         </IconButton>
-                        <IconButton size="small" onClick={handleCancelEdit}>
+                        <IconButton size="small" onClick={handleCancelEdit} aria-label="Cancel editing">
                           <CancelIcon />
                         </IconButton>
                       </div>
@@ -568,6 +569,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                             <IconButton
                               size="small"
                               onClick={createStartEditHandler(workspace)}
+                              aria-label="Edit workspace"
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -576,6 +578,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                             <IconButton
                               size="small"
                               onClick={createDeleteWorkspaceHandler(workspace.id)}
+                              aria-label="Delete workspace"
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
