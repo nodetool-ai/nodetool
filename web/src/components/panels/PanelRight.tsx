@@ -112,6 +112,7 @@ const styles = (theme: Theme) =>
 import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 import JobsPanel from "./jobs/JobsPanel";
 import VerticalToolbar from "./VerticalToolbar";
+import WorkflowStats from "./WorkflowStats";
 
 /* ------------------------------------------------------------------ */
 /*  ChatAgentTabbedPanel – tab pills for "Workflow Chat" and "Agent"   */
@@ -529,6 +530,12 @@ const PanelRight: React.FC = () => {
                     onTabChange={(tab: RightPanelView) => setActiveView(tab)}
                     activeNodeStore={activeNodeStore}
                   />
+                ) : activeView === "stats" ? (
+                  activeNodeStore && (
+                    <NodeContext.Provider value={activeNodeStore}>
+                      <WorkflowStats />
+                    </NodeContext.Provider>
+                  )
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -554,6 +561,7 @@ const PanelRight: React.FC = () => {
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
         handleAgentToggle={() => handlePanelToggle("agent")}
+        handleStatsToggle={() => handlePanelToggle("stats")}
         activeView={activeView}
         panelVisible={isVisible}
       />
