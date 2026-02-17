@@ -1,63 +1,47 @@
-# Workflow Runner
+---
+layout: page
+title: "WebSocket API"
+---
 
-A lightweight web interface that connects to the NodeTool backend via WebSockets.
-It can be served as a static page and is used by the desktop app to display
-workflow progress and chat logs during execution.
+This document describes the WebSocket API used to run workflows, stream results, and receive real-time updates from the NodeTool backend.
 
-## Files
+## Overview
 
-- `index.html` – entry point for the runner UI
-- `js/workflow-runner.js` – `WorkflowRunner` class handling WebSocket connection and message dispatch
-- `js/main.js` – application initialisation, workflow loading and execution orchestration
-- `js/ui.js` – DOM helpers for input/output fields, progress bar and result rendering
-- `js/graph.js` – SVG-based workflow graph visualisation
-- `js/utils.js` – shared utilities (logging, HTML escaping)
-- `styles/` – CSS styling for the runner page
+NodeTool exposes a single WebSocket endpoint for workflow execution and live updates. Clients connect once and multiplex commands and responses for many concurrent workflows over that connection.
 
-Open `index.html` in a browser after starting the NodeTool server to see live
-workflow updates.
+- **Endpoint**: `ws(s)://<host>/ws`
+- **Auth**: Include a bearer token as a query parameter (`?api_key=<token>`) or rely on the same auth flow used by REST endpoints. Tokens are optional in `local`/`none` auth modes.
+- **Protocol**: Binary (MessagePack) or Text (JSON) frames. The server auto-detects frame type.
 
-## WebSocket Protocol
+See [`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a complete client implementation used by the bundled runner UI.
 
-For the full protocol reference, see the [WebSocket API](../docs/websocket-api.md)
-documentation page. The summary below covers the basics used by this runner.
+## Encoding
 
-The runner communicates with the NodeTool backend over a single WebSocket
-connection. All frames are binary and encoded with [MessagePack](https://msgpack.org/).
-The default endpoint is `ws://localhost:7777/ws`.
+The protocol supports two encoding modes on the same connection:
 
-### Encoding
-
-The protocol supports two encoding modes:
-
-| Mode | Frame type | Description |
+| Mode | Frame type | When to use |
 |------|-----------|-------------|
-| **Binary (default)** | Binary frame | MessagePack-encoded. Preferred for efficiency and binary data (images, audio). |
-| **Text** | Text frame | JSON-encoded. Useful for debugging, `curl`-based testing, and lightweight clients. |
+| **Binary** (default) | Binary WebSocket frame | MessagePack-encoded. Preferred for production use — compact format and native binary data (images, audio) without Base64 overhead. |
+| **Text** | Text WebSocket frame | JSON-encoded. Useful for debugging, `curl`/`websocat` testing, and lightweight clients that don't need binary payloads. |
 
 Binary frames are decoded with MessagePack; text frames are decoded as JSON.
-The server auto-detects the frame type, so both modes can be used on the same
-connection. The standalone runner uses MessagePack via the `msgpack5` library;
-the main web app uses `@msgpack/msgpack`.
+Both modes are interchangeable — the server accepts either and responds in the
+same format. Every message is a map/object with at least a `type` field.
 
-Every message is a map/object with at least a `type` field that determines how
-it is handled.
+## Connection Lifecycle
 
-### Connection Lifecycle
+1. **Connect** — open a WebSocket to `ws://<host>/ws` (or `wss://` for TLS).
+   For binary mode set `binaryType = "arraybuffer"`.
+2. **Ready** — the `onopen` event fires; the client can now send commands.
+3. **Reconnect** — if the connection drops, retry with exponential backoff (the
+   reference client retries up to 10 times starting at 1 s).
+4. **Close** — call `socket.close()` or let the server close the connection.
 
-1. **Connect** – open a WebSocket to the worker URL (`ws://localhost:7777/ws`).
-   Set `binaryType = "arraybuffer"`.
-2. **Ready** – the `onopen` event fires; the client can now send commands.
-3. **Reconnect** – if the connection drops, the client retries automatically
-   after a 5-second delay.
-4. **Close** – call `socket.close()` or let the server close the connection.
+## Client → Server Commands
 
-### Client → Server Commands
+All client messages contain `command` and `data` fields.
 
-All client messages are MessagePack-encoded objects with `command` and `data`
-fields.
-
-#### `run_job`
+### `run_job`
 
 Start a new workflow execution.
 
@@ -99,7 +83,7 @@ Start a new workflow execution.
 | `execution_strategy` | `string` | `"threaded"` (default) or `"subprocess"` |
 | `resource_limits` | `object \| null` | Optional resource constraints |
 
-#### `cancel_job`
+### `cancel_job`
 
 Cancel a running job.
 
@@ -113,7 +97,7 @@ Cancel a running job.
 }
 ```
 
-#### `pause_job`
+### `pause_job`
 
 Pause a running job.
 
@@ -127,7 +111,7 @@ Pause a running job.
 }
 ```
 
-#### `resume_job`
+### `resume_job`
 
 Resume a paused or suspended job.
 
@@ -141,7 +125,7 @@ Resume a paused or suspended job.
 }
 ```
 
-#### `reconnect_job`
+### `reconnect_job`
 
 Reconnect to an in-flight job (e.g. after a page reload). The server replays
 any missed updates.
@@ -156,7 +140,7 @@ any missed updates.
 }
 ```
 
-#### `stream_input`
+### `stream_input`
 
 Push a value into a streaming input node while a job is running.
 
@@ -173,7 +157,7 @@ Push a value into a streaming input node while a job is running.
 }
 ```
 
-#### `end_input_stream`
+### `end_input_stream`
 
 Signal that a streaming input is complete.
 
@@ -189,13 +173,13 @@ Signal that a streaming input is complete.
 }
 ```
 
-### Server → Client Messages
+## Server → Client Messages
 
 Every server message contains a `type` field used for dispatch. Messages also
 include routing fields (`workflow_id`, `job_id`, or `thread_id`) so the client
 can multiplex updates across concurrent workflows.
 
-#### `job_update`
+### `job_update`
 
 Reports overall job status changes.
 
@@ -226,7 +210,7 @@ Reports overall job status changes.
 | `duration` | `number \| null` | Execution duration in seconds |
 | `run_state` | `object \| null` | Extended state info (e.g. suspension reason) |
 
-#### `node_update`
+### `node_update`
 
 Reports per-node status changes during execution.
 
@@ -255,7 +239,7 @@ Reports per-node status changes during execution.
 | `properties` | `object \| null` | Updated node properties |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
 
-#### `node_progress`
+### `node_progress`
 
 Reports progress for long-running nodes (e.g. image generation steps).
 
@@ -278,7 +262,7 @@ Reports progress for long-running nodes (e.g. image generation steps).
 | `chunk` | `string` | Optional text chunk for streaming output |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
 
-#### `output_update`
+### `output_update`
 
 Delivers a final output value from an output node.
 
@@ -305,7 +289,7 @@ Delivers a final output value from an output node.
 | `metadata` | `object` | Additional metadata |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
 
-#### `preview_update`
+### `preview_update`
 
 Delivers an intermediate preview value during execution.
 
@@ -322,7 +306,7 @@ Delivers an intermediate preview value during execution.
 | `node_id` | `string` | Node UUID |
 | `value` | `any` | Preview data (see [Value Types](#value-types)) |
 
-#### `edge_update`
+### `edge_update`
 
 Reports data flow status on a connection between nodes.
 
@@ -343,7 +327,7 @@ Reports data flow status on a connection between nodes.
 | `status` | `string` | Edge status |
 | `counter` | `number \| null` | Number of items that have passed through |
 
-#### `log_update`
+### `log_update`
 
 Streams log output from a running node.
 
@@ -366,7 +350,7 @@ Streams log output from a running node.
 | `severity` | `string` | `"info"`, `"warning"`, or `"error"` |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
 
-#### `notification`
+### `notification`
 
 Server-initiated notification to display to the user.
 
@@ -387,7 +371,7 @@ Server-initiated notification to display to the user.
 | `severity` | `string` | `"info"`, `"warning"`, or `"error"` |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
 
-#### `planning_update`
+### `planning_update`
 
 Reports agent planning phases.
 
@@ -402,7 +386,7 @@ Reports agent planning phases.
 }
 ```
 
-#### `task_update`
+### `task_update`
 
 Reports agent task progress.
 
@@ -416,7 +400,7 @@ Reports agent task progress.
 }
 ```
 
-#### `tool_call_update`
+### `tool_call_update`
 
 Reports when an agent node invokes a tool.
 
@@ -431,7 +415,7 @@ Reports when an agent node invokes a tool.
 }
 ```
 
-#### `tool_result_update`
+### `tool_result_update`
 
 Delivers the result of a tool call.
 
@@ -444,7 +428,7 @@ Delivers the result of a tool call.
 }
 ```
 
-#### `prediction`
+### `prediction`
 
 Reports prediction/inference status from an external provider.
 
@@ -462,7 +446,7 @@ Reports prediction/inference status from an external provider.
 }
 ```
 
-#### `chunk`
+### `chunk`
 
 Streams incremental text/media content from a node.
 
@@ -489,7 +473,7 @@ Streams incremental text/media content from a node.
 | `node_id` | `string \| null` | Node UUID |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
 
-### Value Types
+## Value Types
 
 Output and preview values are typically objects with a `type` discriminator:
 
@@ -504,22 +488,22 @@ Output and preview values are typically objects with a `type` discriminator:
 | Object | `{ ... }` | Arbitrary JSON-like object |
 
 Binary data in MessagePack frames is transmitted as raw byte arrays, avoiding
-Base64 overhead.
+Base64 overhead. In JSON/text mode, binary payloads are Base64-encoded strings.
 
-### Message Routing
+## Message Routing
 
 The server tags each message with one or more routing keys:
 
-- `workflow_id` – primary key for workflow execution updates.
-- `job_id` – fallback when `workflow_id` is not present.
-- `thread_id` – used for chat/conversation streams.
+- `workflow_id` — primary key for workflow execution updates.
+- `job_id` — fallback when `workflow_id` is not present.
+- `thread_id` — used for chat/conversation streams.
 
 The `GlobalWebSocketManager` in the main web app multiplexes a single
 connection and dispatches messages to per-workflow handlers based on these keys.
 The standalone workflow runner uses a simpler approach, handling all messages in
 a single callback.
 
-### Typical Message Sequence
+## Typical Message Sequence
 
 ```
 Client                              Server
@@ -543,23 +527,66 @@ Client                              Server
   |                                   |
 ```
 
-### Error Handling
+## Error Handling
 
-- Connection errors trigger automatic reconnection after 5 seconds.
+- Connection errors trigger automatic reconnection with exponential backoff.
 - A 120-second timeout is applied to each `run_job` call; if no terminal
   `job_update` arrives the promise is rejected.
 - Server errors are delivered as `job_update` messages with `status: "failed"`
   and an `error` field, or as standalone `error` type messages.
 - Per-node errors arrive via `node_update` with an `error` field set.
 
-### REST API Endpoints
+## Quick Start Examples
 
-The runner also uses a small set of REST endpoints before starting the
-WebSocket flow:
+### Binary mode (MessagePack)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/workflows/` | List available workflows |
-| `GET` | `/api/workflows/:id` | Get workflow details, input/output schemas |
+```javascript
+const socket = new WebSocket("ws://localhost:7777/ws");
+socket.binaryType = "arraybuffer";
 
-Both endpoints require an `Authorization: Bearer <token>` header.
+socket.onopen = () => {
+  socket.send(
+    msgpack.encode({
+      command: "run_job",
+      data: {
+        type: "run_job_request",
+        workflow_id: "YOUR_WORKFLOW_ID",
+        auth_token: "YOUR_TOKEN",
+        job_type: "workflow",
+        params: { prompt: "hello world" }
+      }
+    })
+  );
+};
+
+socket.onmessage = (event) => {
+  const data = msgpack.decode(new Uint8Array(event.data));
+  console.log(data.type, data);
+};
+```
+
+### Text mode (JSON)
+
+```javascript
+const socket = new WebSocket("ws://localhost:7777/ws");
+
+socket.onopen = () => {
+  socket.send(
+    JSON.stringify({
+      command: "run_job",
+      data: {
+        type: "run_job_request",
+        workflow_id: "YOUR_WORKFLOW_ID",
+        auth_token: "YOUR_TOKEN",
+        job_type: "workflow",
+        params: { prompt: "hello world" }
+      }
+    })
+  );
+};
+
+socket.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log(data.type, data);
+};
+```
