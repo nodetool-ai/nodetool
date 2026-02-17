@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -29,7 +29,7 @@ interface TaskViewProps {
   task: Task;
 }
 
-const TaskView: React.FC<TaskViewProps> = ({ task }) => {
+const TaskView: React.FC<TaskViewProps> = memo(function TaskView({ task }) {
   const theme = useTheme();
   return (
     <div css={styles(theme)} className="noscroll">
@@ -54,6 +54,6 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
       </Paper>
     </div>
   );
-};
+});
 
 export default TaskView;

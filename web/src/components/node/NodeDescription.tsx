@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 
 const styles = (theme: Theme) =>
   css({
@@ -51,6 +51,33 @@ const NodeDescription = React.memo(
   ({ description, className, onTagClick }: NodeDescriptionProps) => {
     const theme = useTheme();
 
+    // Memoize expensive string operations (must be before early return)
+    const { firstLine, tags, restOfDescription } = useMemo(() => {
+      if (!description) {
+        return { firstLine: "", tags: [], restOfDescription: "" };
+      }
+
+      const lines = description.split("\n");
+      const firstLine = lines[0] || "";
+      const tagsLine = lines.length > 1 ? lines[1] : "";
+      const restOfDescription =
+        lines.length > 2
+          ? lines
+              .slice(2)
+              .map((line) => line.trim())
+              .join("\n")
+          : "";
+
+      const tags = tagsLine
+        ? tagsLine
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter((t) => t)
+        : [];
+
+      return { firstLine, tags, restOfDescription };
+    }, [description]);
+
     const handleTagClick = useCallback(
       (tag: string) => {
         if (onTagClick) {
@@ -68,24 +95,6 @@ const NodeDescription = React.memo(
     if (!description) {
       return null;
     }
-
-    const lines = description.split("\n");
-    const firstLine = lines[0] || "";
-    const tagsLine = lines.length > 1 ? lines[1] : "";
-    const restOfDescription =
-      lines.length > 2
-        ? lines
-            .slice(2)
-            .map((line) => line.trim())
-            .join("\n")
-        : "";
-
-    const tags = tagsLine
-      ? tagsLine
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((t) => t)
-      : [];
 
     return (
       <div css={styles(theme)} className={className}>

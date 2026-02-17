@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Box } from "@mui/material";
 import { EditorButton } from "../ui_primitives";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
@@ -60,10 +60,10 @@ const styles = (theme: Theme) =>
     }
   });
 
-const FolderTree: React.FC<FolderTreeProps> = ({
+const FolderTree: React.FC<FolderTreeProps> = memo(function FolderTree({
   onSelect,
   sortBy = "name"
-}) => {
+}) {
   const theme = useTheme();
   
   // Fetch folder tree using useQuery
@@ -116,6 +116,6 @@ const FolderTree: React.FC<FolderTreeProps> = ({
       </SimpleTreeView>
     </Box>
   );
-};
+});
 
 export default FolderTree;

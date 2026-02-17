@@ -1,8 +1,8 @@
-import React from "react";
+import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import FolderList from "../FolderList";
 
-const AssetFoldersPanel: React.FC = () => {
+const AssetFoldersPanel: React.FC = memo(function AssetFoldersPanel() {
   const theme = useTheme();
   return (
     <div
@@ -16,6 +16,6 @@ const AssetFoldersPanel: React.FC = () => {
       <FolderList isHorizontal={false} />
     </div>
   );
-};
+});
 
 export default AssetFoldersPanel;
