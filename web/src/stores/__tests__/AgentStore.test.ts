@@ -1,11 +1,11 @@
 import type { Message } from "../ApiTypes";
 
 describe("AgentStore", () => {
-const createSessionMock = jest.fn<
+  const createSessionMock = jest.fn<
   Promise<string>,
   [
     {
-      provider?: "claude" | "codex";
+      provider?: "claude" | "codex" | "pi";
       model: string;
       workspacePath?: string;
       resumeSessionId?: string;

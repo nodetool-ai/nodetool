@@ -957,7 +957,7 @@ export interface AgentSessionOptions {
   resumeSessionId?: string;
 }
 
-export type AgentProvider = "claude" | "codex";
+export type AgentProvider = "claude" | "codex" | "pi";
 
 export interface AgentModelDescriptor {
   id: string;

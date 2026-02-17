@@ -23,7 +23,7 @@ import {
 // This registers handlers that allow the Claude Agent to call frontend tools
 import "../lib/tools/frontendToolsIpc";
 
-export type AgentProvider = "claude" | "codex";
+export type AgentProvider = "claude" | "codex" | "pi";
 export interface AgentModelDescriptor {
   id: string;
   label: string;
