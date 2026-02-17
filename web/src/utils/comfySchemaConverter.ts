@@ -184,7 +184,8 @@ export function comfySchemaToNodeMetadata(
     is_dynamic: false,
     is_streaming_output: false,
     expose_as_tool: false,
-    supports_dynamic_outputs: false
+    supports_dynamic_outputs: false,
+    required_settings: []
   };
 
   return metadata;
