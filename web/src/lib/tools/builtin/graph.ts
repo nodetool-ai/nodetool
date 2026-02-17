@@ -2,6 +2,7 @@ import { z } from "zod";
 import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
 import { optionalWorkflowIdSchemaCompact, resolveWorkflowId } from "./workflow";
+import { TypeMetadata } from "../../../stores/ApiTypes";
 
 type GraphNodeInput = {
   id: string;
@@ -198,9 +199,9 @@ FrontendToolRegistry.register({
       const data = {
         ...rawData,
         properties,
-        dynamic_properties: rawData.dynamic_properties ?? {},
-        dynamic_outputs: rawData.dynamic_outputs ?? {},
-        sync_mode: rawData.sync_mode ?? "on_any",
+        dynamic_properties: (rawData.dynamic_properties ?? {}) as Record<string, unknown>,
+        dynamic_outputs: (rawData.dynamic_outputs ?? {}) as Record<string, TypeMetadata>,
+        sync_mode: (rawData.sync_mode ?? "on_any") as string,
         workflow_id: workflowId,
         selectable: (rawData.selectable ?? true) as boolean
       };
