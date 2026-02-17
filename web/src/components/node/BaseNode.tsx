@@ -39,6 +39,7 @@ import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
+import BookmarkIndicator from "./BookmarkIndicator";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
 import { getIsElectronDetails } from "../../utils/browser";
@@ -688,6 +689,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           FOCUSED
         </Box>
       )}
+
+      <BookmarkIndicator nodeId={id} />
 
       {title && <EditableTitle nodeId={id} title={title} />}
 

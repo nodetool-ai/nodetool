@@ -28,6 +28,7 @@ import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
 import type { MenuEventData } from "../window";
+import { useNodeBookmarksStore } from "../stores/NodeBookmarksStore";
 
 /**
  * Hook that registers and manages all keyboard shortcuts for the node editor.
@@ -453,6 +454,26 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("workflow");
   }, [inspectorToggle]);
 
+  const handleBookmarksToggle = useCallback(() => {
+    inspectorToggle("bookmarks");
+  }, [inspectorToggle]);
+
+  const handleToggleBookmark = useCallback(() => {
+    const selectedNodes = nodeStore?.getState().nodes.filter((n: Node<NodeData>) => n.selected) || [];
+    if (selectedNodes.length === 1) {
+      const node = selectedNodes[0];
+      const workflowId = node.data.workflow_id;
+      const addBookmark = useNodeBookmarksStore.getState().addBookmark;
+      const removeBookmark = useNodeBookmarksStore.getState().removeBookmark;
+      const isBookmarked = useNodeBookmarksStore.getState().isBookmarked;
+      if (isBookmarked(workflowId, node.id)) {
+        removeBookmark(workflowId, node.id);
+      } else {
+        addBookmark(workflowId, node.id, node.data.title);
+      }
+    }
+  }, [nodeStore]);
+
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
 
@@ -504,6 +525,8 @@ export const useNodeEditorShortcuts = (
       groupSelected: { callback: handleGroup },
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
+      toggleBookmarksPanel: { callback: handleBookmarksToggle },
+      toggleBookmark: { callback: handleToggleBookmark, active: selectedNodeCount === 1 },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
@@ -617,6 +640,8 @@ export const useNodeEditorShortcuts = (
     handleGroup,
     handleInspectorToggle,
     handleWorkflowSettingsToggle,
+    handleBookmarksToggle,
+    handleToggleBookmark,
     handleShowKeyboardShortcuts,
     handleSave,
     handleSaveExample,

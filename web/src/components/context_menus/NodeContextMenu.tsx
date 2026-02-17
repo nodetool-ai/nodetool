@@ -13,11 +13,14 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useNodes } from "../../contexts/NodeContext";
+import { useNodeBookmarksStore } from "../../stores/NodeBookmarksStore";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -29,8 +32,14 @@ const NodeContextMenu: React.FC = () => {
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
   const updateNodeData = useNodes((state) => state.updateNodeData);
+  const workflowId = node?.data?.workflow_id;
 
   const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
+  const addBookmark = useNodeBookmarksStore((state) => state.addBookmark);
+  const removeBookmark = useNodeBookmarksStore((state) => state.removeBookmark);
+  const isBookmarked = useNodeBookmarksStore((state) => state.isBookmarked);
+
+  const nodeIsBookmarked = node?.id && workflowId ? isBookmarked(workflowId, node.id) : false;
 
   const handleSelectMode = useCallback((mode: "on_any" | "zip_all") => {
     if (node?.id) {
@@ -46,6 +55,17 @@ const NodeContextMenu: React.FC = () => {
   const handleSyncModeOnAny = useCallback(() => handleSelectMode("on_any"), [handleSelectMode]);
   const handleSyncModeZipAll = useCallback(() => handleSelectMode("zip_all"), [handleSelectMode]);
 
+  const handleToggleBookmark = useCallback(() => {
+    if (node?.id && workflowId) {
+      if (nodeIsBookmarked) {
+        removeBookmark(workflowId, node.id);
+      } else {
+        addBookmark(workflowId, node.id, (node.data as NodeData).title);
+      }
+    }
+    closeContextMenu();
+  }, [node, workflowId, nodeIsBookmarked, addBookmark, removeBookmark, closeContextMenu]);
+
   const menuItems = [
     conditions.isInGroup && (
       <ContextMenuItem
@@ -56,6 +76,17 @@ const NodeContextMenu: React.FC = () => {
         tooltip="Remove this node from the group"
       />
     ),
+    <ContextMenuItem
+      key="toggle-bookmark"
+      onClick={handleToggleBookmark}
+      label={nodeIsBookmarked ? "Remove Bookmark" : "Add Bookmark"}
+      IconComponent={nodeIsBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+      tooltip={
+        nodeIsBookmarked
+          ? "Remove this node from bookmarks"
+          : "Bookmark this node for quick access"
+      }
+    />,
     <ContextMenuItem
       key="run-from-here"
       onClick={handlers.handleRunFromHere}
