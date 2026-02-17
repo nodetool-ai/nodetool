@@ -18,14 +18,10 @@ import type {
   FrontendToolManifest,
 } from "./types.d";
 import type { WebContents } from "electron";
-import { ipcMain } from "electron";
-import { IpcChannels } from "./types.d";
 
 // ============================================================================
 // Helpers
 // ============================================================================
-
-const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
 
 function getPiExecutablePath(): string {
   const whichCommand = process.platform === "win32" ? "where" : "which";
@@ -43,86 +39,6 @@ function getPiExecutablePath(): string {
   throw new Error(
     "Could not find pi executable. Install the pi coding agent CLI or add it to PATH.",
   );
-}
-
-async function requestRendererToolsEvent<T>(
-  webContents: WebContents,
-  requestChannel: string,
-  responseChannel: string,
-  requestPayload: Record<string, unknown>,
-): Promise<T> {
-  const requestId = randomUUID();
-
-  return new Promise<T>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      ipcMain.removeListener(responseChannel, onResponse);
-      reject(
-        new Error(`Timed out waiting for renderer response on ${responseChannel}`),
-      );
-    }, FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS);
-
-    const onResponse = (
-      responseEvent: Electron.IpcMainEvent,
-      response: { requestId?: string; error?: string; manifest?: T; result?: T },
-    ): void => {
-      if (responseEvent.sender !== webContents) {
-        return;
-      }
-      if (!response || response.requestId !== requestId) {
-        return;
-      }
-
-      clearTimeout(timeout);
-      ipcMain.removeListener(responseChannel, onResponse);
-
-      if (response.error) {
-        reject(new Error(response.error));
-        return;
-      }
-
-      if ("manifest" in response && response.manifest !== undefined) {
-        resolve(response.manifest);
-        return;
-      }
-      if ("result" in response && response.result !== undefined) {
-        resolve(response.result);
-        return;
-      }
-
-      reject(new Error(`Renderer response for ${responseChannel} had no payload`));
-    };
-
-    ipcMain.on(responseChannel, onResponse);
-    webContents.send(requestChannel, {
-      requestId,
-      ...requestPayload,
-    });
-  });
-}
-
-async function executeFrontendTool(
-  webContents: WebContents,
-  sessionId: string,
-  toolCallId: string,
-  name: string,
-  args: unknown,
-): Promise<unknown> {
-  const response = await requestRendererToolsEvent<{
-    result: unknown;
-    isError: boolean;
-    error?: string;
-  }>(
-    webContents,
-    IpcChannels.FRONTEND_TOOLS_CALL_REQUEST,
-    IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE,
-    { sessionId, toolCallId, name, args },
-  );
-
-  if (response.isError) {
-    throw new Error(response.error || "Tool execution failed");
-  }
-
-  return response.result;
 }
 
 // ============================================================================
@@ -350,7 +266,7 @@ export class PiQuerySession {
     message: string,
     webContents: WebContents | null,
     sessionId: string,
-    manifest: FrontendToolManifest[],
+    _manifest: FrontendToolManifest[],
     onMessage?: (message: AgentMessage) => void,
   ): Promise<AgentMessage[]> {
     if (this.closed) {
@@ -363,7 +279,6 @@ export class PiQuerySession {
     this.inFlight = true;
     this.interruptRequested = false;
     const outputMessages: AgentMessage[] = [];
-    const toolManifestMap = new Map(manifest.map((tool) => [tool.name, tool]));
 
     const emitMessage = (agentMessage: AgentMessage): void => {
       outputMessages.push(agentMessage);
@@ -420,43 +335,33 @@ export class PiQuerySession {
               }
             }
 
-            // Handle tool execution – pi calls a tool
+            // Handle tool execution events – pi executes tools internally.
+            // We emit tool call messages to the UI for display purposes.
+            // Pi's built-in tools (bash, read, write, etc.) are self-contained
+            // and don't require external bridging.
             if (event.type === "tool_execution_start") {
               const toolCallId = event.toolCallId as string;
               const toolName = event.toolName as string;
               const args = event.args;
 
-              // Check if this is a frontend tool we need to bridge
-              if (toolManifestMap.has(toolName) && webContents) {
-                try {
-                  const result = await executeFrontendTool(
-                    webContents,
-                    sessionId,
-                    toolCallId,
-                    toolName,
-                    args,
-                  );
-
-                  // Send the tool result back to pi via extension_ui_response
-                  // Pi handles tool results internally; we just need to process the events
-                  logMessage(
-                    `Pi frontend tool ${toolName} executed successfully`,
-                  );
-                  // Note: Pi agent handles tool execution internally via its own
-                  // tool system. Frontend tools are called by pi's tool_execution
-                  // events which we intercept. However, pi's built-in tools
-                  // (bash, read, write, etc.) are executed by pi itself.
-                  // For frontend tools, we need to respond via stdin.
-                  // But pi's RPC protocol doesn't have a mechanism for external
-                  // tool result injection – it uses its own internal tools.
-                  // So we emit the tool call for display purposes only.
-                  void result;
-                } catch (error) {
-                  logMessage(
-                    `Pi frontend tool ${toolName} failed: ${error}`,
-                    "warn",
-                  );
-                }
+              // Emit as a tool call for UI display
+              if (toolCallId && toolName) {
+                emitMessage({
+                  type: "assistant",
+                  uuid: randomUUID(),
+                  session_id: sessionId,
+                  content: [],
+                  tool_calls: [
+                    {
+                      id: toolCallId,
+                      type: "function",
+                      function: {
+                        name: toolName,
+                        arguments: JSON.stringify(args ?? {}),
+                      },
+                    },
+                  ],
+                });
               }
             }
 
