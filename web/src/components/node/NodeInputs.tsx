@@ -149,9 +149,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const dynamicProperties: { [key: string]: Property } =
     (data?.dynamic_properties || {}) as { [key: string]: Property };
 
-  const basicInputs: JSX.Element[] = [];
-  const advancedInputs: JSX.Element[] = [];
-
   const edges = useNodes((state) => state.edges);
   const connectedEdges = useMemo(
     () => edges.filter((e) => e.target === id),
@@ -170,39 +167,58 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     [connectedEdges]
   );
 
-  properties.forEach((property, index) => {
-    const tabIndex = tabableProperties.findIndex(
-      (p) => p.name === property.name
-    );
-    const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
-    const isBasicField = basicFields?.includes(property.name);
+  const { basicInputs, advancedInputs } = useMemo(() => {
+    const basic: JSX.Element[] = [];
+    const advanced: JSX.Element[] = [];
 
-    const connected = isConnected(property.name);
+    properties.forEach((property, index) => {
+      const tabIndex = tabableProperties.findIndex(
+        (p) => p.name === property.name
+      );
+      const finalTabIndex = tabIndex !== -1 ? tabIndex + 1 : -1;
+      const isBasicField = basicFields?.includes(property.name);
 
-    const inputElement = (
-      <NodeInput
-        key={property.name + id}
-        id={id}
-        nodeType={nodeType}
-        layout={layout}
-        property={property}
-        propertyIndex={index.toString()}
-        data={data}
-        showFields={showFields}
-        showHandle={showHandle}
-        tabIndex={finalTabIndex}
-        showAdvancedFields={showAdvancedFields}
-        basicFields={basicFields}
-        isConnected={connected}
-      />
-    );
+      const connected = isConnected(property.name);
 
-    if (isBasicField || connected) {
-      basicInputs.push(inputElement);
-    } else {
-      advancedInputs.push(inputElement);
-    }
-  });
+      const inputElement = (
+        <NodeInput
+          key={property.name + id}
+          id={id}
+          nodeType={nodeType}
+          layout={layout}
+          property={property}
+          propertyIndex={index.toString()}
+          data={data}
+          showFields={showFields}
+          showHandle={showHandle}
+          tabIndex={finalTabIndex}
+          showAdvancedFields={showAdvancedFields}
+          basicFields={basicFields}
+          isConnected={connected}
+        />
+      );
+
+      if (isBasicField || connected) {
+        basic.push(inputElement);
+      } else {
+        advanced.push(inputElement);
+      }
+    });
+
+    return { basicInputs: basic, advancedInputs: advanced };
+  }, [
+    properties,
+    tabableProperties,
+    basicFields,
+    isConnected,
+    id,
+    nodeType,
+    layout,
+    data,
+    showFields,
+    showHandle,
+    showAdvancedFields
+  ]);
 
   const dynamicInputs = data?.dynamic_inputs || {};
 
