@@ -112,6 +112,7 @@ const styles = (theme: Theme) =>
 import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 import JobsPanel from "./jobs/JobsPanel";
 import VerticalToolbar from "./VerticalToolbar";
+import { BookmarksPanel } from "../node_editor/BookmarksPanel";
 
 /* ------------------------------------------------------------------ */
 /*  ChatAgentTabbedPanel – tab pills for "Workflow Chat" and "Agent"   */
@@ -523,6 +524,21 @@ const PanelRight: React.FC = () => {
                       <WorkflowAssetPanel />
                     </Box>
                   </Box>
+                ) : activeView === "bookmarks" ? (
+                  currentWorkflowId ? (
+                    <Box
+                      className="bookmarks-panel"
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        overflow: "hidden",
+                        display: "flex",
+                        flexDirection: "column"
+                      }}
+                    >
+                      <BookmarksPanel workflowId={currentWorkflowId} />
+                    </Box>
+                  ) : null
                 ) : (activeView === "assistant" || activeView === "agent") ? (
                   <ChatAgentTabbedPanel
                     activeTab={activeView}
@@ -554,6 +570,7 @@ const PanelRight: React.FC = () => {
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
         handleAgentToggle={() => handlePanelToggle("agent")}
+        handleBookmarksToggle={() => handlePanelToggle("bookmarks")}
         activeView={activeView}
         panelVisible={isVisible}
       />
