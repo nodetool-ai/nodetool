@@ -6,11 +6,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 import { memo } from "react";
+import type { ResizeDragEvent } from "@xyflow/system";
 
 interface NodeResizeHandleProps {
   minWidth: number;
   minHeight: number;
-  onResize?: (event: any) => void;
+  onResize?: (event: ResizeDragEvent, params: { width: number; height: number }) => void;
 }
 
 const styles = (theme: Theme) =>

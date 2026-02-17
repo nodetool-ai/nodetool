@@ -8,14 +8,14 @@ export function useReactFlowEvents() {
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
 
   const handleMoveEnd = useCallback(
-    (event: any, viewport: Viewport) => {
+    (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
       setViewport(viewport);
     },
     [setViewport]
   );
 
   const handleOnMoveStart = useCallback(
-    (event: any) => {
+    (event: MouseEvent | TouchEvent | null) => {
       if (event?.type === "pan") {
         closeNodeMenu();
       }

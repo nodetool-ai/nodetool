@@ -259,7 +259,7 @@ describe("useSelectionEvents", () => {
       );
 
       const event = {} as any;
-      const nodes = [{ id: "node-1" }, { id: "node-2" }];
+      const nodes = [{ id: "node-1", position: { x: 0, y: 0 }, data: {} as any }, { id: "node-2", position: { x: 0, y: 0 }, data: {} as any }];
 
       result.current.handleSelectionDragStart(event, nodes);
 
@@ -280,7 +280,7 @@ describe("useSelectionEvents", () => {
       );
 
       const event = {} as any;
-      const nodes = [{ id: "node-1" }];
+      const nodes = [{ id: "node-1", position: { x: 0, y: 0 }, data: {} as any }];
 
       result.current.handleSelectionDragStop(event, nodes);
 

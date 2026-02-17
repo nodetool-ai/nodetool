@@ -41,6 +41,16 @@ const findClassNameinElementOrParents = (
   return false;
 };
 
+/**
+ * Extract client X and Y coordinates from MouseEvent or TouchEvent
+ */
+const getClientCoordinates = (event: MouseEvent | TouchEvent): { clientX: number; clientY: number } => {
+  if ('touches' in event && event.touches.length > 0) {
+    return { clientX: event.touches[0].clientX, clientY: event.touches[0].clientY };
+  }
+  return { clientX: (event as MouseEvent).clientX, clientY: (event as MouseEvent).clientY };
+};
+
 export default function useConnectionHandlers() {
   // useRef is needed to track current connection state
   const connectionCreated = useRef(false);
@@ -72,7 +82,7 @@ export default function useConnectionHandlers() {
 
   /* CONNECT START */
   const onConnectStart = useCallback(
-    (event: any, { nodeId, handleId, handleType }: OnConnectStartParams) => {
+    (event: MouseEvent | TouchEvent, { nodeId, handleId, handleType }: OnConnectStartParams) => {
       if (!nodeId || !handleId || !handleType) {
         console.warn("Missing required data for connection start");
         return;
@@ -194,7 +204,7 @@ export default function useConnectionHandlers() {
 
   const openHandleSelectionMenu = useCallback(
     (
-      event: MouseEvent,
+      event: MouseEvent | TouchEvent,
       anchorNodeId: string,
       options: ConnectionMatchOption[]
     ) => {
@@ -209,11 +219,13 @@ export default function useConnectionHandlers() {
         }
       };
 
+      const { clientX, clientY } = getClientCoordinates(event);
+
       openContextMenu(
         "connection-match-menu",
         anchorNodeId,
-        event.clientX,
-        event.clientY,
+        clientX,
+        clientY,
         undefined,
         undefined,
         undefined,
@@ -231,7 +243,7 @@ export default function useConnectionHandlers() {
 
   /* CONNECT END */
   const onConnectEnd = useCallback(
-    (event: any) => {
+    (event: MouseEvent | TouchEvent) => {
       const { connectDirection, connectNodeId, connectHandleId, connectType } =
         useConnectionStore.getState();
       if (!connectNodeId || !connectHandleId || !connectType) {
@@ -242,18 +254,22 @@ export default function useConnectionHandlers() {
         return;
       }
       const targetIsGroup = findClassNameinElementOrParents(
-        event.target,
+        event.target as HTMLElement,
         "loop-node"
       );
-      const targetIsPane = event.target.classList.contains("react-flow__pane");
+      const targetIsPane = (event.target as HTMLElement).classList.contains("react-flow__pane");
       const targetIsNode =
-        event.target.closest(".react-flow__node") !== null &&
+        (event.target as HTMLElement).closest(".react-flow__node") !== null &&
         !targetIsGroup &&
         !targetIsPane;
 
       // targetIsNode: try to auto-connect or create dynamic property
       if (!connectionCreated.current && targetIsNode) {
-        const nodeId = event.target.closest(".react-flow__node").dataset.id;
+        const nodeElement = (event.target as HTMLElement).closest(".react-flow__node") as HTMLElement | null;
+        const nodeId = nodeElement?.dataset.id;
+        if (!nodeId) {
+          return;
+        }
         const node = findNode(nodeId);
         if (!node) {
           return;
@@ -474,12 +490,13 @@ export default function useConnectionHandlers() {
         !isReconnecting &&
         (targetIsPane || targetIsGroup)
       ) {
+        const { clientX, clientY } = getClientCoordinates(event);
         if (connectDirection === "source") {
           openContextMenu(
             "output-context-menu",
             connectNodeId || "",
-            event.clientX + 25,
-            event.clientY - 50,
+            clientX + 25,
+            clientY - 50,
             "react-flow__pane",
             connectType ?? undefined,
             connectHandleId || ""
@@ -492,8 +509,8 @@ export default function useConnectionHandlers() {
           openContextMenu(
             "input-context-menu",
             connectNodeId || "",
-            event.clientX + 25,
-            event.clientY - 50,
+            clientX + 25,
+            clientY - 50,
             "react-flow__pane",
             connectType ?? undefined,
             connectHandleId || "",
