@@ -74,6 +74,7 @@ interface ReactFlowWrapperProps {
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
+import WorkflowStats from "../node_editor/WorkflowStats";
 import CustomEdge from "../node_editor/CustomEdge";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
@@ -631,6 +632,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       )}
       <MiniMapNavigator />
       <ViewportStatusIndicator />
+      <WorkflowStats workflowId={workflowId} />
     </div>
   );
 };
