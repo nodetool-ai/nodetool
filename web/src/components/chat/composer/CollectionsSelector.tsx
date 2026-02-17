@@ -94,7 +94,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
 
   const handleSelectAll = useCallback(() => {
     if (collections?.collections) {
-      onChange(collections.collections.map((c) => c.name));
+      onChange(collections.collections.map((c: { name: string }) => c.name));
     }
   }, [collections, onChange]);
 
@@ -295,7 +295,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
               </Typography>
             </Box>
           ) : (
-            collections.collections.map((collection) => {
+            collections.collections.map((collection: { name: string; count: number }) => {
               const isSelected = value.includes(collection.name);
               return (
                 <Box

@@ -174,7 +174,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
   }, [formData.name, formData.embedding_model, createMutation.isPending]);
 
   const handleEmbeddingModelChange = (model: { type: string; id: string }) => {
-    setFormData((prev) => ({
+    setFormData((prev: { name: string; embedding_model: string }) => ({
       ...prev,
       embedding_model: model.id
     }));
@@ -197,7 +197,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
             className="text-input"
             value={formData.name}
             onChange={(e) =>
-              setFormData((prev) => ({ ...prev, name: e.target.value }))
+              setFormData((prev: { name: string; embedding_model: string }) => ({ ...prev, name: e.target.value }))
             }
             placeholder="my-collection"
             required

@@ -210,7 +210,7 @@ const CollectionList = () => {
               }}
             >
               <List>
-                {collections?.collections.map((collection) => (
+                {collections?.collections.map((collection: { name: string }) => (
                   <CollectionItem
                     key={collection.name}
                     collection={collection}

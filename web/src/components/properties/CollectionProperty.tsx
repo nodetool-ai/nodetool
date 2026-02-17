@@ -34,7 +34,7 @@ const CollectionProperty = (props: PropertyProps) => {
 
   const options = useMemo(() => {
     return (
-      data?.collections.map((collection) => ({
+      data?.collections.map((collection: { name: string }) => ({
         label: collection.name,
         value: collection.name
       })) || []
