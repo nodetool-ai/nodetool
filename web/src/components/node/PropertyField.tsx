@@ -68,6 +68,10 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const classConnectable = useMemo(() => {
+    // Control edges can connect to any node's control handle
+    if (connectType?.type === "control") {
+      return "is-connectable";
+    }
     return connectType &&
       isConnectableCached(connectType, property.type) &&
       connectNodeId !== id &&

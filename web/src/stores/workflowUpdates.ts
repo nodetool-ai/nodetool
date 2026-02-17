@@ -28,6 +28,7 @@ import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
+import { NodeStore } from "./NodeStore";
 
 type WorkflowSubscription = {
   workflowId: string;
@@ -39,7 +40,8 @@ const workflowSubscriptions = new Map<string, WorkflowSubscription>();
 export const subscribeToWorkflowUpdates = (
   workflowId: string,
   workflow: WorkflowAttributes,
-  runnerStore: WorkflowRunnerStore
+  runnerStore: WorkflowRunnerStore,
+  getNodeStore: (workflowId: string) => NodeStore | undefined
 ): (() => void) => {
   const existing = workflowSubscriptions.get(workflowId);
   if (existing) {
@@ -49,7 +51,7 @@ export const subscribeToWorkflowUpdates = (
   const unsubscribeWorkflow = globalWebSocketManager.subscribe(
     workflowId,
     (message: MsgpackData) => {
-      handleUpdate(workflow, message, runnerStore);
+      handleUpdate(workflow, message, runnerStore, getNodeStore);
     }
   );
 
@@ -73,7 +75,7 @@ export const subscribeToWorkflowUpdates = (
         return;
       }
 
-      handleUpdate(workflow, message as MsgpackData, runnerStore);
+      handleUpdate(workflow, message as MsgpackData, runnerStore, getNodeStore);
     });
   };
 
@@ -149,7 +151,8 @@ interface JobRunState {
 export const handleUpdate = (
   workflow: WorkflowAttributes,
   data: MsgpackData,
-  runnerStore: WorkflowRunnerStore
+  runnerStore: WorkflowRunnerStore,
+  getNodeStore: (workflowId: string) => NodeStore | undefined
 ) => {
   const runner = runnerStore.getState();
   const setResult = useResultsStore.getState().setResult;
@@ -179,6 +182,8 @@ export const handleUpdate = (
   }
 
   window.__UPDATES__.push(data);
+
+  console.log("Received update", data);
 
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;
@@ -512,14 +517,15 @@ export const handleUpdate = (
       }
     }
 
-    // if (update.properties) {
-    //   const nodeData = findNode(update.node_id)?.data;
-    //   if (nodeData) {
-    //     updateNode(update.node_id, {
-    //       ...nodeData,
-    //       properties: { ...nodeData.properties, ...update.properties }
-    //     });
-    //   }
-    // }
+    // Update node properties if provided in the NodeUpdate
+    if (update.properties && Object.keys(update.properties).length > 0) {
+      const nodeStore = getNodeStore(workflow.id);
+      if (nodeStore) {
+        const updateNodeData = nodeStore.getState().updateNodeData;
+        updateNodeData(update.node_id, {
+          properties: update.properties
+        });
+      }
+    }
   }
 };

@@ -230,6 +230,28 @@
   border-radius: 0 0 4px 4px;
 }
 
+/* Control handle visibility */
+.react-flow__node .react-flow__handle.control-handle-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.react-flow__node .react-flow__handle.control-handle-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Preserve control handle centering when connecting */
+.react-flow.is-connecting .react-flow__node .react-flow__handle.control-handle.is-connectable,
+.react-flow.is-connecting .react-flow__node .react-flow__handle.control-handle.not-connectable {
+  transform: translateX(-50%) scale(1.1, 1);
+}
+
+.react-flow.is-connecting .react-flow__node .react-flow__handle.control-handle.not-connectable {
+  transform: translateX(-50%) scale(0.6, 0.4);
+  opacity: 0.8;
+}
+
 /* HANDLE */
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);

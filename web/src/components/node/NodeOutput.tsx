@@ -86,6 +86,10 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
   }, [connectDirection, connectNodeId, effectiveConnectType, id, output.type]);
 
   const classConnectable = useMemo(() => {
+    // Control edges can connect from any Agent node
+    if (effectiveConnectType?.type === "control") {
+      return "is-connectable";
+    }
     if (connectDirection === "source") {
       if (connectNodeId === id && connectHandleId === output.name) {
         return "is-connectable";

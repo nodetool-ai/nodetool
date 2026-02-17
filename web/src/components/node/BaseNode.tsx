@@ -50,6 +50,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isProduction } from "../../stores/ApiClient";
 import { CONTROL_HANDLE_ID, isAgentNodeType } from "../../stores/graphEdgeToReactFlowEdge";
+import useConnectionStore from "../../stores/ConnectionStore";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -418,6 +419,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     );
   });
 
+  // Show control handle when dragging a control edge from an Agent node
+  const isCreatingControlEdge = useConnectionStore((state) => {
+    return state.connectType?.type === "control" && state.connectDirection === "source";
+  });
+
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
 
@@ -607,15 +613,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       className={styleProps.className}
       sx={containerSx}
     >
-      {hasControlEdge && (
-        <Handle
-          type="target"
-          id={CONTROL_HANDLE_ID}
-          position={Position.Top}
-          className="control-handle control-handle-top"
-          isConnectable={true}
-        />
-      )}
+      <Handle
+        type="target"
+        id={CONTROL_HANDLE_ID}
+        position={Position.Top}
+        className={`control-handle control-handle-top ${hasControlEdge || isCreatingControlEdge ? 'control-handle-visible' : 'control-handle-hidden'}`}
+        isConnectable={true}
+      />
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
       <NodeResizeHandle minWidth={150} minHeight={150} />
       <NodeHeader

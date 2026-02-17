@@ -572,7 +572,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         storage.setOpenWorkflows(newOpenWorkflows.map(w => w.id));
 
         const runnerStore = getWorkflowRunnerStore(workflow.id);
-        subscribeToWorkflowUpdates(workflow.id, workflow, runnerStore);
+        subscribeToWorkflowUpdates(workflow.id, workflow, runnerStore, get().getNodeStore);
       },
 
        /**
