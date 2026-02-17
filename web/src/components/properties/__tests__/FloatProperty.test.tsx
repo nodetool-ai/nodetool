@@ -146,7 +146,8 @@ describe("FloatProperty", () => {
           the_model_info: {},
           recommended_models: [],
           basic_fields: [],
-          is_streaming_output: false
+          is_streaming_output: false,
+            required_settings: []
         }
       }
     }, true);

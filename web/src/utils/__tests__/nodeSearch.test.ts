@@ -61,7 +61,8 @@ describe("nodeSearch", () => {
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
-      is_streaming_output: false
+      is_streaming_output: false,
+            required_settings: []
     },
     {
       namespace: "math",
@@ -77,7 +78,8 @@ describe("nodeSearch", () => {
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
-      is_streaming_output: false
+      is_streaming_output: false,
+            required_settings: []
     },
     {
       namespace: "string",
@@ -93,7 +95,8 @@ describe("nodeSearch", () => {
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
-      is_streaming_output: false
+      is_streaming_output: false,
+            required_settings: []
     },
     {
       namespace: "default",
@@ -109,7 +112,8 @@ describe("nodeSearch", () => {
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
-      is_streaming_output: false
+      is_streaming_output: false,
+            required_settings: []
     }
   ];
 
@@ -554,6 +558,7 @@ describe("nodeSearch", () => {
           expose_as_tool: false,
           supports_dynamic_outputs: false,
           is_streaming_output: false,
+          required_settings: []
         });
       }
 

@@ -97,7 +97,8 @@ const mockNodeMetadata: NodeMetadata = {
   the_model_info: {},
   recommended_models: [],
   basic_fields: [],
-  is_streaming_output: false
+  is_streaming_output: false,
+            required_settings: []
 };
 
 const mockDynamicNodeMetadata: NodeMetadata = {
@@ -136,7 +137,8 @@ const previewNodeMetadata: NodeMetadata = {
   the_model_info: {},
   recommended_models: [],
   basic_fields: [],
-  is_streaming_output: false
+  is_streaming_output: false,
+            required_settings: []
 };
 
 const rerouteNodeMetadata: NodeMetadata = {
@@ -180,7 +182,8 @@ const rerouteNodeMetadata: NodeMetadata = {
   the_model_info: {},
   recommended_models: [],
   basic_fields: [],
-  is_streaming_output: false
+  is_streaming_output: false,
+            required_settings: []
 };
 
 const createMockNode = (id: string, type: string = "test.node") => ({
