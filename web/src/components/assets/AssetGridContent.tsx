@@ -290,19 +290,31 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
 
   useEffect(() => {
     if (containerRef.current) {
+      let resizeTimeout: NodeJS.Timeout | null = null;
+
       const resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          setContainerSize({
-            width: entry.contentRect.width,
-            height: entry.contentRect.height
-          });
+        // Debounce rapid resize events to avoid excessive re-renders
+        if (resizeTimeout) {
+          clearTimeout(resizeTimeout);
         }
+
+        resizeTimeout = setTimeout(() => {
+          for (const entry of entries) {
+            setContainerSize({
+              width: entry.contentRect.width,
+              height: entry.contentRect.height
+            });
+          }
+        }, 100); // 100ms debounce delay
       });
 
       resizeObserver.observe(containerRef.current);
 
       return () => {
         resizeObserver.disconnect();
+        if (resizeTimeout) {
+          clearTimeout(resizeTimeout);
+        }
       };
     }
   }, []);
