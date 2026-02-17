@@ -28,7 +28,7 @@ interface UsePaneEventsResult {
   /** Handler for clicking on the canvas */
   handlePaneClick: (event: ReactMouseEvent) => void;
   /** Handler for right-clicking on the canvas */
-  handlePaneContextMenu: (event: any) => void;
+  handlePaneContextMenu: (event: ReactMouseEvent) => void;
 }
 
 /**
@@ -133,7 +133,7 @@ export function usePaneEvents({ pendingNodeType, placementLabel: _placementLabel
   );
 
   const handlePaneContextMenu = useCallback(
-    (event: any) => {
+    (event: ReactMouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
       requestAnimationFrame(() => {
