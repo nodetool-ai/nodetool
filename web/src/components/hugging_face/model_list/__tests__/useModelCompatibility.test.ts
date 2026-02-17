@@ -53,6 +53,7 @@ const createMockNode = (
   expose_as_tool: false,
   supports_dynamic_outputs: false,
   the_model_info: {},
+  required_settings: [],
 });
 
 // Helper to create a mock UnifiedModel

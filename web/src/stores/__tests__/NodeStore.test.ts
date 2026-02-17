@@ -34,8 +34,8 @@ const makeEdge = (
   id: `${source}-${target}`,
   source,
   target,
-  sourceHandle: sourceHandle || null,
-  targetHandle: targetHandle || null
+  sourceHandle: sourceHandle || "",
+  targetHandle: targetHandle || ""
 });
 
 const mockMetadata: Record<string, NodeMetadata> = {
@@ -80,7 +80,8 @@ const mockMetadata: Record<string, NodeMetadata> = {
     the_model_info: {},
     recommended_models: [],
     basic_fields: [],
-    is_streaming_output: false
+    is_streaming_output: false,
+            required_settings: []
   },
   dynamic_test: {
     node_type: "dynamic_test",
@@ -108,7 +109,8 @@ const mockMetadata: Record<string, NodeMetadata> = {
     the_model_info: {},
     recommended_models: [],
     basic_fields: [],
-    is_streaming_output: false
+    is_streaming_output: false,
+            required_settings: []
   }
 };
 describe("NodeStore node management", () => {
@@ -507,7 +509,8 @@ describe("Handle Validation with Centralized Functions", () => {
       source: "a",
       target: "b",
       sourceHandle: "output1",
-      targetHandle: "input1"
+      targetHandle: "input1",
+      edge_type: "data" as const
     };
 
     // First connection should succeed
@@ -576,7 +579,8 @@ describe("Graph Sanitization", () => {
           target: e.target,
           sourceHandle: e.sourceHandle!,
           targetHandle: e.targetHandle!,
-          ui_properties: {}
+          ui_properties: {},
+          edge_type: "data" as const
         }))
       }
     };
@@ -626,7 +630,8 @@ describe("Graph Sanitization", () => {
           target: e.target,
           sourceHandle: e.sourceHandle!,
           targetHandle: e.targetHandle!,
-          ui_properties: {}
+          ui_properties: {},
+          edge_type: "data" as const
         }))
       }
     };
@@ -697,7 +702,8 @@ describe("Input Node Name Generation", () => {
     the_model_info: {},
     recommended_models: [],
     basic_fields: [],
-    is_streaming_output: false
+    is_streaming_output: false,
+            required_settings: []
   };
 
   const integerInputMetadata = {

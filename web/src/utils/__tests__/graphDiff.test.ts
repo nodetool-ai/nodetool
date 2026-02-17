@@ -21,7 +21,8 @@ describe("graphDiff", () => {
     target,
     sourceHandle: sourceHandle || "",
     targetHandle: targetHandle || "",
-    ui_properties: {}
+    ui_properties: {},
+    edge_type: "data"
   });
 
   const createGraph = (nodes: Node[], edges: Edge[]): Graph => ({

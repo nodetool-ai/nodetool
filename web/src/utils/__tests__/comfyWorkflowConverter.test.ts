@@ -275,7 +275,8 @@ describe("ComfyUI Workflow Converter", () => {
             source: "4",
             target: "3",
             sourceHandle: "MODEL",
-            targetHandle: "model"
+            targetHandle: "model",
+            edge_type: "data"
           }
         ]
       };
@@ -309,7 +310,8 @@ describe("ComfyUI Workflow Converter", () => {
             source: "1",
             target: "2",
             sourceHandle: "output_0",
-            targetHandle: "model"  // Use actual input name, not generic input_0
+            targetHandle: "model",  // Use actual input name, not generic input_0
+            edge_type: "data"
           }
         ]
       };
@@ -406,7 +408,8 @@ describe("ComfyUI Workflow Converter", () => {
         source: "4",
         target: "3",
         sourceHandle: "output_0",
-        targetHandle: "model"
+        targetHandle: "model",
+            edge_type: "data"
       });
     });
   });

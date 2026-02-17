@@ -8,6 +8,7 @@ const createMockGraphEdge = (overrides?: Partial<GraphEdge>): GraphEdge => ({
   sourceHandle: "output-1",
   target: "node-2",
   targetHandle: "input-1",
+  edge_type: "data",
   ...overrides
 });
 
