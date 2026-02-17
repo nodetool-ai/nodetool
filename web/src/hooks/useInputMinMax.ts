@@ -40,7 +40,7 @@ export const useInputMinMax = ({
   const context = useContext(NodeContext);
 
   const nodes: Node<NodeData>[] = useStoreWithEqualityFn(
-    context ?? { subscribe: () => {}, getState: () => ({ nodes: [] }) } as any,
+    context ?? { subscribe: () => () => {}, getState: () => ({ nodes: [] }) } as any,
     (state: any) => state?.nodes ?? [],
     shallow
   );

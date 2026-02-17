@@ -32,9 +32,9 @@ FrontendToolRegistry.register({
       target: target_id,
       sourceHandle: source_handle,
       targetHandle: target_handle
-    } as any;
+    };
 
-    const ok = nodeStore.validateConnection(connection, src as any, tgt as any);
+    const ok = nodeStore.validateConnection(connection, src, tgt);
     if (!ok) {throw new Error("Invalid connection");}
 
     const edgeId = nodeStore.generateEdgeId();
@@ -44,7 +44,7 @@ FrontendToolRegistry.register({
       target: target_id,
       sourceHandle: source_handle,
       targetHandle: target_handle
-    } as any);
+    });
 
     return { ok: true, edge_id: edgeId };
   }
