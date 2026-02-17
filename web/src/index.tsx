@@ -117,6 +117,7 @@ const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
+const ChatMarkdownTest = React.lazy(() => import("./components/ChatMarkdownTest"));
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -334,6 +335,10 @@ function getRoutes() {
       path: "/layouttest",
       element: <LayoutTest />
     });
+    routes.push({
+      path: "/chatmarkdowntest",
+      element: <ChatMarkdownTest />
+    });
   }
 
   routes.forEach((route) => {
@@ -410,6 +415,13 @@ const preloadComfyMetadata = async (): Promise<void> => {
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
 
+  // Allow dev-only test pages to render without backend metadata
+  const isDevTestRoute =
+    isLocalhost &&
+    ["/layouttest", "/chatmarkdowntest"].some((p) =>
+      window.location.pathname.startsWith(p)
+    );
+
   useEffect(() => {
     // Register frontend tools after initial render
     registerFrontendTools();
@@ -430,6 +442,9 @@ const AppWrapper = () => {
       });
   }, []); // Empty dependency array ensures this runs only once on mount
 
+  const shouldRenderRouter =
+    isDevTestRoute || (status !== "pending" && status !== "error");
+
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
@@ -440,7 +455,7 @@ const AppWrapper = () => {
             <MenuProvider>
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
-                  {status === "pending" && (
+                  {status === "pending" && !isDevTestRoute && (
                     <div
                       style={{
                         display: "flex",
@@ -452,7 +467,7 @@ const AppWrapper = () => {
                       <CircularProgress />
                     </div>
                   )}
-                  {status === "error" && (
+                  {status === "error" && !isDevTestRoute && (
                     <div
                       style={{
                         display: "flex",
@@ -467,7 +482,7 @@ const AppWrapper = () => {
                     </div>
                   )}
                   {/* Render RouterProvider only when metadata is successfully loaded */}
-                  {status !== "pending" && status !== "error" && (
+                  {shouldRenderRouter && (
                     <>
                       <Suspense
                         fallback={

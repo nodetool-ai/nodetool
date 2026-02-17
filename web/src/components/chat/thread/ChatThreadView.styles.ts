@@ -235,6 +235,7 @@ export const createStyles = (theme: Theme) => ({
     ".message-content": {
       flex: 1,
       minWidth: 0,
+      maxWidth: "100%",
       overflow: "hidden",
       wordBreak: "break-word",
       overflowWrap: "anywhere"
