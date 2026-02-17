@@ -1,0 +1,22 @@
+Type checking web package...
+cd web && npm run typecheck
+
+> nodetool@0.6.2-rc.23 typecheck
+> tsc --noEmit
+
+Type checking electron package...
+cd electron && npm run typecheck
+
+> nodetool-electron@0.6.2-rc.23 typecheck
+> tsc --noEmit
+
+error TS2688: Cannot find type definition file for 'node'.
+  The file is in the program because:
+    Entry point of type library 'node' specified in compilerOptions
+error TS2688: Cannot find type definition file for 'react'.
+  The file is in the program because:
+    Entry point of type library 'react' specified in compilerOptions
+error TS2688: Cannot find type definition file for 'react-dom'.
+  The file is in the program because:
+    Entry point of type library 'react-dom' specified in compilerOptions
+make: *** [Makefile:156: typecheck-electron] Error 2

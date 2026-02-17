@@ -18,11 +18,11 @@ jest.mock("../../../components/asset_viewer/VideoViewer", () => ({
   __esModule: true,
   default: () => <div data-testid="video-viewer">video</div>
 }));
-jest.mock("../../../components/asset_viewer/PDFViewer", () => ({
+jest.mock("../../../components/asset_viewer/LazyPDFViewer", () => ({
   __esModule: true,
   default: () => <div data-testid="pdf-viewer">pdf</div>
 }));
-jest.mock("../../../components/asset_viewer/Model3DViewer", () => ({
+jest.mock("../../../components/asset_viewer/LazyModel3DViewer", () => ({
   __esModule: true,
   default: () => <div data-testid="model3d-viewer">3d model</div>
 }));
