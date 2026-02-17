@@ -11,6 +11,7 @@ export function reactFlowEdgeToGraphEdge(edge: Edge): GraphEdge {
     sourceHandle: edge.sourceHandle || "",
     target: edge.target,
     targetHandle: edge.targetHandle || "",
-    ui_properties: ui_properties
+    ui_properties: ui_properties,
+    edge_type: "data"
   };
 }
