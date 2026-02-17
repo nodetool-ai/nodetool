@@ -40,6 +40,7 @@ const baseMetadata: NodeMetadata = {
   the_model_info: {},
   recommended_models: [],
   basic_fields: [],
+  required_settings: [],
   is_dynamic: false,
   is_streaming_output: false,
   expose_as_tool: false,

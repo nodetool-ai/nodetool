@@ -39,6 +39,7 @@ const createMockNode = (
     path: m.path || null,
   })) as UnifiedModel[],
   basic_fields: [],
+  required_settings: [],
   is_dynamic: false,
   is_streaming_output: false,
   expose_as_tool: false,
