@@ -285,7 +285,19 @@ const AppHeader: React.FC = memo(function AppHeader() {
         <FlexRow className="navigate" gap={1} align="center" sx={{ WebkitAppRegion: "no-drag" } as any}>
           {/* Logo - clicks to Dashboard */}
           <Tooltip title="Go to Dashboard" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
-            <div className="logo-container" onClick={handleLogoClick}>
+            <div
+              className="logo-container"
+              onClick={handleLogoClick}
+              role="button"
+              tabIndex={0}
+              aria-label="Go to Dashboard"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleLogoClick();
+                }
+              }}
+            >
               <Logo
                 small
                 width="20px"

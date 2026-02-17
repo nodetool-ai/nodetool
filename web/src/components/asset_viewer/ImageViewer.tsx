@@ -210,7 +210,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
         <img
           ref={imageRef}
           src={asset?.get_url || url}
-          alt=""
+          alt={asset?.name || "Image asset"}
           onLoad={() => {
             if (imageRef.current) {
               setImageWidth(imageRef.current.naturalWidth);

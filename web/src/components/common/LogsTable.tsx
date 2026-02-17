@@ -276,10 +276,11 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
           />
           {r.data !== undefined && r.data !== null && (
             <>
-              <IconButton 
-                size="small" 
+              <IconButton
+                size="small"
                 onClick={handleClick}
                 sx={{ padding: "2px" }}
+                aria-label="View data"
               >
                 <DataObjectIcon fontSize="inherit" />
               </IconButton>

@@ -184,7 +184,20 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
 
   return (
     <div className="step-result-container" css={styles(theme)}>
-      <div className="step-result-header" onClick={handleToggle}>
+      <div
+        className="step-result-header"
+        onClick={handleToggle}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-label="Toggle step result details"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
+      >
         <CheckCircleOutlineIcon className="step-result-icon" />
         <Typography className="step-result-title">
           Step Completed

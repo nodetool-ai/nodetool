@@ -223,7 +223,12 @@ const JobItem = ({ job }: { job: Job }) => {
           "&:hover": { backgroundColor: "action.hover" }
         }}
         secondaryAction={
-          <IconButton edge="end" size="small" onClick={handleExpandClick}>
+          <IconButton
+            edge="end"
+            size="small"
+            onClick={handleExpandClick}
+            aria-label={expanded ? "Collapse job details" : "Expand job details"}
+          >
             {expanded ? (
               <KeyboardArrowUpIcon fontSize="small" />
             ) : (
@@ -268,6 +273,7 @@ const JobItem = ({ job }: { job: Job }) => {
             size="small"
             onClick={handleStop}
             disabled={cancelling}
+            aria-label="Stop job"
             sx={{
               mr: 1,
               color: "error.main",

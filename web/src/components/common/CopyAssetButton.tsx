@@ -356,6 +356,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
           onClick={handleCopy}
           disabled={disabled}
           size={size}
+          aria-label={tooltipText}
           sx={{
             width: 24,
             height: 24,
