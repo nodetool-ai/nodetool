@@ -1,11 +1,12 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { Box, IconButton, Typography, Divider, Tooltip } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
 import NodeHistoryPanel from "./NodeHistoryPanel";
 import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import isEqual from "lodash/isEqual";
 
 interface ResultOverlayProps {
   result: any;
@@ -148,4 +149,16 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
   );
 };
 
-export default ResultOverlay;
+// Memoize with deep comparison since result objects can be deeply nested
+// Only re-render when the result or history actually changes
+export default memo(ResultOverlay, (prevProps, nextProps) => {
+  // Compare results deeply
+  const resultEqual = isEqual(prevProps.result, nextProps.result);
+  // Compare other props shallowly
+  const otherPropsEqual =
+    prevProps.nodeId === nextProps.nodeId &&
+    prevProps.workflowId === nextProps.workflowId &&
+    prevProps.nodeName === nextProps.nodeName;
+
+  return resultEqual && otherPropsEqual;
+});

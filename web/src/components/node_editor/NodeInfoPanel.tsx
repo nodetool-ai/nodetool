@@ -204,6 +204,9 @@ const NodeInfoPanel: React.FC = memo(() => {
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
 
+  // Use selector to get metadata store function - avoids getState() in render path
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
+
   const nodeInfo = useMemo((): NodeInfo | null => {
     if (!inspectedNodeId) {
       return null;
@@ -214,11 +217,11 @@ const NodeInfoPanel: React.FC = memo(() => {
     }
 
     const nodeType = node.type || "unknown";
-    const metadata = useMetadataStore.getState().getMetadata(nodeType);
+    const metadata = getMetadata(nodeType);
 
     return {
       id: node.id,
-      label: metadata?.title || "",
+      label: metadata?.title || nodeType,
       type: nodeType,
       namespace: metadata?.namespace || "",
       description: metadata?.description || undefined,
@@ -227,7 +230,7 @@ const NodeInfoPanel: React.FC = memo(() => {
       errorMessage: node.data.errorMessage as string | undefined,
       executionStatus: node.data.executionStatus as "pending" | "running" | "completed" | "error" | undefined
     };
-  }, [getNode, inspectedNodeId]);
+  }, [getNode, inspectedNodeId, getMetadata]);
 
   const parsedDescription = useMemo(() => {
     if (!nodeInfo?.description) {
