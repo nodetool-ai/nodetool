@@ -7,7 +7,7 @@ type GraphNodeInput = {
   id: string;
   type?: string;
   node_type?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   position?: { x: number; y: number };
 };
 
@@ -172,7 +172,7 @@ FrontendToolRegistry.register({
     const normalizedNodes = normalizeNodeInput(nodes);
     const normalizedEdges = normalizeEdgeInput(edges);
 
-    for (const node of normalizedNodes as any[]) {
+    for (const node of normalizedNodes) {
       assertObject(node, "Invalid node");
       assertString(node.id, "Node missing id");
       const nodeType = typeof node.type === "string" ? node.type : node.node_type;
@@ -181,8 +181,8 @@ FrontendToolRegistry.register({
       const metadata = state.nodeMetadata[nodeType];
       if (!metadata) {throw new Error(`Node type not found: ${nodeType}`);}
 
-      const rawData = (node.data ?? {}) as Record<string, any>;
-      const properties = (rawData.properties ?? {}) as Record<string, any>;
+      const rawData = (node.data ?? {}) as Record<string, unknown>;
+      const properties = (rawData.properties ?? {}) as Record<string, unknown>;
 
       for (const property of metadata.properties) {
         const value = properties[property.name];
@@ -202,7 +202,7 @@ FrontendToolRegistry.register({
         dynamic_outputs: rawData.dynamic_outputs ?? {},
         sync_mode: rawData.sync_mode ?? "on_any",
         workflow_id: workflowId,
-        selectable: rawData.selectable ?? true
+        selectable: (rawData.selectable ?? true) as boolean
       };
 
       const position = node.position ?? { x: 0, y: 0 };
@@ -225,7 +225,7 @@ FrontendToolRegistry.register({
       addedNodeIds.push(node.id);
     }
 
-    for (const edge of normalizedEdges as any[]) {
+    for (const edge of normalizedEdges) {
       assertObject(edge, "Invalid edge");
       assertString(edge.source, "Edge missing source");
       assertString(edge.target, "Edge missing target");
@@ -238,11 +238,11 @@ FrontendToolRegistry.register({
       const connection = {
         source: edge.source,
         target: edge.target,
-        sourceHandle: edge.sourceHandle,
-        targetHandle: edge.targetHandle
-      } as any;
+        sourceHandle: edge.sourceHandle ?? null,
+        targetHandle: edge.targetHandle ?? null
+      };
 
-      const ok = nodeStore.validateConnection(connection, src as any, tgt as any);
+      const ok = nodeStore.validateConnection(connection, src, tgt);
       if (!ok) {throw new Error("Invalid connection");}
 
       const edgeId = edge.id ?? nodeStore.generateEdgeId();
@@ -250,9 +250,9 @@ FrontendToolRegistry.register({
         id: edgeId,
         source: edge.source,
         target: edge.target,
-        sourceHandle: edge.sourceHandle,
-        targetHandle: edge.targetHandle
-      } as any);
+        sourceHandle: edge.sourceHandle ?? null,
+        targetHandle: edge.targetHandle ?? null
+      });
 
       addedEdgeIds.push(edgeId);
     }

@@ -45,7 +45,22 @@ function isElectron(): boolean {
  * This is set up by the preload script's contextBridge.
  */
 function getIpc() {
-  return typeof window !== "undefined" ? (window as any).api?.ipc : null;
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  type WindowWithApi = Window & {
+    api?: {
+      ipc?: {
+        on: (channel: string, callback: (...args: unknown[]) => void) => void;
+        send: (channel: string, data: unknown) => void;
+      };
+      agent?: unknown;
+    };
+  };
+
+  const windowWithApi = window as WindowWithApi;
+  return windowWithApi.api?.ipc ?? null;
 }
 
 async function requestUserConsent(
@@ -100,7 +115,8 @@ export function initFrontendToolsIpc(): void {
   // Listener for getting the frontend tools manifest
   ipc.on(
     "frontend-tools-get-manifest-request",
-    (_event: unknown, request: { requestId: string; sessionId: string }) => {
+    (_event: unknown, ...args: unknown[]) => {
+      const request = args[0] as { requestId: string; sessionId: string };
       const currentManifest = FrontendToolRegistry.getManifest();
       console.debug(
         `[frontend-tools] Manifest requested (session=${request.sessionId}, requestId=${request.requestId}) -> ${currentManifest.length} tools`
@@ -118,14 +134,15 @@ export function initFrontendToolsIpc(): void {
     "frontend-tools-call-request",
     async (
       _event: unknown,
-      request: {
+      ...ipcArgs: unknown[]
+    ) => {
+      const request = ipcArgs[0] as {
         requestId: string;
         sessionId: string;
         toolCallId: string;
         name: string;
         args: unknown;
-      },
-    ) => {
+      };
       const { requestId, sessionId, toolCallId, name, args } = request;
       console.debug(
         `[frontend-tools] Tool call requested: ${name} (session=${sessionId}, callId=${toolCallId}, requestId=${requestId})`
@@ -210,7 +227,8 @@ export function initFrontendToolsIpc(): void {
   // Handler for aborting tool calls
   ipc.on(
     "frontend-tools-abort",
-    (_event: unknown, data: { sessionId: string }) => {
+    (_event: unknown, ...args: unknown[]) => {
+      const data = args[0] as { sessionId: string };
       console.info(`[frontend-tools] Abort requested (session=${data.sessionId})`);
       // Abort all tool calls for this session
       FrontendToolRegistry.abortAll();
