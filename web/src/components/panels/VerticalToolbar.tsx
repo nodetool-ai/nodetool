@@ -15,6 +15,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
+import BarChartIcon from "@mui/icons-material/BarChart";
 import SvgFileIcon from "../SvgFileIcon";
 
 interface VerticalToolbarProps {
@@ -27,7 +28,8 @@ interface VerticalToolbarProps {
     handleWorkflowToggle: () => void;
     handleWorkflowAssetsToggle: () => void;
     handleAgentToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent";
+    handleStatsToggle: () => void;
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent" | "stats";
     panelVisible: boolean;
 }
 
@@ -41,6 +43,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handleWorkflowToggle,
     handleWorkflowAssetsToggle,
     handleAgentToggle,
+    handleStatsToggle,
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
@@ -208,6 +211,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
                     }
                 >
                     <FolderSpecialIcon />
+                </IconButton>
+            </Tooltip>
+
+            {/* Stats Button */}
+            <Tooltip
+                title={
+                    <div className="tooltip-span">
+                        <div className="tooltip-title">Statistics</div>
+                        <div className="tooltip-key">
+                            <kbd>Z</kbd>
+                        </div>
+                    </div>
+                }
+                placement="left-start"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+                <IconButton
+                    tabIndex={-1}
+                    onClick={handleStatsToggle}
+                    className={
+                        activeView === "stats" && panelVisible
+                            ? "stats active"
+                            : "stats"
+                    }
+                >
+                    <BarChartIcon />
                 </IconButton>
             </Tooltip>
 
