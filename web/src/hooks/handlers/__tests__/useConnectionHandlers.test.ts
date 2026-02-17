@@ -777,7 +777,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).toHaveBeenCalledWith({
         source: "sourceNode",
@@ -859,7 +859,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).toHaveBeenCalledWith({
         source: "sourceNode",
@@ -941,7 +941,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).toHaveBeenCalledWith({
         source: "rerouteNode",
@@ -1027,7 +1027,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).not.toHaveBeenCalled();
       expect(mockOpenContextMenu).toHaveBeenCalledTimes(1);
@@ -1111,7 +1111,7 @@ describe("useConnectionHandlers", () => {
 
       const { result } = renderHook(() => useConnectionHandlers());
 
-      result.current.onConnectEnd(mockEvent as any);
+      result.current.onConnectEnd(mockEvent as any, {} as any);
 
       expect(mockOnConnect).not.toHaveBeenCalled();
       expect(mockOpenContextMenu).toHaveBeenCalledTimes(1);

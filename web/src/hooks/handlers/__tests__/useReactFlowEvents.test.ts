@@ -52,8 +52,9 @@ describe("useReactFlowEvents", () => {
     it("calls closeNodeMenu when event type is pan", () => {
       const { result } = renderHook(() => useReactFlowEvents());
       const event = { type: "pan" } as any;
+      const viewport = { x: 0, y: 0, zoom: 1 } as any;
 
-      result.current.handleOnMoveStart(event);
+      result.current.handleOnMoveStart(event, viewport);
 
       expect(mockCloseNodeMenu).toHaveBeenCalled();
     });
@@ -61,8 +62,9 @@ describe("useReactFlowEvents", () => {
     it("does not call closeNodeMenu for non-pan events", () => {
       const { result } = renderHook(() => useReactFlowEvents());
       const event = { type: "zoom" } as any;
+      const viewport = { x: 0, y: 0, zoom: 1 } as any;
 
-      result.current.handleOnMoveStart(event);
+      result.current.handleOnMoveStart(event, viewport);
 
       expect(mockCloseNodeMenu).not.toHaveBeenCalled();
     });

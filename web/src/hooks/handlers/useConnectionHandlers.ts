@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { OnConnectStartParams, Connection } from "@xyflow/react";
+import { Connection, type OnConnectStart, type OnConnectEnd } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
 import useConnectionStore from "../../stores/ConnectionStore";
 import useContextMenu from "../../stores/ContextMenuStore";
@@ -71,8 +71,8 @@ export default function useConnectionHandlers() {
   const { openContextMenu } = useContextMenu();
 
   /* CONNECT START */
-  const onConnectStart = useCallback(
-    (event: any, { nodeId, handleId, handleType }: OnConnectStartParams) => {
+  const onConnectStart: OnConnectStart = useCallback(
+    (event, { nodeId, handleId, handleType }) => {
       if (!nodeId || !handleId || !handleType) {
         console.warn("Missing required data for connection start");
         return;
@@ -230,8 +230,14 @@ export default function useConnectionHandlers() {
   );
 
   /* CONNECT END */
-  const onConnectEnd = useCallback(
-    (event: any) => {
+  const onConnectEnd: OnConnectEnd = useCallback(
+    (event, _connectionState) => {
+      // Only handle mouse events, not touch events
+      // Note: In tests, event may be a mock object that doesn't inherit from MouseEvent
+      if (event instanceof TouchEvent) {
+        return;
+      }
+
       const { connectDirection, connectNodeId, connectHandleId, connectType } =
         useConnectionStore.getState();
       if (!connectNodeId || !connectHandleId || !connectType) {
@@ -241,19 +247,45 @@ export default function useConnectionHandlers() {
       if (!connectNode) {
         return;
       }
+
+      // Type guard to ensure event.target is an HTMLElement
+      // Note: For production code, we check instanceof HTMLElement
+      // For tests, we check if target has the necessary properties
+      const target = event.target;
+      if (!target) {
+        return;
+      }
+      // Check if target is an HTMLElement OR has the necessary properties for tests
+      const isHTMLElement = target instanceof HTMLElement;
+      const hasTestProperties =
+        "classList" in target &&
+        "closest" in target &&
+        typeof target.classList === "object" &&
+        typeof target.closest === "function";
+
+      if (!isHTMLElement && !hasTestProperties) {
+        return;
+      }
+
+      // Cast target to HTMLElement for production use or test mocks
+      const htmlTarget = target as HTMLElement;
       const targetIsGroup = findClassNameinElementOrParents(
-        event.target,
+        htmlTarget,
         "loop-node"
       );
-      const targetIsPane = event.target.classList.contains("react-flow__pane");
+      const targetIsPane = htmlTarget.classList.contains("react-flow__pane");
       const targetIsNode =
-        event.target.closest(".react-flow__node") !== null &&
+        htmlTarget.closest(".react-flow__node") !== null &&
         !targetIsGroup &&
         !targetIsPane;
 
       // targetIsNode: try to auto-connect or create dynamic property
       if (!connectionCreated.current && targetIsNode) {
-        const nodeId = event.target.closest(".react-flow__node").dataset.id;
+        const closestNode = htmlTarget.closest(".react-flow__node") as HTMLElement | null;
+        const nodeId = closestNode?.dataset.id;
+        if (!nodeId) {
+          return;
+        }
         const node = findNode(nodeId);
         if (!node) {
           return;
