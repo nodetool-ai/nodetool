@@ -17,6 +17,8 @@ import {
   Box
 } from "@mui/material";
 import useLogsStore from "../../stores/LogStore";
+import { shallow } from "zustand/shallow";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import isEqual from "lodash/isEqual";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ListAltIcon from "@mui/icons-material/ListAlt";
@@ -61,7 +63,14 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
     const theme = useTheme();
     const logsRef = useRef<HTMLDivElement>(null);
-    const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+    const logs = useStoreWithEqualityFn(
+      useLogsStore,
+      (state) =>
+        state.logs.filter(
+          (log) => log.workflowId === workflowId && log.nodeId === id
+        ),
+      shallow
+    );
     const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>(
       []
     );
@@ -225,7 +234,14 @@ NodeLogsDialog.displayName = "NodeLogsDialog";
 
 export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   const theme = useTheme();
-  const logs = useLogsStore((state) => state.getLogs(workflowId, id));
+  const logs = useStoreWithEqualityFn(
+    useLogsStore,
+    (state) =>
+      state.logs.filter(
+        (log) => log.workflowId === workflowId && log.nodeId === id
+      ),
+    shallow
+  );
   const [open, setOpen] = useState(false);
 
   const count = logs?.length || 0;
