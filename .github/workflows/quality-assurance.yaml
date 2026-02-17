@@ -116,11 +116,22 @@ jobs:
             - One issue type per PR (don't mix type errors with test failures)
             - Small, focused changes (5-10 files max per PR)
 
+            ## Code Review for Regressions
+            After making fixes, review your code for potential regressions:
+            - Run the affected features manually to ensure they work
+            - Check that existing tests still pass
+            - Look for unintended side effects in related code
+            - Verify no new TypeScript errors or lint warnings were introduced
+            - Test edge cases and error handling
+
             ## Final Step: CREATE THE PULL REQUEST (if you made fixes)
             If you found and fixed issues, you MUST:
             1. Commit all your changes
             2. Push your branch
-            3. **Open a Pull Request** describing what was broken and how you fixed it
+            3. **Open a Pull Request** describing:
+               - What was broken and how you fixed it
+               - Quality check results (make lint, make typecheck, make test all passing)
+               - Any potential regressions you identified and how you addressed them
             
             If no issues were found and everything is green, you may skip the PR.
 

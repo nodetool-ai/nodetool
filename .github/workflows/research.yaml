@@ -32,6 +32,38 @@ jobs:
           cd web && npm ci
           cd ../electron && npm ci
 
+      - name: Pre-flight quality check
+        id: pre-check
+        continue-on-error: true
+        run: |
+          echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+
+          if make typecheck 2>&1 | tee typecheck-pre.log; then
+            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TYPECHECK_EXIT=1
+            echo "⚠️ TypeScript errors found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make lint 2>&1 | tee lint-pre.log; then
+            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            LINT_EXIT=1
+            echo "⚠️ Lint errors found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make test 2>&1 | tee test-pre.log; then
+            echo "✅ Tests: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TEST_EXIT=1
+            echo "⚠️ Test failures found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         env:
@@ -86,7 +118,23 @@ jobs:
             1. Start with smallest useful version (MVP)
             2. Follow existing code patterns
             3. Mark experimental features clearly
-            4. `make typecheck && make lint && make test` must all pass
+
+            ## Mandatory Quality Checks
+            Before submitting your PR, you MUST run and pass all quality checks:
+            ```bash
+            make lint       # All lint checks must pass
+            make typecheck  # All type checks must pass
+            make test       # All tests must pass
+            ```
+            All three commands must exit with code 0. Fix any errors before proceeding.
+
+            ## Code Review for Regressions
+            After making changes, review your code for potential regressions:
+            - Test the prototype manually to ensure it works
+            - Check that existing features still work
+            - Look for unintended side effects in related code
+            - Verify no new TypeScript errors or lint warnings were introduced
+            - Consider performance implications
 
             ## Final Step: CREATE THE PULL REQUEST
             Once you've built your prototype, you MUST:
@@ -95,3 +143,46 @@ jobs:
             3. **Open a Pull Request** with:
                - The prototype implementation
                - Description of what was explored, key findings, and potential next steps
+               - Quality check results (make lint, make typecheck, make test all passing)
+               - Any potential regressions you identified and how you addressed them
+
+      - name: Post-change verification
+        if: always()
+        run: |
+          echo "## Post-Change Verification" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+
+          if make typecheck 2>&1 | tee typecheck-post.log; then
+            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TYPECHECK_EXIT=1
+            echo "❌ TypeScript errors" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make lint 2>&1 | tee lint-post.log; then
+            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            LINT_EXIT=1
+            echo "❌ Lint errors" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make test 2>&1 | tee test-post.log; then
+            echo "✅ Tests: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TEST_EXIT=1
+            echo "❌ Test failures" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Fail if quality degraded
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "🔴 NEW TypeScript errors introduced!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "🔴 NEW lint errors introduced!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "🔴 NEW test failures introduced!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

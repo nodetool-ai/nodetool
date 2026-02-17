@@ -32,6 +32,30 @@ jobs:
           cd web && npm ci
           cd ../electron && npm ci
 
+      - name: Pre-flight quality check
+        id: pre-check
+        continue-on-error: true
+        run: |
+          echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0
+
+          if make typecheck 2>&1 | tee typecheck-pre.log; then
+            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TYPECHECK_EXIT=1
+            echo "⚠️ TypeScript errors found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make lint 2>&1 | tee lint-pre.log; then
+            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            LINT_EXIT=1
+            echo "⚠️ Lint errors found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         env:
@@ -85,8 +109,54 @@ jobs:
             - Don't document trivial/obvious code
             - Remove obsolete information
 
+            ## Quality Checks
+            For documentation changes, run typecheck and lint to ensure examples are correct:
+            ```bash
+            make typecheck  # Verify code examples are valid
+            make lint       # Check formatting
+            ```
+
+            ## Code Review for Regressions
+            After making changes, review your documentation updates:
+            - Test any code examples you added or modified
+            - Verify all links work correctly
+            - Check that instructions are accurate
+            - Ensure consistency with existing documentation style
+
             ## Final Step: CREATE THE PULL REQUEST
             Once you've made your documentation improvements, you MUST:
             1. Commit all your changes
             2. Push your branch
-            3. **Open a Pull Request** with a clear title and description of what documentation you improved
+            3. **Open a Pull Request** with:
+               - A clear title and description of what documentation you improved
+               - Verification that any code examples work correctly
+
+      - name: Post-change verification
+        if: always()
+        run: |
+          echo "## Post-Change Verification" >> $GITHUB_STEP_SUMMARY
+          TYPECHECK_EXIT=0; LINT_EXIT=0
+
+          if make typecheck 2>&1 | tee typecheck-post.log; then
+            echo "✅ TypeScript: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            TYPECHECK_EXIT=1
+            echo "❌ TypeScript errors" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if make lint 2>&1 | tee lint-post.log; then
+            echo "✅ ESLint: OK" >> $GITHUB_STEP_SUMMARY
+          else
+            LINT_EXIT=1
+            echo "❌ Lint errors" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Fail if quality degraded
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "🔴 NEW TypeScript errors introduced!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "🔴 NEW lint errors introduced!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
