@@ -79,19 +79,9 @@ export const useCopyPaste = () => {
         try {
           await navigator.clipboard.writeText(serializedData);
         } catch (error) {
-          // Browser clipboard may fail due to permissions, fall back to localStorage
-          log.debug(
-            "Browser clipboard write failed, using localStorage:",
-            error
-          );
-          localStorage.setItem("copiedNodesData", serializedData);
+          log.debug("Browser clipboard write failed:", error);
         }
-      } else {
-        localStorage.setItem("copiedNodesData", serializedData);
       }
-
-      // Also store in localStorage as backup for cross-tab paste
-      localStorage.setItem("copiedNodesData", serializedData);
 
       // Let UI know we have valid node data available for paste
       setClipboardData(serializedData);
@@ -179,15 +169,9 @@ export const useCopyPaste = () => {
         return;
       }
 
-      // 3. Fallback to localStorage if system clipboard matches nothing known
-      if (clipboardContent.type === "unknown") {
-        clipboardData = localStorage.getItem("copiedNodesData");
-      }
-
-      if (!clipboardData) {
-        log.debug("No valid data found in clipboard or localStorage");
-        return;
-      }
+      // No valid clipboard content found
+      log.debug("No valid data found in clipboard");
+      return;
     }
 
     let parsedData: unknown;
