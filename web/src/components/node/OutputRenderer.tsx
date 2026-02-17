@@ -30,7 +30,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "lodash/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
-import Model3DViewer from "../asset_viewer/Model3DViewer";
+import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import {
   typeFor,
   renderSVGDocument,
@@ -420,7 +420,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         return (
           <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
-            <Model3DViewer
+            <LazyModel3DViewer
               url={url}
               compact={true}
               onClick={handleModel3DClick(url, contentType)}

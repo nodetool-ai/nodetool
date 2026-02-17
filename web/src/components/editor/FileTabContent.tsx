@@ -8,8 +8,8 @@ import type { Asset } from "../../stores/ApiTypes";
 import ImageViewer from "../asset_viewer/ImageViewer";
 import AudioViewer from "../asset_viewer/AudioViewer";
 import VideoViewer from "../asset_viewer/VideoViewer";
-import PDFViewer from "../asset_viewer/PDFViewer";
-import Model3DViewer from "../asset_viewer/Model3DViewer";
+import LazyPDFViewer from "../asset_viewer/LazyPDFViewer";
+import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import axios from "axios";
 import log from "loglevel";
 
@@ -202,7 +202,7 @@ const FileTabContent: React.FC<FileTabContentProps> = ({ asset }) => {
     if (type === "application/pdf") {
       return (
         <div className="file-tab-viewer">
-          <PDFViewer asset={asset} />
+          <LazyPDFViewer asset={asset} />
         </div>
       );
     }
@@ -210,7 +210,7 @@ const FileTabContent: React.FC<FileTabContentProps> = ({ asset }) => {
     if (isModel3D(type, asset.get_url ?? undefined)) {
       return (
         <div className="file-tab-viewer">
-          <Model3DViewer asset={asset} />
+          <LazyModel3DViewer asset={asset} />
         </div>
       );
     }
