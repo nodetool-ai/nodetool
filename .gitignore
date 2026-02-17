@@ -13,6 +13,7 @@ __pycache__
 *.pt
 *.pth
 *.safetensors
+.claude/
 build/
 coverage/
 dist/
