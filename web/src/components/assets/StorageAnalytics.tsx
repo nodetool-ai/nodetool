@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { Typography, Box } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
@@ -117,4 +117,13 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
   );
 };
 
-export default StorageAnalytics;
+// Memoize component to prevent unnecessary re-renders when parent components update
+// StorageAnalytics performs calculations and should only re-render when assets or currentFolder changes
+const arePropsEqual = (prevProps: StorageAnalyticsProps, nextProps: StorageAnalyticsProps) => {
+  return (
+    prevProps.assets === nextProps.assets &&
+    prevProps.currentFolder === nextProps.currentFolder
+  );
+};
+
+export default memo(StorageAnalytics, arePropsEqual);
