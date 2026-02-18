@@ -141,4 +141,4 @@ const ContextMenuItem = memo(function ContextMenuItem({
   );
 });
 
-export default ContextMenuItem;
+export default memo(ContextMenuItem);

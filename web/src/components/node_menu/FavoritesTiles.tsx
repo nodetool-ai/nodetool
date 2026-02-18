@@ -378,4 +378,4 @@ const FavoritesTiles = memo(function FavoritesTiles() {
   );
 });
 
-export default FavoritesTiles;
+export default memo(FavoritesTiles);

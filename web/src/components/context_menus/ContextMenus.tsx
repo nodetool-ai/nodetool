@@ -28,4 +28,4 @@ const ContextMenus = memo(function ContextMenus() {
     );
 });
 
-export default ContextMenus;
+export default memo(ContextMenus);
