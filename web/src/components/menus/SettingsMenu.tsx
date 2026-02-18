@@ -16,7 +16,7 @@ import {
   DialogContent
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import Select from "@mui/material/Select";
+import Select, { SelectChangeEvent } from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -152,15 +152,15 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     setConnectionSnap(Number(e.target.value));
   }, [setConnectionSnap]);
 
-  const handlePanControlsChange = useCallback((e: any) => {
+  const handlePanControlsChange = useCallback((e: SelectChangeEvent<string>) => {
     setPanControls(e.target.value);
   }, [setPanControls]);
 
-  const handleSelectionModeChange = useCallback((e: any) => {
+  const handleSelectionModeChange = useCallback((e: SelectChangeEvent<string>) => {
     setSelectionMode(e.target.value);
   }, [setSelectionMode]);
 
-  const handleTimeFormatChange = useCallback((e: any) => {
+  const handleTimeFormatChange = useCallback((e: SelectChangeEvent<string>) => {
     setTimeFormat(e.target.value === "12h" ? "12h" : "24h");
   }, [setTimeFormat]);
   const addNotification = useNotificationStore(
