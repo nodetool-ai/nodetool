@@ -2,6 +2,8 @@
 import { css } from "@emotion/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useLogsStore from "../../stores/LogStore";
+import { shallow } from "zustand/shallow";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import { memo, useCallback, useMemo, useState } from "react";
 import isEqual from "lodash/isEqual";
 import { NodeData } from "../../stores/NodeData";
@@ -59,7 +61,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const updateNode = useNodes((state) => state.updateNode);
   const nodeWorkflowId = useNodes((state) => state.workflow?.id);
-  const logs = useLogsStore((state) => state.getLogs(workflowId || nodeWorkflowId || "", id));
+  // Use shallow equality to avoid re-rendering when logs for other nodes change
+  const targetWorkflowId = workflowId || nodeWorkflowId || "";
+  const logs = useStoreWithEqualityFn(
+    useLogsStore,
+    (state) =>
+      state.logs.filter(
+        (log) => log.workflowId === targetWorkflowId && log.nodeId === id
+      ),
+    shallow
+  );
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
 
   const logCount = logs?.length || 0;
