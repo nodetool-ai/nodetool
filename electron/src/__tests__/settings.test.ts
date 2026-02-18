@@ -3,6 +3,9 @@ import path from 'path';
 import os from 'os';
 import yaml from 'js-yaml';
 
+// Unmock settings to ensure we're testing the real module
+jest.unmock('../settings');
+
 let tempDir: string;
 const originalPlatform = process.platform;
 const originalHomedir = os.homedir;
