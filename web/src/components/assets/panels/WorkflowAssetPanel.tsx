@@ -1,16 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef, useEffect, useMemo } from "react";
-import { Box, Typography, CircularProgress, Alert } from "@mui/material";
+import { Box, Typography, CircularProgress, Alert, Divider } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { useWorkflowAssets } from "../../../serverState/useWorkflowAssets";
 import { Asset } from "../../../stores/ApiTypes";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
-import { useFileTabsStore } from "../../../stores/FileTabsStore";
+
 import AssetGridContent from "../AssetGridContent";
 import AssetViewer from "../AssetViewer";
 import AssetDeleteConfirmation from "../AssetDeleteConfirmation";
 import useResultsStore from "../../../stores/ResultsStore";
+import WorkflowAssetToolbar from "./WorkflowAssetToolbar";
+import { useSettingsStore } from "../../../stores/SettingsStore";
 
 /**
  * WorkflowAssetPanelContent displays assets scoped to the current workflow.
@@ -29,7 +31,6 @@ const WorkflowAssetPanel: React.FC = () => {
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
   const openAsset = useAssetGridStore((state) => state.openAsset);
   const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
-  const openFileTab = useFileTabsStore((state) => state.openFileTab);
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
 
   // Subscribe to results store to detect new results
@@ -41,7 +42,33 @@ const WorkflowAssetPanel: React.FC = () => {
     isLoading,
     error,
     refetch,
+    uploadAsset,
+    isUploading
   } = useWorkflowAssets(currentWorkflowId);
+
+  // Get sorting preference from settings
+  const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
+
+  // Sort assets based on the selected order
+  const sortedAssets = useMemo(() => {
+    if (!assets) {
+      return [];
+    }
+    return [...assets].sort((a, b) => {
+      if (assetsOrder === "name") {
+        return a.name.localeCompare(b.name);
+      } else if (assetsOrder === "date") {
+        const dateA = new Date(a.created_at || "").getTime();
+        const dateB = new Date(b.created_at || "").getTime();
+        return dateB - dateA; // Newest first
+      } else if (assetsOrder === "size") {
+        const sizeA = a.size || 0;
+        const sizeB = b.size || 0;
+        return sizeB - sizeA; // Largest first
+      }
+      return 0;
+    });
+  }, [assets, assetsOrder]);
 
   // Track results for the current workflow and refetch when they change
   const prevResultsRef = useRef<{ results: typeof results; outputResults: typeof outputResults } | null>(null);
@@ -91,13 +118,11 @@ const WorkflowAssetPanel: React.FC = () => {
 
   const handleDoubleClick = useCallback(
     (asset: Asset) => {
-      if (asset.content_type === "folder") {
-        setOpenAsset(asset);
-      } else {
-        openFileTab(asset);
-      }
+      // Double-click opens fullscreen viewer for all assets (including folders)
+      // Use context menu "Open as Tab" to open in a tab instead
+      setOpenAsset(asset);
     },
-    [setOpenAsset, openFileTab]
+    [setOpenAsset]
   );
 
   const handleCloseViewer = useCallback(() => {
@@ -191,15 +216,23 @@ const WorkflowAssetPanel: React.FC = () => {
         flexDirection: "column"
       }}
     >
-      <AssetGridContent
-        assets={assets}
-        onDoubleClick={handleDoubleClick}
+      <WorkflowAssetToolbar
+        assets={sortedAssets}
+        onUpload={uploadAsset}
+        _isUploading={isUploading}
       />
+      <Divider />
+      <Box sx={{ flex: 1, overflow: "hidden" }}>
+        <AssetGridContent
+          assets={sortedAssets}
+          onDoubleClick={handleDoubleClick}
+        />
+      </Box>
       {/* Asset Viewer for double-click */}
       {openAsset && (
         <AssetViewer
           asset={openAsset}
-          sortedAssets={assets}
+          sortedAssets={sortedAssets}
           open={!!openAsset}
           onClose={handleCloseViewer}
         />
