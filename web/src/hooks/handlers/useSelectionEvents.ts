@@ -9,10 +9,10 @@ import {
 
 interface UseSelectionEventsProps {
   reactFlowInstance: ReturnType<typeof useReactFlow>;
-  onSelectionStartBase: (event: any) => void;
-  onSelectionEndBase: (event: any) => void;
-  onSelectionDragStartBase: (event: any, nodes: any[]) => void;
-  onSelectionDragStopBase: (event: any, nodes: any[]) => void;
+  onSelectionStartBase: (event: ReactMouseEvent) => void;
+  onSelectionEndBase: (event: ReactMouseEvent) => void;
+  onSelectionDragStartBase: (event: ReactMouseEvent, nodes: any[]) => void;
+  onSelectionDragStopBase: (event: ReactMouseEvent, nodes: any[]) => void;
 }
 
 const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
@@ -181,14 +181,14 @@ export function useSelectionEvents({
   );
 
   const handleSelectionDragStart = useCallback(
-    (event: any, nodes: any[]) => {
+    (event: ReactMouseEvent, nodes: any[]) => {
       onSelectionDragStartBase(event, nodes);
     },
     [onSelectionDragStartBase]
   );
 
   const handleSelectionDragStop = useCallback(
-    (event: any, nodes: any[]) => {
+    (event: ReactMouseEvent, nodes: any[]) => {
       onSelectionDragStopBase(event, nodes);
     },
     [onSelectionDragStopBase]
