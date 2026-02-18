@@ -16,6 +16,7 @@ import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import BarChartIcon from "@mui/icons-material/BarChart";
+import CommentIcon from "@mui/icons-material/Comment";
 import SvgFileIcon from "../SvgFileIcon";
 
 interface VerticalToolbarProps {
@@ -29,7 +30,8 @@ interface VerticalToolbarProps {
     handleWorkflowAssetsToggle: () => void;
     handleAgentToggle: () => void;
     handleStatsToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent" | "stats";
+    handleCommentsToggle: () => void;
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent" | "stats" | "comments";
     panelVisible: boolean;
 }
 
@@ -44,6 +46,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handleWorkflowAssetsToggle,
     handleAgentToggle,
     handleStatsToggle,
+    handleCommentsToggle,
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
@@ -237,6 +240,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
                     }
                 >
                     <BarChartIcon />
+                </IconButton>
+            </Tooltip>
+
+            {/* Comments Button */}
+            <Tooltip
+                title={
+                    <div className="tooltip-span">
+                        <div className="tooltip-title">Comments</div>
+                        <div className="tooltip-key">
+                            <kbd>Shift</kbd>+<kbd>C</kbd>
+                        </div>
+                    </div>
+                }
+                placement="left-start"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+                <IconButton
+                    tabIndex={-1}
+                    onClick={handleCommentsToggle}
+                    className={
+                        activeView === "comments" && panelVisible
+                            ? "comments active"
+                            : "comments"
+                    }
+                >
+                    <CommentIcon />
                 </IconButton>
             </Tooltip>
 

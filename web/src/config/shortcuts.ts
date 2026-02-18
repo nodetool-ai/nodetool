@@ -537,6 +537,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show or hide Workflow Statistics panel",
     registerCombo: true
   },
+  {
+    title: "Comments",
+    slug: "toggleComments",
+    keyCombo: ["Shift", "C"],
+    category: "panel",
+    description: "Show or hide Comments panel",
+    registerCombo: true
+  },
   // K is conflicting with CommandMenu shortcut
   // {
   //   title: "Keyboard Shortcuts",

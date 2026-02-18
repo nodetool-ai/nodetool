@@ -113,6 +113,7 @@ import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 import JobsPanel from "./jobs/JobsPanel";
 import VerticalToolbar from "./VerticalToolbar";
 import WorkflowStats from "./WorkflowStats";
+import { CommentPanel } from "../comments";
 
 /* ------------------------------------------------------------------ */
 /*  ChatAgentTabbedPanel – tab pills for "Workflow Chat" and "Agent"   */
@@ -536,6 +537,17 @@ const PanelRight: React.FC = () => {
                       <WorkflowStats />
                     </NodeContext.Provider>
                   )
+                ) : activeView === "comments" ? (
+                  <Box
+                    className="comments-panel"
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      overflow: "hidden"
+                    }}
+                  >
+                    <CommentPanel />
+                  </Box>
                 ) : (
                   activeNodeStore && (
                     <NodeContext.Provider value={activeNodeStore}>
@@ -562,6 +574,7 @@ const PanelRight: React.FC = () => {
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
         handleAgentToggle={() => handlePanelToggle("agent")}
         handleStatsToggle={() => handlePanelToggle("stats")}
+        handleCommentsToggle={() => handlePanelToggle("comments")}
         activeView={activeView}
         panelVisible={isVisible}
       />
