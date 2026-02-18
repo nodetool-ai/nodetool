@@ -37,6 +37,443 @@ import {
   useLanguageModelMenuStore
 } from "../../stores/ModelMenuStore";
 import { useSecrets } from "../../hooks/useSecrets";
+import { useIsDarkMode } from "../../hooks/useIsDarkMode";
+
+// Import provider icons from @lobehub/icons-static-svg
+import openaiIcon from "@lobehub/icons-static-svg/icons/openai.svg";
+import anthropicIcon from "@lobehub/icons-static-svg/icons/anthropic.svg";
+import claudeColorIcon from "@lobehub/icons-static-svg/icons/claude-color.svg";
+import geminiColorIcon from "@lobehub/icons-static-svg/icons/gemini-color.svg";
+import googlecloudColorIcon from "@lobehub/icons-static-svg/icons/googlecloud-color.svg";
+import vertexaiColorIcon from "@lobehub/icons-static-svg/icons/vertexai-color.svg";
+import huggingfaceColorIcon from "@lobehub/icons-static-svg/icons/huggingface-color.svg";
+import ollamaIcon from "@lobehub/icons-static-svg/icons/ollama.svg";
+import lmstudioIcon from "@lobehub/icons-static-svg/icons/lmstudio.svg";
+import azureColorIcon from "@lobehub/icons-static-svg/icons/azure-color.svg";
+import azureaiColorIcon from "@lobehub/icons-static-svg/icons/azureai-color.svg";
+import awsColorIcon from "@lobehub/icons-static-svg/icons/aws-color.svg";
+import bedrockColorIcon from "@lobehub/icons-static-svg/icons/bedrock-color.svg";
+import replicateIcon from "@lobehub/icons-static-svg/icons/replicate.svg";
+import falColorIcon from "@lobehub/icons-static-svg/icons/fal-color.svg";
+import deepseekColorIcon from "@lobehub/icons-static-svg/icons/deepseek-color.svg";
+import groqIcon from "@lobehub/icons-static-svg/icons/groq.svg";
+import mistralColorIcon from "@lobehub/icons-static-svg/icons/mistral-color.svg";
+import togetherColorIcon from "@lobehub/icons-static-svg/icons/together-color.svg";
+import perplexityColorIcon from "@lobehub/icons-static-svg/icons/perplexity-color.svg";
+import ai21Icon from "@lobehub/icons-static-svg/icons/ai21.svg";
+import cloudflareColorIcon from "@lobehub/icons-static-svg/icons/cloudflare-color.svg";
+import workersaiColorIcon from "@lobehub/icons-static-svg/icons/workersai-color.svg";
+import fireworksColorIcon from "@lobehub/icons-static-svg/icons/fireworks-color.svg";
+import stabilityColorIcon from "@lobehub/icons-static-svg/icons/stability-color.svg";
+import cerebrasColorIcon from "@lobehub/icons-static-svg/icons/cerebras-color.svg";
+import moonshotIcon from "@lobehub/icons-static-svg/icons/moonshot.svg";
+import novitaColorIcon from "@lobehub/icons-static-svg/icons/novita-color.svg";
+import sambanovaColorIcon from "@lobehub/icons-static-svg/icons/sambanova-color.svg";
+import siliconcloudColorIcon from "@lobehub/icons-static-svg/icons/siliconcloud-color.svg";
+import xinferenceColorIcon from "@lobehub/icons-static-svg/icons/xinference-color.svg";
+import dalleColorIcon from "@lobehub/icons-static-svg/icons/dalle-color.svg";
+import bflIcon from "@lobehub/icons-static-svg/icons/bfl.svg";
+import fluxIcon from "@lobehub/icons-static-svg/icons/flux.svg";
+import lumaColorIcon from "@lobehub/icons-static-svg/icons/luma-color.svg";
+import recraftIcon from "@lobehub/icons-static-svg/icons/recraft.svg";
+import ideogramIcon from "@lobehub/icons-static-svg/icons/ideogram.svg";
+import tripoColorIcon from "@lobehub/icons-static-svg/icons/tripo-color.svg";
+import haiperIcon from "@lobehub/icons-static-svg/icons/haiper.svg";
+import klingColorIcon from "@lobehub/icons-static-svg/icons/kling-color.svg";
+import hunyuanColorIcon from "@lobehub/icons-static-svg/icons/hunyuan-color.svg";
+import pikaIcon from "@lobehub/icons-static-svg/icons/pika.svg";
+import runwayIcon from "@lobehub/icons-static-svg/icons/runway.svg";
+import viduColorIcon from "@lobehub/icons-static-svg/icons/vidu-color.svg";
+import viggleIcon from "@lobehub/icons-static-svg/icons/viggle.svg";
+import hailuoColorIcon from "@lobehub/icons-static-svg/icons/hailuo-color.svg";
+import kolorsColorIcon from "@lobehub/icons-static-svg/icons/kolors-color.svg";
+import kreaIcon from "@lobehub/icons-static-svg/icons/krea.svg";
+import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
+import deepmindColorIcon from "@lobehub/icons-static-svg/icons/deepmind-color.svg";
+import xaiIcon from "@lobehub/icons-static-svg/icons/xai.svg";
+import grokIcon from "@lobehub/icons-static-svg/icons/grok.svg";
+import metaColorIcon from "@lobehub/icons-static-svg/icons/meta-color.svg";
+import metaaiColorIcon from "@lobehub/icons-static-svg/icons/metaai-color.svg";
+import llamaindexColorIcon from "@lobehub/icons-static-svg/icons/llamaindex-color.svg";
+import langchainColorIcon from "@lobehub/icons-static-svg/icons/langchain-color.svg";
+import langfuseColorIcon from "@lobehub/icons-static-svg/icons/langfuse-color.svg";
+import langsmithColorIcon from "@lobehub/icons-static-svg/icons/langsmith-color.svg";
+import langgraphColorIcon from "@lobehub/icons-static-svg/icons/langgraph-color.svg";
+import nvidiaColorIcon from "@lobehub/icons-static-svg/icons/nvidia-color.svg";
+import hyperbolicColorIcon from "@lobehub/icons-static-svg/icons/hyperbolic-color.svg";
+import deepinfraColorIcon from "@lobehub/icons-static-svg/icons/deepinfra-color.svg";
+import basetenIcon from "@lobehub/icons-static-svg/icons/baseten.svg";
+import friendliIcon from "@lobehub/icons-static-svg/icons/friendli.svg";
+import exaColorIcon from "@lobehub/icons-static-svg/icons/exa-color.svg";
+import jinaIcon from "@lobehub/icons-static-svg/icons/jina.svg";
+import upstageColorIcon from "@lobehub/icons-static-svg/icons/upstage-color.svg";
+import cohereColorIcon from "@lobehub/icons-static-svg/icons/cohere-color.svg";
+import commandaColorIcon from "@lobehub/icons-static-svg/icons/commanda-color.svg";
+import ayaColorIcon from "@lobehub/icons-static-svg/icons/aya-color.svg";
+import palmColorIcon from "@lobehub/icons-static-svg/icons/palm-color.svg";
+import copilotColorIcon from "@lobehub/icons-static-svg/icons/copilot-color.svg";
+import githubcopilotIcon from "@lobehub/icons-static-svg/icons/githubcopilot.svg";
+import githubIcon from "@lobehub/icons-static-svg/icons/github.svg";
+import vercelIcon from "@lobehub/icons-static-svg/icons/vercel.svg";
+import openrouterIcon from "@lobehub/icons-static-svg/icons/openrouter.svg";
+import lobehubColorIcon from "@lobehub/icons-static-svg/icons/lobehub-color.svg";
+import automaticColorIcon from "@lobehub/icons-static-svg/icons/automatic-color.svg";
+import comfyuiColorIcon from "@lobehub/icons-static-svg/icons/comfyui-color.svg";
+import glifIcon from "@lobehub/icons-static-svg/icons/glif.svg";
+import pollinationsIcon from "@lobehub/icons-static-svg/icons/pollinations.svg";
+import ppioColorIcon from "@lobehub/icons-static-svg/icons/ppio-color.svg";
+import inferenceIcon from "@lobehub/icons-static-svg/icons/inference.svg";
+import featherlessColorIcon from "@lobehub/icons-static-svg/icons/featherless-color.svg";
+import voyageColorIcon from "@lobehub/icons-static-svg/icons/voyage-color.svg";
+import zaiIcon from "@lobehub/icons-static-svg/icons/zai.svg";
+
+// Chinese providers
+import alibabacloudColorIcon from "@lobehub/icons-static-svg/icons/alibabacloud-color.svg";
+import bailianColorIcon from "@lobehub/icons-static-svg/icons/bailian-color.svg";
+import qwenColorIcon from "@lobehub/icons-static-svg/icons/qwen-color.svg";
+import zhipuColorIcon from "@lobehub/icons-static-svg/icons/zhipu-color.svg";
+import chatglmColorIcon from "@lobehub/icons-static-svg/icons/chatglm-color.svg";
+import wenxinColorIcon from "@lobehub/icons-static-svg/icons/wenxin-color.svg";
+import baiduColorIcon from "@lobehub/icons-static-svg/icons/baidu-color.svg";
+import bytedanceColorIcon from "@lobehub/icons-static-svg/icons/bytedance-color.svg";
+import doubaoColorIcon from "@lobehub/icons-static-svg/icons/doubao-color.svg";
+import yiColorIcon from "@lobehub/icons-static-svg/icons/yi-color.svg";
+import stepfunColorIcon from "@lobehub/icons-static-svg/icons/stepfun-color.svg";
+import sensenovaColorIcon from "@lobehub/icons-static-svg/icons/sensenova-color.svg";
+import minimaxColorIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg";
+import sparkColorIcon from "@lobehub/icons-static-svg/icons/spark-color.svg";
+import iflytekcloudColorIcon from "@lobehub/icons-static-svg/icons/iflytekcloud-color.svg";
+import internlmColorIcon from "@lobehub/icons-static-svg/icons/internlm-color.svg";
+import skyworkColorIcon from "@lobehub/icons-static-svg/icons/skywork-color.svg";
+import tencentColorIcon from "@lobehub/icons-static-svg/icons/tencent-color.svg";
+import tencentcloudColorIcon from "@lobehub/icons-static-svg/icons/tencentcloud-color.svg";
+import yuanbaoColorIcon from "@lobehub/icons-static-svg/icons/yuanbao-color.svg";
+
+// Provider to SVG icon mapping
+const providerIconMap: Record<string, string> = {
+  // OpenAI / GPT
+  openai: openaiIcon,
+  "openai-chat": openaiIcon,
+  chatgpt: openaiIcon,
+  
+  // Anthropic / Claude
+  anthropic: anthropicIcon,
+  claude: claudeColorIcon,
+  
+  // Google / Gemini
+  google: geminiColorIcon,
+  gemini: geminiColorIcon,
+  "google-ai": geminiColorIcon,
+  "google-cloud": googlecloudColorIcon,
+  vertexai: vertexaiColorIcon,
+  
+  // HuggingFace
+  huggingface: huggingfaceColorIcon,
+  "huggingface-local": huggingfaceColorIcon,
+  "huggingface-inference": huggingfaceColorIcon,
+  "hf_inference": huggingfaceColorIcon,
+  
+  // Local providers
+  ollama: ollamaIcon,
+  "llama.cpp": ollamaIcon,
+  llamacpp: ollamaIcon,
+  "llama-cpp": ollamaIcon,
+  mlx: lmstudioIcon,
+  lmstudio: lmstudioIcon,
+  "lm-studio": lmstudioIcon,
+  
+  // Cloud AI Providers
+  azure: azureColorIcon,
+  azureai: azureaiColorIcon,
+  aws: awsColorIcon,
+  bedrock: bedrockColorIcon,
+  replicate: replicateIcon,
+  fal: falColorIcon,
+  "fal-ai": falColorIcon,
+  falai: falColorIcon,
+  
+  // Model providers
+  deepseek: deepseekColorIcon,
+  groq: groqIcon,
+  mistral: mistralColorIcon,
+  together: togetherColorIcon,
+  "together-ai": togetherColorIcon,
+  togetherai: togetherColorIcon,
+  perplexity: perplexityColorIcon,
+  ai21: ai21Icon,
+  cloudflare: cloudflareColorIcon,
+  "workers-ai": workersaiColorIcon,
+  workersai: workersaiColorIcon,
+  fireworks: fireworksColorIcon,
+  "fireworks-ai": fireworksColorIcon,
+  stability: stabilityColorIcon,
+  "stable-diffusion": stabilityColorIcon,
+  cerebras: cerebrasColorIcon,
+  moonshot: moonshotIcon,
+  novita: novitaColorIcon,
+  sambanova: sambanovaColorIcon,
+  siliconcloud: siliconcloudColorIcon,
+  xinference: xinferenceColorIcon,
+  
+  // Image generation
+  dalle: dalleColorIcon,
+  "dall-e": dalleColorIcon,
+  bfl: bflIcon,
+  "black-forest-labs": bflIcon,
+  blackforestlabs: bflIcon,
+  flux: fluxIcon,
+  luma: lumaColorIcon,
+  "luma-ai": lumaColorIcon,
+  recraft: recraftIcon,
+  ideogram: ideogramIcon,
+  tripo: tripoColorIcon,
+  haiper: haiperIcon,
+  kling: klingColorIcon,
+  hunyuan: hunyuanColorIcon,
+  pika: pikaIcon,
+  runway: runwayIcon,
+  vidu: viduColorIcon,
+  viggle: viggleIcon,
+  hailuo: hailuoColorIcon,
+  kolors: kolorsColorIcon,
+  krea: kreaIcon,
+  
+  // Audio
+  elevenlabs: elevenlabsIcon,
+  "eleven-labs": elevenlabsIcon,
+  
+  // Research labs
+  deepmind: deepmindColorIcon,
+  xai: xaiIcon,
+  x: xaiIcon,
+  grok: grokIcon,
+  meta: metaColorIcon,
+  metaai: metaaiColorIcon,
+  
+  // Frameworks
+  llamaindex: llamaindexColorIcon,
+  langchain: langchainColorIcon,
+  langfuse: langfuseColorIcon,
+  langsmith: langsmithColorIcon,
+  langgraph: langgraphColorIcon,
+  
+  // Chinese providers
+  alibaba: alibabacloudColorIcon,
+  "alibaba-cloud": alibabacloudColorIcon,
+  bailian: bailianColorIcon,
+  qwen: qwenColorIcon,
+  zhipu: zhipuColorIcon,
+  chatglm: chatglmColorIcon,
+  wenxin: wenxinColorIcon,
+  baidu: baiduColorIcon,
+  bytedance: bytedanceColorIcon,
+  doubao: doubaoColorIcon,
+  yi: yiColorIcon,
+  stepfun: stepfunColorIcon,
+  sensenova: sensenovaColorIcon,
+  minimax: minimaxColorIcon,
+  spark: sparkColorIcon,
+  iflytek: iflytekcloudColorIcon,
+  internlm: internlmColorIcon,
+  skywork: skyworkColorIcon,
+  tencent: tencentColorIcon,
+  tencentcloud: tencentcloudColorIcon,
+  yuanbao: yuanbaoColorIcon,
+  
+  // GPUs / Infrastructure
+  nvidia: nvidiaColorIcon,
+  hyperbolic: hyperbolicColorIcon,
+  deepinfra: deepinfraColorIcon,
+  baseten: basetenIcon,
+  friendli: friendliIcon,
+  
+  // Search / Tools
+  exa: exaColorIcon,
+  jina: jinaIcon,
+  upstage: upstageColorIcon,
+  cohere: cohereColorIcon,
+  commanda: commandaColorIcon,
+  aya: ayaColorIcon,
+  palm: palmColorIcon,
+  
+  // Microsoft
+  copilot: copilotColorIcon,
+  "github-copilot": githubcopilotIcon,
+  github: githubIcon,
+  microsoft: copilotColorIcon,
+  
+  // Deployment
+  vercel: vercelIcon,
+  openrouter: openrouterIcon,
+  lobehub: lobehubColorIcon,
+  
+  // Workflow / UI
+  automatic: automaticColorIcon,
+  "automatic1111": automaticColorIcon,
+  "stable-diffusion-webui": automaticColorIcon,
+  comfyui: comfyuiColorIcon,
+  glif: glifIcon,
+  pollinations: pollinationsIcon,
+  ppio: ppioColorIcon,
+  inference: inferenceIcon,
+  featherless: featherlessColorIcon,
+  voyage: voyageColorIcon,
+};
+
+// Get icon URL for a provider
+const getProviderIconUrl = (provider: string): string | null => {
+  if (!provider) return null;
+  
+  // Direct match
+  const normalized = provider.toLowerCase().trim();
+  if (providerIconMap[normalized]) {
+    return providerIconMap[normalized];
+  }
+  
+  // Check for HuggingFace sub-providers - use the actual provider's logo
+  if (isHuggingFaceProvider(provider)) {
+    // Extract the sub-provider name (e.g., "huggingface_fireworks" -> "fireworks")
+    const subProviderMatch = normalized.match(/^huggingface[_\-/]?(.*)$/);
+    if (subProviderMatch && subProviderMatch[1]) {
+      const subProvider = subProviderMatch[1].toLowerCase();
+      
+      // Map of sub-provider names to their icons
+      const subProviderIcons: Record<string, string> = {
+        // Cloud providers
+        fireworks: fireworksColorIcon,
+        "fireworks-ai": fireworksColorIcon,
+        "fireworks_ai": fireworksColorIcon,
+        featherless: featherlessColorIcon,
+        "featherless-ai": featherlessColorIcon,
+        "featherless_ai": featherlessColorIcon,
+        zai: zaiIcon,
+        // No icons available yet - will fall back to HuggingFace
+        // nscale: nscaleIcon,
+        // scaleway: scalewayIcon,
+        replicate: replicateIcon,
+        fal: falColorIcon,
+        "fal-ai": falColorIcon,
+        together: togetherColorIcon,
+        "together-ai": togetherColorIcon,
+        groq: groqIcon,
+        cerebras: cerebrasColorIcon,
+        sambanova: sambanovaColorIcon,
+        novita: novitaColorIcon,
+        hyperbolic: hyperbolicColorIcon,
+        deepinfra: deepinfraColorIcon,
+        baseten: basetenIcon,
+        friendli: friendliIcon,
+        cloudflare: cloudflareColorIcon,
+        workersai: workersaiColorIcon,
+        "workers-ai": workersaiColorIcon,
+        siliconcloud: siliconcloudColorIcon,
+        // AI21
+        ai21: ai21Icon,
+        // Frameworks
+        langchain: langchainColorIcon,
+        llamaindex: llamaindexColorIcon,
+        // Chinese providers
+        alibaba: alibabacloudColorIcon,
+        alibabacloud: alibabacloudColorIcon,
+        bailian: bailianColorIcon,
+        qwen: qwenColorIcon,
+        zhipu: zhipuColorIcon,
+        chatglm: chatglmColorIcon,
+        baidu: baiduColorIcon,
+        bytedance: bytedanceColorIcon,
+        doubao: doubaoColorIcon,
+        stepfun: stepfunColorIcon,
+        sensenova: sensenovaColorIcon,
+        minimax: minimaxColorIcon,
+        tencent: tencentColorIcon,
+        hunyuan: hunyuanColorIcon,
+        // Other providers
+        openai: openaiIcon,
+        anthropic: anthropicIcon,
+        claude: claudeColorIcon,
+        gemini: geminiColorIcon,
+        google: geminiColorIcon,
+        azure: azureColorIcon,
+        azureai: azureaiColorIcon,
+        aws: awsColorIcon,
+        bedrock: bedrockColorIcon,
+        meta: metaColorIcon,
+        metaai: metaaiColorIcon,
+        mistral: mistralColorIcon,
+        cohere: cohereColorIcon,
+        perplexity: perplexityColorIcon,
+        // Image generation
+        stability: stabilityColorIcon,
+        "stable-diffusion": stabilityColorIcon,
+        flux: fluxIcon,
+        luma: lumaColorIcon,
+        ideogram: ideogramIcon,
+        runway: runwayIcon,
+        recraft: recraftIcon,
+        elevenlabs: elevenlabsIcon,
+      };
+      
+      if (subProviderIcons[subProvider]) {
+        return subProviderIcons[subProvider];
+      }
+    }
+    
+    // No matching sub-provider found - use HF logo
+    return huggingfaceColorIcon;
+  }
+  
+  // Try to match partial names
+  const partialMatches: Record<string, string> = {
+    openai: openaiIcon,
+    anthropic: anthropicIcon,
+    claude: claudeColorIcon,
+    gemini: geminiColorIcon,
+    google: geminiColorIcon,
+    huggingface: huggingfaceColorIcon,
+    ollama: ollamaIcon,
+    llama: ollamaIcon,
+    mistral: mistralColorIcon,
+    groq: groqIcon,
+    together: togetherColorIcon,
+    deepseek: deepseekColorIcon,
+    replicate: replicateIcon,
+    fal: falColorIcon,
+    elevenlabs: elevenlabsIcon,
+    stability: stabilityColorIcon,
+    luma: lumaColorIcon,
+    flux: fluxIcon,
+    bfl: bflIcon,
+    ideogram: ideogramIcon,
+    runway: runwayIcon,
+    pika: pikaIcon,
+    kling: klingColorIcon,
+    hunyuan: hunyuanColorIcon,
+    qwen: qwenColorIcon,
+    baidu: baiduColorIcon,
+    stepfun: stepfunColorIcon,
+    cohere: cohereColorIcon,
+    azure: azureColorIcon,
+    aws: awsColorIcon,
+    bedrock: bedrockColorIcon,
+    vertex: vertexaiColorIcon,
+    cerebras: cerebrasColorIcon,
+    fireworks: fireworksColorIcon,
+    cloudflare: cloudflareColorIcon,
+    moonshot: moonshotIcon,
+    perplexity: perplexityColorIcon,
+    ai21: ai21Icon,
+    meta: metaColorIcon,
+    nvidia: nvidiaColorIcon,
+  };
+  
+  for (const [key, value] of Object.entries(partialMatches)) {
+    if (normalized.includes(key)) {
+      return value;
+    }
+  }
+  
+  return null;
+};
 
 const listStyles = css({
   overflowY: "auto",
@@ -74,6 +511,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
   );
   const { isApiKeySet } = useSecrets();
   const setMenuOpen = useSettingsStore((s) => s.setMenuOpen);
+  const isDarkMode = useIsDarkMode();
 
   // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
   const sortedProviders = React.useMemo(() => {
@@ -291,15 +729,69 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       fontWeight: 700,
                       fontSize: '0.75rem',
                       color: (selected === p) ? 'primary.contrastText' : (isProviderEnabled(p) ? 'text.primary' : 'text.disabled'),
+                      overflow: 'hidden',
                     }}>
-                      {formatGenericProviderName(p).substring(0, 2).toUpperCase()}
+                      {(() => {
+                        const iconUrl = getProviderIconUrl(p);
+                        if (iconUrl) {
+                          // Check if using HuggingFace logo (either base HF or unknown sub-provider)
+                          // In this case, don't invert in dark mode since HF logo has good contrast
+                          const isHFLogo = iconUrl === huggingfaceColorIcon;
+                          return (
+                            <img 
+                              src={iconUrl} 
+                              alt="" 
+                              style={{ 
+                                width: 20, 
+                                height: 20, 
+                                objectFit: 'contain',
+                                filter: selected === p ? 'brightness(0) invert(1)' : 
+                                  (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
+                              }} 
+                            />
+                          );
+                        }
+                        return formatGenericProviderName(p).substring(0, 2).toUpperCase();
+                      })()}
                     </Box>
                   </Tooltip>
                 ) : (
                   <>
                     <ListItemText
                       primary={
-                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          {(() => {
+                            const iconUrl = getProviderIconUrl(p);
+                            // Check if using HuggingFace logo (either base HF or unknown sub-provider)
+                            // In this case, don't invert in dark mode since HF logo has good contrast
+                            const isHFLogo = iconUrl === huggingfaceColorIcon;
+                            if (iconUrl) {
+                              return (
+                                <Box sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: '4px',
+                                  bgcolor: isDarkMode && !isHFLogo ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                                  opacity: available ? 1 : 0.5,
+                                }}>
+                                  <img 
+                                    src={iconUrl} 
+                                    alt="" 
+                                    style={{ 
+                                      width: 18, 
+                                      height: 18, 
+                                      objectFit: 'contain',
+                                      filter: (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
+                                    }} 
+                                  />
+                                </Box>
+                              );
+                            }
+                            return null;
+                          })()}
                           <span>
                             {isHuggingFaceProvider(p)
                               ? getProviderBaseName(p)
