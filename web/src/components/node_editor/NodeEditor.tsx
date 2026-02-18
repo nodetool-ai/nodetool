@@ -40,6 +40,7 @@ import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
+import ViewportBookmarkPanel from "./ViewportBookmarkPanel";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
@@ -177,6 +178,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <ViewportBookmarkPanel workflowId={workflowId} />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {

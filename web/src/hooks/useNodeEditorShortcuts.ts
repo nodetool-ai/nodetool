@@ -27,6 +27,7 @@ import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
+import { useViewportBookmarkStore } from "../stores/ViewportBookmarkStore";
 import type { MenuEventData } from "../window";
 
 /**
@@ -123,6 +124,7 @@ export const useNodeEditorShortcuts = (
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
+const addViewportBookmark = useViewportBookmarkStore((state) => state.addBookmark);
   const nodeFocus = useNodeFocus();
   // All hooks above this line
 
@@ -318,6 +320,21 @@ export const useNodeEditorShortcuts = (
       onShowShortcuts();
     }
   }, [onShowShortcuts]);
+
+  const handleAddViewportBookmark = useCallback(() => {
+    const workflow = getCurrentWorkflow();
+    if (!workflow) {
+      return;
+    }
+    const viewport = reactFlow.getViewport();
+    const timestamp = new Date().toLocaleTimeString();
+    const defaultName = `Bookmark ${timestamp}`;
+    addViewportBookmark(workflow.id, defaultName, viewport.x, viewport.y, viewport.zoom);
+    addNotification({
+      content: "Viewport bookmark added",
+      type: "success"
+    });
+  }, [getCurrentWorkflow, reactFlow, addViewportBookmark, addNotification]);
 
   const handleMenuEvent = useCallback(
     (data: MenuEventData) => {
@@ -525,6 +542,7 @@ export const useNodeEditorShortcuts = (
         active: selectedNodeCount > 0
       },
       findInWorkflow: { callback: openFind },
+      addViewportBookmark: { callback: handleAddViewportBookmark },
       selectConnectedAll: {
         callback: handleSelectConnectedAll,
         active: selectedNodeCount > 0
@@ -618,6 +636,7 @@ export const useNodeEditorShortcuts = (
     handleInspectorToggle,
     handleWorkflowSettingsToggle,
     handleShowKeyboardShortcuts,
+    handleAddViewportBookmark,
     handleSave,
     handleSaveExample,
     handleNewWorkflow,
