@@ -58,38 +58,11 @@ interface ProcessedEdgesResult {
  * - O(1) data type lookups using Map structures
  * - Result caching during selection rectangle drag
  * - Lazy evaluation with useMemo to avoid unnecessary recalculations
+ * - **Two-stage memoization**: Separates heavy structural analysis (types/colors)
+ *   from frequent status/selection updates.
  * 
  * @param options - Configuration for edge processing
  * @returns Processed edges with computed styles and metadata
- * 
- * @example
- * ```typescript
- * const { processedEdges, activeGradientKeys } = useProcessedEdges({
- *   edges,
- *   nodes,
- *   dataTypes,
- *   getMetadata: (type) => metadataByType[type],
- *   workflowId: currentWorkflow?.id,
- *   edgeStatuses: statusStore.edgeStatuses
- * });
- * 
- * // Render edges with processed styles
- * processedEdges.map(edge => <Edge key={edge.id} {...edge} />);
- * ```
- * 
- * @example
- * **Type Resolution Example**:
- * ```
- * Source (Text) --[string]--> Reroute --[string]--> Target (LLM)
- * ```
- * The edge type is resolved by tracing through the Reroute node to find
- * the original Text output type.
- * 
- * @example
- * **Gradient Generation**:
- * - Matching types (Text → Text): Solid color stroke
- * - Different types (Image → Audio): Gradient stroke between colors
- * - Gradients defined in SVG as `url(#gradient-{source}-{target})`
  */
 export function useProcessedEdges({
   edges,
@@ -101,9 +74,11 @@ export function useProcessedEdges({
   nodeStatuses,
   isSelecting
 }: ProcessedEdgesOptions): ProcessedEdgesResult {
-  // Keep latest nodes without making them a hard dependency of the memo
+  // Keep latest nodes/edges without making them a hard dependency of the memo
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
 
   // Cache last result so we can reuse it during drag
   const lastResultRef = useRef<ProcessedEdgesResult>({
@@ -111,9 +86,9 @@ export function useProcessedEdges({
     activeGradientKeys: new Set()
   });
 
-  // Structural key: only things that affect edge typing / gradients
-  const [_nodesStructureKey] = useMemo(() => {
-    if (isSelecting) {return "";} // we’ll reuse cache while dragging
+  // Structural key for nodes: only things that affect edge typing / gradients
+  const _nodesStructureKey = useMemo(() => {
+    if (isSelecting) { return ""; } // we’ll reuse cache while dragging
     return nodes
       .map((n) => {
         const dynamicOutputs = n.data.dynamic_outputs
@@ -127,23 +102,51 @@ export function useProcessedEdges({
       .join("|");
   }, [nodes, isSelecting]);
 
-  return useMemo(() => {
-    // While dragging the rectangle, just reuse the last processed edges
-    if (isSelecting && lastResultRef.current.processedEdges.length > 0) {
-      return lastResultRef.current;
+  // Structural key for edges: topology and type
+  const _edgesStructureKey = useMemo(() => {
+    if (isSelecting) { return ""; }
+    return edges.map(e => `${e.id}:${e.source}:${e.target}:${e.sourceHandle}:${e.targetHandle}:${e.type}`).join('|');
+  }, [edges, isSelecting]);
+
+  // STAGE 1: Structural Processing (Heavy)
+  // Computes types, colors, and gradients based on graph topology.
+  // Ignores selection state and execution status.
+  const { structuralInfo, activeGradientKeys } = useMemo(() => {
+    // If selecting, we rely on cache, so we can return empty here (it won't be used)
+    if (isSelecting) {
+      return {
+        structuralInfo: new Map<string, {
+          sourceHandle?: string | null;
+          targetHandle?: string | null;
+          className: string;
+          style: React.CSSProperties;
+          dataTypeLabel: string;
+          type?: string;
+        }>(),
+        activeGradientKeys: new Set<string>()
+      };
     }
 
     const currentNodes = nodesRef.current;
+    const currentEdges = edgesRef.current;
     const nodeMap = new Map(currentNodes.map((node) => [node.id, node]));
     const getNode = (id: string) => nodeMap.get(id);
 
     const activeGradientKeys = new Set<string>();
+    const info = new Map<string, {
+      sourceHandle?: string | null;
+      targetHandle?: string | null;
+      className: string;
+      style: React.CSSProperties;
+      dataTypeLabel: string;
+      type?: string;
+    }>();
 
     const REROUTE_TYPE = "nodetool.control.Reroute";
     const REROUTE_INPUT = "input_value";
     const REROUTE_OUTPUT = "output";
 
-    // Optimization: Build maps for O(1) dataType lookups instead of repeated find() calls
+    // Optimization: Build maps for O(1) dataType lookups
     const dataTypeBySlug = new Map(dataTypes.map((dt) => [dt.slug, dt]));
     const dataTypeByValue = new Map(dataTypes.map((dt) => [dt.value, dt]));
     const dataTypeByName = new Map(dataTypes.map((dt) => [dt.name, dt]));
@@ -162,9 +165,9 @@ export function useProcessedEdges({
           label: anyType?.label || "Any"
         };
       }
-      const t = dataTypeByValue.get(typeString) || 
-                dataTypeByName.get(typeString) || 
-                dataTypeBySlug.get(typeString);
+      const t = dataTypeByValue.get(typeString) ||
+        dataTypeByName.get(typeString) ||
+        dataTypeBySlug.get(typeString);
       return {
         slug: t?.slug || "any",
         color: t?.color || defaultColor,
@@ -185,14 +188,14 @@ export function useProcessedEdges({
         currentNode.type === REROUTE_TYPE &&
         currentHandle === REROUTE_OUTPUT
       ) {
-        if (visited.has(currentNode.id)) {break;}
+        if (visited.has(currentNode.id)) { break; }
         visited.add(currentNode.id);
 
-        const incoming = edges.find(
+        const incoming = currentEdges.find(
           (e) =>
             e.target === currentNode!.id && e.targetHandle === REROUTE_INPUT
         );
-        if (!incoming) {break;}
+        if (!incoming) { break; }
         currentNode = getNode(incoming.source);
         currentHandle = incoming.sourceHandle || "";
       }
@@ -213,14 +216,16 @@ export function useProcessedEdges({
       return typeInfoFromTypeString("any");
     }
 
-    const processedResultEdges = edges.map((edge) => {
+    currentEdges.forEach((edge) => {
       // Control edges are rendered by the ControlEdge component - preserve type and skip processing
       if (edge.type === "control" || edge.data?.edge_type === "control") {
-        return {
-          ...edge,
-          type: "control",
-          className: [edge.className, "control-edge"].filter(Boolean).join(" ")
-        };
+        info.set(edge.id, {
+          className: "control-edge",
+          style: {},
+          dataTypeLabel: "Control",
+          type: "control"
+        });
+        return;
       }
 
       const sourceNode = getNode(edge.source);
@@ -288,9 +293,9 @@ export function useProcessedEdges({
             if (inputHandle?.type?.type) {
               const typeString = inputHandle.type.type;
               // Optimization: Use map lookup instead of find
-              const t = dataTypeByValue.get(typeString) || 
-                        dataTypeByName.get(typeString) || 
-                        dataTypeBySlug.get(typeString);
+              const t = dataTypeByValue.get(typeString) ||
+                dataTypeByName.get(typeString) ||
+                dataTypeBySlug.get(typeString);
               if (t) {
                 targetTypeSlug = t.slug;
               }
@@ -309,7 +314,7 @@ export function useProcessedEdges({
       }
 
       const classes: string[] = [];
-      if (sourceTypeSlug) {classes.push(sourceTypeSlug);}
+      if (sourceTypeSlug) { classes.push(sourceTypeSlug); }
       if (targetTypeSlug && targetTypeSlug !== sourceTypeSlug) {
         classes.push(targetTypeSlug);
       }
@@ -329,6 +334,34 @@ export function useProcessedEdges({
         }
       }
 
+      info.set(edge.id, {
+        sourceHandle: normalizedSourceHandle,
+        targetHandle: normalizedTargetHandle,
+        className: classes.join(" "),
+        style: {
+          stroke: strokeStyle,
+          strokeWidth: 2
+        },
+        dataTypeLabel: sourceTypeLabel
+      });
+    });
+
+    return { structuralInfo: info, activeGradientKeys };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_nodesStructureKey, _edgesStructureKey, dataTypes, getMetadata]); // isSelecting implicit
+
+  // STAGE 2: Status & Selection Merge (Light)
+  // Merges pre-computed structural info with current edge selection and execution status.
+  return useMemo(() => {
+    // While dragging the rectangle, just reuse the last processed edges
+    if (isSelecting && lastResultRef.current.processedEdges.length > 0) {
+      return lastResultRef.current;
+    }
+
+    const processedResultEdges = edges.map((edge) => {
+      const struct = structuralInfo.get(edge.id);
+
+      // Status logic
       const statusKey =
         workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
       const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
@@ -339,26 +372,31 @@ export function useProcessedEdges({
       const sourceNodeStatusKey = workflowId ? `${workflowId}:${edge.source}` : undefined;
       const sourceNodeStatus = sourceNodeStatusKey ? nodeStatuses?.[sourceNodeStatusKey] : undefined;
       const isSourceRunning = sourceNodeStatus === "running" || sourceNodeStatus === "starting" || sourceNodeStatus === "booting";
-      
+
+      const classes = [edge.className];
+      if (struct?.className) {
+        classes.push(struct.className);
+      }
+
       if (status === "message_sent" || isSourceRunning) {
         classes.push("message-sent");
       }
 
       return {
         ...edge,
-        sourceHandle: normalizedSourceHandle,
-        targetHandle: normalizedTargetHandle,
-        className: [edge.className, ...classes].filter(Boolean).join(" "),
+        sourceHandle: struct?.sourceHandle ?? edge.sourceHandle,
+        targetHandle: struct?.targetHandle ?? edge.targetHandle,
+        type: struct?.type ?? edge.type,
+        className: classes.filter(Boolean).join(" "),
         style: {
           ...edge.style,
-          stroke: strokeStyle,
-          strokeWidth: 2
+          ...(struct?.style || {})
         },
         data: {
           ...edge.data,
           status: status || null,
           counter: counter || null,
-          dataTypeLabel: sourceTypeLabel
+          dataTypeLabel: struct?.dataTypeLabel || "Any"
         }
       };
     });
@@ -366,5 +404,5 @@ export function useProcessedEdges({
     const result = { processedEdges: processedResultEdges, activeGradientKeys };
     lastResultRef.current = result;
     return result;
-  }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, nodeStatuses, isSelecting]);
+  }, [edges, structuralInfo, activeGradientKeys, edgeStatuses, nodeStatuses, workflowId, isSelecting]);
 }
