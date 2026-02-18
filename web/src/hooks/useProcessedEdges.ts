@@ -214,6 +214,15 @@ export function useProcessedEdges({
     }
 
     const processedResultEdges = edges.map((edge) => {
+      // Control edges are rendered by the ControlEdge component - preserve type and skip processing
+      if (edge.type === "control" || edge.data?.edge_type === "control") {
+        return {
+          ...edge,
+          type: "control",
+          className: [edge.className, "control-edge"].filter(Boolean).join(" ")
+        };
+      }
+
       const sourceNode = getNode(edge.source);
       const targetNode = getNode(edge.target);
       let normalizedSourceHandle = edge.sourceHandle;

@@ -39,6 +39,7 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
+import { getNodeStore } from "./workflowUpdates";
 
 export type ProcessingContext = {
   edges: Edge[];
@@ -486,7 +487,7 @@ export const createWorkflowRunnerStore = (
   }));
 
   store.setState({
-    messageHandler: createRunnerMessageHandler(store)
+    messageHandler: createRunnerMessageHandler(store, getNodeStore)
   });
 
   return store;

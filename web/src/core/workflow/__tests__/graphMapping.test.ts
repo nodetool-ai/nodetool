@@ -3,6 +3,7 @@ import { Edge, Node } from "@xyflow/react";
 import { NodeMetadata } from "../../../stores/ApiTypes";
 import { NodeData } from "../../../stores/NodeData";
 import { isValidEdge, sanitizeGraph } from "../graphMapping";
+import { CONTROL_HANDLE_ID } from "../../../stores/graphEdgeToReactFlowEdge";
 
 const baseMetadata: NodeMetadata = {
   title: "Test Node",
@@ -106,5 +107,43 @@ describe("graphMapping helpers", () => {
 
     expect(sanitized).toHaveLength(1);
     expect(sanitized[0].id).toBe("e1");
+  });
+
+  describe("control edges", () => {
+    it("accepts control edges with __control__ target handle", () => {
+      const agentNode = makeNode("agent1", "nodetool.agents.Agent");
+      const targetNode = makeNode("target1", "test");
+      const edge = makeEdge("ce1", "agent1", "target1", "output", CONTROL_HANDLE_ID);
+
+      const nodeMap = new Map([
+        ["agent1", agentNode],
+        ["target1", targetNode]
+      ]);
+
+      const valid = isValidEdge(edge, nodeMap, {
+        "nodetool.agents.Agent": baseMetadata,
+        test: baseMetadata
+      });
+
+      expect(valid).toBe(true);
+    });
+
+    it("preserves control edges during sanitation", () => {
+      const nodes = [
+        makeNode("agent1", "nodetool.agents.Agent"),
+        makeNode("target1", "test")
+      ];
+      const edges = [
+        makeEdge("ce1", "agent1", "target1", "output", CONTROL_HANDLE_ID)
+      ];
+
+      const { edges: sanitized } = sanitizeGraph(nodes, edges, {
+        "nodetool.agents.Agent": baseMetadata,
+        test: baseMetadata
+      });
+
+      expect(sanitized).toHaveLength(1);
+      expect(sanitized[0].id).toBe("ce1");
+    });
   });
 });

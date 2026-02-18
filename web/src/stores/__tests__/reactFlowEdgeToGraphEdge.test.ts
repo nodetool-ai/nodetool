@@ -123,4 +123,48 @@ describe("reactFlowEdgeToGraphEdge", () => {
       expect(result.targetHandle).toBe("in-port-2");
     });
   });
+
+  describe("control edge conversion", () => {
+    it("sets edge_type to control for control edges by type", () => {
+      const reactFlowEdge: Edge = {
+        id: "edge-1",
+        source: "agent-1",
+        sourceHandle: "output",
+        target: "node-2",
+        targetHandle: "__control__",
+        type: "control"
+      };
+
+      const result = reactFlowEdgeToGraphEdge(reactFlowEdge);
+
+      expect(result.edge_type).toBe("control");
+    });
+
+    it("sets edge_type to control for control edges by data", () => {
+      const reactFlowEdge: Edge = {
+        id: "edge-1",
+        source: "agent-1",
+        sourceHandle: "output",
+        target: "node-2",
+        targetHandle: "__control__",
+        data: { edge_type: "control" }
+      };
+
+      const result = reactFlowEdgeToGraphEdge(reactFlowEdge);
+
+      expect(result.edge_type).toBe("control");
+    });
+
+    it("defaults edge_type to data for regular edges", () => {
+      const reactFlowEdge: Edge = {
+        id: "edge-1",
+        source: "node-1",
+        target: "node-2"
+      };
+
+      const result = reactFlowEdgeToGraphEdge(reactFlowEdge);
+
+      expect(result.edge_type).toBe("data");
+    });
+  });
 });

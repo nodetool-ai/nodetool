@@ -34,7 +34,7 @@ import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
-import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
+import { graphEdgeToReactFlowEdge, CONTROL_HANDLE_ID, isAgentNodeType } from "./graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -577,9 +577,16 @@ export const createNodeStore = (
           onConnect: (connection: Connection): void => {
             const srcNode = get().findNode(connection.source);
             const targetNode = get().findNode(connection.target);
+            console.log("[NodeStore.onConnect] connection:", connection);
+            console.log("[NodeStore.onConnect] srcNode:", srcNode?.type, "targetNode:", targetNode?.type);
             if (!connection.targetHandle) {
+              console.log("[NodeStore.onConnect] No targetHandle, returning");
               return;
             }
+
+            const isControlEdge = connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID;
+            console.log("[NodeStore.onConnect] isControlEdge:", isControlEdge);
+
             const isDynamicProperty =
               targetNode?.data.dynamic_properties[connection.targetHandle] !==
               undefined;
@@ -588,16 +595,27 @@ export const createNodeStore = (
               !targetNode ||
               !(
                 isDynamicProperty ||
+                isControlEdge ||
                 get().validateConnection(connection, srcNode, targetNode)
               )
             ) {
+              console.log("[NodeStore.onConnect] Validation failed - srcNode:", !!srcNode, "targetNode:", !!targetNode, "isDynamicProperty:", isDynamicProperty, "isControlEdge:", isControlEdge);
               return;
+            }
+
+            // For control edges, validate that source is an Agent node
+            if (isControlEdge) {
+              console.log("[NodeStore.onConnect] Checking if source is Agent node:", srcNode.type, "isAgent:", isAgentNodeType(srcNode.type));
+              if (!isAgentNodeType(srcNode.type)) {
+                console.log("[NodeStore.onConnect] Source is not an Agent node, returning");
+                return;
+              }
             }
 
             // Check if the target handle is a "collect" handle (list[T])
             // Collect handles allow multiple incoming connections
             let isCollectHandle = false;
-            if (targetNode && connection.targetHandle) {
+            if (targetNode && connection.targetHandle && !isControlEdge) {
               const targetMetadata = useMetadataStore
                 .getState()
                 .getMetadata(targetNode.type || "");
@@ -639,7 +657,8 @@ export const createNodeStore = (
               ...connection,
               id: get().generateEdgeId(),
               sourceHandle: connection.sourceHandle || null,
-              targetHandle: connection.targetHandle || null
+              targetHandle: connection.targetHandle || null,
+              ...(isControlEdge ? { type: "control", data: { edge_type: "control" } } : {})
             } as Edge;
 
             // Normalize handles to null if undefined for consistency
@@ -1094,6 +1113,29 @@ export const createNodeStore = (
             // Basic validation: ensure handles are provided
             if (!connection.sourceHandle || !connection.targetHandle) {
               return false;
+            }
+
+            // Control edge validation: only Agent nodes can create control edges
+            if (connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID) {
+              if (!isAgentNodeType(srcNode.type)) {
+                return false;
+              }
+              // Check for existing control connection between same source and target
+              const edges = get().edges;
+              const existingConnection = edges.find(
+                (edge) =>
+                  edge.source === connection.source &&
+                  edge.target === connection.target &&
+                  edge.targetHandle === CONTROL_HANDLE_ID
+              );
+              if (existingConnection) {
+                return false;
+              }
+              return !wouldCreateCycle(
+                edges,
+                connection.source,
+                connection.target
+              );
             }
 
             const srcMetadata = useMetadataStore

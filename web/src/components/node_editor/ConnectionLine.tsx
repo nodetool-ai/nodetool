@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import {
   ConnectionLineComponent,
   ConnectionLineType,
@@ -9,6 +9,9 @@ import {
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
+
+const CONTROL_EDGE_COLOR = "#f59e0b";
+const DEFAULT_EDGE_COLOR = "#111";
 
 const ConnectionLine: ConnectionLineComponent = ({
   fromX,
@@ -21,6 +24,11 @@ const ConnectionLine: ConnectionLineComponent = ({
 }) => {
   const connectType = useConnectionStore((state) => state.connectType);
   const className = connectType?.type || undefined;
+  
+  // Use amber color for control edges, black for regular edges
+  const strokeColor = useMemo(() => {
+    return connectType?.type === "control" ? CONTROL_EDGE_COLOR : DEFAULT_EDGE_COLOR;
+  }, [connectType?.type]);
 
   let dAttr = "";
   const pathParams = {
@@ -56,7 +64,8 @@ const ConnectionLine: ConnectionLineComponent = ({
     <g className={"custom-connection-line"}>
       <path
         fill="none"
-        stroke="#111"
+        stroke={strokeColor}
+        strokeDasharray={connectType?.type === "control" ? "8 4" : undefined}
         className={Slugify(className || "")}
         d={dAttr}
       />
@@ -68,6 +77,7 @@ const ConnectionLine: ConnectionLineComponent = ({
         width={width}
         height={height}
         rx="1"
+        fill={strokeColor}
       />
     </g>
   );
