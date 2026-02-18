@@ -343,4 +343,4 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   );
 });
 
-export default RecentNodesTiles;
+export default memo(RecentNodesTiles);

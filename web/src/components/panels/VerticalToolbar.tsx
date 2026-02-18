@@ -291,4 +291,4 @@ const VerticalToolbar = memo(function VerticalToolbar({
     );
 });
 
-export default VerticalToolbar;
+export default memo(VerticalToolbar);

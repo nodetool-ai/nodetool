@@ -355,4 +355,4 @@ const NodeItem = memo(
 
 NodeItem.displayName = "NodeItem";
 
-export default NodeItem;
+export default memo(NodeItem);
