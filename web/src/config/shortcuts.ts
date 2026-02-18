@@ -764,6 +764,24 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Go back to previously focused node",
     registerCombo: true
   }
+,
+  // ---------- WORKFLOW BOOKMARKS ----------------------------------------
+  ...([0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const).map<Shortcut>((n) => ({
+    title: `Navigate to Bookmark ${n}`,
+    slug: `navigateBookmark${n}`,
+    keyCombo: [`${n}`],
+    category: "editor" as const,
+    description: `Navigate to bookmark ${n}`,
+    registerCombo: true
+  })),
+  {
+    title: "Toggle Bookmark",
+    slug: "toggleBookmark",
+    keyCombo: ["Control", "B"],
+    category: "editor" as const,
+    description: "Add or remove bookmark for selected node",
+    registerCombo: true
+  }
 ] as Shortcut[];
 
 /**
