@@ -30,12 +30,25 @@ import useExecutionTimeStore from "./ExecutionTimeStore";
 import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import { NodeStore } from "./NodeStore";
 
+export type { NodeStore };
+
 type WorkflowSubscription = {
   workflowId: string;
   unsubscribe: () => void;
 };
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
+
+// Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
+let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () => undefined;
+
+export const setGetNodeStore = (fn: (workflowId: string) => NodeStore | undefined): void => {
+  getNodeStoreImpl = fn;
+};
+
+export const getNodeStore = (workflowId: string): NodeStore | undefined => {
+  return getNodeStoreImpl(workflowId);
+};
 
 export const subscribeToWorkflowUpdates = (
   workflowId: string,

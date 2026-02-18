@@ -23,7 +23,7 @@ import {
   fetchWorkflowById,
   workflowQueryKey
 } from "../serverState/useWorkflow";
-import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates } from "./workflowUpdates";
+import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates, setGetNodeStore } from "./workflowUpdates";
 import { getWorkflowRunnerStore } from "./WorkflowRunner";
 import { useNotificationStore } from "./NotificationStore";
 import { fetchWorkflowVersions } from "../serverState/useWorkflowVersions";
@@ -195,7 +195,7 @@ export type WorkflowManagerStore = UseBoundStore<
  * @returns {WorkflowManagerStore} The configured workflow manager store
  */
 export const createWorkflowManagerStore = (queryClient: QueryClient) => {
-  return create<WorkflowManagerState>()((set, get) => {
+  const store = create<WorkflowManagerState>()((set, get) => {
     return {
       nodeStores: {},
       openWorkflows: [],
@@ -773,4 +773,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        */
     };
   });
+
+  // Set the global getNodeStore getter so other modules can access node stores
+  setGetNodeStore((workflowId: string) => store.getState().getNodeStore(workflowId));
+
+  return store;
 };
