@@ -3,6 +3,7 @@ import { NodeMetadata, TypeMetadata } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { Node } from "@xyflow/react";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
+import { CONTROL_HANDLE_ID } from "./graphEdgeToReactFlowEdge";
 export type ConnectDirection = "target" | "source" | "" | null;
 
 type ConnectionStore = {
@@ -74,6 +75,18 @@ const useConnectionStore = create<ConnectionStore>((set) => ({
     handleType: string,
     metadata: NodeMetadata
   ) => {
+    // Handle control edges specially - they don't have metadata
+    if (handleId === CONTROL_HANDLE_ID) {
+      set({
+        connecting: true,
+        connectType: { type: "control", optional: false, type_args: [], type_name: null },
+        connectNodeId: node.id,
+        connectDirection: handleType as "source" | "target",
+        connectHandleId: handleId
+      });
+      return;
+    }
+
     if (handleType === "source") {
       const outputHandle = findOutputHandle(node, handleId, metadata);
       const connectType = outputHandle?.type;

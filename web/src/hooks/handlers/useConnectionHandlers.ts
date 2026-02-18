@@ -18,6 +18,7 @@ import {
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
 import { wouldCreateCycle } from "../../utils/graphCycle";
+import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
@@ -111,6 +112,7 @@ export default function useConnectionHandlers() {
   const handleOnConnect = useCallback(
     (connection: Connection) => {
       const { source, sourceHandle, target, targetHandle } = connection;
+      console.log("[handleOnConnect] connection:", connection);
       const sourceNode = findNode(source);
       const targetNode = findNode(target);
       if (!sourceNode || !targetNode) {
@@ -123,6 +125,31 @@ export default function useConnectionHandlers() {
         );
         return;
       }
+
+      // Control edge: skip type validation, delegate to NodeStore
+      if (targetHandle === CONTROL_HANDLE_ID || sourceHandle === CONTROL_HANDLE_ID) {
+        console.log("[handleOnConnect] Control edge detected");
+        if (wouldCreateCycle(edges, source, target)) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: "Cannot create a cyclic connection"
+          });
+          return;
+        }
+        // Normalize: control edges always use __control__ for both handles
+        const controlConnection: Connection = {
+          source,
+          sourceHandle: CONTROL_HANDLE_ID,
+          target,
+          targetHandle: CONTROL_HANDLE_ID
+        };
+        console.log("[handleOnConnect] Calling onConnect with:", controlConnection);
+        connectionCreated.current = true;
+        onConnect(controlConnection);
+        return;
+      }
+
       const sourceMetadata = getMetadata(sourceNode.type || "");
       const targetMetadata = getMetadata(targetNode.type || "");
 
@@ -336,6 +363,22 @@ export default function useConnectionHandlers() {
             targetHandle: PREVIEW_VALUE_HANDLE
           };
           handleOnConnect(previewConnection);
+          endConnecting();
+          return;
+        }
+
+        // Auto-create control edge when dragging from an Agent's control handle onto a node body
+        if (
+          connectDirection === "source" &&
+          connectHandleId === CONTROL_HANDLE_ID
+        ) {
+          const controlConnection: Connection = {
+            source: connectNodeId || "",
+            sourceHandle: connectHandleId || "",
+            target: nodeId,
+            targetHandle: CONTROL_HANDLE_ID
+          };
+          handleOnConnect(controlConnection);
           endConnecting();
           return;
         }

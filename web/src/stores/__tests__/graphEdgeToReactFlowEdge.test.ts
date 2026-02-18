@@ -1,5 +1,22 @@
-import { graphEdgeToReactFlowEdge } from "../graphEdgeToReactFlowEdge";
+import { graphEdgeToReactFlowEdge, isAgentNodeType } from "../graphEdgeToReactFlowEdge";
 import { Edge as GraphEdge } from "../ApiTypes";
+
+describe("isAgentNodeType", () => {
+  it("returns true for agent node types", () => {
+    expect(isAgentNodeType("nodetool.agents.Agent")).toBe(true);
+    expect(isAgentNodeType("nodetool.agents.ControlAgent")).toBe(true);
+  });
+
+  it("returns false for non-agent node types", () => {
+    expect(isAgentNodeType("nodetool.constant.String")).toBe(false);
+    expect(isAgentNodeType("nodetool.image.Generate")).toBe(false);
+  });
+
+  it("returns false for undefined/empty", () => {
+    expect(isAgentNodeType(undefined)).toBe(false);
+    expect(isAgentNodeType("")).toBe(false);
+  });
+});
 
 describe("graphEdgeToReactFlowEdge", () => {
   describe("basic edge conversion", () => {
@@ -150,6 +167,39 @@ describe("graphEdgeToReactFlowEdge", () => {
 
       expect(result.sourceHandle).toBe("out-1");
       expect(result.targetHandle).toBe("in-1");
+    });
+  });
+
+  describe("control edge conversion", () => {
+    it("sets type and data for control edges", () => {
+      const graphEdge: GraphEdge = {
+        id: "edge-1",
+        source: "agent-1",
+        sourceHandle: "output",
+        target: "node-2",
+        targetHandle: "__control__",
+        edge_type: "control"
+      };
+
+      const result = graphEdgeToReactFlowEdge(graphEdge);
+
+      expect(result.type).toBe("control");
+      expect(result.data).toEqual({ edge_type: "control" });
+    });
+
+    it("does not set type for data edges", () => {
+      const graphEdge: GraphEdge = {
+        id: "edge-1",
+        source: "node-1",
+        sourceHandle: "output",
+        target: "node-2",
+        targetHandle: "input",
+        edge_type: "data"
+      };
+
+      const result = graphEdgeToReactFlowEdge(graphEdge);
+
+      expect(result.type).toBeUndefined();
     });
   });
 });

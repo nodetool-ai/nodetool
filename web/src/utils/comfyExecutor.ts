@@ -10,7 +10,7 @@ import { nodeToolGraphToComfyPrompt, graphHasComfyUINodes } from "./comfyWorkflo
 import log from "loglevel";
 import { Workflow, WorkflowAttributes } from "../stores/ApiTypes";
 import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
-import { handleUpdate, MsgpackData } from "../stores/workflowUpdates";
+import { handleUpdate, MsgpackData, getNodeStore } from "../stores/workflowUpdates";
 import { useComfyUIStore } from "../stores/ComfyUIStore";
 
 type ComfyWsMessage = {
@@ -77,7 +77,7 @@ const emitWorkflowUpdate = (
     type: update.type
   });
   const runnerStore = getWorkflowRunnerStore(workflow.id);
-  handleUpdate(workflow as unknown as WorkflowAttributes, update, runnerStore);
+  handleUpdate(workflow as unknown as WorkflowAttributes, update, runnerStore, getNodeStore);
 };
 
 const maybeEmitOutputUpdates = (

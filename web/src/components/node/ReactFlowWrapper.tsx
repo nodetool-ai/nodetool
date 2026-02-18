@@ -75,6 +75,7 @@ import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 import CustomEdge from "../node_editor/CustomEdge";
+import ControlEdge from "../node_editor/ControlEdge";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -288,7 +289,8 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 
   const edgeTypes = useMemo(
     () => ({
-      default: CustomEdge
+      default: CustomEdge,
+      control: ControlEdge
     }),
     []
   );

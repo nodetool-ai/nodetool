@@ -7,6 +7,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Handle,
   Node,
   NodeProps,
   NodeResizer,
@@ -48,6 +49,8 @@ import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isProduction } from "../../stores/ApiClient";
+import { CONTROL_HANDLE_ID, isAgentNodeType } from "../../stores/graphEdgeToReactFlowEdge";
+import useConnectionStore from "../../stores/ConnectionStore";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -335,7 +338,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       isOutputNode:
         type.startsWith("nodetool.output") ||
         type === "comfy.image.SaveImage" ||
-        type === "comfy.image.PreviewImage"
+        type === "comfy.image.PreviewImage",
+      isAgentNode: isAgentNodeType(type)
     }),
     [type]
   );
@@ -406,6 +410,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     // This selector will only re-render when edges array reference changes
     // AND the connection status of this specific node changes
     return state.edges.some((edge) => edge.target === id);
+  });
+
+  // Check if this node has an incoming control edge (to show the control handle)
+  const hasControlEdge = useNodes((state) => {
+    return state.edges.some(
+      (edge) => edge.target === id && edge.targetHandle === CONTROL_HANDLE_ID
+    );
+  });
+
+  // Show control handle when dragging a control edge from an Agent node
+  const isCreatingControlEdge = useConnectionStore((state) => {
+    return state.connectType?.type === "control" && state.connectDirection === "source";
   });
 
   const isConstantInputLockedResult =
@@ -597,6 +613,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       className={styleProps.className}
       sx={containerSx}
     >
+      <Handle
+        type="target"
+        id={CONTROL_HANDLE_ID}
+        position={Position.Top}
+        className={`control-handle control-handle-top ${hasControlEdge || isCreatingControlEdge ? 'control-handle-visible' : 'control-handle-hidden'}`}
+        isConnectable={true}
+      />
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
       <NodeResizeHandle minWidth={150} minHeight={150} />
       <NodeHeader
@@ -666,6 +689,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       {chunk && <ChunkDisplay chunk={chunk} />}
       {task && <TaskView task={task} />}
+
+      {/* Agent control output handle - positioned at the bottom of Agent nodes */}
+      {nodeType.isAgentNode && (
+        <Handle
+          type="source"
+          id={CONTROL_HANDLE_ID}
+          position={Position.Bottom}
+          className="control-handle control-handle-bottom"
+          isConnectable={true}
+        />
+      )}
 
       {isFocused && (
         <Box
