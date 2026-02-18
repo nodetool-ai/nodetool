@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       borderRadius: "10px",
       transition: "all 0.2s ease",
       boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-      fontSize: (theme as any).fontSizeNormal ?? undefined,
+      fontSize: theme.fontSizeNormal,
       "::placeholder": {
         color: theme.vars.palette.text.disabled
       }
