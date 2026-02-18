@@ -13,7 +13,8 @@ import { useAddToGroup } from "../nodes/useAddToGroup";
 import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
-// Removed comment creation via drag
+import { useAlignmentGuides } from "../useAlignmentGuides";
+import { useAlignmentGuidesStore } from "../../stores/AlignmentGuidesStore";
 
 // Throttle interval for intersection checks (ms)
 const INTERSECTION_THROTTLE_MS = 50;
@@ -22,7 +23,6 @@ export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
-  // Removed: c-key drag-to-create-comment feature
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
@@ -41,11 +41,16 @@ export default function useDragHandlers() {
     resume: state.resume
   }));
 
-  const { setHoveredNodes, findNode } =
+  const { setHoveredNodes, findNode, nodes: allNodes } =
     useNodes((state) => ({
       setHoveredNodes: state.setHoveredNodes,
-      findNode: state.findNode
+      findNode: state.findNode,
+      nodes: state.nodes
     }));
+
+  const { calculateGuides } = useAlignmentGuides();
+  const setGuides = useAlignmentGuidesStore((state) => state.setGuides);
+  const clearGuidesStore = useAlignmentGuidesStore((state) => state.clearGuides);
 
   // Refs for throttling and tracking last state to avoid unnecessary updates
   const lastIntersectionCheckRef = useRef<number>(0);
@@ -114,6 +119,12 @@ export default function useDragHandlers() {
             setLastParentNode(undefined);
           }
         }
+
+        // Calculate and update alignment guides if enabled
+        if (settings.showAlignmentGuides) {
+          const guides = calculateGuides([node], allNodes);
+          setGuides(guides);
+        }
       }
     },
     [
@@ -124,7 +135,11 @@ export default function useDragHandlers() {
       reactFlow,
       setHoveredNodes,
       isGroup,
-      findNode
+      findNode,
+      settings.showAlignmentGuides,
+      calculateGuides,
+      setGuides,
+      allNodes
     ]
   );
 
@@ -142,8 +157,12 @@ export default function useDragHandlers() {
       setLastParentNode(undefined);
       resetWiggleDetection();
       lastHoveredIdsRef.current = "";
+      // Clear alignment guides
+      if (settings.showAlignmentGuides) {
+        clearGuidesStore();
+      }
     },
-    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
+    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes, settings.showAlignmentGuides, clearGuidesStore]
   );
 
   /* SELECTION DRAG START */
@@ -219,6 +238,12 @@ export default function useDragHandlers() {
               setLastParentNode(undefined);
             }
           }
+
+          // Calculate and update alignment guides if enabled
+          if (settings.showAlignmentGuides) {
+            const guides = calculateGuides(nodes, allNodes);
+            setGuides(guides);
+          }
         }
       }
     },
@@ -229,7 +254,11 @@ export default function useDragHandlers() {
       findNode,
       controlKeyPressed,
       metaKeyPressed,
-      removeFromGroup
+      removeFromGroup,
+      settings.showAlignmentGuides,
+      calculateGuides,
+      setGuides,
+      allNodes
     ]
   );
 
@@ -250,8 +279,12 @@ export default function useDragHandlers() {
       setLastParentNode(undefined);
       resetWiggleDetection();
       lastHoveredIdsRef.current = "";
+      // Clear alignment guides
+      if (settings.showAlignmentGuides) {
+        clearGuidesStore();
+      }
     },
-    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes]
+    [addToGroup, lastParentNode, resume, setDraggedNodes, setHoveredNodes, settings.showAlignmentGuides, clearGuidesStore]
   );
 
   /* SELECTION START */

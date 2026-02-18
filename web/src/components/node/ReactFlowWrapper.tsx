@@ -76,6 +76,8 @@ import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
+import SmartAlignmentGuides from "../node_editor/SmartAlignmentGuides";
+import { useAlignmentGuidesStore } from "../../stores/AlignmentGuidesStore";
 
 const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
   workflowId,
@@ -83,6 +85,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
 }) => {
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
+  const guides = useAlignmentGuidesStore((state) => state.guides);
   // Combine multiple store subscriptions into a single selector to reduce re-renders
   const {
     nodes,
@@ -617,6 +620,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         />
         <AxisMarker />
         <ContextMenus />
+        <SmartAlignmentGuides guides={guides} />
         <ConnectableNodes />
         <EdgeGradientDefinitions
           dataTypes={DATA_TYPES}
