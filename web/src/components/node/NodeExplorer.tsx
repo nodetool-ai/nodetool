@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Button,
@@ -357,4 +357,6 @@ const NodeExplorer: React.FC = () => {
   );
 };
 
-export default NodeExplorer;
+// Memoize component to prevent unnecessary re-renders when parent components update
+// NodeExplorer processes all nodes and should only re-render when nodes data actually changes
+export default memo(NodeExplorer);

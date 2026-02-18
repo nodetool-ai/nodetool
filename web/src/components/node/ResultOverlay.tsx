@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { Box, IconButton, Typography, Divider, Tooltip } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
@@ -148,4 +148,16 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
   );
 };
 
-export default ResultOverlay;
+// Memoize component to prevent unnecessary re-renders when parent components update
+// ResultOverlay is used frequently in node outputs and should only re-render when result data changes
+const arePropsEqual = (prevProps: ResultOverlayProps, nextProps: ResultOverlayProps) => {
+  return (
+    prevProps.result === nextProps.result &&
+    prevProps.nodeId === nextProps.nodeId &&
+    prevProps.workflowId === nextProps.workflowId &&
+    prevProps.nodeName === nextProps.nodeName &&
+    prevProps.onShowInputs === nextProps.onShowInputs
+  );
+};
+
+export default memo(ResultOverlay, arePropsEqual);

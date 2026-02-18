@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -567,4 +567,18 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   );
 };
 
-export default PreviewImageGrid;
+// Memoize component to prevent unnecessary re-renders when parent components update
+// Custom comparison to avoid re-rendering on every prop change
+const arePropsEqual = (prevProps: PreviewImageGridProps, nextProps: PreviewImageGridProps) => {
+  return (
+    prevProps.images === nextProps.images &&
+    prevProps.itemSize === nextProps.itemSize &&
+    prevProps.gap === nextProps.gap &&
+    prevProps.enableSelection === nextProps.enableSelection &&
+    prevProps.showActions === nextProps.showActions &&
+    prevProps.onDoubleClick === nextProps.onDoubleClick &&
+    prevProps.onOpenInViewer === nextProps.onOpenInViewer
+  );
+};
+
+export default memo(PreviewImageGrid, arePropsEqual);
