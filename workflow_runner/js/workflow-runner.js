@@ -53,6 +53,7 @@ class WorkflowRunner {
     this.onPrediction = null;
     this.onChunk = null;
     this.jobId = null;
+    this.outputResults = {};
   }
 
   /**
@@ -176,6 +177,7 @@ class WorkflowRunner {
       );
 
       this.state = "running";
+      this.outputResults = {};
       this.resolveRun = resolve;
       this.rejectRun = reject;
 
@@ -270,7 +272,7 @@ class WorkflowRunner {
         this.state = "idle";
         clearTimeout(this.runTimeout);
         if (this.resolveRun) {
-          this.resolveRun(data.result);
+          this.resolveRun(this.outputResults);
         }
         break;
       case "failed":
@@ -309,6 +311,10 @@ class WorkflowRunner {
    */
   handleOutputUpdate(data) {
     console.log("Output update:", data);
+    // Collect output results keyed by output_name
+    if (data.output_name) {
+      this.outputResults[data.output_name] = data.value;
+    }
     if (this.onOutputUpdate) {
       this.onOutputUpdate({
         node_id: data.node_id,
