@@ -10,5 +10,3 @@ cd electron && npm run lint
 > nodetool-electron@0.6.2-rc.23 lint
 > eslint .
 
-sh: 1: eslint: not found
-make: *** [Makefile:133: lint-electron] Error 127

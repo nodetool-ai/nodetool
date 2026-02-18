@@ -8,33 +8,143 @@ PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility.test
 PASS src/hooks/handlers/__tests__/useConnectionHandlers.test.ts
   ● Console
 
+    console.log
+      [handleOnConnect] connection: {
+        source: 'source',
+        target: 'target',
+        sourceHandle: 'output',
+        targetHandle: 'input'
+      }
+
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:115:15)
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'source',
+        target: 'target',
+        sourceHandle: 'output',
+        targetHandle: 'dynamic_input'
+      }
+
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:115:15)
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'source',
+        target: 'target',
+        sourceHandle: 'invalid_output',
+        targetHandle: 'invalid_input'
+      }
+
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:115:15)
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'source',
+        target: 'target',
+        sourceHandle: 'output',
+        targetHandle: 'input'
+      }
+
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:115:15)
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'nonexistent',
+        target: 'target',
+        sourceHandle: 'output',
+        targetHandle: 'input'
+      }
+
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:115:15)
+
     console.warn
       Invalid source or target node { source: 'nonexistent', target: 'target' }
 
-    [0m [90m 115 |[39m       [36mconst[39m targetNode [33m=[39m findNode(target)[33m;[39m
-     [90m 116 |[39m       [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
-    [31m[1m>[22m[39m[90m 117 |[39m         console[33m.[39mwarn([32m"Invalid source or target node"[39m[33m,[39m { source[33m,[39m target })[33m;[39m
+    [0m [90m 117 |[39m       [36mconst[39m targetNode [33m=[39m findNode(target)[33m;[39m
+     [90m 118 |[39m       [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
+    [31m[1m>[22m[39m[90m 119 |[39m         console[33m.[39mwarn([32m"Invalid source or target node"[39m[33m,[39m { source[33m,[39m target })[33m;[39m
      [90m     |[39m                 [31m[1m^[22m[39m
-     [90m 118 |[39m         [36mreturn[39m[33m;[39m
-     [90m 119 |[39m       }
-     [90m 120 |[39m       [36mif[39m ([33m![39msourceHandle [33m||[39m [33m![39mtargetHandle) {[0m
+     [90m 120 |[39m         [36mreturn[39m[33m;[39m
+     [90m 121 |[39m       }
+     [90m 122 |[39m       [36mif[39m ([33m![39msourceHandle [33m||[39m [33m![39mtargetHandle) {[0m
 
-      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:117:17)
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:119:17)
       at Object.<anonymous> (src/hooks/handlers/__tests__/useConnectionHandlers.test.ts:568:22)
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'source',
+        target: 'target',
+        sourceHandle: 'output',
+        targetHandle: null
+      }
+
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:115:15)
 
     console.warn
       Invalid source or target node { source: 'source', target: 'target' }
 
-    [0m [90m 115 |[39m       [36mconst[39m targetNode [33m=[39m findNode(target)[33m;[39m
-     [90m 116 |[39m       [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
-    [31m[1m>[22m[39m[90m 117 |[39m         console[33m.[39mwarn([32m"Invalid source or target node"[39m[33m,[39m { source[33m,[39m target })[33m;[39m
+    [0m [90m 117 |[39m       [36mconst[39m targetNode [33m=[39m findNode(target)[33m;[39m
+     [90m 118 |[39m       [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
+    [31m[1m>[22m[39m[90m 119 |[39m         console[33m.[39mwarn([32m"Invalid source or target node"[39m[33m,[39m { source[33m,[39m target })[33m;[39m
      [90m     |[39m                 [31m[1m^[22m[39m
-     [90m 118 |[39m         [36mreturn[39m[33m;[39m
-     [90m 119 |[39m       }
-     [90m 120 |[39m       [36mif[39m ([33m![39msourceHandle [33m||[39m [33m![39mtargetHandle) {[0m
+     [90m 120 |[39m         [36mreturn[39m[33m;[39m
+     [90m 121 |[39m       }
+     [90m 122 |[39m       [36mif[39m ([33m![39msourceHandle [33m||[39m [33m![39mtargetHandle) {[0m
 
-      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:117:17)
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:119:17)
       at Object.<anonymous> (src/hooks/handlers/__tests__/useConnectionHandlers.test.ts:583:22)
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'source',
+        target: 'target',
+        sourceHandle: 'output',
+        targetHandle: 'input'
+      }
+
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:115:15)
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'source',
+        target: 'target',
+        sourceHandle: 'dynamic_output',
+        targetHandle: 'input'
+      }
+
+      at Object.handleOnConnect (src/hooks/handlers/useConnectionHandlers.ts:115:15)
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'sourceNode',
+        sourceHandle: 'output',
+        target: 'previewNode',
+        targetHandle: 'value'
+      }
+
+      at src/hooks/handlers/useConnectionHandlers.ts:115:15
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'sourceNode',
+        sourceHandle: 'output',
+        target: 'rerouteNode',
+        targetHandle: 'input_value'
+      }
+
+      at src/hooks/handlers/useConnectionHandlers.ts:115:15
+
+    console.log
+      [handleOnConnect] connection: {
+        source: 'rerouteNode',
+        sourceHandle: 'output',
+        target: 'targetNode',
+        targetHandle: 'input'
+      }
+
+      at src/hooks/handlers/useConnectionHandlers.ts:115:15
 
 PASS src/utils/__tests__/TypeHandler.test.ts
 PASS src/hooks/nodes/__tests__/useNodeContextMenu.test.ts
@@ -44,15 +154,15 @@ PASS src/stores/__tests__/NodeStore.test.ts
     console.warn
       Node with id a already exists
 
-    [0m [90m 662 |[39m           addNode[33m:[39m (node[33m:[39m [33mNode[39m[33m<[39m[33mNodeData[39m[33m>[39m)[33m:[39m [36mvoid[39m [33m=>[39m {
-     [90m 663 |[39m             [36mif[39m ([36mget[39m()[33m.[39mfindNode(node[33m.[39mid)) {
-    [31m[1m>[22m[39m[90m 664 |[39m               log[33m.[39mwarn([32m`Node with id ${node.id} already exists`[39m)[33m;[39m
+    [0m [90m 681 |[39m           addNode[33m:[39m (node[33m:[39m [33mNode[39m[33m<[39m[33mNodeData[39m[33m>[39m)[33m:[39m [36mvoid[39m [33m=>[39m {
+     [90m 682 |[39m             [36mif[39m ([36mget[39m()[33m.[39mfindNode(node[33m.[39mid)) {
+    [31m[1m>[22m[39m[90m 683 |[39m               log[33m.[39mwarn([32m`Node with id ${node.id} already exists`[39m)[33m;[39m
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 665 |[39m               [36mreturn[39m[33m;[39m
-     [90m 666 |[39m             }
-     [90m 667 |[39m             node[33m.[39mexpandParent [33m=[39m [36mtrue[39m[33m;[39m[0m
+     [90m 684 |[39m               [36mreturn[39m[33m;[39m
+     [90m 685 |[39m             }
+     [90m 686 |[39m             node[33m.[39mexpandParent [33m=[39m [36mtrue[39m[33m;[39m[0m
 
-      at Object.addNode (src/stores/NodeStore.ts:664:19)
+      at Object.addNode (src/stores/NodeStore.ts:683:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:155:22)
 
     console.warn
@@ -64,43 +174,43 @@ PASS src/stores/__tests__/NodeStore.test.ts
         targetHandle: ''
       }
 
-    [0m [90m 842 |[39m
-     [90m 843 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
-    [31m[1m>[22m[39m[90m 844 |[39m               log[33m.[39mwarn(
+    [0m [90m 861 |[39m
+     [90m 862 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
+    [31m[1m>[22m[39m[90m 863 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 845 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
-     [90m 846 |[39m                 edge
-     [90m 847 |[39m               )[33m;[39m[0m
+     [90m 864 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
+     [90m 865 |[39m                 edge
+     [90m 866 |[39m               )[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:844:19)
+      at Object.addEdge (src/stores/NodeStore.ts:863:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:175:22)
 
     console.warn
       Cannot add edge nonexistent-b: source or target node not found
 
-    [0m [90m 831 |[39m
-     [90m 832 |[39m             [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
-    [31m[1m>[22m[39m[90m 833 |[39m               log[33m.[39mwarn(
+    [0m [90m 850 |[39m
+     [90m 851 |[39m             [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
+    [31m[1m>[22m[39m[90m 852 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 834 |[39m                 [32m`Cannot add edge ${edge.id}: source or target node not found`[39m
-     [90m 835 |[39m               )[33m;[39m
-     [90m 836 |[39m               [36mreturn[39m[33m;[39m[0m
+     [90m 853 |[39m                 [32m`Cannot add edge ${edge.id}: source or target node not found`[39m
+     [90m 854 |[39m               )[33m;[39m
+     [90m 855 |[39m               [36mreturn[39m[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:833:19)
+      at Object.addEdge (src/stores/NodeStore.ts:852:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:276:22)
 
     console.warn
       Cannot add edge a-nonexistent: source or target node not found
 
-    [0m [90m 831 |[39m
-     [90m 832 |[39m             [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
-    [31m[1m>[22m[39m[90m 833 |[39m               log[33m.[39mwarn(
+    [0m [90m 850 |[39m
+     [90m 851 |[39m             [36mif[39m ([33m![39msourceNode [33m||[39m [33m![39mtargetNode) {
+    [31m[1m>[22m[39m[90m 852 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 834 |[39m                 [32m`Cannot add edge ${edge.id}: source or target node not found`[39m
-     [90m 835 |[39m               )[33m;[39m
-     [90m 836 |[39m               [36mreturn[39m[33m;[39m[0m
+     [90m 853 |[39m                 [32m`Cannot add edge ${edge.id}: source or target node not found`[39m
+     [90m 854 |[39m               )[33m;[39m
+     [90m 855 |[39m               [36mreturn[39m[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:833:19)
+      at Object.addEdge (src/stores/NodeStore.ts:852:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:286:22)
 
     console.warn
@@ -112,15 +222,15 @@ PASS src/stores/__tests__/NodeStore.test.ts
         targetHandle: 'input1'
       }
 
-    [0m [90m 842 |[39m
-     [90m 843 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
-    [31m[1m>[22m[39m[90m 844 |[39m               log[33m.[39mwarn(
+    [0m [90m 861 |[39m
+     [90m 862 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
+    [31m[1m>[22m[39m[90m 863 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 845 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
-     [90m 846 |[39m                 edge
-     [90m 847 |[39m               )[33m;[39m[0m
+     [90m 864 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
+     [90m 865 |[39m                 edge
+     [90m 866 |[39m               )[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:844:19)
+      at Object.addEdge (src/stores/NodeStore.ts:863:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:354:22)
 
     console.warn
@@ -132,31 +242,31 @@ PASS src/stores/__tests__/NodeStore.test.ts
         targetHandle: 'invalid_input'
       }
 
-    [0m [90m 842 |[39m
-     [90m 843 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
-    [31m[1m>[22m[39m[90m 844 |[39m               log[33m.[39mwarn(
+    [0m [90m 861 |[39m
+     [90m 862 |[39m             [36mif[39m ([33m![39misValidEdge(edge[33m,[39m nodeMap[33m,[39m metadata)) {
+    [31m[1m>[22m[39m[90m 863 |[39m               log[33m.[39mwarn(
      [90m     |[39m                   [31m[1m^[22m[39m
-     [90m 845 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
-     [90m 846 |[39m                 edge
-     [90m 847 |[39m               )[33m;[39m[0m
+     [90m 864 |[39m                 [32m`Cannot add edge ${edge.id}: edge validation failed`[39m[33m,[39m
+     [90m 865 |[39m                 edge
+     [90m 866 |[39m               )[33m;[39m[0m
 
-      at Object.addEdge (src/stores/NodeStore.ts:844:19)
+      at Object.addEdge (src/stores/NodeStore.ts:863:19)
       at Object.<anonymous> (src/stores/__tests__/NodeStore.test.ts:366:22)
 
     console.warn
       Edge a-b references invalid source handle "invalid_output" on node a (type: test). Available outputs: output1. Removing edge.
 
-    [0m [90m 123 |[39m       [36mif[39m ([33m![39msourceHasValidHandle) {
-     [90m 124 |[39m         [36mconst[39m sourceDynamicOutputs [33m=[39m sourceNode[33m.[39mdata[33m.[39mdynamic_outputs [33m||[39m {}[33m;[39m
-    [31m[1m>[22m[39m[90m 125 |[39m         log[33m.[39mwarn(
+    [0m [90m 129 |[39m       [36mif[39m ([33m![39msourceHasValidHandle) {
+     [90m 130 |[39m         [36mconst[39m sourceDynamicOutputs [33m=[39m sourceNode[33m.[39mdata[33m.[39mdynamic_outputs [33m||[39m {}[33m;[39m
+    [31m[1m>[22m[39m[90m 131 |[39m         log[33m.[39mwarn(
      [90m     |[39m             [31m[1m^[22m[39m
-     [90m 126 |[39m           [32m`Edge ${edge.id} references invalid source handle "${[39m
-     [90m 127 |[39m [32m            edge.sourceHandle[39m
-     [90m 128 |[39m [32m          }" on node ${edge.source} (type: ${[39m[0m
+     [90m 132 |[39m           [32m`Edge ${edge.id} references invalid source handle "${[39m
+     [90m 133 |[39m [32m            edge.sourceHandle[39m
+     [90m 134 |[39m [32m          }" on node ${edge.source} (type: ${[39m[0m
 
-      at src/core/workflow/graphMapping.ts:125:13
+      at src/core/workflow/graphMapping.ts:131:13
           at Array.filter (<anonymous>)
-      at sanitizeGraph (src/core/workflow/graphMapping.ts:76:32)
+      at sanitizeGraph (src/core/workflow/graphMapping.ts:82:32)
       at limit (src/stores/NodeStore.ts:299:79)
       at configWithTemporal (node_modules/zundo/src/index.ts:94:12)
       at createStoreImpl (node_modules/zustand/vanilla.js:41:30)
@@ -168,17 +278,17 @@ PASS src/stores/__tests__/NodeStore.test.ts
     console.warn
       Edge a-b references invalid source handle "invalid_output" on node a (type: test). Available outputs: output1. Removing edge.
 
-    [0m [90m 123 |[39m       [36mif[39m ([33m![39msourceHasValidHandle) {
-     [90m 124 |[39m         [36mconst[39m sourceDynamicOutputs [33m=[39m sourceNode[33m.[39mdata[33m.[39mdynamic_outputs [33m||[39m {}[33m;[39m
-    [31m[1m>[22m[39m[90m 125 |[39m         log[33m.[39mwarn(
+    [0m [90m 129 |[39m       [36mif[39m ([33m![39msourceHasValidHandle) {
+     [90m 130 |[39m         [36mconst[39m sourceDynamicOutputs [33m=[39m sourceNode[33m.[39mdata[33m.[39mdynamic_outputs [33m||[39m {}[33m;[39m
+    [31m[1m>[22m[39m[90m 131 |[39m         log[33m.[39mwarn(
      [90m     |[39m             [31m[1m^[22m[39m
-     [90m 126 |[39m           [32m`Edge ${edge.id} references invalid source handle "${[39m
-     [90m 127 |[39m [32m            edge.sourceHandle[39m
-     [90m 128 |[39m [32m          }" on node ${edge.source} (type: ${[39m[0m
+     [90m 132 |[39m           [32m`Edge ${edge.id} references invalid source handle "${[39m
+     [90m 133 |[39m [32m            edge.sourceHandle[39m
+     [90m 134 |[39m [32m          }" on node ${edge.source} (type: ${[39m[0m
 
-      at src/core/workflow/graphMapping.ts:125:13
+      at src/core/workflow/graphMapping.ts:131:13
           at Array.filter (<anonymous>)
-      at sanitizeGraph (src/core/workflow/graphMapping.ts:76:32)
+      at sanitizeGraph (src/core/workflow/graphMapping.ts:82:32)
       at limit (src/stores/NodeStore.ts:299:79)
       at configWithTemporal (node_modules/zundo/src/index.ts:94:12)
       at createStoreImpl (node_modules/zustand/vanilla.js:41:30)
@@ -190,17 +300,17 @@ PASS src/stores/__tests__/NodeStore.test.ts
     console.warn
       Edge a-b references invalid target handle "invalid_input" on node b (type: test). Available properties: input1. Removing edge.
 
-    [0m [90m 135 |[39m       } [36melse[39m [36mif[39m ([33m![39mtargetHasValidHandle) {
-     [90m 136 |[39m         [36mconst[39m dynamicProperties [33m=[39m targetNode[33m.[39mdata[33m.[39mdynamic_properties [33m||[39m {}[33m;[39m
-    [31m[1m>[22m[39m[90m 137 |[39m         log[33m.[39mwarn(
+    [0m [90m 141 |[39m       } [36melse[39m [36mif[39m ([33m![39mtargetHasValidHandle) {
+     [90m 142 |[39m         [36mconst[39m dynamicProperties [33m=[39m targetNode[33m.[39mdata[33m.[39mdynamic_properties [33m||[39m {}[33m;[39m
+    [31m[1m>[22m[39m[90m 143 |[39m         log[33m.[39mwarn(
      [90m     |[39m             [31m[1m^[22m[39m
-     [90m 138 |[39m           [32m`Edge ${edge.id} references invalid target handle "${[39m
-     [90m 139 |[39m [32m            edge.targetHandle[39m
-     [90m 140 |[39m [32m          }" on node ${edge.target} (type: ${[39m[0m
+     [90m 144 |[39m           [32m`Edge ${edge.id} references invalid target handle "${[39m
+     [90m 145 |[39m [32m            edge.targetHandle[39m
+     [90m 146 |[39m [32m          }" on node ${edge.target} (type: ${[39m[0m
 
-      at src/core/workflow/graphMapping.ts:137:13
+      at src/core/workflow/graphMapping.ts:143:13
           at Array.filter (<anonymous>)
-      at sanitizeGraph (src/core/workflow/graphMapping.ts:76:32)
+      at sanitizeGraph (src/core/workflow/graphMapping.ts:82:32)
       at limit (src/stores/NodeStore.ts:299:79)
       at configWithTemporal (node_modules/zundo/src/index.ts:94:12)
       at createStoreImpl (node_modules/zustand/vanilla.js:41:30)
@@ -216,27 +326,27 @@ PASS src/utils/__tests__/nodeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] computeSearchResults with 500 nodes: 13.15ms
+      [PERF] computeSearchResults with 500 nodes: 14.04ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:578:15)
 
     console.log
-      [PERF] computeSearchResults with 2000 nodes: 66.40ms
+      [PERF] computeSearchResults with 2000 nodes: 52.23ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:591:15)
 
     console.log
-      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 20.17ms
+      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 19.91ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:613:15)
 
     console.log
-      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 2.01ms
+      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 7.39ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:636:15)
 
     console.log
-      [PERF] Average search time for 5 queries: 2.05ms
+      [PERF] Average search time for 5 queries: 1.22ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:670:15)
 
@@ -254,7 +364,7 @@ PASS src/__tests__/performance/componentPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:122:15)
 
     console.log
-      [PERF] Large tree (243 components) render: 22.54ms
+      [PERF] Large tree (243 components) render: 19.76ms
 
       at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:491:15)
 
@@ -356,11 +466,11 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:552:15)
 
     console.log
-      [PERF] 100 nodes with 10 properties each: 0.09ms
+      [PERF] 100 nodes with 10 properties each: 0.15ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:587:13)
 
-PASS src/stores/__tests__/GlobalChatStore.test.ts (5.072 s)
+PASS src/stores/__tests__/GlobalChatStore.test.ts
   ● Console
 
     console.log
@@ -678,27 +788,27 @@ PASS src/utils/__tests__/PrefixTreeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] Search 100 nodes: 0.03ms
+      [PERF] Search 100 nodes: 0.05ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:357:15)
 
     console.log
-      [PERF] Search 1000 nodes: 0.12ms
+      [PERF] Search 1000 nodes: 0.06ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:373:15)
 
     console.log
-      [PERF] Search 5000 nodes: 0.20ms
+      [PERF] Search 5000 nodes: 0.31ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:389:15)
 
     console.log
-      [PERF] Search times for different result sizes: 0.003ms, 0.184ms, 0.038ms
+      [PERF] Search times for different result sizes: 0.003ms, 0.097ms, 0.173ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:419:15)
 
     console.log
-      [PERF] Index 5000 nodes: 145.14ms
+      [PERF] Index 5000 nodes: 150.76ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:437:15)
 
@@ -708,10 +818,10 @@ PASS src/utils/__tests__/PrefixTreeSearch.test.ts
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:467:15)
 
 PASS src/hooks/__tests__/useRequiredSettings.test.ts
-PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
 PASS src/utils/__tests__/ColorUtils.test.ts
-PASS src/stores/__tests__/graphNodeToReactFlowNode.test.ts
+PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
 PASS src/hooks/__tests__/useSelectionActions.test.ts
+PASS src/stores/__tests__/graphNodeToReactFlowNode.test.ts
 PASS src/stores/__tests__/ConnectionStore.test.ts
 PASS src/hooks/__tests__/useProcessedEdges.test.ts
 PASS src/stores/__tests__/SettingsStore.test.ts
@@ -837,22 +947,22 @@ PASS src/stores/__tests__/NotificationStore.test.ts
       at Object.<anonymous> (src/stores/__tests__/NotificationStore.test.ts:361:10)
 
 PASS src/__tests__/components/chat/containers/GlobalChat.test.tsx
-PASS src/utils/__tests__/handleUtils.test.ts
 PASS src/__tests__/components/chat/containers/ChatView.test.tsx
+PASS src/utils/__tests__/handleUtils.test.ts
 PASS src/stores/__tests__/customEquality.test.ts
 PASS src/hooks/__tests__/useInputStream.test.ts
 PASS src/hooks/__tests__/useSelectedNodesInfo.test.ts
 PASS src/hooks/__tests__/useDuplicate.test.ts
 PASS src/stores/__tests__/KeyPressedStore.test.ts
-PASS src/hooks/__tests__/useFloatingToolbarActions.test.ts
 PASS src/stores/__tests__/FileStore.test.ts
 PASS src/utils/__tests__/dockviewLayout.test.ts
+PASS src/hooks/__tests__/useFloatingToolbarActions.test.ts
 PASS src/hooks/__tests__/useMessageQueue.test.ts
 PASS src/stores/__tests__/NodeMenuStore.test.ts
 PASS src/stores/__tests__/WorkflowAssetStore.test.ts
 PASS src/stores/__tests__/ModelPreferencesStore.test.ts
-PASS src/hooks/__tests__/useCopyToClipboard.test.ts
 PASS src/stores/__tests__/ErrorStore.test.ts
+PASS src/hooks/__tests__/useCopyToClipboard.test.ts
 PASS src/stores/__tests__/ModelMenuStore.test.ts
 PASS src/utils/__tests__/comfyWorkflowConverter.test.ts
   ● Console
@@ -879,6 +989,7 @@ PASS src/stores/__tests__/RemoteSettingStore.test.ts
 PASS src/utils/__tests__/clipboardUtils.test.ts
 PASS src/utils/__tests__/findMatchingNodesInWorkflows.test.ts
 PASS src/stores/__tests__/LogStore.test.ts
+PASS src/utils/__tests__/providerDisplay.test.ts
 PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
   ● Console
 
@@ -920,7 +1031,6 @@ PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
-PASS src/utils/__tests__/providerDisplay.test.ts
 PASS src/stores/__tests__/HfCacheStatusStore.test.ts
 PASS src/utils/__tests__/graphDiff.test.ts
 PASS src/stores/__tests__/VibeCodingStore.test.ts
@@ -1297,8 +1407,8 @@ PASS src/components/ui_primitives/__tests__/Dialog.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/ui_primitives/__tests__/Dialog.test.tsx:315:33)
 
-PASS src/components/ui_primitives/__tests__/LabeledToggle.test.tsx
 PASS src/stores/__tests__/SecretsStore.test.ts
+PASS src/components/ui_primitives/__tests__/LabeledToggle.test.tsx
 PASS src/utils/__tests__/modelNormalization.test.ts
 PASS src/hooks/__tests__/useWorkflowActions.test.ts
   ● Console
@@ -1452,6 +1562,7 @@ PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/utils/__tests__/colorConversion.test.ts
 PASS src/utils/__tests__/groupByDate.test.ts
 PASS src/__tests__/components/chat/composer/MessageInput.test.tsx
+PASS src/hooks/nodes/__tests__/useDynamicOutput.test.ts
 PASS src/hooks/__tests__/useJobReconnection.test.tsx
   ● Console
 
@@ -1496,15 +1607,107 @@ PASS src/hooks/__tests__/useJobReconnection.test.tsx
 
       at src/hooks/useJobReconnection.ts:86:15
 
-PASS src/hooks/nodes/__tests__/useDynamicOutput.test.ts
-PASS src/hooks/__tests__/useDelayedHover.test.ts
 PASS src/utils/__tests__/edgeValue.test.ts
+PASS src/hooks/__tests__/useDelayedHover.test.ts
 PASS src/stores/__tests__/MetadataStore.test.ts
 PASS src/hooks/__tests__/useInferredOutputTypes.test.ts
 PASS src/stores/__tests__/FindInWorkflowStore.test.ts
 PASS src/hooks/__tests__/useNodeFocus.test.ts
 PASS src/hooks/__tests__/useSecrets.test.tsx
 PASS src/utils/__tests__/modelFilters.test.ts
+PASS src/stores/__tests__/AgentStore.test.ts
+  ● Console
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:144:27)
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:175:27)
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:207:27)
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:234:27)
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:256:27)
+
 PASS src/hooks/__tests__/useCollectionDragAndDrop.test.ts
   ● Console
 
@@ -1712,99 +1915,6 @@ PASS src/utils/__tests__/fileExplorer.test.ts
       at debugLog (src/utils/fileExplorer.ts:37:13)
 
 PASS src/stores/__tests__/ApiClient.test.ts
-PASS src/stores/__tests__/AgentStore.test.ts
-  ● Console
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:144:27)
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:175:27)
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:207:27)
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:234:27)
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:256:27)
-
 PASS src/stores/__tests__/StatusStore.test.ts
 PASS src/stores/__tests__/NodeFocusStore.test.ts
 PASS src/hooks/nodes/__tests__/useRunSelectedNodes.test.ts
@@ -2375,10 +2485,10 @@ PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
 
 PASS src/utils/modelNormalization.test.ts
 PASS src/hooks/__tests__/useApiKeyValidation.test.ts
-PASS src/stores/__tests__/graphConversion.test.ts
 PASS src/hooks/__tests__/useRunningJobs.test.tsx
-PASS src/hooks/__tests__/useFitView.test.ts
+PASS src/stores/__tests__/graphConversion.test.ts
 PASS src/lib/dragdrop/__tests__/serialization.test.ts
+PASS src/hooks/__tests__/useFitView.test.ts
 PASS src/utils/__tests__/comfySchemaConverter.test.ts
 PASS src/hooks/__tests__/useAlignNodes.test.ts
 PASS src/stores/__tests__/FileTabsStore.test.ts
@@ -2404,15 +2514,15 @@ PASS src/stores/__tests__/WorkflowRunner.test.ts
           at runTest (/home/runner/work/nodetool/nodetool/web/node_modules/jest-runner/build/runTest.js:444:34)
           at Object.worker (/home/runner/work/nodetool/nodetool/web/node_modules/jest-runner/build/testWorker.js:106:12)
 
-    [0m [90m 141 |[39m         [36mset[39m({ state[33m:[39m [32m"connected"[39m })[33m;[39m
-     [90m 142 |[39m       } [36mcatch[39m (error) {
-    [31m[1m>[22m[39m[90m 143 |[39m         log[33m.[39merror([32m`WorkflowRunner[${workflowId}]: Connection failed:`[39m[33m,[39m error)[33m;[39m
+    [0m [90m 142 |[39m         [36mset[39m({ state[33m:[39m [32m"connected"[39m })[33m;[39m
+     [90m 143 |[39m       } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 144 |[39m         log[33m.[39merror([32m`WorkflowRunner[${workflowId}]: Connection failed:`[39m[33m,[39m error)[33m;[39m
      [90m     |[39m             [31m[1m^[22m[39m
-     [90m 144 |[39m         [36mset[39m({ state[33m:[39m [32m"error"[39m })[33m;[39m
-     [90m 145 |[39m         [36mthrow[39m error[33m;[39m
-     [90m 146 |[39m       }[0m
+     [90m 145 |[39m         [36mset[39m({ state[33m:[39m [32m"error"[39m })[33m;[39m
+     [90m 146 |[39m         [36mthrow[39m error[33m;[39m
+     [90m 147 |[39m       }[0m
 
-      at Object.ensureConnection (src/stores/WorkflowRunner.ts:143:13)
+      at Object.ensureConnection (src/stores/WorkflowRunner.ts:144:13)
       at Object.<anonymous> (src/stores/__tests__/WorkflowRunner.test.ts:188:7)
 
 PASS src/hooks/nodes/__tests__/useSurroundWithGroup.test.ts
@@ -2420,8 +2530,8 @@ PASS src/hooks/__tests__/useCreateNode.test.ts
 PASS src/utils/__tests__/selectionBounds.test.ts
 PASS src/hooks/nodes/__tests__/useDynamicProperty.test.ts
 PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
-PASS src/utils/__tests__/nodeUtils.test.ts
 PASS src/hooks/__tests__/useNumberInput.test.ts
+PASS src/utils/__tests__/nodeUtils.test.ts
 PASS src/utils/__tests__/sanitize.test.ts
 PASS src/stores/__tests__/FavoriteNodesStore.test.ts
 PASS src/utils/__tests__/NodeTypeMapping.test.ts
@@ -2472,14 +2582,15 @@ PASS src/components/ui_primitives/__tests__/ActionButtons.test.tsx
 PASS src/stores/__tests__/VersionHistoryStore.test.ts
 PASS src/hooks/__tests__/useWorkflowGraphUpdater.test.ts
 PASS src/utils/__tests__/graphCycle.test.ts
-PASS src/hooks/__tests__/useProviderApiKeyValidation.test.ts
 PASS src/components/node/image_editor/__tests__/ImageEditorToolbar.test.tsx
+PASS src/hooks/__tests__/useProviderApiKeyValidation.test.ts
 PASS src/hooks/nodes/__tests__/useSyncEdgeSelection.test.ts
 PASS src/utils/__tests__/formatDateAndTime.test.ts
 PASS src/hooks/nodes/__tests__/getGroupBounds.test.ts
+PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
+PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
 PASS src/lib/dragdrop/__tests__/hooks.test.tsx
 PASS src/__tests__/components/vibecoding/extractHtml.test.ts
-PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
 PASS src/hooks/__tests__/useWorkflowRunnerState.test.ts
 PASS src/components/context_menus/__tests__/PaneContextMenu.test.tsx
 PASS src/stores/__tests__/formatNodeDocumentation.test.ts
@@ -2675,8 +2786,8 @@ PASS src/__tests__/components/chat/composer/StopGenerationButton.test.tsx
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
 PASS src/hooks/__tests__/useFloatingToolbarState.test.ts
-PASS src/stores/__tests__/GettingStartedStore.test.ts
 PASS src/hooks/__tests__/useFitNodeEvent.test.ts
+PASS src/stores/__tests__/GettingStartedStore.test.ts
 PASS src/stores/__tests__/RightPanelStore.test.ts
 PASS src/stores/__tests__/RecentNodesStore.test.ts
 PASS src/hooks/__tests__/useInputMinMax.test.ts
@@ -2684,9 +2795,9 @@ PASS src/utils/__tests__/hfCache.test.ts
 PASS src/components/properties/__tests__/IntegerProperty.test.tsx
 PASS src/components/properties/__tests__/FloatProperty.test.tsx
 PASS src/__tests__/ErrorBoundary.test.tsx
-PASS src/hooks/__tests__/useProviders.test.tsx
 PASS src/utils/__tests__/imageUtils.test.ts
 PASS src/utils/__tests__/dataframeParsers.test.ts
+PASS src/hooks/__tests__/useProviders.test.tsx
 PASS src/components/assets/hooks/__tests__/useClickOutsideDeselect.test.ts
 PASS src/hooks/assets/__tests__/useAssetImageEditor.test.ts
   ● Console
@@ -3497,6 +3608,7 @@ PASS src/components/asset_viewer/__tests__/Model3DViewer.test.tsx
       at Object.<anonymous> (src/components/asset_viewer/__tests__/Model3DViewer.test.tsx:162:11)
 
 PASS src/utils/__tests__/colorHarmonies.test.ts
+PASS src/stores/__tests__/reactFlowEdgeToGraphEdge.test.ts
 PASS src/hooks/browser/__tests__/useVideoRecorder.test.ts
   ● Console
 
@@ -3811,26 +3923,25 @@ PASS src/hooks/browser/__tests__/useVideoRecorder.test.ts
 PASS src/__tests__/components/node_menu/NodeMenuKeyboardNavigation.test.tsx
 PASS src/utils/__tests__/NumberInput.utils.test.ts
 PASS src/stores/__tests__/ModelManagerStore.test.ts
-PASS src/utils/__tests__/highlightText.test.ts
 PASS src/components/ui_primitives/__tests__/SelectionControls.test.tsx
-PASS src/hooks/__tests__/reduceUnionType.test.ts
+PASS src/utils/__tests__/highlightText.test.ts
 PASS src/providers/__tests__/ContextMenuProvider.test.tsx
+PASS src/hooks/__tests__/reduceUnionType.test.ts
 PASS src/providers/__tests__/ConnectableNodesProvider.test.tsx
 PASS src/stores/__tests__/ExecutionTimeStore.test.ts
+PASS src/components/properties/__tests__/DataframeProperty.test.tsx
 PASS src/stores/__tests__/NodePlacementStore.test.ts
 PASS src/stores/__tests__/resourceChangeHandler.test.ts
-PASS src/components/properties/__tests__/DataframeProperty.test.tsx
-PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
 PASS src/utils/__tests__/downloadPreviewAssets.test.ts
 PASS src/utils/__tests__/errorHandling.test.ts
 PASS src/hooks/__tests__/useFloatingToolbarPosition.test.ts
 PASS src/components/ui_primitives/__tests__/ShortcutHint.test.tsx
 PASS src/components/ui_primitives/__tests__/ActionButtonGroup.test.tsx
 PASS src/utils/__tests__/identifierValidation.test.ts
-PASS src/stores/__tests__/WorkflowActionsStore.test.ts
 PASS src/components/ui_primitives/__tests__/DialogActionButtons.test.tsx
-PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
+PASS src/stores/__tests__/WorkflowActionsStore.test.ts
 PASS src/serverState/__tests__/checkHfCache.test.ts
+PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
 PASS src/stores/__tests__/SessionStateStore.test.ts
 PASS src/components/ui_primitives/__tests__/PlaybackButton.test.tsx
 PASS src/utils/__tests__/useDynamicSvgImport.test.tsx
@@ -4060,6 +4171,25 @@ PASS src/components/properties/__tests__/TextListProperty.test.tsx
 PASS src/utils/graphCycle.test.ts
 PASS src/contexts/__tests__/EditorInsertionContext.test.tsx
 PASS src/hooks/handlers/__tests__/useConnectionEvents.test.ts
+PASS src/core/workflow/__tests__/graphMapping.test.ts
+  ● Console
+
+    console.warn
+      Edge e1 references invalid source handle "invalid" on node a (type: test). Available outputs: output. Removing edge.
+
+    [0m [90m 129 |[39m       [36mif[39m ([33m![39msourceHasValidHandle) {
+     [90m 130 |[39m         [36mconst[39m sourceDynamicOutputs [33m=[39m sourceNode[33m.[39mdata[33m.[39mdynamic_outputs [33m||[39m {}[33m;[39m
+    [31m[1m>[22m[39m[90m 131 |[39m         log[33m.[39mwarn(
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 132 |[39m           [32m`Edge ${edge.id} references invalid source handle "${[39m
+     [90m 133 |[39m [32m            edge.sourceHandle[39m
+     [90m 134 |[39m [32m          }" on node ${edge.source} (type: ${[39m[0m
+
+      at src/core/workflow/graphMapping.ts:131:13
+          at Array.filter (<anonymous>)
+      at sanitizeGraph (src/core/workflow/graphMapping.ts:82:32)
+      at Object.<anonymous> (src/core/workflow/__tests__/graphMapping.test.ts:93:47)
+
 PASS src/stores/__tests__/AppHeaderStore.test.ts
 PASS src/contexts/__tests__/NodeContext.test.tsx
   ● Console
@@ -4616,7 +4746,6 @@ PASS src/utils/modelFilters.test.ts
 PASS src/hooks/__tests__/useIpcRenderer.test.tsx
 PASS src/components/ui_primitives/__tests__/RefreshButton.test.tsx
 PASS src/components/ui_primitives/__tests__/ExpandCollapseButton.test.tsx
-PASS src/stores/__tests__/reactFlowEdgeToGraphEdge.test.ts
 PASS src/utils/ColorUtils.test.ts
   ● Console
 
@@ -4667,49 +4796,32 @@ PASS src/stores/formatNodeDocumentation.test.ts
 PASS src/hooks/handlers/__tests__/clipboard_perf.test.ts
 PASS src/utils/formatUtils.test.ts
 PASS src/utils/__tests__/sentry.test.ts
+PASS src/__tests__/performance/LogStoreReRender.test.tsx
 PASS src/components/properties/__tests__/Model3DProperty.test.tsx
 PASS src/utils/__tests__/binary.test.ts
-PASS src/components/assets/__tests__/AssetItem.test.tsx
 PASS src/__tests__/components/assets/AssetSearchInput.test.tsx
+PASS src/components/assets/__tests__/AssetItem.test.tsx
 PASS src/config/__tests__/shortcuts.test.ts
 PASS src/stores/__tests__/InspectedNodeStore.test.ts
 PASS src/hooks/nodes/__tests__/getChildNodes.test.ts
 PASS src/utils/__tests__/getFileExtension.test.ts
 PASS src/hooks/editor/__tests__/useEditorActions.test.ts
 PASS src/hooks/assets/__tests__/useAssetDisplay.test.tsx
+PASS src/components/properties/__tests__/PropertyDropzone.test.tsx
 PASS src/utils/errorHandling.test.ts
 PASS src/utils/highlightText.test.ts
 PASS src/utils/__tests__/modelDownloadCheck.test.ts
-PASS src/components/properties/__tests__/PropertyDropzone.test.tsx
 PASS src/hooks/__tests__/useRunningTime.test.ts
 PASS src/hooks/__tests__/useFocusPan.test.ts
 PASS src/stores/__tests__/WorkspaceManagerStore.test.ts
 PASS src/__tests__/components/node/InputNodeNameWarning.test.tsx
-PASS src/core/workflow/__tests__/graphMapping.test.ts
-  ● Console
-
-    console.warn
-      Edge e1 references invalid source handle "invalid" on node a (type: test). Available outputs: output. Removing edge.
-
-    [0m [90m 123 |[39m       [36mif[39m ([33m![39msourceHasValidHandle) {
-     [90m 124 |[39m         [36mconst[39m sourceDynamicOutputs [33m=[39m sourceNode[33m.[39mdata[33m.[39mdynamic_outputs [33m||[39m {}[33m;[39m
-    [31m[1m>[22m[39m[90m 125 |[39m         log[33m.[39mwarn(
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 126 |[39m           [32m`Edge ${edge.id} references invalid source handle "${[39m
-     [90m 127 |[39m [32m            edge.sourceHandle[39m
-     [90m 128 |[39m [32m          }" on node ${edge.source} (type: ${[39m[0m
-
-      at src/core/workflow/graphMapping.ts:125:13
-          at Array.filter (<anonymous>)
-      at sanitizeGraph (src/core/workflow/graphMapping.ts:76:32)
-      at Object.<anonymous> (src/core/workflow/__tests__/graphMapping.test.ts:92:47)
-
 PASS src/stores/__tests__/workflowResultHydration.test.ts
 PASS src/components/node/__tests__/NodeExecutionTime.test.tsx
 PASS src/components/node/__tests__/ResultOverlay.test.tsx
 PASS src/components/ui_primitives/__tests__/FlexColumn.test.tsx
 PASS src/hooks/__tests__/useRenderLogger.test.ts
 PASS src/utils/__tests__/timeFormat.test.ts
+PASS src/hooks/handlers/__tests__/useReactFlowEvents.test.ts
 PASS src/components/ui_primitives/__tests__/spacing.test.ts
 PASS src/components/node_editor/__tests__/SelectionActionToolbar.test.tsx
 PASS src/stores/__tests__/fuseOptions.test.ts
@@ -4748,30 +4860,29 @@ PASS src/lib/tools/__tests__/searchNodesTool.test.ts
 
       at Object.call (src/lib/tools/frontendTools.ts:334:17)
 
+PASS src/hooks/handlers/__tests__/useEdgeHandlers.test.ts
+PASS src/providers/__tests__/MenuProvider.test.tsx
 PASS src/__tests__/performance/assetCreationBenchmark.test.ts
   ● Console
 
     console.log
-      [PERF] Sequential execution (10 files): 502.18ms
+      [PERF] Sequential execution (10 files): 501.87ms
 
       at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:41:13)
 
     console.log
-      [PERF] Parallel execution (10 files): 50.24ms
+      [PERF] Parallel execution (10 files): 50.37ms
 
       at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:49:13)
 
     console.log
-      [PERF] Speedup: 10.00x
+      [PERF] Speedup: 9.96x
 
       at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:60:13)
 
-PASS src/providers/__tests__/MenuProvider.test.tsx
-PASS src/hooks/handlers/__tests__/useEdgeHandlers.test.ts
-PASS src/hooks/handlers/__tests__/useReactFlowEvents.test.ts
 PASS src/utils/__tests__/browser.test.ts
-PASS src/components/ui_primitives/__tests__/Text.test.tsx
 PASS src/components/ui_primitives/__tests__/Card.test.tsx
+PASS src/components/ui_primitives/__tests__/Text.test.tsx
 PASS src/serverState/__tests__/useAssetById.test.tsx
 PASS src/utils/__tests__/truncateString.test.ts
 PASS src/components/node_editor/__tests__/Alert.test.tsx
@@ -4869,6 +4980,7 @@ PASS src/components/node_editor/__tests__/NotificationsList.test.tsx
 
 PASS src/stores/__tests__/WorkflowListViewStore.test.ts
 PASS src/components/ui_primitives/__tests__/FlexRow.test.tsx
+PASS src/hooks/__tests__/useWorkflowStats.test.tsx
 PASS src/utils/nodeDisplay.test.ts
 PASS src/hooks/__tests__/useIsDarkMode.test.ts
   ● Console
@@ -4973,20 +5085,20 @@ PASS src/hooks/__tests__/useIsDarkMode.test.ts
       at node_modules/jsdom/lib/jsdom/living/helpers/mutation-observers.js:133:5
 
 PASS src/utils/__tests__/imageUploadValidation.test.ts
-PASS src/serverState/__tests__/useFolderTree.test.tsx
 PASS src/components/common/__tests__/CopyToClipboardButton.test.tsx
+PASS src/serverState/__tests__/useFolderTree.test.tsx
 PASS src/components/assets/__tests__/FolderItem.test.tsx
 PASS src/__tests__/components/node/DatetimeRenderer.test.tsx
 PASS src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts
   ● Console
 
     console.log
-      Sequential duration: 302ms
+      Sequential duration: 306ms
 
       at Object.<anonymous> (src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts:34:13)
 
     console.log
-      Concurrent duration: 100ms
+      Concurrent duration: 101ms
 
       at Object.<anonymous> (src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts:49:13)
 
@@ -5004,7 +5116,6 @@ PASS src/__tests__/components/assets/AssetExplorer.test.tsx
 PASS src/stores/__tests__/PanelStore.test.ts
 PASS src/hooks/__tests__/useLoraModels.test.ts
 PASS src/utils/__tests__/platform.test.ts
-PASS src/components/__tests__/ProtectedRoute.test.tsx
 PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
   ● Console
 
@@ -5012,7 +5123,7 @@ PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
       Warning: The tag <path> is unrecognized in this browser. If you meant to render a React component, start its name with an uppercase letter.
           at path
           at g
-          at ConnectionLine (/home/runner/work/nodetool/nodetool/web/src/components/node_editor/ConnectionLine.tsx:14:3)
+          at ConnectionLine (/home/runner/work/nodetool/nodetool/web/src/components/node_editor/ConnectionLine.tsx:17:3)
 
     [0m [90m 25 |[39m describe([32m'ConnectionLine'[39m[33m,[39m () [33m=>[39m {
      [90m 26 |[39m   it([32m'renders bezier path and class'[39m[33m,[39m () [33m=>[39m {
@@ -5043,7 +5154,7 @@ PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
       Warning: The tag <rect> is unrecognized in this browser. If you meant to render a React component, start its name with an uppercase letter.
           at rect
           at g
-          at ConnectionLine (/home/runner/work/nodetool/nodetool/web/src/components/node_editor/ConnectionLine.tsx:14:3)
+          at ConnectionLine (/home/runner/work/nodetool/nodetool/web/src/components/node_editor/ConnectionLine.tsx:17:3)
 
     [0m [90m 25 |[39m describe([32m'ConnectionLine'[39m[33m,[39m () [33m=>[39m {
      [90m 26 |[39m   it([32m'renders bezier path and class'[39m[33m,[39m () [33m=>[39m {
@@ -5073,7 +5184,7 @@ PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
     console.error
       Warning: The tag <g> is unrecognized in this browser. If you meant to render a React component, start its name with an uppercase letter.
           at g
-          at ConnectionLine (/home/runner/work/nodetool/nodetool/web/src/components/node_editor/ConnectionLine.tsx:14:3)
+          at ConnectionLine (/home/runner/work/nodetool/nodetool/web/src/components/node_editor/ConnectionLine.tsx:17:3)
 
     [0m [90m 25 |[39m describe([32m'ConnectionLine'[39m[33m,[39m () [33m=>[39m {
      [90m 26 |[39m   it([32m'renders bezier path and class'[39m[33m,[39m () [33m=>[39m {
@@ -5100,10 +5211,11 @@ PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/node_editor/__tests__/ConnectionLine.test.tsx:27:33)
 
+PASS src/components/__tests__/ProtectedRoute.test.tsx
 PASS src/hooks/editor/__tests__/useEditorKeyboardShortcuts.test.ts
 PASS src/hooks/assets/__tests__/useAssetDownload.test.ts
-PASS src/utils/__tests__/uuidv4.test.ts
 PASS src/hooks/editor/__tests__/useEditorMode.test.ts
+PASS src/utils/__tests__/uuidv4.test.ts
 PASS src/stores/__tests__/ConnectableNodesStore.test.ts
 PASS src/serverState/__tests__/useAsset.test.tsx
 PASS src/hooks/assets/__tests__/useAssetNavigation.test.ts
@@ -5119,13 +5231,13 @@ PASS src/hooks/editor/__tests__/useCodeLanguage.test.ts
 PASS src/hooks/editor/__tests__/useFullscreenMode.test.ts
 PASS src/components/__tests__/KeyboardProvider.test.tsx
 PASS src/core/workflow/__tests__/runnerProtocol.test.ts
-PASS src/components/properties/__tests__/NonEditableProperty.test.tsx
 PASS src/components/node_editor/__tests__/LoadingAnimation.test.tsx
+PASS src/components/properties/__tests__/NonEditableProperty.test.tsx
 
-Test Suites: 1 skipped, 322 passed, 322 of 323 total
-Tests:       18 skipped, 4093 passed, 4111 total
+Test Suites: 1 skipped, 324 passed, 324 of 325 total
+Tests:       18 skipped, 4109 passed, 4127 total
 Snapshots:   0 total
-Time:        45.228 s
+Time:        43.73 s
 Ran all test suites.
 Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
 Running electron tests...
@@ -5134,5 +5246,46 @@ cd electron && npm test
 > nodetool-electron@0.6.2-rc.23 test
 > jest
 
+PASS src/__tests__/window.test.ts (5.996 s)
+PASS src/__tests__/fileExplorer.test.ts
+PASS src/__tests__/config.test.ts
+PASS src/__tests__/updater.test.ts
+PASS src/__tests__/agent.test.ts (7.041 s)
+PASS src/__tests__/debug.test.ts
+PASS src/__tests__/torchruntime.test.ts
+PASS src/__tests__/shortcuts.test.ts
+PASS src/__tests__/api.test.ts
+PASS src/__tests__/utils.test.ts
+PASS src/__tests__/condaPackageChecker.test.ts
+PASS src/__tests__/ipc.test.ts (7.904 s)
+PASS src/__tests__/ollama.test.ts
+PASS src/__tests__/torchPlatformCache.test.ts
+PASS src/__tests__/settings.test.ts
+PASS src/__tests__/workflowExecution.test.ts
+PASS src/__tests__/settingsPage.test.ts
+PASS src/__tests__/workflowRunner.test.ts
+PASS src/__tests__/logger.behavior.test.ts
+PASS src/__tests__/menu.test.ts
+PASS src/__tests__/installer.test.ts
+PASS src/__tests__/events.test.ts
+PASS src/__tests__/download.test.ts
+PASS src/__tests__/workflowWindow.test.ts
+PASS src/__tests__/state.test.ts
+PASS src/__tests__/packageManager.wheel.test.ts
+PASS src/__tests__/simpleDownload.test.ts
+PASS src/__tests__/basicImports.test.ts
+PASS src/__tests__/simpleLogger.test.ts
+
+Test Suites: 29 passed, 29 total
+Tests:       280 passed, 280 total
+Snapshots:   0 total
+Time:        9.292 s
+Ran all test suites.
+Running mobile tests...
+cd mobile && npm test
+
+> nodetool-mobile@0.6.2-rc.23 test
+> jest
+
 sh: 1: jest: not found
-make: *** [Makefile:101: test-electron] Error 127
+make: *** [Makefile:105: test-mobile] Error 127
