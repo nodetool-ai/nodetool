@@ -101,6 +101,55 @@
     });
   }
 
+  // Copy page as Markdown
+  function initCopyPageButton() {
+    const button = document.querySelector('.copy-page-button');
+    if (!button) return;
+
+    const article = document.querySelector('.doc-page');
+    const sourcePath = article ? article.dataset.sourcePath : null;
+
+    button.addEventListener('click', async () => {
+      const label = button.querySelector('span');
+      try {
+        let markdown = '';
+
+        if (sourcePath) {
+          const rawUrl = 'https://raw.githubusercontent.com/nodetool-ai/nodetool/main/docs/' + sourcePath;
+          const response = await fetch(rawUrl);
+          if (response.ok) {
+            markdown = await response.text();
+            // Strip YAML front matter
+            markdown = markdown.replace(/^---[\s\S]*?---\s*/, '');
+          }
+        }
+
+        // Fallback: extract text content from the page
+        if (!markdown) {
+          const content = document.querySelector('.page-content');
+          if (content) {
+            markdown = content.innerText;
+          }
+        }
+
+        await navigator.clipboard.writeText(markdown.trim());
+        label.textContent = 'Copied!';
+        button.classList.add('copied');
+
+        setTimeout(() => {
+          label.textContent = 'Copy Page';
+          button.classList.remove('copied');
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy page:', err);
+        label.textContent = 'Error';
+        setTimeout(() => {
+          label.textContent = 'Copy Page';
+        }, 2000);
+      }
+    });
+  }
+
   // Add CSS for copy button dynamically
   const copyButtonStyles = `
     .copy-button {
@@ -134,6 +183,45 @@
       background: var(--color-accent-green);
       color: var(--color-bg-primary);
       border-color: var(--color-accent-green);
+    }
+
+    .copy-page-button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.8rem;
+      background: var(--color-bg-elevated);
+      color: var(--color-accent-cyan);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .copy-page-button:hover {
+      background: var(--color-accent-cyan);
+      color: var(--color-bg-primary);
+      border-color: var(--color-accent-cyan);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .copy-page-button:hover svg {
+      stroke: var(--color-bg-primary);
+    }
+
+    .copy-page-button.copied {
+      background: var(--color-accent-green);
+      color: var(--color-bg-primary);
+      border-color: var(--color-accent-green);
+    }
+
+    .copy-page-button.copied svg {
+      stroke: var(--color-bg-primary);
     }
   `;
 
@@ -461,6 +549,7 @@
   function init() {
     setActiveLink();
     addCopyButtons();
+    initCopyPageButton();
     setupScrollAnimations();
     addLogoGlitch();
     restoreSidebarScroll();
