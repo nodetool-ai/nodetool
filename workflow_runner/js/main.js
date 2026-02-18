@@ -186,9 +186,12 @@ async function runWorkflow() {
 
     const result = await workflowRunner.run(workflowId, params);
     updateOutput("Workflow completed successfully", "success");
+    updateOutput("Result: " + JSON.stringify(result, null, 2), "success");
     handleResult(result);
+    return result;
   } catch (error) {
     updateOutput("Error: " + error.message, "error");
+    throw error;
   } finally {
     hideProgressBar();
     const previewStatus = document.getElementById("previewStatus");
