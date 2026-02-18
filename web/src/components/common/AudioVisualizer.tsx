@@ -123,4 +123,4 @@ const AudioVisualizer = memo(({
 });
 AudioVisualizer.displayName = "AudioVisualizer";
 
-export default AudioVisualizer;
+export default memo(AudioVisualizer);

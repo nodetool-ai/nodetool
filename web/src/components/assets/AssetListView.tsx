@@ -555,4 +555,4 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
 
 AssetListView.displayName = 'AssetListView';
 
-export default AssetListView;
+export default memo(AssetListView);

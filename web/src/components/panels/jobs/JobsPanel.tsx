@@ -79,4 +79,4 @@ const JobsPanel = memo(function JobsPanel() {
 
 JobsPanel.displayName = "JobsPanel";
 
-export default JobsPanel;
+export default memo(JobsPanel);

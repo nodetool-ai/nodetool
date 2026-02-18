@@ -503,4 +503,4 @@ const SecretsMenu = memo(() => {
 });
 SecretsMenu.displayName = "SecretsMenu";
 
-export default SecretsMenu;
+export default memo(SecretsMenu);

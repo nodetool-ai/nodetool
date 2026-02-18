@@ -447,4 +447,4 @@ const TypeFilter = memo(({
 
 TypeFilter.displayName = "TypeFilter";
 
-export default TypeFilter;
+export default memo(TypeFilter);

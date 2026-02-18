@@ -21,4 +21,4 @@ const StatusMessage = memo(function StatusMessage() {
   );
 });
 
-export default StatusMessage;
+export default memo(StatusMessage);
