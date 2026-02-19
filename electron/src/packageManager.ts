@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
 import { getProcessEnv, getUVPath, getPythonPath } from "./config";
-import { emitServerLog } from "./events";
+import { emitServerLog, emitBootMessage } from "./events";
 import {
   PackageInfo,
   PackageModel,
@@ -779,6 +779,7 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     const message = `Updating ${packageName} to v${latestVersion}...`;
     logMessage(message);
     emitServerLog(message);
+    emitBootMessage(message);
 
     const args = [
       "pip",
@@ -958,6 +959,7 @@ export async function installExpectedPackages(): Promise<{
       const message = `Installing ${packageName} v${expectedVersion}...`;
       logMessage(message);
       emitServerLog(message);
+      emitBootMessage(message);
 
       const args = [
         "pip",
@@ -982,6 +984,7 @@ export async function installExpectedPackages(): Promise<{
       const successMessage = `Successfully installed ${packageName} v${expectedVersion}`;
       logMessage(successMessage);
       emitServerLog(successMessage);
+      emitBootMessage(successMessage);
 
       packagesUpdated++;
     } catch (error: any) {
