@@ -251,6 +251,25 @@ async function runCommand(command: string[]): Promise<void> {
     for (const line of lines) {
       logMessage(line);
       emitServerLog(line);
+      
+      // Parse package names from pip/uv output and emit boot messages
+      // Look for lines like "Downloading package-name-version"
+      const downloadingMatch = line.match(/Downloading\s+([a-zA-Z0-9_-]+)/i);
+      if (downloadingMatch) {
+        emitBootMessage(`Downloading ${downloadingMatch[1]}...`);
+      }
+      
+      // Look for lines like "Installing package-name-version"
+      const installingMatch = line.match(/Installing\s+([a-zA-Z0-9_-]+)/i);
+      if (installingMatch) {
+        emitBootMessage(`Installing ${installingMatch[1]}...`);
+      }
+      
+      // Look for lines like "Updating package-name"
+      const updatingMatch = line.match(/Updating\s+([a-zA-Z0-9_-]+)/i);
+      if (updatingMatch) {
+        emitBootMessage(`Updating ${updatingMatch[1]}...`);
+      }
     }
   });
 
@@ -263,6 +282,17 @@ async function runCommand(command: string[]): Promise<void> {
     for (const line of lines) {
       logMessage(line);
       emitServerLog(line);
+      
+      // Parse package names from pip/uv stderr output (some progress info goes to stderr)
+      const downloadingMatch = line.match(/Downloading\s+([a-zA-Z0-9_-]+)/i);
+      if (downloadingMatch) {
+        emitBootMessage(`Downloading ${downloadingMatch[1]}...`);
+      }
+      
+      const installingMatch = line.match(/Installing\s+([a-zA-Z0-9_-]+)/i);
+      if (installingMatch) {
+        emitBootMessage(`Installing ${installingMatch[1]}...`);
+      }
     }
   });
 
