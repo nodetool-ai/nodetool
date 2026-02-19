@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { Box } from "@mui/material";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
@@ -8,6 +8,14 @@ import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
 import ResultOverlay from "./ResultOverlay";
+
+/**
+ * Helper function to check if an object is empty
+ * Moved outside component to avoid recreation on every render
+ */
+const isEmptyObject = (obj: any): boolean => {
+  return obj && typeof obj === "object" && Object.keys(obj).length === 0;
+};
 
 interface NodeContentProps {
   id: string;
@@ -172,14 +180,12 @@ const NodeContent: React.FC<NodeContentProps> = ({
     data.dynamic_properties as Record<string, any>
   );
 
-  const isEmptyObject = (obj: any) => {
-    return obj && typeof obj === "object" && Object.keys(obj).length === 0;
-  };
-
+  // Memoize shouldShowOverlay calculation to avoid recomputing on every render
   // For output nodes, always show overlay when result is available
-  const shouldShowOverlay = isOutputNode
-    ? result && !isEmptyObject(result)
-    : showResultOverlay && result && !isEmptyObject(result);
+  const shouldShowOverlay = useMemo(() => {
+    const hasResult = result && !isEmptyObject(result);
+    return isOutputNode ? hasResult : showResultOverlay && hasResult;
+  }, [isOutputNode, result, showResultOverlay]);
 
   if (shouldShowOverlay) {
     return (
