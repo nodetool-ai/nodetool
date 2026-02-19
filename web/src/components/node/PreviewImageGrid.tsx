@@ -325,7 +325,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     let changed = false;
     images.forEach((img) => {
       // Skip null/undefined images
-      if (img == null) {
+      if (img === null || img === undefined) {
         return;
       }
       if (!map.has(img)) {
@@ -408,7 +408,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       >
         {images.map((img, idx) => {
           // Skip null/undefined images
-          if (img == null) {
+          if (img === null || img === undefined) {
             return null;
           }
           const isSelected = selectedIndices.has(idx);
