@@ -38,6 +38,10 @@ interface ProcessedEdgesResult {
   activeGradientKeys: Set<string>;
 }
 
+// Global cache for node structure strings to avoid expensive object iteration during drag
+// WeakMap ensures entries are cleaned up when NodeData objects are garbage collected
+const structureCache = new WeakMap<NodeData, string>();
+
 /**
  * Hook that processes workflow edges to add type information, styling, and status.
  * This hook performs several critical transformations:
@@ -111,16 +115,12 @@ export function useProcessedEdges({
     activeGradientKeys: new Set()
   });
 
-  // Cache structural strings to avoid expensive object iteration during drag
-  const structureCache = useRef(new WeakMap<NodeData, string>());
-
   // Structural key: only things that affect edge typing / gradients
-  // This is used to trigger re-calculation when node structure changes (e.g. dynamic ports)
   const nodesStructureKey = useMemo(() => {
     if (isSelecting) {return "";} // we’ll reuse cache while dragging
     return nodes
       .map((n) => {
-        let cached = structureCache.current.get(n.data);
+        let cached = structureCache.get(n.data);
         if (cached === undefined) {
           const dynamicOutputs = n.data.dynamic_outputs
             ? Object.keys(n.data.dynamic_outputs).join(",")
@@ -129,7 +129,7 @@ export function useProcessedEdges({
             ? Object.keys(n.data.dynamic_properties).join(",")
             : "";
           cached = `${dynamicOutputs}:${dynamicProps}`;
-          structureCache.current.set(n.data, cached);
+          structureCache.set(n.data, cached);
         }
         return `${n.id}:${n.type}:${cached}`;
       })
@@ -137,9 +137,6 @@ export function useProcessedEdges({
   }, [nodes, isSelecting]);
 
   return useMemo(() => {
-    // Dependency tracking for node structure changes
-    void nodesStructureKey;
-
     // While dragging the rectangle, just reuse the last processed edges
     if (isSelecting && lastResultRef.current.processedEdges.length > 0) {
       return lastResultRef.current;
@@ -378,5 +375,6 @@ export function useProcessedEdges({
     const result = { processedEdges: processedResultEdges, activeGradientKeys };
     lastResultRef.current = result;
     return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, nodeStatuses, isSelecting, nodesStructureKey]);
 }
