@@ -111,23 +111,35 @@ export function useProcessedEdges({
     activeGradientKeys: new Set()
   });
 
+  // Cache structural strings to avoid expensive object iteration during drag
+  const structureCache = useRef(new WeakMap<NodeData, string>());
+
   // Structural key: only things that affect edge typing / gradients
-  const [_nodesStructureKey] = useMemo(() => {
+  // This is used to trigger re-calculation when node structure changes (e.g. dynamic ports)
+  const nodesStructureKey = useMemo(() => {
     if (isSelecting) {return "";} // we’ll reuse cache while dragging
     return nodes
       .map((n) => {
-        const dynamicOutputs = n.data.dynamic_outputs
-          ? Object.keys(n.data.dynamic_outputs).join(",")
-          : "";
-        const dynamicProps = n.data.dynamic_properties
-          ? Object.keys(n.data.dynamic_properties).join(",")
-          : "";
-        return `${n.id}:${n.type}:${dynamicOutputs}:${dynamicProps}`;
+        let cached = structureCache.current.get(n.data);
+        if (cached === undefined) {
+          const dynamicOutputs = n.data.dynamic_outputs
+            ? Object.keys(n.data.dynamic_outputs).join(",")
+            : "";
+          const dynamicProps = n.data.dynamic_properties
+            ? Object.keys(n.data.dynamic_properties).join(",")
+            : "";
+          cached = `${dynamicOutputs}:${dynamicProps}`;
+          structureCache.current.set(n.data, cached);
+        }
+        return `${n.id}:${n.type}:${cached}`;
       })
       .join("|");
   }, [nodes, isSelecting]);
 
   return useMemo(() => {
+    // Dependency tracking for node structure changes
+    void nodesStructureKey;
+
     // While dragging the rectangle, just reuse the last processed edges
     if (isSelecting && lastResultRef.current.processedEdges.length > 0) {
       return lastResultRef.current;
@@ -366,5 +378,5 @@ export function useProcessedEdges({
     const result = { processedEdges: processedResultEdges, activeGradientKeys };
     lastResultRef.current = result;
     return result;
-  }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, nodeStatuses, isSelecting]);
+  }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, nodeStatuses, isSelecting, nodesStructureKey]);
 }
