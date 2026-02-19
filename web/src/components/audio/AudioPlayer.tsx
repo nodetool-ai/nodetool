@@ -198,11 +198,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
 
   useEffect(() => {
     if (source instanceof Uint8Array) {
-      const copied = new Uint8Array(source.byteLength);
-      copied.set(source);
-      const blob = new Blob([copied.buffer as ArrayBuffer], {
-        type: mimeType
-      });
+      const blob = new Blob([source], { type: mimeType });
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
       return () => URL.revokeObjectURL(url);
