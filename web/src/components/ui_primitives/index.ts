@@ -215,3 +215,7 @@ export {
   resolveSpacing
 } from "./spacing";
 export type { SpacingValue } from "./spacing";
+
+// Keyboard shortcuts display
+export { KeyboardShortcutCard } from "./KeyboardShortcutCard";
+export type { KeyboardShortcutCardProps, ShortcutItem } from "./KeyboardShortcutCard";
