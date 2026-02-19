@@ -76,9 +76,15 @@ electron: $(WEB_BUILD_MARKER)
 	@echo "Starting electron app..."
 	cd electron && npm start
 
+ifeq ($(OS),Windows_NT)
+electron-dev:
+	@echo "Starting Electron development mode..."
+	powershell -ExecutionPolicy Bypass -File scripts/electron-dev.ps1
+else
 electron-dev:
 	@echo "Starting Electron development mode..."
 	./scripts/electron-dev.sh
+endif
 
 # Build targets
 build: build-web build-electron
