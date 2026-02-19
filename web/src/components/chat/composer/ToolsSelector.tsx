@@ -255,6 +255,15 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
     [selectedTools, onChange]
   );
 
+  // Memoize toggle handlers for each tool to prevent re-renders
+  const toggleHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const tool of TOOLS) {
+      handlers[tool.id] = () => handleToggleTool(tool.id);
+    }
+    return handlers;
+  }, [handleToggleTool]);
+
   const groupedTools = useMemo(() => {
     return TOOLS.reduce<Record<string, Tool[]>>((acc, tool) => {
       if (!acc[tool.category]) {
@@ -376,7 +385,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
                       <div
                         key={tool.id}
                         className={`tool-item ${isSelected ? "selected" : ""}`}
-                        onClick={() => handleToggleTool(tool.id)}
+                        onClick={toggleHandlers[tool.id]}
                       >
                         <ListItemIcon
                           className={`tool-icon ${
