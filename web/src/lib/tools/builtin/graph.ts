@@ -24,7 +24,7 @@ function assertObject(
   value: any,
   message: string
 ): asserts value is Record<string, any> {
-  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(message);
   }
 }

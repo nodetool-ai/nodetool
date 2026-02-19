@@ -382,7 +382,7 @@ function resolveComfyInputName(
   targetNode: GraphNode
 ): string | undefined {
   const parsedSlot = parseComfySlotFromHandle(handleName, "input_");
-  if (parsedSlot == null) {
+  if (parsedSlot === null || parsedSlot === undefined) {
     return handleName;
   }
 

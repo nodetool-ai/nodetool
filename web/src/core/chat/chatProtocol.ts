@@ -1048,7 +1048,7 @@ export async function handleChatWebSocketMessage(
       }
 
       const effectiveArgs =
-        threadWorkflowId == null
+        threadWorkflowId === null || threadWorkflowId === undefined
           ? args
           : {
               ...(args ?? {}),
