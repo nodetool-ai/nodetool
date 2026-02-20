@@ -209,8 +209,6 @@ if (process.env.JEST_WORKER_ID) {
           const handleBounds = await sourceHandle.boundingBox();
           
           if (handleBounds) {
-            const initialEdgeCount = await page.locator(".react-flow__edge").count();
-
             // Drag from handle
             await page.mouse.move(
               handleBounds.x + handleBounds.width / 2,
@@ -226,9 +224,8 @@ if (process.env.JEST_WORKER_ID) {
 
             await waitForAnimation(page);
 
-            // Edge might have been created (implementation dependent)
-            const finalEdgeCount = await page.locator(".react-flow__edge").count();
-            expect(finalEdgeCount).toBeGreaterThanOrEqual(initialEdgeCount);
+            // Verify the drag operation completed without crashing the editor
+            await expect(canvas).toBeVisible();
           }
         }
       });

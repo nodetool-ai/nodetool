@@ -43,7 +43,10 @@ jobs:
       - name: Install nodetool-core and nodetool-base
         shell: bash -l {0}
         run: |
-          uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+          TMPINSTALL=$(mktemp -d)
+          git clone --depth 1 https://github.com/nodetool-ai/nodetool-core "${TMPINSTALL}/nodetool-core"
+          git clone --depth 1 https://github.com/nodetool-ai/nodetool-base "${TMPINSTALL}/nodetool-base"
+          uv pip install "${TMPINSTALL}/nodetool-core" "${TMPINSTALL}/nodetool-base"
 
       - name: Verify nodetool installation
         shell: bash -l {0}
@@ -147,7 +150,10 @@ jobs:
       - name: Install nodetool-core and nodetool-base
         shell: bash -l {0}
         run: |
-          uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+          TMPINSTALL=$(mktemp -d)
+          git clone --depth 1 https://github.com/nodetool-ai/nodetool-core "${TMPINSTALL}/nodetool-core"
+          git clone --depth 1 https://github.com/nodetool-ai/nodetool-base "${TMPINSTALL}/nodetool-base"
+          uv pip install "${TMPINSTALL}/nodetool-core" "${TMPINSTALL}/nodetool-base"
 
       - name: Verify nodetool installation
         shell: bash -l {0}
