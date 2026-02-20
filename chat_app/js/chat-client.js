@@ -38,7 +38,10 @@
   /* ─── Helpers ──────────────────────────────────────────── */
 
   ChatClient.prototype._authHeaders = function () {
-    var headers = { "Content-Type": "application/json" };
+    var headers = {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    };
     if (this.authToken) {
       headers["Authorization"] = "Bearer " + this.authToken;
     }
@@ -48,6 +51,8 @@
   ChatClient.prototype._fetch = function (path, options) {
     options = options || {};
     options.headers = Object.assign({}, this._authHeaders(), options.headers || {});
+    options.credentials = options.credentials || "include";
+    options.mode = options.mode || "cors";
     var url = this.apiUrl + path;
     return fetch(url, options).then(function (res) {
       if (!res.ok) {
@@ -267,9 +272,65 @@
     });
   };
 
-  /** List available models. */
+  /** 
+   * List all available LLM models from providers with 'generate_message' capability.
+   * Follows the same pattern as the main web app:
+   * 1. Fetch providers from /api/models/providers
+   * 2. Filter providers with 'generate_message' capability
+   * 3. Fetch LLM models from each provider via /api/models/llm/{provider}
+   */
   ChatClient.prototype.listModels = function () {
-    return this._fetch("/api/models/").catch(function () { return []; });
+    var self = this;
+    
+    // First, fetch all providers
+    return this._fetch("/api/models/providers")
+      .then(function (data) {
+        var providers = Array.isArray(data) ? data : (data.providers || []);
+        
+        // Filter providers that support language model generation
+        var llmProviders = providers.filter(function (provider) {
+          var capabilities = provider.capabilities || [];
+          return capabilities.indexOf("generate_message") !== -1;
+        });
+        
+        if (llmProviders.length === 0) {
+          return [];
+        }
+        
+        // Fetch LLM models from each provider in parallel
+        var fetchPromises = llmProviders.map(function (provider) {
+          var providerKey = provider.provider;
+          if (!providerKey) {
+            console.warn("[ChatClient] Provider missing provider key:", provider);
+            return Promise.resolve([]);
+          }
+          return self._fetch("/api/models/llm/" + encodeURIComponent(providerKey))
+            .then(function (models) {
+              // Add provider info to each model
+              var modelList = Array.isArray(models) ? models : (models.models || []);
+              return modelList.map(function (model) {
+                return {
+                  id: model.id || model.name,
+                  name: model.name || model.id,
+                  provider: providerKey
+                };
+              });
+            })
+            .catch(function (err) {
+              console.warn("[ChatClient] Failed to load models for provider " + providerKey + ":", err.message || err);
+              return []; // Return empty array for failed provider
+            });
+        });
+        
+        // Combine all model arrays
+        return Promise.all(fetchPromises).then(function (results) {
+          return results.flat();
+        });
+      })
+      .catch(function (err) {
+        console.warn("[ChatClient] Failed to load providers:", err.message || err);
+        return [];
+      });
   };
 
   // Expose
