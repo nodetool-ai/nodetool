@@ -92,9 +92,9 @@ const NodeDescription = React.memo(
         {firstLine && <span className="first-line">{firstLine}</span>}
         {tags.length > 0 && (
           <div className="tags-container">
-            {tags.map((tag, index) => (
+            {tags.map((tag) => (
               <span
-                key={index}
+                key={tag}
                 className="tag"
                 onClick={createTagClickHandler(tag)}
                 style={{ cursor: onTagClick ? "pointer" : "default" }}

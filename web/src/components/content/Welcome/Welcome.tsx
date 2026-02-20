@@ -248,19 +248,21 @@ const Welcome = () => {
     setTabValue(newValue);
   };
 
-  const highlightText = (text: string, term: string) => {
+  const highlightText = useCallback((text: string, term: string) => {
     if (!term) {return text;}
-    const parts = text.split(new RegExp(`(${term})`, "gi"));
+    // Memoize regex to avoid recreating on every render
+    const splitRegex = new RegExp(`(${term})`, "gi");
+    const parts = text.split(splitRegex);
     return parts.map((part, index) =>
       part.toLowerCase() === term.toLowerCase() ? (
-        <span key={index} className="highlight">
+        <span key={`${index}-${part}`} className="highlight">
           {part}
         </span>
       ) : (
         part
       )
     );
-  };
+  }, []);
 
   const performSearch = useCallback(
     (searchTerm: string) => {
