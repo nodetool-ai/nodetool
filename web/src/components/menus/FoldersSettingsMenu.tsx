@@ -20,6 +20,7 @@ import {
 import { isElectron } from "../../utils/browser";
 import { isLocalhost } from "../../stores/ApiClient";
 import { NavButton, NodeTextField, ToolbarIconButton } from "../ui_primitives";
+import { SettingWithValue } from "../../stores/RemoteSettingStore";
 
 interface FolderButtonProps {
   label: string;
@@ -60,7 +61,7 @@ const FoldersSettings = () => {
     const settingsToUse = data || settings;
     if (settingsToUse && settingsToUse.length > 0) {
       const values: Record<string, string> = {};
-      settingsToUse.forEach((setting: any) => {
+      settingsToUse.forEach((setting: SettingWithValue) => {
         if (setting.value !== null && setting.value !== undefined) {
           values[setting.env_var] = String(setting.value);
         }
@@ -72,9 +73,9 @@ const FoldersSettings = () => {
   const settingsByGroup = useMemo(() => {
     let baseSettingsByGroup = storeSettingsByGroup;
     if (!baseSettingsByGroup || baseSettingsByGroup.size === 0) {
-      if (!data || !Array.isArray(data)) {return new Map<string, any[]>();}
-      const groups = new Map<string, any[]>();
-      data.forEach((setting: any) => {
+      if (!data || !Array.isArray(data)) {return new Map<string, SettingWithValue[]>();}
+      const groups = new Map<string, SettingWithValue[]>();
+      data.forEach((setting: SettingWithValue) => {
         const group = setting.group || "General";
         if (!groups.has(group)) {
           groups.set(group, []);
