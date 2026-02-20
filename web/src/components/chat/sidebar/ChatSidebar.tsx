@@ -213,7 +213,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         <InputBase
                             placeholder="Search threads..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+                                setSearchQuery(e.target.value);
+                            }, [])}
                             fullWidth
                             sx={{
                                 fontSize: "0.875rem",

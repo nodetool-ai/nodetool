@@ -20,6 +20,10 @@ const WorkflowGenerator: React.FC = memo(() => {
     setEdges: state.setEdges
   }));
 
+  const handlePromptChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setPrompt(e.target.value);
+  }, []);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -62,6 +66,11 @@ const WorkflowGenerator: React.FC = memo(() => {
     [prompt, isLoading, workflow, setNodes, setEdges]
   );
 
+  const handleButtonClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    handleSubmit(e as any);
+  }, [handleSubmit]);
+
   return (
     <Box
       sx={{
@@ -89,7 +98,7 @@ const WorkflowGenerator: React.FC = memo(() => {
             fullWidth
             placeholder="Describe the workflow you want to create..."
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={handlePromptChange}
             disabled={isLoading}
             sx={{
               "& .MuiOutlinedInput-root": {
@@ -105,10 +114,7 @@ const WorkflowGenerator: React.FC = memo(() => {
                       color={isLoading || !prompt.trim() ? "disabled" : "primary"}
                     />}
                     tooltip="Generate workflow"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleSubmit(e as any);
-                    }}
+                    onClick={handleButtonClick}
                     disabled={isLoading || !prompt.trim()}
                     sx={{ mr: 0.5 }}
                   />

@@ -1,4 +1,4 @@
-import React, { useState, memo } from "react";
+import React, { useState, memo, useCallback } from "react";
 import { Typography } from "@mui/material";
 import { relativeTime } from "../../../utils/formatDateAndTime";
 import { ThreadItemProps } from "../types/thread.types";
@@ -15,25 +15,36 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     setIsDeleting(true);
     // Wait for animation to complete before actually deleting
     setTimeout(() => {
       onDelete(threadId);
     }, 300); // Match the CSS animation duration
-  };
+  }, [threadId, onDelete]);
+
+  const handleSelect = useCallback(() => {
+    onSelect(threadId);
+  }, [threadId, onSelect]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelect(threadId);
+    }
+  }, [threadId, onSelect]);
+
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleDelete();
+  }, [handleDelete]);
 
   return (
     <li
       className={`thread-item ${isSelected ? "selected" : ""} ${isDeleting ? "deleting" : ""}`}
-      onClick={() => onSelect(threadId)}
+      onClick={handleSelect}
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect(threadId);
-        }
-      }}
+      onKeyDown={handleKeyDown}
     >
       <Typography className="thread-title">
         {thread.title || previewText}
@@ -44,10 +55,7 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
         </Typography>
       )}
       <DeleteButton
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDelete();
-        }}
+        onClick={handleDeleteClick}
       />
     </li>
   );
