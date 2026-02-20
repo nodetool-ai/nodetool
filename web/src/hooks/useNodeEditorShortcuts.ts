@@ -571,7 +571,8 @@ export const useNodeEditorShortcuts = (
       goBack: {
         callback: nodeFocus.goBack,
         active: nodeFocus.focusHistory.length > 1
-      }
+      },
+      shortcutCheatSheet: { callback: handleShowKeyboardShortcuts }
     };
 
     // Switch-to-tab (1-9)
