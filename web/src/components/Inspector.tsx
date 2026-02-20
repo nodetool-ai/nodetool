@@ -10,7 +10,7 @@ import NodeDescription from "./node/NodeDescription";
 import NodeExplorer from "./node/NodeExplorer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
+import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import { typesAreEqual } from "../utils/TypeHandler";
@@ -222,7 +222,7 @@ const Inspector: React.FC = () => {
   );
 
   const handleMultiPropertyChange = useCallback(
-    (propertyName: string, value: any) => {
+    (propertyName: string, value: unknown) => {
       multiNodeIds.forEach((nodeId) =>
         updateNodeProperties(nodeId, { [propertyName]: value })
       );
@@ -424,11 +424,13 @@ const Inspector: React.FC = () => {
 
                 const dynamicInputMeta = selectedNode.data.dynamic_inputs?.[name];
 
-                let resolvedType: TypeMetadata = (dynamicInputMeta as TypeMetadata) || {
+                const defaultTypeMetadata: TypeMetadata = {
                   type: "any",
                   type_args: [],
                   optional: false
-                } as any;
+                };
+
+                let resolvedType: TypeMetadata = (dynamicInputMeta as TypeMetadata) || defaultTypeMetadata;
 
                 if (incoming && !dynamicInputMeta) {
                   const sourceNode = findNode(incoming.source);
@@ -449,16 +451,20 @@ const Inspector: React.FC = () => {
 
                 const isFalNode = selectedNode.type === "fal.dynamic_schema.FalAI";
 
+                // Build property object with proper typing
+                const property: Property = {
+                  ...(dynamicInputMeta || {}),
+                  name,
+                  type: resolvedType as Property["type"],
+                  required: false,
+                };
+
                 return (
                   <PropertyField
                     key={`inspector-dynamic-${name}-${selectedNode.id}`}
                     id={selectedNode.id}
                     value={value}
-                    property={{
-                      ...dynamicInputMeta,
-                      name,
-                      type: resolvedType,
-                    } as any}
+                    property={property}
                     propertyIndex={`dynamic-${index}`}
                     showHandle={false}
                     isInspector={true}

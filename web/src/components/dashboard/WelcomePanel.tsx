@@ -20,6 +20,7 @@ import { overviewContents, Section } from "../content/Welcome/OverviewContent";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 
 const extractText = (node: ReactNode): string => {
   if (typeof node === "string") {return node;}
@@ -34,7 +35,7 @@ const extractText = (node: ReactNode): string => {
   return "";
 };
 
-const panelStyles = (theme: any) =>
+const panelStyles = (theme: Theme) =>
   css({
     "&": {
       height: "100%",
