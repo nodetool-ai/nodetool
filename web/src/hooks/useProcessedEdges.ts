@@ -116,6 +116,9 @@ export function useProcessedEdges({
   });
 
   // Structural key: only things that affect edge typing / gradients
+  // This serves as a change detector - when node structure changes (dynamic outputs/properties),
+  // this key changes and triggers re-computation of processed edges, even though it's not
+  // directly used in the hook body below (we use nodesRef.current for performance)
   const nodesStructureKey = useMemo(() => {
     if (isSelecting) {return "";} // we’ll reuse cache while dragging
     return nodes
@@ -374,7 +377,11 @@ export function useProcessedEdges({
 
     const result = { processedEdges: processedResultEdges, activeGradientKeys };
     lastResultRef.current = result;
+    // Reference nodesStructureKey to satisfy eslint and document it as an intentional dependency.
+    // It serves as a structural change detector (see comment at declaration above).
+    // We use nodesRef.current inside this memo for performance, but we need nodesStructureKey
+    // in the deps array to trigger re-computation when node structure changes.
+    void nodesStructureKey;
     return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, nodeStatuses, isSelecting, nodesStructureKey]);
 }
