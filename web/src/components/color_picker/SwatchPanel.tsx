@@ -252,8 +252,8 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
         </div>
         <div className="color-grid">
           {recentColors.length > 0 ? (
-            recentColors.map((color, index) => (
-              <Tooltip key={index} title={color}>
+            recentColors.map((color) => (
+              <Tooltip key={color} title={color}>
                 <div
                   className="color-swatch"
                   style={{ backgroundColor: color }}
@@ -306,8 +306,8 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
                 </IconButton>
               </div>
               <div className="color-grid">
-                {palette.colors.map((color, index) => (
-                  <Tooltip key={index} title={color}>
+                {palette.colors.map((color) => (
+                  <Tooltip key={color} title={color}>
                     <div
                       className="color-swatch"
                       style={{ backgroundColor: color }}

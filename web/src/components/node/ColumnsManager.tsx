@@ -237,7 +237,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
       </div>
       {localColumns.map((field, index) => (
         <Column
-          key={index}
+          key={field.name}
           index={index}
           field={field}
           inputRef={(el: HTMLInputElement | null) =>

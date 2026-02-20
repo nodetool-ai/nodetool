@@ -43,20 +43,19 @@ const tokenize = (text: string, query: string | null): TextPart[] => {
     // Escape special regex characters
     const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const re = new RegExp(`(${escapedQuery})`, "gi");
-    
-    return text
-      .split(re)
-      .filter(Boolean)
-      .map((part) => {
-        // Test if this part matches the query (case-insensitive)
-        const matches = re.test(part);
-        // Reset regex lastIndex for next test
-        re.lastIndex = 0;
-        return {
-          text: part,
-          match: matches
-        };
-      });
+
+    const parts = text.split(re).filter(Boolean);
+
+    return parts.map((part) => {
+      // Test if this part matches the query (case-insensitive)
+      const matches = re.test(part);
+      // Reset regex lastIndex for next test
+      re.lastIndex = 0;
+      return {
+        text: part,
+        match: matches
+      };
+    });
   } catch (error) {
     // If regex fails, return original text
     console.warn("Tokenize error:", error);
@@ -133,14 +132,14 @@ export const HighlightText = memo<HighlightTextProps>(
           {lines.map((line, lineIndex) => {
             const lineParts = tokenize(line, query);
             return (
-              <li key={lineIndex}>
+              <li key={`${line}-${lineIndex}`}>
                 {lineParts.map((part, partIndex) =>
                   part.match ? (
-                    <span key={partIndex} className="highlight-match">
+                    <span key={`${lineIndex}-${partIndex}-${part.text}`} className="highlight-match">
                       {part.text}
                     </span>
                   ) : (
-                    <span key={partIndex}>{part.text}</span>
+                    <span key={`${lineIndex}-${partIndex}-${part.text}`}>{part.text}</span>
                   )
                 )}
               </li>
@@ -154,11 +153,11 @@ export const HighlightText = memo<HighlightTextProps>(
       <span className={className} css={styles}>
         {parts.map((part, index) =>
           part.match ? (
-            <span key={index} className="highlight-match">
+            <span key={`${index}-${part.text}`} className="highlight-match">
               {part.text}
             </span>
           ) : (
-            <span key={index}>{part.text}</span>
+            <span key={`${index}-${part.text}`}>{part.text}</span>
           )
         )}
       </span>
