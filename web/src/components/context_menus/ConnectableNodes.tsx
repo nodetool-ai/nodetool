@@ -11,7 +11,7 @@ import {
   Tooltip
 } from "@mui/material";
 import { css } from "@emotion/react";
-import useConnectableNodesStore from "../../stores/ConnectableNodesStore";
+import useConnectableNodesStore, { ConnectableNodesState } from "../../stores/ConnectableNodesStore";
 import { useReactFlow } from "@xyflow/react";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -158,7 +158,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
 
   // Memoize store selector function to prevent re-renders
   const storeSelector = useCallback(
-    (state: any) => ({
+    (state: ConnectableNodesState) => ({
       connectableNodes: state.getConnectableNodes(),
       typeMetadata: state.typeMetadata,
       filterType: state.filterType,

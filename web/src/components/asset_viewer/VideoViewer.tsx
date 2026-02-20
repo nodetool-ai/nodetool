@@ -4,7 +4,6 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { Box, Typography } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 interface VideoViewerProps {
   asset?: Asset;
   url?: string;
@@ -32,7 +31,6 @@ const styles = () =>
   });
 
 const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asset }) {
-  const theme = useTheme();
   return (
     <Box className="video-viewer" css={styles()}>
       <video controls={true} src={asset?.get_url || ""}>
