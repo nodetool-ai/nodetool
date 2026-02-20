@@ -27,6 +27,14 @@
   /* ─── Bootstrap ─────────────────────────────────────────── */
 
   function init() {
+    // Warn if running from file:// (CORS issues with null origin)
+    if (window.location.protocol === "file:") {
+      UI.showBanner(
+        "Running from file:// may cause CORS errors. Please serve via HTTP: python3 -m http.server 8080",
+        "error"
+      );
+    }
+
     // Wire up WebSocket handlers
     client.onConnectionChange = handleConnectionChange;
     client.onMessage = handleWsMessage;

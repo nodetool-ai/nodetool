@@ -32,10 +32,10 @@ This app extracts exactly that feature as a clean, embeddable single-page app.
    nodetool serve --port 7777
    ```
 
-2. Open `chat_app/index.html` in your browser, or serve the folder:
+2. **Serve the folder via HTTP** (do NOT open `index.html` directly - this causes CORS errors):
 
    ```bash
-   # Python
+   # Python (recommended)
    cd chat_app && python3 -m http.server 8080
 
    # Node.js
@@ -89,7 +89,8 @@ protocol reference.
 | `POST` | `/api/threads/` | Create a new thread |
 | `DELETE` | `/api/threads/{id}` | Delete a thread |
 | `GET` | `/api/messages/?thread_id={id}` | Fetch messages for a thread |
-| `GET` | `/api/models/` | List available AI models |
+| `GET` | `/api/models/providers` | List all providers with capabilities |
+| `GET` | `/api/models/llm/{provider}` | List LLM models for a specific provider |
 
 ---
 
