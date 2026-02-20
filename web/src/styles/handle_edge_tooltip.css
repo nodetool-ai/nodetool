@@ -540,7 +540,10 @@ ul.multi-outputs li::marker {
   stroke-linecap: round;
   stroke-dasharray: 14 10;
   animation: edgeFlow 2s linear infinite;
-  filter: drop-shadow(0 0 3px currentColor);
+  /* Subtle glow for visibility without excessive blur */
+  filter: drop-shadow(0 0 1px currentColor);
+  /* Ensure crisp rendering */
+  shape-rendering: geometricPrecision;
 }
 
 /* 
@@ -556,7 +559,7 @@ ul.multi-outputs li::marker {
   }
   50% {
     stroke-width: 4;
-    filter: brightness(1.3) drop-shadow(0 0 4px currentColor);
+    filter: brightness(1.2) drop-shadow(0 0 2px currentColor);
   }
 }
 
@@ -631,7 +634,7 @@ ul.multi-outputs li::marker {
    those edges glow to show potential data flow paths.
 */
 .react-flow__node:hover ~ .react-flow__edge.message-sent .react-flow__edge-path {
-  filter: drop-shadow(0 0 6px currentColor);
+  filter: drop-shadow(0 0 2px currentColor);
 }
 
 /* 
@@ -639,9 +642,12 @@ ul.multi-outputs li::marker {
    
    Use will-change to hint browser for animated properties.
    Use transform for GPU acceleration.
+   Add crisp rendering hints to prevent blur.
 */
 .react-flow .react-flow__edge.message-sent .react-flow__edge-path {
   will-change: stroke-dashoffset;
+  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
 }
 
 /* 
