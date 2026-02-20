@@ -10,7 +10,7 @@ import {
   Popover,
   PopoverOrigin
 } from "@mui/material";
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from "react";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import { useCollectionStore } from "../../../stores/CollectionStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
@@ -91,6 +91,17 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
     },
     [value, onChange]
   );
+
+  // Memoize toggle handlers for each collection to prevent re-renders
+  const toggleHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    if (collections?.collections) {
+      for (const collection of collections.collections) {
+        handlers[collection.name] = () => handleToggle(collection.name);
+      }
+    }
+    return handlers;
+  }, [collections, handleToggle]);
 
   const handleSelectAll = useCallback(() => {
     if (collections?.collections) {
@@ -301,7 +312,7 @@ const CollectionsSelector: React.FC<CollectionsSelectorProps> = ({
                 <Box
                   key={collection.name}
                   className={`collection-item ${isSelected ? "selected" : ""}`}
-                  onClick={() => handleToggle(collection.name)}
+                  onClick={toggleHandlers[collection.name]}
                 >
                   <Checkbox
                     checked={isSelected}

@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   AssetOrDivider,
   DIVIDER_HEIGHT,
@@ -51,6 +51,17 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const theme = useTheme();
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
+
+  // Memoize select handlers for each item to prevent re-renders
+  const selectHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const item of rowItems) {
+      if (!item.isDivider) {
+        handlers[item.id] = () => handleSelectAsset(item.id);
+      }
+    }
+    return handlers;
+  }, [rowItems, handleSelectAsset]);
 
   const handleContextMenu = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
@@ -212,7 +223,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
               asset={item}
               draggable={true}
               isSelected={isSelected}
-              onSelect={() => handleSelectAsset(item.id)}
+              onSelect={selectHandlers[item.id]}
               onDoubleClick={onDoubleClick}
             />
           </div>
