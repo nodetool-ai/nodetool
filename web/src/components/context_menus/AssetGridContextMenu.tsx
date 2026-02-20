@@ -21,10 +21,8 @@ const AssetGridContextMenu = () => {
   const setCreateFolderDialogOpen = useAssetGridStore(
     (state) => state.setCreateFolderDialogOpen
   );
-  const { settings, setAssetsOrder } = useSettingsStore((state) => ({
-    settings: state.settings,
-    setAssetsOrder: state.setAssetsOrder
-  }));
+  const settings = useSettingsStore((state) => state.settings);
+  const setAssetsOrder = useSettingsStore((state) => state.setAssetsOrder);
 
   const withMenuClose =
     (action: () => void) =>

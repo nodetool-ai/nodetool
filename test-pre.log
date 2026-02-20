@@ -1,7 +1,7 @@
 Running web tests...
 cd web && npm test
 
-> nodetool@0.6.3-rc.24 test
+> nodetool@0.6.3-rc.25 test
 > jest --forceExit
 
 PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility.test.ts
@@ -326,31 +326,103 @@ PASS src/utils/__tests__/nodeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] computeSearchResults with 500 nodes: 22.41ms
+      [PERF] computeSearchResults with 500 nodes: 14.78ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:578:15)
 
     console.log
-      [PERF] computeSearchResults with 2000 nodes: 58.45ms
+      [PERF] computeSearchResults with 2000 nodes: 53.36ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:591:15)
 
     console.log
-      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 22.80ms
+      [PERF] performGroupedSearch (prefix tree) with 1000 nodes: 18.28ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:613:15)
 
     console.log
-      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 2.35ms
+      [PERF] performGroupedSearch (fuse fallback) with 1000 nodes: 2.14ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:636:15)
 
     console.log
-      [PERF] Average search time for 5 queries: 2.18ms
+      [PERF] Average search time for 5 queries: 1.74ms
 
       at Object.<anonymous> (src/utils/__tests__/nodeSearch.test.ts:670:15)
 
-PASS src/stores/__tests__/GlobalChatStore.test.ts (5.199 s)
+PASS src/__tests__/performance/componentPerformance.test.tsx
+  ● Console
+
+    console.log
+      [PERF] Bad selector: 2 renders, Good selector: 1 renders
+
+      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:121:15)
+
+    console.log
+      [PERF] Reduction: 50.0%
+
+      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:122:15)
+
+    console.log
+      [PERF] Large tree (243 components) render: 18.25ms
+
+      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:491:15)
+
+    console.log
+      [PERF] Unmemoized: 101 renders
+
+      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:532:15)
+
+    console.log
+      [PERF] Memoized: 1 renders
+
+      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:533:15)
+
+    console.log
+      [PERF] Memo effectiveness: 99.0%
+
+      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:534:15)
+
+    console.error
+      Warning: An update to Node inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+          at /home/runner/work/nodetool/nodetool/web/src/__tests__/performance/componentPerformance.test.tsx:561:34
+
+    [0m [90m 550 |[39m         }))[33m,[39m
+     [90m 551 |[39m         selectNode[33m:[39m (id) [33m=>[39m
+    [31m[1m>[22m[39m[90m 552 |[39m           [36mset[39m((state) [33m=>[39m ({
+     [90m     |[39m           [31m[1m^[22m[39m
+     [90m 553 |[39m             nodes[33m:[39m state[33m.[39mnodes[33m.[39mmap((n) [33m=>[39m
+     [90m 554 |[39m               n[33m.[39mid [33m===[39m id [33m?[39m { [33m...[39mn[33m,[39m selected[33m:[39m [36mtrue[39m } [33m:[39m n
+     [90m 555 |[39m             )[0m
+
+      at printWarning (node_modules/react-dom/cjs/react-dom.development.js:86:30)
+      at error (node_modules/react-dom/cjs/react-dom.development.js:60:7)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-dom/cjs/react-dom.development.js:27589:9)
+      at scheduleUpdateOnFiber (node_modules/react-dom/cjs/react-dom.development.js:25508:5)
+      at forceStoreRerender (node_modules/react-dom/cjs/react-dom.development.js:16977:5)
+      at handleStoreChange (node_modules/react-dom/cjs/react-dom.development.js:16953:7)
+      at node_modules/zustand/vanilla.js:12:16
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.selectNode (src/__tests__/performance/componentPerformance.test.tsx:552:11)
+      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:586:32)
+
+    console.log
+      [PERF] Total renders after selection: 100
+
+      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:591:15)
+
+PASS src/stores/__tests__/ResultsStore.test.ts
+PASS src/stores/__tests__/GlobalChatStore.test.ts (5.051 s)
   ● Console
 
     console.log
@@ -576,83 +648,11 @@ PASS src/stores/__tests__/GlobalChatStore.test.ts (5.199 s)
 
       at handleChatWebSocketMessage (src/core/chat/chatProtocol.ts:946:11)
 
-PASS src/__tests__/performance/componentPerformance.test.tsx
-  ● Console
-
-    console.log
-      [PERF] Bad selector: 2 renders, Good selector: 1 renders
-
-      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:121:15)
-
-    console.log
-      [PERF] Reduction: 50.0%
-
-      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:122:15)
-
-    console.log
-      [PERF] Large tree (243 components) render: 17.93ms
-
-      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:491:15)
-
-    console.log
-      [PERF] Unmemoized: 101 renders
-
-      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:532:15)
-
-    console.log
-      [PERF] Memoized: 1 renders
-
-      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:533:15)
-
-    console.log
-      [PERF] Memo effectiveness: 99.0%
-
-      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:534:15)
-
-    console.error
-      Warning: An update to Node inside a test was not wrapped in act(...).
-      
-      When testing, code that causes React state updates should be wrapped into act(...):
-      
-      act(() => {
-        /* fire events that update state */
-      });
-      /* assert on the output */
-      
-      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
-          at /home/runner/work/nodetool/nodetool/web/src/__tests__/performance/componentPerformance.test.tsx:561:34
-
-    [0m [90m 550 |[39m         }))[33m,[39m
-     [90m 551 |[39m         selectNode[33m:[39m (id) [33m=>[39m
-    [31m[1m>[22m[39m[90m 552 |[39m           [36mset[39m((state) [33m=>[39m ({
-     [90m     |[39m           [31m[1m^[22m[39m
-     [90m 553 |[39m             nodes[33m:[39m state[33m.[39mnodes[33m.[39mmap((n) [33m=>[39m
-     [90m 554 |[39m               n[33m.[39mid [33m===[39m id [33m?[39m { [33m...[39mn[33m,[39m selected[33m:[39m [36mtrue[39m } [33m:[39m n
-     [90m 555 |[39m             )[0m
-
-      at printWarning (node_modules/react-dom/cjs/react-dom.development.js:86:30)
-      at error (node_modules/react-dom/cjs/react-dom.development.js:60:7)
-      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-dom/cjs/react-dom.development.js:27589:9)
-      at scheduleUpdateOnFiber (node_modules/react-dom/cjs/react-dom.development.js:25508:5)
-      at forceStoreRerender (node_modules/react-dom/cjs/react-dom.development.js:16977:5)
-      at handleStoreChange (node_modules/react-dom/cjs/react-dom.development.js:16953:7)
-      at node_modules/zustand/vanilla.js:12:16
-          at Set.forEach (<anonymous>)
-      at setState (node_modules/zustand/vanilla.js:11:17)
-      at Object.selectNode (src/__tests__/performance/componentPerformance.test.tsx:552:11)
-      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:586:32)
-
-    console.log
-      [PERF] Total renders after selection: 100
-
-      at Object.<anonymous> (src/__tests__/performance/componentPerformance.test.tsx:591:15)
-
-PASS src/stores/__tests__/ResultsStore.test.ts
 PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
   ● Console
 
     console.log
-      [PERF] Set deduplication for 200 items: 0.045ms
+      [PERF] Set deduplication for 200 items: 0.027ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:77:15)
 
@@ -692,7 +692,7 @@ PASS src/__tests__/performance/nodeComponentsPerformance.test.tsx
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:552:15)
 
     console.log
-      [PERF] 100 nodes with 10 properties each: 0.38ms
+      [PERF] 100 nodes with 10 properties each: 0.22ms
 
       at Object.<anonymous> (src/__tests__/performance/nodeComponentsPerformance.test.tsx:587:13)
 
@@ -715,8 +715,8 @@ PASS src/hooks/__tests__/useChatService.test.ts
       at Object.sendMessage (src/hooks/useChatService.ts:77:21)
       at Object.<anonymous> (src/hooks/__tests__/useChatService.test.ts:255:28)
 
-PASS src/stores/__tests__/CollectionStore.test.ts
 PASS src/hooks/__tests__/useColorConversion.test.ts
+PASS src/stores/__tests__/CollectionStore.test.ts
 PASS src/hooks/__tests__/useFindInWorkflow.test.ts
   ● Console
 
@@ -784,31 +784,34 @@ PASS src/hooks/__tests__/useFindInWorkflow.test.ts
       at FakeTimers.advanceTimersByTime (node_modules/@jest/fake-timers/build/modernFakeTimers.js:93:14)
       at Object.<anonymous> (src/hooks/__tests__/useFindInWorkflow.test.ts:524:12)
 
+PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
+PASS src/hooks/__tests__/useRequiredSettings.test.ts
+PASS src/utils/__tests__/ColorUtils.test.ts
 PASS src/utils/__tests__/PrefixTreeSearch.test.ts
   ● Console
 
     console.log
-      [PERF] Search 100 nodes: 0.05ms
+      [PERF] Search 100 nodes: 0.06ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:357:15)
 
     console.log
-      [PERF] Search 1000 nodes: 0.07ms
+      [PERF] Search 1000 nodes: 0.10ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:373:15)
 
     console.log
-      [PERF] Search 5000 nodes: 0.23ms
+      [PERF] Search 5000 nodes: 0.31ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:389:15)
 
     console.log
-      [PERF] Search times for different result sizes: 0.007ms, 0.242ms, 0.079ms
+      [PERF] Search times for different result sizes: 0.007ms, 0.085ms, 0.079ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:419:15)
 
     console.log
-      [PERF] Index 5000 nodes: 161.55ms
+      [PERF] Index 5000 nodes: 203.27ms
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:437:15)
 
@@ -817,12 +820,9 @@ PASS src/utils/__tests__/PrefixTreeSearch.test.ts
 
       at Object.<anonymous> (src/utils/__tests__/PrefixTreeSearch.test.ts:467:15)
 
-PASS src/hooks/__tests__/useRequiredSettings.test.ts
-PASS src/hooks/handlers/__tests__/useSelectionEvents.test.ts
-PASS src/utils/__tests__/ColorUtils.test.ts
 PASS src/hooks/__tests__/useSelectionActions.test.ts
-PASS src/stores/__tests__/graphNodeToReactFlowNode.test.ts
 PASS src/stores/__tests__/ConnectionStore.test.ts
+PASS src/stores/__tests__/graphNodeToReactFlowNode.test.ts
 PASS src/hooks/__tests__/useProcessedEdges.test.ts
 PASS src/stores/__tests__/SettingsStore.test.ts
 PASS src/stores/__tests__/NotificationStore.test.ts
@@ -954,11 +954,11 @@ PASS src/hooks/__tests__/useInputStream.test.ts
 PASS src/hooks/__tests__/useSelectedNodesInfo.test.ts
 PASS src/hooks/__tests__/useDuplicate.test.ts
 PASS src/stores/__tests__/KeyPressedStore.test.ts
-PASS src/hooks/__tests__/useFloatingToolbarActions.test.ts
 PASS src/stores/__tests__/FileStore.test.ts
 PASS src/utils/__tests__/dockviewLayout.test.ts
 PASS src/hooks/__tests__/useMessageQueue.test.ts
 PASS src/stores/__tests__/NodeMenuStore.test.ts
+PASS src/hooks/__tests__/useFloatingToolbarActions.test.ts
 PASS src/stores/__tests__/WorkflowAssetStore.test.ts
 PASS src/stores/__tests__/ModelPreferencesStore.test.ts
 PASS src/stores/__tests__/ErrorStore.test.ts
@@ -989,7 +989,6 @@ PASS src/stores/__tests__/RemoteSettingStore.test.ts
 PASS src/utils/__tests__/clipboardUtils.test.ts
 PASS src/utils/__tests__/findMatchingNodesInWorkflows.test.ts
 PASS src/stores/__tests__/LogStore.test.ts
-PASS src/utils/__tests__/providerDisplay.test.ts
 PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
   ● Console
 
@@ -1031,6 +1030,7 @@ PASS src/components/menus/__tests__/RemoteSettingsMenu.test.tsx
       at invokeTheCallbackFunction (node_modules/jsdom/lib/jsdom/living/generated/Function.js:19:26)
       at node_modules/jsdom/lib/jsdom/browser/Window.js:554:9
 
+PASS src/utils/__tests__/providerDisplay.test.ts
 PASS src/stores/__tests__/HfCacheStatusStore.test.ts
 PASS src/utils/__tests__/graphDiff.test.ts
 PASS src/stores/__tests__/VibeCodingStore.test.ts
@@ -1082,9 +1082,9 @@ PASS src/hooks/__tests__/useCopyFeedback.test.ts
 PASS src/stores/__tests__/AssetGridStore.test.ts
 PASS src/hooks/__tests__/useCheckHfCache.test.tsx
 PASS src/utils/__tests__/MousePosition.test.ts
+PASS src/hooks/__tests__/useVibecodingTemplates.test.tsx
 PASS src/hooks/__tests__/useSelectConnected.test.ts
 PASS src/hooks/__tests__/useDelayedVisibility.test.ts
-PASS src/hooks/__tests__/useVibecodingTemplates.test.tsx
 PASS src/utils/__tests__/workflowOutputTypeInference.test.ts
 PASS src/utils/__tests__/isUrlAccessible.test.ts
 PASS src/core/chat/__tests__/chatProtocol.test.ts
@@ -1278,6 +1278,7 @@ PASS src/hooks/handlers/__tests__/usePaneEvents.test.ts
 PASS src/hooks/nodes/__tests__/useRunFromHere.test.ts
 PASS src/hooks/__tests__/useHuggingFaceModels.test.tsx
 PASS src/stores/__tests__/AudioQueueStore.test.ts
+PASS src/components/ui_primitives/__tests__/KeyboardShortcutCard.test.tsx
 PASS src/hooks/__tests__/useNamespaceTree.test.ts
 PASS src/components/ui_primitives/__tests__/Dialog.test.tsx
   ● Console
@@ -1408,8 +1409,8 @@ PASS src/components/ui_primitives/__tests__/Dialog.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/ui_primitives/__tests__/Dialog.test.tsx:315:33)
 
-PASS src/components/ui_primitives/__tests__/LabeledToggle.test.tsx
 PASS src/stores/__tests__/SecretsStore.test.ts
+PASS src/components/ui_primitives/__tests__/LabeledToggle.test.tsx
 PASS src/utils/__tests__/modelNormalization.test.ts
 PASS src/hooks/__tests__/useWorkflowActions.test.ts
   ● Console
@@ -1563,6 +1564,7 @@ PASS src/stores/__tests__/ColorPickerStore.test.ts
 PASS src/utils/__tests__/colorConversion.test.ts
 PASS src/utils/__tests__/groupByDate.test.ts
 PASS src/__tests__/components/chat/composer/MessageInput.test.tsx
+PASS src/hooks/nodes/__tests__/useDynamicOutput.test.ts
 PASS src/hooks/__tests__/useJobReconnection.test.tsx
   ● Console
 
@@ -1607,9 +1609,8 @@ PASS src/hooks/__tests__/useJobReconnection.test.tsx
 
       at src/hooks/useJobReconnection.ts:86:15
 
-PASS src/hooks/nodes/__tests__/useDynamicOutput.test.ts
-PASS src/hooks/__tests__/useDelayedHover.test.ts
 PASS src/utils/__tests__/edgeValue.test.ts
+PASS src/hooks/__tests__/useDelayedHover.test.ts
 PASS src/stores/__tests__/MetadataStore.test.ts
 PASS src/hooks/__tests__/useInferredOutputTypes.test.ts
 PASS src/stores/__tests__/FindInWorkflowStore.test.ts
@@ -1647,99 +1648,6 @@ PASS src/hooks/__tests__/useCollectionDragAndDrop.test.ts
 
       at src/hooks/useCollectionDragAndDrop.ts:115:21
       at src/hooks/__tests__/useCollectionDragAndDrop.test.ts:176:9
-
-PASS src/stores/__tests__/AgentStore.test.ts
-  ● Console
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:144:27)
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:175:27)
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:207:27)
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:234:27)
-
-    console.warn
-      IPC methods not available - frontend tools IPC bridge not initialized
-
-    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
-     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
-    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
-     [90m     |[39m             [31m[1m^[22m[39m
-     [90m 105 |[39m     [36mreturn[39m[33m;[39m
-     [90m 106 |[39m   }
-     [90m 107 |[39m[0m
-
-      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
-      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
-      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
-      at src/stores/__tests__/AgentStore.test.ts:80:20
-      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
-      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:256:27)
 
 PASS src/utils/__tests__/fileExplorer.test.ts
   ● Console
@@ -1914,6 +1822,99 @@ PASS src/utils/__tests__/fileExplorer.test.ts
       [fileExplorer] openOllamaPath completed
 
       at debugLog (src/utils/fileExplorer.ts:37:13)
+
+PASS src/stores/__tests__/AgentStore.test.ts
+  ● Console
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:144:27)
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:175:27)
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:207:27)
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:234:27)
+
+    console.warn
+      IPC methods not available - frontend tools IPC bridge not initialized
+
+    [0m [90m 102 |[39m   [36mconst[39m ipc [33m=[39m getIpc()[33m;[39m
+     [90m 103 |[39m   [36mif[39m ([33m![39mipc) {
+    [31m[1m>[22m[39m[90m 104 |[39m     console[33m.[39mwarn([32m"IPC methods not available - frontend tools IPC bridge not initialized"[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 105 |[39m     [36mreturn[39m[33m;[39m
+     [90m 106 |[39m   }
+     [90m 107 |[39m[0m
+
+      at initFrontendToolsIpc (src/lib/tools/frontendToolsIpc.ts:104:13)
+      at Object.<anonymous> (src/lib/tools/frontendToolsIpc.ts:243:3)
+      at Object.<anonymous> (src/stores/AgentStore.ts:24:1)
+      at src/stores/__tests__/AgentStore.test.ts:80:20
+      at loadStore (src/stores/__tests__/AgentStore.test.ts:80:20)
+      at Object.<anonymous> (src/stores/__tests__/AgentStore.test.ts:256:27)
 
 PASS src/stores/__tests__/ApiClient.test.ts
 PASS src/stores/__tests__/StatusStore.test.ts
@@ -2486,8 +2487,8 @@ PASS src/__tests__/components/chat/composer/SendMessageButton.test.tsx
 
 PASS src/utils/modelNormalization.test.ts
 PASS src/hooks/__tests__/useApiKeyValidation.test.ts
-PASS src/hooks/__tests__/useRunningJobs.test.tsx
 PASS src/stores/__tests__/graphConversion.test.ts
+PASS src/hooks/__tests__/useRunningJobs.test.tsx
 PASS src/hooks/__tests__/useFitView.test.ts
 PASS src/lib/dragdrop/__tests__/serialization.test.ts
 PASS src/utils/__tests__/comfySchemaConverter.test.ts
@@ -2534,8 +2535,8 @@ PASS src/components/node_editor/__tests__/ViewportStatusIndicator.test.tsx
 PASS src/hooks/__tests__/useNumberInput.test.ts
 PASS src/utils/__tests__/nodeUtils.test.ts
 PASS src/utils/__tests__/sanitize.test.ts
-PASS src/utils/__tests__/NodeTypeMapping.test.ts
 PASS src/stores/__tests__/FavoriteNodesStore.test.ts
+PASS src/utils/__tests__/NodeTypeMapping.test.ts
 PASS src/stores/__tests__/ContextMenuStore.test.tsx
 PASS src/stores/__tests__/MiniMapStore.test.ts
 PASS src/utils/__tests__/formatUtils.test.ts
@@ -2583,14 +2584,14 @@ PASS src/components/ui_primitives/__tests__/ActionButtons.test.tsx
 PASS src/stores/__tests__/VersionHistoryStore.test.ts
 PASS src/hooks/__tests__/useWorkflowGraphUpdater.test.ts
 PASS src/utils/__tests__/graphCycle.test.ts
-PASS src/hooks/__tests__/useProviderApiKeyValidation.test.ts
 PASS src/components/node/image_editor/__tests__/ImageEditorToolbar.test.tsx
+PASS src/hooks/__tests__/useProviderApiKeyValidation.test.ts
 PASS src/hooks/nodes/__tests__/useSyncEdgeSelection.test.ts
 PASS src/utils/__tests__/formatDateAndTime.test.ts
 PASS src/hooks/nodes/__tests__/getGroupBounds.test.ts
 PASS src/stores/__tests__/graphEdgeToReactFlowEdge.test.ts
-PASS src/lib/dragdrop/__tests__/hooks.test.tsx
 PASS src/hooks/nodes/__tests__/useRemoveFromGroup.test.ts
+PASS src/lib/dragdrop/__tests__/hooks.test.tsx
 PASS src/__tests__/components/vibecoding/extractHtml.test.ts
 PASS src/hooks/__tests__/useWorkflowRunnerState.test.ts
 PASS src/components/context_menus/__tests__/PaneContextMenu.test.tsx
@@ -2789,9 +2790,9 @@ PASS src/__tests__/components/chat/composer/StopGenerationButton.test.tsx
 PASS src/hooks/__tests__/useFloatingToolbarState.test.ts
 PASS src/hooks/__tests__/useFitNodeEvent.test.ts
 PASS src/stores/__tests__/GettingStartedStore.test.ts
-PASS src/hooks/__tests__/useInputMinMax.test.ts
 PASS src/stores/__tests__/RightPanelStore.test.ts
 PASS src/stores/__tests__/RecentNodesStore.test.ts
+PASS src/hooks/__tests__/useInputMinMax.test.ts
 PASS src/utils/__tests__/hfCache.test.ts
 PASS src/components/properties/__tests__/IntegerProperty.test.tsx
 PASS src/components/properties/__tests__/FloatProperty.test.tsx
@@ -3924,15 +3925,15 @@ PASS src/hooks/browser/__tests__/useVideoRecorder.test.ts
 PASS src/__tests__/components/node_menu/NodeMenuKeyboardNavigation.test.tsx
 PASS src/utils/__tests__/NumberInput.utils.test.ts
 PASS src/stores/__tests__/ModelManagerStore.test.ts
-PASS src/utils/__tests__/highlightText.test.ts
 PASS src/components/ui_primitives/__tests__/SelectionControls.test.tsx
+PASS src/utils/__tests__/highlightText.test.ts
 PASS src/hooks/__tests__/reduceUnionType.test.ts
 PASS src/providers/__tests__/ContextMenuProvider.test.tsx
 PASS src/providers/__tests__/ConnectableNodesProvider.test.tsx
 PASS src/stores/__tests__/ExecutionTimeStore.test.ts
 PASS src/components/properties/__tests__/DataframeProperty.test.tsx
-PASS src/stores/__tests__/resourceChangeHandler.test.ts
 PASS src/stores/__tests__/NodePlacementStore.test.ts
+PASS src/stores/__tests__/resourceChangeHandler.test.ts
 PASS src/utils/__tests__/errorHandling.test.ts
 PASS src/utils/__tests__/downloadPreviewAssets.test.ts
 PASS src/hooks/__tests__/useFloatingToolbarPosition.test.ts
@@ -3941,8 +3942,8 @@ PASS src/components/ui_primitives/__tests__/ActionButtonGroup.test.tsx
 PASS src/utils/__tests__/identifierValidation.test.ts
 PASS src/stores/__tests__/WorkflowActionsStore.test.ts
 PASS src/components/ui_primitives/__tests__/DialogActionButtons.test.tsx
-PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
 PASS src/serverState/__tests__/checkHfCache.test.ts
+PASS src/components/hugging_face/model_list/__tests__/useModelCompatibility_provided.test.ts
 PASS src/stores/__tests__/SessionStateStore.test.ts
 PASS src/components/ui_primitives/__tests__/PlaybackButton.test.tsx
 PASS src/utils/__tests__/useDynamicSvgImport.test.tsx
@@ -4787,9 +4788,9 @@ PASS src/utils/ColorUtils.test.ts
 
 PASS src/utils/__tests__/modelFormatting.test.tsx
 PASS src/components/properties/__tests__/AudioListProperty.test.tsx
+PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx
 PASS src/__tests__/frontendTools.test.ts
 PASS src/utils/__tests__/titleizeString.test.ts
-PASS src/__tests__/components/assets/GlobalSearchResults.test.tsx (5.489 s)
 PASS src/__tests__/GlobalChatStore.toolcall.test.ts
 PASS src/components/properties/__tests__/VideoListProperty.test.tsx
 PASS src/stores/__tests__/WorkflowManagerStore.test.ts
@@ -4800,14 +4801,14 @@ PASS src/utils/__tests__/sentry.test.ts
 PASS src/__tests__/performance/LogStoreReRender.test.tsx
 PASS src/components/properties/__tests__/Model3DProperty.test.tsx
 PASS src/utils/__tests__/binary.test.ts
-PASS src/__tests__/components/assets/AssetSearchInput.test.tsx
 PASS src/components/assets/__tests__/AssetItem.test.tsx
+PASS src/__tests__/components/assets/AssetSearchInput.test.tsx
 PASS src/config/__tests__/shortcuts.test.ts
 PASS src/stores/__tests__/InspectedNodeStore.test.ts
 PASS src/hooks/nodes/__tests__/getChildNodes.test.ts
 PASS src/utils/__tests__/getFileExtension.test.ts
-PASS src/hooks/editor/__tests__/useEditorActions.test.ts
 PASS src/components/properties/__tests__/PropertyDropzone.test.tsx
+PASS src/hooks/editor/__tests__/useEditorActions.test.ts
 PASS src/hooks/assets/__tests__/useAssetDisplay.test.tsx
 PASS src/utils/errorHandling.test.ts
 PASS src/utils/highlightText.test.ts
@@ -4828,17 +4829,17 @@ PASS src/__tests__/performance/assetCreationBenchmark.test.ts
   ● Console
 
     console.log
-      [PERF] Sequential execution (10 files): 501.19ms
+      [PERF] Sequential execution (10 files): 503.84ms
 
       at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:41:13)
 
     console.log
-      [PERF] Parallel execution (10 files): 50.29ms
+      [PERF] Parallel execution (10 files): 50.23ms
 
       at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:49:13)
 
     console.log
-      [PERF] Speedup: 9.97x
+      [PERF] Speedup: 10.03x
 
       at Object.<anonymous> (src/__tests__/performance/assetCreationBenchmark.test.ts:60:13)
 
@@ -4979,8 +4980,9 @@ PASS src/components/node_editor/__tests__/NotificationsList.test.tsx
       at dispatchSetState (node_modules/react-dom/cjs/react-dom.development.js:17527:7)
       at src/components/ui_primitives/CopyButton.tsx:140:13
 
-PASS src/stores/__tests__/WorkflowListViewStore.test.ts
 PASS src/components/ui_primitives/__tests__/FlexRow.test.tsx
+PASS src/stores/__tests__/WorkflowListViewStore.test.ts
+PASS src/utils/nodeDisplay.test.ts
 PASS src/hooks/__tests__/useIsDarkMode.test.ts
   ● Console
 
@@ -5083,16 +5085,16 @@ PASS src/hooks/__tests__/useIsDarkMode.test.ts
       at notifyMutationObservers (node_modules/jsdom/lib/jsdom/living/helpers/mutation-observers.js:160:22)
       at node_modules/jsdom/lib/jsdom/living/helpers/mutation-observers.js:133:5
 
-PASS src/utils/nodeDisplay.test.ts
 PASS src/utils/__tests__/imageUploadValidation.test.ts
 PASS src/serverState/__tests__/useFolderTree.test.tsx
 PASS src/components/common/__tests__/CopyToClipboardButton.test.tsx
 PASS src/components/assets/__tests__/FolderItem.test.tsx
+PASS src/__tests__/components/node/DatetimeRenderer.test.tsx
 PASS src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts
   ● Console
 
     console.log
-      Sequential duration: 300ms
+      Sequential duration: 303ms
 
       at Object.<anonymous> (src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts:34:13)
 
@@ -5101,7 +5103,6 @@ PASS src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts
 
       at Object.<anonymous> (src/components/node/OutputNode/__tests__/OutputNodePerf.test.ts:49:13)
 
-PASS src/__tests__/components/node/DatetimeRenderer.test.tsx
 PASS src/serverState/__tests__/tryCacheFiles.test.ts
 PASS src/utils/__tests__/nodeDisplay.test.ts
 PASS src/components/__tests__/Logo.test.tsx
@@ -5109,15 +5110,14 @@ PASS src/stores/__tests__/CollectionsManagerStore.test.ts
 PASS src/hooks/editor/__tests__/useModalResize.test.ts
 PASS src/utils/sanitize.test.ts
 PASS src/components/properties/__tests__/BoolProperty.test.tsx
-PASS src/utils/binary.test.ts
 PASS src/stores/__tests__/uuidv4.test.ts
-PASS src/__tests__/components/assets/AssetExplorer.test.tsx
+PASS src/utils/binary.test.ts
 PASS src/__tests__/components/node/CalendarEventView.test.tsx
+PASS src/__tests__/components/assets/AssetExplorer.test.tsx
 PASS src/stores/__tests__/PanelStore.test.ts
-PASS src/hooks/__tests__/useLoraModels.test.ts
 PASS src/components/__tests__/ProtectedRoute.test.tsx
+PASS src/hooks/__tests__/useLoraModels.test.ts
 PASS src/utils/__tests__/platform.test.ts
-PASS src/hooks/editor/__tests__/useEditorKeyboardShortcuts.test.ts
 PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
   ● Console
 
@@ -5213,6 +5213,7 @@ PASS src/components/node_editor/__tests__/ConnectionLine.test.tsx
       at render (node_modules/@testing-library/react/dist/pure.js:292:10)
       at Object.<anonymous> (src/components/node_editor/__tests__/ConnectionLine.test.tsx:27:33)
 
+PASS src/hooks/editor/__tests__/useEditorKeyboardShortcuts.test.ts
 PASS src/hooks/assets/__tests__/useAssetDownload.test.ts
 PASS src/hooks/editor/__tests__/useEditorMode.test.ts
 PASS src/utils/__tests__/uuidv4.test.ts
@@ -5226,66 +5227,25 @@ PASS src/components/dashboard/__tests__/SetupPanel.test.tsx
 PASS src/components/__tests__/InfiniteScroll.test.tsx
 PASS src/utils/__tests__/serializeValue.test.ts
 PASS src/config/__tests__/data_types.test.ts
-PASS src/hooks/editor/__tests__/useAssistantVisibility.test.ts
 PASS src/hooks/editor/__tests__/useCodeLanguage.test.ts
+PASS src/hooks/editor/__tests__/useAssistantVisibility.test.ts
 PASS src/hooks/editor/__tests__/useFullscreenMode.test.ts
 PASS src/components/__tests__/KeyboardProvider.test.tsx
 PASS src/core/workflow/__tests__/runnerProtocol.test.ts
 PASS src/components/node_editor/__tests__/LoadingAnimation.test.tsx
 PASS src/components/properties/__tests__/NonEditableProperty.test.tsx
 
-Test Suites: 1 skipped, 324 passed, 324 of 325 total
-Tests:       18 skipped, 4115 passed, 4133 total
+Test Suites: 1 skipped, 325 passed, 325 of 326 total
+Tests:       18 skipped, 4135 passed, 4153 total
 Snapshots:   0 total
-Time:        49.246 s
+Time:        47.002 s
 Ran all test suites.
 Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
 Running electron tests...
 cd electron && npm test
 
-> nodetool-electron@0.6.3-rc.24 test
-> jest
-
-PASS src/__tests__/window.test.ts (7.197 s)
-PASS src/__tests__/fileExplorer.test.ts
-PASS src/__tests__/config.test.ts
-PASS src/__tests__/agent.test.ts (7.992 s)
-PASS src/__tests__/updater.test.ts
-PASS src/__tests__/debug.test.ts
-PASS src/__tests__/torchruntime.test.ts
-PASS src/__tests__/shortcuts.test.ts
-PASS src/__tests__/api.test.ts
-PASS src/__tests__/ipc.test.ts (8.828 s)
-PASS src/__tests__/condaPackageChecker.test.ts
-PASS src/__tests__/utils.test.ts
-PASS src/__tests__/ollama.test.ts
-PASS src/__tests__/settings.test.ts
-PASS src/__tests__/torchPlatformCache.test.ts
-PASS src/__tests__/workflowExecution.test.ts
-PASS src/__tests__/settingsPage.test.ts
-PASS src/__tests__/workflowRunner.test.ts
-PASS src/__tests__/logger.behavior.test.ts
-PASS src/__tests__/menu.test.ts
-PASS src/__tests__/installer.test.ts
-PASS src/__tests__/events.test.ts
-PASS src/__tests__/download.test.ts
-PASS src/__tests__/state.test.ts
-PASS src/__tests__/packageManager.wheel.test.ts
-PASS src/__tests__/workflowWindow.test.ts
-PASS src/__tests__/basicImports.test.ts
-PASS src/__tests__/simpleLogger.test.ts
-PASS src/__tests__/simpleDownload.test.ts
-
-Test Suites: 29 passed, 29 total
-Tests:       280 passed, 280 total
-Snapshots:   0 total
-Time:        10.586 s
-Ran all test suites.
-Running mobile tests...
-cd mobile && npm test
-
-> nodetool-mobile@0.6.3-rc.24 test
+> nodetool-electron@0.6.3-rc.25 test
 > jest
 
 sh: 1: jest: not found
-make: *** [Makefile:105: test-mobile] Error 127
+make: *** [Makefile:107: test-electron] Error 127
