@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import { Tooltip, Typography } from "@mui/material";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
@@ -32,7 +32,7 @@ const styles = (_theme: Theme) =>
     }
   });
 
-export const ActionButtons: React.FC<ActionButtonsProps> = ({
+export const ActionButtons: React.FC<ActionButtonsProps> = memo(({
   isLoading,
   isStreaming,
   onSend,
@@ -86,4 +86,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
       )}
     </div>
   );
-};
+});
+
+ActionButtons.displayName = "ActionButtons";
