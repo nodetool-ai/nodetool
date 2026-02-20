@@ -74,6 +74,7 @@ interface ReactFlowWrapperProps {
 import GhostNode from "./GhostNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
+import CanvasPanControls from "../node_editor/CanvasPanControls";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 
@@ -632,6 +633,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
         />
       )}
       <MiniMapNavigator />
+      <CanvasPanControls />
       <ViewportStatusIndicator />
     </div>
   );
