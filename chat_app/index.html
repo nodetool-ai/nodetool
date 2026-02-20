@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeTool Chat</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="./styles/variables.css">
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/layout.css">
+  <link rel="stylesheet" href="./styles/components.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- ─── Sidebar ─────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <img src="./nodetool_logo.png" alt="NodeTool" class="sidebar-logo" onerror="this.style.display='none'">
+        <span class="sidebar-logo-text">Node<span>Tool</span> Chat</span>
+        <button class="new-chat-btn" id="newChatBtn" title="New conversation">+</button>
+      </header>
+
+      <div class="sidebar-threads">
+        <div class="sidebar-section-label">Conversations</div>
+        <div id="threadList"></div>
+      </div>
+
+      <footer class="sidebar-footer">
+        <div class="connection-dot" id="connectionDot"></div>
+        <span class="connection-label" id="connectionLabel">Connecting…</span>
+      </footer>
+    </aside>
+
+    <!-- ─── Main chat area ─────────────────────────────────── -->
+    <main class="chat-main">
+
+      <header class="chat-header">
+        <span class="chat-title" id="chatTitle">NodeTool Chat</span>
+        <div class="chat-header-actions">
+          <!-- Model selector -->
+          <select class="model-selector" id="modelSelector" title="Select model">
+            <option value="">Default model</option>
+          </select>
+        </div>
+      </header>
+
+      <!-- Status banners inserted here dynamically -->
+
+      <!-- Message list -->
+      <div class="messages-container" id="messagesContainer">
+        <div class="welcome-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <h2>Start a conversation</h2>
+          <p>Chat with local or cloud AI models. Your data stays on your machine unless you choose otherwise.</p>
+        </div>
+      </div>
+
+      <!-- Composer -->
+      <div class="composer-container">
+        <div class="composer-row">
+          <textarea
+            class="composer-input"
+            id="composerInput"
+            placeholder="Message… (Enter to send, Shift+Enter for newline)"
+            rows="1"
+            autocomplete="off"
+            spellcheck="true"
+          ></textarea>
+
+          <!-- Send button -->
+          <button class="send-btn" id="sendBtn" title="Send message" aria-label="Send message">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+
+          <!-- Stop button (shown during streaming) -->
+          <button class="stop-btn" id="stopBtn" title="Stop generation" aria-label="Stop generation" style="display:none">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ─── Scripts ────────────────────────────────────────────── -->
+  <!-- MessagePack for binary WebSocket frames (same as workflow_runner) -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/msgpack5/5.3.2/msgpack5.min.js"
+    integrity="sha384-yXzFOTJY0ZY+QoZ2Ho4zFNa3iAG+6ZjVkBn/tBJvVb6oYVRDNGrlZYNmAJLP3CUf"
+    crossorigin="anonymous"></script>
+  <script>
+    // msgpack5 exposes a factory function; instantiate it globally
+    if (typeof msgpack5 === "function") {
+      window.msgpack = msgpack5();
+    }
+  </script>
+
+  <script src="./js/markdown.js"></script>
+  <script src="./js/chat-client.js"></script>
+  <script src="./js/ui.js"></script>
+  <script src="./js/main.js"></script>
+</body>
+</html>
