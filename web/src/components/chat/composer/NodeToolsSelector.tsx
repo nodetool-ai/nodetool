@@ -258,10 +258,25 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   const handleScrollToNamespace = useCallback((namespace: string) => {
     setScrollToNamespace(namespace);
   }, []);
-  
+
   const handleScrollToNamespaceComplete = useCallback(() => {
     setScrollToNamespace(null);
   }, []);
+
+  // Memoize handlers for selected nodes to prevent re-renders
+  const nodeHandlers = useMemo(() => {
+    const handlers: {
+      toggleHandlers: Record<string, () => void>;
+      scrollToHandlers: Record<string, () => void>;
+    } = { toggleHandlers: {}, scrollToHandlers: {} };
+
+    for (const node of selectedNodeMetadatas) {
+      handlers.toggleHandlers[node.node_type] = () => handleToggleNode(node.node_type);
+      handlers.scrollToHandlers[node.namespace] = () => handleScrollToNamespace(node.namespace);
+    }
+
+    return handlers;
+  }, [selectedNodeMetadatas, handleToggleNode, handleScrollToNamespace]);
 
   // Positioning logic for Popover (same pattern as ModelMenuDialogBase)
   const [positionConfig, setPositionConfig] = useState<{
@@ -524,7 +539,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                         >
                           <span
                             className="selected-item-name"
-                            onClick={() => handleScrollToNamespace(node.namespace)}
+                            onClick={nodeHandlers.scrollToHandlers[node.namespace]}
                             style={{ cursor: "pointer" }}
                           >
                             {node.title}
@@ -549,7 +564,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                           <IconButton
                             size="small"
                             className="remove-btn"
-                            onClick={() => handleToggleNode(node.node_type)}
+                            onClick={nodeHandlers.toggleHandlers[node.node_type]}
                             aria-label={`Remove ${node.title}`}
                             sx={{ color: theme.vars.palette.grey[500] }}
                           >

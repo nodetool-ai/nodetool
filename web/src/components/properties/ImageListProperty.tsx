@@ -205,6 +205,15 @@ const ImageListProperty = (props: PropertyProps) => {
     [images, props]
   );
 
+  // Memoize remove handlers for each image to prevent re-renders
+  const removeHandlers = useMemo(() => {
+    const handlers: Record<number, () => void> = {};
+    for (let i = 0; i < images.length; i++) {
+      handlers[i] = () => handleRemoveImage(i);
+    }
+    return handlers;
+  }, [images, handleRemoveImage]);
+
   const handleImageLoad = useCallback((uri: string) => {
     const img = imageRefs.current[uri];
     if (img) {
@@ -485,7 +494,7 @@ const ImageListProperty = (props: PropertyProps) => {
               <Tooltip title="Remove image">
                 <IconButton
                   className="remove-button"
-                  onClick={() => handleRemoveImage(index)}
+                  onClick={removeHandlers[index]}
                   size="small"
                 >
                   <CloseIcon />
