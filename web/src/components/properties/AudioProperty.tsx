@@ -46,7 +46,8 @@ const AudioProperty = (props: PropertyProps) => {
     props.nodeType === "nodetool.input.AudioInput" ||
     props.nodeType === "nodetool.constant.Audio";
   const isRealtime = props.nodeType === "nodetool.input.RealtimeAudioInput";
-  const { findNode } = useNodes((state) => ({ findNode: state.findNode }));
+  // Use direct selector instead of object creation to avoid unnecessary re-renders
+  const findNode = useNodes((state) => state.findNode);
   const rfNode = findNode(props.nodeId);
   const inputNodeName = (rfNode?.data as any)?.properties?.name as
     | string

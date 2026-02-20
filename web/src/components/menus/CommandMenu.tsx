@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
+import { shallow } from "zustand/shallow";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
@@ -242,12 +243,19 @@ const EditCommands = memo(function EditCommands({
 }: HistoryActions) {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
-  const selectAllNodes = useNodes((state) => state.selectAllNodes);
+  // Combine multiple useNodes subscriptions into a single selector with shallow equality
+  // to reduce unnecessary re-renders when other parts of the node state change
+  const { selectAllNodes, toggleBypassSelected } = useNodes(
+    (state) => ({
+      selectAllNodes: state.selectAllNodes,
+      toggleBypassSelected: state.toggleBypassSelected
+    }),
+    shallow
+  );
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const selectedNodes = useNodes((state) => state.getSelectedNodes());
   const surroundWithGroup = useSurroundWithGroup();
-  const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
   const selectionActions = useSelectionActions();
   const { openFind } = useFindInWorkflow();
 

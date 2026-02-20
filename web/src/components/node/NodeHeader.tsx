@@ -59,8 +59,15 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   externalLinkTitle
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const updateNode = useNodes((state) => state.updateNode);
-  const nodeWorkflowId = useNodes((state) => state.workflow?.id);
+  // Combine multiple useNodes subscriptions into a single selector with shallow equality
+  // to reduce unnecessary re-renders when other parts of the node state change
+  const { updateNode, workflowId: nodeWorkflowId } = useNodes(
+    (state) => ({
+      updateNode: state.updateNode,
+      workflowId: state.workflow?.id
+    }),
+    shallow
+  );
   // Use shallow equality to avoid re-rendering when logs for other nodes change
   const targetWorkflowId = workflowId || nodeWorkflowId || "";
   const logs = useStoreWithEqualityFn(
