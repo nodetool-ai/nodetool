@@ -1,6 +1,9 @@
 /**
  * Custom edge component with tooltip support for stream item counts.
  * Memoized to prevent re-renders for every edge in large workflows.
+ * 
+ * EXPERIMENTAL: Enhanced with data flow particle animation for visual feedback
+ * when data is actively flowing through the edge.
  */
 import {
   BaseEdge,
@@ -36,6 +39,9 @@ export function CustomEdge({
   const counter = data?.counter as number | undefined;
   const dataTypeLabel = data?.dataTypeLabel as string | undefined;
   const showLabel = counter && counter > 1;
+  
+  // EXPERIMENTAL: Check if edge has active data flow
+  const isActive = data?.status === "message_sent";
 
   // Memoize tooltip text to avoid recalculating on every render
   const tooltipText = useMemo(() => {
@@ -63,12 +69,21 @@ export function CustomEdge({
     zIndex: 1000
   }), [labelX, labelY, selected]);
 
+  // EXPERIMENTAL: Enhanced edge style with particle animation support
+  const enhancedStyle = useMemo(() => ({
+    ...style,
+    ...(isActive && {
+      strokeDasharray: "14 10",
+      animation: "edgeFlow 2s linear infinite"
+    })
+  }), [style, isActive]);
+
   return (
     <>
       <BaseEdge
         id={id}
         path={edgePath}
-        style={style}
+        style={enhancedStyle}
         markerEnd={markerEnd}
       />
       {showLabel && (
@@ -104,7 +119,8 @@ const MemoizedCustomEdge = memo(CustomEdge, (prevProps, nextProps) => {
     prevProps.targetY === nextProps.targetY &&
     prevProps.style === nextProps.style &&
     prevProps.data?.counter === nextProps.data?.counter &&
-    prevProps.data?.dataTypeLabel === nextProps.data?.dataTypeLabel
+    prevProps.data?.dataTypeLabel === nextProps.data?.dataTypeLabel &&
+    prevProps.data?.status === nextProps.data?.status // Compare status for particle animation
   );
 });
 

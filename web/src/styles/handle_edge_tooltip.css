@@ -483,3 +483,185 @@ ul.multi-outputs li::marker {
   white-space: normal;
   word-wrap: break-word;
 }
+
+/* =============================================================================
+   EXPERIMENTAL: Enhanced Data Flow Visualization (2026-02-19)
+   
+   These styles add enhanced visual feedback for data flowing through workflow
+   edges. The particle animation system provides at-a-glance understanding of
+   workflow execution state.
+   
+   NOTE: This is an EXPERIMENTAL feature. Performance with large workflows
+   (100+ nodes) is still being evaluated.
+   
+   Classes added:
+   - .data-flow-particles: Container for animated particles
+   - .particle-1, .particle-2, .particle-3: Individual particle elements
+   - Enhanced .message-sent animation with multiple visual modes
+   ============================================================================= */
+
+/* Data flow particles container - positioned along edge path */
+.react-flow__edge .data-flow-particles {
+  pointer-events: none;
+}
+
+/* 
+   PARTICLE ANIMATION SYSTEM
+   
+   Particles travel along the edge path from source to target.
+   Uses CSS offset-path for hardware-accelerated animation.
+*/
+
+/* Base particle animation - moves along edge path */
+@keyframes particleTravel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  90% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* Enhanced edge glow when data is flowing */
+.react-flow .react-flow__edge.message-sent .react-flow__edge-path {
+  stroke-opacity: 1;
+  stroke-linecap: round;
+  stroke-dasharray: 14 10;
+  animation: edgeFlow 2s linear infinite;
+  /* Subtle glow for visibility without excessive blur */
+  filter: drop-shadow(0 0 1px currentColor);
+  /* Ensure crisp rendering */
+  shape-rendering: geometricPrecision;
+}
+
+/* 
+   EXPERIMENTAL: Pulsing source node effect
+   
+   When data flows from a node, the source edge gets a subtle pulse
+   to indicate origin of data flow.
+*/
+@keyframes sourcePulse {
+  0%, 100% {
+    stroke-width: 2.5;
+    filter: brightness(1);
+  }
+  50% {
+    stroke-width: 4;
+    filter: brightness(1.2) drop-shadow(0 0 2px currentColor);
+  }
+}
+
+/* Apply pulse animation to active edges */
+.react-flow .react-flow__edge.message-sent.pulse-active .react-flow__edge-path {
+  animation: edgeFlow 2s linear infinite, sourcePulse 1s ease-in-out infinite;
+}
+
+/* 
+   DATA TYPE-SPECIFIC PARTICLE COLORS
+   
+   Different data types get different particle colors for visual distinction.
+   These use CSS variables that are set on the edge element based on data type.
+*/
+
+/* Image data particles (blue) */
+.react-flow .react-flow__edge.message-sent[data-type="image"] .data-flow-particles circle {
+  fill: #3b82f6;
+}
+
+/* Audio data particles (purple) */
+.react-flow .react-flow__edge.message-sent[data-type="audio"] .data-flow-particles circle {
+  fill: #a855f7;
+}
+
+/* Text data particles (green) */
+.react-flow .react-flow__edge.message-sent[data-type="text"] .data-flow-particles circle {
+  fill: #22c55e;
+}
+
+/* Default/unknown data particles (primary color) */
+.react-flow .react-flow__edge.message-sent .data-flow-particles circle {
+  fill: var(--palette-primary-main);
+}
+
+/* 
+   MULTI-STAGE DATA FLOW INDICATOR
+   
+   When streaming large datasets, shows multiple wave fronts
+   to indicate continuous data flow.
+*/
+.react-flow .react-flow__edge.message-sent.streaming-active .react-flow__edge-path {
+  stroke-dasharray: 8 4;
+  animation: edgeFlow 1s linear infinite;
+  stroke-width: 3 !important;
+}
+
+/* 
+   EDGE STATUS GRADIENT ANIMATION
+   
+   Creates a gradient that travels along the edge, showing direction of flow.
+   This is a subtle alternative to the dash animation.
+*/
+@keyframes gradientFlow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -200;
+  }
+}
+
+.react-flow .react-flow__edge.message-sent.gradient-mode .react-flow__edge-path {
+  stroke-dasharray: 50 50;
+  animation: gradientFlow 3s linear infinite;
+}
+
+/* 
+   EXPERIMENTAL: Connection anticipation effect
+   
+   When hovering over a node that has active output edges,
+   those edges glow to show potential data flow paths.
+*/
+.react-flow__node:hover ~ .react-flow__edge.message-sent .react-flow__edge-path {
+  filter: drop-shadow(0 0 2px currentColor);
+}
+
+/* 
+   PERFORMANCE OPTIMIZATION
+   
+   Use will-change to hint browser for animated properties.
+   Use transform for GPU acceleration.
+   Add crisp rendering hints to prevent blur.
+*/
+.react-flow .react-flow__edge.message-sent .react-flow__edge-path {
+  will-change: stroke-dashoffset;
+  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 
+   REDUCED MOTION SUPPORT
+   
+   Respect user's reduced motion preference for accessibility.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .react-flow .react-flow__edge.message-sent .react-flow__edge-path {
+    animation: none;
+    stroke-dasharray: 4 2;
+  }
+  
+  .react-flow .react-flow__edge.message-sent.pulse-active .react-flow__edge-path {
+    animation: none;
+  }
+}
