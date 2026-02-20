@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-export const settingsStyles = (theme: Theme): any =>
-  css({
+export const settingsStyles = (theme: Theme): CSSObject =>
+  ({
     display: "flex",
     flexDirection: "column",
     height: "100%",

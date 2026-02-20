@@ -27,6 +27,7 @@ import { useState, useCallback, useMemo, memo, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
+import { SecretResponse } from "../../stores/ApiTypes";
 
 interface SecretFormData {
   key: string;
@@ -45,7 +46,7 @@ const SecretsMenu = memo(() => {
   const safeSecrets = useMemo(() => secrets ?? [], [secrets]);
 
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingSecret, setEditingSecret] = useState<any | null>(null);
+  const [editingSecret, setEditingSecret] = useState<SecretResponse | null>(null);
   const [formData, setFormData] = useState<SecretFormData>({
     key: "",
     value: ""
@@ -76,21 +77,26 @@ const SecretsMenu = memo(() => {
   // Use store state directly (same as sidebar) to ensure consistency
   const secretsByStatus = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase().trim();
-    const filterSecrets = (secrets: any[]) => {
+    const filterSecrets = (secrets: SecretResponse[]) => {
       if (!lowerSearchTerm) { return secrets; }
       return secrets.filter(
-        (s: any) =>
+        (s: SecretResponse) =>
           s.key.toLowerCase().includes(lowerSearchTerm) ||
           (s.description && s.description.toLowerCase().includes(lowerSearchTerm))
       );
     };
-    const configured = filterSecrets(safeSecrets.filter((s: any) => s.is_configured));
-    const unconfigured = filterSecrets(safeSecrets.filter((s: any) => !s.is_configured));
+    const configured = filterSecrets(safeSecrets.filter((s: SecretResponse) => s.is_configured));
+    const unconfigured = filterSecrets(safeSecrets.filter((s: SecretResponse) => !s.is_configured));
     return { configured, unconfigured };
   }, [safeSecrets, searchTerm]);
 
   const updateMutation = useMutation({
-    mutationFn: () => updateSecret(editingSecret.key, formData.value),
+    mutationFn: () => {
+      if (!editingSecret) {
+        throw new Error("No secret selected for editing");
+      }
+      return updateSecret(editingSecret.key, formData.value);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["secrets"] });
       // Invalidate providers cache when secrets change, as provider availability
@@ -109,7 +115,7 @@ const SecretsMenu = memo(() => {
       });
       resetForm();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       addNotification({
         type: "error",
         content: `Failed to update secret: ${error.message}`,
@@ -137,7 +143,7 @@ const SecretsMenu = memo(() => {
         alert: true
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       addNotification({
         type: "error",
         content: `Failed to delete secret: ${error.message}`,
@@ -152,7 +158,7 @@ const SecretsMenu = memo(() => {
     setOpenDialog(false);
   };
 
-  const handleOpenEditDialog = useCallback((secret: any) => (_event: React.MouseEvent) => {
+  const handleOpenEditDialog = useCallback((secret: SecretResponse) => (_event: React.MouseEvent) => {
     setEditingSecret(secret);
     setFormData({
       key: secret.key,
@@ -250,7 +256,7 @@ const SecretsMenu = memo(() => {
                 {secretsByStatus.configured.length > 0 && (
                   <div className="settings-section">
                     <Typography variant="h2">Configured Secrets</Typography>
-                    {secretsByStatus.configured.map((secret: any) => (
+                    {secretsByStatus.configured.map((secret: SecretResponse) => (
                       <div
                         key={secret.key}
                         id={`secret-${secret.key}`}
@@ -288,7 +294,7 @@ const SecretsMenu = memo(() => {
                             }}
                           >
                             Updated:{" "}
-                            {new Date(secret.updated_at).toLocaleDateString()}
+                            {secret.updated_at ? new Date(secret.updated_at).toLocaleDateString() : "Never"}
                           </Typography>
                         </div>
                         <div
@@ -327,7 +333,7 @@ const SecretsMenu = memo(() => {
                 {secretsByStatus.unconfigured.length > 0 && (
                   <div className="settings-section">
                     <Typography variant="h2">Available Secrets</Typography>
-                    {secretsByStatus.unconfigured.map((secret: any) => (
+                    {secretsByStatus.unconfigured.map((secret: SecretResponse) => (
                       <div
                         key={secret.key}
                         id={`secret-${secret.key}`}
