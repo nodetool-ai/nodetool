@@ -44,6 +44,7 @@ import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
+import QuickShortcutsPanel from "./QuickShortcutsPanel";
 
 declare global {
   interface Window {
@@ -65,6 +66,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const store = useNodeStoreRef();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [quickShortcutsOpen, setQuickShortcutsOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -104,6 +106,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         if (selectedIds.length > 0) {
           toggleInspectedNode(selectedIds[0]);
         }
+      }
+    },
+    true,
+    active
+  );
+
+  // Keyboard shortcut for Quick Shortcuts Panel (Ctrl+H / Cmd+H)
+  const quickShortcutsCombo = isMac() ? ["meta", "h"] : ["control", "h"];
+  useCombo(
+    quickShortcutsCombo,
+    () => {
+      if (active) {
+        setQuickShortcutsOpen((v) => !v);
       }
     },
     true,
@@ -206,6 +221,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                   <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
                 </Box>
               </Modal>
+              <QuickShortcutsPanel
+                open={quickShortcutsOpen}
+                onClose={() => setQuickShortcutsOpen(false)}
+              />
             </>
           )}
         </Box>
