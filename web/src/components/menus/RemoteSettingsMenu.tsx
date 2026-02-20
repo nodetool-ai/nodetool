@@ -85,6 +85,10 @@ const RemoteSettings = () => {
   });
 
   // Poll for HuggingFace OAuth completion
+  interface HfTokenResponse {
+    tokens: string[];
+  }
+
   const { data: hfTokenData, isError: isHfTokenError } = useQuery({
     queryKey: ["hf-oauth-token"],
     queryFn: async () => {
@@ -94,9 +98,10 @@ const RemoteSettings = () => {
       }
       return data;
     },
-    refetchInterval: (query: any) => {
+    refetchInterval: (query) => {
       // Handle both v4 (data) and v5 (Query object)
-      const data = query?.state?.data || query;
+      const queryState = (query as unknown as { state?: { data?: unknown } }).state;
+      const data = (queryState?.data ?? query) as HfTokenResponse | undefined;
       // Poll if we are loading and don't have a token yet
       if (hfOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
         return 2000;
@@ -106,7 +111,7 @@ const RemoteSettings = () => {
     retry: true
   });
 
-  const isConnected = !!((hfTokenData as any)?.tokens && (hfTokenData as any).tokens.length > 0);
+  const isConnected = !!(hfTokenData && hfTokenData.tokens && hfTokenData.tokens.length > 0);
 
   // Handle OAuth completion side effects
   useEffect(() => {
