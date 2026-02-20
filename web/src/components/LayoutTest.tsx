@@ -226,14 +226,14 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
   const [sliderValue, setSliderValue] = useState(50);
   const [zoom, setZoom] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [progress, _setProgress] = useState(65);
+  const [progress] = useState(65);
   const [selectedTag, setSelectedTag] = useState<string | null>("react");
   const [searchValue, setSearchValue] = useState("");
   const [canUndo, setCanUndo] = useState(true);
   const [canRedo, setCanRedo] = useState(false);
   const [helpActive, setHelpActive] = useState(false);
   const [showWarning, setShowWarning] = useState(true);
-  const [notificationCount, _setNotificationCount] = useState(5);
+  const [notificationCount] = useState(5);
 
   const toggleColorMode = () => {
     setMode(mode === "light" ? "dark" : "light");

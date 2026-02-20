@@ -20,17 +20,17 @@ interface AssetGridRowProps {
   index: number;
   style: React.CSSProperties;
   data: {
-    getItemsForRow: (index: number) => AssetOrDivider[];
+    getItemsForRow: (_index: number) => AssetOrDivider[];
     gridDimensions: { itemWidth: number; itemHeight: number; columns: number };
     footerHeight: number;
     itemSpacing: number;
     assetItemSize: number;
     selectedAssetIds: string[];
-    handleSelectAsset: (id: string) => void;
-    onDragStart: (id: string) => string[];
-    onDoubleClick: (asset: Asset) => void;
+    handleSelectAsset: (_id: string) => void;
+    onDragStart: (_id: string) => string[];
+    onDoubleClick: (_asset: Asset) => void;
     expandedTypes: Set<string>;
-    toggleExpanded: (type: string) => void;
+    toggleExpanded: (_type: string) => void;
   };
 }
 

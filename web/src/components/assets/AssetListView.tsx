@@ -17,7 +17,7 @@ import { ExpandCollapseButton } from "../ui_primitives";
 
 interface AssetListViewProps {
   assets: Asset[];
-  onDoubleClick?: (asset: Asset) => void;
+  onDoubleClick?: (_asset: Asset) => void;
   containerWidth?: number;
   isHorizontal?: boolean;
 }
