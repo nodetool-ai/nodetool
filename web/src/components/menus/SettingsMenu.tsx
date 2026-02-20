@@ -71,7 +71,7 @@ interface SettingsMenuProps {
 }
 
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
-  const user = useAuth((state) => state.user);
+  const session = useAuth((state) => state.session);
   const _navigate = useNavigate();
   const isMenuOpen = useSettingsStore((state) => state.isMenuOpen);
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
@@ -173,8 +173,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const id = isMenuOpen ? "docs" : undefined;
 
   const copyAuthToken = () => {
-    if (user && (user as any).auth_token) {
-      navigator.clipboard.writeText((user as any).auth_token);
+    const accessToken = session?.access_token;
+    if (accessToken) {
+      navigator.clipboard.writeText(accessToken);
       addNotification({
         type: "info",
         alert: true,
@@ -291,7 +292,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     if (!lastExportPath) {
       return;
     }
-    const api = (window as any)?.api;
+    const api = window.api;
     if (api?.shell?.showItemInFolder) {
       api.shell.showItemInFolder(lastExportPath);
     } else if (api?.showItemInFolder) {
@@ -312,7 +313,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     }
   ];
 
-  if (user && (user as any).auth_token) {
+  if (session?.access_token) {
     generalSidebarSections.push({
       category: "API",
       items: [{ id: "api", label: "Nodetool API" }]
@@ -825,7 +826,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       </div>
                     </div>
 
-                    {user && (user as any).auth_token && (
+                    {session?.access_token && (
                       <>
                         <Typography variant="h3" id="api">
                           Nodetool API
