@@ -340,13 +340,9 @@ const styles = (theme: Theme) =>
   });
 
 const NodeMenuButton = memo(function NodeMenuButton() {
-  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
-    (state) => ({
-      openNodeMenu: state.openNodeMenu,
-      closeNodeMenu: state.closeNodeMenu,
-      isMenuOpen: state.isMenuOpen
-    })
-  );
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
+  const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
   const handleToggleNodeMenu = useCallback(() => {
     if (isMenuOpen) {
@@ -378,10 +374,8 @@ const NodeMenuButton = memo(function NodeMenuButton() {
 });
 
 const SaveWorkflowButton = memo(function SaveWorkflowButton() {
-  const { saveWorkflow, getCurrentWorkflow } = useWorkflowManager((state) => ({
-    saveWorkflow: state.saveWorkflow,
-    getCurrentWorkflow: state.getCurrentWorkflow
-  }));
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
+  const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -504,15 +498,11 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
   // Get the run function from websocket runner
   const run = useWebsocketRunner((state) => state.run);
 
-  const { state, isWorkflowRunning } = useWebsocketRunner((state) => ({
-    state: state.state,
-    isWorkflowRunning: state.state === "running"
-  }));
+  const state = useWebsocketRunner((state) => state.state);
+  const isWorkflowRunning = state === "running";
 
-  const { getWorkflow, saveWorkflow } = useWorkflowManager((state) => ({
-    getWorkflow: state.getWorkflow,
-    saveWorkflow: state.saveWorkflow
-  }));
+  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
   const handleRun = useCallback(async () => {
     if (!isWorkflowRunning) {

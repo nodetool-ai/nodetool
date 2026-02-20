@@ -125,11 +125,9 @@ const WorkflowAssistantChat: React.FC = () => {
     )
   );
 
-  const { currentWorkflowId, getNodeStore, getWorkflow } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId,
-    getNodeStore: state.getNodeStore,
-    getWorkflow: state.getWorkflow
-  }));
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
+  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
   const nodeMetadata = useMetadataStore((state) => state.metadata);
 
   // Force workflow-only behavior in this panel.
@@ -140,9 +138,7 @@ const WorkflowAssistantChat: React.FC = () => {
   }, [setAgentMode, setSelectedTools, setSelectedCollections]);
 
   const total = progress.total;
-  const { nodes } = useNodes((state) => ({
-    nodes: state.nodes
-  }));
+  const nodes = useNodes((state) => state.nodes);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();

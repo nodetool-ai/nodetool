@@ -134,11 +134,9 @@ const WelcomePanel: React.FC = () => {
     []
   );
 
-  // Combine multiple SettingsStore subscriptions into one for better performance
-  const { settings, updateSettings } = useSettingsStore((state) => ({
-    settings: state.settings,
-    updateSettings: state.updateSettings
-  }));
+  // Subscribe to settings individually to prevent unnecessary re-renders
+  const settings = useSettingsStore((state) => state.settings);
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
 
   const theme = useTheme();
 

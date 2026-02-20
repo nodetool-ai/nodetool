@@ -75,31 +75,24 @@ export const useNodeEditorShortcuts = (
 
   /* USE STORE */
   // Subscribe to undo/redo functions only (stable) to prevent re-renders on history changes
-  const { undo: undoHistory, redo: redoHistory } = useTemporalNodes((state) => ({
-    undo: state.undo,
-    redo: state.redo
-  }));
-  
+  const undoHistory = useTemporalNodes((state) => state.undo);
+  const redoHistory = useTemporalNodes((state) => state.redo);
+
   // Subscribe to selectedNodeCount instead of selectedNodes to prevent re-renders during drag
-  const nodesStore = useNodes((state) => ({
-    selectedNodeCount: state.getSelectedNodeCount(),
-    selectedEdgeCount: state.edges.filter((edge) => Boolean(edge.selected)).length,
-    selectAllNodes: state.selectAllNodes,
-    setNodes: state.setNodes,
-    toggleBypassSelected: state.toggleBypassSelected
-  }));
-  
+  const selectedNodeCount = useNodes((state) => state.getSelectedNodeCount());
+  const selectAllNodes = useNodes((state) => state.selectAllNodes);
+  const setNodes = useNodes((state) => state.setNodes);
+  const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
+
   // Get store ref to access nodes imperatively without subscribing
   const nodeStore = useNodeStoreRef();
   const reactFlow = useReactFlow();
-  const workflowManager = useWorkflowManager((state) => ({
-    saveExample: state.saveExample,
-    removeWorkflow: state.removeWorkflow,
-    getCurrentWorkflow: state.getCurrentWorkflow,
-    openWorkflows: state.openWorkflows,
-    createNewWorkflow: state.createNew,
-    saveWorkflow: state.saveWorkflow
-  }));
+  const saveExample = useWorkflowManager((state) => state.saveExample);
+  const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
+  const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
+  const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
+  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const copyPaste = useCopyPaste();
   const alignNodes = useAlignNodes();
   const duplicateNodes = useDuplicateNodes();
@@ -126,23 +119,11 @@ export const useNodeEditorShortcuts = (
   const nodeFocus = useNodeFocus();
   // All hooks above this line
 
-  // Now destructure/store values from the hook results
-  const {
-    selectedNodeCount,
-    selectedEdgeCount,
-    selectAllNodes,
-    setNodes,
-    toggleBypassSelected
-  } =
-    nodesStore;
-  const {
-    saveExample,
-    removeWorkflow,
-    getCurrentWorkflow,
-    openWorkflows,
-    createNewWorkflow,
-    saveWorkflow
-  } = workflowManager;
+  // Calculate selectedEdgeCount from the store
+  const selectedEdgeCount = useNodes((state) =>
+    state.edges.filter((edge) => Boolean(edge.selected)).length
+  );
+
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu } = nodeMenuStore;
   const { openFind } = findInWorkflow;
