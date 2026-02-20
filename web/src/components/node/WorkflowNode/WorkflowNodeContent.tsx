@@ -23,6 +23,100 @@ export interface WorkflowNodeContentProps {
 }
 
 /**
+ * Custom comparison function for WorkflowNodeContent memo
+ * Only compares props that actually affect rendering to avoid unnecessary re-renders
+ */
+const arePropsEqual = (
+  prevProps: WorkflowNodeContentProps,
+  nextProps: WorkflowNodeContentProps
+): boolean => {
+  if (
+    prevProps.id !== nextProps.id ||
+    prevProps.nodeType !== nextProps.nodeType ||
+    prevProps.showAdvancedFields !== nextProps.showAdvancedFields ||
+    prevProps.hasAdvancedFields !== nextProps.hasAdvancedFields ||
+    prevProps.status !== nextProps.status ||
+    prevProps.workflowId !== nextProps.workflowId ||
+    prevProps.basicFields.length !== nextProps.basicFields.length ||
+    !prevProps.basicFields.every((field, i) => field === nextProps.basicFields[i])
+  ) {
+    return false;
+  }
+
+  // Check nodeMetadata - only compare fields that affect rendering
+  if (
+    prevProps.nodeMetadata.title !== nextProps.nodeMetadata.title ||
+    prevProps.nodeMetadata.layout !== nextProps.nodeMetadata.layout ||
+    prevProps.nodeMetadata.is_dynamic !== nextProps.nodeMetadata.is_dynamic ||
+    prevProps.nodeMetadata.supports_dynamic_outputs !==
+      nextProps.nodeMetadata.supports_dynamic_outputs ||
+    prevProps.nodeMetadata.is_streaming_output !==
+      nextProps.nodeMetadata.is_streaming_output
+  ) {
+    return false;
+  }
+
+  // For properties and outputs, use shallow comparison on length
+  const prevPropsLen = prevProps.nodeMetadata.properties?.length ?? 0;
+  const nextPropsLen = nextProps.nodeMetadata.properties?.length ?? 0;
+  if (prevPropsLen !== nextPropsLen) {
+    return false;
+  }
+
+  const prevOutputsLen = prevProps.nodeMetadata.outputs?.length ?? 0;
+  const nextOutputsLen = nextProps.nodeMetadata.outputs?.length ?? 0;
+  if (prevOutputsLen !== nextOutputsLen) {
+    return false;
+  }
+
+  // Check data.properties - compare both keys and values
+  const prevDataProps = prevProps.data.properties || {};
+  const nextDataProps = nextProps.data.properties || {};
+  const prevDataKeys = Object.keys(prevDataProps);
+  const nextDataKeys = Object.keys(nextDataProps);
+  if (prevDataKeys.length !== nextDataKeys.length) {
+    return false;
+  }
+  for (const key of prevDataKeys) {
+    if (prevDataProps[key] !== nextDataProps[key]) {
+      return false;
+    }
+  }
+
+  // Check data.dynamic_properties - compare both keys and values
+  const prevDynProps = prevProps.data.dynamic_properties || {};
+  const nextDynProps = nextProps.data.dynamic_properties || {};
+  const prevDynKeys = Object.keys(prevDynProps);
+  const nextDynKeys = Object.keys(nextDynProps);
+  if (prevDynKeys.length !== nextDynKeys.length) {
+    return false;
+  }
+  for (const key of prevDynKeys) {
+    if (prevDynProps[key] !== nextDynProps[key]) {
+      return false;
+    }
+  }
+
+  // Check dynamic_outputs
+  const prevDynamicOutputsKeys = Object.keys(
+    prevProps.data.dynamic_outputs || {}
+  );
+  const nextDynamicOutputsKeys = Object.keys(
+    nextProps.data.dynamic_outputs || {}
+  );
+  if (prevDynamicOutputsKeys.length !== nextDynamicOutputsKeys.length) {
+    return false;
+  }
+
+  // Functions should be stable references
+  if (prevProps.onToggleAdvancedFields !== nextProps.onToggleAdvancedFields) {
+    return false;
+  }
+
+  return true;
+};
+
+/**
  * Custom content for the WorkflowNode.
  * Shows a workflow selector plus dynamic inputs/outputs derived from
  * the selected workflow's input and output nodes.
@@ -172,7 +266,8 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
         </Box>
       </Box>
     );
-  }
+  },
+  arePropsEqual
 );
 
 WorkflowNodeContent.displayName = "WorkflowNodeContent";
