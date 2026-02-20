@@ -35,8 +35,8 @@ const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
           {title}
         </Typography>
       )}
-      {tasks.map((task, index) => (
-        <TaskView key={index} task={task} />
+      {tasks.map((task) => (
+        <TaskView key={task.id} task={task} />
       ))}
     </div>
   );

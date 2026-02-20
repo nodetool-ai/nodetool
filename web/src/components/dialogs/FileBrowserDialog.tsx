@@ -229,7 +229,9 @@ function FileBrowserDialog({
   const breadcrumbs = useMemo(() => {
     // Detect likely separator from current path
     const separator = currentPath.includes("\\") ? "\\" : "/";
-    const parts = currentPath.split(/[/\\]/).filter(Boolean);
+    // Memoize the regex pattern to avoid recreating on every render
+    const pathSplitRegex = /[/\\]/;
+    const parts = currentPath.split(pathSplitRegex).filter(Boolean);
     const items = [];
     let pathAcc = "";
 

@@ -6,6 +6,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
 import { IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
@@ -47,11 +48,15 @@ const NodeItem = memo(
       const theme = useTheme();
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
-      const searchTerm = useNodeMenuStore((state) => state.searchTerm);
-      const { hoveredNode, setHoveredNode } = useNodeMenuStore((state) => ({
-        hoveredNode: state.hoveredNode,
-        setHoveredNode: state.setHoveredNode
-      }));
+      // Combine multiple store selectors into one with shallow comparison to reduce re-renders
+      const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
+        useMemo(() => (state) => ({
+          searchTerm: state.searchTerm,
+          hoveredNode: state.hoveredNode,
+          setHoveredNode: state.setHoveredNode
+        }), []),
+        shallow
+      );
       const isHovered = hoveredNode?.node_type === node.node_type;
       const isFavorite = useFavoriteNodesStore((state) =>
         state.isFavorite(node.node_type)
@@ -81,9 +86,9 @@ const NodeItem = memo(
             </Typography>
             {parsedDescription.tags.length > 0 && (
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
-                {parsedDescription.tags.map((tag, index) => (
+                {parsedDescription.tags.map((tag) => (
                   <Box
-                    key={index}
+                    key={tag}
                     component="span"
                     sx={{
                       fontSize: "0.65rem",
@@ -108,7 +113,7 @@ const NodeItem = memo(
                 </Typography>
                 <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "0.75rem", color: "grey.300" }}>
                   {parsedDescription.useCases.raw.split("\n").map((useCase, index) => (
-                    <li key={index}>{useCase}</li>
+                    <li key={`${useCase}-${index}`}>{useCase}</li>
                   ))}
                 </Box>
               </Box>
