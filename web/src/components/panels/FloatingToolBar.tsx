@@ -385,19 +385,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     bottomPanelSize
   );
 
-  const { instantUpdate, setInstantUpdate } = useSettingsStore((state) => ({
-    instantUpdate: state.settings.instantUpdate,
-    setInstantUpdate: state.setInstantUpdate
-  }));
+  const instantUpdate = useSettingsStore((state) => state.settings.instantUpdate);
+  const setInstantUpdate = useSettingsStore((state) => state.setInstantUpdate);
 
-  const { visible: isMiniMapVisible } = useMiniMapStore((state) => ({
-    visible: state.visible
-  }));
+  const isMiniMapVisible = useMiniMapStore((state) => state.visible);
 
-  const { workflow, isComfyWorkflow } = useNodes((state) => ({
-    workflow: state.workflow,
-    isComfyWorkflow: state.isComfyWorkflow()
-  }));
+  const workflow = useNodes((state) => state.workflow);
+  const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(

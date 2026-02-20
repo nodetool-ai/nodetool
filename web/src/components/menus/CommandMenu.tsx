@@ -121,21 +121,12 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   );
   const navigate = useNavigate();
 
-  const {
-    saveWorkflow,
-    saveExample,
-    getCurrentWorkflow,
-    createNew,
-    removeWorkflow,
-    openWorkflows
-  } = useWorkflowManager((state) => ({
-    saveWorkflow: state.saveWorkflow,
-    saveExample: state.saveExample,
-    getCurrentWorkflow: state.getCurrentWorkflow,
-    createNew: state.createNew,
-    removeWorkflow: state.removeWorkflow,
-    openWorkflows: state.openWorkflows
-  }));
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
+  const saveExample = useWorkflowManager((state) => state.saveExample);
+  const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
+  const createNew = useWorkflowManager((state) => state.createNew);
+  const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
+  const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
 
   const runWorkflow = useCallback(() => {
     run({}, currentWorkflow, nodes, edges);

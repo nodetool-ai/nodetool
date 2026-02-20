@@ -23,48 +23,27 @@ export const useFloatingToolbarActions = () => {
   const path = location.pathname;
 
   const nodeStore = useNodeStoreRef();
-  const { workflow, autoLayout, workflowJSON } = useNodes((state) => ({
-    workflow: state.workflow,
-    autoLayout: state.autoLayout,
-    workflowJSON: state.workflowJSON
-  }));
+  const workflow = useNodes((state) => state.workflow);
+  const autoLayout = useNodes((state) => state.autoLayout);
+  const workflowJSON = useNodes((state) => state.workflowJSON);
 
-  const {
-    run,
-    isWorkflowRunning,
-    isPaused,
-    isSuspended,
-    cancel,
-    pause,
-    resume
-  } = useWebsocketRunner((state) => ({
-    run: state.run,
-    isWorkflowRunning: state.state === "running",
-    isPaused: state.state === "paused",
-    isSuspended: state.state === "suspended",
-    cancel: state.cancel,
-    pause: state.pause,
-    resume: state.resume
-  }));
+  const run = useWebsocketRunner((state) => state.run);
+  const state = useWebsocketRunner((state) => state.state);
+  const isWorkflowRunning = state === "running";
+  const isPaused = state === "paused";
+  const isSuspended = state === "suspended";
+  const cancel = useWebsocketRunner((state) => state.cancel);
+  const pause = useWebsocketRunner((state) => state.pause);
+  const resume = useWebsocketRunner((state) => state.resume);
 
-  const { getWorkflow: getWorkflowById, saveWorkflow } = useWorkflowManager(
-    (state) => ({
-      getWorkflow: state.getWorkflow,
-      saveWorkflow: state.saveWorkflow
-    })
-  );
+  const getWorkflowById = useWorkflowManager((state) => state.getWorkflow);
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
-  const { autosave } = useSettingsStore((state) => ({
-    autosave: state.settings.autosave
-  }));
+  const autosave = useSettingsStore((state) => state.settings.autosave);
 
-  const { openNodeMenu, closeNodeMenu, isMenuOpen } = useNodeMenuStore(
-    (state) => ({
-      openNodeMenu: state.openNodeMenu,
-      closeNodeMenu: state.closeNodeMenu,
-      isMenuOpen: state.isMenuOpen
-    })
-  );
+  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
+  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
+  const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
   const toggleWorkflowPanel = useRightPanelStore(
     (state) => () => state.handleViewChange("workflow")
@@ -74,9 +53,7 @@ export const useFloatingToolbarActions = () => {
     (state) => state.handleViewChange
   );
 
-  const { toggleVisible: toggleMiniMap } = useMiniMapStore((state) => ({
-    toggleVisible: state.toggleVisible
-  }));
+  const toggleMiniMap = useMiniMapStore((state) => state.toggleVisible);
 
   const handleRun = useCallback(async () => {
     if (!isWorkflowRunning) {

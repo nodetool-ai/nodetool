@@ -83,22 +83,37 @@ describe("useFloatingToolbarActions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseWebsocketRunner.mockReturnValue({
+    // Mock useWebsocketRunner calls with different selectors
+    const mockRunnerState = {
       run: mockRun,
       cancel: mockCancel,
       pause: mockPause,
       resume: mockResume,
-      isWorkflowRunning: false,
-      isPaused: false,
-      isSuspended: false,
       state: "idle"
-    } as any);
+    };
+    mockUseWebsocketRunner.mockImplementation((selector) => {
+      // If selector is a function, call it with mock state
+      if (typeof selector === 'function') {
+        return selector(mockRunnerState as any);
+      }
+      // Fallback for non-function selectors
+      return mockRunnerState as any;
+    });
 
-    mockUseNodes.mockReturnValue({
+    // Mock multiple useNodes calls with different selectors
+    const mockNodesState = {
       workflow: mockWorkflow,
       autoLayout: mockAutoLayout,
       workflowJSON: mockWorkflowJSON
-    } as any);
+    };
+    mockUseNodes.mockImplementation((selector) => {
+      // If selector is a function, call it with mock state
+      if (typeof selector === 'function') {
+        return selector(mockNodesState as any);
+      }
+      // Fallback for non-function selectors
+      return mockNodesState as any;
+    });
 
     mockUseNodeStoreRef.mockReturnValue({
       getState: jest.fn(() => ({
@@ -109,31 +124,74 @@ describe("useFloatingToolbarActions", () => {
       }))
     } as any);
 
-    mockUseWorkflowManager.mockReturnValue({
+    // Mock useWorkflowManager calls with different selectors
+    const mockWorkflowManagerState = {
       getWorkflow: mockGetWorkflow,
       saveWorkflow: mockSaveWorkflow
-    } as any);
-
-    mockUseSettingsStore.mockReturnValue({
-      autosave: {
-        saveBeforeRun: false,
-        maxVersionsPerWorkflow: 10
+    };
+    mockUseWorkflowManager.mockImplementation((selector) => {
+      // If selector is a function, call it with mock state
+      if (typeof selector === 'function') {
+        return selector(mockWorkflowManagerState as any);
       }
-    } as any);
+      // Fallback for non-function selectors
+      return mockWorkflowManagerState as any;
+    });
 
-    mockUseNodeMenuStore.mockReturnValue({
+    // Mock useSettingsStore calls with different selectors
+    const mockSettingsState = {
+      settings: {
+        autosave: {
+          saveBeforeRun: false,
+          maxVersionsPerWorkflow: 10
+        }
+      }
+    };
+    mockUseSettingsStore.mockImplementation((selector) => {
+      // If selector is a function, call it with mock state
+      if (typeof selector === 'function') {
+        return selector(mockSettingsState as any);
+      }
+      // Fallback for non-function selectors
+      return {
+        autosave: {
+          saveBeforeRun: false,
+          maxVersionsPerWorkflow: 10
+        }
+      } as any;
+    });
+
+    // Mock useNodeMenuStore calls with different selectors
+    const mockNodeMenuState = {
       openNodeMenu: mockOpenNodeMenu,
       closeNodeMenu: mockCloseNodeMenu,
       isMenuOpen: false
-    } as any);
+    };
+    mockUseNodeMenuStore.mockImplementation((selector) => {
+      // If selector is a function, call it with mock state
+      if (typeof selector === 'function') {
+        return selector(mockNodeMenuState as any);
+      }
+      // Fallback for non-function selectors
+      return mockNodeMenuState as any;
+    });
 
     mockUseRightPanelStore.mockReturnValue(mockHandleViewChange as any);
 
     mockUseBottomPanelStore.mockReturnValue(mockToggleBottomPanel as any);
 
-    mockUseMiniMapStore.mockReturnValue({
+    // Mock useMiniMapStore calls with different selectors
+    const mockMiniMapState = {
       toggleVisible: mockToggleMiniMap
-    } as any);
+    };
+    mockUseMiniMapStore.mockImplementation((selector) => {
+      // If selector is a function, call it with mock state
+      if (typeof selector === 'function') {
+        return selector(mockMiniMapState as any);
+      }
+      // Fallback for non-function selectors
+      return mockMiniMapState as any;
+    });
 
     mockTriggerAutosave.mockResolvedValue(undefined);
     mockExecuteViaComfyUI.mockResolvedValue({
@@ -160,16 +218,19 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("does not run workflow when already running", async () => {
-      mockUseWebsocketRunner.mockReturnValue({
-        run: mockRun,
-        cancel: mockCancel,
-        pause: mockPause,
-        resume: mockResume,
-        isWorkflowRunning: true,
-        isPaused: false,
-        isSuspended: false,
-        state: "running"
-      } as any);
+      mockUseWebsocketRunner.mockImplementation((selector) => {
+        const mockRunnerState = {
+          run: mockRun,
+          cancel: mockCancel,
+          pause: mockPause,
+          resume: mockResume,
+          state: "running"
+        };
+        if (typeof selector === 'function') {
+          return selector(mockRunnerState as any);
+        }
+        return mockRunnerState as any;
+      });
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -181,12 +242,25 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("triggers autosave before running if enabled", async () => {
-      mockUseSettingsStore.mockReturnValue({
-        autosave: {
-          saveBeforeRun: true,
-          maxVersionsPerWorkflow: 10
+      mockUseSettingsStore.mockImplementation((selector) => {
+        const mockSettingsState = {
+          settings: {
+            autosave: {
+              saveBeforeRun: true,
+              maxVersionsPerWorkflow: 10
+            }
+          }
+        };
+        if (typeof selector === 'function') {
+          return selector(mockSettingsState as any);
         }
-      } as any);
+        return {
+          autosave: {
+            saveBeforeRun: true,
+            maxVersionsPerWorkflow: 10
+          }
+        } as any;
+      });
 
       mockGetWorkflow.mockReturnValue({
         ...mockWorkflow,
@@ -276,11 +350,17 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("does nothing when workflow is null", () => {
-      mockUseNodes.mockReturnValue({
-        workflow: null,
-        autoLayout: mockAutoLayout,
-        workflowJSON: mockWorkflowJSON
-      } as any);
+      mockUseNodes.mockImplementation((selector) => {
+        const mockNodesState = {
+          workflow: null,
+          autoLayout: mockAutoLayout,
+          workflowJSON: mockWorkflowJSON
+        };
+        if (typeof selector === 'function') {
+          return selector(mockNodesState as any);
+        }
+        return mockNodesState as any;
+      });
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -312,11 +392,17 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("does nothing when workflow is null", () => {
-      mockUseNodes.mockReturnValue({
-        workflow: null,
-        autoLayout: mockAutoLayout,
-        workflowJSON: mockWorkflowJSON
-      } as any);
+      mockUseNodes.mockImplementation((selector) => {
+        const mockNodesState = {
+          workflow: null,
+          autoLayout: mockAutoLayout,
+          workflowJSON: mockWorkflowJSON
+        };
+        if (typeof selector === 'function') {
+          return selector(mockNodesState as any);
+        }
+        return mockNodesState as any;
+      });
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -342,11 +428,17 @@ describe("useFloatingToolbarActions", () => {
 
   describe("handleToggleNodeMenu", () => {
     it("closes menu when already open", () => {
-      mockUseNodeMenuStore.mockReturnValue({
-        openNodeMenu: mockOpenNodeMenu,
-        closeNodeMenu: mockCloseNodeMenu,
-        isMenuOpen: true
-      } as any);
+      mockUseNodeMenuStore.mockImplementation((selector) => {
+        const mockNodeMenuState = {
+          openNodeMenu: mockOpenNodeMenu,
+          closeNodeMenu: mockCloseNodeMenu,
+          isMenuOpen: true
+        };
+        if (typeof selector === 'function') {
+          return selector(mockNodeMenuState as any);
+        }
+        return mockNodeMenuState as any;
+      });
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -401,16 +493,19 @@ describe("useFloatingToolbarActions", () => {
 
   describe("state properties", () => {
     it("exposes workflow running state", () => {
-      mockUseWebsocketRunner.mockReturnValue({
-        run: mockRun,
-        cancel: mockCancel,
-        pause: mockPause,
-        resume: mockResume,
-        isWorkflowRunning: true,
-        isPaused: false,
-        isSuspended: false,
-        state: "running"
-      } as any);
+      mockUseWebsocketRunner.mockImplementation((selector) => {
+        const mockRunnerState = {
+          run: mockRun,
+          cancel: mockCancel,
+          pause: mockPause,
+          resume: mockResume,
+          state: "running"
+        };
+        if (typeof selector === 'function') {
+          return selector(mockRunnerState as any);
+        }
+        return mockRunnerState as any;
+      });
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 
@@ -420,16 +515,19 @@ describe("useFloatingToolbarActions", () => {
     });
 
     it("exposes paused state", () => {
-      mockUseWebsocketRunner.mockReturnValue({
-        run: mockRun,
-        cancel: mockCancel,
-        pause: mockPause,
-        resume: mockResume,
-        isWorkflowRunning: false,
-        isPaused: true,
-        isSuspended: false,
-        state: "paused"
-      } as any);
+      mockUseWebsocketRunner.mockImplementation((selector) => {
+        const mockRunnerState = {
+          run: mockRun,
+          cancel: mockCancel,
+          pause: mockPause,
+          resume: mockResume,
+          state: "paused"
+        };
+        if (typeof selector === 'function') {
+          return selector(mockRunnerState as any);
+        }
+        return mockRunnerState as any;
+      });
 
       const { result } = renderHook(() => useFloatingToolbarActions());
 

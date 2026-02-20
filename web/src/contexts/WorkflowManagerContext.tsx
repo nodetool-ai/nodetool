@@ -90,13 +90,10 @@ export const useWorkflowManager = <T,>(
 export const FetchCurrentWorkflow: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const { setCurrentWorkflowId, getNodeStore, fetchWorkflow, createNew } =
-    useWorkflowManager((state) => ({
-      setCurrentWorkflowId: state.setCurrentWorkflowId,
-      getNodeStore: state.getNodeStore,
-      fetchWorkflow: state.fetchWorkflow,
-      createNew: state.createNew
-    }));
+  const setCurrentWorkflowId = useWorkflowManager((state) => state.setCurrentWorkflowId);
+  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
+  const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
+  const createNew = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();
   // Extract workflow id from the route.
   const { workflow: workflowId } = useParams();
