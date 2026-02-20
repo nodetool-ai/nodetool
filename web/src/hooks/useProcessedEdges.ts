@@ -38,6 +38,10 @@ interface ProcessedEdgesResult {
   activeGradientKeys: Set<string>;
 }
 
+// Global cache for node structure strings to avoid expensive object iteration during drag
+// WeakMap ensures entries are cleaned up when NodeData objects are garbage collected
+const structureCache = new WeakMap<NodeData, string>();
+
 /**
  * Hook that processes workflow edges to add type information, styling, and status.
  * This hook performs several critical transformations:
@@ -112,17 +116,25 @@ export function useProcessedEdges({
   });
 
   // Structural key: only things that affect edge typing / gradients
-  const [_nodesStructureKey] = useMemo(() => {
+  // This serves as a change detector - when node structure changes (dynamic outputs/properties),
+  // this key changes and triggers re-computation of processed edges, even though it's not
+  // directly used in the hook body below (we use nodesRef.current for performance)
+  const nodesStructureKey = useMemo(() => {
     if (isSelecting) {return "";} // we’ll reuse cache while dragging
     return nodes
       .map((n) => {
-        const dynamicOutputs = n.data.dynamic_outputs
-          ? Object.keys(n.data.dynamic_outputs).join(",")
-          : "";
-        const dynamicProps = n.data.dynamic_properties
-          ? Object.keys(n.data.dynamic_properties).join(",")
-          : "";
-        return `${n.id}:${n.type}:${dynamicOutputs}:${dynamicProps}`;
+        let cached = structureCache.get(n.data);
+        if (cached === undefined) {
+          const dynamicOutputs = n.data.dynamic_outputs
+            ? Object.keys(n.data.dynamic_outputs).join(",")
+            : "";
+          const dynamicProps = n.data.dynamic_properties
+            ? Object.keys(n.data.dynamic_properties).join(",")
+            : "";
+          cached = `${dynamicOutputs}:${dynamicProps}`;
+          structureCache.set(n.data, cached);
+        }
+        return `${n.id}:${n.type}:${cached}`;
       })
       .join("|");
   }, [nodes, isSelecting]);
@@ -365,6 +377,11 @@ export function useProcessedEdges({
 
     const result = { processedEdges: processedResultEdges, activeGradientKeys };
     lastResultRef.current = result;
+    // Reference nodesStructureKey to satisfy eslint and document it as an intentional dependency.
+    // It serves as a structural change detector (see comment at declaration above).
+    // We use nodesRef.current inside this memo for performance, but we need nodesStructureKey
+    // in the deps array to trigger re-computation when node structure changes.
+    void nodesStructureKey;
     return result;
-  }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, nodeStatuses, isSelecting]);
+  }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, nodeStatuses, isSelecting, nodesStructureKey]);
 }
