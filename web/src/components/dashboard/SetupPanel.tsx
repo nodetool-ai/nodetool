@@ -4,11 +4,12 @@ import { Typography } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { getIsElectronDetails } from "../../utils/browser";
 import { isProduction } from "../../stores/ApiClient";
 import { FlexColumn, Card } from "../ui_primitives";
 
-const panelStyles = (theme: any) =>
+const panelStyles = (theme: Theme) =>
   css({
     "&": {
       height: "100%"
