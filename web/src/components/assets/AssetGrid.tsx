@@ -39,7 +39,7 @@ import {
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
 
 const panelComponents = {
-  "asset-folders": (_props: IDockviewPanelProps) => (
+  "asset-folders": () => (
     <PanelErrorBoundary>
       <AssetFoldersPanel />
     </PanelErrorBoundary>

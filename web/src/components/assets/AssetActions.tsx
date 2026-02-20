@@ -28,7 +28,6 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import dialogStyles from "../../styles/DialogStyles";
-import useAuth from "../../stores/useAuth";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
 import ViewListIcon from "@mui/icons-material/ViewList";
@@ -234,10 +233,8 @@ const AssetActions = ({
 }: AssetActionsProps) => {
   const theme = useTheme();
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
-  const _parentFolder = useAssetGridStore((state) => state.parentFolder);
   const { refetchAssetsAndFolders, isLoading } =
     useAssets();
-  const _currentUser = useAuth((state) => state.user);
   const [createFolderAnchor, setCreateFolderAnchor] =
     useState<HTMLButtonElement | null>(null);
   const [createFolderName, setCreateFolderName] =

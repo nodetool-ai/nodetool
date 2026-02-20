@@ -306,8 +306,8 @@ class ModelErrorBoundary extends Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error): void {
-    this.props.onError(error);
+  componentDidCatch(): void {
+    this.props.onError(new Error("Failed to load 3D model"));
   }
 
   render(): React.ReactNode {

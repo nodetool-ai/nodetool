@@ -136,7 +136,7 @@ const styles = (theme: Theme) =>
   });
 
 interface AssetSearchInputProps {
-  onLocalSearchChange: (value: string) => void;
+  onLocalSearchChange: (_value: string) => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   debounceTime?: number;
@@ -150,7 +150,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   focusSearchInput = false,
   focusOnTyping = false,
   debounceTime = 500,
-  width = 150
+  width
 }) => {
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);

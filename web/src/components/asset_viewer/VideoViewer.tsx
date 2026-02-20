@@ -5,13 +5,12 @@ import React, { memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 interface VideoViewerProps {
   asset?: Asset;
   url?: string;
 }
 
-const styles = (_theme: Theme) =>
+const styles = () =>
   css({
     "&": {
       display: "flex",
@@ -35,7 +34,7 @@ const styles = (_theme: Theme) =>
 const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asset }) {
   const theme = useTheme();
   return (
-    <Box className="video-viewer" css={styles(theme)}>
+    <Box className="video-viewer" css={styles()}>
       <video controls={true} src={asset?.get_url || ""}>
         Your browser does not support the video element.
       </video>
