@@ -1,0 +1,55 @@
+/* CSS Variables - NodeTool Chat Theme */
+:root {
+  /* Backgrounds */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a25;
+  --bg-card: rgba(26, 26, 37, 0.8);
+  --bg-input: rgba(255, 255, 255, 0.05);
+
+  /* Borders */
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --border-focus: rgba(99, 102, 241, 0.6);
+
+  /* Text */
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-muted: rgba(255, 255, 255, 0.4);
+
+  /* Accent */
+  --accent-primary: #6366f1;
+  --accent-secondary: #8b5cf6;
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --accent-glow: 0 0 30px rgba(99, 102, 241, 0.3);
+
+  /* Status */
+  --success: #50fa7b;
+  --error: #ff5555;
+  --warning: #ffb86c;
+  --info: #8be9fd;
+
+  /* Messages */
+  --msg-user-bg: rgba(99, 102, 241, 0.15);
+  --msg-user-border: rgba(99, 102, 241, 0.3);
+  --msg-assistant-bg: rgba(255, 255, 255, 0.04);
+  --msg-assistant-border: rgba(255, 255, 255, 0.08);
+  --msg-code-bg: rgba(0, 0, 0, 0.4);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Sidebar */
+  --sidebar-width: 260px;
+
+  /* Transitions */
+  --transition-fast: 0.12s ease;
+  --transition-normal: 0.2s ease;
+}
