@@ -508,6 +508,31 @@ export const getWorkflowRunnerStore = (
   return store;
 };
 
+const defaultWorkflowRunner: WorkflowRunner = {
+  workflow: null,
+  nodes: [],
+  edges: [],
+  job_id: null,
+  unsubscribe: null,
+  state: "idle",
+  statusMessage: null,
+  setStatusMessage: () => {},
+  notifications: [],
+  messageHandler: () => {},
+  setMessageHandler: () => {},
+  addNotification: () => {},
+  cancel: async () => {},
+  pause: async () => {},
+  resume: async () => {},
+  run: async () => {},
+  reconnect: async () => {},
+  reconnectWithWorkflow: async () => {},
+  ensureConnection: async () => {},
+  cleanup: () => {},
+  streamInput: () => {},
+  endInputStream: () => {}
+};
+
 export function useWebsocketRunner<T>(
   selector: (state: WorkflowRunner) => T,
   equalityFn?: (a: T, b: T) => boolean
@@ -516,13 +541,24 @@ export function useWebsocketRunner<T>(
     (state) => state.currentWorkflowId
   );
 
+  // Always create/get a store to maintain hook order
+  // Use a placeholder ID when no workflow is selected
+  const store = getWorkflowRunnerStore(currentWorkflowId || "__no_workflow__");
+
+  // Use the selector with the store, but return default values if no workflow
+  const selectedValue = useStoreWithEqualityFn(
+    store,
+    selector,
+    equalityFn ?? shallow
+  );
+
+  // Return default values when there's no current workflow to prevent errors
+  // while maintaining proper hook call order
   if (!currentWorkflowId) {
-    throw new Error("No current workflow id");
+    return selector(defaultWorkflowRunner);
   }
 
-  const store = getWorkflowRunnerStore(currentWorkflowId);
-
-  return useStoreWithEqualityFn(store, selector, equalityFn ?? shallow);
+  return selectedValue;
 }
 
 export default useWebsocketRunner;
