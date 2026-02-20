@@ -42,7 +42,7 @@ interface VersionHistoryPanelProps {
 
 // Helper function to calculate graph size efficiently
 // Uses a simple approximation instead of creating a Blob
-const getGraphSizeBytes = (graph: any): number => {
+const getGraphSizeBytes = (graph: Graph): number => {
   try {
     // Use JSON.stringify length as an approximation
     // This is much faster than creating a Blob
