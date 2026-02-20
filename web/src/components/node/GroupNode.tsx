@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // store
@@ -16,7 +16,7 @@ import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
@@ -151,18 +151,26 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
-  const { workflow, updateNodeData, updateNode, setBypass } = useNodes(
+  const store = useNodeStoreRef();
+
+  const { updateNodeData, updateNode, setBypass } = useNodes(
     (state) => ({
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
-      workflow: state.workflow,
       setBypass: state.setBypass
     })
   );
-  const { nodes, edges } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges
-  }));
+
+  // Optimization: Only subscribe to relevant booleans instead of full node/edge arrays
+  const hasChildren = useNodes((state) =>
+    state.nodes.some((node) => node.parentId === props.id)
+  );
+
+  const someChildrenBypassed = useNodes((state) =>
+    state.nodes.some(
+      (node) => node.parentId === props.id && node.data.bypassed
+    )
+  );
 
   // RUN WORKFLOW
   const state = useWebsocketRunner((state) => state.state);
@@ -171,8 +179,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
   const run = useWebsocketRunner((state) => state.run);
 
-  // Memoize group nodes and edges to avoid recalculation on every render
-  const { groupNodes, groupEdges } = useMemo(() => {
+  const runWorkflow = useCallback(() => {
+    // Access state imperatively to avoid re-renders
+    const state = store.getState();
+    const { nodes, edges, workflow } = state;
+
     // Filter nodes that belong to this group
     const groupNodes = nodes.filter(
       (node) => node.id === props.id || node.parentId === props.id
@@ -185,34 +196,22 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         groupNodes.find((node) => node.id === edge.target)
     );
 
-    return { groupNodes, groupEdges };
-  }, [nodes, edges, props.id]);
-
-  const runWorkflow = useCallback(() => {
     run({}, workflow, groupNodes, groupEdges);
-  }, [run, workflow, groupNodes, groupEdges]);
-
-  // Get child nodes of this group
-  const childNodes = useMemo(() => {
-    return nodes.filter((node) => node.parentId === props.id);
-  }, [nodes, props.id]);
-
-  // Check if some child nodes are bypassed (at least 1)
-  const someChildrenBypassed = useMemo(() => {
-    if (childNodes.length === 0) {
-      return false;
-    }
-    const bypassedCount = childNodes.filter((n) => n.data.bypassed).length;
-    return bypassedCount >= 1;
-  }, [childNodes]);
+  }, [run, props.id, store]);
 
   // Toggle bypass on all child nodes
   const toggleBypassChildren = useCallback(() => {
-    const shouldBypass = !someChildrenBypassed;
+    const state = store.getState();
+    const childNodes = state.nodes.filter((node) => node.parentId === props.id);
+
+    // Check if some child nodes are bypassed (imperatively)
+    const isBypassed = childNodes.some((n) => n.data.bypassed);
+    const shouldBypass = !isBypassed;
+
     childNodes.forEach((node) => {
       setBypass(node.id, shouldBypass);
     });
-  }, [childNodes, someChildrenBypassed, setBypass]);
+  }, [props.id, setBypass, store]);
 
   const nodeHovered = useNodes((state) =>
     state.hoveredNodes.includes(props.id)
@@ -347,7 +346,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               color={color || null}
               onColorChange={handleColorChange}
             />
-            {childNodes.length > 0 && (
+            {hasChildren && (
               <BypassGroupButton
                 isBypassed={someChildrenBypassed}
                 onClick={toggleBypassChildren}

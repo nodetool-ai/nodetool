@@ -43,7 +43,7 @@ jobs:
       - name: Install nodetool-core and nodetool-base
         shell: bash -l {0}
         run: |
-          uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+          uv pip install --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ --pre nodetool-core nodetool-base
 
       - name: Verify nodetool installation
         shell: bash -l {0}
@@ -147,7 +147,7 @@ jobs:
       - name: Install nodetool-core and nodetool-base
         shell: bash -l {0}
         run: |
-          uv pip install git+https://github.com/nodetool-ai/nodetool-core git+https://github.com/nodetool-ai/nodetool-base
+          uv pip install --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ --pre nodetool-core nodetool-base
 
       - name: Verify nodetool installation
         shell: bash -l {0}
