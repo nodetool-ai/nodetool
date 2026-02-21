@@ -16,7 +16,7 @@ import { create } from "zustand";
 import { hashKey } from "./ResultsStore";
 
 export interface HistoricalResult {
-  result: any;
+  result: unknown;
   timestamp: number;
   jobId: string | null;
   status: string;
