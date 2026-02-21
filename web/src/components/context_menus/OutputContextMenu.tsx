@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect, memo } from "react";
+import { shallow } from "zustand/shallow";
 //mui
 import { Divider, Menu } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -40,10 +41,17 @@ const OutputContextMenu: React.FC = () => {
     handleId: state.handleId
   }));
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const createNode = useNodes((state) => state.createNode);
-  const addNode = useNodes((state) => state.addNode);
-  const addEdge = useNodes((state) => state.addEdge);
-  const generateEdgeId = useNodes((state) => state.generateEdgeId);
+  // Combine multiple useNodes subscriptions into a single selector with shallow equality
+  // to reduce unnecessary re-renders when other parts of the node state change
+  const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
+    (state) => ({
+      createNode: state.createNode,
+      addNode: state.addNode,
+      addEdge: state.addEdge,
+      generateEdgeId: state.generateEdgeId
+    }),
+    shallow
+  );
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
