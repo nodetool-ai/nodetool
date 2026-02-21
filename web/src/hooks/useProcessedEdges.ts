@@ -43,68 +43,16 @@ interface ProcessedEdgesResult {
 const structureCache = new WeakMap<NodeData, string>();
 
 /**
- * Hook that processes workflow edges to add type information, styling, and status.
- * This hook performs several critical transformations:
- * 
- * 1. **Type Resolution**: Determines the effective data type of each edge by
- *    tracing through Reroute nodes and looking up handle types in node metadata.
- * 
- * 2. **Visual Styling**: Computes edge colors based on source and target types.
- *    Matching types get solid colors, different types get gradient strokes.
- * 
- * 3. **Execution Status**: Adds status classes and labels for edges with data flowing.
- *    Message counters are displayed on edges with "message_sent" status.
- * 
- * 4. **Optimization**: Uses caching during selection drag operations to prevent
- *    expensive recalculations while the user is selecting nodes.
- * 
- * The hook implements several performance optimizations:
- * - O(1) data type lookups using Map structures
- * - Result caching during selection rectangle drag
- * - Lazy evaluation with useMemo to avoid unnecessary recalculations
- * 
- * @param options - Configuration for edge processing
- * @returns Processed edges with computed styles and metadata
- * 
- * @example
- * ```typescript
- * const { processedEdges, activeGradientKeys } = useProcessedEdges({
- *   edges,
- *   nodes,
- *   dataTypes,
- *   getMetadata: (type) => metadataByType[type],
- *   workflowId: currentWorkflow?.id,
- *   edgeStatuses: statusStore.edgeStatuses
- * });
- * 
- * // Render edges with processed styles
- * processedEdges.map(edge => <Edge key={edge.id} {...edge} />);
- * ```
- * 
- * @example
- * **Type Resolution Example**:
- * ```
- * Source (Text) --[string]--> Reroute --[string]--> Target (LLM)
- * ```
- * The edge type is resolved by tracing through the Reroute node to find
- * the original Text output type.
- * 
- * @example
- * **Gradient Generation**:
- * - Matching types (Text → Text): Solid color stroke
- * - Different types (Image → Audio): Gradient stroke between colors
- * - Gradients defined in SVG as `url(#gradient-{source}-{target})`
+ * Internal hook that processes structural aspects of edges (types, gradients, styles).
+ * Separated from status updates to avoid expensive recalculations during execution.
  */
-export function useProcessedEdges({
+function useStructurallyProcessedEdges({
   edges,
   nodes,
   dataTypes,
   getMetadata,
-  workflowId,
-  edgeStatuses,
-  nodeStatuses,
   isSelecting
-}: ProcessedEdgesOptions): ProcessedEdgesResult {
+}: Pick<ProcessedEdgesOptions, "edges" | "nodes" | "dataTypes" | "getMetadata" | "isSelecting">): ProcessedEdgesResult {
   // Keep latest nodes without making them a hard dependency of the memo
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
@@ -116,9 +64,6 @@ export function useProcessedEdges({
   });
 
   // Structural key: only things that affect edge typing / gradients
-  // This serves as a change detector - when node structure changes (dynamic outputs/properties),
-  // this key changes and triggers re-computation of processed edges, even though it's not
-  // directly used in the hook body below (we use nodesRef.current for performance)
   const nodesStructureKey = useMemo(() => {
     if (isSelecting) {return "";} // we’ll reuse cache while dragging
     return nodes
@@ -299,7 +244,6 @@ export function useProcessedEdges({
             );
             if (inputHandle?.type?.type) {
               const typeString = inputHandle.type.type;
-              // Optimization: Use map lookup instead of find
               const t = dataTypeByValue.get(typeString) || 
                         dataTypeByName.get(typeString) || 
                         dataTypeBySlug.get(typeString);
@@ -341,21 +285,6 @@ export function useProcessedEdges({
         }
       }
 
-      const statusKey =
-        workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
-      const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
-      const status = statusObj?.status;
-      const counter = statusObj?.counter;
-
-      // Check if source node is running - animate edges from running nodes
-      const sourceNodeStatusKey = workflowId ? `${workflowId}:${edge.source}` : undefined;
-      const sourceNodeStatus = sourceNodeStatusKey ? nodeStatuses?.[sourceNodeStatusKey] : undefined;
-      const isSourceRunning = sourceNodeStatus === "running" || sourceNodeStatus === "starting" || sourceNodeStatus === "booting";
-      
-      if (status === "message_sent" || isSourceRunning) {
-        classes.push("message-sent");
-      }
-
       return {
         ...edge,
         sourceHandle: normalizedSourceHandle,
@@ -368,8 +297,6 @@ export function useProcessedEdges({
         },
         data: {
           ...edge.data,
-          status: status || null,
-          counter: counter || null,
           dataTypeLabel: sourceTypeLabel
         }
       };
@@ -378,10 +305,111 @@ export function useProcessedEdges({
     const result = { processedEdges: processedResultEdges, activeGradientKeys };
     lastResultRef.current = result;
     // Reference nodesStructureKey to satisfy eslint and document it as an intentional dependency.
-    // It serves as a structural change detector (see comment at declaration above).
-    // We use nodesRef.current inside this memo for performance, but we need nodesStructureKey
-    // in the deps array to trigger re-computation when node structure changes.
     void nodesStructureKey;
     return result;
-  }, [edges, dataTypes, getMetadata, workflowId, edgeStatuses, nodeStatuses, isSelecting, nodesStructureKey]);
+  }, [edges, dataTypes, getMetadata, isSelecting, nodesStructureKey]);
+}
+
+/**
+ * Hook that processes workflow edges to add type information, styling, and status.
+ * This hook performs several critical transformations:
+ *
+ * 1. **Type Resolution**: Determines the effective data type of each edge by
+ *    tracing through Reroute nodes and looking up handle types in node metadata.
+ *
+ * 2. **Visual Styling**: Computes edge colors based on source and target types.
+ *    Matching types get solid colors, different types get gradient strokes.
+ *
+ * 3. **Execution Status**: Adds status classes and labels for edges with data flowing.
+ *    Message counters are displayed on edges with "message_sent" status.
+ *
+ * 4. **Optimization**: Uses caching during selection drag operations to prevent
+ *    expensive recalculations while the user is selecting nodes.
+ *
+ * The hook implements several performance optimizations:
+ * - O(1) data type lookups using Map structures
+ * - Result caching during selection rectangle drag
+ * - Lazy evaluation with useMemo to avoid unnecessary recalculations
+ * - **Two-stage processing**: Splits structural (expensive) and status (cheap/frequent) updates
+ *
+ * @param options - Configuration for edge processing
+ * @returns Processed edges with computed styles and metadata
+ */
+export function useProcessedEdges({
+  edges,
+  nodes,
+  dataTypes,
+  getMetadata,
+  workflowId,
+  edgeStatuses,
+  nodeStatuses,
+  isSelecting
+}: ProcessedEdgesOptions): ProcessedEdgesResult {
+  // 1. Structural Pass (Heavy)
+  // Calculates types, gradients, and static classes based on graph topology
+  const structuralResult = useStructurallyProcessedEdges({
+    edges,
+    nodes,
+    dataTypes,
+    getMetadata,
+    isSelecting
+  });
+
+  // 2. Status Pass (Light)
+  // Adds execution status classes and counters based on real-time execution state
+  return useMemo(() => {
+    // If selecting, preserve behavior of freezing updates (or reuse heavy result)
+    // The structural result already handles isSelecting caching for structure.
+    // For status, we'll re-apply the latest status on top of the cached structure.
+
+    const { processedEdges: structuralEdges, activeGradientKeys } = structuralResult;
+
+    const processedEdges = structuralEdges.map((edge) => {
+      // Skip status processing for control edges
+      if (edge.type === "control") {
+        return edge;
+      }
+
+      const statusKey =
+        workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
+      const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
+      const status = statusObj?.status;
+      const counter = statusObj?.counter;
+
+      // Check if source node is running - animate edges from running nodes
+      const sourceNodeStatusKey = workflowId ? `${workflowId}:${edge.source}` : undefined;
+      const sourceNodeStatus = sourceNodeStatusKey ? nodeStatuses?.[sourceNodeStatusKey] : undefined;
+      const isSourceRunning = sourceNodeStatus === "running" || sourceNodeStatus === "starting" || sourceNodeStatus === "booting";
+      
+      const statusClasses: string[] = [];
+      if (status === "message_sent" || isSourceRunning) {
+        statusClasses.push("message-sent");
+      }
+
+      // If no status changes, return the original structural edge to preserve reference stability if possible?
+      // But we are mapping, so we create new object anyway.
+      // Optimizing reference stability here would require checking if changes are needed.
+      // Given this runs frequently, creating new object is okay as long as we don't re-run structural logic.
+
+      if (statusClasses.length === 0 && !status && !counter) {
+          // If no status to add, return structural edge directly?
+          // Wait, structural edge might already have classes.
+          // And we might have had status before.
+          // But structuralEdge is "pure" structure.
+          return edge;
+      }
+
+      return {
+        ...edge,
+        className: [edge.className, ...statusClasses].filter(Boolean).join(" "),
+        data: {
+          ...edge.data,
+          status: status || null,
+          counter: counter || null
+        }
+      };
+    });
+
+    return { processedEdges, activeGradientKeys };
+  }, [structuralResult, workflowId, edgeStatuses, nodeStatuses]);
 }
