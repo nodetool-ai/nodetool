@@ -34,6 +34,9 @@ jobs:
       
       - name: Set up build environment
         run: |
+          # Generate machine-id required by rofiles-fuse/dbus during flatpak-builder
+          dbus-uuidgen | tee /etc/machine-id
+          
           # Display environment info
           echo "Building Flatpak for commit: ${GITHUB_SHA:0:8}"
           echo "Branch: ${GITHUB_REF_NAME}"
