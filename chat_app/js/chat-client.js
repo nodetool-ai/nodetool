@@ -148,8 +148,12 @@
     var data;
     if (rawData instanceof ArrayBuffer) {
       // MessagePack binary frame
+      if (!root.msgpack) {
+        console.warn("[ChatClient] Received binary frame but msgpack is not available; cannot decode. Ensure the msgpack5 script loaded correctly.");
+        return;
+      }
       try {
-        data = root.msgpack ? root.msgpack.decode(new Uint8Array(rawData)) : null;
+        data = root.msgpack.decode(new Uint8Array(rawData));
       } catch (e) {
         console.error("[ChatClient] Failed to decode msgpack:", e);
         return;
