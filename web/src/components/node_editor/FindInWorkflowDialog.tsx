@@ -3,13 +3,23 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useEffect, useRef, useCallback } from "react";
-import { Box, Typography, List, ListItem, ListItemButton } from "@mui/material";
+import {
+  Box,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  Divider,
+  Chip
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
+import HistoryIcon from "@mui/icons-material/History";
 import { CloseButton } from "../ui_primitives/CloseButton";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+import { useSearchHistoryStore } from "../../stores/SearchHistoryStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -17,8 +27,8 @@ const styles = (theme: Theme) =>
       position: "fixed",
       top: "60px",
       right: "20px",
-      width: "300px",
-      maxHeight: "400px",
+      width: "360px",
+      maxHeight: "500px",
       zIndex: 20000,
       display: "flex",
       flexDirection: "column",
@@ -84,12 +94,23 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.primary
       }
     },
+    "& .keyboard-hint": {
+      position: "absolute",
+      bottom: "-20px",
+      left: "0",
+      fontSize: "10px",
+      color: theme.vars.palette.text.disabled,
+      pointerEvents: "none"
+    },
     "& .results-count": {
       padding: "8px 16px",
       fontSize: "12px",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
     },
     "& .results-list": {
       flex: 1,
@@ -175,6 +196,41 @@ const styles = (theme: Theme) =>
     },
     "& .empty-text": {
       fontSize: "13px"
+    },
+    "& .history-section": {
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
+    },
+    "& .history-header": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "8px 16px",
+      fontSize: "11px",
+      color: theme.vars.palette.text.secondary,
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
+      backgroundColor: theme.vars.palette.action.hover
+    },
+    "& .history-item": {
+      padding: "8px 16px",
+      fontSize: "13px",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover
+      },
+      "&:last-child": {
+        borderBottom: "none"
+      }
+    },
+    "& .history-text": {
+      flex: 1,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
     }
   });
 
@@ -204,6 +260,9 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       getNodeDisplayName
     } = useFindInWorkflow();
 
+    const { history, addSearchTerm, _removeSearchTerm, clearHistory } =
+      useSearchHistoryStore();
+
     useEffect(() => {
       if (isOpen) {
         setTimeout(() => inputRef.current?.focus(), 50);
@@ -227,7 +286,6 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
       let isMounted = true;
 
-      // Delay adding the listener to avoid immediately closing on the same click that opened
       const timeoutId = setTimeout(() => {
         if (isMounted) {
           document.addEventListener("mousedown", handleClickOutside);
@@ -312,6 +370,25 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       inputRef.current?.focus();
     }, [clearSearch]);
 
+    const handleHistoryClick = useCallback(
+      (term: string) => () => {
+        performSearch(term);
+        addSearchTerm(term);
+      },
+      [performSearch, addSearchTerm]
+    );
+
+    const handleClearHistory = useCallback(() => {
+      clearHistory();
+    }, [clearHistory]);
+
+    // Save to history when search completes
+    useEffect(() => {
+      if (searchTerm.trim() && results.length > 0) {
+        addSearchTerm(searchTerm);
+      }
+    }, [searchTerm, results.length, addSearchTerm]);
+
     if (!isOpen) {
       return null;
     }
@@ -323,6 +400,9 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       }
       return type;
     };
+
+    const showHistory = !searchTerm && history.length > 0;
+    const showResults = results.length > 0;
 
     return (
       <Box
@@ -348,13 +428,16 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
                 <ClearIcon fontSize="small" />
               </button>
             )}
+            <div className="keyboard-hint">
+              ↑↓ Navigate • Enter Go • Esc Close
+            </div>
           </Box>
           <Box className="navigation-buttons">
             <button
               className="nav-button"
               onClick={navigatePrevious}
               disabled={results.length === 0}
-              title="Previous (Shift+Enter)"
+              title="Previous (↑)"
             >
               <ArrowUpwardIcon fontSize="small" />
             </button>
@@ -362,14 +445,14 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               className="nav-button"
               onClick={navigateNext}
               disabled={results.length === 0}
-              title="Next (Enter)"
+              title="Next (↓)"
             >
               <ArrowDownwardIcon fontSize="small" />
             </button>
           </Box>
           <CloseButton
             onClick={closeFind}
-            tooltip="Close (Escape)"
+            tooltip="Close (Esc)"
             buttonSize="small"
             nodrag={false}
             sx={{ marginLeft: "8px" }}
@@ -377,48 +460,92 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         </Box>
 
         <Box className="results-count">
-          {results.length > 0 ? (
-            <>
-              {selectedIndex + 1} of {results.length} node
-              {results.length !== 1 ? "s" : ""} found
-            </>
-          ) : searchTerm ? (
-            <>No nodes found</>
-          ) : (
-            <>Type to search nodes</>
+          <span>
+            {results.length > 0
+              ? `${selectedIndex + 1} of ${results.length} node${results.length !== 1 ? "s" : ""} found`
+              : searchTerm
+                ? "No nodes found"
+                : "Type to search nodes"}
+          </span>
+          {showHistory && (
+            <Chip
+              label="Clear"
+              size="small"
+              onClick={handleClearHistory}
+              sx={{ height: "20px", fontSize: "10px" }}
+            />
           )}
         </Box>
 
-        {results.length > 0 ? (
-          <List className="results-list" ref={listRef}>
-            {results.map((result, index) => (
-              <ListItem
-                key={result.node.id}
-                className="result-item"
-                disablePadding
-              >
-                <ListItemButton
-                  className={`result-button ${
-                    index === selectedIndex ? "selected" : ""
-                  }`}
-                  onClick={handleResultClick(index)}
+        <Box className="results-list" ref={listRef}>
+          {/* History Section */}
+          {showHistory && (
+            <Box className="history-section">
+              <Box className="history-header">
+                <span>Recent Searches</span>
+                <HistoryIcon sx={{ fontSize: "14px" }} />
+              </Box>
+              {history.map((term, index) => (
+                <Box
+                  key={`${term}-${index}`}
+                  className="history-item"
+                  onClick={handleHistoryClick(term)}
                 >
-                  <Typography className="result-name" variant="body2">
-                    {getNodeDisplayName(result.node)}
-                  </Typography>
-                  <Typography className="result-type" variant="caption">
-                    {formatNodeType(result.node.type ?? "")}
-                  </Typography>
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        ) : searchTerm ? (
-          <Box className="empty-state">
-            <SearchIcon className="empty-icon" />
-            <Typography className="empty-text">No matching nodes</Typography>
-          </Box>
-        ) : null}
+                  <HistoryIcon sx={{ fontSize: "14px" }} />
+                  <span className="history-text">{term}</span>
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Results Section */}
+          {showResults && (
+            <>
+              {showHistory && <Divider />}
+              <List>
+                {results.map((result, index) => (
+                  <ListItem
+                    key={result.node.id}
+                    className="result-item"
+                    disablePadding
+                  >
+                    <ListItemButton
+                      className={`result-button ${
+                        index === selectedIndex ? "selected" : ""
+                      }`}
+                      onClick={handleResultClick(index)}
+                    >
+                      <Typography className="result-name" variant="body2">
+                        {getNodeDisplayName(result.node)}
+                      </Typography>
+                      <Typography className="result-type" variant="caption">
+                        {formatNodeType(result.node.type ?? "")}
+                      </Typography>
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
+
+          {/* Empty State */}
+          {!showHistory && !showResults && searchTerm && (
+            <Box className="empty-state">
+              <SearchIcon className="empty-icon" />
+              <Typography className="empty-text">No matching nodes</Typography>
+            </Box>
+          )}
+
+          {/* Initial Empty State */}
+          {!showHistory && !showResults && !searchTerm && (
+            <Box className="empty-state">
+              <SearchIcon className="empty-icon" />
+              <Typography className="empty-text">
+                Start typing to search nodes by name, type, or ID
+              </Typography>
+            </Box>
+          )}
+        </Box>
       </Box>
     );
   }
