@@ -130,6 +130,6 @@ describe("NodeResultHistoryStore", () => {
 
     const history = store.getHistory(workflowId, nodeId);
     expect(history).toHaveLength(100); // Limited to 100
-    expect(history[0].result.output).toBe("test149"); // Most recent
+    expect((history[0].result as { output: string }).output).toBe("test149"); // Most recent
   });
 });
