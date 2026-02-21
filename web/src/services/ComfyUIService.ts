@@ -111,10 +111,19 @@ const WS_OPEN = 1;
 const WS_CLOSING = 2;
 const WS_CLOSED = 3;
 
+// ComfyUI WebSocket message types
+export type ComfyUIWSMessageData = {
+  type: string;
+  data?: unknown;
+  [key: string]: unknown;
+};
+
 // ComfyUI node schema types based on /object_info response
+export type ComfyUIInputDefaultValue = string | number | boolean | null;
+
 export interface ComfyUIInputSpec {
   type: string;
-  default?: any;
+  default?: ComfyUIInputDefaultValue;
   min?: number;
   max?: number;
   step?: number;
@@ -123,10 +132,12 @@ export interface ComfyUIInputSpec {
   tooltip?: string;
 }
 
+export type ComfyUIInputParameter = [string, Record<string, unknown>?];
+
 export interface ComfyUINodeSchema {
   input: {
-    required?: Record<string, [string, Record<string, any>?]>;
-    optional?: Record<string, [string, Record<string, any>?]>;
+    required?: Record<string, ComfyUIInputParameter>;
+    optional?: Record<string, ComfyUIInputParameter>;
   };
   output: string[];
   output_is_list: boolean[];
@@ -143,26 +154,30 @@ export interface ComfyUIObjectInfo {
 }
 
 // ComfyUI workflow format
+export interface ComfyUINodeInput {
+  name: string;
+  type: string;
+  link: number | null;
+}
+
+export interface ComfyUINodeOutput {
+  name: string;
+  type: string;
+  links: number[];
+}
+
 export interface ComfyUINode {
   id: number;
   type: string;
   pos: [number, number];
   size: [number, number];
-  flags: Record<string, any>;
+  flags: Record<string, unknown>;
   order: number;
   mode: number;
-  inputs?: Array<{
-    name: string;
-    type: string;
-    link: number | null;
-  }>;
-  outputs?: Array<{
-    name: string;
-    type: string;
-    links: number[];
-  }>;
-  properties: Record<string, any>;
-  widgets_values?: any[];
+  inputs?: ComfyUINodeInput[];
+  outputs?: ComfyUINodeOutput[];
+  properties: Record<string, unknown>;
+  widgets_values?: unknown[];
 }
 
 export interface ComfyUILink {
@@ -174,34 +189,66 @@ export interface ComfyUILink {
   type: string;
 }
 
+export interface ComfyUIGroup {
+  id?: number;
+  title: string;
+  bounding: [number, number, number, number];
+  color: string;
+  font_size: number;
+  locked?: boolean;
+}
+
 export interface ComfyUIWorkflow {
   last_node_id: number;
   last_link_id: number;
   nodes: ComfyUINode[];
   links: ComfyUILink[];
-  groups: any[];
-  config: Record<string, any>;
-  extra: Record<string, any>;
+  groups: ComfyUIGroup[];
+  config: Record<string, unknown>;
+  extra: Record<string, unknown>;
   version: number;
 }
 
 // ComfyUI prompt format (for execution)
+export interface ComfyUIPromptNode {
+  inputs: Record<string, unknown>;
+  class_type: string;
+}
+
 export interface ComfyUIPrompt {
-  [nodeId: string]: {
-    inputs: Record<string, any>;
-    class_type: string;
-  };
+  [nodeId: string]: ComfyUIPromptNode;
 }
 
 export interface ComfyUIPromptRequest {
   prompt: ComfyUIPrompt;
   client_id?: string;
+  extra_data?: Record<string, unknown>;
 }
 
 export interface ComfyUIPromptResponse {
   prompt_id: string;
   number: number;
-  node_errors?: Record<string, any>;
+  node_errors?: Record<string, unknown>;
+}
+
+export interface ComfyUIQueueItem {
+  prompt_id: string;
+  number: number;
+  node_errors?: Record<string, unknown>;
+}
+
+export interface ComfyUIQueueResponse {
+  queue_running: ComfyUIQueueItem[];
+  queue_pending: Array<[number, ComfyUIQueueItem]>;
+}
+
+export interface ComfyUIHistoryItem {
+  prompt: ComfyUIPrompt;
+  outputs: Record<string, unknown>;
+}
+
+export interface ComfyUIHistoryResponse {
+  [promptId: string]: ComfyUIHistoryItem;
 }
 
 export class ComfyUIService {
@@ -383,17 +430,14 @@ export class ComfyUIService {
    */
   async submitPrompt(
     prompt: ComfyUIPrompt,
-    extraData?: Record<string, any>
+    extraData?: Record<string, unknown>
   ): Promise<ComfyUIPromptResponse> {
     try {
       const request: ComfyUIPromptRequest = {
         prompt,
-        client_id: this.clientId
+        client_id: this.clientId,
+        ...(extraData && { extra_data: extraData })
       };
-
-      if (extraData) {
-        (request as any).extra_data = extraData;
-      }
 
       const response = await this.comfyRequest<string>("/prompt", {
         method: "POST",
@@ -437,7 +481,7 @@ export class ComfyUIService {
   /**
    * Get queue status
    */
-  async getQueue(): Promise<any> {
+  async getQueue(): Promise<ComfyUIQueueResponse> {
     try {
       const response = await this.comfyRequest<string>("/queue", {
         method: "GET",
@@ -448,7 +492,7 @@ export class ComfyUIService {
         throw new Error(`Failed to get queue: HTTP ${response.status}`);
       }
 
-      return this.parseJsonValue<any>(response.data, "queue");
+      return this.parseJsonValue<ComfyUIQueueResponse>(response.data, "queue");
     } catch (error) {
       log.error("Failed to get ComfyUI queue:", error);
       throw error;
@@ -458,7 +502,7 @@ export class ComfyUIService {
   /**
    * Get execution history
    */
-  async getHistory(promptId?: string): Promise<any> {
+  async getHistory(promptId?: string): Promise<ComfyUIHistoryResponse> {
     try {
       const path = promptId ? `/history/${promptId}` : "/history";
       const response = await this.comfyRequest<string>(path, {
@@ -470,7 +514,7 @@ export class ComfyUIService {
         throw new Error(`Failed to get history: HTTP ${response.status}`);
       }
 
-      return this.parseJsonValue<any>(response.data, "history");
+      return this.parseJsonValue<ComfyUIHistoryResponse>(response.data, "history");
     } catch (error) {
       log.error("Failed to get ComfyUI history:", error);
       throw error;
@@ -481,7 +525,7 @@ export class ComfyUIService {
    * Connect to ComfyUI WebSocket for real-time updates
    */
   connectWebSocket(
-    onMessage: (data: any) => void,
+    onMessage: (data: ComfyUIWSMessageData) => void,
     onError?: (error: Event) => void,
     onClose?: (event: CloseEvent) => void
   ): void {
