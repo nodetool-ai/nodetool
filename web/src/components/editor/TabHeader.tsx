@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import CloseIcon from "@mui/icons-material/Close";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import isEqual from "lodash/isEqual";
 import {
   DragEvent,
@@ -9,7 +11,7 @@ import {
   useState,
   useEffect
 } from "react";
-import { Menu, MenuItem, CircularProgress } from "@mui/material";
+import { Menu, MenuItem, CircularProgress, Tooltip } from "@mui/material";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import type { NodeStoreState } from "../../stores/NodeStore";
@@ -88,6 +90,10 @@ const TabHeader = ({
   const isWorkflowDirty = useWorkflowDirty(workflow.id);
   // Check if workflow is running
   const isRunning = useIsWorkflowRunning(workflow.id);
+  // Check if workflow is pinned
+  const isPinned = useWorkflowManager((state) => state.isWorkflowPinned(workflow.id));
+  const togglePinWorkflow = useWorkflowManager((state) => state.togglePinWorkflow);
+
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     mouseX: number;
     mouseY: number;
@@ -136,10 +142,29 @@ const TabHeader = ({
     [onKeyDown, onNameChange, workflow.id]
   );
 
+  const handleTogglePin = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      togglePinWorkflow(workflow.id);
+    },
+    [togglePinWorkflow, workflow.id]
+  );
+
+  const handlePinFromMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      closeContextMenu();
+      togglePinWorkflow(workflow.id);
+    },
+    [closeContextMenu, togglePinWorkflow, workflow.id]
+  );
+
   return (
     <>
       <div
         className={`tab ${isActive ? "active" : ""} ${
+          isPinned ? "pinned" : ""
+        } ${
           dropTarget?.id === workflow.id
             ? dropTarget?.position === "left"
               ? "drop-target"
@@ -183,37 +208,61 @@ const TabHeader = ({
             }}
           />
         ) : (
-          <span className="tab-name" style={{ marginRight: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-            {isRunning && (
-              <CircularProgress
-                size={12}
-                thickness={4}
-                sx={{
-                  color: "var(--palette-primary-main)",
-                  flexShrink: 0
-                }}
-              />
-            )}
-            {workflow.name}
-            {isWorkflowDirty && (
+          <>
+            <Tooltip title={isPinned ? "Unpin tab" : "Pin tab"}>
               <span
-                className="dirty-indicator"
+                className="pin-indicator"
+                onClick={handleTogglePin}
                 style={{
-                  color: "var(--palette-warning-main)",
-                  fontWeight: "bold",
-                  marginLeft: "2px"
+                  display: "flex",
+                  alignItems: "center",
+                  color: isPinned ? "var(--palette-primary-main)" : "inherit",
+                  opacity: isPinned ? 1 : 0.5,
+                  cursor: "pointer"
                 }}
               >
-                *
+                {isPinned ? (
+                  <PushPinIcon sx={{ fontSize: 12 }} />
+                ) : (
+                  <PushPinOutlinedIcon sx={{ fontSize: 12 }} />
+                )}
               </span>
-            )}
-          </span>
+            </Tooltip>
+            <span className="tab-name" style={{ marginRight: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+              {isRunning && (
+                <CircularProgress
+                  size={12}
+                  thickness={4}
+                  sx={{
+                    color: "var(--palette-primary-main)",
+                    flexShrink: 0
+                  }}
+                />
+              )}
+              {workflow.name}
+              {isWorkflowDirty && (
+                <span
+                  className="dirty-indicator"
+                  style={{
+                    color: "var(--palette-warning-main)",
+                    fontWeight: "bold",
+                    marginLeft: "2px"
+                  }}
+                >
+                  *
+                </span>
+              )}
+            </span>
+          </>
         )}
         <CloseIcon
           className="close-icon"
-          sx={{ fontSize: 16 }}
+          sx={{ fontSize: 16, opacity: isPinned ? 0.5 : 1 }}
           onClick={(e) => {
             e.stopPropagation();
+            if (isPinned) {
+              return; // Prevent closing pinned tabs
+            }
             onClose(workflow.id);
           }}
         />
@@ -239,12 +288,16 @@ const TabHeader = ({
           }
         }}
       >
+        <MenuItem onClick={handlePinFromMenu}>
+          {isPinned ? "Unpin Tab" : "Pin Tab"}
+        </MenuItem>
         <MenuItem
           onClick={(event) => {
             event.stopPropagation();
             closeContextMenu();
             onClose(workflow.id);
           }}
+          disabled={isPinned}
         >
           Close Tab
         </MenuItem>
