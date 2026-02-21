@@ -35,6 +35,13 @@ const SelectProperty: React.FC<PropertyProps> = ({
     return [];
   }, [node?.data?.properties?.options]);
 
+  const selectOptions = useMemo(() => {
+    return options.map((opt) => ({
+      label: opt.toString(),
+      value: opt
+    }));
+  }, [options]);
+
   return (
     <div className="select-property">
       <PropertyLabel
@@ -45,12 +52,7 @@ const SelectProperty: React.FC<PropertyProps> = ({
       <Select
         value={value || ""}
         onChange={onChange}
-        options={
-          options.map((opt) => ({
-            label: opt.toString(),
-            value: opt
-          })) || []
-        }
+        options={selectOptions}
         label={property.name}
         placeholder={property.name}
         tabIndex={tabIndex}

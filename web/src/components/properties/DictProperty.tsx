@@ -26,7 +26,7 @@ const detectTypeFromDict = (dict: unknown) => {
 const DictProperty = (props: PropertyProps) => {
   const id = `list-${props.property.name}-${props.propertyIndex}`;
   const dataTypes = useMemo(() => ["int", "string", "datetime", "float"], []);
-  
+
   const [dataType, setDataType] = useState<DictDataType>(
     detectTypeFromDict(props.value)
   );
@@ -49,6 +49,8 @@ const DictProperty = (props: PropertyProps) => {
 
   const property = props.property;
 
+  const containerStyle = useMemo(() => ({ marginBottom: "8px" }), []);
+
   if (props.nodeType !== "nodetool.constant.Dict") {
     return (
       <PropertyLabel
@@ -61,7 +63,7 @@ const DictProperty = (props: PropertyProps) => {
 
   return (
     <>
-      <div style={{ marginBottom: "8px" }}>
+      <div style={containerStyle}>
         <PropertyLabel name="Data Type" id={id} />
         <Select
           value={dataType}

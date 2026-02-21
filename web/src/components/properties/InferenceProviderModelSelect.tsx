@@ -1,8 +1,9 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { Property } from "../../stores/ApiTypes";
 import { InferenceProvider } from "../../stores/ApiTypes";
-import { useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import isEqual from "lodash/isEqual";
 import Select from "../inputs/Select";
 
 interface HuggingFaceModel {
@@ -215,4 +216,4 @@ const InferenceProviderModelSelect = ({
     );
 };
 
-export default InferenceProviderModelSelect;
+export default memo(InferenceProviderModelSelect, isEqual);
