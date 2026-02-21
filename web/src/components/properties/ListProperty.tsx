@@ -48,10 +48,12 @@ const ListProperty = (props: PropertyProps) => {
     [dataTypes]
   );
 
+  const containerStyle = useMemo(() => ({ marginBottom: "8px" }), []);
+
   if (props.nodeType === "nodetool.constant.List") {
     return (
       <>
-        <div style={{ marginBottom: "8px" }}>
+        <div style={containerStyle}>
           <PropertyLabel name="Data Type" id={id} />
           <Select
             value={dataType}

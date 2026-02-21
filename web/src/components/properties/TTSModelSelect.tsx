@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { memo, useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -115,8 +115,14 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
     }));
   }, [currentSelectedModelDetails?.voices]);
 
+  const containerStyle = useMemo(() => ({
+    display: "flex" as const,
+    flexDirection: "column" as const,
+    gap: "4px"
+  }), []);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+    <div style={containerStyle}>
       <ModelSelectButton
         ref={buttonRef}
         active={!!modelId}
@@ -149,4 +155,4 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
   );
 };
 
-export default React.memo(TTSModelSelect, isEqual);
+export default memo(TTSModelSelect, isEqual);
