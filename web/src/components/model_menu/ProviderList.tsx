@@ -571,7 +571,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
 
   const handleOpenWebsite = useCallback(() => {
     const url = getProviderUrl(menuProvider || undefined);
-    if (url) { window.open(url, "_blank"); }
+    if (url) { window.open(url, "_blank", "noopener,noreferrer"); }
     handleMenuClose();
   }, [menuProvider, handleMenuClose]);
 

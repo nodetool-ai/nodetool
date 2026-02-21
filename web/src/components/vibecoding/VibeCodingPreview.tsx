@@ -119,7 +119,7 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
 
     const blob = new Blob([processedHtml], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
 
     // Clean up blob URL after a delay
     setTimeout(() => URL.revokeObjectURL(url), 1000);
