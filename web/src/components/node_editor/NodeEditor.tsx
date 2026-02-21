@@ -42,6 +42,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import NodeTemplatesDialog from "./NodeTemplatesDialog";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -65,6 +66,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const store = useNodeStoreRef();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -109,6 +111,19 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     true,
     active
   );
+  // Keyboard shortcut for Node Templates (Ctrl+Shift+T / Meta+Shift+T)
+  const templatesCombo = isMac() ? ["meta", "shift", "t"] : ["control", "shift", "t"];
+  useCombo(
+    templatesCombo,
+    () => {
+      if (active) {
+        setTemplatesDialogOpen(true);
+      }
+    },
+    true,
+    active
+  );
+
 
   // OPEN NODE MENU
   const {
@@ -177,6 +192,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <NodeTemplatesDialog
+                workflowId={workflowId}
+                open={templatesDialogOpen}
+                onOpenChange={setTemplatesDialogOpen}
+              />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {
