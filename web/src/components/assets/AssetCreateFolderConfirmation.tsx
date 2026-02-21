@@ -50,13 +50,21 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     (state) => state.addNotification
   );
 
+  // Build a Map for O(1) lookups instead of O(n*m) nested find operations
+  const assetMap = useMemo(() => {
+    const map = new Map<string, Asset>();
+    folderFilesFiltered.forEach((asset) => map.set(asset.id, asset));
+    return map;
+  }, [folderFilesFiltered]);
+
   // Derive selectedAssets from selectedAssetIds and current assets to ensure they're in sync
+  // Uses Map for O(n) lookup instead of nested O(n*m) find operations
   const selectedAssets = useMemo(() => {
     if (selectedAssetIds.length === 0) {return [];}
     return selectedAssetIds
-      .map((id) => folderFilesFiltered.find((asset) => asset.id === id))
-      .filter(Boolean) as Asset[];
-  }, [selectedAssetIds, folderFilesFiltered]);
+      .map((id) => assetMap.get(id))
+      .filter((asset): asset is Asset => asset !== undefined);
+  }, [selectedAssetIds, assetMap]);
 
   // Check if we have non-folder assets selected for moving
   const isFolder = selectedAssets.some(
