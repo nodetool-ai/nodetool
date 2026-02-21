@@ -1,4 +1,4 @@
-import { IFuseOptions } from "fuse.js";
+import { IFuseOptions, FuseResult, FuseResultMatch } from "fuse.js";
 
 // Extend Fuse options type
 export interface ExtendedFuseOptions<T> extends Omit<IFuseOptions<T>, "keys"> {
@@ -6,6 +6,14 @@ export interface ExtendedFuseOptions<T> extends Omit<IFuseOptions<T>, "keys"> {
   tokenize?: boolean;
   matchAllTokens?: boolean;
   findAllMatches?: boolean;
+}
+
+// Re-export FuseResultMatch as FuseMatch for convenience
+export type FuseMatch = FuseResultMatch;
+
+// Type for extended Fuse result with proper match typing
+export interface TypedFuseResult<T> extends Omit<FuseResult<T>, 'matches'> {
+  matches?: readonly FuseMatch[];
 }
 
 export const fuseOptions: ExtendedFuseOptions<unknown> = {

@@ -5,7 +5,7 @@ import {
   filterDataByExactType
 } from "../components/node_menu/typeFilterUtils";
 import { formatNodeDocumentation } from "../stores/formatNodeDocumentation";
-import { fuseOptions, ExtendedFuseOptions } from "../stores/fuseOptions";
+import { fuseOptions, ExtendedFuseOptions, FuseMatch } from "../stores/fuseOptions";
 import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
 
 /** Stop words to filter from multi-word queries */
@@ -390,10 +390,10 @@ export function performGroupedSearch(
         searchInfo: {
           score: result.score,
           matches: result.matches
-            ? result.matches.map((m) => ({
-                key: m.key || "",
-                value: m.value || "",
-                indices: Array.from(m.indices || [])
+            ? result.matches.map((m: FuseMatch) => ({
+                key: m.key ?? "",
+                value: m.value ?? "",
+                indices: m.indices ? Array.from(m.indices) : []
               }))
             : undefined
         }

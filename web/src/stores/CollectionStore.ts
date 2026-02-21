@@ -23,6 +23,16 @@ interface IndexError {
   error: string;
 }
 
+// Type for the POST /api/collections/{name}/index endpoint options
+interface CollectionIndexOptions {
+  params: {
+    path: { name: string };
+  };
+  body: {
+    file: string;
+  };
+}
+
 interface IndexProgressState {
   collection: string;
   current: number;
@@ -157,16 +167,14 @@ export const useCollectionStore = create<CollectionStore>()(
           formData.append("file", file);
 
           try {
-            const requestOptions: any = {
-              params: {
-                path: { name: collectionName }
-              },
-              body: formData
-            };
-
             const { data, error } = await client.POST(
               "/api/collections/{name}/index",
-              requestOptions
+              {
+                params: {
+                  path: { name: collectionName }
+                },
+                body: formData as unknown as CollectionIndexOptions["body"]
+              }
             );
 
             const apiError = error as ApiError | undefined;
