@@ -1,7 +1,7 @@
 import { DragEvent, WheelEvent } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import TabHeader from "./TabHeader";
 import FileTabHeader from "./FileTabHeader";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
@@ -31,7 +31,8 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     updateWorkflow,
     removeWorkflow,
     saveWorkflow,
-    createNewWorkflow
+    createNewWorkflow,
+    isWorkflowPinned
   } = useWorkflowManager((state) => ({
     openWorkflows: state.openWorkflows,
     getWorkflow: state.getWorkflow,
@@ -39,7 +40,8 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     reorderWorkflows: state.reorderWorkflows,
     updateWorkflow: state.updateWorkflow,
     saveWorkflow: state.saveWorkflow,
-    createNewWorkflow: state.createNew
+    createNewWorkflow: state.createNew,
+    isWorkflowPinned: state.isWorkflowPinned
   }));
 
   const [dropTarget, setDropTarget] = useState<{
@@ -236,6 +238,25 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     navigate(`/editor/${newWorkflow.id}`);
   }, [createNewWorkflow, navigate]);
 
+  // Sort workflows with pinned tabs first
+  const sortedWorkflows = useMemo(() => {
+    return [...workflows].sort((a, b) => {
+      const aIsPinned = isWorkflowPinned(a.id);
+      const bIsPinned = isWorkflowPinned(b.id);
+
+      // Pinned tabs come first
+      if (aIsPinned && !bIsPinned) {
+        return -1;
+      }
+      if (!aIsPinned && bIsPinned) {
+        return 1;
+      }
+
+      // Within pinned/unpinned groups, maintain original order
+      return workflows.indexOf(a) - workflows.indexOf(b);
+    });
+  }, [workflows, isWorkflowPinned]);
+
   useEffect(() => {
     checkScrollability();
     window.addEventListener("resize", checkScrollability);
@@ -262,7 +283,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
         <ChevronLeftIcon />
       </button>
       <div className="tabs" ref={tabsRef} onWheel={handleWheel}>
-        {workflows.map((workflow) => {
+        {sortedWorkflows.map((workflow) => {
           return (
             <TabHeader
               key={workflow.id}
