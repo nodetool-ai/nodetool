@@ -37,6 +37,11 @@ jobs:
           # Generate machine-id required by rofiles-fuse/dbus during flatpak-builder
           dbus-uuidgen | tee /etc/machine-id
           
+          # Start D-Bus session daemon for headless CI environment
+          mkdir -p /run/dbus
+          dbus-daemon --system --fork || true
+          eval $(dbus-launch --sh-syntax) || true
+          
           # Display environment info
           echo "Building Flatpak for commit: ${GITHUB_SHA:0:8}"
           echo "Branch: ${GITHUB_REF_NAME}"
@@ -94,6 +99,7 @@ jobs:
             --user \
             --install-deps-from=flathub \
             --force-clean \
+            --disable-rofiles-fuse \
             --repo=flatpak-repo \
             build-dir \
             electron/ai.nodetool.NodeTool.flatpak.yml
