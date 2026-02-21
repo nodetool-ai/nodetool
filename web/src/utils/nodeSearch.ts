@@ -1,11 +1,11 @@
-import Fuse from "fuse.js";
+import Fuse, { FuseResult } from "fuse.js";
 import { NodeMetadata, TypeName } from "../stores/ApiTypes";
 import {
   filterDataByType,
   filterDataByExactType
 } from "../components/node_menu/typeFilterUtils";
 import { formatNodeDocumentation } from "../stores/formatNodeDocumentation";
-import { fuseOptions, ExtendedFuseOptions } from "../stores/fuseOptions";
+import { fuseOptions, ExtendedFuseOptions, FuseMatch } from "../stores/fuseOptions";
 import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
 
 /** Stop words to filter from multi-word queries */
@@ -364,8 +364,7 @@ export function performGroupedSearch(
 
   // Description matches
   const termNoSpaces = term.replace(/\s+/g, "");
-  // Using any here because Fuse.FuseResult type is complex and varies
-  const descResults = new Map<string, any>();
+  const descResults = new Map<string, FuseResult<SearchEntry>>();
   [
     ...descriptionFuse.search(term),
     ...descriptionFuse.search(termNoSpaces)
@@ -391,10 +390,10 @@ export function performGroupedSearch(
         searchInfo: {
           score: result.score,
           matches: result.matches
-            ? result.matches.map((m: any) => ({
-                key: m.key || "",
-                value: m.value || "",
-                indices: Array.from(m.indices || [])
+            ? result.matches.map((m: FuseMatch) => ({
+                key: m.key ?? "",
+                value: m.value ?? "",
+                indices: m.indices ? Array.from(m.indices) : []
               }))
             : undefined
         }
