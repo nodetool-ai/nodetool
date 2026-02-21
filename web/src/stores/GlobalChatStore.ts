@@ -510,24 +510,24 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Prepare messages for cache and wire (workflow_id only on wire)
         // Preserve workflow_id if already set by caller (e.g., WorkflowAssistantChat)
         const messageForCache: Message = {
-          ...(message as any),
+          ...message,
           thread_id: threadId,
           agent_mode: agentMode
-        } as any;
+        };
 
         // Build the chat_message command data
         const chatMessageData = {
-          ...(message as any),
-          workflow_id: (message as any).workflow_id ?? workflowId ?? null,
+          ...message,
+          workflow_id: message.workflow_id ?? workflowId ?? null,
           thread_id: threadId,
           agent_mode: agentMode,
           model: selectedModel?.id,
           provider: selectedModel?.provider,
           tools:
-            (message as any).tools ??
+            message.tools ??
             (selectedTools.length > 0 ? selectedTools : undefined),
           collections:
-            (message as any).collections ??
+            message.collections ??
             (selectedCollections.length > 0 ? selectedCollections : undefined)
         };
 
@@ -1073,13 +1073,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
     {
       name: "global-chat-storage",
       // Persist minimal subset incl. selections; do not persist message cache
-      partialize: (state): any => ({
+      // Note: Return type cast needed due to zustand persist middleware type limitations
+      partialize: (state) => ({
         threads: state.threads || {},
         lastUsedThreadId: state.lastUsedThreadId,
         selectedModel: state.selectedModel,
         selectedTools: state.selectedTools,
         selectedCollections: state.selectedCollections
-      }),
+      }) as any,
       onRehydrateStorage: () => (state) => {
         // State has been rehydrated from storage
         if (state) {

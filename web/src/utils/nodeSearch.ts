@@ -1,4 +1,4 @@
-import Fuse from "fuse.js";
+import Fuse, { FuseResult } from "fuse.js";
 import { NodeMetadata, TypeName } from "../stores/ApiTypes";
 import {
   filterDataByType,
@@ -364,8 +364,7 @@ export function performGroupedSearch(
 
   // Description matches
   const termNoSpaces = term.replace(/\s+/g, "");
-  // Using any here because Fuse.FuseResult type is complex and varies
-  const descResults = new Map<string, any>();
+  const descResults = new Map<string, FuseResult<SearchEntry>>();
   [
     ...descriptionFuse.search(term),
     ...descriptionFuse.search(termNoSpaces)
@@ -391,7 +390,7 @@ export function performGroupedSearch(
         searchInfo: {
           score: result.score,
           matches: result.matches
-            ? result.matches.map((m: any) => ({
+            ? result.matches.map((m) => ({
                 key: m.key || "",
                 value: m.value || "",
                 indices: Array.from(m.indices || [])

@@ -7,9 +7,8 @@ import { FUSE_THRESHOLD, FUSE_MIN_MATCH_FACTOR } from "../config/constants";
 interface WorkflowNode {
   id: string; // from ApiNode
   type: string; // from ApiNode, ensure it's always a string for reliable access
-  data?: { title?: string; [key: string]: any }; // More specific data typing for title
-  // Add any other properties from ApiNode that might be used, or a general [key: string]: any;
-  [key: string]: any; // Allows other properties from ApiNode
+  data?: { title?: string; [key: string]: unknown };
+  [key: string]: unknown;
 }
 
 interface NodeMatch {
@@ -40,9 +39,8 @@ export const findMatchingNodesInWorkflows = (
   return workflows.map((workflow) => {
     const nodeInfos: NodeMatch[] = [];
     if (workflow.graph?.nodes) {
-      Object.values(workflow.graph.nodes).forEach((node: any) => {
-        // Use 'any' for now, or a cast
-        const workflowNode = node as WorkflowNode; // Cast to WorkflowNode
+      Object.values(workflow.graph.nodes).forEach((node) => {
+        const workflowNode = node as WorkflowNode;
         const title = String(workflowNode.data?.title || "");
         const type = String(workflowNode.type || "");
 
