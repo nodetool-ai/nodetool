@@ -72,3 +72,27 @@ Using `lodash/isEqual` ensures that we only update when the simplified objects (
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `make lint`: Passed.
 - Ran `make test`: All 305 tests passed.
+
+# ⚡ Bolt: NodeExplorer Performance Optimization
+
+## 💡 What
+Modified `web/src/components/node/NodeExplorer.tsx` to use a custom equality function for `useNodes` subscription.
+
+## 🎯 Why
+The `NodeExplorer` component subscribed to `state.nodes`, which is an array that is recreated on every node position update (drag). This caused `NodeExplorer` to re-render on every frame of a drag operation, even though it only displays node metadata (title, type) which does not change during drag.
+Given that `NodeExplorer` processes the entire node list (sorting, filtering), these redundant re-renders were expensive.
+
+## 📊 Impact
+- **Eliminates unnecessary re-renders:** `NodeExplorer` now only re-renders when node `id`, `type`, or `data` reference changes. It completely ignores position updates.
+- **Improved Responsiveness:** Improves UI fluidity during drag operations, especially with large numbers of nodes.
+
+## 🔬 Measurement
+The optimization replaced the default `shallow` equality (which fails on new array reference) with a custom `areNodesEqual` function that:
+1. Checks array length.
+2. Iterates nodes and checks `id`, `type`, and `data` reference.
+3. Ignores `position`, `selected`, etc.
+
+## 🧪 Testing
+- Ran `cd web && npm run typecheck`: Passed.
+- Ran `make lint`: Passed.
+- Ran `make test`: All 327 tests passed.
