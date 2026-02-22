@@ -944,19 +944,17 @@ export async function installExpectedPackages(): Promise<{
   const failures: Array<{ packageName: string; error: string }> = [];
   let packagesUpdated = 0;
 
-  logMessage(
-    `Installing expected packages: ${packagesNeedingUpdate.map((p) => p.packageName).join(", ")}`
-  );
+  if (packagesNeedingUpdate.length > 0) {
+    const packageNames = packagesNeedingUpdate.map((p) => p.packageName).join(", ");
+    logMessage(`Installing expected packages: ${packageNames}`);
 
-  const expectedVersion = getAppVersion();
-
-  for (const pkg of packagesNeedingUpdate) {
-    const packageName = pkg.packageName;
+    const expectedVersion = getAppVersion();
+    const packageSpecs = packagesNeedingUpdate.map(
+      (p) => `${p.packageName}==${expectedVersion}`
+    );
 
     try {
-      const packageSpec = `${packageName}==${expectedVersion}`;
-
-      const message = `Installing ${packageName} v${expectedVersion}...`;
+      const message = `Installing ${packagesNeedingUpdate.length} packages (v${expectedVersion})...`;
       logMessage(message);
       emitServerLog(message);
       emitBootMessage(message);
@@ -972,7 +970,7 @@ export async function installExpectedPackages(): Promise<{
         "--index-strategy",
         "unsafe-best-match",
         "--system",
-        packageSpec,
+        ...packageSpecs,
       ];
 
       const torchIndexUrl = getTorchIndexUrl();
@@ -981,21 +979,20 @@ export async function installExpectedPackages(): Promise<{
       }
 
       await runUvCommand(args);
-      const successMessage = `Successfully installed ${packageName} v${expectedVersion}`;
+      const successMessage = `Successfully installed ${packageNames} (v${expectedVersion})`;
       logMessage(successMessage);
       emitServerLog(successMessage);
       emitBootMessage(successMessage);
 
-      packagesUpdated++;
+      packagesUpdated = packagesNeedingUpdate.length;
     } catch (error: any) {
-      logMessage(
-        `Failed to install ${packageName}: ${error.message}`,
-        "error"
-      );
-      failures.push({
-        packageName,
-        error: error.message,
-      });
+      logMessage(`Failed to install packages: ${error.message}`, "error");
+      for (const pkg of packagesNeedingUpdate) {
+        failures.push({
+          packageName: pkg.packageName,
+          error: error.message,
+        });
+      }
     }
   }
 
