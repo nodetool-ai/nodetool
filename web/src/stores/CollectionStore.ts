@@ -197,7 +197,6 @@ export const useCollectionStore = create<CollectionStore>()(
             });
           } finally {
             completed++;
-            await get().fetchCollections();
             set((state) => ({
               indexProgress: state.indexProgress
                 ? {
@@ -209,6 +208,7 @@ export const useCollectionStore = create<CollectionStore>()(
           }
         }
 
+        await get().fetchCollections();
         set({ indexProgress: null, indexErrors: errors });
       }
     }),
