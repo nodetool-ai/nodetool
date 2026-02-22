@@ -2,6 +2,7 @@ import React, { memo, useCallback } from "react";
 import { Menu, Divider, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
+import { useNodeBookmarks } from "../../hooks/nodes/useNodeBookmarks";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
@@ -13,6 +14,8 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
@@ -29,8 +32,10 @@ const NodeContextMenu: React.FC = () => {
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
   const updateNodeData = useNodes((state) => state.updateNodeData);
+  const { toggleBookmark, isNodeBookmarked } = useNodeBookmarks();
 
   const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
+  const nodeBookmarked = node?.id ? isNodeBookmarked(node.id) : false;
 
   const handleSelectMode = useCallback((mode: "on_any" | "zip_all") => {
     if (node?.id) {
@@ -45,6 +50,29 @@ const NodeContextMenu: React.FC = () => {
 
   const handleSyncModeOnAny = useCallback(() => handleSelectMode("on_any"), [handleSelectMode]);
   const handleSyncModeZipAll = useCallback(() => handleSelectMode("zip_all"), [handleSelectMode]);
+
+  const handleToggleBookmark = useCallback(() => {
+    if (node?.id) {
+      // Try to get a meaningful label from the node
+      const nodeData = node.data as unknown;
+      let nodeName: string | undefined = undefined;
+      
+      if (nodeData && typeof nodeData === "object") {
+        if ("label" in nodeData && typeof nodeData.label === "string") {
+          nodeName = nodeData.label;
+        } else if ("title" in nodeData && typeof nodeData.title === "string") {
+          nodeName = nodeData.title;
+        }
+      }
+      
+      if (!nodeName && node.type) {
+        nodeName = node.type.split(".").pop();
+      }
+      
+      toggleBookmark(node.id, nodeName);
+    }
+    closeContextMenu();
+  }, [node, toggleBookmark, closeContextMenu]);
 
   const menuItems = [
     conditions.isInGroup && (
@@ -76,6 +104,22 @@ const NodeContextMenu: React.FC = () => {
           </div>
           <div className="tooltip-key">
             <kbd>B</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
+      key="toggle-bookmark"
+      onClick={handleToggleBookmark}
+      label={nodeBookmarked ? "Remove Bookmark" : "Add Bookmark"}
+      IconComponent={nodeBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">
+            {nodeBookmarked ? "Remove Bookmark" : "Add Bookmark"}
+          </div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>B</kbd>
           </div>
         </div>
       }
