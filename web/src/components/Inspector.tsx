@@ -13,7 +13,6 @@ import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import { typesAreEqual } from "../utils/TypeHandler";
 import isEqual from "lodash/isEqual";
 import { EditorUiProvider } from "./editor_ui";
 import { CloseButton, EditorButton } from "./ui_primitives";
@@ -187,15 +186,24 @@ const Inspector: React.FC = () => {
       return [];
     }
     const [first, ...rest] = nodesWithMetadata;
-    return first.metadata.properties.filter((property) =>
-      rest.every(({ metadata }) =>
-        metadata.properties.some(
-          (candidate) =>
-            candidate.name === property.name &&
-            typesAreEqual(candidate.type, property.type)
-        )
-      )
-    );
+
+    // Build a Set of property signatures from all other nodes for O(1) lookup
+    // This reduces the complexity from O(n*m) to O(n+m) where n is properties in first node
+    // and m is total properties in all other nodes
+    const otherPropertySignatures = new Set<string>();
+    for (const { metadata } of rest) {
+      for (const prop of metadata.properties) {
+        // Create a unique signature for each property based on name and type
+        // We use JSON.stringify for type comparison as it's more efficient than deep comparison
+        const typeSignature = JSON.stringify(prop.type);
+        otherPropertySignatures.add(`${prop.name}:${typeSignature}`);
+      }
+    }
+
+    return first.metadata.properties.filter((property) => {
+      const typeSignature = JSON.stringify(property.type);
+      return otherPropertySignatures.has(`${property.name}:${typeSignature}`);
+    });
   }, [isMultiSelect, nodesWithMetadata]);
 
   const multiPropertyEntries = useMemo(() => {

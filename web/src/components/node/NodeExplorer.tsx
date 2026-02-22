@@ -211,16 +211,17 @@ const NodeExplorer: React.FC = () => {
     );
   }, [nodes, getMetadata, filter, theme]);
 
+  const findNode = useNodes((state) => state.findNode);
+
   const handleNodeFocus = useCallback(
     (nodeId: string) => {
-
-      const node = nodes.find((candidate) => candidate.id === nodeId);
+      // Use findNode from store instead of depending on entire nodes array
+      const node = findNode(nodeId);
       if (!node) {
         console.warn("[NodeExplorer] node not found", { nodeId });
         return;
       }
 
-      // setSelectedNodes([node]);
       requestAnimationFrame(() => {
         window.dispatchEvent(
           new CustomEvent("nodetool:fit-node", {
@@ -229,12 +230,13 @@ const NodeExplorer: React.FC = () => {
         );
       });
     },
-    [nodes]
+    [findNode]
   );
 
   const handleNodeEdit = useCallback(
     (nodeId: string) => {
-      const node = nodes.find((candidate) => candidate.id === nodeId);
+      // Use findNode from store instead of depending on entire nodes array
+      const node = findNode(nodeId);
       if (!node) {
         return;
       }
@@ -242,7 +244,7 @@ const NodeExplorer: React.FC = () => {
       setActiveView("inspector");
       setPanelVisible(true);
     },
-    [nodes, setSelectedNodes, setActiveView, setPanelVisible]
+    [findNode, setSelectedNodes, setActiveView, setPanelVisible]
   );
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
