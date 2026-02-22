@@ -208,6 +208,7 @@ describe("useConnectionHandlers", () => {
   const mockOnConnect = jest.fn();
   const mockAddNotification = jest.fn();
   const mockSetConnectionAttempted = jest.fn();
+  const mockUpdateNodeData = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -233,7 +234,8 @@ describe("useConnectionHandlers", () => {
       findNode: mockFindNode,
       onConnect: mockOnConnect,
       edges: [],
-      setConnectionAttempted: mockSetConnectionAttempted
+      setConnectionAttempted: mockSetConnectionAttempted,
+      updateNodeData: mockUpdateNodeData
     });
 
     // Mock isConnectable to return true by default (override in specific tests)
@@ -1120,6 +1122,99 @@ describe("useConnectionHandlers", () => {
       );
       const payload = mockOpenContextMenu.mock.calls[0][9];
       expect(payload.options).toHaveLength(2);
+    });
+
+    it("generates unique key when connecting second node of same type to dynamic output node", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "target",
+        connectNodeId: "inputNode",
+        connectHandleId: "input",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      // inputNode has type "test.node", so the base key would be "node"
+      const inputNode = createMockNode("inputNode", "test.node");
+      // dynamicNode already has a dynamic output keyed "node"
+      const dynamicNode = {
+        ...createMockNode("dynamicNode", "test.dynamic"),
+        data: {
+          ...createMockNode("dynamicNode", "test.dynamic").data,
+          dynamic_outputs: {
+            node: {
+              type: "str",
+              optional: false,
+              type_args: [],
+              type_name: ""
+            }
+          }
+        }
+      };
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "inputNode") {
+          return inputNode;
+        }
+        if (id === "dynamicNode") {
+          return dynamicNode;
+        }
+        return undefined;
+      });
+
+      mockGetMetadata.mockImplementation((type: string) => {
+        if (type === "test.dynamic") {
+          return mockDynamicNodeMetadata;
+        }
+        return mockNodeMetadata;
+      });
+
+      const mockNodeElement = { dataset: { id: "dynamicNode" } };
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn(() => false)
+          },
+          closest: jest.fn((selector: string) =>
+            selector === ".react-flow__node" ? mockNodeElement : null
+          ),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any, {} as any);
+
+      // updateNodeData should be called with key "node_1" (not "node" which already exists)
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("dynamicNode", {
+        dynamic_outputs: {
+          node: expect.any(Object),
+          node_1: {
+            type: "str",
+            optional: false,
+            type_args: [],
+            type_name: ""
+          }
+        }
+      });
+      // The connection should use the unique key "node_1"
+      expect(mockOnConnect).toHaveBeenCalledWith({
+        source: "dynamicNode",
+        sourceHandle: "node_1",
+        target: "inputNode",
+        targetHandle: "input",
+        className: "str"
+      });
     });
   });
 });

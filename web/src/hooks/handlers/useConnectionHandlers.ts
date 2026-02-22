@@ -330,7 +330,13 @@ export default function useConnectionHandlers() {
         ) {
           const sourceNodeType = connectNode.type?.split(".").pop();
           const dynamicOutputs = node.data?.dynamic_outputs || {};
-          const sourceHandle = sourceNodeType || connectHandleId || "";
+          const baseHandle = sourceNodeType || connectHandleId || "";
+          let sourceHandle = baseHandle;
+          let counter = 1;
+          while (sourceHandle in dynamicOutputs) {
+            sourceHandle = `${baseHandle}_${counter}`;
+            counter++;
+          }
           const dynamicOutput = {
             type: connectType?.type || "",
             optional: false,
