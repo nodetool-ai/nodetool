@@ -1,12 +1,13 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFindInWorkflow } from "../useFindInWorkflow";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 
 jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
+  useNodes: jest.fn(),
+  useNodeStoreRef: jest.fn()
 }));
 
 jest.mock("@xyflow/react", () => ({
@@ -14,6 +15,7 @@ jest.mock("@xyflow/react", () => ({
 }));
 
 const mockUseNodes = useNodes as jest.MockedFunction<typeof useNodes>;
+const mockUseNodeStoreRef = useNodeStoreRef as jest.MockedFunction<typeof useNodeStoreRef>;
 const mockUseReactFlow = useReactFlow as jest.MockedFunction<typeof useReactFlow>;
 
 const createMockNodeData = (): NodeData => ({
@@ -92,8 +94,18 @@ describe("useFindInWorkflow", () => {
     getNodesExecutionOrder: jest.fn()
   };
 
+  const mockNodeStoreRef = {
+    getState: jest.fn(() => ({
+      findNode: jest.fn(),
+      toggleBypass: jest.fn(),
+      setSelectedNodes: jest.fn(),
+      nodes: mockNodes
+    }))
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseNodeStoreRef.mockReturnValue(mockNodeStoreRef as any);
   });
 
   describe("store integration", () => {

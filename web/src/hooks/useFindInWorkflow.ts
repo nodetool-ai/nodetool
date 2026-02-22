@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
@@ -8,11 +8,11 @@ import { NodeData } from "../stores/NodeData";
 
 /**
  * Hook to implement "Find in Workflow" functionality.
- * 
+ *
  * Provides search capabilities for finding nodes within the current workflow.
  * Supports searching by node name, node type, or node ID with debounced
  * input and keyboard navigation through results.
- * 
+ *
  * @returns Object containing:
  *   - isOpen: Whether the find dialog is open
  *   - searchTerm: Current search term
@@ -29,25 +29,33 @@ import { NodeData } from "../stores/NodeData";
  *   - clearSearch: Clear search term and results
  *   - selectNode: Programmatically select a result by index
  *   - getNodeDisplayName: Get display name for a node
- * 
+ *   - selectNodeInWorkflow: Select a specific node in the workflow
+ *   - toggleNodeBypass: Toggle bypass state for a specific node
+ *   - focusOnNode: Focus viewport on a specific node
+ *
  * @example
  * ```typescript
- * const { 
- *   isOpen, 
- *   openFind, 
- *   performSearch, 
+ * const {
+ *   isOpen,
+ *   openFind,
+ *   performSearch,
  *   results,
- *   goToSelected 
+ *   goToSelected,
+ *   selectNodeInWorkflow,
+ *   toggleNodeBypass
  * } = useFindInWorkflow();
- * 
+ *
  * // Open find dialog
  * openFind();
- * 
+ *
  * // Search for nodes
  * performSearch("text");
- * 
+ *
  * // Navigate to result
  * goToSelected();
+ *
+ * // Toggle bypass on a node
+ * toggleNodeBypass(nodeId);
  * ```
  */
 export const useFindInWorkflow = () => {
@@ -68,6 +76,7 @@ export const useFindInWorkflow = () => {
   const { setCenter, fitView } = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nodeStoreRef = useNodeStoreRef();
 
   const getNodeDisplayName = useCallback(
     (node: Node<NodeData>): string => {
@@ -192,6 +201,58 @@ export const useFindInWorkflow = () => {
     [results.length, setSelectedIndex]
   );
 
+  /**
+   * Select a specific node in the workflow by ID.
+   * Deselects all other nodes.
+   */
+  const selectNodeInWorkflow = useCallback(
+    (nodeId: string) => {
+      const store = nodeStoreRef;
+      const currentNode = store.getState().findNode(nodeId);
+      if (!currentNode) {
+        return;
+      }
+      store.getState().setSelectedNodes([currentNode]);
+    },
+    [nodeStoreRef]
+  );
+
+  /**
+   * Toggle the bypass state for a specific node.
+   */
+  const toggleNodeBypass = useCallback(
+    (nodeId: string) => {
+      const store = nodeStoreRef;
+      store.getState().toggleBypass(nodeId);
+    },
+    [nodeStoreRef]
+  );
+
+  /**
+   * Focus the viewport on a specific node.
+   * Centers the node in view with appropriate zoom.
+   */
+  const focusOnNode = useCallback(
+    (nodeId: string) => {
+      const node = nodeStoreRef.getState().findNode(nodeId);
+      if (!node) {
+        return;
+      }
+      setCenter(
+        node.position.x + (node.width || 200) / 2,
+        node.position.y + (node.height || 100) / 2,
+        { zoom: 1, duration: 300 }
+      );
+      fitView({
+        nodes: [node],
+        duration: 300,
+        minZoom: 0.5,
+        maxZoom: 2
+      });
+    },
+    [nodeStoreRef, setCenter, fitView]
+  );
+
   return {
     isOpen,
     searchTerm,
@@ -207,6 +268,9 @@ export const useFindInWorkflow = () => {
     navigatePrevious,
     clearSearch,
     selectNode,
-    getNodeDisplayName
+    getNodeDisplayName,
+    selectNodeInWorkflow,
+    toggleNodeBypass,
+    focusOnNode
   };
 };
