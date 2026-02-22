@@ -22,6 +22,25 @@ import type { NodeData } from "../../stores/NodeData";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import PanelHeadline from "../ui/PanelHeadline";
 
+// Custom equality check to avoid re-renders on node position changes (dragging).
+// We only care about id, type, and data (title, metadata) for the explorer list.
+const areNodesEqual = (prev: Node<NodeData>[], next: Node<NodeData>[]) => {
+  if (prev === next) {
+    return true;
+  }
+  if (prev.length !== next.length) {
+    return false;
+  }
+  for (let i = 0; i < prev.length; i++) {
+    const a = prev[i];
+    const b = next[i];
+    if (a.id !== b.id || a.type !== b.type || a.data !== b.data) {
+      return false;
+    }
+  }
+  return true;
+};
+
 type ExplorerEntry = {
   node: Node<NodeData>;
   title: string;
@@ -129,10 +148,8 @@ const styles = (theme: Theme) =>
 const NodeExplorer: React.FC = () => {
   const theme = useTheme();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const { nodes, setSelectedNodes } = useNodes((state) => ({
-    nodes: state.nodes,
-    setSelectedNodes: state.setSelectedNodes
-  }));
+  const nodes = useNodes((state) => state.nodes, areNodesEqual);
+  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
   const setActiveView = useRightPanelStore((state) => state.setActiveView);
   const setPanelVisible = useRightPanelStore((state) => state.setVisibility);
   const [filter, setFilter] = useState("");
