@@ -166,7 +166,7 @@ const fetchFileList = async (path: string) => {
   if (error) {
     throw createErrorMessage(error, "Failed to list files");
   }
-  return data;
+  return data || [];
 };
 
 const formatBytes = (bytes: number, decimals = 2) => {
@@ -315,26 +315,53 @@ function FileBrowserDialog({
   }, [open, treeItems.length]);
 
   // Helper to update tree items recursively
-  const updateTreeItem = useCallback(
-    (itemId: string, newChildren: ExtendedTreeItem[]) => {
+  const updateTreeItemsBulk = useCallback(
+    (updates: { id: string; children: ExtendedTreeItem[] }[]) => {
+      if (updates.length === 0) {return;}
       setTreeItems((prevItems) => {
+        let currentItems = prevItems;
+
         const updateRecursive = (
-          items: ExtendedTreeItem[]
+          items: ExtendedTreeItem[],
+          targetId: string,
+          newChildren: ExtendedTreeItem[]
         ): ExtendedTreeItem[] => {
           return items.map((item) => {
-            if (item.id === itemId) {
+            if (item.id === targetId) {
               return { ...item, children: newChildren };
             }
             if (item.children) {
-              return { ...item, children: updateRecursive(item.children) };
+              const updatedChildren = updateRecursive(
+                item.children,
+                targetId,
+                newChildren
+              );
+              if (updatedChildren !== item.children) {
+                return { ...item, children: updatedChildren };
+              }
             }
             return item;
           });
         };
-        return updateRecursive(prevItems);
+
+        for (const update of updates) {
+          currentItems = updateRecursive(
+            currentItems,
+            update.id,
+            update.children
+          );
+        }
+        return currentItems;
       });
     },
     []
+  );
+
+  const updateTreeItem = useCallback(
+    (itemId: string, newChildren: ExtendedTreeItem[]) => {
+      updateTreeItemsBulk([{ id: itemId, children: newChildren }]);
+    },
+    [updateTreeItemsBulk]
   );
 
   // Load ancestors of currentPath to ensure it is visible in tree
@@ -363,21 +390,40 @@ function FileBrowserDialog({
         return undefined;
       };
 
-      // We check ancestors. If an ancestor is found but needs loading, we load it.
-      // We do one at a time per effect run (since state update triggers re-run)
+      // Parallel loading optimization:
+      // identify all paths that need loading (either missing from tree or placeholder)
+      // and fetch them in parallel.
+
+      const pathsToFetch: string[] = [];
+
       for (const breadcrumb of breadcrumbs) {
         // Skip Root/Home placeholders if they aren't in tree (tree roots are their children)
         if (breadcrumb.path === "~" || breadcrumb.path === "/") {continue;}
 
         const node = findNode(treeItems, breadcrumb.path);
+        // If node is found, check if it's a placeholder
         if (node) {
           const isPlaceholder =
             node.children &&
             node.children.length === 1 &&
             node.children[0].id.endsWith("_loading");
           if (isPlaceholder) {
+            pathsToFetch.push(breadcrumb.path);
+          }
+        } else {
+          // If node is not found, we assume it needs to be loaded as part of the chain
+          // (it will become available once its parent is loaded)
+          pathsToFetch.push(breadcrumb.path);
+        }
+      }
+
+      if (pathsToFetch.length === 0) {return;}
+
+      try {
+        const results = await Promise.all(
+          pathsToFetch.map(async (path) => {
             try {
-              const fileList = await fetchFileList(node.path);
+              const fileList = await fetchFileList(path);
               const folders = fileList
                 .filter((f) => f.is_dir)
                 .map((f) => ({
@@ -388,22 +434,31 @@ function FileBrowserDialog({
                     { id: `${f.path}_loading`, label: "Loading...", path: "" }
                   ] as ExtendedTreeItem[]
                 }));
-
-              updateTreeItem(node.id, folders.length > 0 ? folders : []);
-              // Break after one update, effect will re-run
-              return;
+              return { id: path, children: folders.length > 0 ? folders : [] };
             } catch (e) {
-              console.error("Failed to load tree node for sync", e);
-              updateTreeItem(node.id, []);
-              return;
+              console.error(`Failed to load tree node ${path}`, e);
+              // Return empty children on failure to stop loading spinner (if any)
+              // But if the node doesn't exist, this update will just be ignored
+              return { id: path, children: [] as ExtendedTreeItem[] };
             }
-          }
-        }
+          })
+        );
+
+        // Filter out results where fetch failed completely (though we catch above)
+        // and apply updates.
+        // Important: updates should be applied in order?
+        // updateTreeItemsBulk handles sequential application on state.
+        // Since we are building the tree top-down, and pathsToFetch preserves breadcrumb order (depth),
+        // the updates will be applied parent-first, which is correct.
+
+        updateTreeItemsBulk(results);
+      } catch (e) {
+        console.error("Failed to load ancestors in parallel", e);
       }
     };
 
     loadMissingAncestors();
-  }, [currentPath, breadcrumbs, open, treeItems, updateTreeItem]);
+  }, [currentPath, breadcrumbs, open, treeItems, updateTreeItemsBulk]);
 
   // Sync expansion when navigating
   useEffect(() => {
