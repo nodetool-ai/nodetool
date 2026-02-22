@@ -521,8 +521,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Show or hide Workflow Settings panel",
     registerCombo: true
   },
-  {
-    title: "Operator",
+  {    title: "Workflow Notes",
+    slug: "toggleWorkflowNotes",
+    keyCombo: ["N"],
+    category: "panel",
+    description: "Show or hide Workflow Notes panel",
+    registerCombo: true
+  },
+  {    title: "Operator",
     slug: "toggleOperator",
     keyCombo: ["O"],
     category: "panel",

@@ -15,6 +15,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import SvgFileIcon from "../SvgFileIcon";
 
 interface VerticalToolbarProps {
@@ -27,7 +28,8 @@ interface VerticalToolbarProps {
     handleWorkflowToggle: () => void;
     handleWorkflowAssetsToggle: () => void;
     handleAgentToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent";
+    handleNotesToggle?: () => void;
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent" | "notes";
     panelVisible: boolean;
 }
 
@@ -41,6 +43,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handleWorkflowToggle,
     handleWorkflowAssetsToggle,
     handleAgentToggle,
+    handleNotesToggle,
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
@@ -210,6 +213,34 @@ const VerticalToolbar = memo(function VerticalToolbar({
                     <FolderSpecialIcon />
                 </IconButton>
             </Tooltip>
+
+            {/* Notes Button */}
+            {handleNotesToggle && (
+                <Tooltip
+                    title={
+                        <div className="tooltip-span">
+                            <div className="tooltip-title">Workflow Notes</div>
+                            <div className="tooltip-key">
+                                <kbd>N</kbd>
+                            </div>
+                        </div>
+                    }
+                    placement="left-start"
+                    enterDelay={TOOLTIP_ENTER_DELAY}
+                >
+                    <IconButton
+                        tabIndex={-1}
+                        onClick={handleNotesToggle}
+                        className={
+                            activeView === "notes" && panelVisible
+                                ? "notes active"
+                                : "notes"
+                        }
+                    >
+                        <EditNoteIcon />
+                    </IconButton>
+                </Tooltip>
+            )}
 
             {/* Spacer to push runtime section to bottom */}
             <div style={spacerStyle} />
