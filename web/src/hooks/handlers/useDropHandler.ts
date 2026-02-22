@@ -151,34 +151,73 @@ export const useDropHandler = () => {
           const selectedAssetIds = dragData.payload as string[];
           // If multiple assets are selected, create nodes for all of them
           if (selectedAssetIds.length > 1) {
-            selectedAssetIds.forEach((assetId, index) => {
-              // Offset each node to avoid overlap
-              const offsetX =
-                (index % NODES_PER_ROW) * MULTI_NODE_HORIZONTAL_SPACING;
-              const offsetY =
-                Math.floor(index / NODES_PER_ROW) * MULTI_NODE_VERTICAL_SPACING;
-              const nodePosition = {
-                x: position.x + offsetX,
-                y: position.y + offsetY
-              };
+            const results = await Promise.all(
+              selectedAssetIds.map(async (assetId, index) => {
+                // Offset each node to avoid overlap
+                const offsetX =
+                  (index % NODES_PER_ROW) * MULTI_NODE_HORIZONTAL_SPACING;
+                const offsetY =
+                  Math.floor(index / NODES_PER_ROW) *
+                  MULTI_NODE_VERTICAL_SPACING;
+                const nodePosition = {
+                  x: position.x + offsetX,
+                  y: position.y + offsetY
+                };
 
-              getAsset(assetId).then((asset: Asset) => {
-                addNodeFromAsset(asset, nodePosition);
+                try {
+                  const asset = await getAsset(assetId);
+                  addNodeFromAsset(asset, nodePosition);
+                  return { success: true };
+                } catch (error) {
+                  return { success: false, assetId, error };
+                }
+              })
+            );
+
+            const failures = results.filter((r) => !r.success);
+            if (failures.length > 0) {
+              log.error(
+                `[drop] Failed to load ${failures.length} assets`,
+                failures
+              );
+              addNotification({
+                type: "error",
+                content: `Failed to load ${failures.length} asset${failures.length > 1 ? "s" : ""}. Check console for details.`,
+                alert: true
               });
-            });
+            }
             return;
           } else if (selectedAssetIds.length === 1) {
             // Single asset from multiple selection
-            getAsset(selectedAssetIds[0]).then((asset: Asset) => {
+            try {
+              const asset = await getAsset(selectedAssetIds[0]);
               addNodeFromAsset(asset, position);
-            });
+            } catch (error) {
+              log.error(
+                `[drop] Failed to load asset ${selectedAssetIds[0]}`,
+                error
+              );
+              addNotification({
+                type: "error",
+                content: `Failed to load asset: ${error instanceof Error ? error.message : "Unknown error"}`,
+                alert: true
+              });
+            }
             return;
           }
         } else if (dragData.type === "asset") {
           const asset = dragData.payload as Asset;
-          getAsset(asset.id).then((fetchedAsset: Asset) => {
+          try {
+            const fetchedAsset = await getAsset(asset.id);
             addNodeFromAsset(fetchedAsset, position);
-          });
+          } catch (error) {
+            log.error(`[drop] Failed to load asset ${asset.id}`, error);
+            addNotification({
+              type: "error",
+              content: `Failed to load asset: ${error instanceof Error ? error.message : "Unknown error"}`,
+              alert: true
+            });
+          }
           return;
         }
       }
