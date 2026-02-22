@@ -10,6 +10,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
 import { CloseButton } from "../ui_primitives/CloseButton";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+import SearchResultActions from "./SearchResultActions";
 
 const styles = (theme: Theme) =>
   css({
@@ -116,6 +117,12 @@ const styles = (theme: Theme) =>
         borderLeft: `3px solid ${theme.vars.palette.primary.main}`
       }
     },
+    "& .result-content": {
+      flex: 1,
+      display: "flex",
+      alignItems: "center",
+      minWidth: 0
+    },
     "& .result-name": {
       flex: 1,
       fontSize: "14px",
@@ -201,7 +208,10 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       navigatePrevious,
       clearSearch,
       selectNode,
-      getNodeDisplayName
+      getNodeDisplayName,
+      selectNodeInWorkflow,
+      toggleNodeBypass,
+      focusOnNode
     } = useFindInWorkflow();
 
     useEffect(() => {
@@ -403,12 +413,21 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
                   }`}
                   onClick={handleResultClick(index)}
                 >
-                  <Typography className="result-name" variant="body2">
-                    {getNodeDisplayName(result.node)}
-                  </Typography>
-                  <Typography className="result-type" variant="caption">
-                    {formatNodeType(result.node.type ?? "")}
-                  </Typography>
+                  <Box className="result-content">
+                    <Typography className="result-name" variant="body2">
+                      {getNodeDisplayName(result.node)}
+                    </Typography>
+                    <Typography className="result-type" variant="caption">
+                      {formatNodeType(result.node.type ?? "")}
+                    </Typography>
+                  </Box>
+                  <SearchResultActions
+                    isSelected={result.node.selected ?? false}
+                    isBypassed={result.node.data.bypassed ?? false}
+                    onSelect={() => selectNodeInWorkflow(result.node.id)}
+                    onToggleBypass={() => toggleNodeBypass(result.node.id)}
+                    onFocus={() => focusOnNode(result.node.id)}
+                  />
                 </ListItemButton>
               </ListItem>
             ))}
