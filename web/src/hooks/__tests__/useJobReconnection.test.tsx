@@ -59,8 +59,8 @@ describe("useJobReconnection", () => {
     mockGetWorkflowRunnerStore.mockReturnValue({
       getState: jest.fn().mockReturnValue({
         reconnectWithWorkflow: jest.fn().mockResolvedValue(undefined),
-        setState: jest.fn(),
       }),
+      setState: jest.fn(),
     } as any);
   });
 
@@ -109,6 +109,12 @@ describe("useJobReconnection", () => {
     expect(mockClient.GET).toHaveBeenCalledTimes(2);
     expect(mockClient.GET).toHaveBeenCalledWith("/api/workflows/{id}", {
       params: { path: { id: "workflow-1" } },
+    });
+
+    // Check reconnection called
+    const store = getWorkflowRunnerStore("workflow-1");
+    await waitFor(() => {
+        expect(store.getState().reconnectWithWorkflow).toHaveBeenCalledWith("job-1", mockWorkflow);
     });
   });
 
@@ -186,6 +192,14 @@ describe("useJobReconnection", () => {
     });
 
     expect(result.current.runningJobs).toHaveLength(1);
+
+    const store = getWorkflowRunnerStore("workflow-1");
+    await waitFor(() => {
+      expect(store.setState).toHaveBeenCalledWith({
+        state: "suspended",
+        statusMessage: "User paused",
+      });
+    });
   });
 
   it("handles paused jobs with correct initial state", async () => {
@@ -219,6 +233,14 @@ describe("useJobReconnection", () => {
     });
 
     expect(result.current.runningJobs).toHaveLength(1);
+
+    const store = getWorkflowRunnerStore("workflow-1");
+    await waitFor(() => {
+      expect(store.setState).toHaveBeenCalledWith({
+        state: "paused",
+        statusMessage: "Workflow paused",
+      });
+    });
   });
 
   it("only reconnects once on multiple renders", async () => {
@@ -314,5 +336,11 @@ describe("useJobReconnection", () => {
 
     expect(result.current.runningJobs).toHaveLength(2);
     expect(mockClient.GET).toHaveBeenCalledTimes(3);
+
+    // Verify both reconnected
+    const store = getWorkflowRunnerStore("workflow-1"); // mock returns same object for both calls in implementation
+    await waitFor(() => {
+        expect(store.getState().reconnectWithWorkflow).toHaveBeenCalledTimes(2);
+    });
   });
 });
