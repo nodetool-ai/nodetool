@@ -66,6 +66,24 @@ finish-args:
 
 # Build modules
 modules:
+  # Node.js runtime required to build the web frontend and electron app.
+  # Installed as a build-time dependency only (cleanup removes it from the final app).
+  - name: nodejs
+    buildsystem: simple
+    cleanup:
+      - '*'
+    build-commands:
+      - mkdir -p /app/bin /app/lib
+      - cp -r bin/node bin/npm bin/npx /app/bin/
+      - cp -r lib/node_modules /app/lib/
+    sources:
+      - type: archive
+        url: https://nodejs.org/dist/v20.18.2/node-v20.18.2-linux-x64.tar.xz
+        sha256: 4e50f727ae09bdafecf2322c72faf7cd82bf3b8851a16b8bb63974e0d8d6eceb
+        strip-components: 1
+        only-arches:
+          - x86_64
+
   # Main NodeTool application
   - name: nodetool
     buildsystem: simple
