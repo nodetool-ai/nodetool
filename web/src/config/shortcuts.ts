@@ -625,6 +625,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   })),
 
+  {
+    title: "Node Templates",
+    slug: "nodeTemplates",
+    keyCombo: ["Control", "Shift", "T"],
+    category: "editor" as const,
+    description: "Quick insert pre-built node patterns",
+    registerCombo: true
+  },
   // ---------- FIND IN WORKFLOW ---------------------------------------------
   {
     title: "Find in Workflow",
