@@ -40,6 +40,8 @@ import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
 import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
+import KeyboardShortcutsDialog from "./KeyboardShortcutsDialog";
+import { useKeyboardShortcutsDialogStore } from "../../stores/KeyboardShortcutsDialogStore";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
@@ -65,6 +67,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const store = useNodeStoreRef();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const { isOpen: shortcutsDialogOpen, close: closeShortcutsDialog } = useKeyboardShortcutsDialogStore(
+    (state) => ({
+      isOpen: state.isOpen,
+      close: state.close
+    })
+  );
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const {
     packageNameDialogOpen,
@@ -177,6 +185,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />
+              <KeyboardShortcutsDialog open={shortcutsDialogOpen} onClose={closeShortcutsDialog} />
               <Modal
                 open={showShortcuts}
                 onClose={(event, reason) => {

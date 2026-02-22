@@ -20,6 +20,7 @@ import { useFitView } from "./useFitView";
 import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
+import { useKeyboardShortcutsDialogStore } from "../stores/KeyboardShortcutsDialogStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
@@ -117,6 +118,9 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
+  const _openKeyboardShortcutsDialog = useKeyboardShortcutsDialogStore(
+    (state) => state.open
+  );
   // All hooks above this line
 
   // Calculate selectedEdgeCount from the store
@@ -430,6 +434,10 @@ export const useNodeEditorShortcuts = (
     inspectorToggle("inspector");
   }, [inspectorToggle]);
 
+  const handleShowKeyboardShortcutsDialog = useCallback(() => {
+    _openKeyboardShortcutsDialog();
+  }, [_openKeyboardShortcutsDialog]);
+
   const handleWorkflowSettingsToggle = useCallback(() => {
     inspectorToggle("workflow");
   }, [inspectorToggle]);
@@ -486,6 +494,9 @@ export const useNodeEditorShortcuts = (
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
+      showKeyboardShortcutsDialog: {
+        callback: handleShowKeyboardShortcutsDialog
+      },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
       newWorkflow: { callback: handleNewWorkflow },
@@ -599,6 +610,7 @@ export const useNodeEditorShortcuts = (
     handleInspectorToggle,
     handleWorkflowSettingsToggle,
     handleShowKeyboardShortcuts,
+      handleShowKeyboardShortcutsDialog,
     handleSave,
     handleSaveExample,
     handleNewWorkflow,
