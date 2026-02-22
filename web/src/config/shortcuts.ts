@@ -530,9 +530,18 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: false
   },
 
+  {
+    title: "Show Keyboard Shortcuts",
+    slug: "showKeyboardShortcutsDialog",
+    keyCombo: ["Shift", "/"],
+    category: "panel",
+    description: "Show keyboard shortcuts dialog",
+    registerCombo: true
+  },
+
   // K is conflicting with CommandMenu shortcut
   // {
-  //   title: "Keyboard Shortcuts",
+  //   title: "Show Keyboard Shortcuts",
   //   slug: "showKeyboardShortcuts",
   //   keyCombo: ["K"],
   //   category: "panel",
