@@ -950,6 +950,58 @@ export async function installExpectedPackages(): Promise<{
 
   const expectedVersion = getAppVersion();
 
+  // Try batched installation
+  try {
+    const packageSpecs = packagesNeedingUpdate.map(
+      (p) => `${p.packageName}==${expectedVersion}`
+    );
+    const message = `Installing packages: ${packagesNeedingUpdate.map((p) => p.packageName).join(", ")}...`;
+    logMessage(message);
+    emitServerLog(message);
+    emitBootMessage(message);
+
+    const args = [
+      "pip",
+      "install",
+      "--prerelease=allow",
+      "--index-url",
+      PYPI_SIMPLE_INDEX_URL,
+      "--extra-index-url",
+      PACKAGE_INDEX_URL,
+      "--index-strategy",
+      "unsafe-best-match",
+      "--system",
+      ...packageSpecs,
+    ];
+
+    const torchIndexUrl = getTorchIndexUrl();
+    if (torchIndexUrl) {
+      args.push("--extra-index-url", torchIndexUrl);
+    }
+
+    await runUvCommand(args);
+
+    const successMessage = `Successfully installed ${packagesNeedingUpdate.length} packages`;
+    logMessage(successMessage);
+    emitServerLog(successMessage);
+    emitBootMessage(successMessage);
+
+    packagesUpdated = packagesNeedingUpdate.length;
+
+    return {
+      success: true,
+      packagesChecked: packagesNeedingUpdate.length,
+      packagesUpdated,
+      failures: [],
+    };
+  } catch (batchedError: any) {
+    logMessage(
+      `Batched installation failed, falling back to sequential installation: ${batchedError.message}`,
+      "warn"
+    );
+  }
+
+  // Fallback to sequential installation
   for (const pkg of packagesNeedingUpdate) {
     const packageName = pkg.packageName;
 
