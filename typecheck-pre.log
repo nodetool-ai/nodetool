@@ -10,13 +10,16 @@ cd electron && npm run typecheck
 > nodetool-electron@0.6.3-rc.25 typecheck
 > tsc --noEmit
 
+Type checking mobile package...
+cd mobile && npm run typecheck
+
+> nodetool-mobile@0.6.3-rc.25 typecheck
+> tsc --noEmit
+
+error TS2688: Cannot find type definition file for 'jest'.
+  The file is in the program because:
+    Entry point of type library 'jest' specified in compilerOptions
 error TS2688: Cannot find type definition file for 'node'.
   The file is in the program because:
     Entry point of type library 'node' specified in compilerOptions
-error TS2688: Cannot find type definition file for 'react'.
-  The file is in the program because:
-    Entry point of type library 'react' specified in compilerOptions
-error TS2688: Cannot find type definition file for 'react-dom'.
-  The file is in the program because:
-    Entry point of type library 'react-dom' specified in compilerOptions
-make: *** [Makefile:162: typecheck-electron] Error 2
+make: *** [Makefile:166: typecheck-mobile] Error 2

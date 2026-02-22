@@ -65,7 +65,8 @@ const formatTimeAgo = (date: Date): string => {
 // Storage keys for persisting workflow state in localStorage.
 const STORAGE_KEYS = {
   CURRENT_WORKFLOW: "currentWorkflowId",
-  OPEN_WORKFLOWS: "openWorkflows"
+  OPEN_WORKFLOWS: "openWorkflows",
+  PINNED_WORKFLOWS: "pinnedWorkflows"
 } as const;
 
 // localStorage utilities with debounced writes
@@ -76,6 +77,10 @@ const storage = {
   // Retrieve the list of open workflow IDs.
   getOpenWorkflows: (): string[] =>
     JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]"),
+
+  // Retrieve the list of pinned workflow IDs.
+  getPinnedWorkflows: (): string[] =>
+    JSON.parse(localStorage.getItem(STORAGE_KEYS.PINNED_WORKFLOWS) || "[]"),
 
   // Debounced setter for the current workflow ID.
   setCurrentWorkflow: debounce((workflowId: string) => {
@@ -88,12 +93,24 @@ const storage = {
       STORAGE_KEYS.OPEN_WORKFLOWS,
       JSON.stringify(workflowIds)
     );
+  }, 100),
+
+  // Debounced setter for the array of pinned workflows.
+  setPinnedWorkflows: debounce((workflowIds: string[]) => {
+    localStorage.setItem(
+      STORAGE_KEYS.PINNED_WORKFLOWS,
+      JSON.stringify(workflowIds)
+    );
   }, 100)
 };
 
 // Export storage utility function for use in WorkflowManagerContext
 export const getOpenWorkflowsFromStorage = (): string[] =>
   JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]");
+
+// Export pinned workflows storage utility for external access
+export const getPinnedWorkflowsFromStorage = (): string[] =>
+  JSON.parse(localStorage.getItem(STORAGE_KEYS.PINNED_WORKFLOWS) || "[]");
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -145,6 +162,7 @@ export type WorkflowManagerState = {
   currentWorkflowId: string | null;
   loadingStates: Record<string, never>;
   openWorkflows: WorkflowAttributes[];
+  pinnedWorkflows: Set<string>;
   queryClient: QueryClient;
   systemStats: SystemStats | null;
   // Track notified autosave versions to prevent duplicate notifications
@@ -178,6 +196,11 @@ export type WorkflowManagerState = {
   delete: (workflow: Workflow) => Promise<void>;
   saveExample: (packageName: string) => Promise<any>;
   validateAllEdges: () => void;
+  // Tab pinning methods
+  isWorkflowPinned: (workflowId: string) => boolean;
+  togglePinWorkflow: (workflowId: string) => void;
+  pinWorkflow: (workflowId: string) => void;
+  unpinWorkflow: (workflowId: string) => void;
 };
 
 // Defines the Zustand store type for workflow management.
@@ -199,6 +222,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
     return {
       nodeStores: {},
       openWorkflows: [],
+      pinnedWorkflows: new Set(storage.getPinnedWorkflows()),
       notifiedAutosaveVersions: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
       loadingStates: {},
@@ -765,6 +789,71 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       validateAllEdges: () => {
         // Edge validation functionality removed - will be implemented in separate branch
+      },
+
+      // ---------------------------------------------------------------------------------
+      // Tab Pinning
+      // ---------------------------------------------------------------------------------
+
+      /**
+       * Checks if a workflow is pinned.
+       * @param {string} workflowId The ID of the workflow to check
+       * @returns {boolean} True if the workflow is pinned
+       */
+      isWorkflowPinned: (workflowId: string): boolean => {
+        return get().pinnedWorkflows.has(workflowId);
+      },
+
+      /**
+       * Toggles the pin state of a workflow.
+       * @param {string} workflowId The ID of the workflow to toggle
+       */
+      togglePinWorkflow: (workflowId: string) => {
+        const pinnedWorkflows = get().pinnedWorkflows;
+        const newPinnedWorkflows = new Set(pinnedWorkflows);
+
+        if (newPinnedWorkflows.has(workflowId)) {
+          newPinnedWorkflows.delete(workflowId);
+        } else {
+          newPinnedWorkflows.add(workflowId);
+        }
+
+        set({ pinnedWorkflows: newPinnedWorkflows });
+        storage.setPinnedWorkflows(Array.from(newPinnedWorkflows));
+      },
+
+      /**
+       * Pins a workflow tab.
+       * @param {string} workflowId The ID of the workflow to pin
+       */
+      pinWorkflow: (workflowId: string) => {
+        const pinnedWorkflows = get().pinnedWorkflows;
+        if (pinnedWorkflows.has(workflowId)) {
+          return; // Already pinned
+        }
+
+        const newPinnedWorkflows = new Set(pinnedWorkflows);
+        newPinnedWorkflows.add(workflowId);
+
+        set({ pinnedWorkflows: newPinnedWorkflows });
+        storage.setPinnedWorkflows(Array.from(newPinnedWorkflows));
+      },
+
+      /**
+       * Unpins a workflow tab.
+       * @param {string} workflowId The ID of the workflow to unpin
+       */
+      unpinWorkflow: (workflowId: string) => {
+        const pinnedWorkflows = get().pinnedWorkflows;
+        if (!pinnedWorkflows.has(workflowId)) {
+          return; // Not pinned
+        }
+
+        const newPinnedWorkflows = new Set(pinnedWorkflows);
+        newPinnedWorkflows.delete(workflowId);
+
+        set({ pinnedWorkflows: newPinnedWorkflows });
+        storage.setPinnedWorkflows(Array.from(newPinnedWorkflows));
       }
 
       /**
