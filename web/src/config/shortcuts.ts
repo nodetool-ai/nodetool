@@ -756,6 +756,15 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     category: "editor" as const,
     description: "Go back to previously focused node",
     registerCombo: true
+  },
+  // ---------- QUICK SHORTCUTS ---------------------------------------------
+  {
+    title: "Quick Shortcuts Panel",
+    slug: "quickShortcuts",
+    keyCombo: ["Control", "H"],
+    category: "editor" as const,
+    description: "Show context-relevant keyboard shortcuts",
+    registerCombo: true
   }
 ] as Shortcut[];
 
