@@ -70,11 +70,13 @@ modules:
   - name: nodetool
     buildsystem: simple
     build-options:
+      # Allow network access so npm can download packages during the build
+      build-args:
+        - --share=network
       env:
         # Node environment
         NPM_CONFIG_CACHE: /run/build/nodetool/npm-cache
         npm_config_cache: /run/build/nodetool/npm-cache
-        npm_config_offline: 'true'
         ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     build-commands:
       # Install dependencies and build web frontend
@@ -114,7 +116,8 @@ modules:
         done
     
     sources:
-      # Main repository - this will be the checked out code
+      # Main repository - path is relative to manifest location (electron/),
+      # so '..' points to the repository root containing both web/ and electron/
       - type: dir
-        path: .
+        path: ..
 
