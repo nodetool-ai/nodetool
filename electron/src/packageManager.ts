@@ -907,24 +907,45 @@ export async function checkExpectedPackageVersions(): Promise<
     expectedVersion: string | null;
   }>
 > {
-  const packagesToCheck = await getPackagesWithVersionRequirements();
+  const expectedVersion = getAppVersion();
   const packagesNeedingUpdate: Array<{
     packageName: string;
     currentVersion?: string;
     expectedVersion: string | null;
   }> = [];
 
-  const expectedVersion = getAppVersion();
+  try {
+    // Optimization: fetch all installed packages in one go using pip list
+    // This avoids spawning a separate process for each package version check
+    const installedPackages = await listInstalledPackagesInternal();
+    const nodetoolPackages = installedPackages.filter((pkg) =>
+      pkg.name.startsWith("nodetool-")
+    );
 
-  for (const packageName of packagesToCheck) {
-    const result = await checkPackageVersion(packageName);
-    if (result.needsUpdate) {
-      packagesNeedingUpdate.push({
-        packageName,
-        currentVersion: result.currentVersion,
-        expectedVersion,
-      });
+    for (const pkg of nodetoolPackages) {
+      const currentVersion = pkg.version;
+
+      if (!currentVersion) {
+        continue;
+      }
+
+      const versionsMatch = compareVersions(currentVersion, expectedVersion);
+      if (versionsMatch !== 0) {
+        logMessage(
+          `Package ${pkg.name} version mismatch: installed=${currentVersion}, expected=${expectedVersion}`
+        );
+        packagesNeedingUpdate.push({
+          packageName: pkg.name,
+          currentVersion,
+          expectedVersion,
+        });
+      }
     }
+  } catch (error: any) {
+    logMessage(
+      `Failed to check expected package versions: ${error.message}`,
+      "error"
+    );
   }
 
   return packagesNeedingUpdate;
