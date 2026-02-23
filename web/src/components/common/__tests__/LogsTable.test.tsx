@@ -5,27 +5,35 @@ import LogsTable, { LogRow } from '../LogsTable';
 import { ThemeProvider } from '@mui/material/styles';
 
 // Mock the theme
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 jest.mock('../../themes/ThemeNodetool', () => require('../../../__mocks__/themeMock'));
 import ThemeNodetool from '../../themes/ThemeNodetool';
 
 // Mock UI primitives
 jest.mock('../../ui_primitives', () => ({
   __esModule: true,
-  CopyButton: (props: any) => <button data-testid="copy-btn">Copy</button>
+  CopyButton: (props: any) => <button {...props}>Copy</button>
 }));
 
 // Mock MUI Tooltip
 jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material');
+  const TooltipMock = ({ children }: any) => <div data-testid="tooltip">{children}</div>;
+  TooltipMock.displayName = "TooltipMock";
   return {
     ...actual,
-    Tooltip: ({ children }: any) => <div data-testid="tooltip">{children}</div>
+    Tooltip: TooltipMock
   };
 });
 
 // Mock Icons
-jest.mock("@mui/icons-material/KeyboardArrowDown", () => () => <span data-testid="arrow-down-icon" />);
-jest.mock("@mui/icons-material/DataObject", () => () => <span data-testid="data-object-icon" />);
+const KeyboardArrowDownIconMock = () => <span data-testid="arrow-down-icon" />;
+KeyboardArrowDownIconMock.displayName = "KeyboardArrowDownIcon";
+jest.mock("@mui/icons-material/KeyboardArrowDown", () => KeyboardArrowDownIconMock);
+
+const DataObjectIconMock = () => <span data-testid="data-object-icon" />;
+DataObjectIconMock.displayName = "DataObjectIcon";
+jest.mock("@mui/icons-material/DataObject", () => DataObjectIconMock);
 
 // Mock AutoSizer correctly for default export
 jest.mock("react-virtualized-auto-sizer", () => ({
