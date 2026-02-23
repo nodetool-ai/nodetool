@@ -359,6 +359,14 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = React.memo(({ toolCall
     }));
   }, [toolCalls]);
 
+  // Memoize inline styles to avoid recreating on every render
+  const detailsStyle = useMemo(() => ({ marginTop: "4px" }), []);
+  const summaryStyle = useMemo(() => ({
+    fontSize: "0.65rem",
+    color: theme.vars.palette.text.secondary,
+    cursor: "pointer"
+  }), [theme.vars.palette.text.secondary]);
+
   if (!toolCalls || toolCalls.length === 0) {return null;}
 
   return (
@@ -391,8 +399,8 @@ const ToolCallsSection: React.FC<ToolCallsSectionProps> = React.memo(({ toolCall
                     <div className="tool-message">{tc.message}</div>
                   )}
                    {tc.args && Object.keys(tc.args).length > 0 && (
-                     <details style={{ marginTop: "4px" }}>
-                       <summary style={{ fontSize: "0.65rem", color: theme.vars.palette.text.secondary, cursor: "pointer" }}>Arguments</summary>
+                     <details style={detailsStyle}>
+                       <summary style={summaryStyle}>Arguments</summary>
                        <pre className="tool-args">{formattedArgs[index]?.args}</pre>
                      </details>
                   )}
