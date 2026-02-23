@@ -222,6 +222,61 @@ type RowItemData = {
   toggleExpand: (key: string, index: number) => void;
 };
 
+// Custom comparison function for RowItem to prevent unnecessary re-renders
+const areEqual = (prevProps: ListChildComponentProps<RowItemData>, nextProps: ListChildComponentProps<RowItemData>) => {
+  const { style: prevStyle, data: prevData, index: prevIndex } = prevProps;
+  const { style: nextStyle, data: nextData, index: nextIndex } = nextProps;
+
+  if (prevIndex !== nextIndex) {
+    return false;
+  }
+
+  // Check style properties relevant to layout (top, left, width, height)
+  // We use strict equality for values, assuming style object structure is consistent from react-window
+  if (
+    prevStyle.top !== nextStyle.top ||
+    prevStyle.left !== nextStyle.left ||
+    prevStyle.width !== nextStyle.width ||
+    prevStyle.height !== nextStyle.height
+  ) {
+    return false;
+  }
+
+  // If data reference is the same, no need to check deeper
+  if (prevData === nextData) {
+    return true;
+  }
+
+  // Granular data check
+  const prevRow = prevData.rows[prevIndex];
+  const nextRow = nextData.rows[nextIndex];
+
+  // If the specific row data changed
+  if (prevRow !== nextRow) {
+    return false;
+  }
+
+  const prevKey = prevData.rowKeys[prevIndex];
+  const nextKey = nextData.rowKeys[nextIndex]; // Should be same if rows/index same
+
+  // Check if expansion state changed for THIS row
+  const prevExpanded = prevData.expandedKeys.has(prevKey);
+  const nextExpanded = nextData.expandedKeys.has(nextKey);
+  if (prevExpanded !== nextExpanded) {
+    return false;
+  }
+
+  // Check global column settings
+  if (prevData.showTimestampColumn !== nextData.showTimestampColumn) {
+    return false;
+  }
+  if (prevData.columns !== nextData.columns) {
+    return false;
+  }
+
+  return true;
+};
+
 const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemData>) => {
   const r = data.rows[index];
   const rowKey = data.rowKeys[index];
@@ -319,7 +374,7 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
       </div>
     </div>
   );
-});
+}, areEqual);
 
 RowItem.displayName = "RowItem";
 
@@ -341,9 +396,12 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const columns = showTimestampColumn ? "1fr 80px 60px" : "1fr 60px";
 
-  const filteredRows = Array.isArray(severities) && severities.length > 0
-    ? rows.filter((r) => severities.includes(r.severity))
-    : rows;
+  // Optimization: Memoize filteredRows to prevent recalculation on every render
+  const filteredRows = useMemo(() => {
+    return Array.isArray(severities) && severities.length > 0
+      ? rows.filter((r) => severities.includes(r.severity))
+      : rows;
+  }, [rows, severities]);
 
   const rowKeys = useMemo(
     () =>
@@ -422,6 +480,17 @@ export const LogsTable: React.FC<LogsTableProps> = ({
     setShowScrollButton(false);
   }, [filteredRows.length]);
 
+  // Optimization: Memoize itemData to prevent RowItem re-renders when other props change
+  // (like showScrollButton or isAtBottom state changes in LogsTable)
+  const itemData = useMemo(() => ({
+    rows: filteredRows,
+    rowKeys,
+    showTimestampColumn,
+    columns,
+    expandedKeys,
+    toggleExpand
+  }), [filteredRows, rowKeys, showTimestampColumn, columns, expandedKeys, toggleExpand]);
+
   const renderList = useCallback((listHeight: number, listWidth: number) => (
     <VariableSizeList
       ref={listRef}
@@ -435,14 +504,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
           expandedKeys.has(rowKeys[index])
         )
       }
-      itemData={{
-        rows: filteredRows,
-        rowKeys,
-        showTimestampColumn,
-        columns,
-        expandedKeys,
-        toggleExpand
-      }}
+      itemData={itemData}
       onScroll={handleScroll}
       overscanCount={5}
     >
@@ -451,12 +513,10 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   ), [
     filteredRows,
     handleScroll,
-    showTimestampColumn,
-    columns,
-    expandedKeys,
+    estimateRowHeight,
+    itemData,
     rowKeys,
-    toggleExpand,
-    estimateRowHeight
+    expandedKeys // Still need these deps for itemSize
   ]);
 
   return (

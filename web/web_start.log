@@ -1,0 +1,24 @@
+
+> nodetool@0.6.3-rc26 start
+> vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false
+
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+  VITE v6.4.1  ready in 461 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: http://192.168.0.2:3000/
+10:04:28 AM [vite] http proxy error: /api/settings/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:04:28 AM [vite] http proxy error: /api/threads/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:04:28 AM [vite] http proxy error: /api/nodes/metadata
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
