@@ -1,6 +1,13 @@
 import React, { memo } from "react";
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
 
+// Memoize the style object to prevent recreation on every render
+const MARKDOWN_TEXT_STYLE = {
+  padding: "0 0.5em",
+  whiteSpace: "pre-wrap" as const,
+  fontWeight: "300" as const
+};
+
 export const isLikelyMarkdown = (text: string): boolean => {
   if (!text) {return false;}
   if (text.length < 6) {return false;}
@@ -26,7 +33,7 @@ export const MaybeMarkdown: React.FC<{ text: string }> = memo(({ text }) => {
   ) : (
     <div
       className="output no-markdown-text"
-      style={{ padding: "0 0.5em", whiteSpace: "pre-wrap", fontWeight: "300" }}
+      style={MARKDOWN_TEXT_STYLE}
     >
       {text}
     </div>

@@ -275,6 +275,16 @@ interface OutputNodeProps extends NodeProps {
 }
 
 /**
+ * Memoized style object to prevent recreation on every render
+ */
+const CONTENT_DIV_STYLE = {
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column" as const
+};
+
+/**
  * OutputNode - A custom ReactFlow node for displaying workflow outputs.
  * Similar to PreviewNode but uses output results from ResultsStore.
  * This displays streaming outputs accumulated via output_update messages.
@@ -466,7 +476,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         <div
           className={`content ${isScrollable ? "scrollable nowheel" : "noscroll"
             }`}
-          style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
+          style={CONTENT_DIV_STYLE}
           tabIndex={0}
           onFocus={handleContentFocus}
           onBlur={handleContentBlur}
