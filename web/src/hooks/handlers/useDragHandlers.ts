@@ -32,7 +32,7 @@ export default function useDragHandlers() {
   const [lastParentNode, setLastParentNode] = useState<
     Node<NodeData> | undefined
   >();
-  const { settings } = useSettingsStore((state) => state);
+  const settings = useSettingsStore((state) => state.settings);
   const [_draggedNodes, setDraggedNodes] = useState<Set<Node<NodeData>>>(
     new Set()
   );
