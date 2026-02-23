@@ -10,10 +10,14 @@ jest.mock('../../themes/ThemeNodetool', () => require('../../../__mocks__/themeM
 import ThemeNodetool from '../../themes/ThemeNodetool';
 
 // Mock UI primitives
-jest.mock('../../ui_primitives', () => ({
-  __esModule: true,
-  CopyButton: (props: any) => <button {...props}>Copy</button>
-}));
+jest.mock('../../ui_primitives', () => {
+  const CopyButton = (props: any) => <button {...props}>Copy</button>;
+  CopyButton.displayName = "CopyButton";
+  return {
+    __esModule: true,
+    CopyButton
+  };
+});
 
 // Mock MUI Tooltip
 jest.mock('@mui/material', () => {
@@ -26,14 +30,18 @@ jest.mock('@mui/material', () => {
   };
 });
 
-// Mock Icons
-const KeyboardArrowDownIconMock = () => <span data-testid="arrow-down-icon" />;
-KeyboardArrowDownIconMock.displayName = "KeyboardArrowDownIcon";
-jest.mock("@mui/icons-material/KeyboardArrowDown", () => KeyboardArrowDownIconMock);
+// Mock Icons - define inline to avoid hoisting issues
+jest.mock("@mui/icons-material/KeyboardArrowDown", () => {
+  const KeyboardArrowDownIcon = () => <span data-testid="arrow-down-icon" />;
+  KeyboardArrowDownIcon.displayName = "KeyboardArrowDownIcon";
+  return KeyboardArrowDownIcon;
+});
 
-const DataObjectIconMock = () => <span data-testid="data-object-icon" />;
-DataObjectIconMock.displayName = "DataObjectIcon";
-jest.mock("@mui/icons-material/DataObject", () => DataObjectIconMock);
+jest.mock("@mui/icons-material/DataObject", () => {
+  const DataObjectIcon = () => <span data-testid="data-object-icon" />;
+  DataObjectIcon.displayName = "DataObjectIcon";
+  return DataObjectIcon;
+});
 
 // Mock AutoSizer correctly for default export
 jest.mock("react-virtualized-auto-sizer", () => ({
@@ -42,8 +50,8 @@ jest.mock("react-virtualized-auto-sizer", () => ({
 }));
 
 // Mock react-window to isolate issues
-jest.mock('react-window', () => ({
-  VariableSizeList: ({ children: Row, itemCount, itemData }: any) => (
+jest.mock('react-window', () => {
+  const VariableSizeList = ({ children: Row, itemCount, itemData }: any) => (
     <div data-testid="virtual-list">
       {Array.from({ length: itemCount }).map((_, index) => (
         <div key={index}>
@@ -51,9 +59,13 @@ jest.mock('react-window', () => ({
         </div>
       ))}
     </div>
-  ),
-  areEqual: () => true
-}));
+  );
+  VariableSizeList.displayName = "VariableSizeList";
+  return {
+    VariableSizeList,
+    areEqual: () => true
+  };
+});
 
 const defaultProps = {
   rows: [],
