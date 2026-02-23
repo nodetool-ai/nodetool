@@ -84,6 +84,11 @@ export interface CopyButtonProps {
    * Additional sx styles
    */
   sx?: SxProps<Theme>;
+  /**
+   * Tab index for keyboard navigation
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 export const CopyButton = memo(
@@ -99,7 +104,8 @@ export const CopyButton = memo(
         onCopyError,
         disabled = false,
         className,
-        sx
+        sx,
+        tabIndex = 0
       },
       ref
     ) => {
@@ -173,7 +179,8 @@ export const CopyButton = memo(
         >
           <IconButton
             ref={ref}
-            tabIndex={-1}
+            tabIndex={tabIndex}
+            aria-label={tooltipText}
             className={cn(
               "copy-button",
               nodrag && editorClassNames.nodrag,

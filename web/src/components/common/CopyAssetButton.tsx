@@ -247,6 +247,11 @@ export interface CopyAssetButtonProps {
    * @default false
    */
   electronOnly?: boolean;
+  /**
+   * Tab index for keyboard navigation
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 /**
@@ -267,7 +272,8 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
     disabled = false,
     className,
     sx,
-    electronOnly = false
+    electronOnly = false,
+    tabIndex = 0
   }) => {
     const [state, setState] = useState<"idle" | "copied" | "error">("idle");
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -356,6 +362,8 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
           onClick={handleCopy}
           disabled={disabled}
           size={size}
+          tabIndex={tabIndex}
+          aria-label={tooltipText}
           sx={{
             width: 24,
             height: 24,

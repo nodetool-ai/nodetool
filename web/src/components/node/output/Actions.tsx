@@ -12,7 +12,7 @@ const Actions: React.FC<ActionsProps> = ({ copyValue }) => {
   }
   return (
     <Box className="actions">
-      <CopyButton value={copyValue} buttonSize="small" />
+      <CopyButton value={copyValue} buttonSize="small" tabIndex={-1} />
     </Box>
   );
 };

@@ -60,11 +60,13 @@ const DynamicOutputItem: React.FC<DynamicOutputItemProps> = ({
               onClick={handleRename}
               tooltip="Rename output"
               iconVariant="edit"
+              tabIndex={-1}
             />
             <DeleteButton
               onClick={handleDelete}
               tooltip="Remove output"
               iconVariant="outline"
+              tabIndex={-1}
             />
           </Box>
           <Typography textAlign="right">{output.name}</Typography>

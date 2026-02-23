@@ -68,6 +68,7 @@ export const NodeErrors: React.FC<{ id: string; workflow_id: string }> = ({
         <CopyButton
           value={errorDisplay}
           tooltip="Copy to clipboard"
+          tabIndex={-1}
         />
       </Box>
       <div className="error-text">{errorDisplay}</div>

@@ -71,7 +71,13 @@ const Column: React.FC<ColumnProps> = ({
         ))}
       </NodeSelect>
     </div>
-    <DeleteButton onClick={onDelete} buttonSize="small" tooltip="Delete column" className="delete-button" />
+    <DeleteButton
+      onClick={onDelete}
+      buttonSize="small"
+      tooltip="Delete column"
+      className="delete-button"
+      tabIndex={-1}
+    />
   </div>
 );
 

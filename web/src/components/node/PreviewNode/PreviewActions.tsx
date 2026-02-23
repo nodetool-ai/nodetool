@@ -117,6 +117,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
           onCopyError={handleCopyError}
           className="action-button copy"
           sx={buttonStyles}
+          tabIndex={-1}
         />
       ) : (
         <CopyButton
@@ -124,6 +125,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
           onCopyError={handleCopyError}
           className="action-button copy"
           sx={buttonStyles}
+          tabIndex={-1}
         />
       )}
     </Box>
