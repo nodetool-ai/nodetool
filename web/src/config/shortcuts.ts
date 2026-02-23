@@ -635,6 +635,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Quick Add Node",
+    slug: "quickAddNode",
+    keyCombo: ["Control", "Shift", "A"],
+    category: "editor" as const,
+    description: "Quickly search and add a new node to the workflow",
+    registerCombo: true
+  },
+  {
     title: "Reset Zoom",
     slug: "resetZoom",
     keyCombo: ["Control", "0"],

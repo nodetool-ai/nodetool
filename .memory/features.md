@@ -4,8 +4,9 @@ Existing features in NodeTool. **Read before adding new features to avoid duplic
 
 Format: `- **Feature Name**: Brief description`
 
-Last updated: 2026-02-10
+Last updated: 2026-02-23
 
+- **Quick Add Node Dialog (2026-02-23)**: Fast, keyboard-accessible dialog for searching and adding nodes to workflows; accessible via Ctrl+Shift+A / Cmd+Shift+A; supports fuzzy search by node name, type, and namespace; displays results count and keyboard hints
 - **Minimap Type-Based Coloring (2026-02-10)**: Enhanced minimap with color-by-node-type mode, configurable via settings popover; includes interactive legend showing Input (blue), Constant (purple), Processing (slate), Group (indigo), Comment (green), and Output (amber) nodes
 
 - **Store JSDoc Documentation (2026-01-19)**: Added module-level JSDoc to ResultsStore, AssetStore, and StatusStore for consistent documentation across all critical stores
@@ -40,6 +41,7 @@ Last updated: 2026-02-10
 - **Node Placement**: Smart node placement with collision avoidance
 - **Selection Action Toolbar**: Floating toolbar for batch operations on selected nodes (align, distribute, group, delete)
 - **Keyboard Node Navigation**: Tab-based keyboard navigation for focus selection and directional arrow navigation between nodes
+- **Quick Add Node**: Fast, keyboard-accessible dialog (Ctrl+Shift+A / Cmd+Shift+A) for searching and adding nodes by name, type, or namespace without opening the node menu
 
 ### Node Management
 - **Node Menu**: Categorized browser for all available node types with search
