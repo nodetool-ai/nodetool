@@ -94,9 +94,10 @@ jobs:
             - Packages: `/web`, `/electron`, `/mobile`
             - Memory: `.memory/` contains project context and known issues
 
-            ## Before Starting
+            ## Before Starting — MANDATORY DEDUPLICATION
             1. Run `git branch -a` — avoid duplicating existing fix branches
-            2. Read `.memory/project-context.md` for recent changes
+            2. **Run `gh pr list --state open --limit 50`** — if a similar fix PR is already open, STOP and find a different issue type
+            3. Read `.memory/project-context.md` for recent changes
 
             ## Your Task
 

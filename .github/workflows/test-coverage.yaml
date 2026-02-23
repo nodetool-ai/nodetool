@@ -98,9 +98,10 @@ jobs:
             - Coverage data: `web/coverage-summary.json` (generated in previous step)
             - Memory: `.memory/` contains project context
 
-            ## Before Starting
+            ## Before Starting — MANDATORY DEDUPLICATION
             1. Run `git branch -a` — avoid duplicating existing test branches
-            2. Check `web/coverage-summary.json` or run `npm run test:coverage` to find gaps
+            2. **Run `gh pr list --state open --limit 50`** — if a similar test PR is already open, STOP and find a different component/hook to test
+            3. Check `web/coverage-summary.json` or run `npm run test:coverage` to find gaps
 
             ## Priority
             1. **Stores**: Zustand stores with business logic

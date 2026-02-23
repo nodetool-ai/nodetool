@@ -102,9 +102,10 @@ jobs:
             - Security concerns: API keys, user data, file uploads
             - npm audit results: `web/npm-audit-web.json`, `electron/npm-audit-electron.json`, `mobile/npm-audit-mobile.json`
 
-            ## Before Starting
+            ## Before Starting — MANDATORY DEDUPLICATION
             1. Run `git branch -a` — avoid duplicating existing security branches
-            2. Read `.memory/project-context.md`
+            2. **Run `gh pr list --state open --limit 50`** — if a similar security PR is already open, STOP and find a different vulnerability to fix
+            3. Read `.memory/project-context.md`
 
             ## Audit Areas
 

@@ -97,25 +97,41 @@ jobs:
             - Performance-critical: node editor (100+ nodes), asset management (1000+ files)
             - Memory: `.memory/` contains project context and known issues
 
-            ## Before Starting
+            ## Before Starting — MANDATORY DEDUPLICATION
             1. Run `git branch -a` — avoid duplicating existing performance branches
-            2. Read `.memory/project-context.md` and `.memory/features.md`
+            2. **Run `gh pr list --state open --limit 50`** — if a similar performance PR is already open, STOP and pick a different optimization target
+            3. Read `.memory/project-context.md` and `.memory/features.md`
+            4. Read `.memory/insights/git-ci/pr-acceptance-patterns.md` — understand what performance PRs get merged vs rejected
+
+            ## ❌ DO NOT Do These (they get rejected)
+            - Bulk React.memo additions across many components without profiling evidence
+            - "Add React.memo to N components" as the main goal
+            - Performance "audit report" documents
+            - Optimizations for components that don't actually re-render unnecessarily
+
+            ## ✅ High-Acceptance Performance Fixes
+            These specific patterns are known to cause real performance issues:
+            - **Zustand object selector anti-pattern**: `const { x, y } = useStore()` → should be separate selectors
+            - **Inline function in memoized component prop**: `onClick={() => fn(id)}` without useCallback, passed to React.memo child
+            - **Missing cleanup in useEffect**: event listeners, timers, subscriptions leaking
+            - **Expensive computation in render**: heavy filter/map/sort without useMemo
 
             ## Audit Areas
 
-            **React re-renders**: Find components subscribing to entire Zustand stores (`useStore()` without selectors), missing `React.memo`, `useCallback`, `useMemo`.
+            **React re-renders**: Find components with `useStore()` without selectors (subscribes to whole store). Find `React.memo`-wrapped children receiving new inline function references each render.
 
             **List rendering**: Large lists without virtualization (use `@tanstack/react-virtual`).
 
-            **Bundle size**: Check `web/bundle-stats.json` for large/duplicate/unused dependencies. Use code splitting and lazy loading.
+            **Bundle size**: Check `web/bundle-stats.json` for large/duplicate/unused dependencies.
 
             **Memory leaks**: `useEffect` without cleanup (event listeners, timers, subscriptions).
 
             **Heavy computations**: Filter/map/sort/JSON.parse in render paths — memoize them.
 
             ## Fix Guidelines
-            - Measure before optimizing — focus on real bottlenecks
-            - One focused PR per optimization area
+            - **Measure before optimizing** — confirm the bottleneck actually exists
+            - One focused PR per optimization area (NOT bulk changes to 10+ files)
+            - Maximum 5-8 files per PR
 
             ## Mandatory Quality Checks
             Before submitting your PR, you MUST run and pass all quality checks:

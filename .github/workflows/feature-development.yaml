@@ -93,20 +93,31 @@ jobs:
             - Backend is a separate Python repo — frontend-only changes here
             - Memory: `.memory/` contains project context, features list, and known issues
 
-            ## Before Starting
+            ## Before Starting — MANDATORY DEDUPLICATION
             1. Run `git branch -a` — avoid duplicating existing feature branches
-            2. Read `.memory/features.md` — ensure your feature doesn't already exist
-            3. Read `.memory/project-context.md` — understand architecture and recent changes
-            4. Read `/AGENTS.md` and `/.github/copilot-instructions.md` for coding patterns
+            2. **Run `gh pr list --state open --limit 50`** — if a similar PR is already open, STOP and pick a different feature
+            3. **Read `.memory/features.md`** — the top section lists features that already have open PRs and must NOT be duplicated
+            4. Read `.memory/project-context.md` — understand architecture and recent changes
+            5. Read `.memory/insights/git-ci/pr-acceptance-patterns.md` — understand what gets merged vs rejected
+            6. Read `/AGENTS.md` and `/.github/copilot-instructions.md` for coding patterns
 
-            ## Feature Ideas (or invent your own)
-            - Enhanced keyboard shortcuts or accessibility
-            - Improved node search/filtering
-            - Better error visualization in workflows
-            - Node templates or snippets
-            - Enhanced asset management UI
-            - Visual improvements to node editor
-            - Workflow documentation/comments feature
+            ## ❌ DO NOT Build These (already have open PRs or have been repeatedly rejected)
+            - Keyboard shortcuts panel/dialog/help/toast/cheat-sheet
+            - Workflow notes, comments, or documentation panel
+            - Node templates or snippet system
+            - Viewport or workflow bookmarks
+            - Node pinning, tab pinning
+            - Canvas pan controls
+            - Smart alignment guides
+            - "Audit report" markdown documents
+            - Any feature already listed in the "Do NOT Create PRs For These" section of `.memory/features.md`
+
+            ## ✅ High-Acceptance Feature Ideas
+            - Concrete bug fix with tests (check open issues for reported bugs)
+            - Improvement to an existing feature (make something work better, not add new panels)
+            - Test coverage for untested components or hooks
+            - Performance improvement with measured evidence (use React DevTools to confirm the bottleneck first)
+            - Accessibility improvement to a specific existing component
 
             ## Quality Standards
             - TypeScript strict mode, explicit types, no `any`
