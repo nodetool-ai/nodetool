@@ -530,6 +530,25 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     [onTileMouseEnter]
   );
 
+  // Memoize tooltip subtitle style to avoid recreating on every render
+  const tooltipSubtitleStyle = useMemo(
+    () => ({
+      fontSize: "0.7rem" as const,
+      opacity: 0.75,
+      marginTop: "4px"
+    }),
+    []
+  );
+
+  // Memoize constants header style
+  const constantsHeaderStyle = useMemo(
+    () => ({
+      marginTop: "16px",
+      marginBottom: "8px"
+    }),
+    []
+  );
+
   return (
     <Box css={memoizedStyles}>
       <div className="tiles-header">
@@ -554,13 +573,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
               title={
                 <div>
                   <div>{label}</div>
-                  <div
-                    style={{
-                      fontSize: "0.7rem",
-                      opacity: 0.75,
-                      marginTop: "4px"
-                    }}
-                  >
+                  <div style={tooltipSubtitleStyle}>
                     Click to place · Shift-click to auto add
                   </div>
                 </div>
@@ -596,10 +609,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
           );
         })}
       </div>
-      <div
-        className="tiles-header"
-        style={{ marginTop: "16px", marginBottom: "8px" }}
-      >
+      <div className="tiles-header" style={constantsHeaderStyle}>
         <Typography variant="h5">Constants</Typography>
       </div>
       <div className="constants-container">
@@ -621,13 +631,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
               title={
                 <div>
                   <div>{label} Constant</div>
-                  <div
-                    style={{
-                      fontSize: "0.7rem",
-                      opacity: 0.75,
-                      marginTop: "4px"
-                    }}
-                  >
+                  <div style={tooltipSubtitleStyle}>
                     Click to place
                   </div>
                 </div>

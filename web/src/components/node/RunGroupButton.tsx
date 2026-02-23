@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { IconButton, CircularProgress, Tooltip } from "@mui/material";
 import { PlayArrow } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 const styles = (theme: Theme, _isRunning: boolean) =>
   css({
@@ -56,6 +56,19 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
     }
   }, [isWorkflowRunning, onClick]);
 
+  // Memoize inline styles to avoid recreating on every render
+  const tooltipSpanStyle = useMemo(() => ({
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    gap: "0.1em"
+  }), []);
+
+  const tooltipTextStyle = useMemo(() => ({
+    fontSize: "1.1em",
+    color: "white"
+  }), []);
+
   return (
     <Tooltip
       title={
@@ -64,14 +77,9 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
         ) : (
           <div
             className="tooltip-span"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "0.1em"
-            }}
+            style={tooltipSpanStyle}
           >
-            <span style={{ fontSize: "1.1em", color: "white" }}>Run Group</span>
+            <span style={tooltipTextStyle}>Run Group</span>
           </div>
         )
       }
