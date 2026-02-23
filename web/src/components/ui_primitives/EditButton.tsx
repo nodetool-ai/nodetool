@@ -73,6 +73,11 @@ export interface EditButtonProps {
    * Additional sx styles
    */
   sx?: object;
+  /**
+   * Tab index for keyboard navigation
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 export const EditButton = memo(
@@ -87,7 +92,8 @@ export const EditButton = memo(
         nodrag = true,
         disabled = false,
         className,
-        sx
+        sx,
+        tabIndex = 0
       },
       ref
     ) => {
@@ -117,7 +123,8 @@ export const EditButton = memo(
         >
           <IconButton
             ref={ref}
-            tabIndex={-1}
+            tabIndex={tabIndex}
+            aria-label={tooltip}
             className={cn(
               "edit-button",
               nodrag && editorClassNames.nodrag,

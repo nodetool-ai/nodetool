@@ -245,6 +245,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         <DeleteButton
           onClick={handleDelete}
+          tabIndex={-1}
           tooltip={
             <span>
               Delete{" "}

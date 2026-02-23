@@ -73,6 +73,11 @@ export interface DeleteButtonProps {
    * Additional sx styles
    */
   sx?: object;
+  /**
+   * Tab index for keyboard navigation
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 export const DeleteButton = memo(
@@ -87,7 +92,8 @@ export const DeleteButton = memo(
         nodrag = true,
         disabled = false,
         className,
-        sx
+        sx,
+        tabIndex = 0
       },
       ref
     ) => {
@@ -134,7 +140,8 @@ export const DeleteButton = memo(
         >
           <IconButton
             ref={ref}
-            tabIndex={-1}
+            tabIndex={tabIndex}
+            aria-label={typeof tooltip === "string" ? tooltip : "Delete"}
             className={cn(
               "delete-button",
               nodrag && editorClassNames.nodrag,
