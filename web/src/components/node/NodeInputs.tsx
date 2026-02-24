@@ -13,6 +13,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Collapse } from "@mui/material";
+import { shallow } from "zustand/shallow";
 
 export interface NodeInputsProps {
   id: string;
@@ -152,13 +153,19 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   const basicInputs: JSX.Element[] = [];
   const advancedInputs: JSX.Element[] = [];
 
-  const edges = useNodes((state) => state.edges);
+  // Combine multiple useNodes subscriptions into a single selector with shallow equality
+  // to reduce unnecessary re-renders when other parts of the node state change
+  const { edges, findNode } = useNodes(
+    (state) => ({
+      edges: state.edges,
+      findNode: state.findNode
+    }),
+    shallow
+  );
   const connectedEdges = useMemo(
     () => edges.filter((e) => e.target === id),
     [edges, id]
   );
-
-  const findNode = useNodes((state) => state.findNode);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
