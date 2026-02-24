@@ -1,0 +1,12 @@
+Resolved 6 packages in 91ms
+Downloading pydantic (2.5MiB)
+ Downloaded pydantic
+Prepared 3 packages in 123ms
+Uninstalled 3 packages in 7ms
+Installed 3 packages in 7ms
+ - fastapi==0.133.0
+ + fastapi==0.99.1
+ - pydantic==2.13.0b1
+ + pydantic==1.10.26
+ - starlette==1.0.0rc1
+ + starlette==0.27.0

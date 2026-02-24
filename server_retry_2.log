@@ -1,0 +1,169 @@
+🎭 Mock mode enabled - will populate database with test data
+2026-02-24 10:44:28 | WARNING | nodetool.config.environment | No environment files found - using defaults and system environment variables only
+/app/.venv/lib/python3.12/site-packages/requests/__init__.py:113: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0.post1)/charset_normalizer (3.4.4) doesn't match a supported version!
+  warnings.warn(
+/app/.venv/lib/python3.12/site-packages/pydantic/main.py:1809: UserWarning: Field name "json" in "Body_create_api_assets__post" shadows an attribute in parent "BaseModel"
+  return meta(
+/app/.venv/lib/python3.12/site-packages/pydub/utils.py:170: RuntimeWarning: Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work
+  warn("Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work", RuntimeWarning)
+2026-02-24 10:44:30 | WARNING | nodetool.config.environment | No environment files found - using defaults and system environment variables only
+2026-02-24 10:44:30 | INFO | nodetool.api.server | ========================================================================
+2026-02-24 10:44:30 | INFO | nodetool.api.server |  NodeTool Server Startup
+2026-02-24 10:44:30 | INFO | nodetool.api.server | ========================================================================
+2026-02-24 10:44:30 | INFO | nodetool.api.server | [Environment]
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   ENV                         : development
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   LOG_LEVEL                   : INFO
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   DEBUG                       : <not set>
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   AUTH_PROVIDER               : local
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   DB_PATH                     : /home/jules/.local/share/nodetool/nodetool.sqlite3
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   CHROMA_PATH                 : /home/jules/.local/share/nodetool/chroma
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   JOB_EXECUTION_STRATEGY      : threaded
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   OLLAMA_API_URL              : <not set>
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   NODETOOL_API_URL            : <not set>
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   NODETOOL_ENABLE_TERMINAL_WS : 1
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   WORKER_ID                   : <not set>
+2026-02-24 10:44:30 | INFO | nodetool.api.server | [Feature Flags]
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   mode                             : desktop
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   include_default_api_routers      : True
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   include_openai_router            : True
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   include_deploy_admin_router      : True
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   include_deploy_collection_router : True
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   include_deploy_storage_router    : True
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   enable_main_ws                   : True
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   enable_terminal_ws               : True
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   enable_hf_download_ws            : True
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   enable_mcp                       : False
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   mount_static                     : True
+2026-02-24 10:44:30 | INFO | nodetool.api.server | [Database]
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   backend : SQLite
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   db_path : /home/jules/.local/share/nodetool/nodetool.sqlite3
+2026-02-24 10:44:30 | INFO | nodetool.api.server | [Authentication]
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   provider     : local
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   enforce_auth : False
+2026-02-24 10:44:30 | INFO | nodetool.api.server | [Asset Storage]
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   backend           : File
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   asset_bucket      : images
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   asset_temp_bucket : <not set>
+2026-02-24 10:44:30 | INFO | nodetool.api.server |   asset_domain      : <not set>
+/app/.venv/lib/python3.12/site-packages/pydantic/main.py:1809: UserWarning: Field name "json" in "Body_create_api_assets__post" shadows an attribute in parent "BaseModel"
+  return meta(
+2026-02-24 10:44:31 | INFO | nodetool.api.server | Ollama not detected at localhost:11434, using OLLAMA_API_URL from environment if provided
+2026-02-24 10:44:31 | INFO | nodetool.api.server | ======================================================================
+2026-02-24 10:44:31 | INFO | nodetool.api.server | ENVIRONMENT CONFIGURATION DIAGNOSTICS
+2026-02-24 10:44:31 | INFO | nodetool.api.server | ======================================================================
+2026-02-24 10:44:31 | INFO | nodetool.api.server | Showing all registered environment variables
+2026-02-24 10:44:31 | INFO | nodetool.api.server | [System]
+2026-02-24 10:44:31 | INFO | nodetool.api.server |   ✓ HOME: /home/jules
+2026-02-24 10:44:31 | INFO | nodetool.api.server |       ✓  Access: readable, writable
+2026-02-24 10:44:31 | INFO | nodetool.api.server | ======================================================================
+2026-02-24 10:44:31 | INFO | nodetool.security.startup_checks | Running startup security checks for environment: development
+2026-02-24 10:44:31 | INFO | nodetool.security.startup_checks | Startup security checks passed - no issues found
+2026-02-24 10:44:31 | INFO | nodetool.api.server | ========================================================================
+2026-02-24 10:44:31 | INFO | nodetool.api.server |  NodeTool Runtime Initialization
+2026-02-24 10:44:31 | INFO | nodetool.api.server | ========================================================================
+2026-02-24 10:44:31 | INFO | nodetool.observability.tracing | Tracing disabled by configuration
+2026-02-24 10:44:32 | INFO | nodetool.models.migrations | Starting database migrations...
+2026-02-24 10:44:32 | INFO | nodetool.runtime.db_sqlite | Created SQLite connection pool for /home/jules/.local/share/nodetool/nodetool.sqlite3 with size 2 (loop_id=140387443917216)
+2026-02-24 10:44:32 | INFO | nodetool.models.migrations | Database state: fresh_install
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Database state: fresh_install
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Found 30 pending migration(s)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250428_212009_001 (create_workflows)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250428_212009_001 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250428_212009_002 (create_assets)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250428_212009_002 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250428_212009_003 (create_threads)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250428_212009_003 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250428_212009_004 (create_messages)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250428_212009_004 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250428_212009_005 (create_jobs)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250428_212009_005 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250428_212009_006 (create_predictions)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250428_212009_006 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250501_000000 (add_run_mode_to_workflows)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250501_000000 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250501_000001 (add_package_name_and_thumbnail_url_to_workflows)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250501_000001 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250501_000002 (add_size_to_assets)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250501_000002 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20250928_000000 (add_tool_name_to_workflows)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20250928_000000 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251006_000000 (add_params_to_jobs)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251006_000000 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251010_000000 (add_logs_to_jobs)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251010_000000 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251011_000000 (add_agent_execution_fields_to_messages)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251011_000000 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251019_000000 (create_secrets)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251019_000000 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251223_000000 (add_cost_tracking_to_predictions)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251223_000000 applied successfully in 4ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251225_000000 (create_oauth_credentials)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251225_000000 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251228_000000 (create_run_state)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251228_000000 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251228_000001 (create_run_node_state)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251228_000001 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251228_000002 (create_run_inbox_messages)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251228_000002 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20251228_000003 (create_trigger_inputs)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20251228_000003 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260101_000000 (add_job_execution_fields)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260101_000000 applied successfully in 7ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260102_000000 (create_workflow_versions)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260102_000000 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260103_000000 (create_run_events)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260103_000000 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260103_000001 (create_run_leases)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260103_000001 applied successfully in 0ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260104_000001 (add_autosave_fields_to_workflow_versions_v2)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260104_000001 applied successfully in 2ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260113_000000 (create_workspaces)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260113_000000 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260124_000000 (add_node_job_fields_to_assets)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260124_000000 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260125_000000 (add_execution_state_to_jobs)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260125_000000 applied successfully in 19ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260127_000000 (add_html_app_to_workflows)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260127_000000 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Applying migration: 20260201_000000 (add_updated_at_to_assets)
+2026-02-24 10:44:32 | INFO | nodetool.migrations.runner | Migration 20260201_000000 applied successfully in 1ms
+2026-02-24 10:44:32 | INFO | nodetool.models.migrations | Applied 30 migration(s): 20250428_212009_001, 20250428_212009_002, 20250428_212009_003, 20250428_212009_004, 20250428_212009_005, 20250428_212009_006, 20250501_000000, 20250501_000001, 20250501_000002, 20250928_000000, 20251006_000000, 20251010_000000, 20251011_000000, 20251019_000000, 20251223_000000, 20251225_000000, 20251228_000000, 20251228_000001, 20251228_000002, 20251228_000003, 20260101_000000, 20260102_000000, 20260103_000000, 20260103_000001, 20260104_000001, 20260113_000000, 20260124_000000, 20260125_000000, 20260127_000000, 20260201_000000
+2026-02-24 10:44:32 | INFO | nodetool.models.migrations | Database migrations completed. State: migration_tracked, Version: 20260201_000000, Applied: 30, Pending: 0
+2026-02-24 10:44:32 | INFO | nodetool.api.server | [Startup] Database migrations completed successfully
+2026-02-24 10:44:32 | INFO | nodetool.api.server | [Startup] Mock mode enabled; populating database with test data
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Populating mock data for user 1
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock thread: Code Review Helper (cd7c26c0116d11f1a0990000176ed0dc)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock thread: Text Processing Workflow (cd7cc202116d11f1ac3f0000214917fa)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock thread: Creative Writing Assistant (cd7d0633116d11f1995b00000a53500b)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock thread: Creative Writing Assistant (cd7d3b52116d11f18c8600002423afdc)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock thread: Text Processing Workflow (cd7d7283116d11f1a58200005e6a4441)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created 10 mock messages for thread cd7c26c0116d11f1a0990000176ed0dc
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created 10 mock messages for thread cd7cc202116d11f1ac3f0000214917fa
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created 10 mock messages for thread cd7d0633116d11f1995b00000a53500b
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock workflow: Audio Transcriber (cd846596116d11f1b0f80000138dbf48)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock workflow: Audio Transcriber (cd84b434116d11f18448000049ed4bfd)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock workflow: Video Analyzer (cd84f92a116d11f19fd300001c84942d)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock workflow: Model Trainer (cd853ae3116d11f1adb4000040ec3b70)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock workflow: Code Reviewer (cd85813a116d11f1ac3f00000427ad7a)
+2026-02-24 10:44:32 | INFO | nodetool.runtime.resources | Using folder /home/jules/.local/share/nodetool/assets for asset storage with base url /api/storage
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created mock folder: Mock Data (cd8692fd116d11f1b0b50000555cd650)
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created 10 mock image assets
+2026-02-24 10:44:32 | INFO | nodetool.api.mock_data | Created 3 mock text file assets
+/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:   0%|          | 0.00/79.3M [00:00<?, ?iB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:   0%|          | 255k/79.3M [00:00<00:31, 2.60MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:   3%|▎         | 2.54M/79.3M [00:00<00:05, 15.2MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:   8%|▊         | 6.40M/79.3M [00:00<00:02, 26.7MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  13%|█▎        | 10.5M/79.3M [00:00<00:02, 33.0MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  19%|█▉        | 15.0M/79.3M [00:00<00:01, 38.2MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  24%|██▍       | 19.4M/79.3M [00:00<00:01, 40.9MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  30%|██▉       | 23.7M/79.3M [00:00<00:01, 42.4MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  36%|███▌      | 28.3M/79.3M [00:00<00:01, 44.1MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  42%|████▏     | 33.1M/79.3M [00:00<00:01, 46.1MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  48%|████▊     | 37.9M/79.3M [00:01<00:00, 47.2MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  54%|█████▍    | 42.9M/79.3M [00:01<00:00, 48.9MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  61%|██████    | 48.1M/79.3M [00:01<00:00, 50.8MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  67%|██████▋   | 53.0M/79.3M [00:01<00:00, 38.3MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  72%|███████▏  | 57.1M/79.3M [00:01<00:00, 31.3MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  76%|███████▋  | 60.5M/79.3M [00:01<00:00, 26.9MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  80%|████████  | 63.5M/79.3M [00:01<00:00, 26.7MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  84%|████████▎ | 66.3M/79.3M [00:02<00:00, 23.2MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  87%|████████▋ | 68.7M/79.3M [00:02<00:00, 23.2MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  90%|████████▉ | 71.1M/79.3M [00:02<00:00, 23.2MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  93%|█████████▎| 73.4M/79.3M [00:02<00:00, 22.9MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  95%|█████████▌| 75.7M/79.3M [00:02<00:00, 23.0MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz:  98%|█████████▊| 77.9M/79.3M [00:02<00:00, 22.6MiB/s]/home/jules/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz: 100%|██████████| 79.3M/79.3M [00:02<00:00, 30.4MiB/s]
+2026-02-24 10:44:43 | INFO | nodetool.api.mock_data | Created mock collection: mock_collection_0 with 5 documents
+2026-02-24 10:44:44 | INFO | nodetool.api.mock_data | Created mock collection: mock_collection_1 with 5 documents
+2026-02-24 10:44:44 | INFO | nodetool.api.mock_data | Mock data populated: {'threads': 5, 'messages': 30, 'workflows': 5, 'assets': 14, 'collections': 2}
+2026-02-24 10:44:44 | INFO | nodetool.api.server | [Startup] Mock data populated successfully: {'threads': 5, 'messages': 30, 'workflows': 5, 'assets': 14, 'collections': 2}
+2026-02-24 10:44:45 | INFO | nodetool.workflows.job_execution_manager | Started background job cleanup task
+2026-02-24 10:44:45 | INFO | nodetool.api.server | [Startup] JobExecutionManager cleanup task started
+2026-02-24 10:45:57 | INFO | nodetool.api.server | ========================================================================
+2026-02-24 10:45:57 | INFO | nodetool.api.server |  NodeTool Server Shutdown
+2026-02-24 10:45:57 | INFO | nodetool.api.server | ========================================================================
+2026-02-24 10:45:57 | INFO | nodetool.api.server | [Shutdown] Cleaning up resources
+2026-02-24 10:45:57 | INFO | nodetool.workflows.job_execution_manager | Shutting down JobExecutionManager
+2026-02-24 10:45:57 | INFO | nodetool.workflows.workflow_runner | GPU lock is not currently held
+2026-02-24 10:45:57 | INFO | nodetool.workflows.job_execution_manager | JobExecutionManager shutdown complete
+2026-02-24 10:45:57 | INFO | nodetool.api.server | [Shutdown] JobExecutionManager shutdown complete
+2026-02-24 10:45:57 | INFO | nodetool.runtime.db_sqlite | Shutting down SQLite pool for /home/jules/.local/share/nodetool/nodetool.sqlite3 (loop_id=140387443917216)
+2026-02-24 10:45:57 | INFO | nodetool.runtime.db_sqlite | Closed 2 connections for pool /home/jules/.local/share/nodetool/nodetool.sqlite3
+2026-02-24 10:45:57 | INFO | nodetool.api.server | [Shutdown] SQLite connection pools shutdown complete
