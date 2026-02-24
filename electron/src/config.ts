@@ -180,6 +180,54 @@ const getOllamaModelsPath = (): string => {
 };
 
 /**
+ * Retrieves the path to the PostgreSQL executable from the conda environment.
+ */
+const getPostgresPath = (): string => {
+  const condaPath: string = getCondaEnvPath();
+  return process.platform === "win32"
+    ? path.join(condaPath, "Library", "bin", "postgres.exe")
+    : path.join(condaPath, "bin", "postgres");
+};
+
+/**
+ * Retrieves the path to the pg_ctl executable from the conda environment.
+ */
+const getPgCtlPath = (): string => {
+  const condaPath: string = getCondaEnvPath();
+  return process.platform === "win32"
+    ? path.join(condaPath, "Library", "bin", "pg_ctl.exe")
+    : path.join(condaPath, "bin", "pg_ctl");
+};
+
+/**
+ * Retrieves the path to the initdb executable from the conda environment.
+ */
+const getInitDbPath = (): string => {
+  const condaPath: string = getCondaEnvPath();
+  return process.platform === "win32"
+    ? path.join(condaPath, "Library", "bin", "initdb.exe")
+    : path.join(condaPath, "bin", "initdb");
+};
+
+/**
+ * Retrieves the path to the psql executable from the conda environment.
+ */
+const getPsqlPath = (): string => {
+  const condaPath: string = getCondaEnvPath();
+  return process.platform === "win32"
+    ? path.join(condaPath, "Library", "bin", "psql.exe")
+    : path.join(condaPath, "bin", "psql");
+};
+
+/**
+ * Returns the PostgreSQL data directory path.
+ * The data directory is stored inside the nodetool data directory.
+ */
+const getPostgresDataPath = (): string => {
+  return getSystemDataPath("postgres_data");
+};
+
+/**
  * Retrieves the path to the locked micromamba environment manifest
  */
 const resolvePlatformLockFileName = (): string => {
@@ -337,6 +385,11 @@ export {
   getOllamaPath,
   getLlamaServerPath,
   getOllamaModelsPath,
+  getPostgresPath,
+  getPgCtlPath,
+  getInitDbPath,
+  getPsqlPath,
+  getPostgresDataPath,
   getCondaLockFilePath,
   getProcessEnv,
   getSystemDataPath,
