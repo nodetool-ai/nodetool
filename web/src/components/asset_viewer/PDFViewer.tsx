@@ -241,6 +241,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
             onClick={goToPrevPage}
             disabled={pageNumber <= 1}
             size="small"
+            aria-label="Previous page"
           >
             <NavigateBefore />
           </IconButton>
@@ -251,19 +252,20 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
             onClick={goToNextPage}
             disabled={pageNumber >= (numPages || 1)}
             size="small"
+            aria-label="Next page"
           >
             <NavigateNext />
           </IconButton>
         </div>
       </div>
       <div className="zoom-controls">
-        <IconButton onClick={zoomIn} size="small" title="Zoom in">
+        <IconButton onClick={zoomIn} size="small" title="Zoom in" aria-label="Zoom in">
           <ZoomIn fontSize="small" />
         </IconButton>
-        <IconButton onClick={zoomOut} size="small" title="Zoom out">
+        <IconButton onClick={zoomOut} size="small" title="Zoom out" aria-label="Zoom out">
           <ZoomOut fontSize="small" />
         </IconButton>
-        <IconButton onClick={resetZoom} size="small" title="Reset zoom">
+        <IconButton onClick={resetZoom} size="small" title="Reset zoom" aria-label="Reset zoom">
           <RestartAlt fontSize="small" />
         </IconButton>
       </div>

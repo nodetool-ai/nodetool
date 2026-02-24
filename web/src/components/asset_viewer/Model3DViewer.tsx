@@ -734,6 +734,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 size="small"
                 onClick={handleToggleGrid}
                 className={showGrid ? "active" : ""}
+                aria-label="Toggle grid"
               >
                 <GridOnIcon fontSize="small" />
               </IconButton>
@@ -745,6 +746,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 size="small"
                 onClick={handleToggleAxes}
                 className={showAxes ? "active" : ""}
+                aria-label="Toggle axes"
               >
                 <ViewInArIcon fontSize="small" />
               </IconButton>
@@ -798,21 +800,21 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
 
             {/* Reset camera */}
             <Tooltip title="Reset Camera">
-              <IconButton size="small" onClick={handleResetCamera}>
+              <IconButton size="small" onClick={handleResetCamera} aria-label="Reset camera">
                 <RestartAltIcon fontSize="small" />
               </IconButton>
             </Tooltip>
 
             {/* Screenshot */}
             <Tooltip title="Take Screenshot">
-              <IconButton size="small" onClick={handleScreenshot}>
+              <IconButton size="small" onClick={handleScreenshot} aria-label="Take screenshot">
                 <CameraAltIcon fontSize="small" />
               </IconButton>
             </Tooltip>
 
             {/* Fullscreen toggle */}
             <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
-              <IconButton size="small" onClick={toggleFullscreen}>
+              <IconButton size="small" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
                 {isFullscreen ? (
                   <FullscreenExitIcon fontSize="small" />
                 ) : (
