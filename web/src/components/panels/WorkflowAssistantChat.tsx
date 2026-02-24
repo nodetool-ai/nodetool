@@ -148,26 +148,90 @@ const WorkflowAssistantChat: React.FC = () => {
     useState<HTMLButtonElement | null>(null);
   const isThreadListOpen = Boolean(threadListAnchorEl);
 
-  // Check if workflow has message input nodes - memoized to avoid recomputation
-  const hasMessageInput = useMemo(() => {
+  const messageInputNames = useMemo(() => {
     if (!nodes || nodes.length === 0) {
-      return false;
+      return [] as string[];
     }
-    return nodes.some((node) => {
+    const names: string[] = [];
+    for (const node of nodes) {
       const data = (node.data ?? {}) as Record<string, unknown>;
+      const properties =
+        typeof data.properties === "object" && data.properties !== null
+          ? (data.properties as Record<string, unknown>)
+          : {};
       const nodeType =
         typeof data.type === "string"
           ? data.type
+          : typeof data.originalType === "string"
+            ? data.originalType
+            : typeof properties.type === "string"
+              ? properties.type
           : typeof node.type === "string"
             ? node.type
             : "";
-      const nodeName = typeof data.name === "string" ? data.name : "";
-      return (
-        (nodeName === "message" || nodeName === "messages") &&
-        (nodeType === "MessageInput" || nodeType === "MessageListInput")
-      );
-    });
+      const nodeName =
+        typeof properties.name === "string"
+          ? properties.name.trim()
+          : typeof data.name === "string"
+            ? data.name.trim()
+            : "";
+      if (!nodeName) {
+        continue;
+      }
+      if (
+        nodeType === "MessageInput" ||
+        nodeType === "nodetool.input.MessageInput" ||
+        nodeType.endsWith(".MessageInput")
+      ) {
+        names.push(nodeName);
+      }
+    }
+    return Array.from(new Set(names));
   }, [nodes]);
+
+  const messageListInputNames = useMemo(() => {
+    if (!nodes || nodes.length === 0) {
+      return [] as string[];
+    }
+    const names: string[] = [];
+    for (const node of nodes) {
+      const data = (node.data ?? {}) as Record<string, unknown>;
+      const properties =
+        typeof data.properties === "object" && data.properties !== null
+          ? (data.properties as Record<string, unknown>)
+          : {};
+      const nodeType =
+        typeof data.type === "string"
+          ? data.type
+          : typeof data.originalType === "string"
+            ? data.originalType
+            : typeof properties.type === "string"
+              ? properties.type
+          : typeof node.type === "string"
+            ? node.type
+            : "";
+      const nodeName =
+        typeof properties.name === "string"
+          ? properties.name.trim()
+          : typeof data.name === "string"
+            ? data.name.trim()
+            : "";
+      if (!nodeName) {
+        continue;
+      }
+      if (
+        nodeType === "MessageListInput" ||
+        nodeType === "nodetool.input.MessageListInput" ||
+        nodeType.endsWith(".MessageListInput")
+      ) {
+        names.push(nodeName);
+      }
+    }
+    return Array.from(new Set(names));
+  }, [nodes]);
+
+  const hasMessageInput =
+    messageInputNames.length > 0 || messageListInputNames.length > 0;
 
   const currentWorkflowToolId = useMemo(() => {
     if (!currentWorkflowId) {
@@ -299,7 +363,7 @@ const WorkflowAssistantChat: React.FC = () => {
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
-      const enrichedMessage: Message = hasMessageInput
+      const enrichedMessage = (hasMessageInput
         ? {
             ...message,
             workflow_id: currentWorkflowId ?? undefined,
@@ -311,10 +375,29 @@ const WorkflowAssistantChat: React.FC = () => {
             ...(currentWorkflowToolId
               ? { tools: [currentWorkflowToolId] }
               : {})
-          };
+          }) as Message;
+      const enrichedMessageWithInputNames = enrichedMessage as Message & {
+        workflow_message_input_name?: string;
+        workflow_messages_input_name?: string;
+      };
+      if (messageInputNames.length > 0) {
+        enrichedMessageWithInputNames.workflow_message_input_name =
+          messageInputNames[0];
+      }
+      if (messageListInputNames.length > 0) {
+        enrichedMessageWithInputNames.workflow_messages_input_name =
+          messageListInputNames[0];
+      }
       await sendMessage(enrichedMessage);
     },
-    [sendMessage, currentWorkflowId, hasMessageInput, currentWorkflowToolId]
+    [
+      sendMessage,
+      currentWorkflowId,
+      hasMessageInput,
+      currentWorkflowToolId,
+      messageInputNames,
+      messageListInputNames
+    ]
   );
 
   // Add MessageInput node to workflow
