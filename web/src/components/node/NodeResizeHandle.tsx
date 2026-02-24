@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { NodeResizeControl } from "@xyflow/react";
+import type { OnResize } from "@xyflow/system";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -10,7 +11,7 @@ import { memo } from "react";
 interface NodeResizeHandleProps {
   minWidth: number;
   minHeight: number;
-  onResize?: (event: any) => void;
+  onResize?: OnResize;
 }
 
 const styles = (theme: Theme) =>
