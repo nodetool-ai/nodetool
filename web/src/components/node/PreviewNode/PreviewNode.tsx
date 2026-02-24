@@ -347,13 +347,16 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   const handleContentPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!props.selected) {
+        return;
+      }
       event.stopPropagation();
       const target = event.currentTarget;
       if (document.activeElement !== target) {
         target.focus();
       }
     },
-    []
+    [props.selected]
   );
 
   const isSingleImageOrVideo = useMemo(() => {
@@ -384,7 +387,12 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       css={styles(theme)}
       sx={{
         display: "flex",
-        border: "inherit",
+        border: props.selected
+          ? `3px solid ${theme.vars.palette.primary.main}`
+          : `1px solid ${theme.vars.palette.grey[700]}`,
+        boxShadow: props.selected
+          ? `0 0 0 2px rgb(${theme.vars.palette.primary.mainChannel} / 0.95), 0 0 28px rgb(${theme.vars.palette.primary.mainChannel} / 0.55), 0 8px 20px rgb(${theme.vars.palette.primary.mainChannel} / 0.25)`
+          : "none",
         backgroundColor: theme.vars.palette.c_node_bg,
         backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
         WebkitBackdropFilter: props.selected
@@ -456,13 +464,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             />
           )}
         </>
-        <Handle
-          style={{ top: "50%" }}
-          id="value"
-          type="target"
-          position={Position.Left}
-          isConnectable={true}
-        />
         <div
           className={`content ${
             isScrollable ? "scrollable nowheel" : "noscroll"

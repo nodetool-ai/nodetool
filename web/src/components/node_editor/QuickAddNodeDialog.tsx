@@ -50,7 +50,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: "12px",
       border: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: theme.vars.palette.shadows[8],
+      boxShadow: theme.shadows[8],
       overflow: "hidden"
     },
     ".command-input": {
