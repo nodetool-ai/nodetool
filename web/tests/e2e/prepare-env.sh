@@ -29,6 +29,9 @@ pip install --extra-index-url https://nodetool-ai.github.io/nodetool-registry/si
     "starlette==0.41.3"
 
 echo "Forcing downgrade of anyio..."
+# anyio 4.x removes `anyio._backends`, which causes crashes with the current
+# combination of nodetool-core/starlette/fastapi.
+# See: https://github.com/agronholm/anyio/releases/tag/4.0.0
 pip install "anyio<4" --no-deps --force-reinstall
 
 echo "Environment setup complete."
