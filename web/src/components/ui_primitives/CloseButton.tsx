@@ -72,6 +72,11 @@ export interface CloseButtonProps {
    * Additional sx styles
    */
   sx?: object;
+  /**
+   * Tab index for keyboard navigation
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 export const CloseButton = memo(
@@ -86,7 +91,8 @@ export const CloseButton = memo(
         nodrag = true,
         disabled = false,
         className,
-        sx
+        sx,
+        tabIndex = 0
       },
       ref
     ) => {
@@ -111,7 +117,8 @@ export const CloseButton = memo(
         >
           <IconButton
             ref={ref}
-            tabIndex={-1}
+            tabIndex={tabIndex}
+            aria-label={tooltip}
             className={cn(
               "close-button",
               nodrag && editorClassNames.nodrag,
