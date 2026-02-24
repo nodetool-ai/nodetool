@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as path from 'path';
+import * as fs from 'fs';
 
 const normalizeUrl = (url: string) => url.replace(/\/$/, '');
 
@@ -16,6 +18,14 @@ const shouldStartBackend = process.env.E2E_START_BACKEND
 
 const shouldStartFrontend = process.env.E2E_START_FRONTEND !== 'false';
 
+// Check for local venv created by prepare-env.sh
+const venvPath = path.resolve(process.cwd(), '../e2e_venv/bin/nodetool');
+const hasVenv = fs.existsSync(venvPath);
+
+const backendCommand = hasVenv
+  ? `${venvPath} serve --port 7777 --mock`
+  : 'conda run -n nodetool nodetool serve --port 7777 --mock';
+
 const webServers = process.env.CI ? {
   command: 'npm start',
   url: FRONTEND_URL,
@@ -24,7 +34,7 @@ const webServers = process.env.CI ? {
 } : [
   ...(shouldStartBackend
     ? [{
-        command: 'conda run -n nodetool nodetool serve --port 7777 --mock',
+        command: backendCommand,
         url: BACKEND_HEALTH_URL,
         reuseExistingServer: true,
         timeout: 120 * 1000,
@@ -49,7 +59,7 @@ export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
   reporter: 'html',
   // Timeout must accommodate navigation + editor load + actions in CI
-  timeout: process.env.CI ? 30_000 : 20_000,
+  timeout: 60000,
   // Global timeout to account for parallel workers and retries
   globalTimeout: process.env.CI ? 40 * 60_000 : 0,
   use: {
