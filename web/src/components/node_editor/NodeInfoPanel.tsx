@@ -18,6 +18,8 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
+import NodeBreadcrumbs from "./NodeBreadcrumbs";
+import { useNodeLineage } from "../../hooks/useNodeLineage";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -81,6 +83,9 @@ const styles = (theme: Theme) =>
         "0%": { opacity: 0, transform: "translateX(20px)" },
         "100%": { opacity: 1, transform: "translateX(0)" }
       }
+    },
+    "& .breadcrumbs-wrapper": {
+      flexShrink: 0
     },
     "& .panel-content": {
       flex: 1,
@@ -204,6 +209,9 @@ const NodeInfoPanel: React.FC = memo(() => {
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
 
+  // Get the lineage for the currently inspected node
+  const { path: lineagePath } = useNodeLineage(inspectedNodeId);
+
   const nodeInfo = useMemo((): NodeInfo | null => {
     if (!inspectedNodeId) {
       return null;
@@ -273,6 +281,16 @@ const NodeInfoPanel: React.FC = memo(() => {
 
   return (
     <Box className="node-info-panel" css={styles(theme)}>
+      {/* Breadcrumbs section - only show if there's a meaningful lineage */}
+      {lineagePath.length > 1 && (
+        <div className="breadcrumbs-wrapper">
+          <NodeBreadcrumbs
+            path={lineagePath}
+            currentNodeId={inspectedNodeId || ""}
+          />
+        </div>
+      )}
+
       <Box className="panel-content">
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
           <Typography className="node-name">{nodeInfo.label}</Typography>
