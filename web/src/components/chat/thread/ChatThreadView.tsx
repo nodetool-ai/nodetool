@@ -6,7 +6,8 @@ import React, {
   useCallback,
   useState,
   useMemo,
-  memo
+  memo,
+  RefObject
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -53,8 +54,8 @@ const SPACER_RECALC_DEBOUNCE_MS = 100;
 // Purpose: Provide enough space at the bottom so the last user message can be scrolled to the top
 // Memoized to prevent unnecessary re-renders during scrolling
 interface DynamicScrollSpacerProps {
-  lastUserMessageRef: React.RefObject<HTMLDivElement>;
-  bottomRef: React.RefObject<HTMLDivElement>;
+  lastUserMessageRef: RefObject<HTMLDivElement>;
+  bottomRef: RefObject<HTMLDivElement>;
   scrollHost: HTMLElement | null;
 }
 
@@ -170,44 +171,27 @@ const DynamicScrollSpacer = memo(function DynamicScrollSpacer({
   );
 });
 
-// Define props for the memoized list content component
-interface MemoizedMessageListContentProps
-  extends Omit<ChatThreadViewProps, "scrollContainer"> {
+// Define props for the memoized list component (static message content)
+interface MemoizedMessageListProps {
+  messages: Message[];
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
-  bottomRef: React.RefObject<HTMLDivElement>;
-  lastUserMessageRef: React.RefObject<HTMLDivElement>;
+  lastUserMessageRef: RefObject<HTMLDivElement>;
   componentStyles: ReturnType<typeof createStyles>;
   toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
-  theme: Theme;
-  runningToolMessage?: string | null;
-  scrollHost: HTMLElement | null;
+  onInsertCode?: (text: string, language?: string) => void;
 }
 
-const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
+const MemoizedMessageList = memo<MemoizedMessageListProps>(
   ({
     messages,
-    status,
-    progress,
-    total,
-    progressMessage,
-    runningToolCallId,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentLogUpdate,
     expandedThoughts,
     onToggleThought,
-    bottomRef,
     lastUserMessageRef,
     componentStyles,
-    onInsertCode,
     toolResultsByCallId,
-    theme,
-    scrollHost
+    onInsertCode
   }) => {
-    const hasAgentExecutionMessages = messages.some(
-      (msg) => msg.role === "agent_execution"
-    );
     const executionMessagesById = useMemo(() => {
       const map = new Map<string, Message[]>();
       for (const msg of messages) {
@@ -262,41 +246,76 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
     }, [messages]);
 
     return (
-      <div css={componentStyles.chatMessagesList} className="chat-messages-list">
-        {filteredMessages
-          .map((msg, index) => {
-            if (msg.role === "agent_execution" && msg.agent_execution_id) {
-              const executionMessages =
-                executionMessagesById.get(msg.agent_execution_id);
-              if (executionMessages && executionMessages[0] !== msg) {
-                return null;
-              }
+      <>
+        {filteredMessages.map((msg, index) => {
+          if (msg.role === "agent_execution" && msg.agent_execution_id) {
+            const executionMessages =
+              executionMessagesById.get(msg.agent_execution_id);
+            if (executionMessages && executionMessages[0] !== msg) {
+              return null;
             }
-            const isLastUserMessage = index === lastUserMessageIndex;
-            // Use message id as key, with fallback to index-based key for rare cases where id is missing
-            const messageKey = msg.id || `msg-${index}`;
-            const messageElement = (
-              <MessageView
-                key={messageKey}
-                message={msg}
-                expandedThoughts={expandedThoughts}
-                onToggleThought={onToggleThought}
-                onInsertCode={onInsertCode}
-                toolResultsByCallId={toolResultsByCallId}
-                componentStyles={componentStyles}
-                executionMessagesById={executionMessagesById}
-              />
+          }
+          const isLastUserMessage = index === lastUserMessageIndex;
+          // Use message id as key, with fallback to index-based key for rare cases where id is missing
+          const messageKey = msg.id || `msg-${index}`;
+          const messageElement = (
+            <MessageView
+              key={messageKey}
+              message={msg}
+              expandedThoughts={expandedThoughts}
+              onToggleThought={onToggleThought}
+              onInsertCode={onInsertCode}
+              toolResultsByCallId={toolResultsByCallId}
+              componentStyles={componentStyles}
+              executionMessagesById={executionMessagesById}
+            />
+          );
+          // Wrap the last user message in a div with ref for scroll-to-top behavior
+          if (isLastUserMessage) {
+            return (
+              <div key={`wrapper-${messageKey}`} ref={lastUserMessageRef}>
+                {messageElement}
+              </div>
             );
-            // Wrap the last user message in a div with ref for scroll-to-top behavior
-            if (isLastUserMessage) {
-              return (
-                <div key={`wrapper-${messageKey}`} ref={lastUserMessageRef}>
-                  {messageElement}
-                </div>
-              );
-            }
-            return messageElement;
-          })}
+          }
+          return messageElement;
+        })}
+      </>
+    );
+  }
+);
+MemoizedMessageList.displayName = "MemoizedMessageList";
+
+// Define props for the memoized status footer component (dynamic status/progress)
+interface MemoizedStatusFooterProps {
+  status: ChatThreadViewProps["status"];
+  progress: number;
+  total: number;
+  progressMessage: string | null;
+  runningToolCallId?: string | null;
+  runningToolMessage?: string | null;
+  currentPlanningUpdate?: PlanningUpdate | null;
+  currentTaskUpdate?: TaskUpdate | null;
+  currentLogUpdate?: LogUpdate | null;
+  hasAgentExecutionMessages: boolean;
+  theme: Theme;
+}
+
+const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
+  ({
+    status,
+    progress,
+    total,
+    progressMessage,
+    runningToolCallId,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    currentLogUpdate,
+    hasAgentExecutionMessages,
+    theme
+  }) => {
+    return (
+      <>
         {status === "loading" && progress === 0 && !hasAgentExecutionMessages && (
           <li key="loading-indicator" className="chat-message-list-item">
             <LoadingIndicator />
@@ -371,18 +390,11 @@ const MemoizedMessageListContent = React.memo<MemoizedMessageListContentProps>(
             </div>
           </li>
         )}
-        <div ref={bottomRef} style={{ height: 1 }} />
-        {/* Dynamic spacer that adapts based on viewport and content needs */}
-        <DynamicScrollSpacer
-          lastUserMessageRef={lastUserMessageRef}
-          bottomRef={bottomRef}
-          scrollHost={scrollHost}
-        />
-      </div>
+      </>
     );
   }
 );
-MemoizedMessageListContent.displayName = "MemoizedMessageListContent";
+MemoizedStatusFooter.displayName = "MemoizedStatusFooter";
 
 const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   messages,
@@ -440,6 +452,10 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     }
     return map;
   }, [messages]);
+
+  const hasAgentExecutionMessages = useMemo(() => messages.some(
+    (msg) => msg.role === "agent_execution"
+  ), [messages]);
 
   useEffect(() => {
     lastUserScrollTimeRef.current = Date.now();
@@ -649,27 +665,37 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         css={componentStyles.messageWrapper}
         className="scrollable-message-wrapper"
       >
-        <MemoizedMessageListContent
-          messages={messages}
-          status={status}
-          progress={progress}
-          total={total}
-          progressMessage={progressMessage}
-          runningToolCallId={runningToolCallId}
-          runningToolMessage={runningToolMessage}
-          currentPlanningUpdate={currentPlanningUpdate}
-          currentTaskUpdate={currentTaskUpdate}
-          currentLogUpdate={currentLogUpdate}
-          expandedThoughts={expandedThoughts}
-          onToggleThought={handleToggleThought}
-          bottomRef={bottomRef}
-          lastUserMessageRef={lastUserMessageRef}
-          componentStyles={componentStyles}
-          onInsertCode={onInsertCode}
-          toolResultsByCallId={toolResultsByCallId}
-          theme={theme}
-          scrollHost={scrollHost}
-        />
+        <div css={componentStyles.chatMessagesList} className="chat-messages-list">
+          <MemoizedMessageList
+            messages={messages}
+            expandedThoughts={expandedThoughts}
+            onToggleThought={handleToggleThought}
+            lastUserMessageRef={lastUserMessageRef}
+            componentStyles={componentStyles}
+            toolResultsByCallId={toolResultsByCallId}
+            onInsertCode={onInsertCode}
+          />
+          <MemoizedStatusFooter
+            status={status}
+            progress={progress}
+            total={total}
+            progressMessage={progressMessage}
+            runningToolCallId={runningToolCallId}
+            runningToolMessage={runningToolMessage}
+            currentPlanningUpdate={currentPlanningUpdate}
+            currentTaskUpdate={currentTaskUpdate}
+            currentLogUpdate={currentLogUpdate}
+            hasAgentExecutionMessages={hasAgentExecutionMessages}
+            theme={theme}
+          />
+          <div ref={bottomRef} style={{ height: 1 }} />
+          {/* Dynamic spacer that adapts based on viewport and content needs */}
+          <DynamicScrollSpacer
+            lastUserMessageRef={lastUserMessageRef}
+            bottomRef={bottomRef}
+            scrollHost={scrollHost}
+          />
+        </div>
       </div>
       <ScrollToBottomButton
         isVisible={showScrollToBottomButton}
