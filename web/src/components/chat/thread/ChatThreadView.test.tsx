@@ -51,7 +51,7 @@ global.ResizeObserver = ResizeObserver;
 
 // Mock IntersectionObserver
 class IntersectionObserver {
-  constructor(callback: any) {}
+  constructor(_callback: any) {}
   observe() {}
   unobserve() {}
   disconnect() {}
