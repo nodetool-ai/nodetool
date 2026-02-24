@@ -27,6 +27,7 @@ import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../stores/ApiClient";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { executeViaComfyUI } from "../../utils/comfyExecutor";
+import { shallow } from "zustand/shallow";
 
 // Icons
 import LayoutIcon from "@mui/icons-material/ViewModule";
@@ -374,8 +375,12 @@ const NodeMenuButton = memo(function NodeMenuButton() {
 });
 
 const SaveWorkflowButton = memo(function SaveWorkflowButton() {
-  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
-  const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
+  // Combine multiple useWorkflowManager subscriptions into a single selector with shallow equality
+  // to reduce unnecessary re-renders when other parts of the workflow manager state change
+  const { saveWorkflow, getCurrentWorkflow } = useWorkflowManager((state) => ({
+    saveWorkflow: state.saveWorkflow,
+    getCurrentWorkflow: state.getCurrentWorkflow
+  }));
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -422,12 +427,12 @@ const AutoLayoutButton = memo(function AutoLayoutButton({
 });
 
 const WorkflowModeSelect = memo(function WorkflowModeSelect() {
-  const { workflow } = useNodes((state) => ({
-    workflow: state.getWorkflow()
-  }));
+  // Use shallow equality to avoid re-renders when other node state changes
+  const workflow = useNodes((state) => state.getWorkflow());
 
   const workflowMode = (workflow?.run_mode || "workflow") as string;
 
+  // Combine selector with shallow equality (built into useWorkflowManager)
   const { saveWorkflow } = useWorkflowManager((state) => ({
     saveWorkflow: state.saveWorkflow
   }));
@@ -654,9 +659,8 @@ const EditWorkflowButton = memo(function EditWorkflowButton({
 }: {
   setWorkflowToEdit: (workflow: Workflow) => void;
 }) {
-  const { getWorkflow } = useNodes((state) => ({
-    getWorkflow: state.getWorkflow
-  }));
+  // Use shallow equality to avoid re-renders when other node state changes
+  const getWorkflow = useNodes((state) => state.getWorkflow);
 
   const handleEditWorkflow = useCallback(() => {
     setWorkflowToEdit(getWorkflow());
@@ -678,10 +682,14 @@ const EditWorkflowButton = memo(function EditWorkflowButton({
 });
 
 const DownloadWorkflowButton = memo(function DownloadWorkflowButton() {
-  const { workflow, workflowJSON } = useNodes((state) => ({
-    workflow: state.workflow,
-    workflowJSON: state.workflowJSON
-  }));
+  // Use shallow equality to avoid re-renders when other node state changes
+  const { workflow, workflowJSON } = useNodes(
+    (state) => ({
+      workflow: state.workflow,
+      workflowJSON: state.workflowJSON
+    }),
+    shallow
+  );
 
   const handleDownload = useCallback(() => {
     const blob = new Blob([workflowJSON()], { type: "application/json" });
@@ -708,10 +716,14 @@ interface AppToolbarProps {
 const AppToolbar: React.FC<AppToolbarProps> = ({ setWorkflowToEdit }) => {
   const theme = useTheme();
   const path = useLocation().pathname;
-  const { autoLayout, workflow } = useNodes((state) => ({
-    autoLayout: state.autoLayout,
-    workflow: state.workflow
-  }));
+  // Use shallow equality to avoid re-renders when other node state changes
+  const { autoLayout, workflow } = useNodes(
+    (state) => ({
+      autoLayout: state.autoLayout,
+      workflow: state.workflow
+    }),
+    shallow
+  );
 
   return (
     <Box sx={{ flexGrow: 1 }}>
