@@ -92,12 +92,14 @@ jobs:
             - Packages: `/web`, `/electron`, `/mobile`
             - Memory: `.memory/` contains project context and known issues
 
-            ## Before Starting
+            ## Before Starting — MANDATORY DEDUPLICATION
             1. Run `git branch -a` — avoid duplicating existing branches
-            2. Read `.memory/project-context.md` for recent changes
+            2. **Run `gh pr list --state open --limit 50`** — if a similar PR is already open, STOP and pick a different issue type to fix
+            3. Read `.memory/project-context.md` for recent changes
+            4. Read `.memory/insights/git-ci/pr-acceptance-patterns.md` — understand what gets merged vs rejected
 
             ## What to Look For
-            - TypeScript `any` types that should be explicit
+            - TypeScript `any` types that should be explicit (check one file/module at a time)
             - Unused imports, dead code, commented-out code blocks
             - React anti-patterns: full store subscriptions, missing useCallback/useMemo
             - Hardcoded colors/spacing instead of MUI theme values
@@ -105,10 +107,11 @@ jobs:
             - Security: unsanitized input, dangerouslySetInnerHTML, eval()
 
             ## Guidelines
-            - One issue type per PR — don't mix type fixes with test fixes
-            - High impact first: bugs > security > performance > style
+            - **One issue type per PR** — don't mix type fixes with test fixes or perf fixes
+            - **High impact first**: bugs > security > performance > style
             - Don't refactor working code without clear benefit
             - Follow existing patterns in the codebase
+            - **Maximum 5-10 files per PR** — keep scope narrow for easier review
 
             ## Mandatory Quality Checks
             Before submitting your PR, you MUST run and pass all quality checks:

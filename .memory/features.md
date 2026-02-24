@@ -2,9 +2,36 @@
 
 Existing features in NodeTool. **Read before adding new features to avoid duplicates.**
 
+**⚠️ BEFORE ADDING FEATURES**: Run `gh pr list --state open --author "@me" --limit 50` to check for open PRs. If a similar PR is already open, DO NOT create another one.
+
 Format: `- **Feature Name**: Brief description`
 
 Last updated: 2026-02-23
+
+## ❌ Do NOT Create PRs For These — Already Have Open PRs
+
+The following features already have open, unreviewed PRs. Creating more PRs for these will be ignored:
+
+- **Keyboard Shortcuts Panel/Dialog/Help/Toast**: Multiple open PRs (#1820, #1780, #1775, #1772, #1763) — DO NOT create more keyboard shortcut UI PRs
+- **Workflow Notes/Comments Panel**: Multiple open PRs (#1815, #1757) — DO NOT create more workflow notes PRs
+- **Node Templates/Snippets System**: Multiple open PRs (#1788, #1765) — DO NOT create more node template PRs
+- **Viewport/Workflow Bookmarks**: Multiple open PRs (#1760, #1751) — DO NOT create more bookmark PRs
+- **Node Pinning System**: Open PR (#1822) — DO NOT create another
+- **Tab Pinning**: Open PR (#1801) — DO NOT create another
+- **Canvas Pan Controls**: Open PR (#1784) — DO NOT create another
+- **Smart Alignment Guides**: Open PR (#1750) — DO NOT create another
+- **Node Breadcrumb Navigation**: Open PR (#1804) — DO NOT create another
+- **Performance Audit Report**: Open PR (#1789) — DO NOT create another audit doc PR
+- **Bulk React.memo additions**: All previous bulk React.memo PRs were rejected; do not add React.memo without profiling evidence
+
+## ❌ Rejected Feature Patterns (do not attempt again)
+
+These types of PRs have been created multiple times and consistently rejected or ignored:
+- Keyboard shortcuts reference/help panels
+- Workflow statistics/analytics panels
+- Workflow documentation/notes panels embedded in the editor
+- Bulk "add React.memo to N components" without profiler evidence
+- "Fix multiple issues" PRs combining unrelated fixes
 
 - **Quick Add Node Dialog (2026-02-23)**: Fast, keyboard-accessible dialog for searching and adding nodes to workflows; accessible via Ctrl+Shift+A / Cmd+Shift+A; supports fuzzy search by node name, type, and namespace; displays results count and keyboard hints
 - **Minimap Type-Based Coloring (2026-02-10)**: Enhanced minimap with color-by-node-type mode, configurable via settings popover; includes interactive legend showing Input (blue), Constant (purple), Processing (slate), Group (indigo), Comment (green), and Output (amber) nodes

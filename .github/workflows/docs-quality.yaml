@@ -85,9 +85,10 @@ jobs:
             - Each package and major directory has its own `AGENTS.md`
             - Memory: `.memory/` contains project context
 
-            ## Before Starting
+            ## Before Starting — MANDATORY DEDUPLICATION
             1. Run `git branch -a` — avoid duplicating existing doc branches
-            2. Read `.memory/project-context.md` for recent changes
+            2. **Run `gh pr list --state open --limit 50`** — if a similar docs PR is already open, STOP and find a different area to improve
+            3. Read `.memory/project-context.md` for recent changes
 
             ## Audit Areas
             - **Accuracy**: Do docs match current code? Fix outdated info.
