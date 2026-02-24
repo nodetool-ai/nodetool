@@ -9,6 +9,7 @@ interface WindowControls {
 type ModelDirectory = "huggingface" | "ollama";
 
 type SystemDirectory = "installation" | "logs";
+type FrontendLogLevel = "info" | "warn" | "error";
 
 // System information for about dialog
 interface SystemInfo {
@@ -205,6 +206,13 @@ declare global {
       restartLlamaServer?: () => Promise<void>;
       windowControls: WindowControls;
       platform: string;
+      logging?: {
+        log: (
+          level: FrontendLogLevel,
+          message: string,
+          source?: string
+        ) => Promise<void>;
+      };
 
       // Shell module - Desktop integration
       shell?: {

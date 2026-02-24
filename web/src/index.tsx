@@ -74,6 +74,7 @@ const DownloadManagerDialog = React.lazy(
 );
 
 import log from "loglevel";
+import { installIpcLogBridge } from "./logging/ipcLogBridge";
 const Alert = React.lazy(
   () => import("./components/node_editor/Alert")
 );
@@ -140,6 +141,7 @@ const registerFrontendTools = () => {
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
 (window as any).log = log;
+installIpcLogBridge();
 
 if (isLocalhost) {
   useRemoteSettingsStore.getState().fetchSettings().catch(console.error);
