@@ -22,7 +22,7 @@ interface WorkflowsListProps {
   sortedWorkflows: Workflow[];
   isLoadingWorkflows: boolean;
   settings: { workflowOrder: string };
-  handleOrderChange: (event: any, newOrder: any) => void;
+  handleOrderChange: (event: React.MouseEvent<HTMLElement>, value: string | null) => void;
   handleCreateNewWorkflow: () => void;
   handleWorkflowClick: (workflow: Workflow) => void;
 }

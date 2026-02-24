@@ -256,13 +256,13 @@ const AssetActions = ({
   ]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleOrderChange = useCallback((_: any, newOrder: any) => {
+  const handleOrderChange = useCallback((_event: unknown, newOrder: "name" | "date" | "size" | null) => {
     if (newOrder !== null) {
       setAssetsOrder(newOrder);
     }
   }, [setAssetsOrder]);
 
-  const handleSizeFilterChange = useCallback((_: any, newSizeFilter: SizeFilterKey) => {
+  const handleSizeFilterChange = useCallback((_event: unknown, newSizeFilter: SizeFilterKey | null) => {
     if (newSizeFilter !== null) {
       setSizeFilter(newSizeFilter);
     }
@@ -386,7 +386,7 @@ const AssetActions = ({
           variant="standard"
           className="sort-assets"
           value={settings.assetsOrder}
-          onChange={(e) => handleOrderChange(null, e.target.value)}
+          onChange={(e) => handleOrderChange(e, e.target.value as "name" | "date" | "size")}
           displayEmpty
           inputProps={{ "aria-label": "Sort assets" }}
           tabIndex={-1}
@@ -412,9 +412,7 @@ const AssetActions = ({
               minWidth: "80px"
             }
           }}
-          onChange={(e) =>
-            handleSizeFilterChange(null, e.target.value as SizeFilterKey)
-          }
+          onChange={(e) => handleSizeFilterChange(e, e.target.value as SizeFilterKey)}
           displayEmpty
           inputProps={{ "aria-label": "Filter by size" }}
           tabIndex={-1}

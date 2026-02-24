@@ -146,9 +146,9 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const _handleOrderChange = useCallback(
-    (_: any, newOrder: any) => {
+    (_event: React.MouseEvent<HTMLElement>, newOrder: string | null) => {
       if (newOrder !== null) {
-        setWorkflowOrder(newOrder);
+        setWorkflowOrder(newOrder as "name" | "date");
       }
     },
     [setWorkflowOrder]
