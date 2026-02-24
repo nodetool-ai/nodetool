@@ -80,12 +80,14 @@ const renderWithTheme = (component: React.ReactElement) => {
 describe("ChatThreadView", () => {
   const mockMessages: Message[] = [
     {
+      type: "message",
       id: "1",
       role: "user",
       content: "Hello",
       created_at: new Date().toISOString()
     },
     {
+      type: "message",
       id: "2",
       role: "assistant",
       content: "Hi there",
@@ -125,6 +127,7 @@ describe("ChatThreadView", () => {
     const agentMessages: Message[] = [
       ...mockMessages,
       {
+        type: "message",
         id: "3",
         role: "agent_execution",
         content: "Executing...",
