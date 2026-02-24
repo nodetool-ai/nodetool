@@ -123,8 +123,13 @@ const executeComboCallbacks = (
       
       // Suppress global combos (including copy/cut/paste) when inputs are focused.
       // The browser's native clipboard handling will take care of text copy/cut/paste.
-      // Only allow Escape to proceed to close modals/editors.
-      if (pressedKeysString !== "escape") {
+      // Allow Escape to proceed to close modals/editors.
+      // Allow Delete and Backspace to proceed for deleting selected nodes.
+      if (
+        pressedKeysString !== "escape" &&
+        pressedKeysString !== "delete" &&
+        pressedKeysString !== "backspace"
+      ) {
         return;
       }
     }

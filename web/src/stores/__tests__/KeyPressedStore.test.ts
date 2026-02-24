@@ -363,6 +363,50 @@ describe("KeyPressedStore", () => {
       document.body.removeChild(input);
       unregisterComboCallback("escape");
     });
+
+    it("allows delete callback when input is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("delete", { callback, preventDefault: true });
+
+      // Create and focus an input element
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: "Delete" });
+      act(() => {
+        setKeysPressed({ delete: true }, event);
+      });
+
+      // Delete should still work even when input is focused
+      expect(callback).toHaveBeenCalled();
+
+      document.body.removeChild(input);
+      unregisterComboCallback("delete");
+    });
+
+    it("allows backspace callback when input is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("backspace", { callback, preventDefault: true });
+
+      // Create and focus an input element
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: "Backspace" });
+      act(() => {
+        setKeysPressed({ backspace: true }, event);
+      });
+
+      // Backspace should still work even when input is focused
+      expect(callback).toHaveBeenCalled();
+
+      document.body.removeChild(input);
+      unregisterComboCallback("backspace");
+    });
   });
 
   describe("helper functions", () => {
