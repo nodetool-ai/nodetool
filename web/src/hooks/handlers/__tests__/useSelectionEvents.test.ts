@@ -1,10 +1,11 @@
 import { renderHook } from "@testing-library/react";
 import { MouseEvent as ReactMouseEvent } from "react";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, type Node } from "@xyflow/react";
 import { useSelectionEvents } from "../useSelectionEvents";
 import useContextMenu from "../../../stores/ContextMenuStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import useDragHandlers from "../useDragHandlers";
+import { NodeData } from "../../../stores/NodeData";
 
 jest.mock("@xyflow/react");
 jest.mock("../../../stores/ContextMenuStore");
@@ -258,8 +259,11 @@ describe("useSelectionEvents", () => {
         })
       );
 
-      const event = {} as any;
-      const nodes = [{ id: "node-1" }, { id: "node-2" }];
+      const event = {} as ReactMouseEvent;
+      const nodes: Node<NodeData>[] = [
+        { id: "node-1", position: { x: 0, y: 0 }, data: {} as NodeData },
+        { id: "node-2", position: { x: 0, y: 0 }, data: {} as NodeData }
+      ];
 
       result.current.handleSelectionDragStart(event, nodes);
 
@@ -279,8 +283,10 @@ describe("useSelectionEvents", () => {
         })
       );
 
-      const event = {} as any;
-      const nodes = [{ id: "node-1" }];
+      const event = {} as ReactMouseEvent;
+      const nodes: Node<NodeData>[] = [
+        { id: "node-1", position: { x: 0, y: 0 }, data: {} as NodeData }
+      ];
 
       result.current.handleSelectionDragStop(event, nodes);
 
