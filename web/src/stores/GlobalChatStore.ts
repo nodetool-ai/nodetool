@@ -648,12 +648,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       createNewThread: async (title?: string) => {
+        const safeTitle = typeof title === "string" ? title : undefined;
+
         // Create thread locally; server will auto-create on first message
         const id = uuidv4();
         const now = new Date().toISOString();
         const localThread: Thread = {
           id,
-          title: title || "New conversation",
+          title: safeTitle || "New conversation",
           created_at: now,
           updated_at: now
         } as Thread;
