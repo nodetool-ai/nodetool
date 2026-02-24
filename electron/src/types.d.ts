@@ -1,4 +1,11 @@
 type ClipboardType = "clipboard" | "selection";
+export type FrontendLogLevel = "info" | "warn" | "error";
+
+export interface FrontendLogRequest {
+  level: FrontendLogLevel;
+  message: string;
+  source?: string;
+}
 
 declare global {
   export interface Window {
@@ -124,6 +131,15 @@ declare global {
       logs: {
         getAll: () => Promise<string[]>;
         clear: () => Promise<void>;
+      };
+
+      // Renderer -> main logging bridge
+      logging: {
+        log: (
+          level: FrontendLogLevel,
+          message: string,
+          source?: string,
+        ) => Promise<void>;
       };
 
       // Installation
@@ -576,6 +592,7 @@ export enum IpcChannels {
   LOCALHOST_PROXY_WS_SEND = "localhost-proxy-ws-send",
   LOCALHOST_PROXY_WS_CLOSE = "localhost-proxy-ws-close",
   LOCALHOST_PROXY_WS_EVENT = "localhost-proxy-ws-event",
+  FRONTEND_LOG = "frontend-log",
 }
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
@@ -749,6 +766,7 @@ export interface IpcRequest {
   [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: LocalhostProxyWsSendRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: LocalhostProxyWsCloseRequest;
+  [IpcChannels.FRONTEND_LOG]: FrontendLogRequest;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -842,6 +860,7 @@ export interface IpcResponse {
   [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenResponse;
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: void;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: void;
+  [IpcChannels.FRONTEND_LOG]: void;
 }
 
 // Event types for each IPC channel

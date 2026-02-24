@@ -706,6 +706,22 @@ const api = {
   },
 
   // ============================================================================
+  // logging: Renderer -> main logging bridge
+  // ============================================================================
+  logging: {
+    log: (
+      level: "info" | "warn" | "error",
+      message: string,
+      source?: string,
+    ) =>
+      ipcRenderer.invoke(IpcChannels.FRONTEND_LOG, {
+        level,
+        message,
+        source,
+      }),
+  },
+
+  // ============================================================================
   // ipc: Low-level IPC methods for registering handlers
   // ============================================================================
   ipc: {
