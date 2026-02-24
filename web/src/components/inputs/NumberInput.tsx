@@ -29,7 +29,7 @@ export interface InputProps {
   min?: number;
   max?: number;
   value: number;
-  onChange: (event: any, value: number) => void;
+  onChange: (event: React.ChangeEvent<HTMLInputElement> | null, value: number) => void;
   /**
    * Called when the user finishes changing the value (on mouseup for drag, on blur for text input).
    * Useful for triggering actions only when the user has committed their change.
