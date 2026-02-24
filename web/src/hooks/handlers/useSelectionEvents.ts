@@ -1,18 +1,19 @@
 import { useCallback, useRef, MouseEvent as ReactMouseEvent } from "react";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, type Node } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
 import {
   getSelectionRect,
   getNodesWithinSelection
 } from "../../utils/selectionBounds";
+import { NodeData } from "../../stores/NodeData";
 
 interface UseSelectionEventsProps {
   reactFlowInstance: ReturnType<typeof useReactFlow>;
   onSelectionStartBase: (event: ReactMouseEvent) => void;
   onSelectionEndBase: (event: ReactMouseEvent) => void;
-  onSelectionDragStartBase: (event: ReactMouseEvent, nodes: any[]) => void;
-  onSelectionDragStopBase: (event: ReactMouseEvent, nodes: any[]) => void;
+  onSelectionDragStartBase: (event: ReactMouseEvent, nodes: Node<NodeData>[]) => void;
+  onSelectionDragStopBase: (event: ReactMouseEvent, nodes: Node<NodeData>[]) => void;
 }
 
 const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
@@ -181,14 +182,14 @@ export function useSelectionEvents({
   );
 
   const handleSelectionDragStart = useCallback(
-    (event: ReactMouseEvent, nodes: any[]) => {
+    (event: ReactMouseEvent, nodes: Node<NodeData>[]) => {
       onSelectionDragStartBase(event, nodes);
     },
     [onSelectionDragStartBase]
   );
 
   const handleSelectionDragStop = useCallback(
-    (event: ReactMouseEvent, nodes: any[]) => {
+    (event: ReactMouseEvent, nodes: Node<NodeData>[]) => {
       onSelectionDragStopBase(event, nodes);
     },
     [onSelectionDragStopBase]
