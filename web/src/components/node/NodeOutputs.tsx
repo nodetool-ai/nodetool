@@ -44,12 +44,17 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
 
   type OutputItem = Property & { isDynamic?: boolean };
 
-  const staticOutputs: OutputItem[] = outputs.map((o) => ({
-    name: o.name,
-    type: o.type,
-    isDynamic: false,
-    required: false
-  }));
+  // Memoize static outputs to prevent unnecessary re-renders
+  const staticOutputs: OutputItem[] = useMemo(
+    () =>
+      outputs.map((o) => ({
+        name: o.name,
+        type: o.type,
+        isDynamic: false,
+        required: false
+      })),
+    [outputs]
+  );
 
   const dynamicOutputs: OutputItem[] = useMemo(
     () =>

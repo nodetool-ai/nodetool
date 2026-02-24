@@ -7,7 +7,11 @@
  *
  * @example
  * ```typescript
- * const { isOpen, openDialog, closeDialog, searchTerm } = useQuickAddNodeStore();
+ * // Use selective Zustand selectors to prevent unnecessary re-renders
+ * const isOpen = useQuickAddNodeStore((state) => state.isOpen);
+ * const openDialog = useQuickAddNodeStore((state) => state.openDialog);
+ * const closeDialog = useQuickAddNodeStore((state) => state.closeDialog);
+ * const searchTerm = useQuickAddNodeStore((state) => state.searchTerm);
  * ```
  */
 

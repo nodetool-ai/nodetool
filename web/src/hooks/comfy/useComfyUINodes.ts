@@ -14,8 +14,13 @@ import log from "loglevel";
  * Hook to load ComfyUI node definitions and register them
  */
 export function useComfyUINodes() {
-  const { isConnected, objectInfo, fetchObjectInfo } = useComfyUIStore();
-  const { setMetadata, metadata, addNodeType } = useMetadataStore();
+  // Use selective Zustand selectors to prevent unnecessary re-renders
+  const isConnected = useComfyUIStore((state) => state.isConnected);
+  const objectInfo = useComfyUIStore((state) => state.objectInfo);
+  const fetchObjectInfo = useComfyUIStore((state) => state.fetchObjectInfo);
+  const setMetadata = useMetadataStore((state) => state.setMetadata);
+  const metadata = useMetadataStore((state) => state.metadata);
+  const addNodeType = useMetadataStore((state) => state.addNodeType);
 
   /**
    * Register a generic ComfyUI node component
