@@ -21,20 +21,30 @@ type GraphEdgeInput = {
 };
 
 function assertObject(
-  value: any,
+  value: unknown,
   message: string
-): asserts value is Record<string, any> {
+): asserts value is Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(message);
   }
 }
 
-function assertString(value: any, message: string): asserts value is string {
-  if (typeof value !== "string" || value.length === 0) {throw new Error(message);}
+function assertString(
+  value: unknown,
+  message: string
+): asserts value is string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(message);
+  }
 }
 
-function assertNumber(value: any, message: string): asserts value is number {
-  if (typeof value !== "number" || Number.isNaN(value)) {throw new Error(message);}
+function assertNumber(
+  value: unknown,
+  message: string
+): asserts value is number {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    throw new Error(message);
+  }
 }
 
 FrontendToolRegistry.register({
