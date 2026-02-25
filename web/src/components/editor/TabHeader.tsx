@@ -102,6 +102,22 @@ const TabHeader = ({
     setContextMenuPosition({ mouseX: event.clientX, mouseY: event.clientY });
   }, []);
 
+  // Memoize click handler to prevent re-renders of child elements
+  const handleClick = useCallback(() => {
+    onNavigate(workflow.id);
+  }, [onNavigate, workflow.id]);
+
+  // Memoize double-click handler to prevent re-renders of child elements
+  const handleDoubleClick = useCallback(() => {
+    onDoubleClick(workflow.id);
+  }, [onDoubleClick, workflow.id]);
+
+  // Memoize close handler to prevent re-renders of child elements
+  const handleClose = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose(workflow.id);
+  }, [onClose, workflow.id]);
+
   const handleAuxClick = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
       if (event.button === 1) {
@@ -112,6 +128,15 @@ const TabHeader = ({
     },
     [onClose, workflow.id]
   );
+
+  // Memoize mouse down handler to prevent re-renders of child elements
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Middle mouse button (button 1)
+    if (e.button === 1) {
+      e.preventDefault();
+      onClose(workflow.id);
+    }
+  }, [onClose, workflow.id]);
 
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
@@ -136,6 +161,45 @@ const TabHeader = ({
     [onKeyDown, onNameChange, workflow.id]
   );
 
+  // Memoize drag start handler to prevent re-renders of child elements
+  const handleDragStart = useCallback((e: DragEvent<HTMLDivElement>) => {
+    onDragStart(e, workflow.id);
+  }, [onDragStart, workflow.id]);
+
+  // Memoize drop handler to prevent re-renders of child elements
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    onDrop(e, workflow.id);
+  }, [onDrop, workflow.id]);
+
+  // Memoize context menu item handlers to prevent re-renders
+  const handleCloseTab = useCallback(() => {
+    closeContextMenu();
+    onClose(workflow.id);
+  }, [closeContextMenu, onClose, workflow.id]);
+
+  const handleCloseOthersTab = useCallback(() => {
+    closeContextMenu();
+    onCloseOthers(workflow.id);
+  }, [closeContextMenu, onCloseOthers, workflow.id]);
+
+  const handleCloseAllTabs = useCallback(() => {
+    closeContextMenu();
+    onCloseAll();
+  }, [closeContextMenu, onCloseAll]);
+
+  // Memoize name change handlers to prevent re-renders
+  const handleInputBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    onNameChange(workflow.id, e.target.value);
+  }, [onNameChange, workflow.id]);
+
+  const handleInputClick = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+  }, []);
+
+  const handleInputFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  }, []);
+
   return (
     <>
       <div
@@ -146,32 +210,26 @@ const TabHeader = ({
               : "drop-target-right"
             : ""
         }`}
-        onClick={() => onNavigate(workflow.id)}
+        onClick={handleClick}
         onContextMenu={handleContextMenu}
-        onDoubleClick={() => onDoubleClick(workflow.id)}
-        onMouseDown={(e) => {
-          // Middle mouse button (button 1)
-          if (e.button === 1) {
-            e.preventDefault();
-            onClose(workflow.id);
-          }
-        }}
+        onDoubleClick={handleDoubleClick}
+        onMouseDown={handleMouseDown}
         onAuxClick={handleAuxClick}
         draggable={!isEditing}
-        onDragStart={(e) => onDragStart(e, workflow.id)}
+        onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragLeave={onDragLeave}
-        onDrop={(e) => onDrop(e, workflow.id)}
+        onDrop={handleDrop}
       >
         {isEditing ? (
           <input
             type="text"
             defaultValue={workflow.name}
             autoFocus
-            onFocus={(e) => e.target.select()}
-            onBlur={(e) => onNameChange(workflow.id, e.target.value)}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
             onKeyDown={handleKeyDown}
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleInputClick}
             style={{
               background: "transparent",
               border: "none",
@@ -212,10 +270,7 @@ const TabHeader = ({
         <CloseIcon
           className="close-icon"
           sx={{ fontSize: 16 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose(workflow.id);
-          }}
+          onClick={handleClose}
         />
       </div>
       <Menu
@@ -239,31 +294,13 @@ const TabHeader = ({
           }
         }}
       >
-        <MenuItem
-          onClick={(event) => {
-            event.stopPropagation();
-            closeContextMenu();
-            onClose(workflow.id);
-          }}
-        >
+        <MenuItem onClick={handleCloseTab}>
           Close Tab
         </MenuItem>
-        <MenuItem
-          onClick={(event) => {
-            event.stopPropagation();
-            closeContextMenu();
-            onCloseOthers(workflow.id);
-          }}
-        >
+        <MenuItem onClick={handleCloseOthersTab}>
           Close Other Tabs
         </MenuItem>
-        <MenuItem
-          onClick={(event) => {
-            event.stopPropagation();
-            closeContextMenu();
-            onCloseAll();
-          }}
-        >
+        <MenuItem onClick={handleCloseAllTabs}>
           Close All Tabs
         </MenuItem>
       </Menu>
