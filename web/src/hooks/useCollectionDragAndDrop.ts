@@ -84,12 +84,13 @@ export const useCollectionDragAndDrop = () => {
           formData.append("file", file);
 
           try {
-            // Prepare options object separately to bypass strict body typing
-            const requestOptions: any = {
+            // Prepare options object with proper types for FormData
+            // The API client expects specific body types, but FormData needs special handling
+            const requestOptions = {
               params: {
                 path: { name: collectionName }
               },
-              body: formData
+              body: formData as unknown as { file: string }
               // Content-Type is set automatically for FormData
             };
 
@@ -111,11 +112,11 @@ export const useCollectionDragAndDrop = () => {
                   "Unknown error"
               });
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error(`Failed to index file ${file.name}:`, err);
             errors.push({
               file: file.name,
-              error: String(err?.message || err)
+              error: err instanceof Error ? err.message : String(err)
             });
           } finally {
             completed++;
