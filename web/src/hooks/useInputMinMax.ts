@@ -4,6 +4,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+import type { NodeStore, NodeStoreState } from "../stores/NodeStore";
 
 interface UseInputMinMaxOptions {
   nodeType?: string;
@@ -40,8 +41,8 @@ export const useInputMinMax = ({
   const context = useContext(NodeContext);
 
   const nodes: Node<NodeData>[] = useStoreWithEqualityFn(
-    context ?? { subscribe: () => () => {}, getState: () => ({ nodes: [] }) } as any,
-    (state: any) => state?.nodes ?? [],
+    context ?? { subscribe: () => () => {}, getState: () => ({ nodes: [] }) } as unknown as NodeStore,
+    (state: unknown) => (state as NodeStoreState)?.nodes ?? [],
     shallow
   );
 
