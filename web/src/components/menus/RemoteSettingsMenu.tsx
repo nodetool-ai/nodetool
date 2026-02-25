@@ -236,8 +236,8 @@ const RemoteSettings = () => {
         // Electron environment via IPC
         await window.api.shell.openExternal(authUrl);
       } else {
-        // Web environment - open in new window/tab
-        window.open(authUrl, "_blank", "width=600,height=700");
+        // Web environment - open in new window/tab with security attributes
+        window.open(authUrl, "_blank", "noopener,noreferrer,width=600,height=700");
       }
     } catch (error) {
       console.error("OAuth initiation failed:", error);

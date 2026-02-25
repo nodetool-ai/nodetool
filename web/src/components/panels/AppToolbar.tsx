@@ -627,7 +627,8 @@ const RunAsAppButton = memo(function RunAsAppButton() {
       } else {
         window.open(
           "http://localhost:5173/index.html?workflow_id=" + workflowId,
-          "_blank"
+          "_blank",
+          "noopener,noreferrer"
         );
       }
     }
