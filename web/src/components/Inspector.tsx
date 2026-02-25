@@ -14,6 +14,7 @@ import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "lodash/isEqual";
+import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
 import { CloseButton, EditorButton } from "./ui_primitives";
 import PanelHeadline from "./ui/PanelHeadline";
@@ -131,11 +132,8 @@ const Inspector: React.FC = () => {
   // We use a custom equality function to avoid re-renders when nodes are moved (position changes)
   // but their data remains the same.
   const selectedNodes = useNodes(
-    (state) =>
-      state.nodes
-        .filter((node) => node.selected)
-        .map((node) => ({ id: node.id, type: node.type, data: node.data })),
-    isEqual
+    (state) => state.nodes.filter((node) => node.selected),
+    areNodesEqualIgnoringPosition
   );
   const findNode = useNodes((state) => state.findNode);
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
@@ -147,11 +145,17 @@ const Inspector: React.FC = () => {
     () => new Set(selectedNodes.map((node) => node.id)),
     [selectedNodes]
   );
-  const edges = useNodes((state) =>
-    state.edges.filter(
-      (edge) =>
-        selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)
-    )
+
+  // Use strict equality for allEdges to avoid O(E) shallow scan on every frame.
+  // Filter inside useMemo to avoid allocating new array on every frame.
+  const allEdges = useNodes((state) => state.edges, (a, b) => a === b);
+  const edges = useMemo(
+    () =>
+      allEdges.filter(
+        (edge) =>
+          selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)
+      ),
+    [allEdges, selectedNodeIds]
   );
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);

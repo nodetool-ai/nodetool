@@ -44,3 +44,27 @@ Verify by observing React DevTools "Highlight updates" during a chat response. T
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `cd web && npm run lint`: Passed.
 - Ran `cd web && npm test`: All 331 test suites passed.
+
+# ⚡ Bolt: Inspector and NodeExplorer Performance Optimization
+
+## 💡 What
+Refactored `Inspector.tsx` and `NodeExplorer.tsx` to use a custom equality function `areNodesEqualIgnoringPosition` for `useNodes` selectors.
+Optimized `edges` selection in `Inspector.tsx` to use strict equality for the array reference and perform filtering inside `useMemo`.
+
+## 🎯 Why
+`Inspector` and `NodeExplorer` were subscribing to `state.nodes` with expensive O(N) selectors (map/filter) that ran on every store update (e.g., every drag frame, 60fps).
+Even though the components didn't always re-render, the selector logic itself consumed main thread time during drag operations.
+Additionally, `edges` filtering in `Inspector` was allocating new arrays on every frame.
+
+## 📊 Impact
+- **Reduces Main Thread Work per Frame:** Eliminates O(N) object allocations and deep comparisons in `Inspector` selector during node dragging.
+- **Optimizes Edge Filtering:** Reduces O(E) filtering and allocation per frame in `Inspector` to O(1) strict equality check + memoized result.
+- **Improved Drag Smoothness:** Frees up CPU time for React Flow to handle drag updates more smoothly.
+
+## 🔬 Measurement
+Verify by dragging nodes in a large graph (1000+ nodes). The UI should remain responsive. Profiling shows reduced "Scripting" time during drag.
+
+## 🧪 Testing
+- Created `web/src/utils/__tests__/nodeEquality.test.ts` to verify the equality logic.
+- Ran `cd web && npm test src/utils/__tests__/nodeEquality.test.ts`: Passed.
+- Ran `cd web && npm run typecheck`: Passed.
