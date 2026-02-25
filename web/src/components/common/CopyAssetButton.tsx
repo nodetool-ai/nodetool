@@ -15,7 +15,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, memo } from "react";
 import { IconButton, Tooltip } from "@mui/material";
-import { SxProps, Theme } from "@mui/material/styles";
+import { SxProps, Theme, useTheme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -275,6 +275,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
     electronOnly = false,
     tabIndex = 0
   }) => {
+    const theme = useTheme();
     const [state, setState] = useState<"idle" | "copied" | "error">("idle");
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -368,11 +369,11 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
             width: 24,
             height: 24,
             padding: "4px",
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            color: "#fff",
+            backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+            color: theme.vars.palette.common.white,
             borderRadius: "4px",
             "&:hover": {
-              backgroundColor: "rgba(0, 0, 0, 0.85)"
+              backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
             },
             "& svg": {
               fontSize: iconSize
