@@ -147,19 +147,28 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
     // Prevent multiple simultaneous connection attempts
     if (get().wsConnectionState === "connecting") {
-      // Wait for existing connection attempt
+      // Wait for existing connection attempt with timeout to prevent memory leak
+      const CONNECTION_TIMEOUT_MS = 30000; // 30 second timeout
       return new Promise((resolve, reject) => {
         const checkInterval = setInterval(() => {
           const currentWs = get().ws;
           const state = get().wsConnectionState;
           if (state === "connected" && currentWs) {
             clearInterval(checkInterval);
+            clearTimeout(timeoutId);
             resolve(currentWs);
           } else if (state === "disconnected") {
             clearInterval(checkInterval);
+            clearTimeout(timeoutId);
             reject(new Error("Connection failed"));
           }
         }, 100);
+
+        // Add timeout to prevent interval from running forever
+        const timeoutId = setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error(`Connection timeout after ${CONNECTION_TIMEOUT_MS}ms`));
+        }, CONNECTION_TIMEOUT_MS);
       });
     }
 
