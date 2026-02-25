@@ -60,18 +60,48 @@ const FileTabHeader = ({
     setContextMenuPosition({ mouseX: event.clientX, mouseY: event.clientY });
   }, []);
 
+  // Memoize click handler to prevent re-renders of child elements
+  const handleClick = useCallback(() => {
+    onSelect(asset.id);
+  }, [onSelect, asset.id]);
+
+  // Memoize mouse down handler to prevent re-renders of child elements
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button === 1) {
+      e.preventDefault();
+      onClose(asset.id);
+    }
+  }, [onClose, asset.id]);
+
+  // Memoize close handler to prevent re-renders of child elements
+  const handleClose = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose(asset.id);
+  }, [onClose, asset.id]);
+
+  // Memoize context menu item handlers to prevent re-renders
+  const handleCloseTab = useCallback(() => {
+    closeContextMenu();
+    onClose(asset.id);
+  }, [closeContextMenu, onClose, asset.id]);
+
+  const handleCloseOthersTab = useCallback(() => {
+    closeContextMenu();
+    onCloseOthers(asset.id);
+  }, [closeContextMenu, onCloseOthers, asset.id]);
+
+  const handleCloseAllTabs = useCallback(() => {
+    closeContextMenu();
+    onCloseAll();
+  }, [closeContextMenu, onCloseAll]);
+
   return (
     <>
       <div
         className={`tab ${isActive ? "active" : ""}`}
-        onClick={() => onSelect(asset.id)}
+        onClick={handleClick}
         onContextMenu={handleContextMenu}
-        onMouseDown={(e) => {
-          if (e.button === 1) {
-            e.preventDefault();
-            onClose(asset.id);
-          }
-        }}
+        onMouseDown={handleMouseDown}
       >
         <span
           className="tab-name"
@@ -88,10 +118,7 @@ const FileTabHeader = ({
         <CloseIcon
           className="close-icon"
           sx={{ fontSize: 16 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose(asset.id);
-          }}
+          onClick={handleClose}
         />
       </div>
       <Menu
@@ -115,31 +142,13 @@ const FileTabHeader = ({
           }
         }}
       >
-        <MenuItem
-          onClick={(event) => {
-            event.stopPropagation();
-            closeContextMenu();
-            onClose(asset.id);
-          }}
-        >
+        <MenuItem onClick={handleCloseTab}>
           Close Tab
         </MenuItem>
-        <MenuItem
-          onClick={(event) => {
-            event.stopPropagation();
-            closeContextMenu();
-            onCloseOthers(asset.id);
-          }}
-        >
+        <MenuItem onClick={handleCloseOthersTab}>
           Close Other Tabs
         </MenuItem>
-        <MenuItem
-          onClick={(event) => {
-            event.stopPropagation();
-            closeContextMenu();
-            onCloseAll();
-          }}
-        >
+        <MenuItem onClick={handleCloseAllTabs}>
           Close All Tabs
         </MenuItem>
       </Menu>
