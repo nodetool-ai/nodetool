@@ -85,7 +85,7 @@ const styles = (theme: Theme, gap: number) =>
       fontSize: 11,
       color: theme.vars.palette.text.primary,
       background:
-        "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%)",
+        `linear-gradient(180deg, rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0) 0%, rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.55) 100%)`,
       WebkitLineClamp: 1,
       display: "-webkit-box",
       WebkitBoxOrient: "vertical" as const,
@@ -123,11 +123,11 @@ const styles = (theme: Theme, gap: number) =>
       width: 24,
       height: 24,
       padding: 4,
-      backgroundColor: "rgba(0,0,0,0.6)",
-      color: "#fff",
+      backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+      color: theme.vars.palette.common.white,
       borderRadius: 4,
       "&:hover": {
-        backgroundColor: "rgba(0,0,0,0.85)"
+        backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
       },
       "& svg": {
         fontSize: 14
@@ -139,11 +139,11 @@ const styles = (theme: Theme, gap: number) =>
       right: 4,
       zIndex: 5,
       padding: 2,
-      backgroundColor: "rgba(0,0,0,0.5)",
+      backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.5)`,
       borderRadius: 4,
-      color: "#fff",
+      color: theme.vars.palette.common.white,
       "&:hover": {
-        backgroundColor: "rgba(0,0,0,0.7)"
+        backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.7)`
       }
     },
     ".action-bar": {
@@ -154,13 +154,13 @@ const styles = (theme: Theme, gap: number) =>
       display: "flex",
       gap: 8,
       padding: "8px 16px",
-      backgroundColor: "rgba(0,0,0,0.85)",
+      backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`,
       borderRadius: 8,
       zIndex: 100,
       alignItems: "center"
     },
     ".action-bar .action-button": {
-      color: "#fff",
+      color: theme.vars.palette.common.white,
       fontSize: 13,
       textTransform: "none"
     },
@@ -169,14 +169,14 @@ const styles = (theme: Theme, gap: number) =>
       top: 2,
       right: 4,
       zIndex: 50,
-      backgroundColor: "rgba(0,0,0,0.6)",
-      color: "#fff",
+      backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+      color: theme.vars.palette.common.white,
       fontSize: 11,
       textTransform: "none",
       padding: "2px 8px",
       minWidth: "unset",
       "&:hover": {
-        backgroundColor: "rgba(0,0,0,0.8)"
+        backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)`
       }
     },
     ".compare-dialog .MuiPaper-root": {
@@ -508,7 +508,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             </span>
           </Tooltip>
           <Tooltip title="Clear selection">
-            <IconButton size="small" onClick={clearSelection} sx={{ color: "#fff" }}>
+            <IconButton size="small" onClick={clearSelection} sx={{ color: theme.vars.palette.common.white }}>
               <ClearIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -534,9 +534,9 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 top: 8,
                 right: 8,
                 zIndex: 10,
-                backgroundColor: "rgba(0,0,0,0.6)",
-                color: "#fff",
-                "&:hover": { backgroundColor: "rgba(0,0,0,0.8)" }
+                backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+                color: theme.vars.palette.common.white,
+                "&:hover": { backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)` }
               }}
             >
               <ClearIcon />
