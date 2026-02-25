@@ -60,14 +60,22 @@ class GlobalWebSocketManager extends EventEmitter {
     }
 
     if (this.isConnecting) {
-      // Wait for ongoing connection
-      return new Promise((resolve) => {
+      // Wait for ongoing connection with timeout to prevent memory leak
+      return new Promise((resolve, reject) => {
+        const CONNECTION_TIMEOUT_MS = 30000; // 30 second timeout
         const checkInterval = setInterval(() => {
           if (this.isConnected && this.wsManager) {
             clearInterval(checkInterval);
+            clearTimeout(timeoutId);
             resolve();
           }
         }, 100);
+
+        // Add timeout to prevent interval from running forever
+        const timeoutId = setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error(`Connection timeout after ${CONNECTION_TIMEOUT_MS}ms`));
+        }, CONNECTION_TIMEOUT_MS);
       });
     }
 
