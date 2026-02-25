@@ -42,11 +42,32 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
   "application/json": "json"
 };
 
-const convertDataFrameToCSV = (dataframe: any): string => {
-  const headers = dataframe.columns.map((col: any) => col.name).join(",");
-  const rows = dataframe.data.map((row: any) => row.join(",")).join("\n");
+// Proper types for DataFrame structure
+interface DataFrameColumn {
+  name: string;
+  type?: string;
+}
+
+interface DataFrame {
+  columns: DataFrameColumn[];
+  data: string[][];
+}
+
+const convertDataFrameToCSV = (dataframe: DataFrame): string => {
+  const headers = dataframe.columns.map((col) => col.name).join(",");
+  const rows = dataframe.data.map((row) => row.join(",")).join("\n");
   return `${headers}\n${rows}`;
 };
+
+// Type for Node.js Buffer constructor
+interface BufferConstructor {
+  from(data: string, encoding: string): Buffer;
+  isBuffer(obj: unknown): boolean;
+}
+
+interface GlobalWithBuffer {
+  Buffer?: BufferConstructor;
+}
 
 const decodeBase64 = (value: string): Uint8Array => {
   const cleaned = value.includes(",") ? value.split(",").pop() ?? "" : value;
@@ -64,7 +85,7 @@ const decodeBase64 = (value: string): Uint8Array => {
   }
 
   try {
-    const BufferCtor = (globalThis as Record<string, any>).Buffer;
+    const BufferCtor = (globalThis as unknown as GlobalWithBuffer).Buffer;
     if (BufferCtor) {
       const buffer = BufferCtor.from(cleaned, "base64");
       return new Uint8Array(
@@ -80,8 +101,21 @@ const decodeBase64 = (value: string): Uint8Array => {
   return TEXT_ENCODER.encode(value);
 };
 
-const toUint8Array = (input: any): Uint8Array => {
-  if (!input) {return new Uint8Array();}
+// Union type for all possible inputs to toUint8Array
+type Uint8ArrayInput =
+  | Uint8Array
+  | ArrayBuffer
+  | ArrayBufferView
+  | string
+  | number[]
+  | Record<string, unknown>
+  | { data: Uint8ArrayInput }
+  | { content: Uint8ArrayInput };
+
+const toUint8Array = (input: Uint8ArrayInput): Uint8Array => {
+  if (!input) {
+    return new Uint8Array();
+  }
   if (input instanceof Uint8Array) {
     return input;
   }
@@ -107,14 +141,14 @@ const toUint8Array = (input: any): Uint8Array => {
     return TEXT_ENCODER.encode(input);
   }
   if (Array.isArray(input)) {
-    return new Uint8Array(input);
+    return new Uint8Array(input as number[]);
   }
   if (typeof input === "object") {
     if ("data" in input) {
-      return toUint8Array((input as any).data);
+      return toUint8Array(input.data as Uint8ArrayInput);
     }
     if ("content" in input) {
-      return toUint8Array((input as any).content);
+      return toUint8Array(input.content as Uint8ArrayInput);
     }
     return new Uint8Array(Object.values(input as Record<string, number>));
   }
@@ -137,8 +171,11 @@ const toArrayBuffer = (view: Uint8Array): ArrayBuffer => {
   return cloned;
 };
 
-const isChunk = (value: any): value is Chunk =>
-  value && typeof value === "object" && value.type === "chunk";
+const isChunk = (value: unknown): value is Chunk =>
+  value !== null &&
+  typeof value === "object" &&
+  "type" in value &&
+  (value as Chunk).type === "chunk";
 
 const resolveDownloadUri = (uri: string): string => {
   if (typeof window === "undefined") {
@@ -167,7 +204,14 @@ const resolveDownloadUri = (uri: string): string => {
   }
 };
 
-const chunkToOutput = (chunk: Chunk) => {
+// Type for chunk output - use a union to handle all return cases
+type ChunkOutput =
+  | { type: "text"; data: string }
+  | { type: "image" | "audio" | "video"; data: string }
+  | Chunk
+  | string;
+
+const chunkToOutput = (chunk: Chunk): ChunkOutput => {
   if (typeof window !== "undefined") {
     log.debug("[createAssetFile] chunkToOutput", {
       type: chunk.content_type,
@@ -227,7 +271,17 @@ const concatTextChunksSafely = (
   return { text: parts.join(""), truncated: false };
 };
 
-const normalizeOutput = (output: any, options?: CreateAssetFileOptions): any => {
+// Type for normalized output
+type NormalizedOutput =
+  | Chunk
+  | { type: string; data: string | Uint8Array | DataFrame | unknown[] | Record<string, unknown> }
+  | string
+  | NormalizedOutput[];
+
+const normalizeOutput = (
+  output: unknown,
+  options?: CreateAssetFileOptions
+): NormalizedOutput => {
   const maxTextChars = Math.max(
     1,
     options?.maxTextChars ?? DEFAULT_MAX_TEXT_CHARS
@@ -263,19 +317,32 @@ const normalizeOutput = (output: any, options?: CreateAssetFileOptions): any => 
     return chunkToOutput(output);
   }
 
-  return output;
+  return output as NormalizedOutput;
 };
 
-const getOutputType = (output: any): string | undefined => {
+// Type for output with optional type property
+interface TypedOutput {
+  type?: string;
+  mime_type?: string;
+  mimeType?: string;
+  data?: unknown;
+  value?: unknown;
+  content?: unknown;
+  uri?: string;
+  asset_id?: string;
+  filename?: string;
+}
+
+const getOutputType = (output: TypedOutput | unknown): string | undefined => {
   if (output && typeof output === "object") {
-    return output.type;
+    return (output as TypedOutput).type;
   }
   return undefined;
 };
 
-const getOutputData = (output: any): any => {
+const getOutputData = (output: TypedOutput | unknown): unknown => {
   if (output && typeof output === "object") {
-    const record = output as Record<string, any>;
+    const record = output as TypedOutput;
     if ("data" in record && record.data !== undefined && record.data !== null) {
       return record.data;
     }
@@ -299,24 +366,41 @@ const getOutputData = (output: any): any => {
 };
 
 const getMimeType = (
-  output: Record<string, any> | undefined,
+  output: TypedOutput | undefined,
   fallback: string
 ): string => {
   if (!output || typeof output !== "object") {
     return fallback;
   }
 
-  const asString = (value: any) =>
+  const asString = (value: unknown) =>
     typeof value === "string" && value.includes("/");
 
-  return (
-    (asString(output.mime_type) && output.mime_type) ||
-    (asString(output.mimeType) && output.mimeType) ||
-    (asString(output.type) && output.type) ||
-    (asString(output.data?.mime_type) && output.data?.mime_type) ||
-    (asString(output.data?.mimeType) && output.data?.mimeType) ||
-    fallback
-  );
+  const dataRecord = (output.data && typeof output.data === "object")
+    ? output.data as TypedOutput
+    : undefined;
+
+  // Check nested mime types with explicit undefined checks
+  if (dataRecord) {
+    if (dataRecord.mime_type && asString(dataRecord.mime_type)) {
+      return dataRecord.mime_type;
+    }
+    if (dataRecord.mimeType && asString(dataRecord.mimeType)) {
+      return dataRecord.mimeType;
+    }
+  }
+
+  if (output.mime_type && asString(output.mime_type)) {
+    return output.mime_type;
+  }
+  if (output.mimeType && asString(output.mimeType)) {
+    return output.mimeType;
+  }
+  if (output.type && asString(output.type)) {
+    return output.type;
+  }
+
+  return fallback;
 };
 
 const getExtension = (mimeType: string, defaultExt: string) => {
@@ -363,7 +447,7 @@ const fetchBinaryFromUri = async (uri: string): Promise<Uint8Array> => {
 };
 
 const createSingleAssetFile = async (
-  output: any,
+  output: TypedOutput,
   id: string,
   index?: number
 ): Promise<AssetFileResult> => {
@@ -390,7 +474,7 @@ const createSingleAssetFile = async (
 
   if (shouldFetchFromUri) {
     try {
-      data = await fetchBinaryFromUri(output.uri);
+      data = await fetchBinaryFromUri(output.uri as string);
     } catch (err) {
       log.warn("[createAssetFile] Failed to fetch data from URI", err);
       data = originalData ?? new Uint8Array();
@@ -398,7 +482,7 @@ const createSingleAssetFile = async (
   } else if (shouldDownloadAsset) {
     try {
       const assetResponse = await client.GET("/api/assets/{id}", {
-        params: { path: { id: output.asset_id } }
+        params: { path: { id: output.asset_id as string } }
       });
       if (assetResponse.error) {
         const detail =
@@ -430,40 +514,40 @@ const createSingleAssetFile = async (
     case "image": {
       mimeType = getMimeType(output, "image/png");
       const extension = getExtension(mimeType, "png");
-      content = toArrayBuffer(toUint8Array(data));
+      content = toArrayBuffer(toUint8Array(data as Uint8ArrayInput));
       filename = buildFilename(output?.filename, id, suffix, extension, index);
       break;
     }
     case "video": {
       mimeType = getMimeType(output, "video/mp4");
       const extension = getExtension(mimeType, "mp4");
-      content = toArrayBuffer(toUint8Array(data));
+      content = toArrayBuffer(toUint8Array(data as Uint8ArrayInput));
       filename = buildFilename(output?.filename, id, suffix, extension, index);
       break;
     }
     case "audio": {
       mimeType = getMimeType(output, "audio/mp3");
       const extension = getExtension(mimeType, "mp3");
-      content = toArrayBuffer(toUint8Array(data));
+      content = toArrayBuffer(toUint8Array(data as Uint8ArrayInput));
       filename = buildFilename(output?.filename, id, suffix, extension, index);
       break;
     }
     case "dataframe":
-      content = convertDataFrameToCSV(data);
+      content = convertDataFrameToCSV(data as DataFrame);
       mimeType = "text/csv";
-      filename = buildFilename(output?.filename, id, suffix, "csv", index);
+      filename = buildFilename(output?.filename ?? "", id, suffix, "csv", index);
       break;
     case "object":
     case "array":
       content = JSON.stringify(data, null, 2);
       mimeType = "application/json";
-      filename = buildFilename(output?.filename, id, suffix, "json", index);
+      filename = buildFilename(output?.filename ?? "", id, suffix, "json", index);
       break;
     case "text":
       content = typeof data === "string" ? data : JSON.stringify(data, null, 2);
       mimeType = getMimeType(output, "text/plain");
       filename = buildFilename(
-        output?.filename,
+        output?.filename ?? "",
         id,
         suffix,
         getExtension(mimeType, "txt"),
@@ -479,7 +563,7 @@ const createSingleAssetFile = async (
           : JSON.stringify(output, null, 2);
       mimeType = getMimeType(output, "text/plain");
       filename = buildFilename(
-        output?.filename,
+        output?.filename ?? "",
         id,
         suffix,
         getExtension(mimeType, "txt"),
@@ -498,11 +582,18 @@ const createSingleAssetFile = async (
   return { file, filename, type: mimeType };
 };
 
+export type CreateAssetFileInput = TypedOutput | TypedOutput[] | null | undefined;
+
 export const createAssetFile = async (
-  output: any | any[],
+  output: CreateAssetFileInput,
   id: string,
   options?: CreateAssetFileOptions
 ): Promise<AssetFileResult[]> => {
+  // Handle null/undefined input early
+  if (output === null || output === undefined) {
+    throw new Error("Cannot create asset file from null or undefined output");
+  }
+
   const normalized = normalizeOutput(output, options);
 
   if (Array.isArray(normalized)) {
@@ -510,8 +601,8 @@ export const createAssetFile = async (
       count: normalized.length
     });
     return Promise.all(
-      normalized.map((item, index) => createSingleAssetFile(item, id, index))
+      normalized.map((item, index) => createSingleAssetFile(item as TypedOutput, id, index))
     );
   }
-  return Promise.all([createSingleAssetFile(normalized, id)]);
+  return Promise.all([createSingleAssetFile(normalized as TypedOutput, id)]);
 };
