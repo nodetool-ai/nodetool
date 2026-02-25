@@ -125,4 +125,34 @@ describe("RefreshButton", () => {
 
     expect(screen.getByRole("button")).toHaveClass("loading");
   });
+
+  it("is keyboard accessible (tabIndex=0) by default", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <RefreshButton onClick={mockOnClick} />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("button")).toHaveAttribute("tabIndex", "0");
+  });
+
+  it("accepts custom tabIndex", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <RefreshButton onClick={mockOnClick} tabIndex={-1} />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("button")).toHaveAttribute("tabIndex", "-1");
+  });
+
+  it("has accessible label from tooltip", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <RefreshButton onClick={mockOnClick} tooltip="Refresh Data" />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("button")).toHaveAttribute("aria-label", "Refresh Data");
+  });
 });

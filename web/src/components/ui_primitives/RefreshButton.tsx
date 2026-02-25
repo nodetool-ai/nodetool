@@ -75,6 +75,11 @@ export interface RefreshButtonProps
    * @default true
    */
   animateOnHover?: boolean;
+  /**
+   * Tab index for keyboard navigation
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 /**
@@ -94,6 +99,7 @@ export const RefreshButton = memo(
         className,
         disabled,
         sx,
+        tabIndex = 0,
         ...props
       },
       ref
@@ -152,7 +158,8 @@ export const RefreshButton = memo(
                 className
               )}
               disabled={disabled || isLoading}
-              tabIndex={-1}
+              aria-label={tooltip}
+              tabIndex={tabIndex}
               sx={{
                 ...getSizeStyles(),
                 color: theme.vars.palette.grey[300],

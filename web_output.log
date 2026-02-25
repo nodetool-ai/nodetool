@@ -1,0 +1,109 @@
+
+> nodetool@0.6.3-rc.28 start
+> vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false
+
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+  VITE v6.4.1  ready in 582 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: http://192.168.0.2:3000/
+11:37:05 AM [vite] http proxy error: /api/settings/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:37:05 AM [vite] http proxy error: /api/threads/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:37:06 AM [vite] http proxy error: /api/nodes/metadata
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:37:42 AM [vite] http proxy error: /api/settings/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:37:42 AM [vite] http proxy error: /api/threads/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:37:43 AM [vite] http proxy error: /api/nodes/metadata
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:38:17 AM [vite] http proxy error: /api/settings/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:38:17 AM [vite] http proxy error: /api/threads/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:38:17 AM [vite] http proxy error: /api/nodes/metadata
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:39:17 AM [vite] http proxy error: /api/settings/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:39:17 AM [vite] http proxy error: /api/threads/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:39:18 AM [vite] http proxy error: /api/nodes/metadata
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:39:54 AM [vite] http proxy error: /api/settings/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:39:54 AM [vite] http proxy error: /api/threads/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:39:55 AM [vite] http proxy error: /api/nodes/metadata
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:40:44 AM [vite] http proxy error: /api/settings/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:40:44 AM [vite] http proxy error: /api/threads/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:40:45 AM [vite] http proxy error: /api/nodes/metadata
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:41:24 AM [vite] http proxy error: /api/settings/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:41:24 AM [vite] http proxy error: /api/threads/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:41:25 AM [vite] http proxy error: /api/nodes/metadata
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:41:56 AM [vite] (client) hmr update /src/components/ui_primitives/RefreshButton.tsx
+11:42:18 AM [vite] http proxy error: /api/settings/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:42:18 AM [vite] http proxy error: /api/threads/
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+11:42:19 AM [vite] http proxy error: /api/nodes/metadata
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
