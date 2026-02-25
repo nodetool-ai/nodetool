@@ -21,7 +21,6 @@ import assetGridStyles from "./assetGridStyles";
 import useClickOutsideDeselect from "./hooks/useClickOutsideDeselect";
 
 import { useAssetUpload } from "../../serverState/useAssetUpload";
-import { shallow } from "zustand/shallow";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
@@ -74,30 +73,18 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isFullscreenAssets
 }) => {
   const { error, folderFilesFiltered } = useAssets();
-  const {
-    openAsset,
-    setOpenAsset,
-    selectedAssetIds,
-    selectedFolderId,
-    setSelectedAssetIds,
-    setRenameDialogOpen,
-    currentAudioAsset,
-    currentFolderId,
-    currentFolder
-  } = useAssetGridStore(
-    (state) => ({
-      openAsset: state.openAsset,
-      setOpenAsset: state.setOpenAsset,
-      selectedAssetIds: state.selectedAssetIds,
-      selectedFolderId: state.selectedFolderId,
-      setSelectedAssetIds: state.setSelectedAssetIds,
-      setRenameDialogOpen: state.setRenameDialogOpen,
-      currentAudioAsset: state.currentAudioAsset,
-      currentFolderId: state.currentFolderId,
-      currentFolder: state.currentFolder
-    }),
-    shallow
-  );
+  // Separate selectors prevent unnecessary re-renders when only one value changes
+  // Setters are pulled out of selectors since they never change reference
+  const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
+  const setSelectedAssetIds = useAssetGridStore((state) => state.setSelectedAssetIds);
+  const setRenameDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
+
+  const openAsset = useAssetGridStore((state) => state.openAsset);
+  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
+  const selectedFolderId = useAssetGridStore((state) => state.selectedFolderId);
+  const currentAudioAsset = useAssetGridStore((state) => state.currentAudioAsset);
+  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
+  const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();
@@ -106,13 +93,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const user = useAuth((state) => state.user);
 
-  const { F2KeyPressed, spaceKeyPressed } = useKeyPressedStore(
-    (state) => ({
-      F2KeyPressed: state.isKeyPressed("F2"),
-      spaceKeyPressed: state.isKeyPressed(" ")
-    }),
-    shallow
-  );
+  // Separate selectors prevent unnecessary re-renders when only one key state changes
+  const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
+  const spaceKeyPressed = useKeyPressedStore((state) => state.isKeyPressed(" "));
 
   const { uploadAsset, isUploading } = useAssetUpload();
 
