@@ -203,7 +203,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
             <div className="file-preview-container">
               {droppedFiles.map((file, index) => (
                 <FilePreview
-                  key={index}
+                  key={file.id}
                   file={file}
                   onRemove={() => removeFile(index)}
                 />

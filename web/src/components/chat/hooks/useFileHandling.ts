@@ -3,6 +3,9 @@ import { MessageContent } from "../../../stores/ApiTypes";
 import { DroppedFile, DOC_TYPES_REGEX } from "../types/chat.types";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
+// Generate a unique ID for each file
+const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
 export const useFileHandling = () => {
   const [droppedFiles, setDroppedFiles] = useState<DroppedFile[]>([]);
   const addNotification = useNotificationStore((state) => state.addNotification);
@@ -55,6 +58,7 @@ export const useFileHandling = () => {
           const reader = new FileReader();
           reader.onload = () => {
             resolve({
+              id: generateFileId(),
               dataUri: reader.result as string,
               type: file.type,
               name: file.name
@@ -116,7 +120,8 @@ export const useFileHandling = () => {
     clearFiles,
     getFileContents,
     addDroppedFiles: useCallback((files: DroppedFile[]) => {
-      setDroppedFiles((prev) => [...prev, ...files]);
+      const filesWithIds = files.map((file) => ({ ...file, id: generateFileId() }));
+      setDroppedFiles((prev) => [...prev, ...filesWithIds]);
     }, [])
   };
 };
