@@ -44,10 +44,23 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
   const theme = useTheme();
   const { selected, id } = props;
 
-  const { edges, findNode } = useNodes((state) => ({
-    edges: state.edges,
-    findNode: state.findNode
-  }));
+  const upstreamConnection = useNodes((state) => {
+    const incoming = state.edges.find(
+      (e) => e.target === id && e.targetHandle === "input_value"
+    );
+    if (!incoming) {
+      return null;
+    }
+    const sourceNode = state.nodes.find((n) => n.id === incoming.source);
+    if (!sourceNode) {
+      return null;
+    }
+    return {
+      sourceType: sourceNode.type,
+      sourceData: sourceNode.data,
+      sourceHandle: incoming.sourceHandle
+    };
+  });
 
   // Determine effective type from upstream connection
   const { slug: upstreamSlug, color: upstreamColor } = useMemo(() => {
@@ -58,30 +71,37 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
       color: anyType?.color || "#888"
     };
 
-    // Find incoming edge to input_value
-    const incoming = edges.find(
-      (e) => e.target === id && e.targetHandle === "input_value"
-    );
-    if (!incoming) {return fallback;}
+    if (!upstreamConnection) {
+      return fallback;
+    }
 
-    const sourceNode = findNode(incoming.source);
-    if (!sourceNode) {return fallback;}
+    const { sourceType, sourceData, sourceHandle } = upstreamConnection;
+
     const sourceMeta = useMetadataStore
       .getState()
-      .getMetadata(sourceNode.type || "");
-    if (!sourceMeta) {return fallback;}
+      .getMetadata(sourceType || "");
+    if (!sourceMeta) {
+      return fallback;
+    }
+
+    // Construct a minimal node object for findOutputHandle
+    // We cast it to any because findOutputHandle expects a full Node object but only uses data properties
+    const sourceNode = { type: sourceType, data: sourceData } as any;
+
     const outHandle = findOutputHandle(
-      sourceNode as any,
-      incoming.sourceHandle || "",
+      sourceNode,
+      sourceHandle || "",
       sourceMeta
     );
     const typeStr = outHandle?.type?.type;
     const match = DATA_TYPES.find(
       (dt) => dt.value === typeStr || dt.name === typeStr || dt.slug === typeStr
     );
-    if (match) {return { slug: match.slug, color: match.color };}
+    if (match) {
+      return { slug: match.slug, color: match.color };
+    }
     return fallback;
-  }, [edges, findNode, id]);
+  }, [upstreamConnection]);
 
   useSyncEdgeSelection(id, Boolean(selected));
 
