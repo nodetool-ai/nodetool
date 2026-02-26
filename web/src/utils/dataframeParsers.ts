@@ -286,7 +286,7 @@ export async function parseExcel(file: File): Promise<DataframeRef> {
   // First row is headers
   const headerRow = rows[0];
   const headers = headerRow.map((cell, index) =>
-    cell !== null && cell !== undefined ? String(cell) : `Column ${index + 1}`
+    cell != null ? String(cell) : `Column ${index + 1}`
   );
 
   // Data rows - cells are returned as-is (Date objects from Excel are preserved)

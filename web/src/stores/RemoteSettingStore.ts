@@ -71,7 +71,7 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
 
   getSettingValue: (envVar: string) => {
     const setting = get().settings.find((s) => s.env_var === envVar);
-    return setting?.value !== null && setting?.value !== undefined
+    return setting?.value != null
       ? String(setting.value)
       : undefined;
   },

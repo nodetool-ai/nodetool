@@ -146,7 +146,7 @@ const RemoteSettings = () => {
         const newValues = { ...prev };
         let hasChanges = false;
         settingsToUse.forEach((setting) => {
-          if ((!setting.is_secret) && setting.value !== null && setting.value !== undefined) {
+          if ((!setting.is_secret) && setting.value != null) {
             const value = String(setting.value);
             // Only initialize if the key doesn't exist yet
             if (!(setting.env_var in prev) || prev[setting.env_var] !== value) {

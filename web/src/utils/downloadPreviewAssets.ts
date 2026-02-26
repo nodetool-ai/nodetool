@@ -11,7 +11,7 @@ const getDownloadPayload = ({
   previewValue,
   rawResult
 }: Pick<DownloadOptions, "previewValue" | "rawResult">) => {
-  if (previewValue !== null && previewValue !== undefined) {
+  if (previewValue != null) {
     return previewValue;
   }
   if (rawResult && typeof rawResult === "object" && "output" in rawResult && rawResult.output !== undefined) {

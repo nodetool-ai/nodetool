@@ -62,7 +62,7 @@ const FoldersSettings = () => {
     if (settingsToUse && settingsToUse.length > 0) {
       const values: Record<string, string> = {};
       settingsToUse.forEach((setting: SettingWithValue) => {
-        if (setting.value !== null && setting.value !== undefined) {
+        if (setting.value != null) {
           values[setting.env_var] = String(setting.value);
         }
       });
