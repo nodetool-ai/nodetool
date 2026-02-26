@@ -8,7 +8,8 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import OutputRenderer from "../../node/OutputRenderer";
 import { MiniAppResult } from "../types";
-import { Workflow } from "../../../stores/ApiTypes";
+import { Workflow, Node } from "../../../stores/ApiTypes";
+import type { NodeUIProperties } from "../../../stores/nodeUiDefaults";
 
 interface MiniAppResultsProps {
   results: MiniAppResult[];
@@ -32,12 +33,15 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
     }
     return new Set(
       workflow.graph.nodes
-        .filter((node: any) => 
-          // Exclude bypassed nodes
-          node.ui_properties?.bypassed ||
-          // Exclude PreviewNode - they shouldn't show in app mode
-          node.type === "nodetool.workflows.base_node.Preview"
-        )
+        .filter((node: Node) => {
+          const uiProps = node.ui_properties as NodeUIProperties | undefined;
+          return (
+            // Exclude bypassed nodes
+            uiProps?.bypassed ||
+            // Exclude PreviewNode - they shouldn't show in app mode
+            node.type === "nodetool.workflows.base_node.Preview"
+          );
+        })
         .map((node) => node.id)
     );
   }, [workflow]);
@@ -59,9 +63,10 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
     const outputNodes = workflow.graph.nodes.filter(
       (node) => node.type?.includes(".output.")
     );
-    const activeOutputNodes = outputNodes.filter(
-      (node: any) => !node.ui_properties?.bypassed
-    );
+    const activeOutputNodes = outputNodes.filter((node: Node) => {
+      const uiProps = node.ui_properties as NodeUIProperties | undefined;
+      return !uiProps?.bypassed;
+    });
 
     return {
       totalOutputs: outputNodes.length,
