@@ -216,12 +216,24 @@ const VerticalToolbar = memo(function VerticalToolbar({
     setCollectionsOpen(true);
   }, [setCollectionsOpen]);
 
+  const handleCollectionsClose = useCallback(() => {
+    setCollectionsOpen(false);
+  }, [setCollectionsOpen]);
+
   const handleModelsClick = useCallback(() => {
     setModelsOpen(true);
   }, [setModelsOpen]);
 
+  const handleModelsClose = useCallback(() => {
+    setModelsOpen(false);
+  }, [setModelsOpen]);
+
   const handleWorkspacesClick = useCallback(() => {
     setWorkspacesOpen(true);
+  }, [setWorkspacesOpen]);
+
+  const handleWorkspacesClose = useCallback(() => {
+    setWorkspacesOpen(false);
   }, [setWorkspacesOpen]);
 
   const handlePanelToggleClick = useCallback(() => {
@@ -323,11 +335,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
 
       {/* Modals for Collections, Models and Workspaces */}
-      <CollectionsManager open={isCollectionsOpen} onClose={() => setCollectionsOpen(false)} />
+      <CollectionsManager open={isCollectionsOpen} onClose={handleCollectionsClose} />
       {showModelsWorkspaces && (
         <>
-          <ModelsManager open={isModelsOpen} onClose={() => setModelsOpen(false)} />
-          <WorkspacesManager open={isWorkspacesOpen} onClose={() => setWorkspacesOpen(false)} />
+          <ModelsManager open={isModelsOpen} onClose={handleModelsClose} />
+          <WorkspacesManager open={isWorkspacesOpen} onClose={handleWorkspacesClose} />
         </>
       )}
     </div>
