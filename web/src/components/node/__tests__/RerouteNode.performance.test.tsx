@@ -100,7 +100,7 @@ describe('RerouteNode Performance', () => {
 
     render(
       <Wrapper>
-        <RerouteNode id="reroute1" data={{ title: 'Reroute' } as any} selected={false} type="nodetool.workflows.base_node.Reroute" zIndex={1} isConnectable={true} xPos={0} yPos={0} dragging={false} />
+        <RerouteNode id="reroute1" data={{ title: 'Reroute' } as any} selected={false} type="nodetool.workflows.base_node.Reroute" zIndex={1} isConnectable={true} dragging={false} positionAbsoluteX={0} positionAbsoluteY={0} draggable={true} deletable={true} selectable={true} />
       </Wrapper>
     );
 
@@ -145,7 +145,7 @@ describe('RerouteNode Performance', () => {
 
     render(
       <Wrapper>
-        <RerouteNode id="reroute1" data={{ title: 'Reroute' } as any} selected={false} type="nodetool.workflows.base_node.Reroute" zIndex={1} isConnectable={true} xPos={0} yPos={0} dragging={false} />
+        <RerouteNode id="reroute1" data={{ title: 'Reroute' } as any} selected={false} type="nodetool.workflows.base_node.Reroute" zIndex={1} isConnectable={true} dragging={false} positionAbsoluteX={0} positionAbsoluteY={0} draggable={true} deletable={true} selectable={true} />
       </Wrapper>
     );
 
