@@ -7,8 +7,18 @@ import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
+/**
+ * Value type for video model selection
+ */
+interface VideoModelValue {
+  type: "video_model";
+  id: string;
+  provider: string;
+  name: string;
+}
+
 interface VideoModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: VideoModelValue) => void;
   value: string;
   task?: "text_to_video" | "image_to_video";
 }
