@@ -28,6 +28,48 @@ import { useTheme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
 
 /**
+ * Union type for all possible cell values in a DataFrame column
+ */
+export type DataframeCellValue = string | number | boolean | null | undefined;
+
+/**
+ * Row data for list-style tables (array-based)
+ */
+export type ListTableRow = DataframeCellValue[];
+
+/**
+ * Row data for dict-style tables (object-based with rownum)
+ */
+export interface DictTableRow {
+  rownum: number;
+  [columnName: string]: DataframeCellValue;
+}
+
+/**
+ * Union type for table row data (either list or dict format)
+ */
+export type TableDataRow = DictTableRow;
+
+/**
+ * New data passed to onChangeRows callback
+ */
+export type TableDataChange = DictTableRow[] | Record<string, DictTableRow>;
+
+/**
+ * Tabulator filter type for column filtering
+ */
+export interface TabulatorFilter {
+  field: string;
+  type: string;
+  value: string | number | boolean;
+}
+
+/**
+ * Array of tabulator filters for multi-column filtering
+ */
+export type TabulatorFilterArray = TabulatorFilter[][];
+
+/**
  * Formatter for datetime columns
  */
 export const datetimeFormatter: Formatter = (cell) => {
@@ -40,29 +82,29 @@ export const datetimeFormatter: Formatter = (cell) => {
 };
 
 /**
- * Coerce a value to the correct type
+ * Coerce a value to the correct type based on column definition
  */
-const coerceValue = (value: any, column: ColumnDef) => {
+const coerceValue = (value: unknown, column: ColumnDef): DataframeCellValue => {
   if (column.data_type === "int") {
-    return parseInt(value);
+    return parseInt(value as string) || 0;
   } else if (column.data_type === "float") {
-    return parseFloat(value);
+    return parseFloat(value as string) || 0.0;
   } else if (column.data_type === "datetime") {
-    return value;
+    return value as string;
   }
-  return value;
+  return value as DataframeCellValue;
 };
 
 /**
- * Coerce a row to the correct types
+ * Coerce a row to the correct types based on column definitions
  */
-const coerceRow = (rownum: number, row: any[], columns: ColumnDef[]) => {
+const coerceRow = (rownum: number, row: ListTableRow, columns: ColumnDef[]): DictTableRow => {
   return columns.reduce(
     (acc, col, index) => {
-      acc[col.name] = coerceValue(row[index], col);
+      (acc as Record<string, DataframeCellValue>)[col.name] = coerceValue(row[index], col);
       return acc;
     },
-    { rownum } as Record<string, any>
+    { rownum }
   );
 };
 
@@ -85,7 +127,7 @@ const DataTable: React.FC<DataTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
-  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Tabulator.RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
   const [isTableReady, setIsTableReady] = useState(false);
@@ -114,12 +156,12 @@ const DataTable: React.FC<DataTableProps> = ({
   const data = useMemo(() => {
     if (!dataframe.data) {return [];}
     return dataframe.data.map((row, index) => {
-      return coerceRow(index, row, dataframe.columns || []);
+      return coerceRow(index, row as ListTableRow, dataframe.columns || []);
     });
   }, [dataframe.columns, dataframe.data]);
 
   const onChangeRows = useCallback(
-    (newData: any[] | Record<string, any>) => {
+    (newData: TableDataChange) => {
       if (onChange && Array.isArray(newData)) {
         const currentDf = dataframeRef.current;
         onChange({
@@ -150,7 +192,7 @@ const DataTable: React.FC<DataTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (e: any, cell: CellComponent) {
+              cellClick: function (_e: MouseEvent, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -214,15 +256,15 @@ const DataTable: React.FC<DataTableProps> = ({
       const rownum = cell.getData().rownum;
       const currentDf = dataframeRef.current;
       const currentData = currentDf.data?.map((row, index) =>
-        coerceRow(index, row, currentDf.columns || [])
+        coerceRow(index, row as ListTableRow, currentDf.columns || [])
       ) || [];
-      
+
       onChangeRows(
         currentData.map((row, index) => {
-          if (!row) {return {};}
+          if (!row) {return { rownum: index };}
           const newRow = { ...row };
           if (index === rownum) {
-            newRow[cell.getField()] = cell.getValue();
+            (newRow as Record<string, DataframeCellValue>)[cell.getField() as string] = cell.getValue();
           }
           return newRow;
         })
@@ -298,9 +340,9 @@ const DataTable: React.FC<DataTableProps> = ({
           type: "like" as const,
           value: searchFilter
         }));
-        tabulatorRef.current.setFilter([filters] as any);
+        tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
       } else {
-        (tabulatorRef.current.clearFilter as () => void)();
+        tabulatorRef.current.clearFilter();
       }
     }
   }, [searchFilter, isTableReady]);
