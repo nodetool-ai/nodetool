@@ -28,10 +28,12 @@ const ImageSizeProperty = (props: PropertyProps) => {
     );
   });
 
-  // Ensure value is an object with defaults
-  const safeValue: ImageSizeValue = (typeof value === 'object' && value !== null) 
-    ? value 
-    : { width: 1024, height: 1024 };
+  // Ensure value is an object with defaults - memoized to prevent useCallback dependency changes
+  const safeValue: ImageSizeValue = useMemo(() => {
+    return (typeof value === 'object' && value !== null)
+      ? value
+      : { width: 1024, height: 1024 };
+  }, [value]);
 
   const [locked, setLocked] = useState(false);
   const [aspectRatio, setAspectRatio] = useState(1);
@@ -49,15 +51,15 @@ const ImageSizeProperty = (props: PropertyProps) => {
     if (!locked && safeValue.width && safeValue.height) {
         setAspectRatio(safeValue.width / safeValue.height);
     }
-  }, [safeValue.width, safeValue.height, locked]); 
+  }, [safeValue.width, safeValue.height, locked]);
 
-  const toggleLock = () => {
+  const toggleLock = useCallback(() => {
     // Ensure we have current ratio right when locking
     if (!locked && safeValue.width && safeValue.height) {
         setAspectRatio(safeValue.width / safeValue.height);
     }
     setLocked(!locked);
-  };
+  }, [locked, safeValue.width, safeValue.height]);
 
   const handleWidthChange = useCallback((_: any, val: number) => {
     const current = valueRef.current;
@@ -79,30 +81,30 @@ const ImageSizeProperty = (props: PropertyProps) => {
     }
   }, [onChange]);
 
-  const handlePresetClick = (event: React.MouseEvent<HTMLElement>) => {
+  const handlePresetClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
 
-  const handlePresetSelect = (preset: typeof PRESETS[0]) => {
+  const handlePresetSelect = useCallback((preset: typeof PRESETS[0]) => {
     onChange({ ...safeValue, width: preset.width, height: preset.height, preset: preset.label });
     if (locked) {
         setAspectRatio(preset.width / preset.height);
     }
     handleClose();
-  };
+  }, [safeValue, locked, onChange, handleClose]);
 
-  const handleSwap = () => {
+  const handleSwap = useCallback(() => {
     const newWidth = safeValue.height;
     const newHeight = safeValue.width;
     onChange({ ...safeValue, width: newWidth, height: newHeight, preset: undefined });
     if (locked) {
         setAspectRatio(newWidth / newHeight);
     }
-  };
+  }, [safeValue, locked, onChange]);
 
   // Find matching preset
   const matchedPreset = useMemo(() => {
