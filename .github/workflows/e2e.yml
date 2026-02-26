@@ -161,6 +161,7 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: electron/package-lock.json
+          check-latest: true
 
       - name: Install Electron dependencies
         run: |
