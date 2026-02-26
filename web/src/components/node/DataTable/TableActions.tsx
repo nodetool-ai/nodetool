@@ -15,18 +15,47 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import type {
+  DictTableRow,
+  DataframeCellValue,
+  TableDataChange
+} from "./DataTable";
+
+/**
+ * Union type for list table cell values (from ListTable.tsx)
+ */
+export type ListCellValue = string | number | boolean | Date | null | undefined;
+
+/**
+ * Union type for dict table cell values (from DictTable.tsx)
+ */
+export type DictCellValue = string | number | boolean | Date | null | undefined;
+
+/**
+ * Union type for all possible table data formats
+ */
+export type TableData =
+  | DictTableRow[]              // DataTable format
+  | Record<string, DictTableRow> // DataTable dict format
+  | ListCellValue[]             // ListTable format
+  | Record<string, DictCellValue>; // DictTable format
+
+/**
+ * RowComponent type from Tabulator - exported for use in other components
+ */
+export type RowComponent = Tabulator.RowComponent;
 
 interface TableActionsProps {
   tabulator: Tabulator | undefined;
-  data: any[] | Record<string, any>;
-  selectedRows: any[];
+  data: TableData;
+  selectedRows: RowComponent[];
   showSelect: boolean;
   setShowSelect: (show: boolean) => void;
   showRowNumbers?: boolean;
   setShowRowNumbers?: (show: boolean) => void;
   editable?: boolean;
   dataframeColumns?: ColumnDef[];
-  onChangeRows: (newData: any[] | Record<string, any>) => void;
+  onChangeRows: (newData: TableDataChange) => void;
   isListTable?: boolean;
   showResetSortingButton?: boolean;
   showRowNumbersButton?: boolean;
@@ -62,7 +91,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   );
 
   const handleCopyData = () => {
-    let dataToStringify;
+    let dataToStringify: unknown;
     if (isListTable) {
       dataToStringify = Array.isArray(data) ? data : Object.values(data);
     } else {
@@ -86,7 +115,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     const shouldTreatAsList = isListTable || !dataframeColumns;
     if (shouldTreatAsList) {
       if (Array.isArray(data)) {
-        let defaultValue: any = "";
+        let defaultValue: DataframeCellValue = "";
 
         // If we have existing data, try to match its type
         if (data.length > 0) {
@@ -114,25 +143,25 @@ const TableActions: React.FC<TableActionsProps> = memo(({
               defaultValue = "";
           }
         }
-        onChangeRows([...data, defaultValue]);
+        (onChangeRows as (newData: unknown) => void)([...data, defaultValue]);
       } else {
         const newKey = `new_key_${Object.keys(data).length}`;
-        onChangeRows({ ...data, [newKey]: "" });
+        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
       }
     } else {
       if (Array.isArray(data) && dataframeColumns) {
         const newRow = defaultRow(dataframeColumns);
-        onChangeRows([...data, newRow]);
+        (onChangeRows as (newData: unknown) => void)([...data, newRow]);
       } else if (!Array.isArray(data)) {
         const newKey = `new_key_${Object.keys(data).length}`;
-        onChangeRows({ ...data, [newKey]: "" });
+        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
       }
     }
   };
 
   const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
-      onChangeRows(
+      (onChangeRows as (newData: unknown) => void)(
         data.filter((_, index) => {
           return !selectedRows.some(
             (selectedRow) => selectedRow.getData().rownum === index
@@ -145,7 +174,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         const key = row.getData().key;
         delete newData[key];
       });
-      onChangeRows(newData);
+      (onChangeRows as (newData: unknown) => void)(newData);
     }
   }, [data, selectedRows, onChangeRows]);
 
@@ -297,10 +326,10 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         const dataRows = hasHeaderRow ? rows.slice(1) : rows;
         
         const newRows = dataRows.map((row) => {
-          const newRow: Record<string, any> = {};
+          const newRow: DictTableRow = { rownum: 0 };
           dataframeColumns.forEach((col, dfIdx) => {
             // Find which paste column maps to this dataframe column
-            let value: any = "";
+            let value: DataframeCellValue = "";
             for (const [pasteIdx, mappedDfIdx] of columnMapping.entries()) {
               if (mappedDfIdx === dfIdx) {
                 value = row[pasteIdx] ?? "";
@@ -313,9 +342,9 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             }
             // Coerce to correct type
             if (col.data_type === "int") {
-              value = parseInt(value) || 0;
+              value = parseInt(value as string) || 0;
             } else if (col.data_type === "float") {
-              value = parseFloat(value) || 0.0;
+              value = parseFloat(value as string) || 0.0;
             }
             newRow[col.name] = value;
           });
@@ -367,7 +396,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     const headers = dataframeColumns.map((c) => `"${c.name}"`).join(",");
     const rows = data.map((row) => {
       return dataframeColumns.map((col) => {
-        const value = row[col.name];
+        const value = (row as Record<string, DataframeCellValue>)[col.name];
         // Escape quotes and wrap in quotes
         const strValue = String(value ?? "").replace(/"/g, '""');
         return `"${strValue}"`;
@@ -393,12 +422,12 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   // Export JSON - exclude select and rownum columns - kept for future use
   const _handleExportJSON = useCallback(() => {
     if (!dataframeColumns || !Array.isArray(data)) {return;}
-    
+
     // Build clean data without utility columns
     const cleanData = data.map((row) => {
-      const cleanRow: Record<string, any> = {};
+      const cleanRow: Record<string, DataframeCellValue> = {};
       dataframeColumns.forEach((col) => {
-        cleanRow[col.name] = row[col.name];
+        cleanRow[col.name] = (row as Record<string, DataframeCellValue>)[col.name];
       });
       return cleanRow;
     });
@@ -535,14 +564,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
 export default TableActions;
 
-const defaultRow = (columns: ColumnDef[]) => {
+const defaultRow = (columns: ColumnDef[]): DictTableRow => {
   return columns.reduce((acc, col) => {
-    acc[col.name] = defaultValue(col);
+    (acc as Record<string, DataframeCellValue>)[col.name] = defaultValue(col);
     return acc;
-  }, {} as Record<string, any>);
+  }, { rownum: 0 });
 };
 
-const defaultValue = (column: ColumnDef) => {
+const defaultValue = (column: ColumnDef): DataframeCellValue => {
   if (column.data_type === "int") {
     return 0;
   } else if (column.data_type === "float") {
