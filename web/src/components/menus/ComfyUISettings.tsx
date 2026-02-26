@@ -15,15 +15,18 @@ const ComfyUISettings: React.FC = () => {
   const hasElectronProxyBridge =
     typeof window !== "undefined" &&
     typeof window.api?.localhostProxy?.request === "function";
-  const {
-    baseUrl,
-    isConnected,
-    isConnecting,
-    connectionError,
-    setBaseUrl,
-    connect,
-    disconnect
-  } = useComfyUIStore();
+
+  // Use selective selectors to prevent unnecessary re-renders
+  // Only subscribe to the specific state values this component uses
+  const baseUrl = useComfyUIStore((state) => state.baseUrl);
+  const isConnected = useComfyUIStore((state) => state.isConnected);
+  const isConnecting = useComfyUIStore((state) => state.isConnecting);
+  const connectionError = useComfyUIStore((state) => state.connectionError);
+
+  // Actions are stable references, so we can destructure them directly
+  const setBaseUrl = useComfyUIStore((state) => state.setBaseUrl);
+  const connect = useComfyUIStore((state) => state.connect);
+  const disconnect = useComfyUIStore((state) => state.disconnect);
 
   const [localUrl, setLocalUrl] = useState(baseUrl);
 
