@@ -1,5 +1,5 @@
 import { useCallback, MouseEvent as ReactMouseEvent } from "react";
-import { Edge } from "@xyflow/react";
+import type { Edge } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -9,15 +9,15 @@ import useConnectionStore from "../../stores/ConnectionStore";
  */
 export type EdgeHandlersResult = {
   /** Handler for mouse entering an edge (hover start) */
-  onEdgeMouseEnter: (event: React.MouseEvent, edge: any) => void;
+  onEdgeMouseEnter: (event: React.MouseEvent, edge: Edge) => void;
   /** Handler for mouse leaving an edge (hover end) */
-  onEdgeMouseLeave: (event: React.MouseEvent, edge: any) => void;
+  onEdgeMouseLeave: (event: React.MouseEvent, edge: Edge) => void;
   /** Handler for right-clicking an edge */
   onEdgeContextMenu: (event: ReactMouseEvent, edge: Edge) => void;
   /** Handler called when edge dragging starts */
   onEdgeUpdateStart: () => void;
   /** Handler called when edge dragging ends */
-  onEdgeUpdateEnd: (event: any, edge: Edge) => void;
+  onEdgeUpdateEnd: (event: MouseEvent, edge: Edge) => void;
   /** Handler for middle-click on an edge (deletes the edge) */
   onEdgeClick: (event: ReactMouseEvent, edge: Edge) => void;
 };
@@ -74,7 +74,7 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
 
   /* EDGE HOVER */
   const onEdgeMouseEnter = useCallback(
-    (event: React.MouseEvent, edge: any) => {
+    (event: React.MouseEvent, edge: Edge) => {
       const hovered_edge = findEdge(edge.id);
       if (hovered_edge) {
         hovered_edge.label = edge.className
@@ -98,7 +98,7 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
 
   // edge hover out
   const onEdgeMouseLeave = useCallback(
-    (event: React.MouseEvent, edge: any) => {
+    (event: React.MouseEvent, edge: Edge) => {
       const hovered_edge = findEdge(edge.id);
       if (hovered_edge) {
         hovered_edge.animated = false;
@@ -140,7 +140,7 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
 
   // change edge connection
   const onEdgeUpdateEnd = useCallback(
-    (event: any, edge: Edge) => {
+    (event: MouseEvent, edge: Edge) => {
       // delete edge when dropped
       if (!edgeUpdateSuccessful) {
         deleteEdge(edge.id);
