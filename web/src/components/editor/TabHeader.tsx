@@ -118,6 +118,8 @@ const TabHeader = ({
     onClose(workflow.id);
   }, [onClose, workflow.id]);
 
+  // Handle middle-click (mouse button 1) to close tab
+  // Using auxclick event instead of mousedown for semantically correct handling
   const handleAuxClick = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
       if (event.button === 1) {
@@ -129,14 +131,13 @@ const TabHeader = ({
     [onClose, workflow.id]
   );
 
-  // Memoize mouse down handler to prevent re-renders of child elements
+  // Memoize mouse down handler for drag operations (not for closing)
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Middle mouse button (button 1)
-    if (e.button === 1) {
+    // Only prevent default on primary button to allow text selection
+    if (e.button === 0) {
       e.preventDefault();
-      onClose(workflow.id);
     }
-  }, [onClose, workflow.id]);
+  }, []);
 
   const handleDragOver = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
