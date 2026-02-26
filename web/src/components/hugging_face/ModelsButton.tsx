@@ -10,10 +10,11 @@ const ModelsButton: React.FC = memo(function ModelsButton() {
 
   // useCallback needed for handleOpen as it's passed to memoized ToolbarIconButton
   const handleOpen = useCallback(() => setIsOpen(true), [setIsOpen]);
+  const handleClose = useCallback(() => setIsOpen(false), [setIsOpen]);
 
   return (
     <>
-      <ModelsManager open={isOpen} onClose={() => setIsOpen(false)} />
+      <ModelsManager open={isOpen} onClose={handleClose} />
       <ToolbarIconButton
         icon={<IconForType iconName="language_model" showTooltip={false} />}
         tooltip="Model Manager"
