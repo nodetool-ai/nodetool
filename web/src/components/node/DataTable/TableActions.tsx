@@ -98,7 +98,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       dataToStringify = Array.isArray(data)
         ? (data as DictTableRow[]).map((row) => {
             // Create a new object excluding rownum
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+             
             const { rownum, ...rest } = row;
             return rest;
           })
