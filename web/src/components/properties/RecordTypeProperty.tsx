@@ -69,7 +69,7 @@ const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
     const columns = value.columns || [];
     let newColumnName = "Column 1";
     let counter = 1;
-    while (columns.find((col: any) => col.name === newColumnName)) {
+    while (columns.find((col: ColumnDef) => col.name === newColumnName)) {
       newColumnName = `Column ${counter}`;
       counter++;
     }

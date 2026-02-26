@@ -12,6 +12,14 @@ import {
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "lodash/isEqual";
+
+/**
+ * Interface for a tool object in the tools list property
+ */
+interface Tool {
+  type: string;
+  name: string;
+}
 import {
   MailOutline,
   Search,
@@ -84,7 +92,7 @@ const TOOL_ICONS: Record<string, JSX.Element> = {
 const ToolsListProperty = (props: PropertyProps) => {
   const id = `tools-list-${props.property.name}-${props.propertyIndex}`;
   const toolNames: string[] = useMemo(
-    () => props.value?.map((tool: any) => tool.name) || [],
+    () => props.value?.map((tool: Tool) => tool.name) || [],
     [props.value]
   );
 
