@@ -25,7 +25,10 @@ jest.mock("../AssetGridStore", () => ({
 
 jest.mock("../../utils/errorHandling", () => ({
   createErrorMessage: jest.fn(
-    (error) => `Error: ${error?.response?.data?.message || error.message}`
+    (error, message) =>
+      new Error(
+        message || `Error: ${error?.response?.data?.message || error.message}`
+      )
   )
 }));
 jest.mock("../BASE_URL", () => ({
