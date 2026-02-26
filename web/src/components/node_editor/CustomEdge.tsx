@@ -1,9 +1,12 @@
 /**
  * Custom edge component with tooltip support for stream item counts.
  * Memoized to prevent re-renders for every edge in large workflows.
- * 
+ *
  * EXPERIMENTAL: Enhanced with data flow particle animation for visual feedback
  * when data is actively flowing through the edge.
+ *
+ * EXPERIMENTAL: Critical path highlighting shows the longest execution chain
+ * that determines total workflow time.
  */
 import {
   BaseEdge,
@@ -39,9 +42,12 @@ export function CustomEdge({
   const counter = data?.counter as number | undefined;
   const dataTypeLabel = data?.dataTypeLabel as string | undefined;
   const showLabel = counter && counter > 1;
-  
+
   // EXPERIMENTAL: Check if edge has active data flow
   const isActive = data?.status === "message_sent";
+
+  // EXPERIMENTAL: Check if edge is on the critical execution path
+  const isCriticalPath = data?.isCriticalPath === true;
 
   // Memoize tooltip text to avoid recalculating on every render
   const tooltipText = useMemo(() => {
@@ -78,6 +84,15 @@ export function CustomEdge({
     })
   }), [style, isActive]);
 
+  // EXPERIMENTAL: Build className for critical path styling
+  const edgeClassName = useMemo(() => {
+    const classes = ["react-flow__edge"];
+    if (isCriticalPath) {
+      classes.push("critical-path");
+    }
+    return classes.join(" ");
+  }, [isCriticalPath]);
+
   return (
     <>
       <BaseEdge
@@ -85,6 +100,7 @@ export function CustomEdge({
         path={edgePath}
         style={enhancedStyle}
         markerEnd={markerEnd}
+        className={edgeClassName}
       />
       {showLabel && (
         <EdgeLabelRenderer>
@@ -120,7 +136,8 @@ const MemoizedCustomEdge = memo(CustomEdge, (prevProps, nextProps) => {
     prevProps.style === nextProps.style &&
     prevProps.data?.counter === nextProps.data?.counter &&
     prevProps.data?.dataTypeLabel === nextProps.data?.dataTypeLabel &&
-    prevProps.data?.status === nextProps.data?.status // Compare status for particle animation
+    prevProps.data?.status === nextProps.data?.status &&
+    prevProps.data?.isCriticalPath === nextProps.data?.isCriticalPath // Compare critical path status
   );
 });
 
