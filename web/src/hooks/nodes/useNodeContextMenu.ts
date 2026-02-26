@@ -14,6 +14,7 @@ import {
   inputToConstantType
 } from "../../utils/NodeTypeMapping";
 import { useRunFromHere } from "./useRunFromHere";
+import { useDuplicateNodes } from "../useDuplicate";
 
 interface UseNodeContextMenuReturn {
   menuPosition: { x: number; y: number } | null;
@@ -31,6 +32,8 @@ interface UseNodeContextMenuReturn {
     handleDeleteNode: () => void;
     handleConvertToInput: () => void;
     handleConvertToConstant: () => void;
+    handleDuplicate: () => void;
+    handleDuplicateVertical: () => void;
   };
   conditions: {
     hasCommentTitle: boolean;
@@ -56,7 +59,8 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     deleteNode,
     getSelectedNodes,
     toggleBypass,
-    nodes
+    nodes,
+    setSelectedNodes
   } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode,
@@ -64,7 +68,8 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     deleteNode: state.deleteNode,
     getSelectedNodes: state.getSelectedNodes,
     toggleBypass: state.toggleBypass,
-    nodes: state.nodes
+    nodes: state.nodes,
+    setSelectedNodes: state.setSelectedNodes
   }));
 
   const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
@@ -200,6 +205,41 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     closeContextMenu
   ]);
 
+  const duplicateNode = useDuplicateNodes(false, true);
+  const duplicateNodeVertical = useDuplicateNodes(true, true);
+
+  const handleDuplicate = useCallback(() => {
+    if (!node) {
+      return;
+    }
+    // Select the current node if it's not already selected
+    const selectedNodes = getSelectedNodes();
+    if (!selectedNodes.some((n) => n.id === node.id)) {
+      setSelectedNodes([node]);
+    }
+    duplicateNode();
+    closeContextMenu();
+  }, [node, getSelectedNodes, setSelectedNodes, duplicateNode, closeContextMenu]);
+
+  const handleDuplicateVertical = useCallback(() => {
+    if (!node) {
+      return;
+    }
+    // Select the current node if it's not already selected
+    const selectedNodes = getSelectedNodes();
+    if (!selectedNodes.some((n) => n.id === node.id)) {
+      setSelectedNodes([node]);
+    }
+    duplicateNodeVertical();
+    closeContextMenu();
+  }, [
+    node,
+    getSelectedNodes,
+    setSelectedNodes,
+    duplicateNodeVertical,
+    closeContextMenu
+  ]);
+
   const canConvertToInput = Boolean(
     nodeId && constantToInputType(node?.type ?? "")
   );
@@ -223,7 +263,9 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       handleSelectAllSameType,
       handleDeleteNode,
       handleConvertToInput,
-      handleConvertToConstant
+      handleConvertToConstant,
+      handleDuplicate,
+      handleDuplicateVertical
     },
     conditions: {
       hasCommentTitle,

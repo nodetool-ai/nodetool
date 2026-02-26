@@ -14,6 +14,7 @@ jest.mock("../../../stores/ResultsStore");
 jest.mock("../../../stores/WorkflowRunner");
 jest.mock("../../../hooks/browser/useClipboard");
 jest.mock("../useRemoveFromGroup");
+jest.mock("../../useDuplicate");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../core/graph");
 jest.mock("../../../utils/edgeValue");
@@ -56,6 +57,7 @@ import useResultsStore from "../../../stores/ResultsStore";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useRemoveFromGroup } from "../useRemoveFromGroup";
+import { useDuplicateNodes } from "../../useDuplicate";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { subgraph } from "../../../core/graph";
 import { resolveExternalEdgeValue } from "../../../utils/edgeValue";
@@ -69,6 +71,7 @@ const mockedUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockedUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockedUseClipboard = useClipboard as jest.Mock;
 const mockedUseRemoveFromGroup = useRemoveFromGroup as jest.Mock;
+const mockedUseDuplicateNodes = useDuplicateNodes as jest.Mock;
 const mockedUseMetadataStore = useMetadataStore as unknown as jest.Mock;
 const mockedSubgraph = subgraph as jest.Mock;
 const mockedResolveExternalEdgeValue = resolveExternalEdgeValue as jest.Mock;
@@ -84,6 +87,7 @@ describe("useNodeContextMenu", () => {
   const mockDeleteNode = jest.fn();
   const mockToggleBypass = jest.fn();
   const mockGetSelectedNodes = jest.fn<Array<{ id: string; data: Record<string, unknown> }>, []>(() => []);
+  const mockSetSelectedNodes = jest.fn();
   const mockAddNotification = jest.fn();
   const mockWriteClipboard = jest.fn();
   const mockRun = jest.fn();
@@ -91,6 +95,8 @@ describe("useNodeContextMenu", () => {
   const mockRemoveFromGroup = jest.fn();
   const mockGetMetadata = jest.fn();
   const mockFindNode = jest.fn();
+  const mockDuplicateNode = jest.fn();
+  const mockDuplicateNodeVertical = jest.fn();
 
   const mockNode = {
     id: "node-1",
@@ -140,9 +146,14 @@ describe("useNodeContextMenu", () => {
         nodes: mockNodes,
         edges: mockEdges,
         workflow: mockWorkflow,
-        findNode: mockFindNode
+        findNode: mockFindNode,
+        setSelectedNodes: mockSetSelectedNodes
       };
       return selector(state);
+    });
+
+    mockedUseDuplicateNodes.mockImplementation((vertical: boolean) => {
+      return vertical ? mockDuplicateNodeVertical : mockDuplicateNode;
     });
 
     mockedUseNotificationStore.mockImplementation((selector) => {
@@ -196,6 +207,8 @@ describe("useNodeContextMenu", () => {
       expect(typeof result.current.handlers.handleDeleteNode).toBe("function");
       expect(typeof result.current.handlers.handleConvertToInput).toBe("function");
       expect(typeof result.current.handlers.handleConvertToConstant).toBe("function");
+      expect(typeof result.current.handlers.handleDuplicate).toBe("function");
+      expect(typeof result.current.handlers.handleDuplicateVertical).toBe("function");
     });
 
     it("returns all condition booleans", () => {
@@ -236,6 +249,7 @@ describe("useNodeContextMenu", () => {
           deleteNode: mockDeleteNode,
           getSelectedNodes: mockGetSelectedNodes,
           toggleBypass: mockToggleBypass,
+          setSelectedNodes: mockSetSelectedNodes,
           nodes: [nodeWithComment, ...mockNodes.slice(1)],
           edges: mockEdges,
           workflow: mockWorkflow,
@@ -676,6 +690,108 @@ describe("useNodeContextMenu", () => {
       const { result } = renderHook(() => useNodeContextMenu());
 
       expect(result.current.conditions.canConvertToConstant).toBe(false);
+    });
+  });
+
+  describe("handleDuplicate", () => {
+    it("selects node and duplicates horizontally when node is not selected", () => {
+      mockGetSelectedNodes.mockReturnValue([]);
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleDuplicate();
+      });
+
+      expect(mockSetSelectedNodes).toHaveBeenCalledWith([mockNode]);
+      expect(mockDuplicateNode).toHaveBeenCalled();
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("duplicates horizontally when node is already selected", () => {
+      mockGetSelectedNodes.mockReturnValue([mockNode]);
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleDuplicate();
+      });
+
+      expect(mockSetSelectedNodes).not.toHaveBeenCalled();
+      expect(mockDuplicateNode).toHaveBeenCalled();
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("does nothing when node is null", () => {
+      mockedUseContextMenuStore.mockImplementation((selector) => {
+        const state = {
+          menuPosition: null,
+          closeContextMenu: mockCloseContextMenu,
+          nodeId: null
+        };
+        return selector(state);
+      });
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleDuplicate();
+      });
+
+      expect(mockSetSelectedNodes).not.toHaveBeenCalled();
+      expect(mockDuplicateNode).not.toHaveBeenCalled();
+      expect(mockCloseContextMenu).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("handleDuplicateVertical", () => {
+    it("selects node and duplicates vertically when node is not selected", () => {
+      mockGetSelectedNodes.mockReturnValue([]);
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleDuplicateVertical();
+      });
+
+      expect(mockSetSelectedNodes).toHaveBeenCalledWith([mockNode]);
+      expect(mockDuplicateNodeVertical).toHaveBeenCalled();
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("duplicates vertically when node is already selected", () => {
+      mockGetSelectedNodes.mockReturnValue([mockNode]);
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleDuplicateVertical();
+      });
+
+      expect(mockSetSelectedNodes).not.toHaveBeenCalled();
+      expect(mockDuplicateNodeVertical).toHaveBeenCalled();
+      expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+
+    it("does nothing when node is null", () => {
+      mockedUseContextMenuStore.mockImplementation((selector) => {
+        const state = {
+          menuPosition: null,
+          closeContextMenu: mockCloseContextMenu,
+          nodeId: null
+        };
+        return selector(state);
+      });
+
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleDuplicateVertical();
+      });
+
+      expect(mockSetSelectedNodes).not.toHaveBeenCalled();
+      expect(mockDuplicateNodeVertical).not.toHaveBeenCalled();
+      expect(mockCloseContextMenu).not.toHaveBeenCalled();
     });
   });
 

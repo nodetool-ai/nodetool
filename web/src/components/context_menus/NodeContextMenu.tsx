@@ -13,6 +13,8 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
+import QueueIcon from "@mui/icons-material/Queue";
+import SouthIcon from "@mui/icons-material/South";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
@@ -56,6 +58,34 @@ const NodeContextMenu: React.FC = () => {
         tooltip="Remove this node from the group"
       />
     ),
+    <ContextMenuItem
+      key="duplicate"
+      onClick={handlers.handleDuplicate}
+      label="Duplicate"
+      IconComponent={<QueueIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">Duplicate</div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>D</kbd> / <kbd>⌘</kbd>+<kbd>D</kbd>
+          </div>
+        </div>
+      }
+    />,
+    <ContextMenuItem
+      key="duplicate-vertical"
+      onClick={handlers.handleDuplicateVertical}
+      label="Duplicate Vertical"
+      IconComponent={<SouthIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">Duplicate Vertical</div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>SHIFT</kbd>+<kbd>D</kbd> / <kbd>⌘</kbd>+<kbd>SHIFT</kbd>+<kbd>D</kbd>
+          </div>
+        </div>
+      }
+    />,
     <ContextMenuItem
       key="run-from-here"
       onClick={handlers.handleRunFromHere}
