@@ -68,3 +68,29 @@ Verify by dragging nodes in a large graph (1000+ nodes). The UI should remain re
 - Created `web/src/utils/__tests__/nodeEquality.test.ts` to verify the equality logic.
 - Ran `cd web && npm test src/utils/__tests__/nodeEquality.test.ts`: Passed.
 - Ran `cd web && npm run typecheck`: Passed.
+
+# ⚡ Bolt: RerouteNode Performance Optimization
+
+## 💡 What
+Refactored `RerouteNode.tsx` to use a granular `useNodes` selector.
+Instead of subscribing to the entire `state.edges` array (which changes reference on any edge update), it now selects only the specific upstream connection data (`sourceType`, `sourceData`, `sourceHandle`) required to determine the node color.
+
+## 🎯 Why
+`RerouteNode` is frequently used in workflows for cleanup.
+Previously, every `RerouteNode` instance would re-render whenever *any* edge in the graph was added, removed, or updated (including status/animated edges).
+In large graphs with many reroute nodes, this caused significant unnecessary re-renders during editing and execution.
+
+## 📊 Impact
+- **Eliminates Unnecessary Re-renders:** `RerouteNode` now only re-renders when its specific upstream connection changes.
+- **Reduces Main Thread Work:** Prevents O(N) component re-renders where N is the number of reroute nodes.
+- **Improved Responsiveness:** Smoother editing experience in large workflows.
+
+## 🔬 Measurement
+Verified using a performance regression test that counts renders of the internal `Handle` component.
+- Before: Adding an unrelated edge caused `RerouteNode` to re-render.
+- After: Adding an unrelated edge does NOT cause `RerouteNode` to re-render.
+
+## 🧪 Testing
+- Created `web/src/components/node/__tests__/RerouteNode.performance.test.tsx` to verify the optimization.
+- Ran `cd web && npm test src/components/node/__tests__/RerouteNode.performance.test.tsx`: Passed.
+- Ran `make test-web`: All tests passed.
