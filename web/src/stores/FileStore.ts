@@ -33,12 +33,18 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => ({
   label: file.name
 });
 
-const partitionDirectories = (files: FileInfo[]): [FileInfo[], FileInfo[]] =>
-  files.reduce<[FileInfo[], FileInfo[]]>(
-    ([dirs, files], item) =>
-      item.is_dir ? [[...dirs, item], files] : [dirs, [...files, item]],
-    [[], []]
-  );
+const partitionDirectories = (files: FileInfo[]): [FileInfo[], FileInfo[]] => {
+  const dirs: FileInfo[] = [];
+  const nonDirs: FileInfo[] = [];
+  for (const file of files) {
+    if (file.is_dir) {
+      dirs.push(file);
+    } else {
+      nonDirs.push(file);
+    }
+  }
+  return [dirs, nonDirs];
+};
 
 interface FileStore {
   fileTree: TreeViewItem[];
