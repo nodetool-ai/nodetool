@@ -665,3 +665,46 @@ ul.multi-outputs li::marker {
     animation: none;
   }
 }
+
+/*
+   CRITICAL PATH VISUALIZATION
+   
+   Styles for highlighting the execution critical path.
+   @experimental
+*/
+
+/* Edge on critical path - highlighted with warning color */
+.react-flow .react-flow__edge.critical-path .react-flow__edge-path {
+  stroke: var(--palette-warning-main);
+  stroke-width: 3;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 3px var(--palette-warning-main));
+}
+
+/* Node on critical path - subtle glow effect */
+.react-flow .react-flow__node.critical-path {
+  filter: drop-shadow(0 0 4px var(--palette-warning-dark));
+}
+
+/* Critical path badge animation */
+@keyframes criticalPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+.react-flow .react-flow__node.critical-path .critical-path-badge {
+  animation: criticalPulse 2s ease-in-out infinite;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .react-flow .react-flow__node.critical-path .critical-path-badge {
+    animation: none;
+  }
+}
