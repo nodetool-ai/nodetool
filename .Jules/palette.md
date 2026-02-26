@@ -7,3 +7,7 @@
 ## 2025-05-23 - Inconsistent Accessible Names in Primitives
 **Learning:** `RefreshButton` was missing `aria-label` while other primitives had it, causing it to be invisible to screen readers (and Playwright `get_by_role` with name). Even if `Tooltip` is present, the interactive element must have an accessible name.
 **Action:** Always verify `aria-label` on icon-only buttons, even if a Tooltip is used.
+
+## 2026-02-27 - Hidden Focus Traps in State Buttons
+**Learning:** `StateIconButton` (used for ThemeToggle, AgentMode) had hardcoded `tabIndex={-1}`, making critical global controls keyboard-inaccessible. This pattern of "canvas-first" components breaking standard UI accessibility persists.
+**Action:** When auditing UI primitives, check if they are "dual-use" (canvas vs. panel) and ensure `tabIndex` is configurable, defaulting to `0`.
