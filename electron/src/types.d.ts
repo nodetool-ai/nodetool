@@ -151,6 +151,8 @@ declare global {
           modelBackend?: ModelBackend,
           installOllama?: boolean,
           installLlamaCpp?: boolean,
+          startOllamaOnStartup?: boolean,
+          startLlamaCppOnStartup?: boolean,
         ) => Promise<void>;
         onLocationPrompt: (
           callback: (data: InstallLocationData) => void,
@@ -215,6 +217,10 @@ declare global {
         getSystemInfo: () => Promise<SystemInfo>;
         getAutoUpdates: () => Promise<boolean>;
         setAutoUpdates: (enabled: boolean) => Promise<void>;
+        getModelServicesStartup: () => Promise<ModelServicesStartupSettings>;
+        setModelServicesStartup: (
+          update: ModelServicesStartupSettingsUpdate,
+        ) => Promise<ModelServicesStartupSettings>;
         openSettings: () => Promise<void>;
       };
 
@@ -556,6 +562,8 @@ export enum IpcChannels {
   SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
   SETTINGS_GET_AUTO_UPDATES = "settings-get-auto-updates",
   SETTINGS_SET_AUTO_UPDATES = "settings-set-auto-updates",
+  SETTINGS_GET_MODEL_SERVICES_STARTUP = "settings-get-model-services-startup",
+  SETTINGS_SET_MODEL_SERVICES_STARTUP = "settings-set-model-services-startup",
   SHOW_SETTINGS = "show-settings",
   // System directory channels
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY = "file-explorer-open-system-directory",
@@ -604,6 +612,8 @@ export interface InstallToLocationData {
   // Deprecated: kept for backward compatibility if needed
   installOllama?: boolean;
   installLlamaCpp?: boolean;
+  startOllamaOnStartup?: boolean;
+  startLlamaCppOnStartup?: boolean;
 }
 
 export interface FileExplorerPathRequest {
@@ -737,6 +747,8 @@ export interface IpcRequest {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
   [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: void;
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: boolean;
+  [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: void;
+  [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettingsUpdate;
   [IpcChannels.SHOW_SETTINGS]: void;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: SystemDirectory;
@@ -770,6 +782,16 @@ export interface IpcRequest {
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
+
+export interface ModelServicesStartupSettings {
+  startOllamaOnStartup: boolean;
+  startLlamaCppOnStartup: boolean;
+}
+
+export interface ModelServicesStartupSettingsUpdate {
+  startOllamaOnStartup?: boolean;
+  startLlamaCppOnStartup?: boolean;
+}
 
 export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
@@ -831,6 +853,8 @@ export interface IpcResponse {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;
   [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: boolean;
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: void;
+  [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
+  [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
   [IpcChannels.SHOW_SETTINGS]: void;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: FileExplorerResult;

@@ -473,6 +473,8 @@ const api = {
       modelBackend?: "ollama" | "llama_cpp" | "none",
       installOllama?: boolean,
       installLlamaCpp?: boolean,
+      startOllamaOnStartup?: boolean,
+      startLlamaCppOnStartup?: boolean,
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
@@ -480,6 +482,8 @@ const api = {
         modelBackend,
         installOllama,
         installLlamaCpp,
+        startOllamaOnStartup,
+        startLlamaCppOnStartup,
       }),
 
     /** Subscribe to install location prompt */
@@ -613,6 +617,17 @@ const api = {
     /** Set auto-updates setting (opt-in) */
     setAutoUpdates: (enabled: boolean) =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_SET_AUTO_UPDATES, enabled),
+
+    /** Get startup settings for managed local model services */
+    getModelServicesStartup: () =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP),
+
+    /** Update startup settings for managed local model services */
+    setModelServicesStartup: (update: {
+      startOllamaOnStartup?: boolean;
+      startLlamaCppOnStartup?: boolean;
+    }) =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP, update),
 
     /** Open the settings window */
     openSettings: () => ipcRenderer.invoke(IpcChannels.SHOW_SETTINGS),

@@ -70,6 +70,13 @@ const executeComboCallbacks = (
 
   // An active callback exists for the pressed keys.
   // Now, check if we should suppress it due to input focus.
+  
+  // Check if focus is specifically on the workflow canvas/editor
+  const isCanvasFocused =
+    activeElement?.classList?.contains("react-flow__pane") ||
+    activeElement?.closest(".react-flow__renderer") ||
+    activeElement?.closest("[data-workflow-editor]");
+  
   const isInputFocused =
     (activeElement &&
       (activeElement.tagName === "INPUT" ||
@@ -124,12 +131,13 @@ const executeComboCallbacks = (
       // Suppress global combos (including copy/cut/paste) when inputs are focused.
       // The browser's native clipboard handling will take care of text copy/cut/paste.
       // Allow Escape to proceed to close modals/editors.
-      // Allow Delete and Backspace to proceed for deleting selected nodes.
-      if (
-        pressedKeysString !== "escape" &&
-        pressedKeysString !== "delete" &&
-        pressedKeysString !== "backspace"
-      ) {
+      // Allow Delete and Backspace ONLY if the canvas/editor is focused (not text inputs).
+      const isDeleteOrBackspace =
+        pressedKeysString === "delete" || pressedKeysString === "backspace";
+      
+      if (isDeleteOrBackspace && isCanvasFocused) {
+        // Allow delete/backspace when canvas is focused to delete selected nodes
+      } else if (pressedKeysString !== "escape") {
         return;
       }
     }

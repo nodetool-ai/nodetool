@@ -25,7 +25,12 @@ import {
   IpcResponse,
   WindowCloseAction,
 } from "./types.d";
-import { readSettings, updateSetting } from "./settings";
+import {
+  readSettings,
+  updateSetting,
+  getModelServiceStartupSettings,
+  updateModelServiceStartupSettings,
+} from "./settings";
 import { createPackageManagerWindow, createSettingsWindow } from "./window";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
@@ -1231,6 +1236,26 @@ export function initializeIpcHandlers(): void {
     async (_event, enabled) => {
       logMessage(`Setting auto-updates to: ${enabled}`);
       updateSetting("autoUpdatesEnabled", enabled);
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP,
+    async () => {
+      const settings = readSettings();
+      return getModelServiceStartupSettings(settings);
+    },
+  );
+
+  createIpcMainHandler(
+    IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP,
+    async (_event, update) => {
+      logMessage(
+        `Updating model services startup settings: ${JSON.stringify(update)}`
+      );
+      const next = updateModelServiceStartupSettings(update);
+      emitServerStateChanged();
+      return next;
     },
   );
 

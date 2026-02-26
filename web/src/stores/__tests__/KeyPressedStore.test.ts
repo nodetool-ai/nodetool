@@ -364,7 +364,7 @@ describe("KeyPressedStore", () => {
       unregisterComboCallback("escape");
     });
 
-    it("allows delete callback when input is focused", () => {
+    it("suppresses delete callback when input is focused", () => {
       const callback = jest.fn();
       registerComboCallback("delete", { callback, preventDefault: true });
 
@@ -379,14 +379,14 @@ describe("KeyPressedStore", () => {
         setKeysPressed({ delete: true }, event);
       });
 
-      // Delete should still work even when input is focused
-      expect(callback).toHaveBeenCalled();
+      // Delete should be suppressed when input is focused (to allow text editing)
+      expect(callback).not.toHaveBeenCalled();
 
       document.body.removeChild(input);
       unregisterComboCallback("delete");
     });
 
-    it("allows backspace callback when input is focused", () => {
+    it("suppresses backspace callback when input is focused", () => {
       const callback = jest.fn();
       registerComboCallback("backspace", { callback, preventDefault: true });
 
@@ -401,10 +401,56 @@ describe("KeyPressedStore", () => {
         setKeysPressed({ backspace: true }, event);
       });
 
-      // Backspace should still work even when input is focused
-      expect(callback).toHaveBeenCalled();
+      // Backspace should be suppressed when input is focused (to allow text editing)
+      expect(callback).not.toHaveBeenCalled();
 
       document.body.removeChild(input);
+      unregisterComboCallback("backspace");
+    });
+
+    it("allows delete callback when canvas is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("delete", { callback, preventDefault: true });
+
+      // Create and focus a canvas element (simulating react-flow__pane)
+      const canvas = document.createElement("div");
+      canvas.classList.add("react-flow__pane");
+      document.body.appendChild(canvas);
+      canvas.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: "Delete" });
+      act(() => {
+        setKeysPressed({ delete: true }, event);
+      });
+
+      // Delete should work when canvas is focused
+      expect(callback).toHaveBeenCalled();
+
+      document.body.removeChild(canvas);
+      unregisterComboCallback("delete");
+    });
+
+    it("allows backspace callback when canvas is focused", () => {
+      const callback = jest.fn();
+      registerComboCallback("backspace", { callback, preventDefault: true });
+
+      // Create and focus a canvas element (simulating react-flow__renderer)
+      const canvas = document.createElement("div");
+      canvas.classList.add("react-flow__renderer");
+      document.body.appendChild(canvas);
+      canvas.focus();
+
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      const event = new KeyboardEvent("keydown", { key: "Backspace" });
+      act(() => {
+        setKeysPressed({ backspace: true }, event);
+      });
+
+      // Backspace should work when canvas is focused
+      expect(callback).toHaveBeenCalled();
+
+      document.body.removeChild(canvas);
       unregisterComboCallback("backspace");
     });
   });

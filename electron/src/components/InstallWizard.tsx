@@ -79,8 +79,10 @@ interface InstallWizardProps {
   defaultSelectedModules?: string[];
 }
 
-// Add runtime selection type
-type RuntimeOption = "ollama" | "llamacpp" | "skip";
+interface RuntimeSelection {
+  ollama: boolean;
+  llamacpp: boolean;
+}
 
 interface PackageOptionProps {
   name: string;
@@ -193,7 +195,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
   >("welcome");
   const [selectedPath, setSelectedPath] = useState(defaultPath);
   const [selectedRuntime, setSelectedRuntime] =
-    useState<RuntimeOption>("ollama");
+    useState<RuntimeSelection>({ ollama: true, llamacpp: false });
   const LOCAL_STORAGE_KEY = "installer.selectedModules";
   const RUNTIME_STORAGE_KEY = "installer.selectedRuntime";
   const [pathError, setPathError] = useState<string | null>(null);
@@ -243,13 +245,15 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     };
   }, []);
 
-  // Prefer Ollama when it's detected (avoid leaving the user on "skip" due to prior runs).
+  // Prefer Ollama when it's detected and no runtime has been selected.
   useEffect(() => {
     const detected = isOllamaRunning || isOllamaInstalled;
-    if (currentStep === "runtime" && detected && selectedRuntime === "skip") {
-      setSelectedRuntime("ollama");
+    const hasAnyRuntime = selectedRuntime.ollama || selectedRuntime.llamacpp;
+    if (currentStep === "runtime" && detected && !hasAnyRuntime) {
+      const nextSelection = { ollama: true, llamacpp: selectedRuntime.llamacpp };
+      setSelectedRuntime(nextSelection);
       try {
-        localStorage.setItem(RUNTIME_STORAGE_KEY, "ollama");
+        localStorage.setItem(RUNTIME_STORAGE_KEY, JSON.stringify(nextSelection));
       } catch {
         // ignore
       }
@@ -267,12 +271,36 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     return null;
   }, []);
 
-  // Load runtime preference from localStorage
+  // Load runtime preference from localStorage (supports legacy single-choice values).
   useEffect(() => {
     try {
       const saved = localStorage.getItem(RUNTIME_STORAGE_KEY);
-      if (saved && ["ollama", "llamacpp", "skip"].includes(saved)) {
-        setSelectedRuntime(saved as RuntimeOption);
+      if (!saved) {
+        return;
+      }
+
+      if (saved === "ollama") {
+        setSelectedRuntime({ ollama: true, llamacpp: false });
+        return;
+      }
+      if (saved === "llamacpp") {
+        setSelectedRuntime({ ollama: false, llamacpp: true });
+        return;
+      }
+      if (saved === "skip") {
+        setSelectedRuntime({ ollama: false, llamacpp: false });
+        return;
+      }
+
+      const parsed = JSON.parse(saved) as Partial<RuntimeSelection>;
+      if (
+        typeof parsed.ollama === "boolean" &&
+        typeof parsed.llamacpp === "boolean"
+      ) {
+        setSelectedRuntime({
+          ollama: parsed.ollama,
+          llamacpp: parsed.llamacpp,
+        });
       }
     } catch {
       // ignore
@@ -295,15 +323,17 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
     [validatePath]
   );
 
-  // Update handleRuntimeSelection to go to licensing step instead of packages
-  const handleRuntimeSelection = (runtime: RuntimeOption) => {
-    setSelectedRuntime(runtime);
+  const handleRuntimeToggle = (runtime: keyof RuntimeSelection) => {
+    const nextSelection = {
+      ...selectedRuntime,
+      [runtime]: !selectedRuntime[runtime],
+    };
+    setSelectedRuntime(nextSelection);
     try {
-      localStorage.setItem(RUNTIME_STORAGE_KEY, runtime);
+      localStorage.setItem(RUNTIME_STORAGE_KEY, JSON.stringify(nextSelection));
     } catch {
       // ignore
     }
-    setCurrentStep("licensing"); // Changed from "packages"
   };
 
   // Update handleBack to include licensing step
@@ -334,7 +364,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
 
     // Determine what to install based on runtime selection
     let ollamaDetected = isOllamaRunning || isOllamaInstalled;
-    if (selectedRuntime === "ollama" && !ollamaDetected) {
+    if (selectedRuntime.ollama && !ollamaDetected) {
       try {
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), 1000);
@@ -355,14 +385,18 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
         }
       }
     }
-    const installOllama = selectedRuntime === "ollama" && !ollamaDetected;
-    const installLlamaCpp = selectedRuntime === "llamacpp";
+    const startOllamaOnStartup = selectedRuntime.ollama;
+    const startLlamaCppOnStartup = selectedRuntime.llamacpp;
+    const installOllama = selectedRuntime.ollama && !ollamaDetected;
+    const installLlamaCpp = selectedRuntime.llamacpp;
 
     // Map UI runtime option to backend type
     let modelBackend: "ollama" | "llama_cpp" | "none" = "ollama";
-    if (selectedRuntime === "llamacpp") {
+    if (selectedRuntime.ollama && selectedRuntime.llamacpp) {
+      modelBackend = "ollama";
+    } else if (selectedRuntime.llamacpp) {
       modelBackend = "llama_cpp";
-    } else if (selectedRuntime === "skip") {
+    } else if (!selectedRuntime.ollama) {
       modelBackend = "none";
     }
 
@@ -371,7 +405,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
       sanitizedSelection,
       modelBackend,
       installOllama,
-      installLlamaCpp
+      installLlamaCpp,
+      startOllamaOnStartup,
+      startLlamaCppOnStartup
     );
     onComplete();
   };
@@ -607,8 +643,11 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
             {currentStep === "runtime" && (
               <div id="step-runtime" className="setup-step active">
                 <div className="step-header">
-                  <h3>Step 2: Choose AI Runtime</h3>
-                  <p>Select the AI runtime you'd like to use:</p>
+                  <h3>Step 2: Choose Local Model Services</h3>
+                  <p>
+                    Choose which Electron-managed services should be configured for startup.
+                    You can enable one, both, or neither.
+                  </p>
                   <p role="note" style={{ marginTop: 8, color: "#7a7a7a" }}>
                     Installing to: <code>{selectedPath}</code>
                   </p>
@@ -620,9 +659,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   {/* Ollama Option */}
                   <div
                     className={`runtime-card ${
-                      selectedRuntime === "ollama" ? "selected" : ""
+                      selectedRuntime.ollama ? "selected" : ""
                     }`}
-                    onClick={() => handleRuntimeSelection("ollama")}
+                    onClick={() => handleRuntimeToggle("ollama")}
                   >
                     <div className="runtime-icon">
                       <TerminalIcon />
@@ -658,10 +697,10 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                       )}
                     </div>
                     <input
-                      type="radio"
-                      name="runtime"
+                      type="checkbox"
+                      name="runtime-ollama"
                       value="ollama"
-                      checked={selectedRuntime === "ollama"}
+                      checked={selectedRuntime.ollama}
                       onChange={() => {}} // Handle click on parent
                       style={{ marginLeft: "auto", marginRight: 0 }}
                     />
@@ -670,9 +709,9 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   {/* llama.cpp Option */}
                   <div
                     className={`runtime-card ${
-                      selectedRuntime === "llamacpp" ? "selected" : ""
+                      selectedRuntime.llamacpp ? "selected" : ""
                     }`}
-                    onClick={() => handleRuntimeSelection("llamacpp")}
+                    onClick={() => handleRuntimeToggle("llamacpp")}
                   >
                     <div className="runtime-icon">
                       <CpuIcon />
@@ -686,46 +725,30 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                       </p>
                     </div>
                     <input
-                      type="radio"
-                      name="runtime"
+                      type="checkbox"
+                      name="runtime-llamacpp"
                       value="llamacpp"
-                      checked={selectedRuntime === "llamacpp"}
+                      checked={selectedRuntime.llamacpp}
                       onChange={() => {}}
                       style={{ marginLeft: "auto", marginRight: 0 }}
                     />
                   </div>
+                </div>
 
-                  {/* Skip Option */}
-                  <div
-                    className={`runtime-card ${
-                      selectedRuntime === "skip" ? "selected" : ""
-                    }`}
-                    onClick={() => handleRuntimeSelection("skip")}
-                    style={{ opacity: 0.8 }}
-                  >
-                    <div className="runtime-icon" style={{ background: 'transparent', border: '1px dashed rgba(255,255,255,0.2)' }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                         <line x1="18" y1="6" x2="6" y2="18"></line>
-                         <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </div>
-                    <div className="runtime-content">
-                      <div className="runtime-header">
-                        <h4 className="runtime-title">Skip Runtime Installation</h4>
-                      </div>
-                      <p className="runtime-description">
-                        Don't configure a local LLM engine right now.
-                      </p>
-                    </div>
-                    <input
-                      type="radio"
-                      name="runtime"
-                      value="skip"
-                      checked={selectedRuntime === "skip"}
-                      onChange={() => {}}
-                      style={{ marginLeft: "auto", marginRight: 0 }}
-                    />
-                  </div>
+                <div className="runtime-selection-help" style={{ marginTop: "14px" }}>
+                  {!selectedRuntime.ollama && !selectedRuntime.llamacpp ? (
+                    <p className="runtime-description">
+                      No local model service selected. You can continue and use external providers only.
+                    </p>
+                  ) : selectedRuntime.ollama && selectedRuntime.llamacpp ? (
+                    <p className="runtime-description">
+                      Both services selected. NodeTool will manage startup for both and install required binaries.
+                    </p>
+                  ) : (
+                    <p className="runtime-description">
+                      Selected service will be managed by NodeTool on startup.
+                    </p>
+                  )}
                 </div>
 
                 <div
@@ -737,7 +760,7 @@ const InstallWizard: React.FC<InstallWizardProps> = ({
                   </button>
                   <button
                     className="nav-button next"
-                    onClick={() => handleRuntimeSelection(selectedRuntime)}
+                    onClick={() => setCurrentStep("licensing")}
                   >
                     Next →
                   </button>
