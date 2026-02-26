@@ -52,10 +52,6 @@ function FavoritesList<TModel extends ModelSelectorModel>({
   const availabilityMap = useMemo(() => {
     const map: Record<string, boolean> = {};
     models.forEach((m) => {
-      // const env = requiredSecretForProvider(m.provider);
-      // const ok =
-      //   !env ||
-      //   Boolean(secrets?.[env] && String(secrets?.[env]).trim().length > 0);
       map[`${m.provider}:${m.id}`] = true;
     });
     return map;
