@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Box, Menu, MenuItem, ListSubheader, TextField, InputAdornment } from "@mui/material";
 import Search from "@mui/icons-material/Search";
 import { IMAGE_SIZE_PRESETS, PresetOption } from "../../config/constants";
@@ -22,20 +22,20 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     onClose();
     setSearchQuery("");
-  };
+  }, [onClose]);
 
   const filteredGroupedPresets = useMemo(() => {
     const query = searchQuery.toLowerCase();
     const groups: Record<string, PresetOption[]> = {};
-    
+
     IMAGE_SIZE_PRESETS.forEach(preset => {
-      const match = preset.label.toLowerCase().includes(query) || 
+      const match = preset.label.toLowerCase().includes(query) ||
                    (preset.description?.toLowerCase().includes(query)) ||
                    (preset.aspectRatio?.toLowerCase().includes(query));
-      
+
       if (match) {
         const category = preset.category || "Other";
         if (!groups[category]) {groups[category] = [];}
@@ -44,6 +44,18 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
     });
     return groups;
   }, [searchQuery]);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+  }, []);
+
+  const handlePresetSelect = useCallback((preset: PresetOption) => {
+    onSelect(preset);
+  }, [onSelect]);
 
   return (
     <Menu
@@ -91,8 +103,8 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
           size="small"
           placeholder="Search presets..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.stopPropagation()}
+          onChange={handleSearchChange}
+          onKeyDown={handleSearchKeyDown}
           autoFocus
           InputProps={{
             startAdornment: (
@@ -117,10 +129,10 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
         Object.entries(filteredGroupedPresets).map(([category, items]) => [
           <ListSubheader key={category} className="presets-category-header">{category}</ListSubheader>,
           ...items.map((preset) => (
-            <MenuItem 
+            <MenuItem
               className="preset-menu-item"
               key={`${preset.width}x${preset.height}-${preset.label}`}
-              onClick={() => onSelect(preset)}
+              onClick={() => handlePresetSelect(preset)}
               selected={currentWidth === preset.width && currentHeight === preset.height}
               sx={{ py: 1, px: 2 }}
             >
