@@ -206,8 +206,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     if (!Array.isArray(data) || selectedRows.length === 0) {return;}
 
     const duplicatedRows = selectedRows.map((row) => {
-      const rowData = { ...row.getData() };
-      delete rowData.rownum; // Remove rownum, will be reassigned
+      const rowData = { ...(row.getData() as DictTableRow) };
+      delete (rowData as Partial<DictTableRow>).rownum; // Remove rownum, will be reassigned
       return rowData;
     });
 
