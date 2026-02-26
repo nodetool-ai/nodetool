@@ -22,7 +22,7 @@ import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
-import { readSettings, getModelServiceStartupSettings } from "./settings";
+import { readSettings, getModelServiceStartupSettings, readSettingsAsync } from "./settings";
 
 let backendWatchdog: Watchdog | null = null;
 let ollamaWatchdog: Watchdog | null = null;
@@ -446,7 +446,7 @@ async function startServer(): Promise<void> {
     startLlamaCppOnStartup: false,
   };
   try {
-    const settings = readSettings();
+    const settings = await readSettingsAsync();
     startupSettings = getModelServiceStartupSettings(settings);
   } catch (error) {
     logMessage(

@@ -53,8 +53,10 @@ jest.mock("../state", () => ({
 
 // Mock settings module to control auto-updates setting
 const mockReadSettings = jest.fn().mockReturnValue({ autoUpdatesEnabled: true });
+const mockReadSettingsAsync = jest.fn().mockResolvedValue({ autoUpdatesEnabled: true });
 jest.mock("../settings", () => ({
   readSettings: mockReadSettings,
+  readSettingsAsync: mockReadSettingsAsync,
 }));
 
 // Store original process.resourcesPath
@@ -68,6 +70,7 @@ describe("Auto-updater Module", () => {
     mockAutoUpdater.checkForUpdates.mockResolvedValue(undefined);
     // Default to auto-updates enabled for backward-compatible tests
     mockReadSettings.mockReturnValue({ autoUpdatesEnabled: true });
+    mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
     // Set a mock resourcesPath
     Object.defineProperty(process, "resourcesPath", {
       value: "/mock/resources",
@@ -101,21 +104,27 @@ describe("Auto-updater Module", () => {
       );
     });
 
-    it("should skip auto-updater when auto-updates are not enabled (opt-in required)", () => {
+    it("should skip auto-updater when auto-updates are not enabled (opt-in required)", async () => {
       // Auto-updates not enabled (default opt-in behavior)
-      mockReadSettings.mockReturnValue({ autoUpdatesEnabled: false });
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: false });
       mockExistsSync.mockReturnValue(true);
 
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
           app: { isPackaged: true },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
         }));
-        const { setupAutoUpdater } = require("../updater");
-        setupAutoUpdater();
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
       });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
 
       expect(mockLogMessage).toHaveBeenCalledWith(
         "Auto-updates disabled by user preference (opt-in required)"
@@ -124,21 +133,27 @@ describe("Auto-updater Module", () => {
       expect(mockAutoUpdater.setFeedURL).not.toHaveBeenCalled();
     });
 
-    it("should skip auto-updater when setting is not set (opt-in defaults to false)", () => {
+    it("should skip auto-updater when setting is not set (opt-in defaults to false)", async () => {
       // No autoUpdatesEnabled setting (should default to disabled)
-      mockReadSettings.mockReturnValue({});
+      mockReadSettingsAsync.mockResolvedValue({});
       mockExistsSync.mockReturnValue(true);
 
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
           app: { isPackaged: true },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
         }));
-        const { setupAutoUpdater } = require("../updater");
-        setupAutoUpdater();
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
       });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
 
       expect(mockLogMessage).toHaveBeenCalledWith(
         "Auto-updates disabled by user preference (opt-in required)"
@@ -147,16 +162,26 @@ describe("Auto-updater Module", () => {
       expect(mockAutoUpdater.setFeedURL).not.toHaveBeenCalled();
     });
 
-    it("should disable auto-updater when app-update.yml is missing", () => {
+    it("should disable auto-updater when app-update.yml is missing", async () => {
       mockExistsSync.mockReturnValue(false);
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
 
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
           app: { isPackaged: true },
         }));
-        const { setupAutoUpdater } = require("../updater");
-        setupAutoUpdater();
+        jest.doMock("../settings", () => ({
+          readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
+        }));
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
       });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
 
       // Should log warning about missing config file
       expect(mockLogMessage).toHaveBeenCalledWith(
@@ -174,20 +199,26 @@ describe("Auto-updater Module", () => {
       expect(mockAutoUpdater.setFeedURL).not.toHaveBeenCalled();
     });
 
-    it("should set up auto-updater when app is packaged, config exists, and auto-updates are enabled", () => {
+    it("should set up auto-updater when app is packaged, config exists, and auto-updates are enabled", async () => {
       mockExistsSync.mockReturnValue(true);
-      mockReadSettings.mockReturnValue({ autoUpdatesEnabled: true });
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
 
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
           app: { isPackaged: true },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
         }));
-        const { setupAutoUpdater } = require("../updater");
-        setupAutoUpdater();
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
       });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
 
       expect(mockAutoUpdater.setFeedURL).toHaveBeenCalledWith({
         provider: "github",
@@ -200,23 +231,29 @@ describe("Auto-updater Module", () => {
 
     it("should gracefully handle ENOENT error for app-update.yml during update check", async () => {
       mockExistsSync.mockReturnValue(true);
-      mockReadSettings.mockReturnValue({ autoUpdatesEnabled: true });
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
 
       const enoentError = new Error(
         "ENOENT: no such file or directory, open 'C:\\...\\app-update.yml'"
       );
       mockAutoUpdater.checkForUpdates.mockRejectedValue(enoentError);
 
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
           app: { isPackaged: true },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
         }));
-        const { setupAutoUpdater } = require("../updater");
-        setupAutoUpdater();
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
       });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
 
       // Wait for the rejected promise to be handled
       // Using flushPromises pattern
@@ -231,21 +268,27 @@ describe("Auto-updater Module", () => {
 
     it("should log other update errors normally", async () => {
       mockExistsSync.mockReturnValue(true);
-      mockReadSettings.mockReturnValue({ autoUpdatesEnabled: true });
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
 
       const networkError = new Error("Network error");
       mockAutoUpdater.checkForUpdates.mockRejectedValue(networkError);
 
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
           app: { isPackaged: true },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
         }));
-        const { setupAutoUpdater } = require("../updater");
-        setupAutoUpdater();
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
       });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
 
       // Wait for the rejected promise to be handled
       // Using flushPromises pattern
@@ -258,20 +301,26 @@ describe("Auto-updater Module", () => {
       );
     });
 
-    it("should set up event handlers when auto-updater is initialized", () => {
+    it("should set up event handlers when auto-updater is initialized", async () => {
       mockExistsSync.mockReturnValue(true);
-      mockReadSettings.mockReturnValue({ autoUpdatesEnabled: true });
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
 
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
           app: { isPackaged: true },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
         }));
-        const { setupAutoUpdater } = require("../updater");
-        setupAutoUpdater();
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
       });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
 
       // Verify event handlers are registered
       expect(mockAutoUpdater.on).toHaveBeenCalledWith(
@@ -311,20 +360,26 @@ describe("Auto-updater Module", () => {
   });
 
   describe("error event handler", () => {
-    it("should handle missing app-update.yml error gracefully", () => {
+    it("should handle missing app-update.yml error gracefully", async () => {
       mockExistsSync.mockReturnValue(true);
-      mockReadSettings.mockReturnValue({ autoUpdatesEnabled: true });
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
 
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
           app: { isPackaged: true },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
         }));
-        const { setupAutoUpdater } = require("../updater");
-        setupAutoUpdater();
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
       });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
 
       // Find the error handler and call it
       const errorHandler = mockAutoUpdater.on.mock.calls.find(
@@ -345,20 +400,26 @@ describe("Auto-updater Module", () => {
       );
     });
 
-    it("should log other errors normally", () => {
+    it("should log other errors normally", async () => {
       mockExistsSync.mockReturnValue(true);
-      mockReadSettings.mockReturnValue({ autoUpdatesEnabled: true });
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
 
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
       jest.isolateModules(() => {
         jest.doMock("electron", () => ({
           app: { isPackaged: true },
         }));
         jest.doMock("../settings", () => ({
           readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
         }));
-        const { setupAutoUpdater } = require("../updater");
-        setupAutoUpdater();
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
       });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
 
       const errorHandler = mockAutoUpdater.on.mock.calls.find(
         (call) => call[0] === "error"

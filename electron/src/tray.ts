@@ -21,6 +21,7 @@ import {
 import { fetchWorkflows } from "./api";
 import {
   readSettings,
+  readSettingsAsync,
   updateSetting,
   getModelServiceStartupSettings,
   updateModelServiceStartupSettings,
@@ -292,10 +293,10 @@ function focusNodeTool(): void {
 
 /**
  * Gets menu items for the close behavior settings.
+ * @param {Record<string, any>} settings - The current application settings
  * @returns {Electron.MenuItemConstructorOptions[]} Menu items for close behavior
  */
-function getCloseBehaviorMenuItems(): Electron.MenuItemConstructorOptions[] {
-  const settings = readSettings();
+function getCloseBehaviorMenuItems(settings: Record<string, any>): Electron.MenuItemConstructorOptions[] {
   const currentAction = settings.windowCloseAction;
 
   return [
@@ -370,11 +371,12 @@ function buildWorkflowsSubmenu(workflows: Workflow[]): Electron.MenuItemConstruc
 async function updateTrayMenu(): Promise<void> {
   if (!trayInstance) return;
 
+  const settings = await readSettingsAsync();
   const connected = await isServerRunning();
   const ollamaRunning = isOllamaRunning();
   const llamaServerRunning = isLlamaServerRunning();
   const state = getServerState();
-  const startupSettings = getModelServiceStartupSettings(readSettings());
+  const startupSettings = getModelServiceStartupSettings(settings);
   const ollamaDetected = await detectOllamaStatus(state.ollamaPort);
   const llamaDetected = await detectLlamaStatus(state.llamaPort);
   const ollamaManagedRunning = ollamaRunning;
@@ -604,7 +606,7 @@ async function updateTrayMenu(): Promise<void> {
         shell.openPath(LOG_FILE);
       },
     },
-    ...getCloseBehaviorMenuItems(),
+    ...getCloseBehaviorMenuItems(settings),
     { type: "separator" },
     { label: "Quit NodeTool", role: "quit" },
   ]);
