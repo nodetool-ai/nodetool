@@ -19,7 +19,7 @@ export const fetchWorkflowVersions = async (
   limit: number = 100
 ): Promise<WorkflowVersionList> => {
   const params = new URLSearchParams();
-  if (cursor !== null && cursor !== undefined) {
+  if (cursor != null) {
     params.set("cursor", String(cursor));
   }
   params.set("limit", String(limit));
