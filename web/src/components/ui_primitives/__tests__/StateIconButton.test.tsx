@@ -340,4 +340,83 @@ describe("StateIconButton", () => {
     // Note: In real implementation, stopPropagation is called, 
     // but in tests it might still propagate due to mock setup
   });
+
+  it("sets tabIndex to 0 by default", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StateIconButton icon={<MockIcon />} onClick={mockOnClick} />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("icon-button")).toHaveAttribute("tabIndex", "0");
+  });
+
+  it("allows overriding tabIndex", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StateIconButton
+          icon={<MockIcon />}
+          onClick={mockOnClick}
+          tabIndex={-1}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("icon-button")).toHaveAttribute("tabIndex", "-1");
+  });
+
+  it("sets aria-label from tooltip string", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StateIconButton
+          icon={<MockIcon />}
+          onClick={mockOnClick}
+          tooltip="Accessible Label"
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-label", "Accessible Label");
+  });
+
+  it("sets aria-label from ariaLabel prop", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StateIconButton
+          icon={<MockIcon />}
+          onClick={mockOnClick}
+          tooltip={<span>Tooltip content</span>}
+          ariaLabel="Explicit Label"
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-label", "Explicit Label");
+  });
+
+  it("sets aria-pressed when isActive is true", () => {
+    const { rerender } = render(
+      <ThemeProvider theme={mockTheme}>
+        <StateIconButton
+          icon={<MockIcon />}
+          onClick={mockOnClick}
+          isActive={true}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-pressed", "true");
+
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <StateIconButton
+          icon={<MockIcon />}
+          onClick={mockOnClick}
+          isActive={false}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-pressed", "false");
+  });
 });
