@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { IconButton, Tooltip, Button, Popover } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import ListIcon from "@mui/icons-material/List";
 import AddIcon from "@mui/icons-material/Add";
 import ChatView from "../chat/containers/ChatView";
@@ -76,6 +77,8 @@ const extractFirstTextContent = (message: Message): string | null => {
  * It supports only "talk to a workflow" mode (no agent/help mode behavior).
  */
 const WorkflowAssistantChat: React.FC = () => {
+  const theme = useTheme();
+
   const {
     status,
     sendMessage,
@@ -574,7 +577,7 @@ const WorkflowAssistantChat: React.FC = () => {
             transform: "translateX(-50%)",
             zIndex: 9999,
             backgroundColor: "var(--palette-error-dark)",
-            color: "#fff",
+            color: theme.vars.palette.common.white,
             padding: "8px 16px",
             borderRadius: "4px",
             maxWidth: "90%",
