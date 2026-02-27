@@ -6,9 +6,9 @@ export const isHfModel = (model: UnifiedModel): boolean => {
   return (
     type.startsWith("hf.") ||
     type.startsWith("hf_") ||
-    model.path != null ||
-    model.allow_patterns != null ||
-    model.ignore_patterns != null
+    model.path !== null ||
+    model.allow_patterns !== null ||
+    model.ignore_patterns !== null
   );
 };
 
