@@ -192,12 +192,14 @@ const styles = (
 
 const VerticalToolbar = memo(function VerticalToolbar({
   activeView,
-  onViewChange,
-  handlePanelToggle
+  handlePanelToggle,
+  handleWorkflowGridClick,
+  handleAssetsClick
 }: {
   activeView: string;
-  onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
+  handleWorkflowGridClick: () => void;
+  handleAssetsClick: () => void;
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
@@ -257,7 +259,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("workflowGrid")}
+          onClick={handleWorkflowGridClick}
           className={
             activeView === "workflowGrid" && panelVisible ? "active" : ""
           }
@@ -272,7 +274,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("assets")}
+          onClick={handleAssetsClick}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
           <IconForType iconName="asset" showTooltip={false} iconSize="small" />
@@ -443,6 +445,18 @@ const PanelLeft: React.FC = () => {
     [handlePanelToggle]
   );
 
+  const handleWorkflowGridClick = useCallback(() => {
+    onViewChange("workflowGrid");
+  }, [onViewChange]);
+
+  const handleAssetsClick = useCallback(() => {
+    onViewChange("assets");
+  }, [onViewChange]);
+
+  const handlePanelToggleClick = useCallback(() => {
+    handlePanelToggle(activeView);
+  }, [handlePanelToggle, activeView]);
+
 
 
   return (
@@ -452,8 +466,9 @@ const PanelLeft: React.FC = () => {
         <ContextMenus />
         <VerticalToolbar
           activeView={activeView}
-          onViewChange={onViewChange}
-          handlePanelToggle={() => handlePanelToggle(activeView)}
+          handlePanelToggle={handlePanelToggleClick}
+          handleWorkflowGridClick={handleWorkflowGridClick}
+          handleAssetsClick={handleAssetsClick}
         />
 
         {/* Drawer content - appears right of toolbar when visible */}
