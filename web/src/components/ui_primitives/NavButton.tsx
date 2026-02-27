@@ -78,11 +78,6 @@ export interface NavButtonProps extends CommonButtonProps {
    * Additional sx props
    */
   sx?: ButtonProps["sx"];
-  /**
-   * Tab index for keyboard navigation
-   * @default 0
-   */
-  tabIndex?: number;
 }
 
 /**
@@ -102,7 +97,6 @@ export const NavButton = memo(
         navSize = "medium",
         className,
         sx,
-        tabIndex = 0,
         ...props
       },
       ref
@@ -171,7 +165,7 @@ export const NavButton = memo(
                 active && "active",
                 className
               )}
-              tabIndex={tabIndex}
+              tabIndex={-1}
               sx={baseStyles}
               onClick={props.onClick}
               disabled={props.disabled}
@@ -193,7 +187,7 @@ export const NavButton = memo(
             className
           )}
           startIcon={icon}
-          tabIndex={tabIndex}
+          tabIndex={-1}
           sx={{
             ...baseStyles,
             textTransform: "none",

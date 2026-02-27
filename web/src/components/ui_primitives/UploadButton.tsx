@@ -86,11 +86,6 @@ export interface UploadButtonProps {
    * Additional sx styles
    */
   sx?: object;
-  /**
-   * Tab index for keyboard navigation
-   * @default 0
-   */
-  tabIndex?: number;
 }
 
 export const UploadButton = memo(
@@ -108,8 +103,7 @@ export const UploadButton = memo(
         multiple = true,
         accept,
         className,
-        sx,
-        tabIndex = 0
+        sx
       },
       ref
     ) => {
@@ -162,7 +156,7 @@ export const UploadButton = memo(
             >
               <Button
                 ref={ref}
-                tabIndex={tabIndex}
+                tabIndex={-1}
                 className={cn(
                   "upload-button",
                   nodrag && editorClassNames.nodrag,
@@ -193,7 +187,7 @@ export const UploadButton = memo(
             >
               <IconButton
                 ref={ref}
-                tabIndex={tabIndex}
+                tabIndex={-1}
                 className={cn(
                   "upload-button",
                   nodrag && editorClassNames.nodrag,

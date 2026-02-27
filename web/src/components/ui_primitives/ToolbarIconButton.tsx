@@ -71,11 +71,6 @@ export interface ToolbarIconButtonProps
    * Will be shown as a compact badge
    */
   shortcut?: string[];
-  /**
-   * Tab index for keyboard navigation
-   * @default 0
-   */
-  tabIndex?: number;
 }
 
 /**
@@ -95,7 +90,6 @@ export const ToolbarIconButton = memo(
         className,
         size = "small",
         sx,
-        tabIndex = 0,
         ...props
       },
       ref
@@ -164,7 +158,7 @@ export const ToolbarIconButton = memo(
               className
             )}
             size={size}
-            tabIndex={tabIndex}
+            tabIndex={-1}
             sx={{
               ...variantStyles,
               ...(active && {

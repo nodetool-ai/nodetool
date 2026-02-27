@@ -80,11 +80,6 @@ export interface DownloadButtonProps {
    * Additional sx styles
    */
   sx?: object;
-  /**
-   * Tab index for keyboard navigation
-   * @default 0
-   */
-  tabIndex?: number;
 }
 
 export const DownloadButton = memo(
@@ -101,8 +96,7 @@ export const DownloadButton = memo(
         disabled = false,
         isLoading = false,
         className,
-        sx,
-        tabIndex = 0
+        sx
       },
       ref
     ) => {
@@ -136,7 +130,7 @@ export const DownloadButton = memo(
           >
             <Button
               ref={ref}
-              tabIndex={tabIndex}
+              tabIndex={-1}
               className={cn(
                 "download-button",
                 nodrag && editorClassNames.nodrag,
@@ -170,7 +164,7 @@ export const DownloadButton = memo(
         >
           <IconButton
             ref={ref}
-            tabIndex={tabIndex}
+            tabIndex={-1}
             className={cn(
               "download-button",
               nodrag && editorClassNames.nodrag,

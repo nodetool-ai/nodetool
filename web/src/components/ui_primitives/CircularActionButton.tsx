@@ -170,11 +170,6 @@ export interface CircularActionButtonProps {
    * @default false
    */
   disableRipple?: boolean;
-  /**
-   * Tab index for keyboard navigation
-   * @default 0
-   */
-  tabIndex?: number;
 }
 
 const getThemeColor = (theme: Theme, colorKey: string): string => {
@@ -220,8 +215,7 @@ export const CircularActionButton = memo(
         nodrag = true,
         className,
         sx,
-        disableRipple = false,
-        tabIndex = 0
+        disableRipple = false
       },
       ref
     ) => {
@@ -294,7 +288,7 @@ export const CircularActionButton = memo(
       const button = (
         <IconButton
           ref={ref}
-          tabIndex={tabIndex}
+          tabIndex={-1}
           className={cn(
             "circular-action-button",
             nodrag && editorClassNames.nodrag,
