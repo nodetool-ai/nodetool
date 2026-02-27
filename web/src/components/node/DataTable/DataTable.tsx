@@ -361,7 +361,7 @@ const DataTable: React.FC<DataTableProps> = ({
         showSelect={showSelect}
         setShowSelect={setShowSelect}
         showRowNumbers={showRowNumbers}
-        setShowRowNumbers={setShowRowNumbers || (() => {})}
+        setShowRowNumbers={(val) => setShowRowNumbers(val)}
         editable={editable}
         dataframeColumns={dataframe.columns || []}
         onChangeRows={onChangeRows}

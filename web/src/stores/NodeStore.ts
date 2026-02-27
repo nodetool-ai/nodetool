@@ -927,24 +927,25 @@ export const createNodeStore = (
               }
             }
 
-            const nodes = get().nodes.map((node) => {
-              const properties: Record<string, any> = {};
-              const nodeProps = node.data.properties;
-              const nodeId = node.id;
+            const isHandleConnected = (nodeId: string, handle: string) => {
+              return connectedHandles.has(`${nodeId}:${handle}`);
+            };
 
-              // Filter out properties that are connected as inputs
-              // Using the pre-calculated Set for O(1) lookups
-              for (const name in nodeProps) {
-                if (!connectedHandles.has(`${nodeId}:${name}`)) {
-                  properties[name] = nodeProps[name];
+            const unconnectedProperties = (node: Node<NodeData>) => {
+              const properties: Record<string, any> = {};
+              for (const name in node.data.properties) {
+                if (!isHandleConnected(node.id, name)) {
+                  properties[name] = node.data.properties[name];
                 }
               }
-
+              return properties;
+            };
+            const nodes = get().nodes.map((node) => {
               return {
                 ...node,
                 data: {
                   ...node.data,
-                  properties
+                  properties: unconnectedProperties(node)
                 }
               };
             });

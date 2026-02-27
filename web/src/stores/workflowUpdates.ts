@@ -530,13 +530,29 @@ export const handleUpdate = (
       }
     }
 
-    // Update node properties if provided in the NodeUpdate
+    // Update node properties if provided in the NodeUpdate.
+    // Dynamic-node runtime values (e.g. FalAI prompt) must be stored under
+    // `dynamic_properties`; writing them into `properties` can desync editor state.
     if (update.properties && Object.keys(update.properties).length > 0) {
       const nodeStore = getNodeStore(workflow.id);
       if (nodeStore) {
-        const updateNodeData = nodeStore.getState().updateNodeData;
-        updateNodeData(update.node_id, {
-          properties: update.properties
+        const state = nodeStore.getState();
+        const node = state.findNode(update.node_id);
+        const existingDynamic = node?.data?.dynamic_properties || {};
+        const nextDynamic = { ...existingDynamic };
+        const nextStatic: Record<string, unknown> = {};
+
+        Object.entries(update.properties).forEach(([key, value]) => {
+          if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
+            nextDynamic[key] = value;
+          } else {
+            nextStatic[key] = value;
+          }
+        });
+
+        state.updateNodeData(update.node_id, {
+          properties: nextStatic,
+          dynamic_properties: nextDynamic
         });
       }
     }
