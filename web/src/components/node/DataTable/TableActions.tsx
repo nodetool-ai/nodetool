@@ -95,7 +95,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       if (Array.isArray(data)) {
         dataToStringify = (data as DictTableRow[]).map((row) => {
           const newRow = { ...row };
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           delete (newRow as any).rownum;
           return newRow;
         });
@@ -184,7 +184,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       selectedRows.forEach((row) => {
         const key = row.getData().key;
         if (Object.prototype.hasOwnProperty.call(newData, key)) {
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+           
           Reflect.deleteProperty(newData, key);
         }
       });
@@ -218,7 +218,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
     const duplicatedRows = selectedRows.map((row) => {
       const rowData = { ...row.getData() };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       delete (rowData as any).rownum; // Remove rownum, will be reassigned
       return rowData;
     });
@@ -226,7 +226,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     // Insert after the last selected row
     const lastSelectedIndex = Math.max(...selectedRows.map((r) => r.getData().rownum));
     // Use type assertion for array operations
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const newData = Array.from(data as any[]);
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
 
@@ -383,12 +383,12 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           : data.length;
 
         // Use array spread with type assertion to avoid TS2698
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const newData = [...(data as any[])];
         newData.splice(insertIndex, 0, ...newRows);
 
         // Reassign rownums - memoize this operation
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const reindexedData = newData.map((row: any, index: number) => ({ ...row, rownum: index }));
         onChangeRows(reindexedData);
         
