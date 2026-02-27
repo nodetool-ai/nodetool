@@ -8,9 +8,18 @@ import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
+interface TTSModelValue {
+  type: "tts_model";
+  id: string;
+  provider: string;
+  name: string;
+  voices?: string[];
+  selected_voice?: string;
+}
+
 interface TTSModelSelectProps {
-  onChange: (value: any) => void;
-  value: any; // Can be string (legacy) or TTSModel object
+  onChange: (value: TTSModelValue) => void;
+  value: string | TTSModelValue; // Can be string (legacy) or TTSModelValue object
 }
 
 const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {

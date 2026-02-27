@@ -6,8 +6,16 @@ import { memo, useMemo } from "react";
 import ChatComposer from "../composer/ChatComposer";
 import ChatToolBar from "../controls/ChatToolBar";
 import MobileChatToolbar from "../controls/MobileChatToolbar";
-import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
+import type { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 import useMediaQuery from "@mui/material/useMediaQuery";
+
+// Simplified type for model selection callback
+interface LanguageModelValue {
+  type: "language_model";
+  id: string;
+  provider: string;
+  name: string;
+}
 
 const styles = (_theme: Theme) =>
   css({
@@ -62,7 +70,7 @@ type ChatInputSectionProps = {
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
   selectedModel?: LanguageModel;
-  onModelChange?: (model: LanguageModel) => void;
+  onModelChange?: (model: LanguageModelValue) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
   allowedProviders?: string[];

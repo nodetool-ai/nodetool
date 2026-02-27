@@ -16,6 +16,14 @@ import {
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
 
+// Simplified type for model selection callback
+interface LanguageModelValue {
+  type: "language_model";
+  id: string;
+  provider: string;
+  name: string;
+}
+
 const styles = (_theme: Theme) =>
   css({
     "&": {
@@ -78,7 +86,7 @@ type ChatViewProps = {
   onToolsChange?: (tools: string[]) => void;
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
-  onModelChange?: (model: LanguageModel) => void;
+  onModelChange?: (model: LanguageModelValue) => void;
   onStop?: () => void;
   onNewChat?: () => void;
   agentMode?: boolean;

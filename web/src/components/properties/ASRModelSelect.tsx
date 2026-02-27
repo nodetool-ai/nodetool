@@ -6,8 +6,15 @@ import type { ASRModel } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+interface ASRModelValue {
+  type: "asr_model";
+  id: string;
+  provider: string;
+  name: string;
+}
+
 interface ASRModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: ASRModelValue) => void;
   value: string;
 }
 
