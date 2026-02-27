@@ -65,13 +65,26 @@ const FileTabHeader = ({
     onSelect(asset.id);
   }, [onSelect, asset.id]);
 
-  // Memoize mouse down handler to prevent re-renders of child elements
+  // Handle middle-click (mouse button 1) to close tab
+  // Using auxclick event instead of mousedown for semantically correct handling
+  const handleAuxClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      if (event.button === 1) {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose(asset.id);
+      }
+    },
+    [onClose, asset.id]
+  );
+
+  // Memoize mouse down handler for drag operations (not for closing)
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.button === 1) {
+    // Only prevent default on primary button to allow text selection
+    if (e.button === 0) {
       e.preventDefault();
-      onClose(asset.id);
     }
-  }, [onClose, asset.id]);
+  }, []);
 
   // Memoize close handler to prevent re-renders of child elements
   const handleClose = useCallback((e: React.MouseEvent) => {
@@ -102,6 +115,7 @@ const FileTabHeader = ({
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         onMouseDown={handleMouseDown}
+        onAuxClick={handleAuxClick}
       >
         <span
           className="tab-name"

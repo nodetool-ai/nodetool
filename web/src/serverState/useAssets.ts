@@ -124,7 +124,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
       } else if (settings.assetsOrder === "size") {
         const aSize = a.size;
         const bSize = b.size;
-        if (aSize !== undefined && aSize !== null && bSize !== undefined && bSize !== null) {
+        if (aSize != null && bSize != null) {
           return bSize - aSize;
         }
         return a.name.localeCompare(b.name);
@@ -153,7 +153,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
           const sizeFilterConfig = SIZE_FILTERS.find(
             (f) => f.key === options.sizeFilter
           );
-          if (sizeFilterConfig && asset.size !== undefined && asset.size !== null) {
+          if (sizeFilterConfig && asset.size != null) {
             const assetSize = asset.size;
             if (sizeFilterConfig.key === "empty") {
               sizeMatch = assetSize === 0;

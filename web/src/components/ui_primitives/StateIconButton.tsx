@@ -125,6 +125,15 @@ export interface StateIconButtonProps {
     | "warning"
     | "info"
     | "success";
+  /**
+   * Accessible label for the button
+   */
+  ariaLabel?: string;
+  /**
+   * Tab index for keyboard navigation
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 export const StateIconButton = memo(
@@ -144,7 +153,9 @@ export const StateIconButton = memo(
         nodrag = true,
         className,
         sx,
-        color = "default"
+        color = "default",
+        ariaLabel,
+        tabIndex = 0
       },
       ref
     ) => {
@@ -173,10 +184,14 @@ export const StateIconButton = memo(
         icon
       );
 
+      const label = ariaLabel || (typeof tooltip === "string" ? tooltip : undefined);
+
       const button = (
         <IconButton
           ref={ref}
-          tabIndex={-1}
+          tabIndex={tabIndex}
+          aria-label={label}
+          aria-pressed={isActive}
           className={cn(
             "state-icon-button",
             isActive && "active",
