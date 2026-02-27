@@ -72,12 +72,7 @@
   .react-flow__node
   .react-flow__handle.not-connectable {
   opacity: 0.8;
-  transform: translate(0, -50%) scale(0.6, 0.4);
-}
-
-/* IS CONNECTING */
-.react-flow .connecting-class {
-  background-color: red !important;
+  transform: translate(0, -50%) scale(0.5, 1);
 }
 
 /* edge */
@@ -185,7 +180,7 @@
   visibility: visible !important;
   fill: var(--palette-grey-1000);
   font-size: var(--fontSizeTinyer);
-  transition: all 0.2s;
+  transition: all 0.1s;
 }
 
 /* CONTROL EDGE - dashed edge from Agent nodes to controlled nodes */
@@ -243,38 +238,23 @@
   pointer-events: auto;
 }
 
-/* Preserve control handle centering when connecting */
-.react-flow.is-connecting
-  .react-flow__node
-  .react-flow__handle.control-handle.is-connectable,
-.react-flow.is-connecting
+/* .react-flow.is-connecting
   .react-flow__node
   .react-flow__handle.control-handle.not-connectable {
-  transform: translateX(-50%) scale(1.1, 1);
-}
-
-.react-flow.is-connecting
-  .react-flow__node
-  .react-flow__handle.control-handle.not-connectable {
-  transform: translateX(-50%) scale(0.6, 0.4);
+  transform: translateX(-50%) scale(0.8, 0.6);
   opacity: 0.8;
-}
+} */
 
 /* HANDLE */
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
   transform-origin: right center;
-  transition:
-    transform 0.15s,
-    height 0.05s,
-    opacity 0.2s linear;
+  transition: all 0.15s;
   width: var(--handle_width);
   height: var(--handle_height);
-  /* Subtle, darker base so it doesn't pop over glass */
   background-color: var(--palette-grey-700);
   border: 0;
   z-index: 999;
-  /* Softer shadow to reduce visual prominence */
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   opacity: 1;
 }
@@ -298,15 +278,16 @@
 
 /* handle hover */
 .react-flow__node .react-flow__handle-left:hover {
-  transform: translate(0, -50%) scale(1.25, 1);
-  cursor: cell;
+  transform: translate(0, -50%) scale(1.75, 1.5);
+  cursor: url("/images/arrow-left.svg"), cell;
   opacity: 0.9;
 }
 .react-flow__node .react-flow__handle-right:hover {
-  transform: translate(0, -50%) scale(1.25, 1);
-  cursor: cell;
+  transform: translate(0, -50%) scale(1.75, 1.5);
+  cursor: url("/images/arrow-right.svg"), cell;
   opacity: 0.9;
 }
+/* HANDLE SNAP AREA */
 .react-flow__node .react-flow__handle-left::after,
 .react-flow__node .react-flow__handle-right::after {
   content: "";
@@ -314,8 +295,8 @@
   top: -5px;
   left: -10px;
   background-color: transparent;
-  width: 24px;
-  height: 200%;
+  width: 24px; /* width of the invisible snap area of a handle */
+  height: 200%; /* height of the invisible snap area of a handle */
 }
 .react-flow__node .react-flow__handle-right::after {
   left: unset;
@@ -354,12 +335,24 @@
 /* Enhance visibility during connection */
 .react-flow.is-connecting
   .react-flow__node
-  .react-flow__handle-left.collect-handle.is-connectable {
-  height: calc(var(--handle_height) * 2);
-  transform: translate(0, -50%) scale(1.15, 1);
+  .react-flow__handle-left.is-connectable {
+  height: calc(var(--handle_height) * 1.4);
+  width: calc(var(--handle_width) * 1.25) !important;
+  transform: translate(-2px, -50%) scale(1.15, 1);
   opacity: 1;
   box-shadow:
-    0 0 8px rgba(255, 255, 255, 0.3),
+    0 0 8px rgba(255, 255, 255, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.react-flow.is-connecting
+  .react-flow__node
+  .react-flow__handle-right.is-connectable {
+  height: calc(var(--handle_height) * 1.4);
+  width: calc(var(--handle_width) * 1.25) !important;
+  transform: translate(2px, -50%) scale(1.15, 1);
+  opacity: 1;
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.2),
     0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
@@ -367,7 +360,8 @@
 /* Uses striped overlay pattern to signify streaming behavior while preserving type color */
 .react-flow__node .react-flow__handle-right.streaming-handle {
   /* Wider handle to signify streaming */
-  height: calc(var(--handle_height) * 1.4);
+  height: calc(var(--handle_height) * 1.25);
+
   border-radius: 0 4px 4px 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   position: relative;
