@@ -16,7 +16,7 @@ export function resolveWorkflowId(
   const workflowId = workflow_id ?? state.currentWorkflowId;
   if (!workflowId) {throw new Error("No current workflow selected");}
 
-  if (workflow_id != null && workflow_id !== state.currentWorkflowId) {
+  if (workflow_id !== null && workflow_id !== state.currentWorkflowId) {
     state.setCurrentWorkflowId(workflowId);
   }
 

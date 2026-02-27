@@ -576,7 +576,7 @@ const applyToolCallUpdate = (
 ): ReducerResult => {
   const updateWithMeta = update as ToolCallUpdateWithMeta;
   const toolCallId =
-    updateWithMeta.tool_call_id != null
+    updateWithMeta.tool_call_id !== null
       ? String(updateWithMeta.tool_call_id)
       : null;
   const agentExecutionId = updateWithMeta.agent_execution_id ?? null;

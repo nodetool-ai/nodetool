@@ -146,7 +146,7 @@ FrontendToolRegistry.register({
         }
         return Object.values(asRecord).filter(
           (item): item is GraphNodeInput =>
-            item != null &&
+            item !== null &&
             typeof item === "object" &&
             typeof (item as { id?: unknown }).id === "string",
         );
@@ -171,7 +171,7 @@ FrontendToolRegistry.register({
         }
         return Object.values(asRecord).filter(
           (item): item is GraphEdgeInput =>
-            item != null &&
+            item !== null &&
             typeof item === "object" &&
             typeof (item as { source?: unknown }).source === "string" &&
             typeof (item as { target?: unknown }).target === "string",
