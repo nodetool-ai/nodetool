@@ -1,6 +1,6 @@
 import React, { useCallback, memo } from "react";
 import { Tooltip, IconButton, Divider } from "@mui/material";
-import { TabulatorFull as Tabulator } from "tabulator-tables";
+import { TabulatorFull as Tabulator, type RowComponent } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
@@ -43,7 +43,7 @@ export type TableData =
 /**
  * RowComponent type from Tabulator - exported for use in other components
  */
-export type RowComponent = Tabulator.RowComponent;
+export type { RowComponent };
 
 interface TableActionsProps {
   tabulator: Tabulator | undefined;
@@ -97,9 +97,12 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     } else {
       dataToStringify = Array.isArray(data)
         ? data.map((row) => {
-            const newRow = { ...row };
-            delete newRow.rownum;
-            return newRow;
+            if (row && typeof row === "object" && !Array.isArray(row) && "rownum" in row) {
+              const newRow = { ...row };
+              delete (newRow as Record<string, unknown>).rownum;
+              return newRow;
+            }
+            return row;
           })
         : data;
     }
@@ -202,15 +205,18 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   const handleDuplicateRows = useCallback(() => {
     if (!Array.isArray(data) || selectedRows.length === 0) {return;}
 
-    const duplicatedRows = selectedRows.map((row) => {
-      const rowData = { ...row.getData() };
-      delete rowData.rownum; // Remove rownum, will be reassigned
+    // Type guard: only duplicate rows if data contains objects (DictTableRow)
+    if (data.length > 0 && typeof data[0] !== "object") {return;}
+
+    const duplicatedRows: DictTableRow[] = selectedRows.map((row) => {
+      const rowData = { ...row.getData() } as DictTableRow;
+      delete (rowData as Record<string, unknown>).rownum; // Remove rownum, will be reassigned
       return rowData;
     });
 
     // Insert after the last selected row
     const lastSelectedIndex = Math.max(...selectedRows.map((r) => r.getData().rownum));
-    const newData = [...data];
+    const newData = [...data] as DictTableRow[];
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
 
     // Reassign rownums - memoize this operation
@@ -365,7 +371,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           ? Math.max(...selectedRows.map((r) => r.getData().rownum)) + 1
           : data.length;
 
-        const newData = [...data];
+        const newData = [...data] as DictTableRow[];
         newData.splice(insertIndex, 0, ...newRows);
 
         // Reassign rownums - memoize this operation
