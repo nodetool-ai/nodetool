@@ -279,12 +279,16 @@
 /* handle hover */
 .react-flow__node .react-flow__handle-left:hover {
   transform: translate(0, -50%) scale(1.75, 1.5);
-  cursor: url("/images/arrow-left.svg"), cell;
+  cursor:
+    url("/images/arrow-left.svg") 16 16,
+    cell;
   opacity: 0.9;
 }
 .react-flow__node .react-flow__handle-right:hover {
   transform: translate(0, -50%) scale(1.75, 1.5);
-  cursor: url("/images/arrow-right.svg"), cell;
+  cursor:
+    url("/images/arrow-right.svg") 16 16,
+    cell;
   opacity: 0.9;
 }
 /* HANDLE SNAP AREA */
