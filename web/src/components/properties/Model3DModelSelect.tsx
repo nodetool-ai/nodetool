@@ -104,6 +104,17 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
     [onChange, addRecent]
   );
 
+  // Memoize model click handlers to prevent unnecessary MenuItem re-renders
+  const modelClickHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const [_provider, providerModels] of Object.entries(modelsByProvider)) {
+      for (const model of providerModels) {
+        handlers[model.id] = () => handleModelSelect(model);
+      }
+    }
+    return handlers;
+  }, [modelsByProvider, handleModelSelect]);
+
   return (
     <>
       <ModelSelectButton
@@ -155,7 +166,7 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
             {providerModels.map((model) => (
               <MenuItem
                 key={model.id}
-                onClick={() => handleModelSelect(model)}
+                onClick={modelClickHandlers[model.id]}
                 selected={model.id === value}
                 sx={{ pl: 3 }}
               >

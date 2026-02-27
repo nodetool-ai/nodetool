@@ -57,6 +57,18 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
     onSelect(preset);
   }, [onSelect]);
 
+  // Memoize preset click handlers to prevent unnecessary MenuItem re-renders
+  const presetClickHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const [_category, items] of Object.entries(filteredGroupedPresets)) {
+      for (const preset of items) {
+        const key = `${preset.width}x${preset.height}-${preset.label}`;
+        handlers[key] = () => handlePresetSelect(preset);
+      }
+    }
+    return handlers;
+  }, [filteredGroupedPresets, handlePresetSelect]);
+
   return (
     <Menu
       className="presets-menu"
@@ -128,11 +140,13 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
       ) : (
         Object.entries(filteredGroupedPresets).map(([category, items]) => [
           <ListSubheader key={category} className="presets-category-header">{category}</ListSubheader>,
-          ...items.map((preset) => (
+          ...items.map((preset) => {
+            const key = `${preset.width}x${preset.height}-${preset.label}`;
+            return (
             <MenuItem
               className="preset-menu-item"
-              key={`${preset.width}x${preset.height}-${preset.label}`}
-              onClick={() => handlePresetSelect(preset)}
+              key={key}
+              onClick={presetClickHandlers[key]}
               selected={currentWidth === preset.width && currentHeight === preset.height}
               sx={{ py: 1, px: 2 }}
             >
@@ -162,7 +176,8 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
                 </Box>
               </Box>
             </MenuItem>
-          ))
+            );
+          })
         ])
       )}
     </Menu>
