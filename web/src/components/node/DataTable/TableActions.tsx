@@ -183,7 +183,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       selectedRows.forEach((row) => {
         const key = row.getData().key;
         if (Object.prototype.hasOwnProperty.call(newData, key)) {
-           
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
           delete newData[key];
         }
       });
@@ -224,7 +224,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     // Insert after the last selected row
     const lastSelectedIndex = Math.max(...selectedRows.map((r) => r.getData().rownum));
     // Use type assertion for array operations
-     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newData = [...(data as any[])];
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
 
