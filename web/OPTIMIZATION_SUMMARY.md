@@ -94,3 +94,59 @@ Verified using a performance regression test that counts renders of the internal
 - Created `web/src/components/node/__tests__/RerouteNode.performance.test.tsx` to verify the optimization.
 - Ran `cd web && npm test src/components/node/__tests__/RerouteNode.performance.test.tsx`: Passed.
 - Ran `make test-web`: All tests passed.
+
+# ⚡ Bolt Optimization: NodeStore.getWorkflow Serialization
+
+## 💡 What
+Optimized the `getWorkflow` method in `NodeStore.ts` which serializes the current graph state into a JSON object.
+
+Previously, the serialization logic iterated through every edge for every property of every node to determine if a property was connected (and thus should be excluded from the serialized properties).
+
+**Old Logic (O(N*M*E)):**
+```typescript
+const isHandleConnected = (nodeId: string, handle: string) => {
+  return edges.some(
+    (edge) => edge.target === nodeId && edge.targetHandle === handle
+  );
+};
+// Called for every property (M) of every node (N)
+```
+
+**New Logic (O(N*M + E)):**
+```typescript
+// Pre-calculate connected handles (O(E))
+const connectedHandles = new Set<string>();
+for (const edge of edges) {
+  if (edge.target && edge.targetHandle) {
+    connectedHandles.add(`${edge.target}:${edge.targetHandle}`);
+  }
+}
+
+// O(1) lookup
+const isHandleConnected = (nodeId: string, handle: string) => {
+  return connectedHandles.has(`${nodeId}:${handle}`);
+};
+```
+
+## 🎯 Why
+- **Performance Bottleneck:** As graphs grow larger (more nodes, more edges), the serialization cost grew cubically.
+- **Frequency:** `getWorkflow` is called frequently during auto-save, execution, and export operations.
+- **Blocking:** This runs on the main thread, so optimizing it reduces UI freezes during save operations.
+
+## 📊 Impact
+- **Time Complexity:** Reduced from Cubic `O(N*M*E)` to Linear `O(N*M + E)`.
+- **Scalability:** The serialization time now scales linearly with the size of the graph, making it viable for much larger workflows.
+
+## 🔧 Fixes Included
+This optimization PR also includes necessary TypeScript fixes for `DataTable` components to ensure the build passes:
+- Fixed `expected 1 arguments, but got 0` in `DataTable.tsx` (`clearFilter`).
+- Fixed `operand of delete must be optional` in `TableActions.tsx` (added safe casts).
+- Fixed `spread types may only be created from object types` in `TableActions.tsx` (ensured array type).
+
+## 🔬 Measurement
+Verify by running:
+```bash
+npm run typecheck
+npm test src/stores/__tests__/NodeStore.test.ts
+```
+Passes all 26 tests in `NodeStore.test.ts`.

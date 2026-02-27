@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
 import {
-  TabulatorFull as Tabulator,
+  TabulatorFull,
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
@@ -69,7 +69,7 @@ const ListTable: React.FC<ListTableProps> = ({
   onDataChange
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
-  const [tabulator, setTabulator] = useState<Tabulator>();
+  const [tabulator, setTabulator] = useState<TabulatorFull>();
 
   const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
@@ -173,7 +173,7 @@ const ListTable: React.FC<ListTableProps> = ({
   useEffect(() => {
     if (!tableRef.current) {return;}
 
-    const tabulatorInstance = new Tabulator(tableRef.current, {
+    const tabulatorInstance = new TabulatorFull(tableRef.current, {
       height: "100%",
       data: tabulatorData,
       columns: columns,

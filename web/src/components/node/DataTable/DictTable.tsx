@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
-  TabulatorFull as Tabulator,
+  TabulatorFull,
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
@@ -39,7 +39,7 @@ const DictTable: React.FC<DictTableProps> = ({
   onDataChange
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
-  const [tabulator, setTabulator] = useState<Tabulator>();
+  const [tabulator, setTabulator] = useState<TabulatorFull>();
   const [showSelect, setShowSelect] = useState(false);
   const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
 
@@ -153,7 +153,7 @@ const DictTable: React.FC<DictTableProps> = ({
   useEffect(() => {
     if (!tableRef.current) {return;}
 
-    const tabulatorInstance = new Tabulator(tableRef.current, {
+    const tabulatorInstance = new TabulatorFull(tableRef.current, {
       height: "300px",
       data: tableData,
       columns: columns,

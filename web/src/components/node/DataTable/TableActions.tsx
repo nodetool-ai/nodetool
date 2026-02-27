@@ -95,7 +95,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       if (Array.isArray(data)) {
         dataToStringify = (data as DictTableRow[]).map((row) => {
           const newRow = { ...row };
-          delete newRow.rownum;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          delete (newRow as any).rownum;
           return newRow;
         });
       } else {
@@ -184,7 +185,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         const key = row.getData().key;
         if (Object.prototype.hasOwnProperty.call(newData, key)) {
           // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete newData[key];
+          Reflect.deleteProperty(newData, key);
         }
       });
       (onChangeRows as (newData: unknown) => void)(newData);
@@ -217,7 +218,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
     const duplicatedRows = selectedRows.map((row) => {
       const rowData = { ...row.getData() };
-      delete rowData.rownum; // Remove rownum, will be reassigned
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (rowData as any).rownum; // Remove rownum, will be reassigned
       return rowData;
     });
 
@@ -225,7 +227,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     const lastSelectedIndex = Math.max(...selectedRows.map((r) => r.getData().rownum));
     // Use type assertion for array operations
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const newData = [...(data as any[])];
+    const newData = Array.from(data as any[]);
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
 
     // Reassign rownums - memoize this operation
@@ -380,11 +382,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           ? Math.max(...selectedRows.map((r) => r.getData().rownum)) + 1
           : data.length;
 
-        const newData = [...data];
+        // Use array spread with type assertion to avoid TS2698
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newData = [...(data as any[])];
         newData.splice(insertIndex, 0, ...newRows);
 
         // Reassign rownums - memoize this operation
-        const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const reindexedData = newData.map((row: any, index: number) => ({ ...row, rownum: index }));
         onChangeRows(reindexedData);
         
         addNotification({

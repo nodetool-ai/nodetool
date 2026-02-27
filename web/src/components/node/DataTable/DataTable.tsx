@@ -9,7 +9,7 @@ import React, {
   memo
 } from "react";
 import {
-  TabulatorFull as Tabulator,
+  TabulatorFull as TabulatorFull,
   ColumnDefinition,
   CellComponent,
   ColumnDefinitionAlign,
@@ -126,8 +126,8 @@ const DataTable: React.FC<DataTableProps> = ({
 }) => {
   const theme = useTheme();
   const tableRef = useRef<HTMLDivElement>(null);
-  const tabulatorRef = useRef<Tabulator | null>(null);
-  const [tabulator, setTabulator] = useState<Tabulator>();
+  const tabulatorRef = useRef<TabulatorFull | null>(null);
+  const [tabulator, setTabulator] = useState<TabulatorFull>();
   const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
@@ -282,7 +282,7 @@ const DataTable: React.FC<DataTableProps> = ({
       }, 100);
     };
 
-    const tabulatorInstance = new Tabulator(tableRef.current, {
+    const tabulatorInstance = new TabulatorFull(tableRef.current, {
       height: 200,
       data: data,
       columns: buildColumns(),
@@ -347,7 +347,7 @@ const DataTable: React.FC<DataTableProps> = ({
         }));
         tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
       } else {
-        tabulatorRef.current.clearFilter();
+        tabulatorRef.current.clearFilter(true);
       }
     }
   }, [searchFilter, isTableReady]);
@@ -361,7 +361,7 @@ const DataTable: React.FC<DataTableProps> = ({
         showSelect={showSelect}
         setShowSelect={setShowSelect}
         showRowNumbers={showRowNumbers}
-        setShowRowNumbers={(val) => setShowRowNumbers(val)}
+        setShowRowNumbers={(val: boolean) => setShowRowNumbers(val)}
         editable={editable}
         dataframeColumns={dataframe.columns || []}
         onChangeRows={onChangeRows}
