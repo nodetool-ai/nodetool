@@ -6,8 +6,15 @@ import type { EmbeddingModel } from "../../stores/ApiTypes";
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
+interface EmbeddingModelValue {
+  type: "embedding_model";
+  id: string;
+  provider: string;
+  name: string;
+}
+
 interface EmbeddingModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: EmbeddingModelValue) => void;
   value: string;
   allowedProviders?: string[];
 }

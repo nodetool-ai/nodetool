@@ -7,7 +7,15 @@ import { IconButton, Collapse, Box } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
 import CloseIcon from "@mui/icons-material/Close";
 import ChatToolBar from "./ChatToolBar";
-import { LanguageModel } from "../../../stores/ApiTypes";
+import type { LanguageModel } from "../../../stores/ApiTypes";
+
+// Simplified type for model selection callback
+interface LanguageModelValue {
+  type: "language_model";
+  id: string;
+  provider: string;
+  name: string;
+}
 
 const styles = (theme: Theme, isExpanded: boolean) =>
   css({
@@ -83,7 +91,7 @@ interface MobileChatToolbarProps {
   selectedTools: string[];
   onToolsChange?: (tools: string[]) => void;
   selectedModel?: LanguageModel;
-  onModelChange?: (model: LanguageModel) => void;
+  onModelChange?: (model: LanguageModelValue) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
   selectedCollections?: string[];

@@ -6,8 +6,15 @@ import type { LanguageModel } from "../../stores/ApiTypes";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
+interface LanguageModelValue {
+  type: "language_model";
+  id: string;
+  provider: string;
+  name: string;
+}
+
 interface LanguageModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: LanguageModelValue) => void;
   value: string;
   allowedProviders?: string[];
 }

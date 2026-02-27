@@ -28,6 +28,14 @@ import {
 import { isLocalhost } from "./ApiClient";
 import { client } from "./ApiClient";
 import log from "loglevel";
+
+// Simplified type for model selection callback
+interface LanguageModelValue {
+  type: "language_model";
+  id: string;
+  provider: string;
+  name: string;
+}
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
@@ -102,7 +110,7 @@ export interface GlobalChatState {
 
   // Selections
   selectedModel: LanguageModel;
-  setSelectedModel: (model: LanguageModel) => void;
+  setSelectedModel: (model: LanguageModelValue) => void;
   selectedTools: string[];
   setSelectedTools: (tools: string[]) => void;
   selectedCollections: string[];
@@ -213,8 +221,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Selections
       selectedModel: buildDefaultLanguageModel(),
-      setSelectedModel: (model: LanguageModel) => {
-        set({ selectedModel: model });
+      setSelectedModel: (model: LanguageModelValue) => {
+        set({ selectedModel: model as LanguageModel });
       },
       selectedTools: [],
       setSelectedTools: (tools: string[]) => set({ selectedTools: tools }),

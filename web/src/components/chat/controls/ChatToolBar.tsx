@@ -8,8 +8,16 @@ import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
-import { LanguageModel } from "../../../stores/ApiTypes";
+import type { LanguageModel } from "../../../stores/ApiTypes";
 import { Box } from "@mui/material";
+
+// Simplified type for model selection callback
+interface LanguageModelValue {
+  type: "language_model";
+  id: string;
+  provider: string;
+  name: string;
+}
 
 const styles = (theme: Theme) =>
   css({
@@ -103,7 +111,7 @@ interface ChatToolBarProps {
   selectedTools: string[];
   onToolsChange?: (tools: string[]) => void;
   selectedModel?: LanguageModel;
-  onModelChange?: (model: LanguageModel) => void;
+  onModelChange?: (model: LanguageModelValue) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
   selectedCollections?: string[];

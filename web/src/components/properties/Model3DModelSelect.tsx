@@ -14,8 +14,15 @@ interface Model3DModel {
   supported_tasks?: string[];
 }
 
+interface Model3DModelValue {
+  type: "model_3d_model";
+  id: string;
+  provider?: string;
+  name: string;
+}
+
 interface Model3DModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: Model3DModelValue) => void;
   value: string;
   task?: "text_to_3d" | "image_to_3d";
 }

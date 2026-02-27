@@ -6,8 +6,15 @@ import type { ImageModel } from "../../stores/ApiTypes";
 import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
+interface ImageModelValue {
+  type: "image_model";
+  id: string;
+  provider: string;
+  name: string;
+}
+
 interface ImageModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: ImageModelValue) => void;
   value: string;
   task?: "text_to_image" | "image_to_image";
 }

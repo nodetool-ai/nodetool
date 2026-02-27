@@ -14,8 +14,13 @@ import ModelSelectButton from "./shared/ModelSelectButton";
 import { EditorMenu, EditorMenuItem } from "../editor_ui";
 // no providers here; always Ollama
 
+interface LlamaModelValue {
+  type: "llama_model";
+  repo_id: string;
+}
+
 interface LlamaModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: LlamaModelValue) => void;
   value: string;
 }
 
