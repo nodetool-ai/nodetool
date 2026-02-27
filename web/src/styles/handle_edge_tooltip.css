@@ -85,7 +85,9 @@
 .react-flow .react-flow__connection-path {
   stroke: var(--palette-grey-400);
   stroke-width: 2.5 !important;
-  transition: stroke-opacity 0.3s ease-in-out, stroke-width 0.2s ease-in-out;
+  transition:
+    stroke-opacity 0.3s ease-in-out,
+    stroke-width 0.2s ease-in-out;
 }
 
 /* Dim static edges by default */
@@ -242,12 +244,18 @@
 }
 
 /* Preserve control handle centering when connecting */
-.react-flow.is-connecting .react-flow__node .react-flow__handle.control-handle.is-connectable,
-.react-flow.is-connecting .react-flow__node .react-flow__handle.control-handle.not-connectable {
+.react-flow.is-connecting
+  .react-flow__node
+  .react-flow__handle.control-handle.is-connectable,
+.react-flow.is-connecting
+  .react-flow__node
+  .react-flow__handle.control-handle.not-connectable {
   transform: translateX(-50%) scale(1.1, 1);
 }
 
-.react-flow.is-connecting .react-flow__node .react-flow__handle.control-handle.not-connectable {
+.react-flow.is-connecting
+  .react-flow__node
+  .react-flow__handle.control-handle.not-connectable {
   transform: translateX(-50%) scale(0.6, 0.4);
   opacity: 0.8;
 }
@@ -256,7 +264,10 @@
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
   transform-origin: right center;
-  transition: transform 0.15s, height 0.05s, opacity 0.2s linear;
+  transition:
+    transform 0.15s,
+    height 0.05s,
+    opacity 0.2s linear;
   width: var(--handle_width);
   height: var(--handle_height);
   /* Subtle, darker base so it doesn't pop over glass */
@@ -300,14 +311,15 @@
 .react-flow__node .react-flow__handle-right::after {
   content: "";
   position: absolute;
-  left: -5px;
+  top: -5px;
+  left: -10px;
   background-color: transparent;
-  width: 17px;
-  height: 100%;
+  width: 24px;
+  height: 200%;
 }
 .react-flow__node .react-flow__handle-right::after {
   left: unset;
-  right: -5px;
+  right: -10px;
   border-radius: 0px;
 }
 .react-flow.is-connecting .react-flow__node .react-flow__handle-right::after,
@@ -329,7 +341,8 @@
   border-left-width: 3px;
   border-left-style: double;
   /* Subtle glow to make it more noticeable */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
     inset 1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
@@ -345,7 +358,9 @@
   height: calc(var(--handle_height) * 2);
   transform: translate(0, -50%) scale(1.15, 1);
   opacity: 1;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* STREAMING OUTPUT HANDLE - outputs that stream data continuously */
@@ -553,7 +568,8 @@ ul.multi-outputs li::marker {
    to indicate origin of data flow.
 */
 @keyframes sourcePulse {
-  0%, 100% {
+  0%,
+  100% {
     stroke-width: 2.5;
     filter: brightness(1);
   }
@@ -565,7 +581,9 @@ ul.multi-outputs li::marker {
 
 /* Apply pulse animation to active edges */
 .react-flow .react-flow__edge.message-sent.pulse-active .react-flow__edge-path {
-  animation: edgeFlow 2s linear infinite, sourcePulse 1s ease-in-out infinite;
+  animation:
+    edgeFlow 2s linear infinite,
+    sourcePulse 1s ease-in-out infinite;
 }
 
 /* 
@@ -576,17 +594,26 @@ ul.multi-outputs li::marker {
 */
 
 /* Image data particles (blue) */
-.react-flow .react-flow__edge.message-sent[data-type="image"] .data-flow-particles circle {
+.react-flow
+  .react-flow__edge.message-sent[data-type="image"]
+  .data-flow-particles
+  circle {
   fill: #3b82f6;
 }
 
 /* Audio data particles (purple) */
-.react-flow .react-flow__edge.message-sent[data-type="audio"] .data-flow-particles circle {
+.react-flow
+  .react-flow__edge.message-sent[data-type="audio"]
+  .data-flow-particles
+  circle {
   fill: #a855f7;
 }
 
 /* Text data particles (green) */
-.react-flow .react-flow__edge.message-sent[data-type="text"] .data-flow-particles circle {
+.react-flow
+  .react-flow__edge.message-sent[data-type="text"]
+  .data-flow-particles
+  circle {
   fill: #22c55e;
 }
 
@@ -601,7 +628,9 @@ ul.multi-outputs li::marker {
    When streaming large datasets, shows multiple wave fronts
    to indicate continuous data flow.
 */
-.react-flow .react-flow__edge.message-sent.streaming-active .react-flow__edge-path {
+.react-flow
+  .react-flow__edge.message-sent.streaming-active
+  .react-flow__edge-path {
   stroke-dasharray: 8 4;
   animation: edgeFlow 1s linear infinite;
   stroke-width: 3 !important;
@@ -622,7 +651,9 @@ ul.multi-outputs li::marker {
   }
 }
 
-.react-flow .react-flow__edge.message-sent.gradient-mode .react-flow__edge-path {
+.react-flow
+  .react-flow__edge.message-sent.gradient-mode
+  .react-flow__edge-path {
   stroke-dasharray: 50 50;
   animation: gradientFlow 3s linear infinite;
 }
@@ -633,7 +664,9 @@ ul.multi-outputs li::marker {
    When hovering over a node that has active output edges,
    those edges glow to show potential data flow paths.
 */
-.react-flow__node:hover ~ .react-flow__edge.message-sent .react-flow__edge-path {
+.react-flow__node:hover
+  ~ .react-flow__edge.message-sent
+  .react-flow__edge-path {
   filter: drop-shadow(0 0 2px currentColor);
 }
 
@@ -660,8 +693,10 @@ ul.multi-outputs li::marker {
     animation: none;
     stroke-dasharray: 4 2;
   }
-  
-  .react-flow .react-flow__edge.message-sent.pulse-active .react-flow__edge-path {
+
+  .react-flow
+    .react-flow__edge.message-sent.pulse-active
+    .react-flow__edge-path {
     animation: none;
   }
 }
