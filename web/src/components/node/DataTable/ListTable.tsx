@@ -2,11 +2,13 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
 import {
-  TabulatorFull as Tabulator,
+  TabulatorFull,
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
-  StandardValidatorType
+  StandardValidatorType,
+  RowComponent,
+  ColumnDefinition
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -67,73 +69,74 @@ const ListTable: React.FC<ListTableProps> = ({
   onDataChange
 }) => {
   const tableRef = useRef<HTMLDivElement>(null);
-  const [tabulator, setTabulator] = useState<Tabulator>();
+  const [tabulator, setTabulator] = useState<TabulatorFull>();
 
-  const [selectedRows, setSelectedRows] = useState<Tabulator.RowComponent[]>([]);
+  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
 
-  const columns = useMemo(
-    () => [
-      ...(showSelect
-        ? [
-            {
-              title: "",
-              field: "select",
-              formatter: "rowSelection" as Formatter,
-              titleFormatter: "rowSelection" as Formatter,
-              hozAlign: "left" as ColumnDefinitionAlign,
-              headerSort: false,
-              width: 25,
-              minWidth: 25,
-              resizable: false,
-              frozen: true,
-              cellClick: function (_e: MouseEvent, cell: CellComponent) {
-                cell.getRow().toggleSelect();
-              },
-              editable: false,
-              cssClass: "row-select"
-            }
-          ]
-        : []),
-      {
-        title: "Index",
-        field: "rownum",
-        formatter: "rownum" as Formatter,
+  const columns = useMemo((): ColumnDefinition[] => {
+    const definitions: ColumnDefinition[] = [];
+
+    if (showSelect) {
+      definitions.push({
+        title: "",
+        field: "select",
+        formatter: "rowSelection" as Formatter,
+        titleFormatter: "rowSelection" as Formatter,
         hozAlign: "left" as ColumnDefinitionAlign,
         headerSort: false,
-        resizable: true,
+        width: 25,
+        minWidth: 25,
+        resizable: false,
         frozen: true,
-        rowHandle: true,
+        cellClick: function (_e: unknown, cell: CellComponent) {
+          cell.getRow().toggleSelect();
+        },
         editable: false,
-        cssClass: "row-numbers"
-      },
-      {
-        title: "Value",
-        field: "value",
-        editable: editable,
-        frozen: !editable,
-        editor:
-          data_type === "int"
-            ? integerEditor
-            : data_type === "float"
-            ? floatEditor
-            : data_type === "datetime"
-            ? datetimeEditor
-            : "input",
-        headerHozAlign: "left" as ColumnDefinitionAlign,
-        cssClass: data_type,
-        validator:
-          data_type === "int"
-            ? (["required", "integer"] as StandardValidatorType[])
-            : data_type === "float"
-            ? (["required", "numeric"] as StandardValidatorType[])
-            : data_type === "datetime"
-            ? (["required", "date"] as StandardValidatorType[])
-            : undefined
-      }
-    ],
-    [data_type, editable, showSelect]
-  );
+        cssClass: "row-select"
+      });
+    }
+
+    definitions.push({
+      title: "Index",
+      field: "rownum",
+      formatter: "rownum" as Formatter,
+      hozAlign: "left" as ColumnDefinitionAlign,
+      headerSort: false,
+      resizable: true,
+      frozen: true,
+      rowHandle: true,
+      editable: false,
+      cssClass: "row-numbers"
+    });
+
+    definitions.push({
+      title: "Value",
+      field: "value",
+      editable: editable,
+      frozen: !editable,
+      editor:
+        data_type === "int"
+          ? integerEditor
+          : data_type === "float"
+          ? floatEditor
+          : data_type === "datetime"
+          ? datetimeEditor
+          : "input",
+      headerHozAlign: "left" as ColumnDefinitionAlign,
+      cssClass: data_type,
+      validator:
+        data_type === "int"
+          ? (["required", "integer"] as StandardValidatorType[])
+          : data_type === "float"
+          ? (["required", "numeric"] as StandardValidatorType[])
+          : data_type === "datetime"
+          ? (["required", "date"] as StandardValidatorType[])
+          : undefined
+    });
+
+    return definitions;
+  }, [data_type, editable, showSelect]);
 
   // Memoize the tabulator data transformation to prevent recreation on every render
   const tabulatorData = useMemo(
@@ -170,7 +173,7 @@ const ListTable: React.FC<ListTableProps> = ({
   useEffect(() => {
     if (!tableRef.current) {return;}
 
-    const tabulatorInstance = new Tabulator(tableRef.current, {
+    const tabulatorInstance = new TabulatorFull(tableRef.current, {
       height: "100%",
       data: tabulatorData,
       columns: columns,

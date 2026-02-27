@@ -1,6 +1,6 @@
 import React, { useCallback, memo } from "react";
 import { Tooltip, IconButton, Divider } from "@mui/material";
-import { TabulatorFull as Tabulator } from "tabulator-tables";
+import { TabulatorFull as Tabulator, RowComponent } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
@@ -39,11 +39,6 @@ export type TableData =
   | Record<string, DictTableRow> // DataTable dict format
   | ListCellValue[]             // ListTable format
   | Record<string, DictCellValue>; // DictTable format
-
-/**
- * RowComponent type from Tabulator - exported for use in other components
- */
-export type RowComponent = Tabulator.RowComponent;
 
 interface TableActionsProps {
   tabulator: Tabulator | undefined;
@@ -93,15 +88,20 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   const handleCopyData = () => {
     let dataToStringify: unknown;
     if (isListTable) {
-      dataToStringify = Array.isArray(data) ? data : Object.values(data);
+      // Cast data to array for list tables as we know it's ListCellValue[]
+      const listData = data as ListCellValue[];
+      dataToStringify = Array.isArray(listData) ? listData : Object.values(listData);
     } else {
-      dataToStringify = Array.isArray(data)
-        ? data.map((row) => {
-            const newRow = { ...row };
-            delete newRow.rownum;
-            return newRow;
-          })
-        : data;
+      if (Array.isArray(data)) {
+        dataToStringify = (data as DictTableRow[]).map((row) => {
+          const newRow = { ...row };
+           
+          delete (newRow as any).rownum;
+          return newRow;
+        });
+      } else {
+        dataToStringify = data;
+      }
     }
     writeClipboard(JSON.stringify(dataToStringify), true);
     addNotification({
@@ -115,11 +115,13 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     const shouldTreatAsList = isListTable || !dataframeColumns;
     if (shouldTreatAsList) {
       if (Array.isArray(data)) {
+        // Handle list array data
+        const listData = data as ListCellValue[];
         let defaultValue: DataframeCellValue = "";
 
         // If we have existing data, try to match its type
-        if (data.length > 0) {
-          const firstItem = data[0];
+        if (listData.length > 0) {
+          const firstItem = listData[0];
           if (typeof firstItem === "number") {
             defaultValue = 0;
           } else if (typeof firstItem === "string") {
@@ -143,36 +145,48 @@ const TableActions: React.FC<TableActionsProps> = memo(({
               defaultValue = "";
           }
         }
-        (onChangeRows as (newData: unknown) => void)([...data, defaultValue]);
+        (onChangeRows as (newData: unknown) => void)([...listData, defaultValue]);
       } else {
-        const newKey = `new_key_${Object.keys(data).length}`;
-        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
+        // Handle dict object data
+        const dictData = data as Record<string, DictCellValue>;
+        const newKey = `new_key_${Object.keys(dictData).length}`;
+        (onChangeRows as (newData: unknown) => void)({ ...dictData, [newKey]: "" });
       }
     } else {
       if (Array.isArray(data) && dataframeColumns) {
+        // Handle dataframe rows
+        const dfData = data as DictTableRow[];
         const newRow = defaultRow(dataframeColumns);
-        (onChangeRows as (newData: unknown) => void)([...data, newRow]);
+        (onChangeRows as (newData: unknown) => void)([...dfData, newRow]);
       } else if (!Array.isArray(data)) {
-        const newKey = `new_key_${Object.keys(data).length}`;
-        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
+        // Handle dataframe dict
+        const dfDict = data as Record<string, DictTableRow>;
+        const newKey = `new_key_${Object.keys(dfDict).length}`;
+        // This case seems unusual for DataTable but preserving logic structure
+        (onChangeRows as (newData: unknown) => void)({ ...dfDict, [newKey]: "" });
       }
     }
   };
 
   const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
-      (onChangeRows as (newData: unknown) => void)(
-        data.filter((_, index) => {
-          return !selectedRows.some(
-            (selectedRow) => selectedRow.getData().rownum === index
-          );
-        })
-      );
+      // Handle array data (List or DataTable rows)
+      const arrayData = data as unknown[];
+      const filteredData = arrayData.filter((_, index) => {
+        return !selectedRows.some(
+          (selectedRow) => selectedRow.getData().rownum === index
+        );
+      });
+      (onChangeRows as (newData: unknown) => void)(filteredData);
     } else {
-      const newData = { ...data };
+      // Handle object data (Dict or DataTable dict)
+      const newData = { ...(data as Record<string, unknown>) };
       selectedRows.forEach((row) => {
         const key = row.getData().key;
-        delete newData[key];
+        if (Object.prototype.hasOwnProperty.call(newData, key)) {
+           
+          Reflect.deleteProperty(newData, key);
+        }
       });
       (onChangeRows as (newData: unknown) => void)(newData);
     }
@@ -204,18 +218,21 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
     const duplicatedRows = selectedRows.map((row) => {
       const rowData = { ...row.getData() };
-      delete rowData.rownum; // Remove rownum, will be reassigned
+       
+      delete (rowData as any).rownum; // Remove rownum, will be reassigned
       return rowData;
     });
 
     // Insert after the last selected row
     const lastSelectedIndex = Math.max(...selectedRows.map((r) => r.getData().rownum));
-    const newData = [...data];
+    // Use type assertion for array operations
+     
+    const newData = Array.from(data as any[]);
     newData.splice(lastSelectedIndex + 1, 0, ...duplicatedRows);
 
     // Reassign rownums - memoize this operation
-    const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
-    onChangeRows(reindexedData);
+    const reindexedData = newData.map((row, index) => ({ ...(row as object), rownum: index }));
+    (onChangeRows as (newData: unknown) => void)(reindexedData);
 
     addNotification({
       content: `Duplicated ${duplicatedRows.length} row(s)`,
@@ -365,11 +382,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           ? Math.max(...selectedRows.map((r) => r.getData().rownum)) + 1
           : data.length;
 
-        const newData = [...data];
+        // Use array spread with type assertion to avoid TS2698
+         
+        const newData = [...(data as any[])];
         newData.splice(insertIndex, 0, ...newRows);
 
         // Reassign rownums - memoize this operation
-        const reindexedData = newData.map((row, index) => ({ ...row, rownum: index }));
+         
+        const reindexedData = newData.map((row: any, index: number) => ({ ...row, rownum: index }));
         onChangeRows(reindexedData);
         
         addNotification({
