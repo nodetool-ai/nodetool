@@ -542,8 +542,15 @@ export const handleUpdate = (
         const nextDynamic = { ...existingDynamic };
         const nextStatic: Record<string, unknown> = {};
 
+        const isFalDynamicNode = update.node_type === "fal.dynamic_schema.FalAI";
+
         Object.entries(update.properties).forEach(([key, value]) => {
           if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
+            // FalAI inputs are user-editable between runs; backend echoes
+            // execution-time values that can be stale by completion time.
+            if (isFalDynamicNode) {
+              return;
+            }
             nextDynamic[key] = value;
           } else {
             nextStatic[key] = value;

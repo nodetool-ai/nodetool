@@ -123,21 +123,29 @@ const PropertyContextMenuComponent: React.FC = () => {
       }
 
       if (isDynamicProperty) {
-        // For dynamic properties, we need to find the property definition from metadata
-        const nodeMetadata = metadata?.[node.type as string];
-        if (nodeMetadata) {
-          const propertyDef = nodeMetadata.properties.find(
-            (prop: Property) => prop.name === handleId
-          );
-          if (propertyDef && node.data.dynamic_properties) {
-            const updatedDynamicProperties = {
-              ...node.data.dynamic_properties,
-              [handleId]: propertyDef.default
-            };
-            updateNodeData(nodeId, {
-              dynamic_properties: updatedDynamicProperties
-            });
+        // Dynamic properties (e.g. FalAI schema fields) usually keep defaults in
+        // node.data.dynamic_inputs, not in static metadata.properties.
+        const dynamicInputDefaults = (node.data as any)?.dynamic_inputs || {};
+        let defaultValue = dynamicInputDefaults?.[handleId]?.default;
+
+        if (defaultValue === undefined) {
+          const nodeMetadata = metadata?.[node.type as string];
+          if (nodeMetadata) {
+            const propertyDef = nodeMetadata.properties.find(
+              (prop: Property) => prop.name === handleId
+            );
+            defaultValue = propertyDef?.default;
           }
+        }
+
+        if (defaultValue !== undefined && node.data.dynamic_properties) {
+          const updatedDynamicProperties = {
+            ...node.data.dynamic_properties,
+            [handleId]: defaultValue
+          };
+          updateNodeData(nodeId, {
+            dynamic_properties: updatedDynamicProperties
+          });
         }
       } else {
         // For regular properties, get the default value from metadata
@@ -208,17 +216,15 @@ const PropertyContextMenuComponent: React.FC = () => {
         tooltip={getShortcutTooltip("reset-default")}
       />
 
+      {isDynamicProperty && <Divider />}
       {isDynamicProperty && (
-        <>
-          <Divider />
-          <ContextMenuItem
-            onClick={handleRemoveDynamicProperty}
-            label="Remove Dynamic Property"
-            addButtonClassName="remove-dynamic-property"
-            IconComponent={<DeleteIcon />}
-            tooltip="Remove this property from being dynamic"
-          />
-        </>
+        <ContextMenuItem
+          onClick={handleRemoveDynamicProperty}
+          label="Remove Dynamic Property"
+          addButtonClassName="remove-dynamic-property"
+          IconComponent={<DeleteIcon />}
+          tooltip="Remove this property from being dynamic"
+        />
       )}
     </Menu>
   );
