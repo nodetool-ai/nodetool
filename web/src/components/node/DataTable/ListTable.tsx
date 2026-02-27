@@ -6,23 +6,19 @@ import {
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
-  StandardValidatorType
+  StandardValidatorType,
+  Editor,
+  RowComponent
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { tableStyles } from "../../../styles/TableStyles";
-import TableActions from "./TableActions";
+import TableActions, { ListCellValue, TableData, TableDataChange } from "./TableActions";
 import { useTheme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
-import type { TableData } from "./TableActions";
 
 export type ListDataType = "int" | "string" | "datetime" | "float";
-
-/**
- * Union type for all possible cell values in a list table
- */
-export type ListCellValue = string | number | boolean | Date | null | undefined;
 
 export type ListTableProps = {
   data: ListCellValue[];
@@ -69,7 +65,7 @@ const ListTable: React.FC<ListTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
 
-  const [selectedRows, setSelectedRows] = useState<Tabulator.RowComponent[]>([]);
+  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
 
   const columns = useMemo(
@@ -87,7 +83,7 @@ const ListTable: React.FC<ListTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (_e: MouseEvent, cell: CellComponent) {
+              cellClick: function (_e: unknown, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -112,17 +108,18 @@ const ListTable: React.FC<ListTableProps> = ({
         field: "value",
         editable: editable,
         frozen: !editable,
-        editor:
+        editor: (
           data_type === "int"
             ? integerEditor
             : data_type === "float"
             ? floatEditor
             : data_type === "datetime"
             ? datetimeEditor
-            : "input",
+            : "input"
+        ) as Editor,
         headerHozAlign: "left" as ColumnDefinitionAlign,
         cssClass: data_type,
-        validator:
+        validator: (
           data_type === "int"
             ? (["required", "integer"] as StandardValidatorType[])
             : data_type === "float"
@@ -130,6 +127,7 @@ const ListTable: React.FC<ListTableProps> = ({
             : data_type === "datetime"
             ? (["required", "date"] as StandardValidatorType[])
             : undefined
+        )
       }
     ],
     [data_type, editable, showSelect]
@@ -188,7 +186,7 @@ const ListTable: React.FC<ListTableProps> = ({
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
-    tabulatorInstance.on("rowSelectionChanged", (data, rows) => {
+    tabulatorInstance.on("rowSelectionChanged", (_data, rows) => {
       setSelectedRows(rows);
     });
 
@@ -206,7 +204,7 @@ const ListTable: React.FC<ListTableProps> = ({
         tabulator={tabulator}
         data={data as unknown as TableData}
         selectedRows={selectedRows}
-        onChangeRows={onChangeRows as unknown as (newData: TableData) => void}
+        onChangeRows={onChangeRows as unknown as (newData: TableDataChange) => void}
         showSelect={showSelect}
         setShowSelect={setShowSelect}
         editable={editable}

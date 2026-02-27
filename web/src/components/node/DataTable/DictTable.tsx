@@ -1,28 +1,23 @@
 /** @jsxImportSource @emotion/react */
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   TabulatorFull as Tabulator,
   CellComponent,
   Formatter,
   ColumnDefinitionAlign,
   StandardValidatorType,
-  RowComponent
+  RowComponent,
+  Editor
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { datetimeEditor, floatEditor, integerEditor } from "./DataTableEditors";
-import TableActions from "./TableActions";
+import TableActions, { TableData, TableDataChange, DictCellValue } from "./TableActions";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
-import type { TableData } from "./TableActions";
 
 export type DictDataType = "int" | "string" | "datetime" | "float";
-
-/**
- * Union type for all possible cell values in a dict table
- */
-export type DictCellValue = string | number | boolean | Date | null | undefined;
 
 export type DictTableProps = {
   data: Record<string, DictCellValue>;
@@ -57,7 +52,7 @@ const DictTable: React.FC<DictTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (_e: MouseEvent, cell: CellComponent) {
+              cellClick: function (_e: unknown, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -77,17 +72,18 @@ const DictTable: React.FC<DictTableProps> = ({
         field: "value",
         editable: editable,
         frozen: !editable,
-        editor:
+        editor: (
           data_type === "int"
             ? integerEditor
             : data_type === "float"
             ? floatEditor
             : data_type === "datetime"
             ? datetimeEditor
-            : "input",
+            : "input"
+        ) as Editor,
         headerHozAlign: "left" as ColumnDefinitionAlign,
         cssClass: data_type,
-        validator:
+        validator: (
           data_type === "int"
             ? (["required", "integer"] as StandardValidatorType[])
             : data_type === "float"
@@ -95,6 +91,7 @@ const DictTable: React.FC<DictTableProps> = ({
             : data_type === "datetime"
             ? (["required", "date"] as StandardValidatorType[])
             : undefined
+        )
       }
     ],
     [data_type, editable, showSelect]
@@ -169,7 +166,7 @@ const DictTable: React.FC<DictTableProps> = ({
     });
 
     tabulatorInstance.on("cellEdited", onCellEdited);
-    tabulatorInstance.on("rowSelectionChanged", (data, rows) => {
+    tabulatorInstance.on("rowSelectionChanged", (_data, rows) => {
       setSelectedRows(rows);
     });
     setTabulator(tabulatorInstance);
@@ -192,7 +189,7 @@ const DictTable: React.FC<DictTableProps> = ({
         setShowRowNumbers={() => {}}
         editable={editable}
         dataframeColumns={[]}
-        onChangeRows={onChangeRows as unknown as (newData: TableData) => void}
+        onChangeRows={onChangeRows as unknown as (newData: TableDataChange) => void}
       />
       <div ref={tableRef} className="dicttable" />
     </div>
