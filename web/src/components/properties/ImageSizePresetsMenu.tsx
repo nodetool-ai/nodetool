@@ -57,6 +57,14 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
     onSelect(preset);
   }, [onSelect]);
 
+  // Handler factory for menu items - prevents inline arrow function creation on each render
+  const handlePresetSelectClick = useCallback((preset: PresetOption) => {
+    return () => {
+      handlePresetSelect(preset);
+      handleClose();
+    };
+  }, [handlePresetSelect, handleClose]);
+
   return (
     <Menu
       className="presets-menu"
@@ -132,7 +140,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
             <MenuItem
               className="preset-menu-item"
               key={`${preset.width}x${preset.height}-${preset.label}`}
-              onClick={() => handlePresetSelect(preset)}
+              onClick={handlePresetSelectClick(preset)}
               selected={currentWidth === preset.width && currentHeight === preset.height}
               sx={{ py: 1, px: 2 }}
             >
