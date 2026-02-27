@@ -14,7 +14,8 @@ import {
   CellComponent,
   ColumnDefinitionAlign,
   Formatter,
-  StandardValidatorType
+  StandardValidatorType,
+  RowComponent
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -127,7 +128,7 @@ const DataTable: React.FC<DataTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
-  const [selectedRows, setSelectedRows] = useState<Tabulator.RowComponent[]>([]);
+  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
   const [isTableReady, setIsTableReady] = useState(false);
@@ -178,45 +179,47 @@ const DataTable: React.FC<DataTableProps> = ({
   const buildColumns = useCallback((): ColumnDefinition[] => {
     const cols = dataframeRef.current.columns;
     if (!cols) {return [];}
-    return [
-      ...(showSelect
-        ? [
-            {
-              title: "",
-              field: "select",
-              formatter: "rowSelection" as Formatter,
-              titleFormatter: "rowSelection" as Formatter,
-              hozAlign: "left" as ColumnDefinitionAlign,
-              headerSort: false,
-              width: 25,
-              minWidth: 25,
-              resizable: false,
-              frozen: true,
-              cellClick: function (_e: MouseEvent, cell: CellComponent) {
-                cell.getRow().toggleSelect();
-              },
-              editable: false,
-              cssClass: "row-select"
-            }
-          ]
-        : []),
-      ...(showRowNumbers
-        ? [
-            {
-              title: "",
-              field: "rownum",
-              formatter: "rownum" as Formatter,
-              hozAlign: "left" as ColumnDefinitionAlign,
-              headerSort: false,
-              resizable: true,
-              frozen: true,
-              rowHandle: true,
-              editable: false,
-              cssClass: "row-numbers"
-            }
-          ]
-        : []),
-      ...cols.map((col) => ({
+
+    // Explicitly type the result array to satisfy TypeScript
+    const definitions: ColumnDefinition[] = [];
+
+    if (showSelect) {
+      definitions.push({
+        title: "",
+        field: "select",
+        formatter: "rowSelection" as Formatter,
+        titleFormatter: "rowSelection" as Formatter,
+        hozAlign: "left" as ColumnDefinitionAlign,
+        headerSort: false,
+        width: 25,
+        minWidth: 25,
+        resizable: false,
+        frozen: true,
+        cellClick: function (_e: unknown, cell: CellComponent) {
+          cell.getRow().toggleSelect();
+        },
+        editable: false,
+        cssClass: "row-select"
+      });
+    }
+
+    if (showRowNumbers) {
+      definitions.push({
+        title: "",
+        field: "rownum",
+        formatter: "rownum" as Formatter,
+        hozAlign: "left" as ColumnDefinitionAlign,
+        headerSort: false,
+        resizable: true,
+        frozen: true,
+        rowHandle: true,
+        editable: false,
+        cssClass: "row-numbers"
+      });
+    }
+
+    cols.forEach((col) => {
+      definitions.push({
         title: col.name,
         field: col.name,
         headerTooltip: col.data_type,
@@ -241,8 +244,10 @@ const DataTable: React.FC<DataTableProps> = ({
             : col.data_type === "datetime"
             ? (["required", "date"] as StandardValidatorType[])
             : undefined
-      }))
-    ];
+      });
+    });
+
+    return definitions;
   }, [editable, showRowNumbers, showSelect]);
 
   // Initialize Tabulator once on mount
@@ -356,7 +361,7 @@ const DataTable: React.FC<DataTableProps> = ({
         showSelect={showSelect}
         setShowSelect={setShowSelect}
         showRowNumbers={showRowNumbers}
-        setShowRowNumbers={setShowRowNumbers}
+        setShowRowNumbers={setShowRowNumbers || (() => {})}
         editable={editable}
         dataframeColumns={dataframe.columns || []}
         onChangeRows={onChangeRows}

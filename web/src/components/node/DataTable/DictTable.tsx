@@ -7,7 +7,8 @@ import {
   Formatter,
   ColumnDefinitionAlign,
   StandardValidatorType,
-  RowComponent
+  RowComponent,
+  ColumnDefinition
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -42,63 +43,64 @@ const DictTable: React.FC<DictTableProps> = ({
   const [showSelect, setShowSelect] = useState(false);
   const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
 
-  const columns = useMemo(
-    () => [
-      ...(showSelect
-        ? [
-            {
-              title: "",
-              field: "select",
-              formatter: "rowSelection" as Formatter,
-              titleFormatter: "rowSelection" as Formatter,
-              hozAlign: "left" as ColumnDefinitionAlign,
-              headerSort: false,
-              width: 25,
-              minWidth: 25,
-              resizable: false,
-              frozen: true,
-              cellClick: function (_e: MouseEvent, cell: CellComponent) {
-                cell.getRow().toggleSelect();
-              },
-              editable: false,
-              cssClass: "row-select"
-            }
-          ]
-        : []),
-      {
-        title: "Key",
-        field: "key",
-        editable: true,
-        headerHozAlign: "left" as ColumnDefinitionAlign,
-        cssClass: "key"
-      },
-      {
-        title: "Value",
-        field: "value",
-        editable: editable,
-        frozen: !editable,
-        editor:
-          data_type === "int"
-            ? integerEditor
-            : data_type === "float"
-            ? floatEditor
-            : data_type === "datetime"
-            ? datetimeEditor
-            : "input",
-        headerHozAlign: "left" as ColumnDefinitionAlign,
-        cssClass: data_type,
-        validator:
-          data_type === "int"
-            ? (["required", "integer"] as StandardValidatorType[])
-            : data_type === "float"
-            ? (["required", "numeric"] as StandardValidatorType[])
-            : data_type === "datetime"
-            ? (["required", "date"] as StandardValidatorType[])
-            : undefined
-      }
-    ],
-    [data_type, editable, showSelect]
-  );
+  const columns = useMemo((): ColumnDefinition[] => {
+    const definitions: ColumnDefinition[] = [];
+
+    if (showSelect) {
+      definitions.push({
+        title: "",
+        field: "select",
+        formatter: "rowSelection" as Formatter,
+        titleFormatter: "rowSelection" as Formatter,
+        hozAlign: "left" as ColumnDefinitionAlign,
+        headerSort: false,
+        width: 25,
+        minWidth: 25,
+        resizable: false,
+        frozen: true,
+        cellClick: function (_e: unknown, cell: CellComponent) {
+          cell.getRow().toggleSelect();
+        },
+        editable: false,
+        cssClass: "row-select"
+      });
+    }
+
+    definitions.push({
+      title: "Key",
+      field: "key",
+      editable: true,
+      headerHozAlign: "left" as ColumnDefinitionAlign,
+      cssClass: "key"
+    });
+
+    definitions.push({
+      title: "Value",
+      field: "value",
+      editable: editable,
+      frozen: !editable,
+      editor:
+        data_type === "int"
+          ? integerEditor
+          : data_type === "float"
+          ? floatEditor
+          : data_type === "datetime"
+          ? datetimeEditor
+          : "input",
+      headerHozAlign: "left" as ColumnDefinitionAlign,
+      cssClass: data_type,
+      validator:
+        data_type === "int"
+          ? (["required", "integer"] as StandardValidatorType[])
+          : data_type === "float"
+          ? (["required", "numeric"] as StandardValidatorType[])
+          : data_type === "datetime"
+          ? (["required", "date"] as StandardValidatorType[])
+          : undefined
+    });
+
+    return definitions;
+  }, [data_type, editable, showSelect]);
 
   const onCellEdited = useCallback(
     (cell: CellComponent) => {
