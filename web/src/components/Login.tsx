@@ -75,10 +75,10 @@ interface LinkButtonProps {
   onClick: (url: string) => void;
 }
 
-const LinkButton = memo(({ name, onClick }: LinkButtonProps) => {
+const LinkButton = memo(({ name, url, onClick }: LinkButtonProps) => {
   const handleClick = useCallback(() => {
-    onClick(name);
-  }, [name, onClick]);
+    onClick(url);
+  }, [url, onClick]);
 
   return (
     <EditorButton
