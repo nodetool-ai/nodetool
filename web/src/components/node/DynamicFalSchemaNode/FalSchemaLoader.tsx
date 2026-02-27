@@ -77,6 +77,10 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
           max?: number;
           default?: unknown;
         };
+        const effectiveMin =
+          k === "seed" && meta.default === -1
+            ? (typeof meta.min === "number" ? Math.min(meta.min, -1) : -1)
+            : meta.min;
         dynamic_inputs[k] = {
           ...meta,
           type: meta.type,
@@ -85,6 +89,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
             ? meta.type_args
             : []) as TypeMetadata[],
           ...(meta.description != null && { description: meta.description }),
+          ...(effectiveMin != null && { min: effectiveMin }),
           values: meta.values || (meta as any).enum,
         };
       }
