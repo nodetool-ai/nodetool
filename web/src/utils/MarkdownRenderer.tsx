@@ -20,18 +20,25 @@ import "../styles/markdown/nodetool-markdown.css";
 interface MarkdownRendererProps {
   content: string;
   isReadme?: boolean;
+  fillContainer?: boolean;
 }
 
 const styles = (
   theme: Theme,
-  opts: { constrainHeight: boolean; isScrollable: boolean; fontSize?: string }
+  opts: {
+    constrainHeight: boolean;
+    isScrollable: boolean;
+    fontSize?: string;
+    fillContainer?: boolean;
+  }
 ) =>
   css({
     "&": {
       cursor: "text",
       userSelect: "text",
       width: "100%",
-      height: "fit-content",
+      height: opts.fillContainer ? "100%" : "fit-content",
+      minHeight: opts.fillContainer ? 0 : undefined,
       padding: "0.25em 0.5em 2em 0.5em",
       fontSize: opts.fontSize ?? theme.vars.fontSizeBig,
       fontWeight: "300",
@@ -67,7 +74,8 @@ const styles = (
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
-  isReadme
+  isReadme,
+  fillContainer = false
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -151,9 +159,10 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           isFocused ? "nowheel" : ""
         }`}
         css={styles(theme, {
-          constrainHeight: true,
+          constrainHeight: !fillContainer,
           isScrollable: isFocused,
-          fontSize: baseFontSize
+          fontSize: baseFontSize,
+          fillContainer
         })}
         ref={containerRef}
         tabIndex={0}
@@ -184,7 +193,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             </Tooltip>
           </div>
         )}
-        <Box>
+        <Box sx={fillContainer ? { height: "100%" } : undefined}>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={rehypePlugins}

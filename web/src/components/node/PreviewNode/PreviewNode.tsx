@@ -62,6 +62,11 @@ const styles = (theme: Theme) =>
       ".preview-node-content .content": {
         overflow: "hidden"
       },
+      ".preview-node-content > .content": {
+        flex: 1,
+        minHeight: 0,
+        height: "auto"
+      },
       ".preview-node-content > .output": {
         flex: 1,
         minHeight: 0,
@@ -467,8 +472,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         <div
           className={`content ${
             isScrollable ? "scrollable nowheel" : "noscroll"
-          }`}
-          style={{ width: "100%", height: "100%" }}
+          } nodrag`}
+          style={{ width: "100%" }}
           tabIndex={0}
           onFocus={handleContentFocus}
           onBlur={handleContentBlur}
