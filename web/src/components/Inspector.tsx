@@ -109,15 +109,19 @@ const styles = (theme: Theme) =>
       display: "flex",
       position: "relative",
       alignItems: "flex-start",
-      gap: "0.5em"
+      gap: "0.5em",
+      width: "100%",
+      minWidth: 0
+    },
+    ".multi-property-row .node-property": {
+      flex: "1 1 auto",
+      minWidth: 0
     },
     ".mixed-indicator": {
       display: "inline-flex",
-      position: "absolute",
-      zIndex: theme.zIndex.tooltip,
-      right: "2em",
-      top: "-0.1em",
+      flex: "0 0 auto",
       alignItems: "center",
+      marginTop: "0.15em",
       color: theme.vars.palette.warning.main
     },
     ".close-button": {
@@ -322,16 +326,6 @@ const Inspector: React.FC = () => {
                     className="multi-property-row"
                     key={`multi-${property.name}-${nodesWithMetadata[0].node.id}`}
                   >
-                    {isMixed && (
-                      <Tooltip
-                        title="Mixed values across the selected nodes"
-                        placement="top-start"
-                      >
-                        <span className="mixed-indicator">
-                          <WarningAmberOutlinedIcon fontSize="small" />
-                        </span>
-                      </Tooltip>
-                    )}
                     <PropertyField
                       id={nodesWithMetadata[0].node.id}
                       value={value}
@@ -346,6 +340,16 @@ const Inspector: React.FC = () => {
                         handleMultiPropertyChange(property.name, newValue)
                       }
                     />
+                    {isMixed && (
+                      <Tooltip
+                        title="Mixed values across the selected nodes"
+                        placement="top-start"
+                      >
+                        <span className="mixed-indicator">
+                          <WarningAmberOutlinedIcon fontSize="small" />
+                        </span>
+                      </Tooltip>
+                    )}
                   </div>
                 ))
               ) : (
