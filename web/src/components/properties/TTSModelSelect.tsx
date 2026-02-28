@@ -2,15 +2,15 @@ import React, { memo, useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { TTSModel } from "../../stores/ApiTypes";
+import type { TTSModel, TTSModelValue } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface TTSModelSelectProps {
-  onChange: (value: any) => void;
-  value: any; // Can be string (legacy) or TTSModel object
+  onChange: (value: TTSModelValue) => void;
+  value: string | TTSModelValue; // Can be string (legacy) or TTSModelValue object
 }
 
 const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
