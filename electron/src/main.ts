@@ -504,7 +504,7 @@ app.on("before-quit", (event) => {
 app.on("window-all-closed", async () => {
   logMessage("All windows closed");
 
-  const settings = readSettings();
+  const settings = await readSettingsAsync();
   const closeAction = settings.windowCloseAction;
 
   // If user has already made a choice, use it
