@@ -39,6 +39,15 @@ type WorkflowSubscription = {
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
 
+const formatJobDurationSeconds = (
+  duration: number | null | undefined
+): string | null => {
+  if (typeof duration !== "number" || !Number.isFinite(duration)) {
+    return null;
+  }
+  return duration.toLocaleString(undefined, { maximumFractionDigits: 2 });
+};
+
 // Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
 let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () => undefined;
 
@@ -356,10 +365,13 @@ export const handleUpdate = (
 
     switch (job.status) {
       case "completed":
+        const formattedDuration = formatJobDurationSeconds(job.duration);
         runner.addNotification({
           type: "info",
           alert: true,
-          content: `Job completed in ${job.duration?.toPrecision(2)} seconds`
+          content: formattedDuration
+            ? `Job completed in ${formattedDuration} seconds`
+            : "Job completed"
         });
         // Note: Don't clear edges on completion - keep the stream item counts visible
         // Edges are cleared when a new run starts (in WorkflowRunner.ts)
