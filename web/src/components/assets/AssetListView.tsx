@@ -26,6 +26,11 @@ const ROW_HEIGHT = 40;
 const HEADER_HEIGHT = 50;
 const TYPE_SECTION_HEIGHT = 36;
 
+// Type for virtual list item data
+type VirtualListItemData =
+  | { type: 'header'; key: string; data: { type: string; count: number; isExpanded: boolean } }
+  | { type: 'asset'; key: string; data: { asset: Asset } };
+
 // Define typeMap outside the component to avoid recreation
 const TYPE_MAP: Record<string, string> = {
   folder: "Folder",
@@ -274,7 +279,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
 
   // Create a flat list of items for virtualization (alternating headers and assets)
   const virtualListItems = useMemo(() => {
-    const items: Array<{ type: 'header' | 'asset'; key: string; data: any }> = [];
+    const items: VirtualListItemData[] = [];
     
     Object.entries(assetsByType).forEach(([type, typeAssets]) => {
       const isExpanded = expandedTypes.has(type);
