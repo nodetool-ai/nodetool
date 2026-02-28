@@ -2,12 +2,12 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { LanguageModel } from "../../stores/ApiTypes";
+import type { LanguageModel, LanguageModelValue } from "../../stores/ApiTypes";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface LanguageModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: LanguageModelValue) => void;
   value: string;
   allowedProviders?: string[];
 }
