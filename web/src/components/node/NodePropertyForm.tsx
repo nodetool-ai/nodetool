@@ -14,11 +14,10 @@ import {
 } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
-import { useTheme, alpha } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import isEqual from "lodash/isEqual";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { validateIdentifierName } from "../../utils/identifierValidation";
 
 interface NodePropertyFormProps {
@@ -37,7 +36,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   supportsDynamicOutputs,
   dynamicOutputs,
   onAddProperty,
-  nodeType
+  nodeType: _nodeType
 }) => {
   const theme = useTheme();
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
