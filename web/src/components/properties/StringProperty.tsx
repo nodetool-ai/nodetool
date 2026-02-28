@@ -89,11 +89,12 @@ const StringProperty = ({
   const codeLanguage = determineCodeLanguage(nodeType);
   const isStringInputValue =
     nodeType === STRING_INPUT_NODE_TYPE && property.name === "value";
-  const maxLength = isStringInputValue ? (stringInputConfig?.maxLength ?? 0) : 0;
-  const multiline =
-    isStringInputValue
-      ? (stringInputConfig?.lineMode ?? "single_line") === "multiline"
-      : true;
+  const maxLength = isStringInputValue
+    ? (stringInputConfig?.maxLength ?? 0)
+    : 0;
+  const multiline = isStringInputValue
+    ? (stringInputConfig?.lineMode ?? "single_line") === "multiline"
+    : true;
 
   const externalValue = typeof value === "string" ? value : "";
   const [draftValue, setDraftValue] = useState<string>(externalValue);
@@ -138,9 +139,9 @@ const StringProperty = ({
             flexDirection: "column",
             ...(isConstantStringNode
               ? {
-                flex: "1 1 auto",
-                minHeight: 0
-              }
+                  flex: "1 1 auto",
+                  minHeight: 0
+                }
               : {})
           },
           ".property-row > .property-label": {
@@ -151,17 +152,17 @@ const StringProperty = ({
             order: 2,
             ...(isConstantStringNode
               ? {
-                display: "flex",
-                flexDirection: "column",
-                flex: "1 1 auto",
-                minHeight: 0
-              }
+                  display: "flex",
+                  flexDirection: "column",
+                  flex: "1 1 auto",
+                  minHeight: 0
+                }
               : {})
           },
           ".string-action-buttons": {
             position: "absolute",
-            right: 0,
-            top: "-3px",
+            right: isConstantStringNode ? "1em" : 0,
+            top: isConstantStringNode ? ".5em" : "-3px",
             opacity: 0.8,
             zIndex: 10
           },
@@ -208,27 +209,33 @@ const StringProperty = ({
               sx={
                 isConstantStringNode
                   ? {
-                    height: "100%",
-                    "& .MuiInputBase-root": {
                       height: "100%",
-                      alignItems: "stretch"
-                    },
-                    "& .MuiInputBase-inputMultiline": {
-                      height: "100% !important",
-                      maxHeight: "none !important",
-                      overflow: "auto !important"
+                      "& .MuiInputBase-root": {
+                        height: "100%",
+                        alignItems: "stretch"
+                      },
+                      "& .MuiInputBase-inputMultiline": {
+                        height: "100% !important",
+                        maxHeight: "none !important",
+                        overflow: "auto !important",
+                        resize: "none !important"
+                      }
                     }
-                  }
                   : isConstant
-                  ? {
-                    "& .MuiInputBase-inputMultiline": {
-                      // Constant nodes intentionally allow larger editing surface.
-                      maxHeight: "300px"
-                    }
-                  }
-                  : undefined
+                    ? {
+                        "& .MuiInputBase-inputMultiline": {
+                          maxHeight: "300px"
+                        }
+                      }
+                    : undefined
               }
-              value={isStringInputValue ? draftValue : (typeof value === "string" ? value : "")}
+              value={
+                isStringInputValue
+                  ? draftValue
+                  : typeof value === "string"
+                    ? value
+                    : ""
+              }
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const raw = e.target.value ?? "";
                 if (isStringInputValue) {
@@ -270,7 +277,9 @@ const StringProperty = ({
                   : isConstant
                     ? 20
                     : multiline
-                      ? (isStringInputValue ? 12 : 3)
+                      ? isStringInputValue
+                        ? 12
+                        : 3
                       : 1
               }
               slotProps={{
@@ -280,11 +289,11 @@ const StringProperty = ({
                   ? undefined
                   : isConstantStringNode
                     ? {
-                      style: {
-                        maxHeight: "none",
-                        overflowY: "auto"
+                        style: {
+                          maxHeight: "none",
+                          overflowY: "auto"
+                        }
                       }
-                    }
                     : undefined
               }}
               autoFocus={false}
@@ -302,7 +311,11 @@ const StringProperty = ({
                 <Typography
                   variant="caption"
                   color={exceedsMaxLength ? "warning.main" : "text.secondary"}
-                  sx={{ display: "block", marginTop: 0.5, width: "fit-content" }}
+                  sx={{
+                    display: "block",
+                    marginTop: 0.5,
+                    width: "fit-content"
+                  }}
                 >
                   {draftValue.length}/{maxLength}
                 </Typography>
@@ -312,7 +325,13 @@ const StringProperty = ({
         </div>
         {isExpanded && (
           <TextEditorModal
-            value={isStringInputValue ? draftValue : (typeof value === "string" ? value : "")}
+            value={
+              isStringInputValue
+                ? draftValue
+                : typeof value === "string"
+                  ? value
+                  : ""
+            }
             language={codeLanguage}
             onChange={(next) => {
               if (!isStringInputValue) {
