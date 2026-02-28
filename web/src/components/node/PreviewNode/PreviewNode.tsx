@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
         minWidth: "150px",
         maxWidth: "unset",
         minHeight: "150px",
-        borderRadius: "var(--rounded-node)",
+        borderRadius: "calc(var(--rounded-node) - 1px)",
         border: `1px solid ${theme.vars.palette.grey[700]}`
       },
       "&.preview-node": {
@@ -105,7 +105,8 @@ const styles = (theme: Theme) =>
         top: 0,
         left: 0,
         margin: 0,
-        padding: ".25em 0 0 .5em",
+        padding: "1.25em .5em 0",
+        height: "1em",
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {
@@ -392,37 +393,14 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       css={styles(theme)}
       sx={{
         display: "flex",
-        border: props.selected
-          ? `3px solid ${theme.vars.palette.primary.main}`
-          : `1px solid ${theme.vars.palette.grey[700]}`,
         boxShadow: props.selected
-          ? `0 0 0 2px rgb(${theme.vars.palette.primary.mainChannel} / 0.95), 0 0 28px rgb(${theme.vars.palette.primary.mainChannel} / 0.55), 0 8px 20px rgb(${theme.vars.palette.primary.mainChannel} / 0.25)`
+          ? `0 0 0 2px var(--palette-grey-100)`
           : "none",
         backgroundColor: theme.vars.palette.c_node_bg,
         backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
         WebkitBackdropFilter: props.selected
           ? theme.vars.palette.glass.blur
           : "none"
-
-        // backgroundColor: theme.vars.palette.c_node_bg
-        // bgcolor: hasParent ? theme.vars.palette.c_node_bg_group : undefined,
-        // backgroundColor: hasParent
-        //   ? undefined
-        //   : (theme.vars.palette.c_node_bg as any)
-        //   ? (theme.vars.palette.c_node_bg as string)
-        //   : undefined,
-        // ...(hasParent
-        //   ? {}
-        //   : {
-        //       backgroundColor: hexToRgba(
-        //         theme.vars.palette.c_node_bg as string,
-        //         0.6
-        //       ),
-        //       // backdropFilter: theme.vars.palette.glass.blur,
-        //       // WebkitBackdropFilter: theme.vars.palette.glass.blur,
-        //       // boxShadow: "0 0 24px -22px rgba(0,0,0,.65)",
-        //       borderRadius: "var(--rounded-node)"
-        //     })
       }}
       className={`preview-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
@@ -444,7 +422,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             hasParent={hasParent}
             metadataTitle="Preview"
             selected={props.selected}
-            // backgroundColor={theme.vars.palette.primary.main}
             backgroundColor={"transparent"}
             iconType={"any"}
             iconBaseColor={theme.vars.palette.primary.main}
