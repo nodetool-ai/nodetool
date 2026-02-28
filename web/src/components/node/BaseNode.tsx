@@ -7,6 +7,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Edge,
   Handle,
   Node,
   NodeProps,
@@ -54,6 +55,7 @@ import {
   isAgentNodeType
 } from "../../stores/graphEdgeToReactFlowEdge";
 import useConnectionStore from "../../stores/ConnectionStore";
+import type { NodeStoreState } from "../../stores/NodeStore";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -94,7 +96,9 @@ const Toolbar = memo(function Toolbar({
   dragging?: boolean;
 }) {
   const { activeSelect } = useSelect();
-  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
+  const selectedCount = useNodes((state: NodeStoreState) =>
+    state.getSelectedNodeCount()
+  );
 
   // Delay showing toolbar to avoid flash when clicking to drag
   const delayedSelected = useDelayedVisibility({
@@ -283,11 +287,15 @@ const getNodeContainerStyles = (
     border: isLoading ? "none" : `1px solid var(--palette-grey-900)`
   }),
   boxShadow: selected
-    ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
+    ? `0 0 0 1px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
     : isFocused
       ? `0 0 0 2px ${theme.vars.palette.warning.main}`
       : "none",
-  outline: isFocused ? `2px dashed ${theme.vars.palette.warning.main}` : "none",
+  outline: isFocused
+    ? `2px dashed ${theme.vars.palette.warning.main}`
+    : selected
+      ? `3px solid ${baseColor || "#666"}`
+      : "none",
   outlineOffset: "-2px",
   backgroundColor:
     hasParent && !isLoading
@@ -302,7 +310,7 @@ const getNodeContainerStyles = (
   "--node-primary-color": baseColor || "var(--palette-primary-main)",
   ...(hasToggleableResult
     ? {
-        // Match PreviewNode behavior: show the corner resize handle on hover
+        // show the corner resize handle on hover
         "& .react-flow__resize-control.nodrag.bottom.right.handle": {
           opacity: 0,
           position: "absolute" as const,
@@ -323,9 +331,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected, parentId, dragging } = props;
   const { workflow_id, title } = data;
   // Subscribe directly to focusedNodeId with equality check to avoid re-renders
-  const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
-  const updateNodeData = useNodes((state) => state.updateNodeData);
-  const updateNode = useNodes((state) => state.updateNode);
+  const isFocused = useNodeFocusStore(
+    (state: ReturnType<typeof useNodeFocusStore.getState>) =>
+      state.focusedNodeId === id
+  );
+  const updateNodeData = useNodes(
+    (state: NodeStoreState) => state.updateNodeData
+  );
+  const updateNode = useNodes((state: NodeStoreState) => state.updateNode);
   const hasParent = Boolean(parentId);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -404,27 +417,29 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Optimize: Use a more specific selector that only depends on the node's connected edges
   // This prevents re-renders when unrelated edges change
-  const hasConnectedInput = useNodes((state) => {
+  const hasConnectedInput = useNodes((state: NodeStoreState) => {
     // Check if any edge targets this node
     // This selector will only re-render when edges array reference changes
     // AND the connection status of this specific node changes
-    return state.edges.some((edge) => edge.target === id);
+    return state.edges.some((edge: Edge) => edge.target === id);
   });
 
   // Check if this node has an incoming control edge (to show the control handle)
-  const hasControlEdge = useNodes((state) => {
+  const hasControlEdge = useNodes((state: NodeStoreState) => {
     return state.edges.some(
-      (edge) => edge.target === id && edge.targetHandle === CONTROL_HANDLE_ID
+      (edge: Edge) => edge.target === id && edge.targetHandle === CONTROL_HANDLE_ID
     );
   });
 
   // Show control handle when dragging a control edge from an Agent node
-  const isCreatingControlEdge = useConnectionStore((state) => {
-    return (
-      state.connectType?.type === "control" &&
-      state.connectDirection === "source"
-    );
-  });
+  const isCreatingControlEdge = useConnectionStore(
+    (state: ReturnType<typeof useConnectionStore.getState>) => {
+      return (
+        state.connectType?.type === "control" &&
+        state.connectDirection === "source"
+      );
+    }
+  );
 
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
