@@ -10,14 +10,14 @@ import Select from "../inputs/Select";
 
 const CollectionProperty = (props: PropertyProps) => {
   const id = `collection-${props.property.name}-${props.propertyIndex}`;
-  const edges = useNodes((state) => state.edges);
-  const isConnected = useMemo(() => {
-    return edges.some(
+
+  const isConnected = useNodes((state) => {
+    return state.edges.some(
       (edge) =>
         edge.target === props.nodeId &&
         edge.targetHandle === props.property.name
     );
-  }, [edges, props.nodeId, props.property.name]);
+  });
 
   const { data, error, isLoading } = useQuery<CollectionList>({
     queryKey: ["collections"],

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useEffect, useRef, useState, useCallback, memo } from "react";
+import { shallow } from "zustand/shallow";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
@@ -80,7 +81,8 @@ const StringProperty = ({
         };
       },
       [nodeId, nodeType, property.name]
-    )
+    ),
+    shallow
   );
 
   const showTextEditor = !isConnected;
