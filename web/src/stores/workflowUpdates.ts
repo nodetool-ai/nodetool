@@ -370,7 +370,7 @@ export const handleUpdate = (
     }
 
     switch (job.status) {
-      case "completed":
+      case "completed": {
         const formattedDuration = formatJobDurationSeconds(job.duration);
         runner.addNotification({
           type: "info",
@@ -384,6 +384,7 @@ export const handleUpdate = (
         clearProgress(workflow.id);
         clearTimings(workflow.id);
         break;
+      }
       case "cancelled":
         runner.addNotification({
           type: "info",
