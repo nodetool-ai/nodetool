@@ -140,7 +140,7 @@ const styles = (theme: Theme) =>
       WebkitBackdropFilter: "blur(24px) saturate(180%)",
       color: theme.vars.palette.text.primary,
       fontSize: "var(--fontSizeBigger)",
-      width: "92%",
+      width: "100%",
       maxWidth: "2400px",
       height: "100%",
       margin: "auto",
@@ -285,7 +285,8 @@ const styles = (theme: Theme) =>
         pre: {
           height: "100%",
           overflowWrap: "break-word",
-          fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SF Mono', Consolas, monospace",
+          fontFamily:
+            "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SF Mono', Consolas, monospace",
           fontVariantLigatures: "common-ligatures"
         },
         textarea: {
@@ -622,9 +623,9 @@ const TextEditorModal = ({
   >(null);
   const navigateFnRef = useRef<
     | ((direction: "next" | "previous") => {
-      currentMatch: number;
-      totalMatches: number;
-    })
+        currentMatch: number;
+        totalMatches: number;
+      })
     | null
   >(null);
   const formatCodeBlockFnRef = useRef<(() => void) | null>(null);
