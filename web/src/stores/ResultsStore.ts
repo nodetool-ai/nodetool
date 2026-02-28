@@ -106,13 +106,21 @@ const filterRecord = <T>(
     const keysToRemove = new Set(
       Array.from(specificIds).map((id) => hashKey(workflowId, id))
     );
-    return Object.fromEntries(
-      Object.entries(record).filter(([key]) => !keysToRemove.has(key))
-    );
+    // Optimization: Clone and delete specific keys when specificIds is provided
+    const newRecord = { ...record };
+    keysToRemove.forEach((key) => {
+      delete newRecord[key];
+    });
+    return newRecord;
   }
-  return Object.fromEntries(
-    Object.entries(record).filter(([key]) => !key.startsWith(workflowId))
-  );
+  // Optimization: Use for...in loop to avoid intermediate array allocation
+  const newRecord: Record<string, T> = {};
+  for (const key in record) {
+    if (!key.startsWith(workflowId)) {
+      newRecord[key] = record[key];
+    }
+  }
+  return newRecord;
 };
 
 const useResultsStore = create<ResultsStore>((set, get) => ({
