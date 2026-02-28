@@ -14,7 +14,7 @@
 
 .react-flow__node:not(.selected) {
   /* Match outline to header background color */
-  outline: 1px solid var(--c_node_header_bg) !important;
+  /* outline: 1px solid var(--c_node_header_bg) !important; */
   /* outline: none; */
   box-shadow: none;
   /* Increase brightness and add slight saturation toward primary */
