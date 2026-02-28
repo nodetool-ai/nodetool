@@ -12,8 +12,7 @@ import {
   Switch,
   Tabs,
   Tab,
-  Box,
-  DialogContent
+  Box
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
@@ -35,7 +34,7 @@ import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import { useMutation } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -77,19 +76,30 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
   const settingsTab = useSettingsStore((state) => state.settingsTab);
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
-  const setConnectionSnap = useSettingsStore((state) => state.setConnectionSnap);
+  const setConnectionSnap = useSettingsStore(
+    (state) => state.setConnectionSnap
+  );
   const setPanControls = useSettingsStore((state) => state.setPanControls);
   const setSelectionMode = useSettingsStore((state) => state.setSelectionMode);
   const setTimeFormat = useSettingsStore((state) => state.setTimeFormat);
-  const setSelectNodesOnDrag = useSettingsStore((state) => state.setSelectNodesOnDrag);
-  const setShowWelcomeOnStartup = useSettingsStore((state) => state.setShowWelcomeOnStartup);
-  const setSoundNotifications = useSettingsStore((state) => state.setSoundNotifications);
-  const updateAutosaveSettings = useSettingsStore((state) => state.updateAutosaveSettings);
+  const setSelectNodesOnDrag = useSettingsStore(
+    (state) => state.setSelectNodesOnDrag
+  );
+  const setShowWelcomeOnStartup = useSettingsStore(
+    (state) => state.setShowWelcomeOnStartup
+  );
+  const setSoundNotifications = useSettingsStore(
+    (state) => state.setSoundNotifications
+  );
+  const updateAutosaveSettings = useSettingsStore(
+    (state) => state.updateAutosaveSettings
+  );
   const settings = useSettingsStore((state) => state.settings);
 
   const [activeSection, setActiveSection] = useState("editor");
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);
   const [, setSecretsUpdated] = useState({});
+  const settingsContentRef = useRef<HTMLDivElement | null>(null);
   const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
   const [closeBehavior, setCloseBehavior] = useState<
     "ask" | "quit" | "background"
@@ -122,47 +132,77 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     return unsubscribe;
   }, []);
 
-  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
-    setMenuOpen(true, newValue);
-  }, [setMenuOpen]);
+  const handleTabChange = useCallback(
+    (event: React.SyntheticEvent, newValue: number) => {
+      setMenuOpen(true, newValue);
+    },
+    [setMenuOpen]
+  );
 
-  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    setMenuOpen(!isMenuOpen);
-  }, [isMenuOpen, setMenuOpen]);
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      setMenuOpen(!isMenuOpen);
+    },
+    [isMenuOpen, setMenuOpen]
+  );
 
   // Memoized handlers for settings controls to prevent re-renders
-  const handleShowWelcomeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setShowWelcomeOnStartup(e.target.checked);
-  }, [setShowWelcomeOnStartup]);
+  const handleShowWelcomeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setShowWelcomeOnStartup(e.target.checked);
+    },
+    [setShowWelcomeOnStartup]
+  );
 
-  const handleSelectNodesOnDragChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectNodesOnDrag(e.target.checked ?? false);
-  }, [setSelectNodesOnDrag]);
+  const handleSelectNodesOnDragChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSelectNodesOnDrag(e.target.checked ?? false);
+    },
+    [setSelectNodesOnDrag]
+  );
 
-  const handleSoundNotificationsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSoundNotifications(e.target.checked ?? true);
-  }, [setSoundNotifications]);
+  const handleSoundNotificationsChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSoundNotifications(e.target.checked ?? true);
+    },
+    [setSoundNotifications]
+  );
 
-  const handleGridSnapChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setGridSnap(Number(e.target.value));
-  }, [setGridSnap]);
+  const handleGridSnapChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setGridSnap(Number(e.target.value));
+    },
+    [setGridSnap]
+  );
 
-  const handleConnectionSnapChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setConnectionSnap(Number(e.target.value));
-  }, [setConnectionSnap]);
+  const handleConnectionSnapChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setConnectionSnap(Number(e.target.value));
+    },
+    [setConnectionSnap]
+  );
 
-  const handlePanControlsChange = useCallback((e: SelectChangeEvent<string>) => {
-    setPanControls(e.target.value);
-  }, [setPanControls]);
+  const handlePanControlsChange = useCallback(
+    (e: SelectChangeEvent<string>) => {
+      setPanControls(e.target.value);
+    },
+    [setPanControls]
+  );
 
-  const handleSelectionModeChange = useCallback((e: SelectChangeEvent<string>) => {
-    setSelectionMode(e.target.value);
-  }, [setSelectionMode]);
+  const handleSelectionModeChange = useCallback(
+    (e: SelectChangeEvent<string>) => {
+      setSelectionMode(e.target.value);
+    },
+    [setSelectionMode]
+  );
 
-  const handleTimeFormatChange = useCallback((e: SelectChangeEvent<string>) => {
-    setTimeFormat(e.target.value === "12h" ? "12h" : "24h");
-  }, [setTimeFormat]);
+  const handleTimeFormatChange = useCallback(
+    (e: SelectChangeEvent<string>) => {
+      setTimeFormat(e.target.value === "12h" ? "12h" : "24h");
+    },
+    [setTimeFormat]
+  );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -187,28 +227,35 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const scrollToSection = (sectionId: string) => {
     setActiveSection(sectionId);
 
-    // Use setTimeout to ensure DOM has updated
-    setTimeout(() => {
-      const element = document.getElementById(sectionId);
-
-      // Always use the main settings-content container as it contains both tabs
-      const container = document.querySelector(".settings-content");
-
-      if (element && container) {
-        const containerRect = container.getBoundingClientRect();
-        const elementRect = element.getBoundingClientRect();
-        const scrollTop =
-          container.scrollTop + elementRect.top - containerRect.top - 20; // 20px offset for padding
-
-        container.scrollTo({
-          top: scrollTop,
-          behavior: "smooth"
-        });
-      } else if (element) {
-        // Fallback to original method
-        element.scrollIntoView({ behavior: "smooth" });
+    // Scope scrolling to this component's visible tab panel.
+    requestAnimationFrame(() => {
+      const container = settingsContentRef.current;
+      if (!container) {
+        return;
       }
-    }, 10);
+
+      const activePanel =
+        container.querySelector<HTMLElement>(".tab-panel:not([hidden])");
+      const safeId = CSS.escape(sectionId);
+      const target =
+        activePanel?.querySelector<HTMLElement>(`#${safeId}`) ??
+        container.querySelector<HTMLElement>(`#${safeId}`);
+
+      if (!target) {
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const topOffset = settingsTab === 3 ? 96 : 20;
+      const top =
+        container.scrollTop + targetRect.top - containerRect.top - topOffset;
+
+      container.scrollTo({
+        top: Math.max(top, 0),
+        behavior: "smooth"
+      });
+    });
   };
 
   const exportMutation = useMutation({
@@ -225,10 +272,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       };
 
       // Use Electron's debug API if available (preferred for local debugging)
-      if (
-        isElectron &&
-        typeof window.api?.debug?.exportBundle === "function"
-      ) {
+      if (isElectron && typeof window.api?.debug?.exportBundle === "function") {
         return await window.api.debug.exportBundle(payload);
       }
 
@@ -342,13 +386,26 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         onClose={handleClose}
         fullWidth
         maxWidth="lg"
+        sx={{
+          "& .MuiPaper-root": {
+            height: "85vh",
+            overflow: "hidden"
+          },
+          "& .dialog-content": {
+            padding: 0,
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden"
+          }
+        }}
       >
-        <DialogContent sx={{ p: 0, overflow: "hidden" }}>
-          <div css={settingsStyles(theme)}>
-            <div className="top">
-              <Typography variant="h2">Settings</Typography>
-              <CloseButton onClick={handleClose} />
-            </div>
+        <div css={settingsStyles(theme)}>
+          <div className="top">
+            <Typography variant="h2">Settings</Typography>
+            <CloseButton onClick={handleClose} />
+          </div>
 
             <div className="settings-menu">
               <div className="sticky-header">
@@ -386,9 +443,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   onSectionClick={scrollToSection}
                 />
 
-                <div className="settings-content">
+                <div className="settings-content" ref={settingsContentRef}>
                   <TabPanel value={settingsTab} index={0}>
-                    <div className="settings-section">
+                    <div id="editor" className="settings-section">
                       <Typography
                         variant="h3"
                         id="debug-tools"
@@ -547,9 +604,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                               onChange={(e) =>
                                 handleCloseBehaviorChange(
                                   e.target.value as
-                                  | "ask"
-                                  | "quit"
-                                  | "background"
+                                    | "ask"
+                                    | "quit"
+                                    | "background"
                                 )
                               }
                             >
@@ -586,7 +643,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           <Switch
                             checked={settings.autosave?.enabled ?? true}
                             onChange={(e) =>
-                              updateAutosaveSettings({ enabled: e.target.checked })
+                              updateAutosaveSettings({
+                                enabled: e.target.checked
+                              })
                             }
                             inputProps={{ "aria-label": "autosave-enabled" }}
                           />
@@ -672,7 +731,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           </InputLabel>
                           <Select
                             id="max-versions"
-                            value={settings.autosave?.maxVersionsPerWorkflow ?? 50}
+                            value={
+                              settings.autosave?.maxVersionsPerWorkflow ?? 50
+                            }
                             variant="standard"
                             onChange={(e) =>
                               updateAutosaveSettings({
@@ -866,7 +927,12 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                                 with the Nodetool API.
                               </Typography>
                               <div className="secrets">
-                                <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main }} />
+                                <WarningIcon
+                                  sx={{
+                                    color: (theme) =>
+                                      theme.vars.palette.warning.main
+                                  }}
+                                />
                                 <Typography component="span">
                                   Keep this token secure and do not share it
                                   publicly
@@ -906,7 +972,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
               </div>
             </div>
           </div>
-        </DialogContent>
       </Dialog>
     </div>
   );
