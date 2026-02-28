@@ -261,7 +261,7 @@ const StringProperty = ({
                     ? 4
                     : isConstantStringNode
                       ? 6
-                      : 1
+                      : 3
                   : 1
               }
               maxRows={
@@ -270,7 +270,7 @@ const StringProperty = ({
                   : isConstant
                     ? 20
                     : multiline
-                      ? (isStringInputValue ? 12 : 2)
+                      ? (isStringInputValue ? 12 : 3)
                       : 1
               }
               slotProps={{
