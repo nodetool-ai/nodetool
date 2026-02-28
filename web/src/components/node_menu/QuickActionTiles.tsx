@@ -18,6 +18,7 @@ import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import ApiIcon from "@mui/icons-material/Api";
 import { DYNAMIC_FAL_NODE_TYPE } from "../node/DynamicFalSchemaNode";
+import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -151,6 +152,20 @@ export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
     hoverShadow:
       "0 8px 24px rgba(139, 92, 246, 0.35), 0 0 16px rgba(167, 139, 250, 0.25)",
     iconColor: "#e9d5ff"
+  },
+  {
+    key: "kie-dynamic",
+    label: "KieAI",
+    nodeType: DYNAMIC_KIE_NODE_TYPE,
+    icon: <ApiIcon />,
+    gradient:
+      "linear-gradient(135deg, rgba(229, 92, 32, 0.4), rgba(255, 140, 66, 0.25))",
+    hoverGradient:
+      "linear-gradient(135deg, rgba(229, 92, 32, 0.6), rgba(255, 140, 66, 0.5))",
+    shadow: "0 4px 12px rgba(229, 92, 32, 0.15)",
+    hoverShadow:
+      "0 8px 24px rgba(229, 92, 32, 0.35), 0 0 16px rgba(255, 140, 66, 0.25)",
+    iconColor: "#ffe0cc"
   }
 ];
 

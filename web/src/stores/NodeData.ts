@@ -12,6 +12,8 @@ export type NodeData = {
   dynamic_outputs?: Record<string, TypeMetadata>;
   /** Resolved FAL model/endpoint id (e.g. fal-ai/flux-pro) when schema is loaded */
   endpoint_id?: string;
+  /** Resolved Kie.ai model id when schema is loaded */
+  model_id?: string;
   sync_mode?: string;
   workflow_id: string;
   title?: string;
