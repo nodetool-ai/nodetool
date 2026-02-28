@@ -560,14 +560,15 @@ export const handleUpdate = (
         const nextDynamic = { ...existingDynamic };
         const nextStatic: Record<string, unknown> = {};
 
-        const isFalDynamicNode =
-          update.node_type === "fal.dynamic_schema.FalAI";
+        const isDynamicSchemaNode =
+          update.node_type === "fal.dynamic_schema.FalAI" ||
+          update.node_type === "kie.dynamic_schema.KieAI";
 
         Object.entries(update.properties).forEach(([key, value]) => {
           if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
-            // FalAI inputs are user-editable between runs; backend echoes
-            // execution-time values that can be stale by completion time.
-            if (isFalDynamicNode) {
+            // Dynamic schema node inputs are user-editable between runs;
+            // backend echoes execution-time values that can be stale.
+            if (isDynamicSchemaNode) {
               return;
             }
             nextDynamic[key] = value;

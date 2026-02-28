@@ -25,6 +25,10 @@ import {
   DYNAMIC_FAL_NODE_TYPE
 } from "../node/DynamicFalSchemaNode";
 import {
+  DynamicKieSchemaNode,
+  DYNAMIC_KIE_NODE_TYPE
+} from "../node/DynamicKieSchemaNode";
+import {
   WorkflowNode,
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
@@ -281,6 +285,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       "nodetool.compare.CompareImages": CompareImagesNode,
       "nodetool.control.Reroute": RerouteNode,
       [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
+      [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       default: PlaceholderNode
     }),
