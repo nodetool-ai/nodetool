@@ -17,7 +17,6 @@ import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { DynamicKieSchemaContent } from "./DynamicKieSchemaContent";
-import { KieSchemaLoader } from "./KieSchemaLoader";
 
 const TOOLBAR_SHOW_DELAY = 200;
 
@@ -132,26 +131,21 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     >
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
       <NodeResizeHandle minWidth={150} minHeight={150} />
-      <Box sx={{ position: "relative" }}>
-        <NodeHeader
-          id={id}
-          selected={selected}
-          data={data}
-          backgroundColor={KIE_HEADER_COLOR}
-          metadataTitle={headerTitle}
-          hasParent={hasParent}
-          iconType={metadata?.outputs?.[0]?.type?.type}
-          iconBaseColor={KIE_HEADER_COLOR}
-          workflowId={workflow_id}
-          showResultButton={false}
-          showInputsButton={false}
-          onShowResults={() => {}}
-          onShowInputs={() => {}}
-        />
-        <Box sx={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)" }}>
-          <KieSchemaLoader nodeId={id} data={data} />
-        </Box>
-      </Box>
+      <NodeHeader
+        id={id}
+        selected={selected}
+        data={data}
+        backgroundColor={KIE_HEADER_COLOR}
+        metadataTitle={headerTitle}
+        hasParent={hasParent}
+        iconType={metadata?.outputs?.[0]?.type?.type}
+        iconBaseColor={KIE_HEADER_COLOR}
+        workflowId={workflow_id}
+        showResultButton={false}
+        showInputsButton={false}
+        onShowResults={() => {}}
+        onShowInputs={() => {}}
+      />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={statusValue} />
       <NodeExecutionTime
