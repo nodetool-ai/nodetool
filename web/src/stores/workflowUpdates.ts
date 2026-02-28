@@ -52,7 +52,6 @@ const formatJobDurationSeconds = (
 // Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
 let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () =>
   undefined;
-
 export const setGetNodeStore = (
   fn: (workflowId: string) => NodeStore | undefined
 ): void => {
