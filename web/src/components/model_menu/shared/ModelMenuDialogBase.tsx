@@ -281,7 +281,16 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             alignItems: isIconOnly ? "center" : "stretch"
           }}
         >
-          <List dense sx={{ py: 1, width: "100%", px: isIconOnly ? 0.5 : 0 }}>
+          <List
+            dense
+            sx={{
+              py: 1,
+              width: "100%",
+              px: isIconOnly ? 0.5 : 0,
+              // Keep top icon-only actions aligned with provider icons when provider list shows a vertical scrollbar.
+              pr: isIconOnly ? 1.5 : 0
+            }}
+          >
             <ListItemButton
               disableRipple
               selected={customView === "favorites"}
@@ -290,9 +299,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 setSelectedProvider(null);
               }}
               sx={{
-                py: isIconOnly ? 1 : 0.5,
+                py: isIconOnly ? 1 : 0.25,
                 borderRadius: 1,
-                mx: isIconOnly ? 0 : 1,
+                mx: 0,
                 mb: 0.5,
                 justifyContent: isIconOnly ? "center" : "flex-start",
                 minHeight: isIconOnly ? 40 : "auto",
@@ -301,30 +310,58 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             >
               {isIconOnly ? (
                 <Tooltip title="Favorites" placement="right">
-                  <StarIcon
-                    fontSize="small"
+                  <Box
                     sx={{
-                      fontSize: "1.2rem",
-                      color:
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      bgcolor:
                         customView === "favorites"
                           ? "primary.main"
-                          : "text.secondary"
+                          : "action.selected",
+                      border: `1px solid ${customView === "favorites" ? "transparent" : theme.vars.palette.divider}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
                     }}
-                  />
-                </Tooltip>
-              ) : (
-                <>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
+                  >
                     <StarIcon
                       fontSize="small"
                       sx={{
-                        fontSize: "1.1rem",
+                        fontSize: "1.25rem",
                         color:
                           customView === "favorites"
-                            ? "primary.main"
-                            : "text.secondary"
+                            ? "primary.contrastText"
+                            : "text.primary"
                       }}
                     />
+                  </Box>
+                </Tooltip>
+              ) : (
+                <>
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 28,
+                        height: 28,
+                        borderRadius: "4px",
+                        bgcolor: "rgba(0,0,0,0.04)"
+                      }}
+                    >
+                      <StarIcon
+                        fontSize="small"
+                        sx={{
+                          fontSize: "1.2rem",
+                          color:
+                            customView === "favorites"
+                              ? "primary.main"
+                              : "text.secondary"
+                        }}
+                      />
+                    </Box>
                   </ListItemIcon>
                   <ListItemText
                     primary="Favorites"
@@ -344,9 +381,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 setSelectedProvider(null);
               }}
               sx={{
-                py: isIconOnly ? 1 : 0.5,
+                py: isIconOnly ? 1 : 0.25,
                 borderRadius: 1,
-                mx: isIconOnly ? 0 : 1,
+                mx: 0,
                 justifyContent: isIconOnly ? "center" : "flex-start",
                 minHeight: isIconOnly ? 40 : "auto",
                 px: isIconOnly ? 0 : 2
@@ -354,30 +391,58 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             >
               {isIconOnly ? (
                 <Tooltip title="Recent" placement="right">
-                  <HistoryIcon
-                    fontSize="small"
+                  <Box
                     sx={{
-                      fontSize: "1.2rem",
-                      color:
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      bgcolor:
                         customView === "recent"
                           ? "primary.main"
-                          : "text.secondary"
+                          : "action.selected",
+                      border: `1px solid ${customView === "recent" ? "transparent" : theme.vars.palette.divider}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
                     }}
-                  />
-                </Tooltip>
-              ) : (
-                <>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
+                  >
                     <HistoryIcon
                       fontSize="small"
                       sx={{
-                        fontSize: "1.1rem",
+                        fontSize: "1.25rem",
                         color:
                           customView === "recent"
-                            ? "primary.main"
-                            : "text.secondary"
+                            ? "primary.contrastText"
+                            : "text.primary"
                       }}
                     />
+                  </Box>
+                </Tooltip>
+              ) : (
+                <>
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 28,
+                        height: 28,
+                        borderRadius: "4px",
+                        bgcolor: "rgba(0,0,0,0.04)"
+                      }}
+                    >
+                      <HistoryIcon
+                        fontSize="small"
+                        sx={{
+                          fontSize: "1.2rem",
+                          color:
+                            customView === "recent"
+                              ? "primary.main"
+                              : "text.secondary"
+                        }}
+                      />
+                    </Box>
                   </ListItemIcon>
                   <ListItemText
                     primary="Recent"

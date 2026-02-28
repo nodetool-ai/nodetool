@@ -591,19 +591,18 @@ const ProviderList: React.FC<ProviderListProps> = ({
       sx={{ fontSize: (theme) => theme.vars.fontSizeSmall, px: iconOnly ? 0.5 : 0 }}
     >
       {isLoading && (
-        <div className="is-loading" style={{ padding: 8 }}>
+        <div className="model-menu__providers-loading is-loading" style={{ padding: 8 }}>
           <CircularProgress size={20} />
         </div>
       )}
       {isError && (
-        <div className="is-error" style={{ padding: 8 }}>
+        <div className="model-menu__providers-error is-error" style={{ padding: 8 }}>
           Error loading providers
         </div>
       )}
       <ListItemButton
         disableRipple
-        className={`model-menu__provider-item ${selected === null && !forceUnselect ? "is-selected" : ""
-          }`}
+        className={`model-menu__provider-item model-menu__provider-item--all ${selected === null && !forceUnselect ? "is-selected" : ""}`}
         selected={selected === null && !forceUnselect}
         onClick={handleSelectNull}
         sx={{
@@ -615,11 +614,12 @@ const ProviderList: React.FC<ProviderListProps> = ({
         }}
       >
         {iconOnly ? (
-          <Tooltip title="All providers" placement="right">
-            <FormatListBulletedIcon />
+          <Tooltip className="model-menu__all-providers-tooltip" title="All providers" placement="right">
+            <FormatListBulletedIcon className="model-menu__all-providers-icon" />
           </Tooltip>
         ) : (
           <ListItemText
+            className="model-menu__all-providers-text"
             primary="All providers"
             primaryTypographyProps={{
               sx: { fontSize: (theme) => theme.vars.fontSizeSmall }
@@ -655,7 +655,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             }
 
             return (
-              <Box sx={{ display: "flex", gap: 0.5 }}>
+              <Box className="model-menu__provider-badges" sx={{ display: "flex", gap: 0.5 }}>
                 {badges.map((b) => {
                   const tooltipTitle =
                     b.label === "HF"
@@ -665,12 +665,14 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         : "API: Remote provider; runs via API without local download. Requires API key.";
                   return (
                     <Tooltip
+                      className="model-menu__provider-badge-tooltip"
                       key={b.label}
                       title={tooltipTitle}
                       enterDelay={TOOLTIP_ENTER_DELAY * 2}
                       enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
                     >
                       <span
+                        className={`model-menu__provider-badge model-menu__provider-badge--${b.label.toLowerCase()}`}
                         style={{
                           padding: "1px 5px",
                           fontSize: theme.vars.fontSizeTiny,
@@ -698,12 +700,11 @@ const ProviderList: React.FC<ProviderListProps> = ({
           return (
             <React.Fragment key={`provider-item-${p}`}>
               {showDivider && !iconOnly && (
-                <Divider component="li" sx={{ my: 0.5, opacity: 0.5 }} />
+                <Divider className="model-menu__providers-divider" component="li" sx={{ my: 0.5, opacity: 0.5 }} />
               )}
               <ListItemButton
                 disableRipple
-                className={`model-menu__provider-item ${selected === p ? "is-selected" : ""
-                  }`}
+                className={`model-menu__provider-item ${selected === p ? "is-selected" : ""} ${enabled && available ? "is-enabled" : "is-disabled"}`}
                 selected={selected === p}
                 onClick={handleSelectProvider(p)}
                 onContextMenu={(e) => handleMenuOpen(e, p)}
@@ -718,10 +719,10 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 }}
               >
                 {iconOnly ? (
-                  <Tooltip title={p} placement="right">
-                    <Box sx={{
-                      width: 32,
-                      height: 32,
+                  <Tooltip className="model-menu__provider-icon-tooltip" title={p} placement="right">
+                    <Box className="model-menu__provider-icon-circle" sx={{
+                      width: 36,
+                      height: 36,
                       borderRadius: '50%',
                       bgcolor: (selected === p) ? 'primary.main' : (isProviderEnabled(p) ? 'action.selected' : 'transparent'),
                       border: `1px solid ${selected === p ? 'transparent' : theme.vars.palette.divider}`,
@@ -729,7 +730,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 700,
-                      fontSize: '0.75rem',
+                      fontSize: '0.8rem',
                       color: (selected === p) ? 'primary.contrastText' : (isProviderEnabled(p) ? 'text.primary' : 'text.disabled'),
                       overflow: 'hidden',
                     }}>
@@ -740,12 +741,13 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           // In this case, don't invert in dark mode since HF logo has good contrast
                           const isHFLogo = iconUrl === huggingfaceColorIcon;
                           return (
-                            <img 
+                            <img
+                              className="model-menu__provider-icon-image"
                               src={iconUrl} 
                               alt="" 
                               style={{ 
-                                width: 20, 
-                                height: 20, 
+                                width: 24, 
+                                height: 24, 
                                 objectFit: 'contain',
                                 filter: selected === p ? 'brightness(0) invert(1)' : 
                                   (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
@@ -760,41 +762,43 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 ) : (
                   <>
                     <ListItemText
+                      className="model-menu__provider-label"
                       primary={
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box className="model-menu__provider-label-content" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           {(() => {
                             const iconUrl = getProviderIconUrl(p);
                             // Check if using HuggingFace logo (either base HF or unknown sub-provider)
                             // In this case, don't invert in dark mode since HF logo has good contrast
                             const isHFLogo = iconUrl === huggingfaceColorIcon;
-                            if (iconUrl) {
-                              return (
-                                <Box sx={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: 24,
-                                  height: 24,
-                                  borderRadius: '4px',
-                                  bgcolor: isDarkMode && !isHFLogo ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                                  opacity: available ? 1 : 0.5,
-                                }}>
-                                  <img 
+                            return (
+                              <Box className="model-menu__provider-inline-icon" sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 28,
+                                height: 28,
+                                flexShrink: 0,
+                                borderRadius: '4px',
+                                bgcolor: isDarkMode && !isHFLogo ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                                opacity: available ? 1 : 0.5,
+                              }}>
+                                {iconUrl ? (
+                                  <img
+                                    className="model-menu__provider-inline-icon-image"
                                     src={iconUrl} 
                                     alt="" 
                                     style={{ 
-                                      width: 18, 
-                                      height: 18, 
+                                      width: 22, 
+                                      height: 22, 
                                       objectFit: 'contain',
                                       filter: (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
                                     }} 
                                   />
-                                </Box>
-                              );
-                            }
-                            return null;
+                                ) : null}
+                              </Box>
+                            );
                           })()}
-                          <span>
+                          <span className="model-menu__provider-name">
                             {isHuggingFaceProvider(p)
                               ? getProviderBaseName(p)
                               : formatGenericProviderName(p)}
@@ -811,6 +815,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     />
                     {!hasKey && (
                       <Box
+                        className="model-menu__provider-missing-key"
                         sx={{
                           mr: 1,
                           display: "flex",
@@ -819,16 +824,18 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         }}
                         onClick={handleStopPropagation}
                       >
-                        <Tooltip title="API key required">
+                        <Tooltip className="model-menu__provider-missing-key-tooltip" title="API key required">
                           <InfoOutlinedIcon
+                            className="model-menu__provider-missing-key-icon"
                             sx={{
                               fontSize: (theme) => theme.vars.fontSizeNormal,
                               color: "warning.main"
                             }}
                           />
                         </Tooltip>
-                        <Tooltip title="Open Settings to add API key">
+                        <Tooltip className="model-menu__provider-add-key-tooltip" title="Open Settings to add API key">
                           <Button
+                            className="model-menu__provider-add-key-button"
                             size="small"
                             variant="text"
                             color="warning"
@@ -845,6 +852,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       </Box>
                     )}
                     <Box
+                      className="model-menu__provider-actions"
                       sx={{
                         ml: "auto",
                         display: "flex",
@@ -855,9 +863,11 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     >
                       {renderBadges()}
                       <Tooltip
+                        className="model-menu__provider-toggle-tooltip"
                         title={enabled ? "Disable provider" : "Enable provider"}
                       >
                         <Checkbox
+                          className="model-menu__provider-toggle-checkbox"
                           edge="end"
                           size="small"
                           sx={{
@@ -879,17 +889,20 @@ const ProviderList: React.FC<ProviderListProps> = ({
         }
       )}
       <Menu
+        className="model-menu__provider-context-menu"
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
       >
         <MenuItem
+          className="model-menu__provider-context-menu-item model-menu__provider-context-menu-item--website"
           disabled={!menuProvider || !getProviderUrl(menuProvider)}
           onClick={handleOpenWebsite}
         >
           Open provider website
         </MenuItem>
         <MenuItem
+          className="model-menu__provider-context-menu-item model-menu__provider-context-menu-item--toggle"
           onClick={handleToggleProvider}
         >
           {menuProvider && isProviderEnabled(menuProvider)
