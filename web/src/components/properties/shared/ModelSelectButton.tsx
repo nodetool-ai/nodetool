@@ -70,7 +70,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
             borderRadius: "var(--rounded-buttonSmall, 4px)",
             color: "var(--palette-text-primary)",
             textTransform: "none",
-            display: "inline-flex",
+            display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             lineHeight: 1.2,
