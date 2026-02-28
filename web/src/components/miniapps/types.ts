@@ -42,7 +42,7 @@ export interface InputNodeData {
   /** StringInput: 0 = unlimited */
   max_length?: number;
   /** StringInput: preferred UI rendering */
-  line_mode?: "single_line" | "multiline";
+  line_mode?: "single_line" | "multi_line" | "multiline";
   /** Backwards/compat: some graphs may store boolean instead of enum */
   multiline?: boolean;
   value?: unknown;

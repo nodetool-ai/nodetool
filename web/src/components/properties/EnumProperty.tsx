@@ -4,6 +4,20 @@ import isEqual from "lodash/isEqual";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 
+const formatEnumLabel = (value: string | number): string => {
+  if (typeof value !== "string") {
+    return value.toString();
+  }
+
+  if (!value.includes("_")) {
+    return value;
+  }
+
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 const EnumProperty: React.FC<PropertyProps> = ({
   property,
   propertyIndex,
@@ -20,13 +34,15 @@ const EnumProperty: React.FC<PropertyProps> = ({
   const values = useMemo(() => {
     return property.type.values ||
            (property.type.type_args?.[0]?.values) ||
+           (property.json_schema_extra as { values?: (string | number)[]; enum?: (string | number)[] } | undefined)?.values ||
+           (property.json_schema_extra as { values?: (string | number)[]; enum?: (string | number)[] } | undefined)?.enum ||
            (property as any).values ||
            (property as any).enum;
   }, [property]);
 
   const options = useMemo(() => {
     return values?.map((val: string | number) => ({
-      label: val.toString(),
+      label: formatEnumLabel(val),
       value: val
     })) || [];
   }, [values]);

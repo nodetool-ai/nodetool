@@ -186,8 +186,10 @@ const getStringInputConfig = (definition: MiniAppInputDefinition) => {
       : 0;
 
   const lineMode =
-    data.line_mode === "multiline" || data.multiline === true
-      ? "multiline"
+    data.line_mode === "multi_line" ||
+    data.line_mode === "multiline" ||
+    data.multiline === true
+      ? "multi_line"
       : "single_line";
 
   return { maxLength, lineMode } as const;
@@ -285,7 +287,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
 
             if (definition.kind === "string") {
               const { maxLength, lineMode } = getStringInputConfig(definition);
-              const multiline = lineMode === "multiline";
+              const multiline = lineMode === "multi_line";
               const draft = stringDrafts[definition.data.name] ?? (typeof value === "string" ? value : "");
               const exceedsMaxLength = maxLength > 0 && draft.length > maxLength;
 
