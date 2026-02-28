@@ -664,6 +664,15 @@ function FileBrowserDialog({
     handleNavigate(itemId);
   }, [handleNavigate]);
 
+  // Memoize breadcrumb click handlers to prevent re-renders
+  const handleBreadcrumbClick = useCallback(
+    (path: string) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      handleNavigate(path);
+    },
+    [handleNavigate]
+  );
+
   // --- Renderers ---
 
   const Row = memo(function Row({
@@ -807,10 +816,7 @@ function FileBrowserDialog({
                           ? "text.primary"
                           : "inherit"
                       }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNavigate(b.path);
-                      }}
+                      onClick={handleBreadcrumbClick(b.path)}
                       underline="hover"
                       variant="body2"
                     >
