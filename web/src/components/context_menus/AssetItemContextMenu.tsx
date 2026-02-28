@@ -21,6 +21,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useFileTabsStore } from "../../stores/FileTabsStore";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
+import AssetInfoPanel from "./AssetInfoPanel";
 
 const AssetItemContextMenu = () => {
   // Combine multiple ContextMenuStore subscriptions into a single selector
@@ -192,6 +193,9 @@ const AssetItemContextMenu = () => {
     }
   });
 
+  const singleAsset =
+    selectedAssets.length === 1 ? selectedAssets[0] : null;
+
   if (!menuPosition) {return null;}
   return (
     <>
@@ -207,6 +211,13 @@ const AssetItemContextMenu = () => {
             ? { top: menuPosition.y, left: menuPosition.x }
             : undefined
         }
+        slotProps={{
+          paper: {
+            sx: singleAsset
+              ? { display: "flex", overflow: "visible" }
+              : undefined
+          }
+        }}
       >
         <MenuItem disabled>
           <Typography variant="body1" className="title">
@@ -297,6 +308,7 @@ const AssetItemContextMenu = () => {
           IconComponent={<RemoveCircleIcon />}
           tooltip="Delete selected assets"
         />
+        {singleAsset && <AssetInfoPanel asset={singleAsset} />}
       </Menu>
     </>
   );
