@@ -169,6 +169,7 @@ export const NavButton = memo(
               sx={baseStyles}
               onClick={props.onClick}
               disabled={props.disabled}
+              aria-label={tooltipText}
             >
               {icon}
             </IconButton>
