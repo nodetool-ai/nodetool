@@ -1016,7 +1016,10 @@ const TextEditorModal = ({
             ) : (
               <EditorInsertionProvider value={insertIntoEditor}>
                 <div className="editor-pane">
-                  <CopyButton value={value} />
+                  <CopyButton
+                    value={value}
+                    className="copy-to-clipboard-button"
+                  />
                   {isCodeEditor ? (
                     <div style={{ height: "100%" }}>
                       {MonacoEditor ? (
