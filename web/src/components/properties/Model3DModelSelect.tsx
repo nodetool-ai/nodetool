@@ -14,6 +14,33 @@ interface Model3DModel {
   supported_tasks?: string[];
 }
 
+// Memoized model menu item to prevent re-renders
+interface ModelMenuItemProps {
+  model: Model3DModel;
+  isSelected: boolean;
+  onSelect: (model: Model3DModel) => void;
+}
+
+const ModelMenuItem = React.memo<ModelMenuItemProps>(
+  ({ model, isSelected, onSelect }) => (
+    <MenuItem
+      onClick={() => onSelect(model)}
+      selected={isSelected}
+      sx={{ pl: 3 }}
+    >
+      <ListItemText
+        primary={model.name || model.id}
+        secondary={model.supported_tasks?.join(", ")}
+      />
+    </MenuItem>
+  ),
+  (prevProps, nextProps) =>
+    prevProps.model.id === nextProps.model.id &&
+    prevProps.model.name === nextProps.model.name &&
+    prevProps.isSelected === nextProps.isSelected
+);
+ModelMenuItem.displayName = "ModelMenuItem";
+
 interface Model3DModelSelectProps {
   onChange: (value: any) => void;
   value: string;
@@ -153,17 +180,12 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
               </Typography>
             </MenuItem>
             {providerModels.map((model) => (
-              <MenuItem
+              <ModelMenuItem
                 key={model.id}
-                onClick={() => handleModelSelect(model)}
-                selected={model.id === value}
-                sx={{ pl: 3 }}
-              >
-                <ListItemText 
-                  primary={model.name || model.id}
-                  secondary={model.supported_tasks?.join(", ")}
-                />
-              </MenuItem>
+                model={model}
+                isSelected={model.id === value}
+                onSelect={handleModelSelect}
+              />
             ))}
           </React.Fragment>
         ))}
