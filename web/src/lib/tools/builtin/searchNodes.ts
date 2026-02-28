@@ -105,13 +105,6 @@ FrontendToolRegistry.register({
       results,
     };
 
-    console.log("[ui_search_nodes] Search results:", {
-      query,
-      count: results.length,
-      total_matches: sortedResults.length,
-      result_types: results.map((r) => r.node_type),
-    });
-
     return searchResult;
   },
 });
