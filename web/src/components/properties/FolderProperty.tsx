@@ -71,29 +71,46 @@ const FolderProperty = (props: PropertyProps) => {
     });
   }, [createFolder, selectValue, folderName, addNotification, refetch]);
 
-  const handleOpenMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  }, []);
+  const handleOpenMenu = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      setAnchorEl(event.currentTarget);
+    },
+    []
+  );
 
   const handleCloseMenu = useCallback(() => {
     setAnchorEl(null);
   }, []);
 
-  const handleFolderNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setFolderName(e.target.value);
-  }, []);
+  const handleFolderNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFolderName(e.target.value);
+    },
+    []
+  );
 
-  const handleFolderKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleCreateFolder();
-    }
-  }, [handleCreateFolder]);
+  const handleFolderKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleCreateFolder();
+      }
+    },
+    [handleCreateFolder]
+  );
 
-  const handleFolderSelect = useCallback((
-    event: React.ChangeEvent<HTMLInputElement> | (Event & { target: { value: unknown; name: string; } })
-  ) => {
-    props.onChange({ type: "folder", asset_id: event.target.value as string });
-  }, [props]);
+  const handleFolderSelect = useCallback(
+    (
+      event:
+        | React.ChangeEvent<HTMLInputElement>
+        | (Event & { target: { value: unknown; name: string } })
+    ) => {
+      props.onChange({
+        type: "folder",
+        asset_id: event.target.value as string
+      });
+    },
+    [props]
+  );
 
   const theme = useTheme();
   return (
