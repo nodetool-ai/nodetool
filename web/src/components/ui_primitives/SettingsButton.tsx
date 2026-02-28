@@ -129,6 +129,7 @@ export const SettingsButton = memo(
             onClick={handleClick}
             disabled={disabled}
             size={buttonSize}
+            aria-label={tooltip}
             sx={{
               color: theme.vars.palette.grey[300],
               "&:hover": {
