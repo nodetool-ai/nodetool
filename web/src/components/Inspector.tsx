@@ -115,7 +115,11 @@ const styles = (theme: Theme) =>
     },
     ".multi-property-row .node-property": {
       flex: "1 1 auto",
-      minWidth: 0
+      minWidth: 0,
+      width: "100%"
+    },
+    ".top-content > .node-property": {
+      display: "contents"
     },
     ".mixed-indicator": {
       display: "inline-flex",
