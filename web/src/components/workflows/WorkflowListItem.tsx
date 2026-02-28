@@ -193,7 +193,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         )}
         {hasTags && (
           <FlexRow gap={0.5} sx={{ flexWrap: "wrap", mt: 1 }}>
-            {workflow.tags!.map((tag) => (
+            {workflow.tags?.map((tag) => (
               <Typography
                 key={tag}
                 sx={{
