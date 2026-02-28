@@ -29,6 +29,10 @@ import {
   DYNAMIC_KIE_NODE_TYPE
 } from "../node/DynamicKieSchemaNode";
 import {
+  DynamicReplicateNode,
+  DYNAMIC_REPLICATE_NODE_TYPE
+} from "../node/DynamicReplicateNode";
+import {
   WorkflowNode,
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
@@ -286,6 +290,7 @@ const ReactFlowWrapper: React.FC<ReactFlowWrapperProps> = ({
       "nodetool.control.Reroute": RerouteNode,
       [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
+      [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       default: PlaceholderNode
     }),
