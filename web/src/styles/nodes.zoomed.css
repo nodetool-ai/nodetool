@@ -67,7 +67,7 @@
 }
 
 /* Hide lower-priority UI at zoom */
-.react-flow.zoomed-out .node-property:not(.image),
+.react-flow.zoomed-out .node-property:not(.image):not(.video),
 .react-flow.zoomed-out .node-property .property-label,
 .react-flow.zoomed-out .audio-controls-container,
 .react-flow.zoomed-out .multi-outputs,
@@ -87,9 +87,17 @@
 .react-flow.zoomed-out .model-button,
 .react-flow.zoomed-out .expand-button-container,
 .react-flow.zoomed-out .tool-call-container,
-.react-flow.zoomed-out .node-chunk,
-.react-flow.zoomed-out .drop-container,
-.react-flow.zoomed-out .preview-node-content .output {
+.react-flow.zoomed-out .node-chunk {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+}
+
+/* Keep media outputs visible; hide text-like preview outputs only */
+.react-flow.zoomed-out .preview-node-content .output.value,
+.react-flow.zoomed-out .preview-node-content .output.json-output,
+.react-flow.zoomed-out .preview-node-content .output.no-markdown-text {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -97,9 +105,13 @@
 }
 
 .react-flow.zoomed-out .node-property .image-property,
-.react-flow.zoomed-out .image-output {
+.react-flow.zoomed-out .image-output,
+.react-flow.zoomed-out .preview-node-content .output:has(.image-output),
+.react-flow.zoomed-out .preview-node-content .output:has(video),
+.react-flow.zoomed-out .node-property.video {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 /* Increase resize handle size */
