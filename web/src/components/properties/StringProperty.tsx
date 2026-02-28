@@ -70,8 +70,10 @@ const StringProperty = ({
             ? Math.max(0, Math.floor(maxLengthRaw))
             : 0;
         const lineMode =
-          props?.line_mode === "multiline" || props?.multiline === true
-            ? "multiline"
+          props?.line_mode === "multi_line" ||
+          props?.line_mode === "multiline" ||
+          props?.multiline === true
+            ? "multi_line"
             : "single_line";
 
         return {
@@ -93,7 +95,7 @@ const StringProperty = ({
     ? (stringInputConfig?.maxLength ?? 0)
     : 0;
   const multiline = isStringInputValue
-    ? (stringInputConfig?.lineMode ?? "single_line") === "multiline"
+    ? (stringInputConfig?.lineMode ?? "single_line") === "multi_line"
     : true;
 
   const externalValue = typeof value === "string" ? value : "";
