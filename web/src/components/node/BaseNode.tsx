@@ -49,7 +49,10 @@ import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isProduction } from "../../stores/ApiClient";
-import { CONTROL_HANDLE_ID, isAgentNodeType } from "../../stores/graphEdgeToReactFlowEdge";
+import {
+  CONTROL_HANDLE_ID,
+  isAgentNodeType
+} from "../../stores/graphEdgeToReactFlowEdge";
 import useConnectionStore from "../../stores/ConnectionStore";
 
 // CONSTANTS
@@ -275,27 +278,23 @@ const getNodeContainerStyles = (
   // stretches to match so vertical resizing is visible.
   height: "100%",
   minHeight,
-  border: isLoading
-    ? "none"
-    : `1px solid ${hexToRgba(baseColor || "#666", 0.6)}`,
+  border: isLoading ? "none" : `1px solid var(--palette-grey-900)`,
   ...theme.applyStyles("dark", {
-    border: isLoading ? "none" : `1px solid ${baseColor || "#666"}`
+    border: isLoading ? "none" : `1px solid var(--palette-grey-900)`
   }),
   boxShadow: selected
     ? `0 0 0 2px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
     : isFocused
-    ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-    : "none",
-  outline: isFocused
-    ? `2px dashed ${theme.vars.palette.warning.main}`
-    : "none",
+      ? `0 0 0 2px ${theme.vars.palette.warning.main}`
+      : "none",
+  outline: isFocused ? `2px dashed ${theme.vars.palette.warning.main}` : "none",
   outlineOffset: "-2px",
   backgroundColor:
     hasParent && !isLoading
       ? parentColor
       : selected
-      ? "transparent !important"
-      : theme.vars.palette.c_node_bg,
+        ? "transparent !important"
+        : theme.vars.palette.c_node_bg,
   backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
   WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
   borderRadius: "var(--rounded-node)",
@@ -421,7 +420,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Show control handle when dragging a control edge from an Agent node
   const isCreatingControlEdge = useConnectionStore((state) => {
-    return state.connectType?.type === "control" && state.connectDirection === "source";
+    return (
+      state.connectType?.type === "control" &&
+      state.connectDirection === "source"
+    );
   });
 
   const isConstantInputLockedResult =
@@ -489,14 +491,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
   const shouldAlwaysShowResult =
     nodeType.isOutputNode || isConstantInputLockedResult;
-  const isOverlayVisible =
-    shouldAlwaysShowResult
-      ? result && !isEmptyResult(result)
-      : showResultOverlay && result && !isEmptyResult(result);
+  const isOverlayVisible = shouldAlwaysShowResult
+    ? result && !isEmptyResult(result)
+    : showResultOverlay && result && !isEmptyResult(result);
   const hasToggleableResult =
-    !shouldAlwaysShowResult &&
-    result &&
-    !isEmptyResult(result);
+    !shouldAlwaysShowResult && result && !isEmptyResult(result);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
   const toolCall = useResultsStore((state) =>
@@ -572,17 +571,20 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     updateNode(id, { height: undefined, measured: undefined });
   }, [showAdvancedFields, updateNode, id]);
 
-  const handleNamespaceClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    // Open nodeMenu at that namespace
-    const namespacePath = metadata.namespace?.split(".") || [];
-    useNodeMenuStore.getState().openNodeMenu({
-      x: e.clientX,
-      y: e.clientY,
-      selectedPath: namespacePath
-    });
-  }, [metadata.namespace]);
+  const handleNamespaceClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      // Open nodeMenu at that namespace
+      const namespacePath = metadata.namespace?.split(".") || [];
+      useNodeMenuStore.getState().openNodeMenu({
+        x: e.clientX,
+        y: e.clientY,
+        selectedPath: namespacePath
+      });
+    },
+    [metadata.namespace]
+  );
 
   // Track error state for node dimension management
   const hasError = useErrorStore((state) =>
@@ -617,7 +619,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         type="target"
         id={CONTROL_HANDLE_ID}
         position={Position.Top}
-        className={`control-handle control-handle-top ${hasControlEdge || isCreatingControlEdge ? 'control-handle-visible' : 'control-handle-hidden'}`}
+        className={`control-handle control-handle-top ${hasControlEdge || isCreatingControlEdge ? "control-handle-visible" : "control-handle-hidden"}`}
         isConnectable={true}
       />
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
@@ -646,7 +648,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
       <RequiredSettingsWarning nodeType={type} />
-      <InputNodeNameWarning nodeType={type} name={data.properties?.name as string | undefined} />
+      <InputNodeNameWarning
+        nodeType={type}
+        name={data.properties?.name as string | undefined}
+      />
       <Box
         className="node-content-container"
         sx={{
