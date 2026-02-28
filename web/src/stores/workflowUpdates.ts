@@ -53,6 +53,7 @@ const formatJobDurationSeconds = (
 let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () =>
   undefined;
 
+
 export const setGetNodeStore = (
   fn: (workflowId: string) => NodeStore | undefined
 ): void => {
