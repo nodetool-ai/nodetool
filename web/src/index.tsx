@@ -9,10 +9,11 @@ import type { } from "./window";
 import "./prismGlobal";
 
 import React, { Suspense, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useWorkflowManager } from "./contexts/WorkflowManagerContext";
 import ReactDOM from "react-dom/client";
 
 import {
-  Navigate,
   RouteObject,
   RouterProvider,
   createBrowserRouter
@@ -52,6 +53,7 @@ import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
+import { useSettingsStore } from "./stores/SettingsStore";
 import { isLocalhost } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
@@ -149,19 +151,75 @@ if (isLocalhost) {
 
 const NavigateToStart = () => {
   const { state } = useAuth((auth) => ({ state: auth.state }));
+  const showWelcomeOnStartup = useSettingsStore((state) => state.settings.showWelcomeOnStartup);
+  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
+  const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  if (isLocalhost) {
-    return <Navigate to="/dashboard" replace={true} />;
-  } else if (state === "init") {
+  // Handle navigation based on settings
+  useEffect(() => {
+    const handleNavigation = async () => {
+      // Helper to get workflow to open (current > first open > null)
+      const getExistingWorkflowId = (): string | null => {
+        const currentWorkflowId = localStorage.getItem("currentWorkflowId");
+        if (currentWorkflowId) {
+          return currentWorkflowId;
+        }
+        const openWorkflows = JSON.parse(localStorage.getItem("openWorkflows") || "[]") as string[];
+        if (openWorkflows.length > 0) {
+          return openWorkflows[0];
+        }
+        return null;
+      };
+
+      const navigateToEditor = async () => {
+        // Check for existing workflow first
+        const existingWorkflowId = getExistingWorkflowId();
+        if (existingWorkflowId) {
+          navigate(`/editor/${existingWorkflowId}`, { replace: true });
+          return;
+        }
+
+        // Only create new if no workflows are open
+        if (!isProcessing) {
+          setIsProcessing(true);
+          try {
+            const workflow = await createNewWorkflow();
+            navigate(`/editor/${workflow.id}`, { replace: true });
+          } catch (error) {
+            console.error("Failed to create workflow:", error);
+            navigate("/dashboard", { replace: true });
+          }
+        }
+      };
+
+      if (isLocalhost) {
+        if (!showWelcomeOnStartup) {
+          await navigateToEditor();
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
+      } else if (state === "logged_in") {
+        if (!showWelcomeOnStartup) {
+          await navigateToEditor();
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
+      } else if (state === "logged_out" || state === "error") {
+        navigate("/login", { replace: true });
+      }
+    };
+
+    if (state !== "init") {
+      void handleNavigation();
+    }
+  }, [state, showWelcomeOnStartup, createNewWorkflow, navigate, isProcessing]);
+
+  if (state === "init") {
     return <div>Loading...</div>;
-  } else if (state === "logged_in") {
-    return <Navigate to="/dashboard" replace={true} />;
-  } else if (state === "logged_out") {
-    return <Navigate to="/login" replace={true} />;
-  } else if (state === "error") {
-    return <Navigate to="/login" replace={true} />;
   }
-  return <div>Error!</div>;
+
+  return <div>Loading...</div>;
 };
 
 function getRoutes() {
