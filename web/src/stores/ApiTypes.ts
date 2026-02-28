@@ -118,6 +118,55 @@ export type UnifiedModel = components["schemas"]["UnifiedModel"] & {
   artifact_confidence?: number | null;
   artifact_evidence?: string[] | null;
 };
+
+// Model property value types for use in component onChange handlers
+// These types represent the actual values passed to property onChange callbacks
+
+/**
+ * Property value for Llama model selections in node properties.
+ * Used by LlamaModelSelect component onChange handlers.
+ */
+export interface LlamaModelValue {
+  type: "llama_model";
+  repo_id: string;
+}
+
+/**
+ * Property value for Language model selections in node properties.
+ * Used by LanguageModelSelect component onChange handlers.
+ */
+export interface LanguageModelValue {
+  type: "language_model";
+  id: string;
+  provider: Provider;
+  name: string;
+}
+
+/**
+ * Property value for Image model selections in node properties.
+ * Used by ImageModelSelect component onChange handlers.
+ */
+export interface ImageModelValue {
+  type: "image_model";
+  id: string;
+  provider: Provider;
+  name: string;
+  path: string;
+}
+
+/**
+ * Property value for TTS model selections in node properties.
+ * Used by TTSModelSelect component onChange handlers.
+ */
+export interface TTSModelValue {
+  type: "tts_model";
+  id: string;
+  provider: Provider;
+  name: string;
+  voices: string[];
+  selected_voice: string;
+}
+
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];

@@ -277,7 +277,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
   const selectedToolIcons = useMemo(() => {
     return selectedTools
       .map((toolId) => TOOLS.find((tool) => tool.id === toolId))
-      .filter(Boolean)
+      .filter((tool): tool is Tool => tool !== undefined)
       .slice(0, 3);
   }, [selectedTools]);
 
@@ -301,14 +301,14 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
               <Box sx={{ display: "flex", gap: "2px" }}>
                 {selectedToolIcons.map((tool) => (
                   <Box
-                    key={tool!.id}
+                    key={tool.id}
                     sx={{
                       display: "flex",
                       alignItems: "center",
                       "& > svg": { fontSize: "16px" }
                     }}
                   >
-                    {tool!.icon}
+                    {tool.icon}
                   </Box>
                 ))}
                 {selectedTools.length > 3 && (

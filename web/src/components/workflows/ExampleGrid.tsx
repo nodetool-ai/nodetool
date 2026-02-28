@@ -7,7 +7,7 @@ import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { css } from "@emotion/react";
-import { searchWorkflows as searchWorkflowsFrontend } from "../../utils/workflowSearch";
+import { useWorkflowSearch, searchWorkflowsWithFuse } from "../../utils/workflowSearch";
 import { findMatchingNodesInWorkflows } from "../../utils/findMatchingNodesInWorkflows";
 import { SearchResult as FrontendSearchResult } from "../../types/search";
 import { SEARCH_DEBOUNCE_MS } from "../../config/constants";
@@ -273,6 +273,14 @@ const TemplateGrid = memo(function TemplateGrid() {
     return result;
   }, [groupedWorkflows]);
 
+  // Memoize Fuse instance for workflow search - only recreates when workflows change
+  // This is a significant performance optimization: Fuse indexing is O(n) and
+  // should only happen when the workflows array changes, not on every keystroke
+  const baseWorkflowsForSearch = useMemo(() => {
+    return data?.workflows || [];
+  }, [data]);
+  const fuse = useWorkflowSearch(baseWorkflowsForSearch);
+
   useEffect(() => {
     if (
       nodesOnlySearch &&
@@ -300,7 +308,9 @@ const TemplateGrid = memo(function TemplateGrid() {
         !selectedTag || !groupedWorkflows[selectedTag]
           ? data.workflows
           : groupedWorkflows[selectedTag] || [];
-      const generalResults = searchWorkflowsFrontend(
+      // Use the memoized Fuse instance for efficient search
+      const generalResults = searchWorkflowsWithFuse(
+        fuse,
         baseWorkflowsForGeneralSearch,
         searchQuery
       );
@@ -314,7 +324,8 @@ const TemplateGrid = memo(function TemplateGrid() {
     searchQuery,
     nodesOnlySearch,
     selectedTag,
-    groupedWorkflows
+    groupedWorkflows,
+    fuse
   ]);
 
   // Filtered workflows for display

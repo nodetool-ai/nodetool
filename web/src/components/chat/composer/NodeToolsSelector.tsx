@@ -193,7 +193,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
   const selectedNodeMetadatas = useMemo(() => {
     return selectedNodeTypes
       .map((nodeType) => metadata[nodeType])
-      .filter(Boolean) as NodeMetadata[];
+      .filter((node): node is NodeMetadata => node !== undefined);
   }, [selectedNodeTypes, metadata]);
 
   // Use NodeMenuStore for search functionality

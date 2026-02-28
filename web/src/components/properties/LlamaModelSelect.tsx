@@ -10,12 +10,13 @@ import {
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
 import { isElectron } from "../../stores/ApiClient";
+import type { LlamaModelValue } from "../../stores/ApiTypes";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import { EditorMenu, EditorMenuItem } from "../editor_ui";
 // no providers here; always Ollama
 
 interface LlamaModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: LlamaModelValue) => void;
   value: string;
 }
 

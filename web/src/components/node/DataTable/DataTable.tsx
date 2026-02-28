@@ -14,7 +14,8 @@ import {
   CellComponent,
   ColumnDefinitionAlign,
   Formatter,
-  StandardValidatorType
+  StandardValidatorType,
+  RowComponent
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_midnight.css";
@@ -127,7 +128,7 @@ const DataTable: React.FC<DataTableProps> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
-  const [selectedRows, setSelectedRows] = useState<Tabulator.RowComponent[]>([]);
+  const [selectedRows, setSelectedRows] = useState<RowComponent[]>([]);
   const [showSelect, setShowSelect] = useState(true);
   const [showRowNumbers, setShowRowNumbers] = useState(true);
   const [isTableReady, setIsTableReady] = useState(false);
@@ -192,7 +193,7 @@ const DataTable: React.FC<DataTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (_e: MouseEvent, cell: CellComponent) {
+              cellClick: function (_e: any, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -342,7 +343,7 @@ const DataTable: React.FC<DataTableProps> = ({
         }));
         tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
       } else {
-        tabulatorRef.current.clearFilter();
+        tabulatorRef.current.clearFilter(true);
       }
     }
   }, [searchFilter, isTableReady]);

@@ -2,12 +2,12 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import ImageModelMenuDialog from "../model_menu/ImageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { ImageModel } from "../../stores/ApiTypes";
+import type { ImageModel, ImageModelValue } from "../../stores/ApiTypes";
 import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface ImageModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: ImageModelValue) => void;
   value: string;
   task?: "text_to_image" | "image_to_image";
 }

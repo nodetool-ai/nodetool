@@ -226,14 +226,56 @@ const extractText = (node: ReactNode): string => {
 const Welcome = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const sections: Section[] = overviewContents.map((section) => ({
-    ...section,
-    originalContent: section.content
-  }));
   const settings = useSettingsStore((state) => state.settings);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const theme = useTheme();
   const [tabValue, setTabValue] = useState<TabValue>(TabValue.Overview);
+
+  // Memoize sections array - overviewContents is static, so this should be stable
+  const sections = useMemo(
+    (): Section[] =>
+      overviewContents.map((section) => ({
+        ...section,
+        originalContent: section.content
+      })),
+    []
+  );
+
+  // Memoize search entries with extracted text
+  // This is expensive (extracts text from all sections) and should only run when sections change
+  const searchEntries = useMemo(() => {
+    return sections.map((section) => ({
+      ...section,
+      content: extractText(section.content)
+    }));
+  }, [sections]);
+
+  // Memoize Fuse instance - only recreate when searchEntries change
+  // Fuse indexing is O(n) and should not happen on every keystroke
+  const fuseOptions = useMemo(
+    () => ({
+      keys: [
+        { name: "title", weight: 0.4 },
+        { name: "content", weight: 0.6 }
+      ],
+      includeMatches: true,
+      ignoreLocation: true,
+      threshold: 0.2,
+      distance: 100,
+      shouldSort: true,
+      includeScore: true,
+      minMatchCharLength: 2,
+      useExtendedSearch: true,
+      tokenize: true,
+      matchAllTokens: false
+    }),
+    []
+  );
+
+  const fuse = useMemo(
+    () => new Fuse(searchEntries, fuseOptions),
+    [searchEntries, fuseOptions]
+  );
 
   // Memoize static styles to prevent recreation on every render
   const headerLeftStyle = useMemo(() => ({ display: "flex", alignItems: "center" }), []);
@@ -267,38 +309,13 @@ const Welcome = () => {
   const performSearch = useCallback(
     (searchTerm: string) => {
       if (searchTerm.length > 1) {
-        const fuseOptions = {
-          keys: [
-            { name: "title", weight: 0.4 },
-            { name: "content", weight: 0.6 }
-          ],
-          includeMatches: true,
-          ignoreLocation: true,
-          threshold: 0.2,
-          distance: 100,
-          shouldSort: true,
-          includeScore: true,
-          minMatchCharLength: 2,
-          useExtendedSearch: true,
-          tokenize: true,
-          matchAllTokens: false
-        };
-
-        const entries = sections.map((section) => ({
-          ...section,
-          content: extractText(section.content)
-        }));
-
-        const fuse = new Fuse(entries, fuseOptions);
-        const filteredData = fuse
-          .search(searchTerm)
-          .map((result) => result.item);
-
+        // Use the memoized Fuse instance for efficient search
+        const filteredData = fuse.search(searchTerm).map((result) => result.item);
         return filteredData;
       }
       return searchTerm.length === 0 ? sections : [];
     },
-    [sections]
+    [fuse, sections]
   );
 
   const filteredSections = useMemo(

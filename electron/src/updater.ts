@@ -6,7 +6,7 @@ import fs from "fs";
 import { logMessage } from "./logger";
 import { getMainWindow } from "./state";
 import { IpcChannels } from "./types.d";
-import { readSettings } from "./settings";
+import { readSettings, readSettingsAsync } from "./settings";
 
 let updateAvailable: boolean = false;
 
@@ -84,11 +84,11 @@ function isMissingAppUpdateConfigError(err: Error): boolean {
 /**
  * Checks if auto-updates are enabled in settings.
  * Auto-updates are opt-in by default (disabled unless explicitly enabled).
- * @returns true if auto-updates are enabled, false otherwise
+ * @returns Promise resolving to true if auto-updates are enabled, false otherwise
  */
-function isAutoUpdatesEnabled(): boolean {
+async function isAutoUpdatesEnabledAsync(): Promise<boolean> {
   try {
-    const settings = readSettings();
+    const settings = await readSettingsAsync();
     // Auto-updates are opt-in, so default to false if not set
     return settings.autoUpdatesEnabled === true;
   } catch (err) {
@@ -103,7 +103,7 @@ function isAutoUpdatesEnabled(): boolean {
 /**
  * Sets up the auto-updater
  */
-function setupAutoUpdater(): void {
+async function setupAutoUpdater(): Promise<void> {
   // Skip auto-update in development mode
   if (!app.isPackaged) {
     logMessage("Skipping auto-updater in development mode");
@@ -111,7 +111,8 @@ function setupAutoUpdater(): void {
   }
 
   // Check if auto-updates are enabled (opt-in)
-  if (!isAutoUpdatesEnabled()) {
+  const autoUpdateEnabled = await isAutoUpdatesEnabledAsync();
+  if (!autoUpdateEnabled) {
     logMessage("Auto-updates disabled by user preference (opt-in required)");
     return;
   }
@@ -170,7 +171,7 @@ function setupAutoUpdaterEvents(): void {
     logMessage("Checking for updates...");
   });
 
-  autoUpdater.on("update-available", (info: UpdateInfo) => {
+  autoUpdater.on("update-available", async (info: UpdateInfo) => {
     try {
       logMessage(`Update available: ${info.version}`);
       updateAvailable = true;
@@ -188,7 +189,7 @@ function setupAutoUpdaterEvents(): void {
       // Note: When auto-updates are disabled, electron-updater doesn't auto-download,
       // so we direct user to open the app to download manually
       if (Notification.isSupported()) {
-        const autoUpdateEnabled = isAutoUpdatesEnabled();
+        const autoUpdateEnabled = await isAutoUpdatesEnabledAsync();
         const notification = new Notification({
           title: "NodeTool Update Available",
           body: autoUpdateEnabled
