@@ -206,6 +206,7 @@ export const useAssetActions = (asset: Asset) => {
           !selectedAssetIds.includes(asset.id)
         ) {
           setSelectedAssetIds([asset.id]);
+          setSelectedAssets([asset]);
         }
 
         openContextMenu(
@@ -216,7 +217,7 @@ export const useAssetActions = (asset: Asset) => {
         );
       }
     },
-    [asset.id, selectedAssetIds, openContextMenu, setSelectedAssetIds]
+    [asset, selectedAssetIds, openContextMenu, setSelectedAssetIds, setSelectedAssets]
   );
 
   const handleDelete = useCallback(() => {
