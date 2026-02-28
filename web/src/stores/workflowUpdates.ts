@@ -26,7 +26,6 @@ import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
-import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
@@ -388,7 +387,7 @@ export const handleUpdate = (
     }
 
     switch (job.status) {
-      case "completed": {
+      case "completed":
         const formattedDuration = formatJobDurationSeconds(job.duration);
         runner.addNotification({
           type: "info",
@@ -402,7 +401,6 @@ export const handleUpdate = (
         clearProgress(workflow.id);
         clearTimings(workflow.id);
         break;
-      }
       case "cancelled":
         runner.addNotification({
           type: "info",
@@ -452,7 +450,7 @@ export const handleUpdate = (
           alert: true,
           content:
             job.message || "Workflow suspended - waiting for external input",
-          timeout: NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED
+          timeout: 10000
         });
         break;
     }
@@ -590,8 +588,8 @@ export const handleUpdate = (
         const nextStatic: Record<string, unknown> = {};
 
         const isDynamicSchemaNode =
-          update.node_type === "fal.DynamicFal" ||
-          update.node_type === "kie.DynamicKie";
+          update.node_type === "fal.dynamic_schema.FalAI" ||
+          update.node_type === "kie.dynamic_schema.KieAI";
 
         Object.entries(update.properties).forEach(([key, value]) => {
           if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
