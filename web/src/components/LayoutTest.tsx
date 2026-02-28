@@ -966,7 +966,9 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
                 { label: "Buttons", path: "/buttons" }
               ]}
               showHomeIcon
-              onNavigate={(item) => console.log("Navigate to:", item.path)}
+              onNavigate={(_item) => {
+                // Navigation callback - placeholder for future navigation logic
+              }}
             />
           </div>
           <div className="demo-row" style={{ width: "100%" }}>

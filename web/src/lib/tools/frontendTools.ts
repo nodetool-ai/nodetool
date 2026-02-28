@@ -330,10 +330,6 @@ export const FrontendToolRegistry = {
         getState: ctx.getState
       });
 
-      if (name === "ui_search_nodes") {
-        console.log("[FrontendToolRegistry] Search results:", result);
-      }
-
       return result;
     } finally {
       active.delete(toolCallId);
