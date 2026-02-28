@@ -270,32 +270,43 @@ const SecretsMenu = memo(() => {
                         }}
                       >
                         <div style={{ flex: 1 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, marginBottom: "0.25em" }}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5em",
+                              marginBottom: "0.25em"
+                            }}
                           >
-                            <code
-                              style={{ color: "var(--palette-primary-main)" }}
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 600 }}
                             >
-                              {secret.key}
-                            </code>
-                          </Typography>
+                              <code
+                                style={{ color: "var(--palette-primary-main)" }}
+                              >
+                                {secret.key}
+                              </code>
+                            </Typography>
+                            <Typography
+                              component="span"
+                              sx={{
+                                opacity: 0.7,
+                                whiteSpace: "nowrap",
+                                fontSize: `${theme.fontSizeTiny} !important`,
+                                lineHeight: 1
+                              }}
+                            >
+                              {secret.updated_at
+                                ? new Date(secret.updated_at).toLocaleDateString()
+                                : "Never"}
+                            </Typography>
+                          </div>
                           {secret.description && (
                             <Typography className="description">
                               {secret.description}
                             </Typography>
                           )}
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              opacity: 0.7,
-                              marginTop: "0.5em",
-                              display: "block"
-                            }}
-                          >
-                            Updated:{" "}
-                            {secret.updated_at ? new Date(secret.updated_at).toLocaleDateString() : "Never"}
-                          </Typography>
                         </div>
                         <div
                           style={{

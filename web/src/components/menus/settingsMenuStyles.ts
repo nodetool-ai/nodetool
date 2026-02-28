@@ -151,7 +151,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     width: "100%",
     display: "flex",
     flexDirection: "column",
-    gap: ".8em",
+    gap: ".5em",
     "&:first-of-type": {
       marginTop: "0.5em"
     }
@@ -162,7 +162,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     }
   },
   ".settings-item": {
-    padding: "1em 0",
+    padding: "0 0 .1em 0",
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     "&:last-child": {
       borderBottom: "none",
@@ -211,10 +211,10 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       padding: ".5em 0 .25em 0"
     },
     ".description": {
-      color: theme.vars.palette.grey[100],
-      fontSize: theme.fontSizeNormal,
+      color: theme.vars.palette.grey[50],
+      fontSize: theme.fontSizeSmall,
       margin: "0",
-      padding: "0 1em 0 0.5em",
+      padding: "0",
       lineHeight: "1.6",
       a: {
         color: "var(--palette-primary-main)",
