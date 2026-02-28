@@ -44,7 +44,8 @@ const styles = (theme: Theme) =>
       bottom: 0,
       backgroundColor: "var(--palette-grey-800)",
       borderRadius: "0.5em",
-      overflow: "hidden"
+      overflow: "hidden",
+      contain: "layout style paint"
     },
     ".asset .image, .asset .image-aspect-ratio": {
       position: "absolute",
@@ -54,12 +55,13 @@ const styles = (theme: Theme) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      transition: "opacity 0.5s"
+      transition: "opacity 0.3s"
     },
     ".asset .image-aspect-ratio": {
       opacity: 0,
       backgroundSize: "contain",
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.grey[800],
+      willChange: "opacity"
     },
     "&:hover .asset .image": {
       opacity: 1
@@ -372,14 +374,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 <div
                   className="image"
                   style={{
-                    backgroundImage: `url(${asset.get_url})`
+                    backgroundImage: `url(${asset.thumb_url || asset.get_url})`
                   }}
                   aria-label={asset.id}
                 />
                 <div
                   className="image-aspect-ratio"
                   style={{
-                    backgroundImage: `url(${asset.get_url})`
+                    backgroundImage: `url(${asset.thumb_url || asset.get_url})`
                   }}
                   aria-label={asset.id}
                 />
