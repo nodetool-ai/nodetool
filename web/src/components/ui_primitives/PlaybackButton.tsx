@@ -84,6 +84,11 @@ export interface PlaybackButtonProps
    * @default "medium"
    */
   buttonSize?: "small" | "medium" | "large";
+  /**
+   * Custom tabIndex
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 /**
@@ -103,6 +108,7 @@ export const PlaybackButton = memo(
         buttonSize = "medium",
         className,
         sx,
+        tabIndex,
         ...props
       },
       ref
@@ -218,7 +224,7 @@ export const PlaybackButton = memo(
               className
             )}
             onClick={handleClick}
-            tabIndex={-1}
+            tabIndex={tabIndex ?? 0}
             sx={{
               ...getSizeStyles(),
               ...getColorStyles(),
