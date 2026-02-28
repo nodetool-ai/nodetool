@@ -106,7 +106,7 @@ export const TextRenderer: React.FC<Props> = memo(({ text, showActions = true })
     return null;
   }
   return (
-    <div className="output value noscroll" css={outputStyles(theme)}>
+    <div className="output value noscroll" css={outputStyles(theme, showActions)}>
       {showActions && <Actions copyValue={text} />}
       {sections.map((s) =>
         s.type === "think" ? (
@@ -117,6 +117,7 @@ export const TextRenderer: React.FC<Props> = memo(({ text, showActions = true })
         ) : (
           <MaybeMarkdown
             key={`${s.type}-${s.start}-${s.end}`}
+            fillContainer={!showActions}
             text={s.content}
           />
         )

@@ -27,17 +27,27 @@ export const isLikelyMarkdown = (text: string): boolean => {
   return patterns.some((re) => re.test(text));
 };
 
-export const MaybeMarkdown: React.FC<{ text: string }> = memo(({ text }) => {
+type MaybeMarkdownProps = {
+  text: string;
+  fillContainer?: boolean;
+};
+
+export const MaybeMarkdown: React.FC<MaybeMarkdownProps> = memo(
+  ({ text, fillContainer = false }) => {
   return isLikelyMarkdown(text) ? (
-    <MarkdownRenderer content={text} />
+    <MarkdownRenderer content={text} fillContainer={fillContainer} />
   ) : (
     <div
       className="output no-markdown-text"
-      style={MARKDOWN_TEXT_STYLE}
+      style={{
+        ...MARKDOWN_TEXT_STYLE,
+        ...(fillContainer ? { height: "100%", minHeight: 0 } : {})
+      }}
     >
       {text}
     </div>
   );
-});
+  }
+);
 
 MaybeMarkdown.displayName = "MaybeMarkdown";
