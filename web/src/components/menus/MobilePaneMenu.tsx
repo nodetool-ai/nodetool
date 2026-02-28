@@ -25,7 +25,6 @@ import NumbersIcon from "@mui/icons-material/Numbers";
 import ChatIcon from "@mui/icons-material/Chat";
 import ImageIcon from "@mui/icons-material/Image";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
-import DataObjectIcon from "@mui/icons-material/DataObject";
 
 //primitives
 import { CloseButton } from "../ui_primitives";
@@ -205,19 +204,6 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
     });
   }, [handleAction, createNode, addNode, getViewportCenter]);
 
-  const addToolResultNode = useCallback(() => {
-    handleAction(() => {
-      const metadata = useMetadataStore
-        .getState()
-        .getMetadata(`nodetool.workflows.base_node.ToolResult`);
-      if (metadata) {
-        const position = getViewportCenter();
-        const newNode = createNode(metadata, position);
-        addNode(newNode);
-      }
-    });
-  }, [handleAction, createNode, addNode, getViewportCenter]);
-
   return (
     <Dialog
       open={open}
@@ -281,19 +267,6 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
                 className="menu-item-text"
                 primary="Add Agent" 
                 secondary="AI agent for processing"
-              />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addToolResultNode}>
-              <ListItemIcon className="menu-item-icon">
-                <DataObjectIcon />
-              </ListItemIcon>
-              <ListItemText 
-                className="menu-item-text"
-                primary="Add Tool Result" 
-                secondary="Tool execution result"
               />
             </ListItemButton>
           </ListItem>
