@@ -1,15 +1,13 @@
 import React, { useCallback, useState, memo } from "react";
-import { Box, CircularProgress, IconButton, Tooltip, Typography } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 import { resolveReplicateSchemaClient } from "../../../utils/replicateDynamicSchema";
 import { NodeData } from "../../../stores/NodeData";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 export const DYNAMIC_REPLICATE_NODE_TYPE =
-  "replicate.DynamicReplicate";
+  "replicate.dynamic_schema.ReplicateAI";
 
 interface ReplicateSchemaLoaderProps {
   nodeId: string;
@@ -17,7 +15,7 @@ interface ReplicateSchemaLoaderProps {
 }
 
 /**
- * Replicate-specific control: small icon button to (re)load schema for ReplicateAI dynamic nodes.
+ * Replicate-specific control: "Load schema" button for ReplicateAI dynamic nodes.
  * Fetches model schema via backend and updates node dynamic_properties / dynamic_outputs.
  */
 export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
@@ -76,7 +74,6 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
             type_args?: unknown[];
             description?: string;
             values?: (string | number)[] | null;
-            enum?: (string | number)[] | null;
             type_name?: string | null;
             min?: number;
             max?: number;
@@ -90,7 +87,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
               ? meta.type_args
               : []) as TypeMetadata[],
             ...(meta.description != null && { description: meta.description }),
-            values: meta.values ?? ((meta as Record<string, unknown>).enum as (string | number)[] | null)
+            values: meta.values || (meta as Record<string, unknown>).enum
           };
         }
         updateNodeData(nodeId, {
@@ -139,40 +136,25 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
     }, [modelInfo]);
 
     return (
-      <Box sx={{ display: "inline-flex", alignItems: "center" }}>
-        <Tooltip title="Reload Schema" arrow enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            size="small"
-            disabled={loading}
-            onClick={handleLoad}
-            sx={{
-              padding: "4px",
-              color: "rgba(255, 255, 255, 0.5)",
-              "&:hover": {
-                color: "rgba(255, 255, 255, 0.9)",
-                backgroundColor: "rgba(255, 255, 255, 0.08)"
-              }
-            }}
-          >
-            {loading ? (
-              <CircularProgress size={14} color="inherit" />
-            ) : (
-              <RefreshIcon sx={{ fontSize: 16 }} />
-            )}
-          </IconButton>
-        </Tooltip>
+      <Box sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          disabled={loading}
+          onClick={handleLoad}
+          fullWidth
+        >
+          {loading ? (
+            <CircularProgress size={16} color="inherit" />
+          ) : (
+            "Load schema"
+          )}
+        </Button>
         {error && (
           <Typography
             variant="caption"
             color="error"
-            sx={{
-              position: "absolute",
-              right: 0,
-              top: 0,
-              textAlign: "right",
-              transform: "translateX(120%)",
-              whiteSpace: "nowrap"
-            }}
+            sx={{ display: "block", mt: 0.5 }}
           >
             {error}
           </Typography>
