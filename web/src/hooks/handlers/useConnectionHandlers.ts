@@ -112,7 +112,6 @@ export default function useConnectionHandlers() {
   const handleOnConnect = useCallback(
     (connection: Connection) => {
       const { source, sourceHandle, target, targetHandle } = connection;
-      console.log("[handleOnConnect] connection:", connection);
       const sourceNode = findNode(source);
       const targetNode = findNode(target);
       if (!sourceNode || !targetNode) {
@@ -128,7 +127,6 @@ export default function useConnectionHandlers() {
 
       // Control edge: skip type validation, delegate to NodeStore
       if (targetHandle === CONTROL_HANDLE_ID || sourceHandle === CONTROL_HANDLE_ID) {
-        console.log("[handleOnConnect] Control edge detected");
         if (wouldCreateCycle(edges, source, target)) {
           addNotification({
             type: "warning",
@@ -144,7 +142,6 @@ export default function useConnectionHandlers() {
           target,
           targetHandle: CONTROL_HANDLE_ID
         };
-        console.log("[handleOnConnect] Calling onConnect with:", controlConnection);
         connectionCreated.current = true;
         onConnect(controlConnection);
         return;

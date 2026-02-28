@@ -577,15 +577,11 @@ export const createNodeStore = (
           onConnect: (connection: Connection): void => {
             const srcNode = get().findNode(connection.source);
             const targetNode = get().findNode(connection.target);
-            console.log("[NodeStore.onConnect] connection:", connection);
-            console.log("[NodeStore.onConnect] srcNode:", srcNode?.type, "targetNode:", targetNode?.type);
             if (!connection.targetHandle) {
-              console.log("[NodeStore.onConnect] No targetHandle, returning");
               return;
             }
 
             const isControlEdge = connection.targetHandle === CONTROL_HANDLE_ID || connection.sourceHandle === CONTROL_HANDLE_ID;
-            console.log("[NodeStore.onConnect] isControlEdge:", isControlEdge);
 
             const isDynamicProperty =
               targetNode?.data.dynamic_properties[connection.targetHandle] !==
@@ -599,15 +595,12 @@ export const createNodeStore = (
                 get().validateConnection(connection, srcNode, targetNode)
               )
             ) {
-              console.log("[NodeStore.onConnect] Validation failed - srcNode:", !!srcNode, "targetNode:", !!targetNode, "isDynamicProperty:", isDynamicProperty, "isControlEdge:", isControlEdge);
               return;
             }
 
             // For control edges, validate that source is an Agent node
             if (isControlEdge) {
-              console.log("[NodeStore.onConnect] Checking if source is Agent node:", srcNode.type, "isAgent:", isAgentNodeType(srcNode.type));
               if (!isAgentNodeType(srcNode.type)) {
-                console.log("[NodeStore.onConnect] Source is not an Agent node, returning");
                 return;
               }
             }

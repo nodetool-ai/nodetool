@@ -943,8 +943,6 @@ export async function handleChatWebSocketMessage(
   set: ChatStateSetter,
   get: ChatStateGetter
 ) {
-  console.log("[WS MSG]", data.type, data);
-
   const currentState = get();
 
   if (currentState.status === "stopping") {
