@@ -85,6 +85,7 @@ const StringProperty = ({
 
   const showTextEditor = !isConnected;
   const isConstant = nodeType.startsWith("nodetool.constant.");
+  const isConstantStringNode = nodeType === "nodetool.constant.String";
   const codeLanguage = determineCodeLanguage(nodeType);
   const isStringInputValue =
     nodeType === STRING_INPUT_NODE_TYPE && property.name === "value";
@@ -134,14 +135,28 @@ const StringProperty = ({
           ".property-row": {
             width: "100%",
             display: "flex",
-            flexDirection: "column"
+            flexDirection: "column",
+            ...(isConstantStringNode
+              ? {
+                flex: "1 1 auto",
+                minHeight: 0
+              }
+              : {})
           },
           ".property-row > .property-label": {
             order: 1
           },
           ".value-container": {
             width: "100%",
-            order: 2
+            order: 2,
+            ...(isConstantStringNode
+              ? {
+                display: "flex",
+                flexDirection: "column",
+                flex: "1 1 auto",
+                minHeight: 0
+              }
+              : {})
           },
           ".string-action-buttons": {
             position: "absolute",
@@ -191,7 +206,20 @@ const StringProperty = ({
                 isFocused && editorClassNames.nowheel
               )}
               sx={
-                isConstant
+                isConstantStringNode
+                  ? {
+                    height: "100%",
+                    "& .MuiInputBase-root": {
+                      height: "100%",
+                      alignItems: "stretch"
+                    },
+                    "& .MuiInputBase-inputMultiline": {
+                      height: "100% !important",
+                      maxHeight: "none !important",
+                      overflow: "auto !important"
+                    }
+                  }
+                  : isConstant
                   ? {
                     "& .MuiInputBase-inputMultiline": {
                       // Constant nodes intentionally allow larger editing surface.
@@ -227,14 +255,37 @@ const StringProperty = ({
               }}
               tabIndex={tabIndex}
               multiline={multiline}
-              minRows={multiline ? (isStringInputValue ? 4 : 1) : 1}
+              minRows={
+                multiline
+                  ? isStringInputValue
+                    ? 4
+                    : isConstantStringNode
+                      ? 6
+                      : 1
+                  : 1
+              }
               maxRows={
-                isConstant ? 20 : multiline ? (isStringInputValue ? 12 : 2) : 1
+                isConstantStringNode
+                  ? 200
+                  : isConstant
+                    ? 20
+                    : multiline
+                      ? (isStringInputValue ? 12 : 2)
+                      : 1
               }
               slotProps={{
                 // Intentionally do NOT set html maxLength for StringInput:
                 // allow typing beyond limit, but only propagate up to maxLength.
-                htmlInput: undefined
+                htmlInput: isStringInputValue
+                  ? undefined
+                  : isConstantStringNode
+                    ? {
+                      style: {
+                        maxHeight: "none",
+                        overflowY: "auto"
+                      }
+                    }
+                    : undefined
               }}
               autoFocus={false}
               changed={changed}

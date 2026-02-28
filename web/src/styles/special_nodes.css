@@ -96,8 +96,56 @@
 .react-flow__node-nodetool\.constant\.Audio .node-property .property-label,
 .react-flow__node-nodetool\.constant\.Image .node-property .property-label,
 .react-flow__node-nodetool\.constant\.Video .node-property .property-label,
-.react-flow__node-nodetool\.constant\.Bool .node-property .property-label {
+.react-flow__node-nodetool\.constant\.Bool .node-property .property-label,
+.react-flow__node-nodetool\.constant\.String .node-property .property-label {
   display: none;
+}
+
+/* Let Constant.String use the full editable body area */
+.react-flow__node-nodetool\.constant\.String .node-content-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.react-flow__node-nodetool\.constant\.String .node-inputs {
+  margin: 0 !important;
+  padding: 0.5em;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.react-flow__node-nodetool\.constant\.String .node-property.str,
+.react-flow__node-nodetool\.constant\.String .node-property.str .property-input-container,
+.react-flow__node-nodetool\.constant\.String .node-property.str .string-property,
+.react-flow__node-nodetool\.constant\.String .node-property.str .property-row,
+.react-flow__node-nodetool\.constant\.String .node-property.str .value-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Keep Constant.String input handle flush left */
+.react-flow__node-nodetool\.constant\.String .node-property.str .handle-popup {
+  left: -8px !important;
+}
+
+.react-flow__node-nodetool\.constant\.String
+  .nt-editor-control
+  .MuiInputBase-inputMultiline {
+  height: 100% !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+}
+
+.react-flow__node-nodetool\.constant\.String
+  .nt-editor-control
+  .MuiInputBase-root {
+  height: 100% !important;
+  align-items: stretch !important;
 }
 
 /* Collapsed Loop node - styles moved to collapsed.css */
