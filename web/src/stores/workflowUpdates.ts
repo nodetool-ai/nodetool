@@ -40,9 +40,12 @@ type WorkflowSubscription = {
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
 
 // Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
-let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () => undefined;
+let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () =>
+  undefined;
 
-export const setGetNodeStore = (fn: (workflowId: string) => NodeStore | undefined): void => {
+export const setGetNodeStore = (
+  fn: (workflowId: string) => NodeStore | undefined
+): void => {
   getNodeStoreImpl = fn;
 };
 
@@ -80,16 +83,19 @@ export const subscribeToWorkflowUpdates = (
       return;
     }
 
-    unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message: MsgpackData) => {
-      // Avoid double-processing when the backend already provides workflow_id.
-      // The job_id routing exists as a fallback for updates where workflow_id is
-      // missing/null (e.g. terminal job completion updates).
-      if ("workflow_id" in message && message.workflow_id) {
-        return;
-      }
+    unsubscribeJob = globalWebSocketManager.subscribe(
+      jobId,
+      (message: MsgpackData) => {
+        // Avoid double-processing when the backend already provides workflow_id.
+        // The job_id routing exists as a fallback for updates where workflow_id is
+        // missing/null (e.g. terminal job completion updates).
+        if ("workflow_id" in message && message.workflow_id) {
+          return;
+        }
 
-      handleUpdate(workflow, message, runnerStore, getNodeStore);
-    });
+        handleUpdate(workflow, message, runnerStore, getNodeStore);
+      }
+    );
   };
 
   // Track runnerStore job_id changes so we can subscribe by job_id as a fallback.
@@ -196,7 +202,7 @@ export const handleUpdate = (
 
   window.__UPDATES__.push(data);
 
-  console.log("Received update", data);
+  // console.log("Received update", data);
 
   if (data.type === "log_update") {
     const logUpdate = data as LogUpdate;
@@ -542,7 +548,8 @@ export const handleUpdate = (
         const nextDynamic = { ...existingDynamic };
         const nextStatic: Record<string, unknown> = {};
 
-        const isFalDynamicNode = update.node_type === "fal.dynamic_schema.FalAI";
+        const isFalDynamicNode =
+          update.node_type === "fal.dynamic_schema.FalAI";
 
         Object.entries(update.properties).forEach(([key, value]) => {
           if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {

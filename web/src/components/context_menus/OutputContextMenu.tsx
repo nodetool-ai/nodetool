@@ -8,7 +8,6 @@ import ContextMenuItem from "./ContextMenuItem";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import AltRouteIcon from "@mui/icons-material/AltRoute";
-import ConstructionIcon from "@mui/icons-material/Construction";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import HubIcon from "@mui/icons-material/Hub";
 import ListAltIcon from "@mui/icons-material/ListAlt";
@@ -228,28 +227,6 @@ const OutputContextMenu: React.FC = () => {
     [getMetadata, createNodeWithEdge]
   );
 
-  const createToolResultNode = useCallback(
-    (event: React.MouseEvent) => {
-      const metadata = getMetadata("nodetool.workflows.base_node.ToolResult");
-      if (!metadata) {
-        return;
-      }
-      const targetHandle =
-        sourceHandle === "output" ? sourceType?.type : sourceHandle;
-
-      createNodeWithEdge(
-        metadata,
-        {
-          x: event.clientX - 230,
-          y: event.clientY - 220
-        },
-        "tool_result",
-        targetHandle
-      );
-    },
-    [getMetadata, createNodeWithEdge, sourceHandle, sourceType]
-  );
-
   const createOutputNode = useCallback(
     (event: React.MouseEvent) => {
       if (!outputNodeMetadata) {
@@ -352,17 +329,6 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu();
   }, [createOutputNode, closeContextMenu]);
 
-  const handleCreateToolResultNode = useCallback((
-    event?: React.MouseEvent<HTMLElement>
-  ) => {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      createToolResultNode(event);
-    }
-    closeContextMenu();
-  }, [createToolResultNode, closeContextMenu]);
-
   const handleCreateSaveNode = useCallback((event?: React.MouseEvent<HTMLElement>) => {
     if (event) {
       event.preventDefault();
@@ -451,12 +417,6 @@ const OutputContextMenu: React.FC = () => {
           label="Create Reroute Node"
           addButtonClassName="create-reroute-node"
           IconComponent={<AltRouteIcon />}
-        />
-        <ContextMenuItem
-          onClick={handleCreateToolResultNode}
-          label="Create Tool Result Node"
-          addButtonClassName="create-tool-result-node"
-          IconComponent={<ConstructionIcon />}
         />
         {saveNodeMetadata && (
           <ContextMenuItem

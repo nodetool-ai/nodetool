@@ -52,12 +52,12 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   const onSubmitAdd = useCallback(() => {
     const name = newOutputName.trim();
     const validation = validateIdentifierName(name);
-    
+
     if (!validation.isValid) {
       setOutputNameError(validation.error);
       return;
     }
-    
+
     handleAddOutput(name, {
       type: newOutputType,
       type_args: [],
@@ -88,12 +88,12 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   const handleAddInputProperty = useCallback(() => {
     const name = newInputName.trim();
     const validation = validateIdentifierName(name);
-    
+
     if (!validation.isValid) {
       setInputNameError(validation.error);
       return;
     }
-    
+
     onAddProperty(name);
     setNewInputName("");
     setInputNameError(undefined);
@@ -144,73 +144,14 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               top: 0
             })}
           >
-            {nodeType === "nodetool.agents.Agent" ? (
-              <Tooltip
-                title="Connect any node to this handle to use it as a tool. The agent will be able to call the connected node during execution."
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                placement="top"
+            <Tooltip title="Add output">
+              <IconButton
+                size="small"
+                onClick={handleShowOutputDialog}
               >
-                <Box
-                  component="button"
-                  onClick={handleShowOutputDialog}
-                  css={css({
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "4px 8px",
-                    marginRight: "8px",
-                    fontSize: theme.vars.fontSizeTiny,
-                    fontWeight: 600,
-                    lineHeight: 1.2,
-                    borderRadius: "4px",
-                    background: `linear-gradient(135deg, ${alpha(
-                      theme.palette.primary.main,
-                      0.15
-                    )}, ${alpha(theme.palette.primary.dark, 0.1)})`,
-                    color: theme.vars.palette.primary.main,
-                    border: `1px solid ${alpha(
-                      theme.palette.primary.main,
-                      0.4
-                    )}`,
-                    letterSpacing: "0.02em",
-                    textTransform: "uppercase",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    outline: "none",
-                    "&:hover": {
-                      background: `linear-gradient(135deg, ${alpha(
-                        theme.palette.primary.main,
-                        0.25
-                      )}, ${alpha(theme.palette.primary.dark, 0.15)})`,
-                      borderColor: theme.vars.palette.primary.main,
-                      transform: "translateY(-1px)",
-                      boxShadow: `0 2px 4px ${alpha(
-                        theme.palette.primary.main,
-                        0.2
-                      )}`
-                    },
-                    "&:active": {
-                      transform: "translateY(0)"
-                    },
-                    "& svg": {
-                      fontSize: "14px"
-                    }
-                  })}
-                >
-                  <Add fontSize="small" />
-                  <span>Tools</span>
-                </Box>
-              </Tooltip>
-            ) : (
-              <Tooltip title="Add output">
-                <IconButton
-                  size="small"
-                  onClick={handleShowOutputDialog}
-                >
-                  <Add fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
+                <Add fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Box>
 
           <Dialog
@@ -234,7 +175,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                     }
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {onSubmitAdd();}
+                    if (e.key === "Enter") { onSubmitAdd(); }
                   }}
                   error={!!outputNameError}
                   helperText={
@@ -309,12 +250,12 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
                 if (e.key === "Enter") {
                   const name = newInputName.trim();
                   const validation = validateIdentifierName(name);
-                  
+
                   if (!validation.isValid) {
                     setInputNameError(validation.error);
                     return;
                   }
-                  
+
                   onAddProperty(name);
                   setNewInputName("");
                   setInputNameError(undefined);
