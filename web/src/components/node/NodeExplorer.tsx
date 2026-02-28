@@ -160,7 +160,7 @@ const NodeExplorer: React.FC = () => {
         metadata?.title,
         node.id
       ]
-        .filter(Boolean)
+        .filter((s): s is string => Boolean(s))
         .join(" ")
         .toLowerCase();
 
