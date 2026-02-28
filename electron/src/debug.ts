@@ -16,7 +16,7 @@ import * as os from "os";
 import { app } from "electron";
 import { logMessage, LOG_FILE } from "./logger";
 import { getSystemDataPath } from "./config";
-import { readSettings } from "./settings";
+import { readSettings, readSettingsAsync } from "./settings";
 
 // =============================================================================
 // Types
@@ -261,8 +261,8 @@ function hasSetting(settings: Record<string, unknown>, key: string): boolean {
 /**
  * Collect configuration information.
  */
-function collectConfigInfo(): Record<string, unknown> {
-  const settings = readSettings();
+async function collectConfigInfo(): Promise<Record<string, unknown>> {
+  const settings = await readSettingsAsync();
 
   // Infer run mode (best-effort) - electron is always local
   const runMode = "local";
@@ -527,7 +527,7 @@ export async function exportDebugBundle(
 
     // Env info -> env/system.json and env/config.json
     const systemInfo = collectEnvInfo();
-    const configInfo = collectConfigInfo();
+    const configInfo = await collectConfigInfo();
     fs.writeFileSync(
       path.join(envDir, "system.json"),
       JSON.stringify(systemInfo, null, 2),
