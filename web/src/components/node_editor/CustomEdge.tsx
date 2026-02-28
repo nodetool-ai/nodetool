@@ -1,7 +1,7 @@
 /**
  * Custom edge component with tooltip support for stream item counts.
  * Memoized to prevent re-renders for every edge in large workflows.
- * 
+ *
  * EXPERIMENTAL: Enhanced with data flow particle animation for visual feedback
  * when data is actively flowing through the edge.
  */
@@ -39,14 +39,19 @@ export function CustomEdge({
   const counter = data?.counter as number | undefined;
   const dataTypeLabel = data?.dataTypeLabel as string | undefined;
   const showLabel = counter && counter > 1;
-  
+
   // EXPERIMENTAL: Check if edge has active data flow
   const isActive = data?.status === "message_sent";
 
   // Memoize tooltip text to avoid recalculating on every render
   const tooltipText = useMemo(() => {
-    const formatDataTypeLabel = (label: string | undefined, count: number): string => {
-      if (!label || label === "Any") {return "items";}
+    const formatDataTypeLabel = (
+      label: string | undefined,
+      count: number
+    ): string => {
+      if (!label || label === "Any") {
+        return "items";
+      }
       const lowerLabel = label.toLowerCase();
       return count === 1 ? lowerLabel : `${lowerLabel}s`;
     };
@@ -54,29 +59,36 @@ export function CustomEdge({
   }, [counter, dataTypeLabel]);
 
   // Memoize label style to avoid creating new object on each render
-  const labelStyle = useMemo(() => ({
-    position: "absolute" as const,
-    transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-    pointerEvents: "all" as const,
-    cursor: "default" as const,
-    background: "rgba(0, 0, 0, 0.5)",
-    color: "white",
-    padding: "2px 8px",
-    borderRadius: "10px",
-    fontSize: "10px",
-    fontWeight: 600,
-    border: selected ? "1px solid #fff" : "none",
-    zIndex: 1000
-  }), [labelX, labelY, selected]);
+  const labelStyle = useMemo(
+    () => ({
+      position: "absolute" as const,
+      transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+      pointerEvents: "all" as const,
+      cursor: "default" as const,
+      background: "var(--palette-background-default)",
+      color: "white",
+      padding: "2px 8px",
+      borderRadius: "10px",
+      fontSize: "10px",
+      fontWeight: 600,
+      border: selected ? "1px solid var(--palette-background-paper)" : "none",
+      // zIndex: "99999"
+      zIndex: "var(--zIndex-floating)"
+    }),
+    [labelX, labelY, selected]
+  );
 
   // EXPERIMENTAL: Enhanced edge style with particle animation support
-  const enhancedStyle = useMemo(() => ({
-    ...style,
-    ...(isActive && {
-      strokeDasharray: "14 10",
-      animation: "edgeFlow 2s linear infinite"
-    })
-  }), [style, isActive]);
+  const enhancedStyle = useMemo(
+    () => ({
+      ...style,
+      ...(isActive && {
+        strokeDasharray: "14 10",
+        animation: "edgeFlow 2s linear infinite"
+      })
+    }),
+    [style, isActive]
+  );
 
   return (
     <>
@@ -88,16 +100,8 @@ export function CustomEdge({
       />
       {showLabel && (
         <EdgeLabelRenderer>
-          <Tooltip
-            title={tooltipText}
-            placement="top"
-            arrow
-            enterDelay={300}
-          >
-            <div
-              style={labelStyle}
-              className="nodrag nopan"
-            >
+          <Tooltip title={tooltipText} placement="top" arrow enterDelay={300}>
+            <div style={labelStyle} className="nodrag nopan">
               {counter}
             </div>
           </Tooltip>
