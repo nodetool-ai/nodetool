@@ -24,6 +24,7 @@ jest.mock('../logger', () => ({
 // Mock settings
 jest.mock('../settings', () => ({
   readSettings: jest.fn().mockReturnValue({}),
+  readSettingsAsync: jest.fn().mockResolvedValue({}),
 }));
 
 describe('redactSecrets', () => {

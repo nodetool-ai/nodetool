@@ -27,6 +27,7 @@ import {
 } from "./types.d";
 import {
   readSettings,
+  readSettingsAsync,
   updateSetting,
   getModelServiceStartupSettings,
   updateModelServiceStartupSettings,
@@ -1210,7 +1211,7 @@ export function initializeIpcHandlers(): void {
 
   // Settings handlers
   createIpcMainHandler(IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR, async () => {
-    const settings = readSettings();
+    const settings = await readSettingsAsync();
     const action = settings.windowCloseAction as WindowCloseAction | undefined;
     return action || "ask";
   });
@@ -1226,7 +1227,7 @@ export function initializeIpcHandlers(): void {
 
   // Auto-updates settings handlers (opt-in)
   createIpcMainHandler(IpcChannels.SETTINGS_GET_AUTO_UPDATES, async () => {
-    const settings = readSettings();
+    const settings = await readSettingsAsync();
     // Auto-updates are opt-in, default to false
     return settings.autoUpdatesEnabled === true;
   });
@@ -1242,7 +1243,7 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP,
     async () => {
-      const settings = readSettings();
+      const settings = await readSettingsAsync();
       return getModelServiceStartupSettings(settings);
     },
   );

@@ -57,7 +57,7 @@ const DictTable: React.FC<DictTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (_e: MouseEvent, cell: CellComponent) {
+              cellClick: function (_e: any, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
