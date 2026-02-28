@@ -1,7 +1,3 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { useCallback, memo } from "react";
 
 interface SidebarItem {
@@ -20,55 +16,11 @@ interface SettingsSidebarProps {
   onSectionClick: (sectionId: string) => void;
 }
 
-const sidebarStyles = (theme: Theme) => css`
-  width: 220px;
-  min-width: 220px;
-  background-color: ${theme.vars.palette.action.disabledBackground};
-  padding: 1.5em 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-
-  .settings-sidebar-item {
-    padding: 0.5em 1em;
-    cursor: pointer;
-    font-size: ${theme.fontSizeNormal};
-    color: ${theme.vars.palette.grey[0]};
-    opacity: 0.7;
-    transition: all 0.2s ease;
-    border-left: 3px solid transparent;
-
-    &:hover {
-      opacity: 1;
-      background-color: rgba(${theme.vars.palette.background.defaultChannel} / 0.08);
-    }
-
-    &.active {
-      opacity: 1;
-      border-left-color: ${"var(--palette-primary-main)"};
-      background-color: rgba(${theme.vars.palette.background.defaultChannel} / 0.12);
-    }
-  }
-
-  .settings-sidebar-category {
-    padding: 1em 1.5em 0.5em;
-    color: ${"var(--palette-primary-main)"};
-    font-size: ${theme.fontSizeSmaller};
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    opacity: 0.8;
-  }
-`;
-
 const SettingsSidebar = ({
   activeSection,
   sections,
   onSectionClick
 }: SettingsSidebarProps) => {
-  const theme = useTheme();
-
   const handleItemClick = useCallback(
     (sectionId: string) => () => {
       onSectionClick(sectionId);
@@ -77,7 +29,7 @@ const SettingsSidebar = ({
   );
 
   return (
-    <div className="settings-sidebar" css={sidebarStyles(theme)}>
+    <div className="settings-sidebar">
       {sections.map((section, index) => (
         <div key={`section-${index}`}>
           <div className="settings-sidebar-category">{section.category}</div>
