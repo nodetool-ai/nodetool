@@ -11,7 +11,7 @@ import { IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 
 interface NodeItemProps {
@@ -148,7 +148,7 @@ const NodeItem = memo(
             content: wasAdded
               ? "Node added to favorites"
               : "Node removed from favorites",
-            timeout: 2000
+            timeout: NOTIFICATION_TIMEOUT_SHORT
           });
         },
         [node.node_type, isFavorite, toggleFavorite, addNotification]

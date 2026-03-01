@@ -13,9 +13,12 @@ import { HighlightText } from "../ui_primitives/HighlightText";
 
 interface SearchResultItemProps {
   node: NodeMetadata;
-  onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragStart: (
+    node: NodeMetadata,
+    event: React.DragEvent<HTMLDivElement>
+  ) => void;
   onDragEnd?: () => void;
-  onClick: () => void;
+  onClick: (node: NodeMetadata) => void;
   isKeyboardSelected?: boolean;
 }
 
@@ -215,8 +218,8 @@ const SearchResultItem = memo(
       const [isExpanded, setIsExpanded] = useState(false);
 
       const handleClick = useCallback(() => {
-        onClick();
-      }, [onClick]);
+        onClick(node);
+      }, [onClick, node]);
 
       const handleToggleExpand = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
@@ -231,6 +234,13 @@ const SearchResultItem = memo(
         // No longer auto-collapse on leave
       }, []);
 
+      const handleDragStart = useCallback(
+        (event: React.DragEvent<HTMLDivElement>) => {
+          onDragStart(node, event);
+        },
+        [onDragStart, node]
+      );
+
       return (
         <div
           ref={ref}
@@ -240,7 +250,7 @@ const SearchResultItem = memo(
           onClick={handleClick}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          onDragStart={onDragStart}
+          onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
         >
           <div className="result-header">

@@ -1,6 +1,6 @@
 // APP
 export const APP_NAME = "nodetool";
-export const VERSION = "0.6.3-rc.35";
+export const VERSION = "0.6.3-rc.36";
 
 // TOOLTIPS
 export const TOOLTIP_ENTER_DELAY = 700;
@@ -11,6 +11,11 @@ export const DEBUG_RENDER_LOGGING = process.env.NODE_ENV !== "production";
 
 // NOTIFICATIONS
 export const NOTIFICATIONS_LIST_MAX_ITEMS = 100;
+export const NOTIFICATION_TIMEOUT_DEFAULT = 3000; // 3 seconds - default notification timeout
+export const NOTIFICATION_TIMEOUT_SHORT = 2000; // 2 seconds - brief success messages
+export const NOTIFICATION_TIMEOUT_MEDIUM = 4000; // 4 seconds - warnings and info messages
+export const NOTIFICATION_TIMEOUT_JOB_COMPLETED = 30000; // 30 seconds - job completion notifications
+export const NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED = 10000; // 10 seconds - workflow suspended notifications
 
 // CHAT
 export const CHAT_HISTORY_AMOUNT = 10;
