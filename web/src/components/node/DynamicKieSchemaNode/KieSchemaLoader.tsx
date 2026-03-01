@@ -1,10 +1,12 @@
 import React, { useCallback, useState, memo } from "react";
-import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, IconButton, Tooltip, Typography } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 import { resolveKieSchemaClient } from "../../../utils/kieDynamicSchema";
 import { NodeData } from "../../../stores/NodeData";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 export const DYNAMIC_KIE_NODE_TYPE = "kie.dynamic_schema.KieAI";
 
@@ -14,7 +16,7 @@ interface KieSchemaLoaderProps {
 }
 
 /**
- * Kie.ai-specific control: "Load schema" button for KieAI dynamic nodes.
+ * Kie.ai-specific control: small icon button to (re)load schema for KieAI dynamic nodes.
  * Parses pasted API docs via backend and updates node dynamic_properties / dynamic_outputs.
  */
 export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
@@ -132,25 +134,40 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
     }, [modelInfo]);
 
     return (
-      <Box sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={loading}
-          onClick={handleLoad}
-          fullWidth
-        >
-          {loading ? (
-            <CircularProgress size={16} color="inherit" />
-          ) : (
-            "Load schema"
-          )}
-        </Button>
+      <Box sx={{ display: "inline-flex", alignItems: "center" }}>
+        <Tooltip title="Reload Schema" arrow enterDelay={TOOLTIP_ENTER_DELAY}>
+          <IconButton
+            size="small"
+            disabled={loading}
+            onClick={handleLoad}
+            sx={{
+              padding: "4px",
+              color: "rgba(255, 255, 255, 0.5)",
+              "&:hover": {
+                color: "rgba(255, 255, 255, 0.9)",
+                backgroundColor: "rgba(255, 255, 255, 0.08)"
+              }
+            }}
+          >
+            {loading ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : (
+              <RefreshIcon sx={{ fontSize: 16 }} />
+            )}
+          </IconButton>
+        </Tooltip>
         {error && (
           <Typography
             variant="caption"
             color="error"
-            sx={{ display: "block", mt: 0.5 }}
+            sx={{
+              position: "absolute",
+              right: 0,
+              top: 0,
+              textAlign: "right",
+              transform: "translateX(120%)",
+              whiteSpace: "nowrap"
+            }}
           >
             {error}
           </Typography>

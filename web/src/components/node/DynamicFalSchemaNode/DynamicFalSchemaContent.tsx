@@ -3,7 +3,6 @@ import { Box, Typography } from "@mui/material";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
-import { FalSchemaLoader } from "./FalSchemaLoader";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 
@@ -49,6 +48,8 @@ export const DynamicFalSchemaContent: React.FC<
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onShowInputs
 }) => {
+  const hasModel = data.dynamic_inputs && Object.keys(data.dynamic_inputs).length > 0;
+
   return (
     <Box
       sx={{
@@ -60,7 +61,17 @@ export const DynamicFalSchemaContent: React.FC<
         flexDirection: "column"
       }}
     >
-      <FalSchemaLoader nodeId={id} data={data} />
+      {!hasModel && (
+        <Box sx={{ px: 1.5, py: 1, opacity: 0.7 }}>
+          <Typography variant="body2" color="text.secondary">
+            Run any model on fal.ai.
+          </Typography>
+          <Typography variant="caption" color="text.secondary" component="p">
+            Paste the llms.txt from a fal.ai model page into the model_info
+            field in the Inspector, then click Reload Schema.
+          </Typography>
+        </Box>
+      )}
       <Box
         className="dynamic-fal-schema-inputs"
         sx={{
