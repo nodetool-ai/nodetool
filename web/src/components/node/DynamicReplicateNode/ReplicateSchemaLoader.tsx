@@ -79,7 +79,6 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
             min?: number;
             max?: number;
             default?: unknown;
-            enum?: (string | number)[] | null;
           };
           dynamic_inputs[k] = {
             ...meta,
