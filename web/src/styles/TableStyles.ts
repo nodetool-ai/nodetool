@@ -45,7 +45,6 @@ export const tableStyles = (theme: Theme) =>
     // Column resize handle
     ".tabulator .tabulator-col-resize-handle": {
       position: "absolute",
-      // display: "inline-block",
       right: "5em",
       width: "6px",
       margin: "0 -3px",
