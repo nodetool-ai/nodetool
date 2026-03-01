@@ -227,6 +227,16 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
     setSelectedIndex(-1);
   }, [setSearchTerm, setSelectedIndex]);
 
+  // Stable handler for mouse enter on search results using data attributes
+  // to prevent creating new function references on every render
+  const handleResultMouseEnter = useCallback(
+    (e: React.MouseEvent) => {
+      const index = Number((e.currentTarget as HTMLElement).dataset.index);
+      setSelectedIndex(index);
+    },
+    [setSelectedIndex]
+  );
+
   // Focus input when dialog opens
   useEffect(() => {
     if (open) {
@@ -299,8 +309,9 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
                   value={node.node_type}
                   onSelect={handleSelectNode}
                   data-selected={index === selectedIndex}
+                  data-index={index}
                   className="command-item"
-                  onMouseEnter={() => setSelectedIndex(index)}
+                  onMouseEnter={handleResultMouseEnter}
                 >
                   <div className="node-icon">{getNodeInitial(title)}</div>
                   <div className="node-info">
