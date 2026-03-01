@@ -107,9 +107,7 @@ export const useHfCacheStatusStore = create<HfCacheStatusStore>((set, get) => ({
       const results = await checkHfCacheStatus(requests);
       get().setStatuses(results);
     } catch {
-      get().setStatuses(
-        requests.map((request) => ({ key: request.key, downloaded: false }))
-      );
+      // Keep existing statuses on transient failures; avoid persisting false negatives.
     } finally {
       get().clearPending(keys);
     }
