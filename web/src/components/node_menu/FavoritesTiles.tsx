@@ -8,7 +8,7 @@ import { Box, Tooltip, Typography, IconButton } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ClearIcon from "@mui/icons-material/Clear";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -219,7 +219,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${nodeType}.`,
-          timeout: 4000
+          timeout: NOTIFICATION_TIMEOUT_MEDIUM
         });
         return;
       }
@@ -246,7 +246,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
       addNotification({
         type: "info",
         content: "Node removed from favorites",
-        timeout: 2000
+        timeout: NOTIFICATION_TIMEOUT_SHORT
       });
     },
     [removeFavorite, addNotification]

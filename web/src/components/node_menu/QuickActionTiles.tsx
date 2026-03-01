@@ -19,7 +19,7 @@ import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import ApiIcon from "@mui/icons-material/Api";
 import { DYNAMIC_FAL_NODE_TYPE } from "../node/DynamicFalSchemaNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -511,7 +511,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${label}.`,
-          timeout: 4000
+          timeout: NOTIFICATION_TIMEOUT_MEDIUM
         });
         return;
       }
