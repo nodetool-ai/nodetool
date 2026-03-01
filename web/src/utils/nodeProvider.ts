@@ -18,7 +18,6 @@ const namespaceToSecretKey: Record<string, string> = {
   aime: "AIME_API_KEY",
   replicate: "REPLICATE_API_TOKEN",
   calendly: "CALENDLY_API_TOKEN",
-  huggingface: "HF_TOKEN",
   kie: "KIE_API_KEY",
   fal: "FAL_API_KEY"
 };
