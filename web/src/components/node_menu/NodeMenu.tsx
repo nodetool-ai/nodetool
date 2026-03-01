@@ -53,7 +53,7 @@ const treeStyles = (theme: Theme) =>
       borderRadius: "16px 16px 0 0",
       backgroundColor: "transparent", // Let glass effect show through
       width: "100%",
-      minHeight: "12px", // Minimal drag handle
+      minHeight: "4px",
       cursor: "grab",
       userSelect: "none"
     },
@@ -62,15 +62,15 @@ const treeStyles = (theme: Theme) =>
     },
     ".node-menu-container": {
       borderRadius: "0 0 16px 16px",
-      padding: "0.75em 0px 1em 0.75em",
+      padding: "0.35em 0px 0.75em 0.75em",
       width: "100%",
       maxHeight: "77vh",
       flexGrow: 1
       // Removed inner shadow to keep it clean
     },
     ".search-input-container": {
-      minWidth: "100%",
-      flexGrow: 1
+      minWidth: 0,
+      flexGrow: 0
     },
     "& .MuiPaper-root.MuiAccordion-root": {
       backgroundColor: "transparent !important",
@@ -278,7 +278,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         <Box className="node-menu-container">
           <div className="main-content">
             <FlexColumn
-              gap={1}
+              gap={0.5}
               className="search-toolbar"
               sx={{
                 flexGrow: 0,
@@ -289,7 +289,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
               }}
             >
               <FlexRow
-                gap={3}
+                gap={1.5}
                 align="center"
                 className="search-row"
                 sx={{ marginLeft: "-3px", width: "100%" }}

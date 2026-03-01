@@ -131,6 +131,13 @@ const searchResultStyles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary,
         letterSpacing: "0.3px"
       },
+      ".provider-tag": {
+        fontSize: "0.65rem",
+        padding: "2px 6px",
+        borderRadius: "8px",
+        letterSpacing: "0.3px",
+        border: "1px solid currentColor"
+      },
       ".io-info-wrapper": {
         position: "absolute",
         left: 0,
@@ -295,24 +302,20 @@ const SearchResultItem = memo(
                     ))}
                   </div>
                 )}
+                <span
+                  className="provider-tag"
+                  style={{
+                    color:
+                      providerKind === "api"
+                        ? theme.vars.palette.c_provider_api
+                        : theme.vars.palette.c_provider_local
+                  }}
+                >
+                  {providerKind === "api" ? "API" : "Local"}
+                </span>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span
-                style={{
-                  fontSize: "0.62rem",
-                  lineHeight: 1.1,
-                  padding: "1px 5px",
-                  borderRadius: "8px",
-                  border: "1px solid currentColor",
-                  color:
-                    providerKind === "api"
-                      ? theme.vars.palette.c_provider_api
-                      : theme.vars.palette.c_provider_local
-                }}
-              >
-                {providerKind === "api" ? "API" : "Local"}
-              </span>
               <Typography className="result-namespace" component="div">
                 <HighlightText
                   text={node.namespace}

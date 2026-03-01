@@ -63,7 +63,17 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
 
   const memoizedTree = useMemo(
     () =>
-      Object.keys(tree).map((namespace) => {
+      Object.keys(tree)
+        .sort((a, b) => {
+          const aKind = tree[a].providerKind;
+          const bKind = tree[b].providerKind;
+          if (aKind !== bKind) {
+            // Local namespaces first, API namespaces after
+            return aKind === "local" ? -1 : 1;
+          }
+          return a.localeCompare(b);
+        })
+        .map((namespace) => {
         const currentFullPath = [...currentPath, namespace].join(".");
         const isExpanded =
           currentPath.length > 0

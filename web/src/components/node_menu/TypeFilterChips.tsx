@@ -46,7 +46,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      width: "100%",
+      width: "auto",
+      flex: "1 1 auto",
       gap: "8px",
       minWidth: 0
     },
@@ -55,6 +56,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "6px",
       minWidth: 0,
+      flex: "1 1 auto",
       overflow: "hidden"
     },
     ".quick-label": {
@@ -79,7 +81,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
     },
     ".type-chips": {
       display: "flex",
-      flexWrap: "wrap",
+      flexWrap: "nowrap",
       gap: "4px"
     },
     ".type-chip": {
@@ -137,7 +139,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: "6px",
-      flexShrink: 0
+      flexShrink: 0,
+      marginLeft: "auto"
     },
     ".more-filters-button": {
       textTransform: "none",
@@ -146,11 +149,11 @@ const typeFilterChipsStyles = (theme: Theme) =>
       lineHeight: 1.2,
       padding: "4px 8px",
       minWidth: "unset",
-      color: theme.vars.palette.text.secondary,
-      borderColor: theme.vars.palette.divider,
+      color: theme.vars.palette.text.primary,
+      borderColor: theme.vars.palette.text.secondary,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
-        borderColor: theme.vars.palette.text.secondary
+        borderColor: theme.vars.palette.primary.main
       }
     },
     ".menu-section-title": {
@@ -342,7 +345,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(({
           startIcon={<FilterListIcon fontSize="small" />}
           onClick={handleOpenMenu}
         >
-          More
+          Filters
         </Button>
       </Box>
 
