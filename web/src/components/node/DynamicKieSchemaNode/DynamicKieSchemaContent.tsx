@@ -25,135 +25,139 @@ export interface DynamicKieSchemaContentProps {
   onShowResults?: () => void;
 }
 
-export const DynamicKieSchemaContent: React.FC<
-  DynamicKieSchemaContentProps
-> = memo(
-  ({
-    id,
-    nodeType,
-    nodeMetadata,
-    isConstantNode,
-    isOutputNode,
-    data,
-    basicFields,
-    showAdvancedFields,
-    hasAdvancedFields,
-    onToggleAdvancedFields,
-    status,
-    workflowId,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onShowInputs
-  }) => {
-    const hasModel = data.dynamic_inputs && Object.keys(data.dynamic_inputs).length > 0;
+export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
+  memo(
+    ({
+      id,
+      nodeType,
+      nodeMetadata,
+      isConstantNode,
+      isOutputNode,
+      data,
+      basicFields,
+      showAdvancedFields,
+      hasAdvancedFields,
+      onToggleAdvancedFields,
+      status,
+      workflowId,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      onShowInputs
+    }) => {
+      const hasModel =
+        data.dynamic_inputs && Object.keys(data.dynamic_inputs).length > 0;
 
-    return (
-      <Box
-        sx={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
-          minHeight: 0,
-          display: "flex",
-          flexDirection: "column"
-        }}
-      >
-        {!hasModel && (
-          <Box sx={{ px: 1.5, py: 1, opacity: 0.7 }}>
-            <Typography variant="body2" color="text.secondary">
-              Run any model on kie.ai.
-            </Typography>
-            <Typography variant="caption" color="text.secondary" component="p">
-              Paste the API documentation from a kie.ai model page into the
-              model_info field in the Inspector, then click Reload Schema.
-            </Typography>
-          </Box>
-        )}
+      return (
         <Box
-          className="dynamic-kie-schema-inputs"
           sx={{
-            flex: "1 1 auto",
-            minHeight: 80,
-            overflow: "visible",
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            minHeight: 0,
             display: "flex",
-            flexDirection: "column",
-            visibility: "visible",
-            "& .node-inputs": {
-              visibility: "visible"
-            },
-            "& .node-property": {
-              visibility: "visible",
-              opacity: 1
-            },
-            "& .node-property *": {
-              visibility: "visible",
-              opacity: 1
-            },
-            "& .node-property .react-flow__handle": {
-              visibility: "visible",
-              opacity: 1
-            },
-            "& .node-property .property-label": {
-              visibility: "visible",
-              opacity: 1
-            },
-            "& .node-property .property-label label": {
-              visibility: "visible",
-              opacity: 1,
-              color: "var(--palette-text-secondary, inherit)"
-            },
-            "& .node-property .property-input-container": {
-              visibility: "visible",
-              opacity: 1
-            },
-            "& .action-icons": {
-              display: "none"
-            }
+            flexDirection: "column"
           }}
         >
-          <NodeInputs
-            id={id}
-            nodeMetadata={nodeMetadata}
-            layout={nodeMetadata.layout}
-            properties={nodeMetadata.properties}
-            nodeType={nodeType}
-            data={data}
-            showHandle={!isConstantNode}
-            hasAdvancedFields={hasAdvancedFields}
-            showAdvancedFields={showAdvancedFields}
-            basicFields={basicFields}
-            onToggleAdvancedFields={onToggleAdvancedFields}
-          />
-        </Box>
-        {!isOutputNode && (
-          <Box sx={{ flexShrink: 0 }}>
-            <NodeOutputs
+          {!hasModel && (
+            <Box sx={{ px: 1.5, py: 1, opacity: 0.7 }}>
+              <Typography variant="body2" color="text.secondary">
+                Run any model on kie.ai.
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                component="p"
+              >
+                Paste the API documentation from a kie.ai model page into the
+                model_info field.
+              </Typography>
+            </Box>
+          )}
+          <Box
+            className="dynamic-kie-schema-inputs"
+            sx={{
+              flex: "1 1 auto",
+              minHeight: 80,
+              overflow: "visible",
+              display: "flex",
+              flexDirection: "column",
+              visibility: "visible",
+              "& .node-inputs": {
+                visibility: "visible"
+              },
+              "& .node-property": {
+                visibility: "visible",
+                opacity: 1
+              },
+              "& .node-property *": {
+                visibility: "visible",
+                opacity: 1
+              },
+              "& .node-property .react-flow__handle": {
+                visibility: "visible",
+                opacity: 1
+              },
+              "& .node-property .property-label": {
+                visibility: "visible",
+                opacity: 1
+              },
+              "& .node-property .property-label label": {
+                visibility: "visible",
+                opacity: 1,
+                color: "var(--palette-text-secondary, inherit)"
+              },
+              "& .node-property .property-input-container": {
+                visibility: "visible",
+                opacity: 1
+              },
+              "& .action-icons": {
+                display: "none"
+              }
+            }}
+          >
+            <NodeInputs
               id={id}
-              outputs={nodeMetadata.outputs}
-              isStreamingOutput={nodeMetadata.is_streaming_output}
+              nodeMetadata={nodeMetadata}
+              layout={nodeMetadata.layout}
+              properties={nodeMetadata.properties}
+              nodeType={nodeType}
+              data={data}
+              showHandle={!isConstantNode}
+              hasAdvancedFields={hasAdvancedFields}
+              showAdvancedFields={showAdvancedFields}
+              basicFields={basicFields}
+              onToggleAdvancedFields={onToggleAdvancedFields}
             />
           </Box>
-        )}
-        {status === "running" && (
-          <NodeProgress id={id} workflowId={workflowId} />
-        )}
-        <Box
-          sx={{
-            flexShrink: 0,
-            mt: 0.5,
-            px: 1,
-            py: 0.25,
-            borderTop: 1,
-            borderColor: "divider"
-          }}
-        >
-          <Typography variant="caption" color="text.secondary">
-            kie.ai
-            {data.model_id && <> &middot; {data.model_id}</>}
-          </Typography>
+          {!isOutputNode && (
+            <Box sx={{ flexShrink: 0 }}>
+              <NodeOutputs
+                id={id}
+                outputs={nodeMetadata.outputs}
+                isStreamingOutput={nodeMetadata.is_streaming_output}
+              />
+            </Box>
+          )}
+          {status === "running" && (
+            <NodeProgress id={id} workflowId={workflowId} />
+          )}
+          <Box
+            sx={{
+              flexShrink: 0,
+              mt: 0.5,
+              px: 1,
+              py: 0.25,
+              borderTop: 1,
+              borderColor: "divider"
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              kie.ai
+              {data.model_id && <> &middot; {data.model_id}</>}
+            </Typography>
+          </Box>
         </Box>
-      </Box>
-    );
-  }
-);
+      );
+    }
+  );
 
 DynamicKieSchemaContent.displayName = "DynamicKieSchemaContent";
