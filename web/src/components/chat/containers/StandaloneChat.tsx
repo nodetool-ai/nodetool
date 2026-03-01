@@ -401,36 +401,25 @@ const StandaloneChat: React.FC = () => {
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        {!alertDismissed &&
-          (error || (!connectionState.isConnected && status !== "streaming" && status !== "loading")) && (
-            <Alert
-              className="standalone-chat-status-alert"
-              severity={
-                connectionState.isConnecting
-                  ? "info"
-                  : !connectionState.isConnected
-                  ? "warning"
-                  : "error"
-              }
-              onClose={() => setAlertDismissed(true)}
-              sx={{
-                position: "absolute",
-                top: "2rem",
-                left: "50%",
-                transform: "translateX(-50%)",
-                maxWidth: "600px",
-                width: "100%",
-                zIndex: 1001,
-                flexShrink: 0
-              }}
-            >
-              {connectionState.isConnecting
-                ? statusMessage || "Connecting to chat service..."
-                : !connectionState.isConnected
-                ? "Connecting to chat service..."
-                : error}
-            </Alert>
-          )}
+        {!alertDismissed && error && (
+          <Alert
+            className="standalone-chat-status-alert"
+            severity="error"
+            onClose={() => setAlertDismissed(true)}
+            sx={{
+              position: "absolute",
+              top: "2rem",
+              left: "50%",
+              transform: "translateX(-50%)",
+              maxWidth: "600px",
+              width: "100%",
+              zIndex: 1001,
+              flexShrink: 0
+            }}
+          >
+            {error}
+          </Alert>
+        )}
 
         {/* Controls row */}
         <Box
@@ -443,6 +432,34 @@ const StandaloneChat: React.FC = () => {
             pt: 2
           }}
         >
+          {connectionState.isConnecting && (
+            <Box
+              role="status"
+              aria-live="polite"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.75,
+                py: 0.5,
+                px: 1,
+                borderRadius: "999px",
+                backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.12)`,
+                color: theme.vars.palette.info.main
+              }}
+            >
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: "currentColor"
+                }}
+              />
+              <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                {statusMessage || "Connecting"}
+              </Typography>
+            </Box>
+          )}
           <NewChatButton onNewThread={handleNewChat} />
         </Box>
 
