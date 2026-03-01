@@ -31,6 +31,8 @@ export interface OpenNodeMenuParams {
   centerOnScreen?: boolean;
 }
 
+export type ProviderFilterType = "all" | "api" | "local";
+
 export type NodeMenuStore = {
   isMenuOpen: boolean;
   dragToCreate: boolean;
@@ -49,6 +51,8 @@ export type NodeMenuStore = {
   setSelectedInputType: (inputType: string) => void;
   selectedOutputType: string;
   setSelectedOutputType: (outputType: string) => void;
+  selectedProviderType: ProviderFilterType;
+  setSelectedProviderType: (providerType: ProviderFilterType) => void;
   selectedPath: string[];
   setSelectedPath: (path: string[]) => void;
   searchResults: NodeMetadata[];
@@ -124,7 +128,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         get().selectedPath,
         get().selectedInputType,
         get().selectedOutputType,
-        get().searchResults
+        get().searchResults,
+        get().selectedProviderType
       );
 
     // Optimized search scheduling - no synchronous isLoading update
@@ -174,6 +179,14 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
           scheduleSearch(get().searchTerm);
         }
       },
+      selectedProviderType: "all",
+      setSelectedProviderType: (providerType) => {
+        const current = get().selectedProviderType;
+        if (current !== providerType) {
+          set({ selectedProviderType: providerType });
+          scheduleSearch(get().searchTerm);
+        }
+      },
 
       setDragToCreate: (dragToCreate) => {
         set({ dragToCreate });
@@ -210,11 +223,13 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         const searchTerm = get().searchTerm;
         const selectedInputType = get().selectedInputType;
         const selectedOutputType = get().selectedOutputType;
+        const selectedProviderType = get().selectedProviderType;
         const cacheKey = JSON.stringify({
           path: newPath,
           searchTerm,
           selectedInputType,
-          selectedOutputType
+          selectedOutputType,
+          selectedProviderType
         });
         const cache = get().searchResultsCache;
         if (cache[cacheKey]) {
@@ -250,7 +265,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             newPath,
             selectedInputType as TypeName,
             selectedOutputType as TypeName,
-            true
+            true,
+            selectedProviderType
           );
         // Store in cache
         set((state) => ({
@@ -311,7 +327,8 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             store.selectedPath,
             store.selectedInputType as TypeName,
             store.selectedOutputType as TypeName,
-            true
+            true,
+            store.selectedProviderType
           );
 
         set({
@@ -406,6 +423,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             highlightedNamespaces: [],
             selectedInputType: "",
             selectedOutputType: "",
+            selectedProviderType: "all",
             showDocumentation: false,
             selectedNodeType: null,
             selectedIndex: -1
@@ -498,6 +516,7 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
             params.dropType && params.connectDirection === "source"
               ? params.dropType
               : "",
+          selectedProviderType: "all",
           menuWidth: 950,
           menuHeight: 900
         });

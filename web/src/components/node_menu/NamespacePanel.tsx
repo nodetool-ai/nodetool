@@ -3,17 +3,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { List } from "@mui/material";
+import { List, Typography } from "@mui/material";
 import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-
-type NamespaceTree = {
-  [key: string]: {
-    children: NamespaceTree;
-    disabled: boolean;
-    requiredKey?: string;
-  };
-};
+import { NamespaceTree } from "../../hooks/useNamespaceTree";
 
 interface NamespacePanelProps {
   namespaceTree: NamespaceTree;
@@ -37,7 +30,7 @@ const namespacePanelStyles = (theme: Theme) =>
     "& .namespace-list": {
       display: "flex",
       flexDirection: "column",
-      gap: "2px",
+      gap: 0,
       overflowY: "auto",
       minWidth: "200px",
       width: "100%",
@@ -60,21 +53,31 @@ const namespacePanelStyles = (theme: Theme) =>
     "& .namespace-list::-webkit-scrollbar-thumb:hover": {
       backgroundColor: theme.vars.palette.action.disabled
     },
-    "& .namespace-list-enabled": {
-      flex: "1 1 auto",
-      height: "fit-content",
-      overflowY: "visible"
+    "& .namespace-section-title": {
+      fontSize: theme.fontSizeSmaller,
+      textTransform: "uppercase",
+      color: theme.vars.palette.text.secondary,
+      padding: "1em 0 .25em .75em",
+      margin: 0,
+      userSelect: "none"
     },
-    "& .namespace-list-disabled": {
+    "& .namespace-section-title.providers": {
+      marginTop: ".5em"
+    },
+    "& .namespace-list-local": {
       flex: "0 0 auto",
       height: "fit-content",
       overflowY: "visible",
-      borderTop: `1px dashed ${theme.vars.palette.divider}`,
-      marginTop: "0.75em",
-      paddingTop: "0.5em",
-      "& .namespace-item": {
-        color: theme.vars.palette.text.disabled
-      }
+      marginBottom: 0,
+      paddingBottom: 0
+    },
+    "& .namespace-list-providers": {
+      flex: "0 0 auto",
+      height: "fit-content",
+      overflowY: "visible",
+      borderTop: "none",
+      marginTop: 0,
+      paddingTop: 0
     },
     "& .namespaces": {
       display: "flex",
@@ -94,7 +97,7 @@ const namespacePanelStyles = (theme: Theme) =>
     },
     "& .namespaces .list-item": {
       cursor: "pointer",
-      padding: "0.42em 0.95em",
+      padding: "0.4em 0.5em",
       backgroundColor: "transparent",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
@@ -166,6 +169,9 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
       setSelectedPath: state.setSelectedPath
     })
   );
+  const selectedProviderType = useNodeMenuStore(
+    (state) => state.selectedProviderType
+  );
 
   const selectedPathString = useMemo(
     () => selectedPath.join("."),
@@ -180,21 +186,40 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
       ? 0
       : 1;
 
-  const { enabledTree, disabledTree } = useMemo(() => {
-    const enabled: NamespaceTree = {};
-    const disabled: NamespaceTree = {};
+  const filteredTree = useMemo(() => {
+    if (selectedProviderType === "all") {
+      return namespaceTree;
+    }
 
-    Object.entries(namespaceTree).forEach(([key, value]) => {
-      const isRootDisabled = value.disabled;
-      if (isRootDisabled) {
-        disabled[key] = value;
+    const filterByProvider = (tree: NamespaceTree): NamespaceTree => {
+      return Object.entries(tree).reduce<NamespaceTree>((acc, [key, node]) => {
+        const children = filterByProvider(node.children);
+        if (node.providerKind === selectedProviderType) {
+          acc[key] = {
+            ...node,
+            children
+          };
+        }
+        return acc;
+      }, {});
+    };
+
+    return filterByProvider(namespaceTree);
+  }, [namespaceTree, selectedProviderType]);
+
+  const { localTree, providerTree } = useMemo(() => {
+    const local: NamespaceTree = {};
+    const providers: NamespaceTree = {};
+    Object.entries(filteredTree).forEach(([key, value]) => {
+      if (value.providerKind === "local") {
+        local[key] = value;
       } else {
-        enabled[key] = value;
+        providers[key] = value;
       }
     });
 
-    return { enabledTree: enabled, disabledTree: disabled };
-  }, [namespaceTree]);
+    return { localTree: local, providerTree: providers };
+  }, [filteredTree]);
 
   const handleResetNamespacePath = useCallback(() => {
     setSelectedPath([]);
@@ -223,12 +248,24 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
             </div>
           </div>
         </div>
-        <div className="namespace-list-enabled">
-          <RenderNamespaces tree={enabledTree} />
-        </div>
-        <div className="namespace-list-disabled">
-          <RenderNamespaces tree={disabledTree} />
-        </div>
+        {Object.keys(localTree).length > 0 && (
+          <>
+            <Typography className="namespace-section-title">Local</Typography>
+            <div className="namespace-list-local">
+              <RenderNamespaces tree={localTree} />
+            </div>
+          </>
+        )}
+        {Object.keys(providerTree).length > 0 && (
+          <>
+            <Typography className="namespace-section-title providers">
+              Providers
+            </Typography>
+            <div className="namespace-list-providers">
+              <RenderNamespaces tree={providerTree} />
+            </div>
+          </>
+        )}
       </List>
     </div>
   );

@@ -10,6 +10,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { colorForType, IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
+import { getProviderKindForNamespace } from "../../utils/nodeProvider";
 
 interface SearchResultItemProps {
   node: NodeMetadata;
@@ -127,6 +128,13 @@ const searchResultStyles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary,
         letterSpacing: "0.3px"
       },
+      ".provider-tag": {
+        fontSize: "0.65rem",
+        padding: "2px 6px",
+        borderRadius: "8px",
+        letterSpacing: "0.3px",
+        border: "1px solid currentColor"
+      },
       ".io-info-wrapper": {
         position: "absolute",
         left: 0,
@@ -181,6 +189,7 @@ const SearchResultItem = memo(
       const theme = useTheme();
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
+      const providerKind = getProviderKindForNamespace(node.namespace);
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
       // Parse description and tags - memoize to avoid re-computation on every render
@@ -287,6 +296,17 @@ const SearchResultItem = memo(
                     ))}
                   </div>
                 )}
+                <span
+                  className="provider-tag"
+                  style={{
+                    color:
+                      providerKind === "api"
+                        ? theme.vars.palette.c_provider_api
+                        : theme.vars.palette.c_provider_local
+                  }}
+                >
+                  {providerKind === "api" ? "API" : "Local"}
+                </span>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>

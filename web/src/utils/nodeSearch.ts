@@ -7,6 +7,7 @@ import {
 import { formatNodeDocumentation } from "../stores/formatNodeDocumentation";
 import { fuseOptions, ExtendedFuseOptions, FuseMatch } from "../stores/fuseOptions";
 import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
+import { getProviderKindForNamespace } from "./nodeProvider";
 
 /** Stop words to filter from multi-word queries */
 const QUERY_STOP_WORDS = new Set([
@@ -422,7 +423,8 @@ export function computeSearchResults(
   selectedPath: string[],
   selectedInputType?: TypeName,
   selectedOutputType?: TypeName,
-  strictMatch: boolean = false
+  strictMatch: boolean = false,
+  selectedProviderType: "all" | "api" | "local" = "all"
 ) {
   const selectedPathString = selectedPath.join(".");
   const hasSearchTerm = term.trim().length > 0;
@@ -445,20 +447,30 @@ export function computeSearchResults(
     (node) => node.namespace !== "default"
   );
 
+  // Apply provider filtering before type/path filtering so all follow-up
+  // logic works on a consistent subset.
+  const providerFilteredMetadata =
+    selectedProviderType === "all"
+      ? filteredMetadata
+      : filteredMetadata.filter(
+          (node) =>
+            getProviderKindForNamespace(node.namespace) === selectedProviderType
+        );
+
   // Apply type filtering if needed
   const typeFilteredMetadata = hasTypeFilters
     ? strictMatch
       ? filterDataByExactType(
-          filteredMetadata,
+          providerFilteredMetadata,
           selectedInputType as TypeName,
           selectedOutputType as TypeName
         )
       : filterDataByType(
-          filteredMetadata,
+          providerFilteredMetadata,
           selectedInputType as TypeName,
           selectedOutputType as TypeName
         )
-    : filteredMetadata;
+    : providerFilteredMetadata;
 
   // Filter by path if one is selected
   let pathFilteredMetadata = typeFilteredMetadata;
@@ -611,7 +623,8 @@ export function filterNodesUtil(
   selectedPath: string[],
   selectedInputType: string,
   selectedOutputType: string,
-  searchResults: NodeMetadata[]
+  searchResults: NodeMetadata[],
+  selectedProviderType: "all" | "api" | "local" = "all"
 ): NodeMetadata[] {
   if (!nodes) {
     return [];
@@ -641,6 +654,12 @@ export function filterNodesUtil(
     );
   } else {
     filteredNodes = nodes.filter((node) => {
+      if (
+        selectedProviderType !== "all" &&
+        getProviderKindForNamespace(node.namespace) !== selectedProviderType
+      ) {
+        return false;
+      }
       const isExactMatch = node.namespace === selectedPathString;
       const isDirectChild =
         node.namespace.startsWith(selectedPathString + ".") &&
