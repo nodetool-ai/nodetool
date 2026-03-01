@@ -41,8 +41,9 @@ const treeStyles = (theme: Theme) =>
       boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
-      transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
-      animation: "fadeIn 0.2s ease-out forwards",
+      transition:
+        "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
+      animation: "fadeIn 0.2s ease-out forwards"
     },
     "@keyframes fadeIn": {
       "0%": { opacity: 0 },
@@ -64,7 +65,7 @@ const treeStyles = (theme: Theme) =>
       padding: "0.75em 0px 1em 0.75em",
       width: "100%",
       maxHeight: "77vh",
-      flexGrow: 1,
+      flexGrow: 1
       // Removed inner shadow to keep it clean
     },
     ".search-input-container": {
@@ -186,9 +187,15 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // Ensure search is performed after menu opens with a preset term
   useEffect(() => {
-    if (!isMenuOpen) { return; }
-    if (!searchTerm || searchTerm.trim() === "") { return; }
-    if (searchResults.length > 0) { return; }
+    if (!isMenuOpen) {
+      return;
+    }
+    if (!searchTerm || searchTerm.trim() === "") {
+      return;
+    }
+    if (searchResults.length > 0) {
+      return;
+    }
     try {
       const state: any = (useNodeMenuStore as any).getState?.();
       // Do not clear selectedPath here; just perform search with current path
@@ -221,12 +228,18 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // If initial position clips right/bottom, correct after mount using measured size
   useEffect(() => {
-    if (!isMenuOpen) { return; }
+    if (!isMenuOpen) {
+      return;
+    }
     const el = nodeRef.current;
-    if (!el) { return; }
+    if (!el) {
+      return;
+    }
     const width = el.offsetWidth;
     const height = el.offsetHeight;
-    if (!Number.isFinite(width) || !Number.isFinite(height)) { return; }
+    if (!Number.isFinite(width) || !Number.isFinite(height)) {
+      return;
+    }
     const maxX = Math.max(0, window.innerWidth - width - 10);
     const maxY = Math.max(
       0,
@@ -257,19 +270,37 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         className="floating-node-menu"
         css={memoizedStyles}
       >
-        <FlexRow className="draggable-header" align="center" justify="flex-end">
-        </FlexRow>
+        <FlexRow
+          className="draggable-header"
+          align="center"
+          justify="flex-end"
+        ></FlexRow>
         <Box className="node-menu-container">
           <div className="main-content">
-            <FlexColumn gap={1} className="search-toolbar" sx={{ flexGrow: 0, overflow: "visible", width: "100%", margin: 0, padding: "0 1em 0 0.5em" }}>
-              <FlexRow gap={3} align="center" className="search-row" sx={{ marginLeft: "-3px" }}>
+            <FlexColumn
+              gap={1}
+              className="search-toolbar"
+              sx={{
+                flexGrow: 0,
+                overflow: "visible",
+                width: "100%",
+                margin: 0,
+                padding: "0 1em 0 0.5em"
+              }}
+            >
+              <FlexRow
+                gap={3}
+                align="center"
+                className="search-row"
+                sx={{ marginLeft: "-3px" }}
+              >
                 <SearchInput
                   focusSearchInput={focusSearchInput}
                   focusOnTyping={true}
                   placeholder="Search for nodes..."
                   debounceTime={80}
-                  width={500}
-                  maxWidth={"600px"}
+                  width={300}
+                  maxWidth={"300px"}
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
                   onPressEscape={closeNodeMenu}
