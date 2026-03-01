@@ -54,17 +54,15 @@ const namespacePanelStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.action.disabled
     },
     "& .namespace-section-title": {
-      fontSize: "0.65rem",
+      fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
-      letterSpacing: "0.55px",
       color: theme.vars.palette.text.secondary,
-      padding: "0.55em 0.95em 0.3em",
+      padding: "1em 0 .25em .75em",
       margin: 0,
       userSelect: "none"
     },
     "& .namespace-section-title.providers": {
-      padding: "0 0.95em 0.3em",
-      marginTop: 0
+      marginTop: ".5em"
     },
     "& .namespace-list-local": {
       flex: "0 0 auto",
@@ -99,7 +97,7 @@ const namespacePanelStyles = (theme: Theme) =>
     },
     "& .namespaces .list-item": {
       cursor: "pointer",
-      padding: "0.42em 0.95em",
+      padding: "0.4em 0.5em",
       backgroundColor: "transparent",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,

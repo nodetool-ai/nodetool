@@ -255,8 +255,9 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
 
     const selectedOutputOption = useMemo<TypeOption>(
       () =>
-        outputTypeOptions.find((option) => option.value === selectedOutputType) ??
-        ALL_OUTPUT_OPTION,
+        outputTypeOptions.find(
+          (option) => option.value === selectedOutputType
+        ) ?? ALL_OUTPUT_OPTION,
       [outputTypeOptions, selectedOutputType]
     );
 
@@ -267,7 +268,9 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
           return options;
         }
         return options.filter((option) =>
-          `${option.label} ${option.value}`.toLowerCase().includes(normalizedQuery)
+          `${option.label} ${option.value}`
+            .toLowerCase()
+            .includes(normalizedQuery)
         );
       },
       []
@@ -430,7 +433,11 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 setSelectedInputType(option?.value ?? "")
               }
               renderInput={(params) => (
-                <TextField {...params} size="small" placeholder="Search input type..." />
+                <TextField
+                  {...params}
+                  size="small"
+                  placeholder="Search input type..."
+                />
               )}
               slotProps={{
                 popper: {
@@ -473,7 +480,11 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 setSelectedOutputType(option?.value ?? "")
               }
               renderInput={(params) => (
-                <TextField {...params} size="small" placeholder="Search output type..." />
+                <TextField
+                  {...params}
+                  size="small"
+                  placeholder="Search output type..."
+                />
               )}
               slotProps={{
                 popper: {
