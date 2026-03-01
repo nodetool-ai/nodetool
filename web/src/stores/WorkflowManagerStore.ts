@@ -25,38 +25,12 @@ import {
 } from "../serverState/useWorkflow";
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates, setGetNodeStore } from "./workflowUpdates";
 import { getWorkflowRunnerStore } from "./WorkflowRunner";
-import { useNotificationStore } from "./NotificationStore";
-import { fetchWorkflowVersions } from "../serverState/useWorkflowVersions";
 import log from "loglevel";
-import { useRightPanelStore } from "./RightPanelStore";
-import { useVersionHistoryStore } from "./VersionHistoryStore";
 import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
 // -----------------------------------------------------------------
-
-/**
- * Formats a date as a human-readable "time ago" string.
- * @param date The date to format
- * @returns A string like "2 minutes ago", "1 hour ago", etc.
- */
-const formatTimeAgo = (date: Date): string => {
-  const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) {return "just now";}
-  if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  }
-  if (seconds < 86400) {
-    const hours = Math.floor(seconds / 3600);
-    return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  }
-  const days = Math.floor(seconds / 86400);
-  return `${days} day${days > 1 ? "s" : ""} ago`;
-};
 
 // -----------------------------------------------------------------
 // LOCAL STORAGE UTILITIES
@@ -659,62 +633,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       // Fetches the workflow data by its ID, using QueryClient cache and adds the workflow store.
       fetchWorkflow: async (workflowId: string) => {
-        // Helper to check for newer autosaves and show notification
-        // Uses queryClient.fetchQuery for automatic deduplication of concurrent calls
-        const checkForNewerAutosave = async (workflow: Workflow) => {
-          try {
-            const versions = await get().queryClient?.fetchQuery({
-              queryKey: ["workflow", workflowId, "autosave-check"],
-              queryFn: () => fetchWorkflowVersions(workflowId, null, 1),
-              staleTime: 5000 // Short stale time - only dedupe concurrent requests
-            });
-            if (!versions) { return; }
-            if (versions.versions.length > 0) {
-              const latestVersion = versions.versions[0];
-              const versionTime = new Date(latestVersion.created_at).getTime();
-              const workflowTime = new Date(workflow.updated_at).getTime();
-
-              // Check if version is newer and is an autosave
-              if (versionTime > workflowTime && latestVersion.save_type === "autosave") {
-                // Check if we've already notified about this version
-                const notifiedSet = get().notifiedAutosaveVersions[workflowId] || new Set();
-                if (notifiedSet.has(latestVersion.id)) {
-                  return; // Already notified about this version
-                }
-
-                // Mark this version as notified
-                set((state) => ({
-                  notifiedAutosaveVersions: {
-                    ...state.notifiedAutosaveVersions,
-                    [workflowId]: new Set([...notifiedSet, latestVersion.id])
-                  }
-                }));
-
-                const timeAgo = formatTimeAgo(new Date(latestVersion.created_at));
-                useNotificationStore.getState().addNotification({
-                  content: `Newer autosave available from ${timeAgo}`,
-                  type: "info",
-                  alert: true,
-                  dismissable: true,
-                  timeout: 10000,
-                  dedupeKey: "newer-autosave-available",
-                  replaceExisting: true,
-                  action: {
-                    label: "View History",
-                    onClick: async () => {
-                      // Open right panel with versions view
-                      useRightPanelStore.getState().handleViewChange("versions");
-                      useVersionHistoryStore.getState().setSelectedVersion(latestVersion.id);
-                    }
-                  }
-                });
-              }
-            }
-          } catch (error) {
-            log.warn("[fetchWorkflow] Failed to check for newer autosaves:", error);
-          }
-        };
-
         // If already have a NodeStore, just set current and ensure query cache is populated.
         const existing = get().getWorkflow(workflowId);
         if (existing) {
@@ -734,8 +652,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           get().addWorkflow(cached);
           get().setCurrentWorkflowId(workflowId);
           await hydrateWorkflowResultsFromAssets(workflowId);
-          // Check for newer autosaves when loading from cache
-          checkForNewerAutosave(cached);
           return cached;
         }
 
@@ -752,8 +668,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           get().addWorkflow(data);
           get().setCurrentWorkflowId(data.id);
           await hydrateWorkflowResultsFromAssets(data.id);
-          // Check for newer autosaves when freshly loaded
-          checkForNewerAutosave(data);
           return data;
         } catch (e) {
           console.error(
