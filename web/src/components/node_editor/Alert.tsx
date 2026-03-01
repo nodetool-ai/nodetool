@@ -10,9 +10,9 @@ import {
   Notification
 } from "../../stores/NotificationStore";
 import { CopyButton } from "../ui_primitives";
+import { NOTIFICATION_TIMEOUT_DEFAULT } from "../../config/constants";
 
 const TRANSITION_DURATION = 300; // Duration for fade in/out animations
-const DEFAULT_NOTIFICATION_TIMEOUT = 3000; // Default time before notification auto-closes
 const MAX_WIDTH = "500px";
 const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   const typeMap: Record<string, AlertColor> = {
@@ -184,7 +184,7 @@ const Alert: React.FC = memo(() => {
         const existing = timeoutsRef.current.get(notification.id) || [];
         existing.push(removeTimeout);
         timeoutsRef.current.set(notification.id, existing);
-      }, notification.timeout || DEFAULT_NOTIFICATION_TIMEOUT);
+      }, notification.timeout || NOTIFICATION_TIMEOUT_DEFAULT);
 
       // Track the outer timeout in the ref
       const existing = timeoutsRef.current.get(notification.id) || [];
