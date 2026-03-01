@@ -16,11 +16,15 @@ const namespaceToSecretKey: Record<string, string> = {
   "shap-e": "SHAP_E_API_KEY",
   "point-e": "POINT_E_API_KEY",
   aime: "AIME_API_KEY",
+  apify: "APIFY_API_KEY",
   replicate: "REPLICATE_API_TOKEN",
   calendly: "CALENDLY_API_TOKEN",
   kie: "KIE_API_KEY",
   fal: "FAL_API_KEY"
 };
+
+// API-backed namespaces that currently do not require a dedicated key in this map.
+const apiNamespacesWithoutSecret = new Set<string>(["messaging"]);
 
 const secretKeyToDisplayName: Record<string, string> = {
   OPENAI_API_KEY: "OpenAI API Key",
@@ -35,6 +39,7 @@ const secretKeyToDisplayName: Record<string, string> = {
   SHAP_E_API_KEY: "Shap-E API Key",
   POINT_E_API_KEY: "Point-E API Key",
   AIME_API_KEY: "Aime API Key",
+  APIFY_API_KEY: "Apify API Key",
   REPLICATE_API_TOKEN: "Replicate API Token",
   CALENDLY_API_TOKEN: "Calendly API Token",
   HF_TOKEN: "HuggingFace Token",
@@ -56,7 +61,10 @@ export const getSecretDisplayName = (secretKey: string): string =>
   secretKeyToDisplayName[secretKey] || secretKey;
 
 export const getProviderKindForNamespace = (namespace: string): ProviderKind =>
-  getRequiredSecretKeyForNamespace(namespace) ? "api" : "local";
+  getRequiredSecretKeyForNamespace(namespace) ||
+  apiNamespacesWithoutSecret.has(getRootNamespace(namespace))
+    ? "api"
+    : "local";
 
 export const isApiNamespace = (namespace: string): boolean =>
   getProviderKindForNamespace(namespace) === "api";
