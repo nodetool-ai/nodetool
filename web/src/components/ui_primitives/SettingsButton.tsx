@@ -74,6 +74,11 @@ export interface SettingsButtonProps {
    * Additional sx styles
    */
   sx?: object;
+  /**
+   * Custom tabIndex
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 export const SettingsButton = memo(
@@ -88,7 +93,8 @@ export const SettingsButton = memo(
         nodrag = true,
         disabled = false,
         className,
-        sx
+        sx,
+        tabIndex
       },
       ref
     ) => {
@@ -120,7 +126,7 @@ export const SettingsButton = memo(
         >
           <IconButton
             ref={ref}
-            tabIndex={-1}
+            tabIndex={tabIndex ?? 0}
             className={cn(
               "settings-button",
               nodrag && editorClassNames.nodrag,
