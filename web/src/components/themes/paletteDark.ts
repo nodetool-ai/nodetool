@@ -215,7 +215,7 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#0B1220"
   },
   background: {
-    default: "#2e2d2d",
+    default: "#1b1c1d",
     paper: "rgba(20, 20, 20, 0.95)"
   },
   text: {

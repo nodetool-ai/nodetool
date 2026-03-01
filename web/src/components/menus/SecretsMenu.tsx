@@ -368,6 +368,11 @@ const SecretsMenu = memo(() => {
                               {secret.key}
                             </code>
                           </Typography>
+                          {secret.description && (
+                            <Typography className="description">
+                              {secret.description}
+                            </Typography>
+                          )}
                           <Chip
                             label="Not set"
                             size="small"
