@@ -79,7 +79,11 @@ interface RowData {
   showFavoriteButton: boolean;
 }
 
-const renderVirtualRow = ({ index, style, data }: ListChildComponentProps<RowData>) => {
+const renderVirtualRow = ({
+  index,
+  style,
+  data
+}: ListChildComponentProps<RowData>) => {
   const row = data.rows[index];
   if (!row) {
     return null;
@@ -171,9 +175,12 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return null;
   }, [searchTerm, groupedSearchResults]);
 
-  const handleNodeClick = useCallback((node: NodeMetadata) => {
-    handleCreateNode(node);
-  }, [handleCreateNode]);
+  const handleNodeClick = useCallback(
+    (node: NodeMetadata) => {
+      handleCreateNode(node);
+    },
+    [handleCreateNode]
+  );
 
   const selectedNodeTypesSet = useMemo(() => {
     return new Set(selectedNodeTypes);
@@ -230,10 +237,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     );
 
     return rows;
-  }, [
-    groupedNodes,
-    selectedPath,
-  ]);
+  }, [groupedNodes, selectedPath]);
 
   const rowData = useMemo<RowData>(() => {
     return {
@@ -291,7 +295,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
                   itemCount={virtualRows.length}
                   itemData={rowData}
                   itemSize={getItemSize}
-                  overscanCount={12}
+                  overscanCount={40}
                 >
                   {renderVirtualRow}
                 </VirtualList>
