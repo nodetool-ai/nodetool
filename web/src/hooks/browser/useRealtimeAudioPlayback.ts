@@ -82,15 +82,15 @@ export const useRealtimeAudioPlayback = ({
         try {
           s.stop();
           s.disconnect();
-        } catch (e) {
-          console.debug("Source cleanup failed", e);
+        } catch {
+          // Silently ignore cleanup errors during unmount
         }
       });
       sourcesRef.current = [];
       try {
         ctx.close();
-      } catch (e) {
-        console.debug("AudioContext close failed", e);
+      } catch {
+        // Silently ignore AudioContext close errors during unmount
       }
       audioContextRef.current = null;
       streamDestRef.current = null;
@@ -127,19 +127,16 @@ export const useRealtimeAudioPlayback = ({
       try {
         source.start(startTime);
         nextStartTimeRef.current = startTime + buffer.duration;
-      } catch (e) {
-        console.debug(
-          "BufferSource start with startTime failed, starting now",
-          e
-        );
+      } catch {
+        // Fallback to starting immediately if startTime scheduling fails
         source.start();
         nextStartTimeRef.current = ctx.currentTime + buffer.duration;
       }
       source.onended = () => {
         try {
           source.disconnect();
-        } catch (e) {
-          console.debug("BufferSource disconnect failed", e);
+        } catch {
+          // Silently ignore disconnect errors in cleanup
         }
       };
       sourcesRef.current.push(source);
@@ -149,29 +146,27 @@ export const useRealtimeAudioPlayback = ({
 
   // Internal play/stop functions (called by queue)
   const internalStart = useCallback(() => {
-    console.debug("[RealtimeAudio] Internal start");
     const ctx = audioContextRef.current;
     if (!ctx) {
       return;
     }
     try {
       ctx.resume();
-    } catch (e) {
-      console.debug("AudioContext resume failed", e);
+    } catch {
+      // Silently ignore AudioContext resume errors
     }
     nextStartTimeRef.current = ctx.currentTime;
     setInternalPlaying(true);
   }, []);
 
   const internalStop = useCallback(() => {
-    console.debug("[RealtimeAudio] Internal stop");
     setInternalPlaying(false);
     sourcesRef.current.forEach((s) => {
       try {
         s.stop();
         s.disconnect();
-      } catch (e) {
-        console.debug("Source stop failed", e);
+      } catch {
+        // Silently ignore stop/disconnect errors in cleanup
       }
     });
     sourcesRef.current = [];
@@ -184,28 +179,16 @@ export const useRealtimeAudioPlayback = ({
   // Schedule newly arrived chunks when actually playing (queue approved)
   useEffect(() => {
     if (!internalPlaying || !isQueuedPlaying) {
-      console.debug(
-        `[RealtimeAudio] Skipping scheduling - internal=${internalPlaying}, queued=${isQueuedPlaying}`
-      );
       return;
     }
     const audioChunks = chunks.filter(
       (c) => c?.content_type === "audio" && typeof c.content === "string"
     );
-    console.debug(
-      `[RealtimeAudio] Scheduling chunks: lastIndex=${
-        lastIndexRef.current
-      }, total=${audioChunks.length}, new=${
-        audioChunks.length - lastIndexRef.current
-      }`
-    );
     for (let i = lastIndexRef.current; i < audioChunks.length; i++) {
       // Skip if already scheduled (prevents double-scheduling in StrictMode)
       if (scheduledChunkIndices.current.has(i)) {
-        console.debug(`[RealtimeAudio] Chunk ${i} already scheduled, skipping`);
         continue;
       }
-      console.debug(`[RealtimeAudio] Scheduling chunk ${i}`);
       scheduleChunk(audioChunks[i].content as string);
       scheduledChunkIndices.current.add(i);
     }
@@ -214,7 +197,6 @@ export const useRealtimeAudioPlayback = ({
 
   // Public start: requests playback via queue
   const start = useCallback(() => {
-    console.debug("[RealtimeAudio] Requesting playback via queue");
     setWantsToPlay(true);
     audioQueue.enqueue({
       id: instanceIdRef.current,
@@ -225,7 +207,6 @@ export const useRealtimeAudioPlayback = ({
 
   // Public stop: removes from queue
   const stop = useCallback(() => {
-    console.debug("[RealtimeAudio] Stopping and dequeuing");
     setWantsToPlay(false);
     internalStop();
     audioQueue.dequeue(instanceIdRef.current);
