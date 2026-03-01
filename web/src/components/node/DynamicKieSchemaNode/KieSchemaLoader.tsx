@@ -8,7 +8,7 @@ import { resolveKieSchemaClient } from "../../../utils/kieDynamicSchema";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-export const DYNAMIC_KIE_NODE_TYPE = "kie.dynamic_schema.KieAI";
+export const DYNAMIC_KIE_NODE_TYPE = "kie.DynamicKie";
 
 interface KieSchemaLoaderProps {
   nodeId: string;
