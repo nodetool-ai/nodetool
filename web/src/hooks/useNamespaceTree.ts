@@ -2,6 +2,11 @@ import { useCallback, useMemo } from "react";
 import useMetadataStore from "../stores/MetadataStore";
 import { isProduction } from "../stores/ApiClient";
 import { useSecrets } from "./useSecrets";
+import {
+  getProviderKindForNamespace,
+  getRequiredSecretKeyForNamespace,
+  getSecretDisplayName
+} from "../utils/nodeProvider";
 
 /**
  * Represents a hierarchical tree structure for organizing node namespaces.
@@ -34,6 +39,7 @@ export interface NamespaceTree {
     disabled: boolean;
     firstDisabled?: boolean;
     requiredKey?: string;
+    providerKind: "api" | "local";
   };
 }
 
@@ -73,60 +79,15 @@ const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
   const { isApiKeySet } = useSecrets();
 
-  // Get the required API key name for a namespace
-  const getRequiredKey = useCallback((namespace: string) => {
-    const apiKeyNames: Record<string, string> = {
-      openai: "OpenAI API Key",
-      hunyuan3d: "Hunyuan3D API Key",
-      aime: "Aime API Key",
-      anthropic: "Anthropic API Key",
-      meshy: "Meshy API Key",
-      point_e: "Point-E API Key",
-      "point-e": "Point-E API Key",
-      replicate: "Replicate API Token",
-      rodin: "Rodin API Key",
-      shap_e: "Shap-E API Key",
-      "shap-e": "Shap-E API Key",
-      trellis: "Trellis API Key",
-      tripo: "Tripo API Key"
-    };
-
-    const rootNamespace = namespace.split(".")[0];
-    return apiKeyNames[rootNamespace];
-  }, []);
-
   // Check if a namespace should be disabled
   const isNamespaceDisabled = useCallback(
     (namespace: string) => {
       if (isProduction) {return false;}
-
-      const apiKeyChecks: Record<string, () => boolean> = {
-        calendly: () => !isApiKeySet("CALENDLY_API_TOKEN"),
-        google: () => !isApiKeySet("GEMINI_API_KEY"),
-        hunyuan3d: () => !isApiKeySet("HUNYUAN3D_API_KEY"),
-        openai: () => !isApiKeySet("OPENAI_API_KEY"),
-        aime: () => !isApiKeySet("AIME_API_KEY"),
-        anthropic: () => !isApiKeySet("ANTHROPIC_API_KEY"),
-        meshy: () => !isApiKeySet("MESHY_API_KEY"),
-        point_e: () => !isApiKeySet("POINT_E_API_KEY"),
-        "point-e": () => !isApiKeySet("POINT_E_API_KEY"),
-        replicate: () => !isApiKeySet("REPLICATE_API_TOKEN"),
-        rodin: () => !isApiKeySet("RODIN_API_KEY"),
-        shap_e: () => !isApiKeySet("SHAP_E_API_KEY"),
-        "shap-e": () => !isApiKeySet("SHAP_E_API_KEY"),
-        trellis: () => !isApiKeySet("TRELLIS_API_KEY"),
-        tripo: () => !isApiKeySet("TRIPO_API_KEY")
-      };
-
-      // Get the root namespace
-      const rootNamespace = namespace.split(".")[0];
-
-      // Check if this root namespace requires an API key
-      for (const [prefix, check] of Object.entries(apiKeyChecks)) {
-        if (rootNamespace === prefix) {return check();}
+      const requiredSecret = getRequiredSecretKeyForNamespace(namespace);
+      if (!requiredSecret) {
+        return false;
       }
-
-      return false;
+      return !isApiKeySet(requiredSecret);
     },
     [isApiKeySet]
   );
@@ -160,7 +121,12 @@ const useNamespaceTree = (): NamespaceTree => {
       const parts = namespace.split(".");
       const rootNamespace = parts[0];
       const isDisabled = isNamespaceDisabled(namespace);
-      const requiredKey = isDisabled ? getRequiredKey(namespace) : undefined;
+      const requiredSecret = getRequiredSecretKeyForNamespace(namespace);
+      const requiredKey =
+        isDisabled && requiredSecret
+          ? getSecretDisplayName(requiredSecret)
+          : undefined;
+      const providerKind = getProviderKindForNamespace(namespace);
 
       // Mark first disabled root namespace
       if (isDisabled && !foundFirstDisabled) {
@@ -170,12 +136,14 @@ const useNamespaceTree = (): NamespaceTree => {
             children: {} as NamespaceTree,
             disabled: true,
             firstDisabled: true,
-            requiredKey
+            requiredKey,
+            providerKind
           };
         } else {
           tree[rootNamespace].firstDisabled = true;
           tree[rootNamespace].disabled = true;
           tree[rootNamespace].requiredKey = requiredKey;
+          tree[rootNamespace].providerKind = providerKind;
         }
       }
 
@@ -186,7 +154,8 @@ const useNamespaceTree = (): NamespaceTree => {
           const newNode = {
             children: {} as NamespaceTree,
             disabled: isDisabled,
-            requiredKey
+            requiredKey,
+            providerKind
           };
           current[part] = newNode;
         }
@@ -194,13 +163,14 @@ const useNamespaceTree = (): NamespaceTree => {
           current[part].disabled = true;
           current[part].requiredKey = requiredKey;
         }
+        current[part].providerKind = providerKind;
         current = current[part].children;
       });
     };
 
     uniqueNamespaces.forEach(addNamespaceToTree);
     return tree;
-  }, [uniqueNamespaces, isNamespaceDisabled, getRequiredKey]);
+  }, [uniqueNamespaces, isNamespaceDisabled]);
 };
 
 export default useNamespaceTree;
