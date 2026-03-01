@@ -7,6 +7,7 @@ import TextEditorModal from "./TextEditorModal";
 import isEqual from "lodash/isEqual";
 import { IconButton, Tooltip, Typography } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
+import type { NodeData } from "../../stores/NodeData";
 import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
@@ -63,7 +64,7 @@ const StringProperty = ({
         }
 
         const node = state.findNode(nodeId);
-        const props = (node?.data as any)?.properties ?? {};
+        const props = (node?.data as NodeData | undefined)?.properties ?? {};
         const maxLengthRaw = props?.max_length;
         const maxLength =
           typeof maxLengthRaw === "number" && Number.isFinite(maxLengthRaw)
