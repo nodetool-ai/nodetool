@@ -27,6 +27,7 @@ import { useReactFlow } from "@xyflow/react";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { usePanelStore } from "../../stores/PanelStore";
 
 // Icons — Workflow
@@ -245,7 +246,10 @@ const EditCommands = memo(function EditCommands({
   );
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
-  const selectedNodes = useNodes((state) => state.getSelectedNodes());
+  const selectedNodes = useNodes(
+    (state) => state.nodes.filter((node) => node.selected),
+    areNodesEqualIgnoringPosition
+  );
   const surroundWithGroup = useSurroundWithGroup();
   const selectionActions = useSelectionActions();
   const { openFind } = useFindInWorkflow();
