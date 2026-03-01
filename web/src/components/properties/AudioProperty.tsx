@@ -11,6 +11,7 @@ import { Button, TextField } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
+import type { NodeData } from "../../stores/NodeData";
 
 const styles = () =>
   css({
@@ -49,7 +50,7 @@ const AudioProperty = (props: PropertyProps) => {
   // Use direct selector instead of object creation to avoid unnecessary re-renders
   const findNode = useNodes((state) => state.findNode);
   const rfNode = findNode(props.nodeId);
-  const inputNodeName = (rfNode?.data as any)?.properties?.name as
+  const inputNodeName = (rfNode?.data as NodeData | undefined)?.properties?.name as
     | string
     | undefined;
   const [sampleRate, setSampleRate] = useState<number>(44100);
