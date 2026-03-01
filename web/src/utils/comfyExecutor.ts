@@ -337,7 +337,7 @@ export async function executeViaComfyUI(
   graph: Graph,
   onProgress?: (progress: {
     type: string;
-    data: any;
+    data: unknown;
   }) => void,
   workflowForUpdates?: Workflow
 ): Promise<{
