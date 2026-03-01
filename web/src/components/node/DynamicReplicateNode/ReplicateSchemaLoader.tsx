@@ -87,7 +87,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
               ? meta.type_args
               : []) as TypeMetadata[],
             ...(meta.description != null && { description: meta.description }),
-            values: meta.values || (meta as Record<string, unknown>).enum
+            values: meta.values ?? ((meta as Record<string, unknown>).enum as (string | number)[] | null)
           };
         }
         updateNodeData(nodeId, {
