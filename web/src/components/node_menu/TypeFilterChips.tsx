@@ -3,24 +3,20 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { IconForType } from "../../config/data_types";
 import {
+  Autocomplete,
   Box,
   Button,
   Chip,
-  Divider,
-  FormControl,
   Menu,
-  MenuItem,
-  Select,
+  TextField,
   Tooltip,
   Typography
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import useMetadataStore from "../../stores/MetadataStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import type { ProviderFilterType } from "../../stores/NodeMenuStore";
 
 interface TypeFilterChipsProps {
   selectedInputType: string;
@@ -35,9 +31,23 @@ const TYPE_CATEGORIES = [
   { value: "text", label: "Text", icon: "text" },
   { value: "audio", label: "Audio", icon: "audio" },
   { value: "video", label: "Video", icon: "video" },
-  { value: "enum", label: "Enum", icon: "enum" },
   { value: "float", label: "Number", icon: "float" }
 ];
+
+type TypeOption = {
+  value: string;
+  label: string;
+};
+
+const ALL_INPUT_OPTION: TypeOption = {
+  value: "",
+  label: "All input types"
+};
+
+const ALL_OUTPUT_OPTION: TypeOption = {
+  value: "",
+  label: "All output types"
+};
 
 const typeFilterChipsStyles = (theme: Theme) =>
   css({
@@ -46,8 +56,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      width: "auto",
-      flex: "1 1 auto",
+      width: "100%",
+      flex: "1 1 100%",
       gap: "8px",
       minWidth: 0
     },
@@ -59,8 +69,25 @@ const typeFilterChipsStyles = (theme: Theme) =>
       flex: "1 1 auto",
       overflow: "hidden"
     },
+    ".provider-quick": {
+      display: "flex",
+      alignItems: "center",
+      gap: "4px",
+      marginRight: "6px"
+    },
+    ".provider-quick-chip": {
+      height: "22px",
+      fontSize: "0.64rem",
+      borderRadius: "11px",
+      border: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".provider-quick-chip.selected": {
+      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
+      borderColor: "var(--palette-primary-main)",
+      color: "var(--palette-primary-main)"
+    },
     ".quick-label": {
-      fontSize: "0.7rem",
+      fontSize: "0.68rem",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
@@ -73,11 +100,11 @@ const typeFilterChipsStyles = (theme: Theme) =>
       flexWrap: "nowrap"
     },
     ".filter-label": {
-      fontSize: "0.7rem",
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
-      letterSpacing: "0.5px",
-      minWidth: "50px"
+      padding: ".5em 0",
+      marginBottom: "1em"
     },
     ".type-chips": {
       display: "flex",
@@ -109,32 +136,6 @@ const typeFilterChipsStyles = (theme: Theme) =>
         color: "var(--palette-primary-main)"
       }
     },
-    ".active-filters": {
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-      flexWrap: "wrap",
-      justifyContent: "flex-end"
-    },
-    ".active-filter": {
-      height: "22px",
-      fontSize: "0.65rem",
-      borderRadius: "11px",
-      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.2)",
-      border: "1px solid var(--palette-primary-main)",
-      color: "var(--palette-primary-main)",
-      "& .MuiChip-label": {
-        padding: "0 6px 0 8px"
-      },
-      "& .MuiChip-deleteIcon": {
-        fontSize: "14px",
-        color: "var(--palette-primary-main)",
-        marginRight: "4px",
-        "&:hover": {
-          color: theme.vars.palette.error.main
-        }
-      }
-    },
     ".filter-actions": {
       display: "flex",
       alignItems: "center",
@@ -144,10 +145,10 @@ const typeFilterChipsStyles = (theme: Theme) =>
     },
     ".more-filters-button": {
       textTransform: "none",
-      borderRadius: "10px",
-      fontSize: "0.72rem",
+      borderRadius: "12px",
+      fontSize: "0.74rem",
       lineHeight: 1.2,
-      padding: "4px 8px",
+      padding: "5px 10px",
       minWidth: "unset",
       color: theme.vars.palette.text.primary,
       borderColor: theme.vars.palette.text.secondary,
@@ -156,252 +157,346 @@ const typeFilterChipsStyles = (theme: Theme) =>
         borderColor: theme.vars.palette.primary.main
       }
     },
+    ".menu-header": {
+      marginBottom: "12px"
+    },
+    ".menu-title": {
+      fontSize: "0.82rem",
+      color: theme.vars.palette.text.primary,
+      fontWeight: 600,
+      marginBottom: "4px"
+    },
     ".menu-section-title": {
-      fontSize: "0.68rem",
+      fontSize: "0.72rem",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
-      letterSpacing: "0.45px",
-      marginBottom: "6px"
-    },
-    ".provider-choices": {
-      display: "flex",
-      gap: "6px",
-      flexWrap: "wrap",
-      marginBottom: "10px"
-    },
-    ".provider-chip": {
-      height: "24px",
-      fontSize: "0.7rem",
-      borderRadius: "12px",
-      border: `1px solid ${theme.vars.palette.divider}`
-    },
-    ".provider-chip.selected": {
-      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-      borderColor: "var(--palette-primary-main)",
-      color: "var(--palette-primary-main)"
+      letterSpacing: "0.55px",
+      marginBottom: "8px",
+      fontWeight: 600
     },
     ".filter-menu-content": {
-      minWidth: "300px",
-      maxWidth: "360px",
-      padding: "10px"
+      minWidth: "390px",
+      maxWidth: "480px",
+      padding: "16px"
     },
     ".filter-select": {
       width: "100%",
-      "& .MuiSelect-select": {
-        fontSize: "0.78rem",
-        padding: "6px 10px"
+      marginBottom: "10px",
+      "& .MuiInputBase-root": {
+        fontSize: theme.fontSizeSmaller,
+        padding: ".5em .75em"
+      },
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.vars.palette.divider
+      },
+      "& .MuiAutocomplete-option": {
+        minHeight: "30px",
+        paddingTop: "2px",
+        paddingBottom: "2px",
+        fontSize: theme.fontSizeSmaller
       }
     }
   });
 
-const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(({
-  selectedInputType,
-  setSelectedInputType,
-  selectedOutputType,
-  setSelectedOutputType
-}) => {
-  const theme = useTheme();
-  const { selectedProviderType, setSelectedProviderType } = useNodeMenuStore(
-    (state) => ({
-      selectedProviderType: state.selectedProviderType,
-      setSelectedProviderType: state.setSelectedProviderType
-    })
-  );
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const metadata = useMetadataStore((state) => state.metadata);
+const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
+  ({
+    selectedInputType,
+    setSelectedInputType,
+    selectedOutputType,
+    setSelectedOutputType
+  }) => {
+    const theme = useTheme();
+    const { selectedProviderType, setSelectedProviderType } = useNodeMenuStore(
+      (state) => ({
+        selectedProviderType: state.selectedProviderType,
+        setSelectedProviderType: state.setSelectedProviderType
+      })
+    );
+    const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+    const metadata = useMetadataStore((state) => state.metadata);
 
-  const allTypeOptions = useMemo(() => {
-    const allTypes = new Set<string>();
-    Object.values(metadata).forEach((node) => {
-      node.properties.forEach((prop) => {
-        if (prop.type?.type) {
-          allTypes.add(prop.type.type);
-        }
+    const allTypeOptions = useMemo<TypeOption[]>(() => {
+      const allTypes = new Set<string>();
+      Object.values(metadata).forEach((node) => {
+        node.properties.forEach((prop) => {
+          if (prop.type?.type) {
+            allTypes.add(prop.type.type);
+          }
+        });
+        node.outputs.forEach((output) => {
+          if (output.type?.type) {
+            allTypes.add(output.type.type);
+          }
+        });
       });
-      node.outputs.forEach((output) => {
-        if (output.type?.type) {
-          allTypes.add(output.type.type);
+
+      const sorted = Array.from(allTypes).sort((a, b) => a.localeCompare(b));
+      return sorted.map((value) => ({
+        value,
+        label: value === "float" ? "Number" : value
+      }));
+    }, [metadata]);
+
+    const inputTypeOptions = useMemo<TypeOption[]>(
+      () => [ALL_INPUT_OPTION, ...allTypeOptions],
+      [allTypeOptions]
+    );
+    const outputTypeOptions = useMemo<TypeOption[]>(
+      () => [ALL_OUTPUT_OPTION, ...allTypeOptions],
+      [allTypeOptions]
+    );
+
+    const selectedInputOption = useMemo<TypeOption>(
+      () =>
+        inputTypeOptions.find((option) => option.value === selectedInputType) ??
+        ALL_INPUT_OPTION,
+      [inputTypeOptions, selectedInputType]
+    );
+
+    const selectedOutputOption = useMemo<TypeOption>(
+      () =>
+        outputTypeOptions.find((option) => option.value === selectedOutputType) ??
+        ALL_OUTPUT_OPTION,
+      [outputTypeOptions, selectedOutputType]
+    );
+
+    const filterTypeOptions = useCallback(
+      (options: TypeOption[], query: string): TypeOption[] => {
+        const normalizedQuery = query.trim().toLowerCase();
+        if (!normalizedQuery) {
+          return options;
         }
-      });
-    });
+        return options.filter((option) =>
+          `${option.label} ${option.value}`.toLowerCase().includes(normalizedQuery)
+        );
+      },
+      []
+    );
 
-    const sorted = Array.from(allTypes).sort((a, b) => a.localeCompare(b));
-    return sorted.map((value) => ({
-      value,
-      label: value === "float" ? "Number" : value
-    }));
-  }, [metadata]);
+    const handleOutputClick = useCallback(
+      (type: string) => {
+        if (selectedOutputType === type) {
+          setSelectedOutputType("");
+        } else {
+          setSelectedOutputType(type);
+        }
+      },
+      [selectedOutputType, setSelectedOutputType]
+    );
 
-  const providerOptions = useMemo<
-    Array<{ value: ProviderFilterType; label: string }>
-  >(
-    () => [
-      { value: "all", label: "All" },
-      { value: "local", label: "Local" },
-      { value: "api", label: "API" }
-    ],
-    []
-  );
+    const handleTypeChipClick = useCallback(
+      (type: string) => () => {
+        handleOutputClick(type);
+      },
+      [handleOutputClick]
+    );
 
-  const handleOutputClick = useCallback((type: string) => {
-    if (selectedOutputType === type) {
-      setSelectedOutputType("");
-    } else {
-      setSelectedOutputType(type);
-    }
-  }, [selectedOutputType, setSelectedOutputType]);
+    const handleOpenMenu = useCallback(
+      (event: React.MouseEvent<HTMLElement>) => {
+        setMenuAnchor(event.currentTarget);
+      },
+      []
+    );
 
-  const handleClearInput = useCallback(() => {
-    setSelectedInputType("");
-  }, [setSelectedInputType]);
+    const handleCloseMenu = useCallback(() => {
+      setMenuAnchor(null);
+    }, []);
 
-  const handleClearOutput = useCallback(() => {
-    setSelectedOutputType("");
-  }, [setSelectedOutputType]);
+    const menuOpen = Boolean(menuAnchor);
 
-  const handleClearProvider = useCallback(() => {
-    setSelectedProviderType("all");
-  }, [setSelectedProviderType]);
-
-  const handleTypeChipClick = useCallback((type: string) => () => {
-    handleOutputClick(type);
-  }, [handleOutputClick]);
-
-  const handleOpenMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setMenuAnchor(event.currentTarget);
-  }, []);
-
-  const handleCloseMenu = useCallback(() => {
-    setMenuAnchor(null);
-  }, []);
-
-  const hasActiveFilters =
-    selectedProviderType !== "all" || selectedInputType || selectedOutputType;
-  const menuOpen = Boolean(menuAnchor);
-
-  return (
-    <Box className="type-filter-chips" css={typeFilterChipsStyles(theme)}>
-      <Box className="quick-filters">
-        <span className="quick-label">Quick:</span>
-        <Box className="type-chips filter-section">
-          {TYPE_CATEGORIES.map((type) => (
-            <Tooltip key={type.value} title={`Filter by ${type.label}`} placement="top">
-              <Chip
-                className={`type-chip ${
-                  selectedInputType === type.value || selectedOutputType === type.value
-                    ? "selected"
-                    : ""
-                }`}
-                size="small"
-                icon={
-                  <IconForType
-                    iconName={type.icon}
-                    containerStyle={{ width: 14, height: 14 }}
-                  />
-                }
-                label={type.label}
-                onClick={handleTypeChipClick(type.value)}
-              />
-            </Tooltip>
-          ))}
-        </Box>
-      </Box>
-
-      <Box className="filter-actions">
-        {hasActiveFilters && (
-          <Box className="active-filters">
-            {selectedProviderType !== "all" && (
-              <Chip
-                className="active-filter"
-                size="small"
-                label={`Provider: ${selectedProviderType === "api" ? "API" : "Local"}`}
-                deleteIcon={<CloseIcon />}
-                onDelete={handleClearProvider}
-              />
-            )}
-            {selectedInputType && (
-              <Chip
-                className="active-filter"
-                size="small"
-                label={`Input: ${selectedInputType}`}
-                deleteIcon={<CloseIcon />}
-                onDelete={handleClearInput}
-              />
-            )}
-            {selectedOutputType && (
-              <Chip
-                className="active-filter"
-                size="small"
-                label={`Output: ${selectedOutputType}`}
-                deleteIcon={<CloseIcon />}
-                onDelete={handleClearOutput}
-              />
-            )}
+    return (
+      <Box className="type-filter-chips" css={typeFilterChipsStyles(theme)}>
+        <Box className="quick-filters">
+          <Box className="provider-quick">
+            <Chip
+              className={`provider-quick-chip ${selectedProviderType === "local" ? "selected" : ""}`}
+              size="small"
+              label="Local"
+              onClick={() =>
+                setSelectedProviderType(
+                  selectedProviderType === "local" ? "all" : "local"
+                )
+              }
+            />
+            <Chip
+              className={`provider-quick-chip ${selectedProviderType === "api" ? "selected" : ""}`}
+              size="small"
+              label="API"
+              onClick={() =>
+                setSelectedProviderType(
+                  selectedProviderType === "api" ? "all" : "api"
+                )
+              }
+            />
           </Box>
-        )}
-        <Button
-          variant="outlined"
-          className="more-filters-button"
-          startIcon={<FilterListIcon fontSize="small" />}
-          onClick={handleOpenMenu}
-        >
-          Filters
-        </Button>
-      </Box>
-
-      <Menu anchorEl={menuAnchor} open={menuOpen} onClose={handleCloseMenu}>
-        <Box className="filter-menu-content">
-          <Typography className="menu-section-title">Provider</Typography>
-          <Box className="provider-choices">
-            {providerOptions.map((provider) => (
-              <Chip
-                key={provider.value}
-                className={`provider-chip ${selectedProviderType === provider.value ? "selected" : ""}`}
-                size="small"
-                label={provider.label}
-                onClick={() => setSelectedProviderType(provider.value)}
-              />
+          <span className="quick-label">Output:</span>
+          <Box className="type-chips filter-section">
+            {TYPE_CATEGORIES.map((type) => (
+              <Tooltip
+                key={type.value}
+                title={`Filter by ${type.label}`}
+                placement="top"
+              >
+                <Chip
+                  className={`type-chip ${
+                    selectedInputType === type.value ||
+                    selectedOutputType === type.value
+                      ? "selected"
+                      : ""
+                  }`}
+                  size="small"
+                  icon={
+                    <IconForType
+                      iconName={type.icon}
+                      containerStyle={{ width: 14, height: 14 }}
+                    />
+                  }
+                  label={type.label}
+                  onClick={handleTypeChipClick(type.value)}
+                />
+              </Tooltip>
             ))}
           </Box>
-
-          <Divider sx={{ my: 1 }} />
-
-          <Typography className="menu-section-title">Input Type</Typography>
-          <FormControl className="filter-select" size="small">
-            <Select
-              value={selectedInputType}
-              onChange={(e) => setSelectedInputType(e.target.value)}
-            >
-              <MenuItem value="">All input types</MenuItem>
-              {allTypeOptions.map((option) => (
-                <MenuItem key={`input-${option.value}`} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <Typography className="menu-section-title" sx={{ mt: 1.2 }}>
-            Output Type
-          </Typography>
-          <FormControl className="filter-select" size="small">
-            <Select
-              value={selectedOutputType}
-              onChange={(e) => setSelectedOutputType(e.target.value)}
-            >
-              <MenuItem value="">All output types</MenuItem>
-              {allTypeOptions.map((option) => (
-                <MenuItem key={`output-${option.value}`} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
         </Box>
-      </Menu>
-    </Box>
-  );
-});
+
+        <Box className="filter-actions">
+          <Button
+            variant="outlined"
+            className="more-filters-button"
+            startIcon={<FilterListIcon fontSize="small" />}
+            onClick={handleOpenMenu}
+          >
+            Filters
+          </Button>
+        </Box>
+
+        <Menu
+          anchorEl={menuAnchor}
+          open={menuOpen}
+          onClose={handleCloseMenu}
+          slotProps={{
+            paper: {
+              sx: {
+                borderRadius: "14px",
+                backgroundImage: "none",
+                overflow: "visible",
+                border: (muiTheme) =>
+                  `1px solid ${muiTheme.vars.palette.divider}`
+                // boxShadow: "0 18px 36px rgba(0,0,0,0.3)"
+              }
+            }
+          }}
+        >
+          <Box
+            className="filter-menu-content"
+            sx={{
+              padding: "1em",
+              backgroundColor: theme.vars.palette.background.paper,
+              fontSize: theme.fontSizeSmaller
+            }}
+          >
+            <Box className="menu-header">
+              <Typography
+                sx={{
+                  fontSize: theme.fontSizeSmaller,
+                  color: theme.vars.palette.text.secondary,
+                  marginBottom: "1em"
+                }}
+              >
+                Filter nodes by input and output data types
+              </Typography>
+            </Box>
+
+            <Typography
+              sx={{
+                marginBottom: "0.25em"
+              }}
+            >
+              Input Type
+            </Typography>
+            <Autocomplete<TypeOption, false, false, false>
+              className="filter-select"
+              disablePortal
+              options={inputTypeOptions}
+              value={selectedInputOption}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              getOptionLabel={(option) => option.label}
+              filterOptions={(options, state) =>
+                filterTypeOptions(options, state.inputValue)
+              }
+              onChange={(_, option) =>
+                setSelectedInputType(option?.value ?? "")
+              }
+              renderInput={(params) => (
+                <TextField {...params} size="small" placeholder="Search input type..." />
+              )}
+              slotProps={{
+                popper: {
+                  sx: {
+                    zIndex: (muiTheme) => muiTheme.zIndex.modal + 10
+                  }
+                },
+                listbox: {
+                  sx: {
+                    "& .MuiAutocomplete-option": {
+                      minHeight: "30px",
+                      py: 0.25
+                    }
+                  }
+                }
+              }}
+              sx={{ marginBottom: "1em" }}
+            />
+
+            <Typography
+              sx={{
+                marginBottom: "0.25em"
+              }}
+            >
+              Output Type
+            </Typography>
+            <Autocomplete<TypeOption, false, false, false>
+              className="filter-select"
+              disablePortal
+              options={outputTypeOptions}
+              value={selectedOutputOption}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              getOptionLabel={(option) => option.label}
+              filterOptions={(options, state) =>
+                filterTypeOptions(options, state.inputValue)
+              }
+              onChange={(_, option) =>
+                setSelectedOutputType(option?.value ?? "")
+              }
+              renderInput={(params) => (
+                <TextField {...params} size="small" placeholder="Search output type..." />
+              )}
+              slotProps={{
+                popper: {
+                  sx: {
+                    zIndex: (muiTheme) => muiTheme.zIndex.modal + 10
+                  }
+                },
+                listbox: {
+                  sx: {
+                    "& .MuiAutocomplete-option": {
+                      minHeight: "30px",
+                      py: 0.25
+                    }
+                  }
+                }
+              }}
+            />
+          </Box>
+        </Menu>
+      </Box>
+    );
+  }
+);
 
 TypeFilterChips.displayName = "TypeFilterChips";
 

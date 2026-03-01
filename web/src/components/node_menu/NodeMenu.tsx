@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { Box } from "@mui/material";
+import { Box, Chip } from "@mui/material";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";
@@ -51,9 +51,9 @@ const treeStyles = (theme: Theme) =>
     },
     ".draggable-header": {
       borderRadius: "16px 16px 0 0",
-      backgroundColor: "transparent", // Let glass effect show through
+      backgroundColor: theme.vars.palette.background.paper,
       width: "100%",
-      minHeight: "4px",
+      minHeight: "1.5em",
       cursor: "grab",
       userSelect: "none"
     },
@@ -62,7 +62,7 @@ const treeStyles = (theme: Theme) =>
     },
     ".node-menu-container": {
       borderRadius: "0 0 16px 16px",
-      padding: "0.35em 0px 0.75em 0.75em",
+      padding: "0.45em 0px 0.75em 0.75em",
       width: "100%",
       maxHeight: "77vh",
       flexGrow: 1
@@ -133,6 +133,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setSelectedInputType,
     selectedOutputType,
     setSelectedOutputType,
+    selectedProviderType,
+    setSelectedProviderType,
     searchTerm,
     setSearchTerm,
     setMenuSize,
@@ -150,6 +152,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setSelectedInputType: state.setSelectedInputType,
       selectedOutputType: state.selectedOutputType,
       setSelectedOutputType: state.setSelectedOutputType,
+      selectedProviderType: state.selectedProviderType,
+      setSelectedProviderType: state.setSelectedProviderType,
       searchTerm: state.searchTerm,
       setSearchTerm: state.setSearchTerm,
       setMenuSize: state.setMenuSize,
@@ -296,7 +300,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
               >
                 <SearchInput
                   focusSearchInput={focusSearchInput}
-                  focusOnTyping={true}
+                  focusOnTyping={false}
                   placeholder="Search for nodes..."
                   debounceTime={80}
                   width={300}
@@ -309,6 +313,45 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   onPressEnter={handleEnter}
                   searchResults={searchResults}
                 />
+                <FlexRow
+                  gap={0.75}
+                  align="center"
+                  justify="flex-end"
+                  sx={{
+                    marginLeft: "auto",
+                    flexWrap: "wrap",
+                    minHeight: "24px"
+                  }}
+                >
+                  {selectedProviderType !== "all" && (
+                    <Chip
+                      size="small"
+                      label={`Provider: ${selectedProviderType === "api" ? "API" : "Local"}`}
+                      onDelete={() => setSelectedProviderType("all")}
+                    />
+                  )}
+                  {selectedInputType && (
+                    <Chip
+                      size="small"
+                      label={`Input: ${selectedInputType}`}
+                      onDelete={() => setSelectedInputType("")}
+                    />
+                  )}
+                  {selectedOutputType && (
+                    <Chip
+                      size="small"
+                      label={`Output: ${selectedOutputType}`}
+                      onDelete={() => setSelectedOutputType("")}
+                    />
+                  )}
+                </FlexRow>
+              </FlexRow>
+              <FlexRow
+                gap={1.5}
+                align="center"
+                className="filters-row"
+                sx={{ width: "100%", paddingRight: "0.25em" }}
+              >
                 <TypeFilterChips
                   selectedInputType={selectedInputType}
                   selectedOutputType={selectedOutputType}

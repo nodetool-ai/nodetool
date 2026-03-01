@@ -3,6 +3,7 @@ export type ProviderKind = "api" | "local";
 const namespaceToSecretKey: Record<string, string> = {
   openai: "OPENAI_API_KEY",
   anthropic: "ANTHROPIC_API_KEY",
+  mistral: "MISTRAL_API_KEY",
   google: "GEMINI_API_KEY",
   gemini: "GEMINI_API_KEY",
   meshy: "MESHY_API_KEY",
@@ -24,6 +25,7 @@ const namespaceToSecretKey: Record<string, string> = {
 const secretKeyToDisplayName: Record<string, string> = {
   OPENAI_API_KEY: "OpenAI API Key",
   ANTHROPIC_API_KEY: "Anthropic API Key",
+  MISTRAL_API_KEY: "Mistral API Key",
   GEMINI_API_KEY: "Gemini API Key",
   MESHY_API_KEY: "Meshy API Key",
   RODIN_API_KEY: "Rodin API Key",

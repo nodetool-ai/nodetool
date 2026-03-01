@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { List } from "@mui/material";
+import { List, Typography } from "@mui/material";
 import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
@@ -30,7 +30,7 @@ const namespacePanelStyles = (theme: Theme) =>
     "& .namespace-list": {
       display: "flex",
       flexDirection: "column",
-      gap: "2px",
+      gap: 0,
       overflowY: "auto",
       minWidth: "200px",
       width: "100%",
@@ -53,21 +53,33 @@ const namespacePanelStyles = (theme: Theme) =>
     "& .namespace-list::-webkit-scrollbar-thumb:hover": {
       backgroundColor: theme.vars.palette.action.disabled
     },
-    "& .namespace-list-enabled": {
-      flex: "1 1 auto",
-      height: "fit-content",
-      overflowY: "visible"
+    "& .namespace-section-title": {
+      fontSize: "0.65rem",
+      textTransform: "uppercase",
+      letterSpacing: "0.55px",
+      color: theme.vars.palette.text.secondary,
+      padding: "0.55em 0.95em 0.3em",
+      margin: 0,
+      userSelect: "none"
     },
-    "& .namespace-list-disabled": {
+    "& .namespace-section-title.providers": {
+      padding: "0 0.95em 0.3em",
+      marginTop: 0
+    },
+    "& .namespace-list-local": {
       flex: "0 0 auto",
       height: "fit-content",
       overflowY: "visible",
-      borderTop: `1px dashed ${theme.vars.palette.divider}`,
-      marginTop: "0.75em",
-      paddingTop: "0.5em",
-      "& .namespace-item": {
-        color: theme.vars.palette.text.disabled
-      }
+      marginBottom: 0,
+      paddingBottom: 0
+    },
+    "& .namespace-list-providers": {
+      flex: "0 0 auto",
+      height: "fit-content",
+      overflowY: "visible",
+      borderTop: "none",
+      marginTop: 0,
+      paddingTop: 0
     },
     "& .namespaces": {
       display: "flex",
@@ -197,20 +209,18 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
     return filterByProvider(namespaceTree);
   }, [namespaceTree, selectedProviderType]);
 
-  const { enabledTree, disabledTree } = useMemo(() => {
-    const enabled: NamespaceTree = {};
-    const disabled: NamespaceTree = {};
-
+  const { localTree, providerTree } = useMemo(() => {
+    const local: NamespaceTree = {};
+    const providers: NamespaceTree = {};
     Object.entries(filteredTree).forEach(([key, value]) => {
-      const isRootDisabled = value.disabled;
-      if (isRootDisabled) {
-        disabled[key] = value;
+      if (value.providerKind === "local") {
+        local[key] = value;
       } else {
-        enabled[key] = value;
+        providers[key] = value;
       }
     });
 
-    return { enabledTree: enabled, disabledTree: disabled };
+    return { localTree: local, providerTree: providers };
   }, [filteredTree]);
 
   const handleResetNamespacePath = useCallback(() => {
@@ -240,12 +250,24 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
             </div>
           </div>
         </div>
-        <div className="namespace-list-enabled">
-          <RenderNamespaces tree={enabledTree} />
-        </div>
-        <div className="namespace-list-disabled">
-          <RenderNamespaces tree={disabledTree} />
-        </div>
+        {Object.keys(localTree).length > 0 && (
+          <>
+            <Typography className="namespace-section-title">Local</Typography>
+            <div className="namespace-list-local">
+              <RenderNamespaces tree={localTree} />
+            </div>
+          </>
+        )}
+        {Object.keys(providerTree).length > 0 && (
+          <>
+            <Typography className="namespace-section-title providers">
+              Providers
+            </Typography>
+            <div className="namespace-list-providers">
+              <RenderNamespaces tree={providerTree} />
+            </div>
+          </>
+        )}
       </List>
     </div>
   );
