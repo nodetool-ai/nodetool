@@ -292,7 +292,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 gap={3}
                 align="center"
                 className="search-row"
-                sx={{ marginLeft: "-3px" }}
+                sx={{ marginLeft: "-3px", width: "100%" }}
               >
                 <SearchInput
                   focusSearchInput={focusSearchInput}
@@ -309,13 +309,13 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   onPressEnter={handleEnter}
                   searchResults={searchResults}
                 />
+                <TypeFilterChips
+                  selectedInputType={selectedInputType}
+                  selectedOutputType={selectedOutputType}
+                  setSelectedInputType={setSelectedInputType}
+                  setSelectedOutputType={setSelectedOutputType}
+                />
               </FlexRow>
-              <TypeFilterChips
-                selectedInputType={selectedInputType}
-                selectedOutputType={selectedOutputType}
-                setSelectedInputType={setSelectedInputType}
-                setSelectedOutputType={setSelectedOutputType}
-              />
             </FlexColumn>
             <NamespaceList
               namespaceTree={namespaceTree}

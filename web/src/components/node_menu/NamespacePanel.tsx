@@ -6,14 +6,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { List } from "@mui/material";
 import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-
-type NamespaceTree = {
-  [key: string]: {
-    children: NamespaceTree;
-    disabled: boolean;
-    requiredKey?: string;
-  };
-};
+import { NamespaceTree } from "../../hooks/useNamespaceTree";
 
 interface NamespacePanelProps {
   namespaceTree: NamespaceTree;
@@ -166,6 +159,9 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
       setSelectedPath: state.setSelectedPath
     })
   );
+  const selectedProviderType = useNodeMenuStore(
+    (state) => state.selectedProviderType
+  );
 
   const selectedPathString = useMemo(
     () => selectedPath.join("."),
@@ -180,11 +176,32 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
       ? 0
       : 1;
 
+  const filteredTree = useMemo(() => {
+    if (selectedProviderType === "all") {
+      return namespaceTree;
+    }
+
+    const filterByProvider = (tree: NamespaceTree): NamespaceTree => {
+      return Object.entries(tree).reduce<NamespaceTree>((acc, [key, node]) => {
+        const children = filterByProvider(node.children);
+        if (node.providerKind === selectedProviderType) {
+          acc[key] = {
+            ...node,
+            children
+          };
+        }
+        return acc;
+      }, {});
+    };
+
+    return filterByProvider(namespaceTree);
+  }, [namespaceTree, selectedProviderType]);
+
   const { enabledTree, disabledTree } = useMemo(() => {
     const enabled: NamespaceTree = {};
     const disabled: NamespaceTree = {};
 
-    Object.entries(namespaceTree).forEach(([key, value]) => {
+    Object.entries(filteredTree).forEach(([key, value]) => {
       const isRootDisabled = value.disabled;
       if (isRootDisabled) {
         disabled[key] = value;
@@ -194,7 +211,7 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
     });
 
     return { enabledTree: enabled, disabledTree: disabled };
-  }, [namespaceTree]);
+  }, [filteredTree]);
 
   const handleResetNamespacePath = useCallback(() => {
     setSelectedPath([]);

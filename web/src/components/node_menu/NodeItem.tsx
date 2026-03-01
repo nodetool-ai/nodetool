@@ -13,6 +13,7 @@ import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
+import { getProviderKindForNamespace } from "../../utils/nodeProvider";
 
 interface NodeItemProps {
   node: NodeMetadata;
@@ -48,6 +49,7 @@ const NodeItem = memo(
       const theme = useTheme();
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
+      const providerKind = getProviderKindForNamespace(node.namespace);
       // Combine multiple store selectors into one with shallow comparison to reduce re-renders
       const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
         useMemo(() => (state) => ({
@@ -191,6 +193,22 @@ const NodeItem = memo(
         }),
         []
       );
+      const providerBadgeStyle = useMemo(
+        () => ({
+          marginLeft: "0.3em",
+          flexShrink: 0,
+          fontSize: "0.62rem",
+          lineHeight: 1.1,
+          padding: "1px 5px",
+          borderRadius: "8px",
+          border: "1px solid currentColor",
+          color:
+            providerKind === "api"
+              ? theme.vars.palette.c_provider_api
+              : theme.vars.palette.c_provider_local
+        }),
+        [providerKind, theme.vars.palette.c_provider_api, theme.vars.palette.c_provider_local]
+      );
 
       return (
         <div
@@ -272,6 +290,9 @@ const NodeItem = memo(
                       matchStyle="primary"
                     />
                   </Typography>
+                  <Box sx={providerBadgeStyle}>
+                    {providerKind === "api" ? "API" : "Local"}
+                  </Box>
                 </div>
               </Tooltip>
             ) : (
@@ -312,6 +333,9 @@ const NodeItem = memo(
                     matchStyle="primary"
                   />
                 </Typography>
+                <Box sx={providerBadgeStyle}>
+                  {providerKind === "api" ? "API" : "Local"}
+                </Box>
               </div>
             )}
             {showFavoriteButton && (

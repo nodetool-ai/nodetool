@@ -10,6 +10,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { colorForType, IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
+import { getProviderKindForNamespace } from "../../utils/nodeProvider";
 
 interface SearchResultItemProps {
   node: NodeMetadata;
@@ -184,6 +185,7 @@ const SearchResultItem = memo(
       const theme = useTheme();
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
+      const providerKind = getProviderKindForNamespace(node.namespace);
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
       // Parse description and tags - memoize to avoid re-computation on every render
@@ -296,6 +298,21 @@ const SearchResultItem = memo(
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span
+                style={{
+                  fontSize: "0.62rem",
+                  lineHeight: 1.1,
+                  padding: "1px 5px",
+                  borderRadius: "8px",
+                  border: "1px solid currentColor",
+                  color:
+                    providerKind === "api"
+                      ? theme.vars.palette.c_provider_api
+                      : theme.vars.palette.c_provider_local
+                }}
+              >
+                {providerKind === "api" ? "API" : "Local"}
+              </span>
               <Typography className="result-namespace" component="div">
                 <HighlightText
                   text={node.namespace}

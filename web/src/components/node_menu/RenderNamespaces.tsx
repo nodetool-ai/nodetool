@@ -17,14 +17,16 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
     allSearchMatches,
     searchTerm,
     selectedInputType,
-    selectedOutputType
+    selectedOutputType,
+    selectedProviderType
   } = useNodeMenuStore((state) => ({
     highlightedNamespaces: state.highlightedNamespaces,
     selectedPath: state.selectedPath,
     allSearchMatches: state.allSearchMatches,
     searchTerm: state.searchTerm,
     selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType
+    selectedOutputType: state.selectedOutputType,
+    selectedProviderType: state.selectedProviderType
   }));
 
   const minSearchTermLength = useMemo(() => {
@@ -41,7 +43,9 @@ const RenderNamespaces: React.FC<RenderNamespacesProps> = ({
     searchTerm && searchTerm.length >= minSearchTermLength
   );
 
-  const hasActiveTypeFilter = Boolean(selectedInputType || selectedOutputType);
+  const hasActiveTypeFilter = Boolean(
+    selectedInputType || selectedOutputType || selectedProviderType !== "all"
+  );
 
   const shouldHighlightByFilter = hasEffectiveSearchTerm || hasActiveTypeFilter;
 

@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import { ListItem } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import RenderNamespaces from "./RenderNamespaces";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
@@ -23,7 +24,9 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
   hasChildren,
   tree
 }) => {
+  const theme = useTheme();
   const setSelectedPath = useNodeMenuStore((state) => state.setSelectedPath);
+  const providerKind = tree[namespace].providerKind;
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLLIElement>) => {
@@ -44,7 +47,34 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
         } ${isHighlighted ? "highlighted" : "no-highlight"}`}
         onClick={handleClick}
       >
-        <div className="namespace-item">{namespace.replaceAll("_", " ")}</div>
+        <div
+          className="namespace-item"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "8px",
+            width: "100%"
+          }}
+        >
+          <span>{namespace.replaceAll("_", " ")}</span>
+          <span
+            style={{
+              fontSize: "0.62rem",
+              lineHeight: 1.1,
+              padding: "1px 5px",
+              borderRadius: "8px",
+              letterSpacing: "0.25px",
+              border: "1px solid currentColor",
+              color:
+                providerKind === "api"
+                  ? theme.vars.palette.c_provider_api
+                  : theme.vars.palette.c_provider_local
+            }}
+          >
+            {providerKind === "api" ? "API" : "Local"}
+          </span>
+        </div>
       </ListItem>
       {hasChildren && isExpanded && (
         <div className="sublist">

@@ -58,6 +58,7 @@ FrontendToolRegistry.register({
       args.input_type,
       args.output_type,
       strictMatch,
+      "all",
     );
 
     const results = sortedResults.slice(0, limit).map((node) => {

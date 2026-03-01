@@ -15,14 +15,7 @@ import FavoritesTiles from "./FavoritesTiles";
 import isEqual from "lodash/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { AddCircleOutline } from "@mui/icons-material";
-
-type NamespaceTree = {
-  [key: string]: {
-    children: NamespaceTree;
-    disabled: boolean;
-    requiredKey?: string;
-  };
-};
+import { NamespaceTree } from "../../hooks/useNamespaceTree";
 
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
@@ -437,7 +430,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     allSearchMatches,
     hoveredNode,
     selectedInputType,
-    selectedOutputType
+    selectedOutputType,
+    selectedProviderType
   } = useNodeMenuStore((state) => ({
     searchTerm: state.searchTerm,
     selectedPath: state.selectedPath,
@@ -445,7 +439,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     allSearchMatches: state.allSearchMatches,
     hoveredNode: state.hoveredNode,
     selectedInputType: state.selectedInputType,
-    selectedOutputType: state.selectedOutputType
+    selectedOutputType: state.selectedOutputType,
+    selectedProviderType: state.selectedProviderType
   }));
 
   const allMetadata = useMetadataStore((state) => state.metadata);
@@ -471,7 +466,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedPathString ||
     searchTerm ||
     selectedInputType ||
-    selectedOutputType
+    selectedOutputType ||
+    selectedProviderType !== "all"
   );
 
   return (
@@ -480,7 +476,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       className={`${
         (searchTerm.length > minSearchTermLength ||
           selectedInputType ||
-          selectedOutputType) &&
+          selectedOutputType ||
+          selectedProviderType !== "all") &&
         searchResults.length > 0
           ? "has-search-results"
           : "no-search-results"
@@ -491,7 +488,8 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         {selectedPathString ||
         searchTerm ||
         selectedInputType ||
-        selectedOutputType ? (
+        selectedOutputType ||
+        selectedProviderType !== "all" ? (
           <>
             <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
               <RenderNodes nodes={searchResults} />
