@@ -80,10 +80,9 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   ".settings-sidebar": {
     width: "220px",
     minWidth: "220px",
-    backgroundColor: theme.vars.palette.action.disabledBackground,
+    backgroundColor: theme.vars.palette.background.default,
     padding: "1.5em 0",
-    overflowY: "auto",
-    borderRight: `1px solid ${theme.vars.palette.divider}`
+    overflowY: "auto"
   },
   ".settings-sidebar-item": {
     padding: "0.25em 1.5em",
@@ -92,7 +91,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     color: theme.vars.palette.grey[0],
     opacity: "0.7",
     transition: "all 0.2s ease",
-    borderLeft: "3px solid transparent",
+    borderLeft: "2px solid transparent",
     "&:hover": {
       opacity: 1,
       backgroundColor: theme.vars.palette.action.hover
@@ -118,8 +117,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     zIndex: 100,
     padding: "0 1em",
     display: "block",
-    backgroundColor: "transparent",
-    borderBottom: `1px solid ${theme.vars.palette.divider}`
+    backgroundColor: "transparent"
   },
   ".settings-content": {
     flex: 1,
@@ -141,13 +139,15 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     }
   },
   ".settings-section": {
-    backgroundColor: "transparent",
+    backgroundColor: theme.vars.palette.background.default,
     backdropFilter: "blur(5px)",
     borderRadius: "8px",
     padding: "0.5em 1.2em 1.2em 1.2em",
     margin: "1.5em 0 1.5em 0",
     boxShadow: "0 2px 12px rgba(0, 0, 0, 0.2)",
-    border: `1px solid ${theme.vars.palette.divider}`,
+    // border: `2px solid ${theme.vars.palette.divider}`,
+    border: "0 none",
+
     width: "100%",
     display: "flex",
     flexDirection: "column",
