@@ -502,8 +502,8 @@ export default function useConnectionHandlers() {
         if (
           nodeMetadata.is_dynamic &&
           connectDirection === "source" &&
-          node.type !== "fal.dynamic_schema.FalAI" &&
-          node.type !== "kie.dynamic_schema.KieAI"
+          node.type !== "fal.DynamicFal" &&
+          node.type !== "kie.DynamicKie"
         ) {
           // Use the source node's name as the property name
           const sourceNodeName =
