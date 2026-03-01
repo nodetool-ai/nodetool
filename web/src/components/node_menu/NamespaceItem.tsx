@@ -14,6 +14,14 @@ interface NamespaceItemProps {
   tree: NamespaceTree;
 }
 
+const formatNamespaceLabel = (value: string): string => {
+  const normalized = value.replaceAll("_", " ");
+  if (normalized.toLowerCase() === "openai") {
+    return "OpenAI";
+  }
+  return normalized;
+};
+
 const NamespaceItem: React.FC<NamespaceItemProps> = ({
   namespace,
   path,
@@ -44,7 +52,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
         } ${isHighlighted ? "highlighted" : "no-highlight"}`}
         onClick={handleClick}
       >
-        <div className="namespace-item">{namespace.replaceAll("_", " ")}</div>
+        <div className="namespace-item">{formatNamespaceLabel(namespace)}</div>
       </ListItem>
       {hasChildren && isExpanded && (
         <div className="sublist">
