@@ -78,6 +78,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
             min?: number;
             max?: number;
             default?: unknown;
+            enum?: (string | number)[] | null;
           };
           dynamic_inputs[k] = {
             ...meta,
@@ -87,7 +88,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
               ? meta.type_args
               : []) as TypeMetadata[],
             ...(meta.description != null && { description: meta.description }),
-            values: meta.values || (meta as Record<string, unknown>).enum
+            values: meta.values || meta.enum
           };
         }
         updateNodeData(nodeId, {
