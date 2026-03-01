@@ -200,6 +200,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           get().updateDownload(id, {
             status: data.status,
             id,
+            modelType: data.model_type,
             downloadedBytes: data.downloaded_bytes ?? 0,
             totalBytes: data.total_bytes ?? 0,
             totalFiles: data.total_files ?? 0,
