@@ -183,6 +183,7 @@ export const SearchInput: React.FC<SearchInputProps> = memo(({
                 >
                   <IconButton
                     className="clear-button"
+                    aria-label={clearTooltip}
                     onClick={handleClear}
                     size="small"
                   >
