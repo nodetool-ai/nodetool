@@ -66,7 +66,7 @@ const searchResultStyles = (theme: Theme) =>
       },
       ".result-title": {
         fontSize: "0.95rem",
-        fontWeight: 600,
+        fontWeight: 400,
         color: theme.vars.palette.text.primary,
         lineHeight: 1.3,
         "& .highlight": {
@@ -174,7 +174,10 @@ const searchResultStyles = (theme: Theme) =>
 
 const SearchResultItem = memo(
   forwardRef<HTMLDivElement, SearchResultItemProps>(
-    ({ node, onDragStart, onDragEnd, onClick, isKeyboardSelected = false }, ref) => {
+    (
+      { node, onDragStart, onDragEnd, onClick, isKeyboardSelected = false },
+      ref
+    ) => {
       const theme = useTheme();
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
@@ -182,17 +185,20 @@ const SearchResultItem = memo(
 
       // Parse description and tags - memoize to avoid re-computation on every render
       const { description, tags } = useMemo(
-        () => formatNodeDocumentation(
-          node.description,
-          searchTerm,
-          node.searchInfo
-        ),
+        () =>
+          formatNodeDocumentation(
+            node.description,
+            searchTerm,
+            node.searchInfo
+          ),
         [node.description, searchTerm, node.searchInfo]
       );
 
       // Find matching tags by comparing with search term - memoize
       const matchingTags = useMemo(() => {
-        if (!searchTerm) {return [];}
+        if (!searchTerm) {
+          return [];
+        }
         const searchLower = searchTerm.toLowerCase();
         return tags.filter((tag) => tag.toLowerCase().includes(searchLower));
       }, [searchTerm, tags]);
@@ -209,10 +215,8 @@ const SearchResultItem = memo(
       const [isExpanded, setIsExpanded] = useState(false);
 
       const handleClick = useCallback(() => {
-          onClick();
-        },
-        [onClick]
-      );
+        onClick();
+      }, [onClick]);
 
       const handleToggleExpand = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
@@ -264,9 +268,9 @@ const SearchResultItem = memo(
                   }}
                 />
                 <Typography className="result-title" component="div">
-                  <HighlightText 
-                    text={node.title} 
-                    query={searchTerm} 
+                  <HighlightText
+                    text={node.title}
+                    query={searchTerm}
                     matchStyle="primary"
                   />
                 </Typography>
@@ -283,9 +287,9 @@ const SearchResultItem = memo(
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <Typography className="result-namespace" component="div">
-                <HighlightText 
-                  text={node.namespace} 
-                  query={searchTerm} 
+                <HighlightText
+                  text={node.namespace}
+                  query={searchTerm}
                   matchStyle="primary"
                 />
               </Typography>
@@ -301,9 +305,9 @@ const SearchResultItem = memo(
 
           {truncatedDescription && (
             <Typography className="result-description" component="div">
-              <HighlightText 
-                text={truncatedDescription} 
-                query={searchTerm} 
+              <HighlightText
+                text={truncatedDescription}
+                query={searchTerm}
                 matchStyle="primary"
               />
             </Typography>

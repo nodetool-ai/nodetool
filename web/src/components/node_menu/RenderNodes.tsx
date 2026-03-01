@@ -44,8 +44,8 @@ const getServiceFromNamespace = (namespace: string): string => {
   return parts[0];
 };
 
-const NODE_ROW_HEIGHT = 44;
-const NAMESPACE_ROW_HEIGHT = 34;
+const NODE_ROW_HEIGHT = 32;
+const NAMESPACE_ROW_HEIGHT = 28;
 const API_VALIDATION_ROW_HEIGHT = 36;
 
 type FlatRow =

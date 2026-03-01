@@ -97,14 +97,14 @@ const namespacePanelStyles = (theme: Theme) =>
       padding: "0.42em 0.95em",
       backgroundColor: "transparent",
       fontFamily: theme.fontFamily1,
-      fontSize: "0.9rem",
+      fontSize: theme.fontSizeSmall,
       fontWeight: 400,
       lineHeight: 1.2,
       transition: "all 0.2s ease",
       overflow: "hidden",
       margin: "1px 2px",
-      borderRadius: "8px",
-      borderLeft: "3px solid transparent"
+      borderRadius: "0",
+      borderLeft: "1px solid transparent"
     },
     "& .namespaces .list-item.disabled": {
       backgroundColor: "transparent",
@@ -119,9 +119,7 @@ const namespacePanelStyles = (theme: Theme) =>
       marginTop: "0.5em"
     },
     "& .namespaces .list-item:hover": {
-      backgroundColor: theme.vars.palette.action.hover,
-      paddingLeft: "1.1em",
-      transform: "translateX(2px)"
+      backgroundColor: theme.vars.palette.action.hover
     },
     "& .namespaces .list-item.expanded": {
       opacity: 1
@@ -136,7 +134,7 @@ const namespacePanelStyles = (theme: Theme) =>
     },
     "& .namespaces .list-item.selected": {
       backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-      borderLeft: "3px solid var(--palette-primary-main)",
+      borderLeft: "1px solid var(--palette-primary-main)",
       fontWeight: 600,
       color: "var(--palette-primary-main)",
       boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
@@ -149,7 +147,7 @@ const namespacePanelStyles = (theme: Theme) =>
       border: "none"
     },
     "& .namespaces .list-item.highlighted": {
-      borderLeft: `3px solid ${"var(--palette-primary-main)"}`
+      borderLeft: `1px solid ${"var(--palette-primary-main)"}`
     },
     "& .namespaces .list-item.highlighted.selected .namespace-item": {
       color: "var(--palette-primary-main)"
@@ -176,9 +174,9 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
 
   const minSearchTermLength =
     searchTerm.includes("+") ||
-      searchTerm.includes("-") ||
-      searchTerm.includes("*") ||
-      searchTerm.includes("/")
+    searchTerm.includes("-") ||
+    searchTerm.includes("*") ||
+    searchTerm.includes("/")
       ? 0
       : 1;
 
@@ -203,7 +201,10 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
   }, [setSelectedPath]);
 
   return (
-    <div css={namespacePanelStyles(theme)} className="namespace-panel-container">
+    <div
+      css={namespacePanelStyles(theme)}
+      className="namespace-panel-container"
+    >
       <List className="namespace-list">
         <div className="namespaces">
           <div
@@ -218,9 +219,7 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
             }
           >
             <div className="namespace-item">
-              {searchTerm.length > minSearchTermLength
-                ? "All results"
-                : "Home"}
+              {searchTerm.length > minSearchTermLength ? "All results" : "Home"}
             </div>
           </div>
         </div>
