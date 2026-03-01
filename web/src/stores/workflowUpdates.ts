@@ -24,6 +24,7 @@ import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
+import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
@@ -370,7 +371,7 @@ export const handleUpdate = (
     }
 
     switch (job.status) {
-      case "completed":
+      case "completed": {
         const formattedDuration = formatJobDurationSeconds(job.duration);
         runner.addNotification({
           type: "info",
@@ -384,6 +385,7 @@ export const handleUpdate = (
         clearProgress(workflow.id);
         clearTimings(workflow.id);
         break;
+      }
       case "cancelled":
         runner.addNotification({
           type: "info",
@@ -402,7 +404,7 @@ export const handleUpdate = (
           type: "error",
           alert: true,
           content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
-          timeout: 30000
+          timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
         });
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
@@ -430,7 +432,7 @@ export const handleUpdate = (
           alert: true,
           content:
             job.message || "Workflow suspended - waiting for external input",
-          timeout: 10000
+          timeout: NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED
         });
         break;
     }
