@@ -563,8 +563,8 @@ export const handleUpdate = (
         const nextStatic: Record<string, unknown> = {};
 
         const isDynamicSchemaNode =
-          update.node_type === "fal.dynamic_schema.FalAI" ||
-          update.node_type === "kie.dynamic_schema.KieAI";
+          update.node_type === "fal.DynamicFal" ||
+          update.node_type === "kie.DynamicKie";
 
         Object.entries(update.properties).forEach(([key, value]) => {
           if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {

@@ -8,7 +8,7 @@ import { resolveFalSchemaClient } from "../../../utils/falDynamicSchema";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-export const DYNAMIC_FAL_NODE_TYPE = "fal.dynamic_schema.FalAI";
+export const DYNAMIC_FAL_NODE_TYPE = "fal.DynamicFal";
 
 interface FalSchemaLoaderProps {
   nodeId: string;

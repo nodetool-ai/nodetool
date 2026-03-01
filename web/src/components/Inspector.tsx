@@ -469,8 +469,8 @@ const Inspector: React.FC = () => {
                   }
                 }
 
-                const isFalNode = selectedNode.type === "fal.dynamic_schema.FalAI" ||
-                  selectedNode.type === "kie.dynamic_schema.KieAI";
+                const isFalNode = selectedNode.type === "fal.DynamicFal" ||
+                  selectedNode.type === "kie.DynamicKie";
 
                 // Build property object with proper typing
                 const property: Property = {
