@@ -60,11 +60,7 @@ jest.mock('@mui/material/styles', () => {
           c_node_bg: '#fff',
           glass: { blur: 'blur(10px)' },
           primary: { main: '#000' },
-          text: {
-            primary: '#000',
-            secondary: '#666'
-          },
-          divider: '#e0e0e0'
+          text: { secondary: '#666' }
         }
       }
     }),
