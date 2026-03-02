@@ -57,6 +57,15 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
     onSelect(preset);
   }, [onSelect]);
 
+  // Memoize preset handlers to prevent recreation on each render
+  const presetHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const preset of IMAGE_SIZE_PRESETS) {
+      handlers[`${preset.width}x${preset.height}-${preset.label}`] = () => handlePresetSelect(preset);
+    }
+    return handlers;
+  }, [handlePresetSelect]);
+
   return (
     <Menu
       className="presets-menu"
@@ -132,7 +141,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
             <MenuItem
               className="preset-menu-item"
               key={`${preset.width}x${preset.height}-${preset.label}`}
-              onClick={() => handlePresetSelect(preset)}
+              onClick={presetHandlers[`${preset.width}x${preset.height}-${preset.label}`]}
               selected={currentWidth === preset.width && currentHeight === preset.height}
               sx={{ py: 1, px: 2 }}
             >
