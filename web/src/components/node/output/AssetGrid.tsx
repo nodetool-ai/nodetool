@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { AssetRef } from "../../../stores/ApiTypes";
-import PreviewImageGrid from "../PreviewImageGrid";
+import PreviewImageGrid, { ImageSource } from "../PreviewImageGrid";
 import { resolveAssetUri } from "./hooks";
 
 type Props = {
@@ -8,14 +8,23 @@ type Props = {
   onOpenIndex: (index: number) => void;
 };
 
+/**
+ * Type guard to check if an AssetRef is an image type with data/uri
+ */
+function isImageValue(item: AssetRef): item is AssetRef & { data?: Uint8Array; uri: string } {
+  return (item as { type?: string }).type === "image" &&
+    ("uri" in item || "data" in item);
+}
+
 export const AssetGrid: React.FC<Props> = ({ values, onOpenIndex }) => {
-  const images = values
-    .filter((item) => item && (item as any).type === "image")
-    .map((item) =>
-      (item as any).uri
-        ? resolveAssetUri((item as any).uri as string)
-        : ((item as any).data as unknown as Uint8Array)
-    );
+  const images: ImageSource[] = values
+    .filter(isImageValue)
+    .map((item): ImageSource | undefined =>
+      item.uri
+        ? resolveAssetUri(item.uri)
+        : item.data
+    )
+    .filter((image): image is ImageSource => image !== undefined);
   return <PreviewImageGrid images={images} onDoubleClick={onOpenIndex} />;
 };
 
