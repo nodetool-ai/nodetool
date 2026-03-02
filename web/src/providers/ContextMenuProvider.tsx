@@ -4,7 +4,7 @@
  * and maintain menu state including position, associated node, and metadata.
  */
 
-import React, { useCallback, useState, useRef } from "react";
+import React, { useCallback, useState, useRef, useEffect } from "react";
 import {
   ContextMenuContext,
   ContextMenuState
@@ -21,6 +21,22 @@ export function ContextMenuProvider({
   const currentClickOutsideHandlerRef = useRef<
     ((event: MouseEvent) => void) | null
   >(null);
+  const clickOutsideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout and event listener on unmount
+  useEffect(() => {
+    return () => {
+      if (clickOutsideTimeoutRef.current) {
+        clearTimeout(clickOutsideTimeoutRef.current);
+      }
+      if (currentClickOutsideHandlerRef.current) {
+        document.removeEventListener(
+          "mouseup",
+          currentClickOutsideHandlerRef.current
+        );
+      }
+    };
+  }, []);
   const [state, setState] = useState<ContextMenuState>({
     openMenuType: null,
     nodeId: null,
@@ -125,7 +141,12 @@ export function ContextMenuProvider({
           payload
         });
 
-        setTimeout(() => {
+        // Clear any existing timeout before setting a new one
+        if (clickOutsideTimeoutRef.current) {
+          clearTimeout(clickOutsideTimeoutRef.current);
+        }
+
+        clickOutsideTimeoutRef.current = setTimeout(() => {
           currentClickOutsideHandlerRef.current = clickOutsideHandler(
             outsideClickIgnoreClass ? outsideClickIgnoreClass : "body"
           );
