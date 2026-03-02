@@ -17,6 +17,7 @@ import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { DynamicFalSchemaContent } from "./DynamicFalSchemaContent";
+import { FalSchemaLoader } from "./FalSchemaLoader";
 
 const TOOLBAR_SHOW_DELAY = 200;
 
@@ -48,7 +49,7 @@ const Toolbar = memo(function Toolbar({
 const FAL_HEADER_COLOR = "#8B5CF6";
 
 /**
- * Dedicated React Flow node for fal.dynamic_schema.FalAI.
+ * Dedicated React Flow node for fal.DynamicFal.
  * Full control over layout, styling, and future FAL-specific UI (credits, docs).
  */
 const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
@@ -135,23 +136,28 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     >
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
       <NodeResizeHandle minWidth={150} minHeight={150} />
-      <NodeHeader
-        id={id}
-        selected={selected}
-        data={data}
-        backgroundColor={FAL_HEADER_COLOR}
-        metadataTitle={headerTitle}
-        hasParent={hasParent}
-        iconType={metadata?.outputs?.[0]?.type?.type}
-        iconBaseColor={FAL_HEADER_COLOR}
-        workflowId={workflow_id}
-        showResultButton={false}
-        showInputsButton={false}
-        onShowResults={() => {}}
-        onShowInputs={() => {}}
-        externalLink={data.endpoint_id ? `https://fal.ai/models/${data.endpoint_id}` : undefined}
-        externalLinkTitle="View on fal.ai"
-      />
+      <Box sx={{ position: "relative" }}>
+        <NodeHeader
+          id={id}
+          selected={selected}
+          data={data}
+          backgroundColor={FAL_HEADER_COLOR}
+          metadataTitle={headerTitle}
+          hasParent={hasParent}
+          iconType={metadata?.outputs?.[0]?.type?.type}
+          iconBaseColor={FAL_HEADER_COLOR}
+          workflowId={workflow_id}
+          showResultButton={false}
+          showInputsButton={false}
+          onShowResults={() => {}}
+          onShowInputs={() => {}}
+          externalLink={data.endpoint_id ? `https://fal.ai/models/${data.endpoint_id}` : undefined}
+          externalLinkTitle="View on fal.ai"
+        />
+        <Box sx={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)" }}>
+          <FalSchemaLoader nodeId={id} data={data} />
+        </Box>
+      </Box>
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={statusValue} />
       <NodeExecutionTime

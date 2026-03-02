@@ -347,14 +347,24 @@ const buildFilename = (
   return `${desired.slice(0, dotIndex)}${suffix}${desired.slice(dotIndex)}`;
 };
 
+const isExternalUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    return parsed.origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+};
+
 const fetchBinaryFromUri = async (uri: string): Promise<Uint8Array> => {
-  const headers = await authHeader();
   const resolvedUri = resolveDownloadUri(uri);
-  const response = await fetch(resolvedUri, {
-    credentials: "include",
-    mode: "cors",
-    headers
-  });
+  const external = isExternalUrl(resolvedUri);
+
+  const fetchOptions: RequestInit = external
+    ? { mode: "cors" }
+    : { credentials: "include", mode: "cors", headers: await authHeader() };
+
+  const response = await fetch(resolvedUri, fetchOptions);
   if (!response.ok) {
     throw new Error(`Unexpected response ${response.status}`);
   }
@@ -382,7 +392,8 @@ const createSingleAssetFile = async (
     (data.startsWith("http://") || data.startsWith("https://"));
 
   const shouldFetchFromUri =
-    typeof output?.uri === "string" && (isDataEmpty || stringLooksLikeUrl);
+    typeof output?.uri === "string" &&
+    (isDataEmpty || stringLooksLikeUrl || data === output);
   const shouldDownloadAsset =
     !shouldFetchFromUri &&
     typeof output?.asset_id === "string" &&
