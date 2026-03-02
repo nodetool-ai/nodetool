@@ -16,7 +16,7 @@
  * />
  */
 
-import React, { forwardRef, memo } from "react";
+import React, { forwardRef, memo, useMemo } from "react";
 import {
   ToggleButton,
   ToggleButtonGroup,
@@ -123,7 +123,7 @@ export const ViewModeToggle = memo(
         }
       };
 
-      const getSizeStyles = () => {
+      const sizeStyles = useMemo(() => {
         if (buttonSize === "medium") {
           return {
             padding: "6px 12px",
@@ -134,9 +134,7 @@ export const ViewModeToggle = memo(
           padding: "4px 8px",
           "& svg": { fontSize: 18 }
         };
-      };
-
-      const sizeStyles = getSizeStyles();
+      }, [buttonSize]);
 
       return (
         <ToggleButtonGroup
