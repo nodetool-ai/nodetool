@@ -255,10 +255,11 @@ const ProviderSetupPanel: React.FC = () => {
       // Clear the input after successful save
       setApiKeys((prev) => ({ ...prev, [variables.key as ProviderKey]: "" }));
     },
-    onError: (error: any, variables) => {
+    onError: (error: unknown, variables) => {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       addNotification({
         type: "error",
-        content: `Failed to save ${variables.key}: ${error.message}`,
+        content: `Failed to save ${variables.key}: ${errorMessage}`,
         dismissable: true
       });
     },
