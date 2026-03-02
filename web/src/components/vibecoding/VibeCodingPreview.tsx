@@ -45,7 +45,7 @@ const createStyles = (theme: Theme) =>
     ".preview-frame-container": {
       flex: 1,
       position: "relative",
-      backgroundColor: "#ffffff"
+      backgroundColor: theme.palette.background.paper
     },
     ".preview-frame": {
       width: "100%",

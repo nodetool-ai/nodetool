@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
       width: "2em",
       height: "2em",
       backgroundColor: "rgba(0, 0, 0, 0.8)",
-      color: "#fff",
+      color: "var(--palette-grey-0)",
       borderRadius: "50%",
       padding: "0.3em"
     },
@@ -212,11 +212,11 @@ const styles = (theme: Theme) =>
       backgroundColor: "rgba(0,0,0,0.85)",
       borderRadius: 8,
       zIndex: 10001,
-      color: "#fff",
+      color: "var(--palette-grey-0)",
       fontSize: 13
     },
     ".compare-mode-bar button": {
-      color: "#fff",
+      color: "var(--palette-grey-0)",
       textTransform: "none"
     },
     ".select-for-compare": {
@@ -229,7 +229,7 @@ const styles = (theme: Theme) =>
       backgroundColor: "rgba(0,0,0,0.7)",
       borderRadius: 6,
       fontSize: 12,
-      color: "#fff"
+      color: "var(--palette-grey-0)"
     },
     ".prev-next-items .item.compare-selected": {
       outline: "3px solid",
