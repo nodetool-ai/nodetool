@@ -35,25 +35,31 @@ const useStatusStore = create<StatusStore>((set, get) => ({
    * @param nodeIds Optional set of node IDs to clear. If omitted, clears all nodes in the workflow.
    */
   clearStatuses: (workflowId: string, nodeIds?: Set<string>) => {
+    const statuses = get().statuses;
+    const newStatuses = { ...statuses };
+    let changed = false;
+
     if (nodeIds) {
       const keysToRemove = new Set(
         Array.from(nodeIds).map((id) => hashKey(workflowId, id))
       );
-      set((state) => ({
-        statuses: Object.fromEntries(
-          Object.entries(state.statuses).filter(
-            ([key]) => !keysToRemove.has(key)
-          )
-        )
-      }));
-    } else {
-      const statuses = get().statuses;
-      for (const key in statuses) {
-        if (key.startsWith(workflowId)) {
-          delete statuses[key];
+      for (const key in newStatuses) {
+        if (keysToRemove.has(key)) {
+          delete newStatuses[key];
+          changed = true;
         }
       }
-      set({ statuses });
+    } else {
+      for (const key in newStatuses) {
+        if (key.startsWith(workflowId)) {
+          delete newStatuses[key];
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      set({ statuses: newStatuses });
     }
   },
 
