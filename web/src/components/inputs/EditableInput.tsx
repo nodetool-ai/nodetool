@@ -112,7 +112,11 @@ const EditableInput: React.FC<EditableInputProps> = ({
         event.preventDefault();
         event.stopPropagation();
         _onBlur(event as unknown as React.FocusEvent<HTMLInputElement>);
+        return;
       }
+      // Prevent all other keys from bubbling to ReactFlow
+      // (e.g. Backspace/Delete would otherwise delete the node)
+      event.stopPropagation();
     },
     [_onBlur]
   );
