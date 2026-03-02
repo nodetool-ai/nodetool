@@ -2,6 +2,33 @@ import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
 
 /**
+ * Base type for typed output values with a type discriminator
+ */
+interface TypedValue {
+  type: string;
+}
+
+/**
+ * Video output value - either has byte data or a URI reference
+ */
+interface VideoValue extends TypedValue {
+  type: "video";
+  data?: Uint8Array;
+  uri?: string;
+}
+
+/**
+ * Image output value - either has byte data or a URI reference
+ */
+interface ImageValue extends TypedValue {
+  type: "image";
+  data?: Uint8Array;
+  uri?: string;
+  id?: string;
+  name?: string;
+}
+
+/**
  * Resolves asset URIs to their actual URLs.
  * Converts asset:// URIs to /api/storage/ URLs.
  * Passes through other URI schemes unchanged.
@@ -71,44 +98,47 @@ export function getMimeTypeFromUri(
   }
 }
 
-export function useVideoSrc(value: any) {
+export function useVideoSrc(value: unknown) {
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
-    if (value?.type === "video" && videoRef.current) {
-      if (value?.data) {
-        const blob = new Blob([value?.data]);
+    const videoValue = value as VideoValue | null;
+    if (videoValue?.type === "video" && videoRef.current) {
+      if (videoValue.data) {
+        const blob = new Blob([videoValue.data]);
         const url = URL.createObjectURL(blob);
         videoRef.current.src = url;
         return () => URL.revokeObjectURL(url);
-      } else if (value?.uri) {
-        videoRef.current.src = resolveAssetUri(value.uri);
+      } else if (videoValue.uri) {
+        videoRef.current.src = resolveAssetUri(videoValue.uri);
       }
     }
   }, [value]);
   return videoRef;
 }
 
-export function useImageAssets(value: any) {
+export function useImageAssets(value: unknown) {
   return useMemo(() => {
+    const imageValues = value as ImageValue[];
     if (
-      !Array.isArray(value) ||
-      value.length === 0 ||
-      value[0]?.type !== "image"
+      !Array.isArray(imageValues) ||
+      imageValues.length === 0 ||
+      imageValues[0]?.type !== "image"
     ) {
       return { assets: [] as Asset[], urls: [] as string[] };
     }
     const urls: string[] = [];
-    const assets: Asset[] = (value as AssetRef[]).map(
+    const assets: Asset[] = (imageValues as AssetRef[]).map(
       (item: AssetRef, index: number) => {
+        const imageItem = item as ImageValue;
         const contentType = "image/png";
         let url = "";
-        if ((item as any).uri) {
-          url = resolveAssetUri((item as any).uri as string);
-        } else if ((item as any).data) {
+        if (imageItem.uri) {
+          url = resolveAssetUri(imageItem.uri);
+        } else if (imageItem.data) {
           try {
             // Ensure the typed array is backed by a non-shared ArrayBuffer (BlobPart typing)
             const safeBytes: Uint8Array<ArrayBuffer> = new Uint8Array(
-              (item as any).data as Uint8Array<ArrayBufferLike>
+              imageItem.data as Uint8Array<ArrayBufferLike>
             );
             const blob = new Blob([safeBytes], {
               type: contentType
@@ -120,11 +150,11 @@ export function useImageAssets(value: any) {
           }
         }
         return {
-          id: (item as any).id || `output-image-${index}`,
+          id: imageItem.id || `output-image-${index}`,
           user_id: "",
           workflow_id: null,
           parent_id: "",
-          name: (item as any).name || `Image ${index + 1}.png`,
+          name: imageItem.name || `Image ${index + 1}.png`,
           content_type: contentType,
           metadata: {},
           created_at: new Date().toISOString(),
