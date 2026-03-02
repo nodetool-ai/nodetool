@@ -292,8 +292,8 @@ describe("HfCacheStatusStore", () => {
       });
 
       const { statuses, pending } = useHfCacheStatusStore.getState();
-      // On error, status defaults to false
-      expect(statuses["error/model"]).toBe(false);
+      // On error, status remains undefined to avoid false negatives
+      expect(statuses["error/model"]).toBeUndefined();
       // Pending should be cleared
       expect(pending["error/model"]).toBeUndefined();
     });
