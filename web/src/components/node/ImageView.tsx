@@ -66,7 +66,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     height: 24,
     padding: "4px",
     backgroundColor: "rgba(0, 0, 0, 0.6)",
-    color: "#fff",
+    color: "var(--palette-grey-0)",
     borderRadius: "4px",
     "&:hover": {
       backgroundColor: "rgba(0, 0, 0, 0.85)"
