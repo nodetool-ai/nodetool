@@ -210,6 +210,7 @@ export const PlaybackButton = memo(
         >
           <IconButton
             ref={ref}
+            aria-label={getTooltip()}
             className={cn(
               "playback-button",
               nodrag && editorClassNames.nodrag,
