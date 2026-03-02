@@ -151,6 +151,7 @@ export const ToolbarIconButton = memo(
         >
           <IconButton
             ref={ref}
+            aria-label={typeof tooltip === "string" ? tooltip : undefined}
             className={cn(
               "toolbar-icon-button",
               nodrag && editorClassNames.nodrag,

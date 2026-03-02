@@ -289,6 +289,7 @@ export const CircularActionButton = memo(
         <IconButton
           ref={ref}
           tabIndex={-1}
+          aria-label={typeof tooltip === "string" ? tooltip : undefined}
           className={cn(
             "circular-action-button",
             nodrag && editorClassNames.nodrag,
