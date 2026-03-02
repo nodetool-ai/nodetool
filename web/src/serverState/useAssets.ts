@@ -114,7 +114,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     );
 
     // Sort by the user's preferred order (views handle grouping by type)
-    return nonFolderAssets.sort((a, b) => {
+    return [...nonFolderAssets].sort((a, b) => {
       if (settings.assetsOrder === "name") {
         return a.name.localeCompare(b.name);
       } else if (settings.assetsOrder === "date") {
