@@ -24,6 +24,7 @@ import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
+import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
@@ -403,7 +404,7 @@ export const handleUpdate = (
           type: "error",
           alert: true,
           content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
-          timeout: 30000
+          timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
         });
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
@@ -431,7 +432,7 @@ export const handleUpdate = (
           alert: true,
           content:
             job.message || "Workflow suspended - waiting for external input",
-          timeout: 10000
+          timeout: NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED
         });
         break;
     }
@@ -562,8 +563,8 @@ export const handleUpdate = (
         const nextStatic: Record<string, unknown> = {};
 
         const isDynamicSchemaNode =
-          update.node_type === "fal.dynamic_schema.FalAI" ||
-          update.node_type === "kie.dynamic_schema.KieAI";
+          update.node_type === "fal.DynamicFal" ||
+          update.node_type === "kie.DynamicKie";
 
         Object.entries(update.properties).forEach(([key, value]) => {
           if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {

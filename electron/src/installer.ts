@@ -891,32 +891,34 @@ async function ensureLlamaCppInstalled(
   }
 }
 
-// async function ensureOllamaCondaInstalled(envPrefix: string): Promise<string> {
-//   const condaBinDir =
-//     os.platform() === "win32"
-//       ? path.join(envPrefix, "Scripts")
-//       : path.join(envPrefix, "bin");
-//   const binaryName = os.platform() === "win32" ? "ollama.exe" : "ollama";
-//   const binaryPath = path.join(condaBinDir, binaryName);
+async function ensureOllamaInstalled(
+  envPrefix: string
+): Promise<void> {
+  const executableName =
+    os.platform() === "win32" ? "ollama.exe" : "ollama";
+  const condaBinDir =
+    os.platform() === "win32"
+      ? path.join(envPrefix, "Scripts")
+      : path.join(envPrefix, "bin");
+  const ollamaBinaryPath = path.join(condaBinDir, executableName);
 
-//   if (await fileExists(binaryPath)) {
-//     logMessage(`Ollama binary already available at ${binaryPath}`);
-//     return binaryPath;
-//   }
+  if (await fileExists(ollamaBinaryPath)) {
+    logMessage(`Ollama binary already present at ${ollamaBinaryPath}`);
+    return;
+  }
 
-//   logMessage(
-//     "Ollama binary not found in conda environment, installing via conda..."
-//   );
-//   await installCondaPackages(envPrefix);
+  logMessage("Ollama binary missing, reinstalling package via micromamba");
+  const micromambaExecutable = await ensureMicromambaAvailable();
+  await installCondaPackages(micromambaExecutable, envPrefix, "ollama", {
+    installOllama: true,
+    installLlamaCpp: false,
+  });
 
-//   if (!(await fileExists(binaryPath))) {
-//     throw new Error(
-//       "Ollama binary is still missing after conda installation. Please reinstall or install Ollama manually."
-//     );
-//   }
+  if (!(await fileExists(ollamaBinaryPath))) {
+    throw new Error(
+      "Ollama binary was not found after conda installation. Please try reinstalling manually."
+    );
+  }
+}
 
-//   logMessage(`Ollama installed at ${binaryPath}`);
-//   return binaryPath;
-// }
-
-export { promptForInstallLocation, installCondaEnvironment };
+export { promptForInstallLocation, installCondaEnvironment, ensureOllamaInstalled, ensureLlamaCppInstalled };

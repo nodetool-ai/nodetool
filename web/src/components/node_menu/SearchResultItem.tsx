@@ -10,12 +10,16 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { colorForType, IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
+import { getProviderKindForNamespace } from "../../utils/nodeProvider";
 
 interface SearchResultItemProps {
   node: NodeMetadata;
-  onDragStart: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragStart: (
+    node: NodeMetadata,
+    event: React.DragEvent<HTMLDivElement>
+  ) => void;
   onDragEnd?: () => void;
-  onClick: () => void;
+  onClick: (node: NodeMetadata) => void;
   isKeyboardSelected?: boolean;
 }
 
@@ -66,7 +70,7 @@ const searchResultStyles = (theme: Theme) =>
       },
       ".result-title": {
         fontSize: "0.95rem",
-        fontWeight: 600,
+        fontWeight: 400,
         color: theme.vars.palette.text.primary,
         lineHeight: 1.3,
         "& .highlight": {
@@ -127,6 +131,13 @@ const searchResultStyles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary,
         letterSpacing: "0.3px"
       },
+      ".provider-tag": {
+        fontSize: "0.65rem",
+        padding: "2px 6px",
+        borderRadius: "8px",
+        letterSpacing: "0.3px",
+        border: "1px solid currentColor"
+      },
       ".io-info-wrapper": {
         position: "absolute",
         left: 0,
@@ -174,25 +185,32 @@ const searchResultStyles = (theme: Theme) =>
 
 const SearchResultItem = memo(
   forwardRef<HTMLDivElement, SearchResultItemProps>(
-    ({ node, onDragStart, onDragEnd, onClick, isKeyboardSelected = false }, ref) => {
+    (
+      { node, onDragStart, onDragEnd, onClick, isKeyboardSelected = false },
+      ref
+    ) => {
       const theme = useTheme();
       const outputType =
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
+      const providerKind = getProviderKindForNamespace(node.namespace);
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
 
       // Parse description and tags - memoize to avoid re-computation on every render
       const { description, tags } = useMemo(
-        () => formatNodeDocumentation(
-          node.description,
-          searchTerm,
-          node.searchInfo
-        ),
+        () =>
+          formatNodeDocumentation(
+            node.description,
+            searchTerm,
+            node.searchInfo
+          ),
         [node.description, searchTerm, node.searchInfo]
       );
 
       // Find matching tags by comparing with search term - memoize
       const matchingTags = useMemo(() => {
-        if (!searchTerm) {return [];}
+        if (!searchTerm) {
+          return [];
+        }
         const searchLower = searchTerm.toLowerCase();
         return tags.filter((tag) => tag.toLowerCase().includes(searchLower));
       }, [searchTerm, tags]);
@@ -209,10 +227,8 @@ const SearchResultItem = memo(
       const [isExpanded, setIsExpanded] = useState(false);
 
       const handleClick = useCallback(() => {
-          onClick();
-        },
-        [onClick]
-      );
+        onClick(node);
+      }, [onClick, node]);
 
       const handleToggleExpand = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
@@ -227,6 +243,13 @@ const SearchResultItem = memo(
         // No longer auto-collapse on leave
       }, []);
 
+      const handleDragStart = useCallback(
+        (event: React.DragEvent<HTMLDivElement>) => {
+          onDragStart(node, event);
+        },
+        [onDragStart, node]
+      );
+
       return (
         <div
           ref={ref}
@@ -236,7 +259,7 @@ const SearchResultItem = memo(
           onClick={handleClick}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          onDragStart={onDragStart}
+          onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
         >
           <div className="result-header">
@@ -264,9 +287,9 @@ const SearchResultItem = memo(
                   }}
                 />
                 <Typography className="result-title" component="div">
-                  <HighlightText 
-                    text={node.title} 
-                    query={searchTerm} 
+                  <HighlightText
+                    text={node.title}
+                    query={searchTerm}
                     matchStyle="primary"
                   />
                 </Typography>
@@ -279,13 +302,24 @@ const SearchResultItem = memo(
                     ))}
                   </div>
                 )}
+                <span
+                  className="provider-tag"
+                  style={{
+                    color:
+                      providerKind === "api"
+                        ? theme.vars.palette.c_provider_api
+                        : theme.vars.palette.c_provider_local
+                  }}
+                >
+                  {providerKind === "api" ? "API" : "Local"}
+                </span>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <Typography className="result-namespace" component="div">
-                <HighlightText 
-                  text={node.namespace} 
-                  query={searchTerm} 
+                <HighlightText
+                  text={node.namespace}
+                  query={searchTerm}
                   matchStyle="primary"
                 />
               </Typography>
@@ -301,9 +335,9 @@ const SearchResultItem = memo(
 
           {truncatedDescription && (
             <Typography className="result-description" component="div">
-              <HighlightText 
-                text={truncatedDescription} 
-                query={searchTerm} 
+              <HighlightText
+                text={truncatedDescription}
+                query={searchTerm}
                 matchStyle="primary"
               />
             </Typography>

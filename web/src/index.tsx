@@ -216,10 +216,10 @@ const NavigateToStart = () => {
   }, [state, showWelcomeOnStartup, createNewWorkflow, navigate, isProcessing]);
 
   if (state === "init") {
-    return <div>Loading...</div>;
+    return null;
   }
 
-  return <div>Loading...</div>;
+  return null;
 };
 
 function getRoutes() {

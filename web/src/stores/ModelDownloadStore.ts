@@ -64,6 +64,7 @@ interface ModelDownloadStore {
 // Reconnection settings
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_BASE_DELAY_MS = 2000; // Start with 2 seconds, then exponential backoff
+const LLAMA_CPP_MODEL_TYPES = new Set(["llama_cpp_model", "llama_cpp", "hf.gguf"]);
 
 const calculateSpeed = (speedHistory: SpeedDataPoint[]): number | null => {
   if (speedHistory.length < 2) {return null;}
@@ -199,6 +200,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           get().updateDownload(id, {
             status: data.status,
             id,
+            modelType: data.model_type,
             downloadedBytes: data.downloaded_bytes ?? 0,
             totalBytes: data.total_bytes ?? 0,
             totalFiles: data.total_files ?? 0,
@@ -215,7 +217,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             // Restart llama-server if a llama_cpp model was downloaded
             const download = get().downloads[id];
             if (
-              download?.modelType === "llama_cpp_model" &&
+              download?.modelType &&
+              LLAMA_CPP_MODEL_TYPES.has(download.modelType) &&
               window.api?.restartLlamaServer
             ) {
               window.api.restartLlamaServer().catch((e: unknown) => {

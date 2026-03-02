@@ -65,23 +65,22 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".node-description": {
       fontWeight: 400,
-      fontSize: "0.95rem",
+      fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.text.primary,
       whiteSpace: "pre-wrap",
-      marginBottom: "1em",
-      lineHeight: "1.6",
+      marginBottom: ".5em",
       display: "block",
       "& span": {
         display: "inline-block",
         position: "static",
         height: "auto",
         maxHeight: "none",
-        lineHeight: "1.6em"
+        lineHeight: "1.3em"
       }
     },
     ".node-tags span": {
       fontWeight: 500,
-      fontSize: "0.75rem",
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -96,12 +95,8 @@ const nodeInfoStyles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.action.selected
       }
     },
-    ".node-usecases h4": {
+    ".node-usecases": {
       fontSize: theme.fontSizeSmaller,
-      lineHeight: "2em"
-    },
-    ".node-usecases div": {
-      fontSize: theme.fontSizeNormal,
       fontWeight: "300",
       color: theme.vars.palette.text.secondary,
       lineHeight: "1.3em",
@@ -269,7 +264,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       <Typography component="div" className="node-usecases">
         {description.useCases.raw && (
           <>
-            <h4>Use cases</h4>
             <HighlightText
               text={description.useCases.raw}
               query={searchTerm}
@@ -292,7 +286,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )
       ) : null}
 
-      <Divider sx={{ opacity: 0.5, margin: "1em 0" }} />
+      <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
 
       {showConnections && (
         <div className="inputs-outputs">

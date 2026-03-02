@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { Box } from "@mui/material";
+import { Box, Chip } from "@mui/material";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";
@@ -41,8 +41,9 @@ const treeStyles = (theme: Theme) =>
       boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
-      transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
-      animation: "fadeIn 0.2s ease-out forwards",
+      transition:
+        "background-color 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out",
+      animation: "fadeIn 0.2s ease-out forwards"
     },
     "@keyframes fadeIn": {
       "0%": { opacity: 0 },
@@ -50,9 +51,9 @@ const treeStyles = (theme: Theme) =>
     },
     ".draggable-header": {
       borderRadius: "16px 16px 0 0",
-      backgroundColor: "transparent", // Let glass effect show through
+      backgroundColor: theme.vars.palette.background.paper,
       width: "100%",
-      minHeight: "12px", // Minimal drag handle
+      minHeight: "1.5em",
       cursor: "grab",
       userSelect: "none"
     },
@@ -61,15 +62,15 @@ const treeStyles = (theme: Theme) =>
     },
     ".node-menu-container": {
       borderRadius: "0 0 16px 16px",
-      padding: "0.75em 0px 1em 0.75em",
+      padding: "0.45em 0px 0.75em 0.75em",
       width: "100%",
       maxHeight: "77vh",
-      flexGrow: 1,
+      flexGrow: 1
       // Removed inner shadow to keep it clean
     },
     ".search-input-container": {
-      minWidth: "100%",
-      flexGrow: 1
+      minWidth: 0,
+      flexGrow: 0
     },
     "& .MuiPaper-root.MuiAccordion-root": {
       backgroundColor: "transparent !important",
@@ -132,6 +133,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setSelectedInputType,
     selectedOutputType,
     setSelectedOutputType,
+    selectedProviderType,
+    setSelectedProviderType,
     searchTerm,
     setSearchTerm,
     setMenuSize,
@@ -149,6 +152,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       setSelectedInputType: state.setSelectedInputType,
       selectedOutputType: state.selectedOutputType,
       setSelectedOutputType: state.setSelectedOutputType,
+      selectedProviderType: state.selectedProviderType,
+      setSelectedProviderType: state.setSelectedProviderType,
       searchTerm: state.searchTerm,
       setSearchTerm: state.setSearchTerm,
       setMenuSize: state.setMenuSize,
@@ -186,9 +191,15 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // Ensure search is performed after menu opens with a preset term
   useEffect(() => {
-    if (!isMenuOpen) { return; }
-    if (!searchTerm || searchTerm.trim() === "") { return; }
-    if (searchResults.length > 0) { return; }
+    if (!isMenuOpen) {
+      return;
+    }
+    if (!searchTerm || searchTerm.trim() === "") {
+      return;
+    }
+    if (searchResults.length > 0) {
+      return;
+    }
     try {
       const state: any = (useNodeMenuStore as any).getState?.();
       // Do not clear selectedPath here; just perform search with current path
@@ -221,12 +232,18 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
 
   // If initial position clips right/bottom, correct after mount using measured size
   useEffect(() => {
-    if (!isMenuOpen) { return; }
+    if (!isMenuOpen) {
+      return;
+    }
     const el = nodeRef.current;
-    if (!el) { return; }
+    if (!el) {
+      return;
+    }
     const width = el.offsetWidth;
     const height = el.offsetHeight;
-    if (!Number.isFinite(width) || !Number.isFinite(height)) { return; }
+    if (!Number.isFinite(width) || !Number.isFinite(height)) {
+      return;
+    }
     const maxX = Math.max(0, window.innerWidth - width - 10);
     const maxY = Math.max(
       0,
@@ -257,19 +274,37 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         className="floating-node-menu"
         css={memoizedStyles}
       >
-        <FlexRow className="draggable-header" align="center" justify="flex-end">
-        </FlexRow>
+        <FlexRow
+          className="draggable-header"
+          align="center"
+          justify="flex-end"
+        ></FlexRow>
         <Box className="node-menu-container">
           <div className="main-content">
-            <FlexColumn gap={1} className="search-toolbar" sx={{ flexGrow: 0, overflow: "visible", width: "100%", margin: 0, padding: "0 1em 0 0.5em" }}>
-              <FlexRow gap={3} align="center" className="search-row" sx={{ marginLeft: "-3px" }}>
+            <FlexColumn
+              gap={0.5}
+              className="search-toolbar"
+              sx={{
+                flexGrow: 0,
+                overflow: "visible",
+                width: "100%",
+                margin: 0,
+                padding: "0 1em 0 0.5em"
+              }}
+            >
+              <FlexRow
+                gap={1.5}
+                align="center"
+                className="search-row"
+                sx={{ marginLeft: "-3px", width: "100%" }}
+              >
                 <SearchInput
                   focusSearchInput={focusSearchInput}
-                  focusOnTyping={true}
+                  focusOnTyping={false}
                   placeholder="Search for nodes..."
                   debounceTime={80}
-                  width={500}
-                  maxWidth={"600px"}
+                  width={300}
+                  maxWidth={"300px"}
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
                   onPressEscape={closeNodeMenu}
@@ -278,13 +313,52 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                   onPressEnter={handleEnter}
                   searchResults={searchResults}
                 />
+                <FlexRow
+                  gap={0.75}
+                  align="center"
+                  justify="flex-end"
+                  sx={{
+                    marginLeft: "auto",
+                    flexWrap: "wrap",
+                    minHeight: "24px"
+                  }}
+                >
+                  {selectedProviderType !== "all" && (
+                    <Chip
+                      size="small"
+                      label={`Provider: ${selectedProviderType === "api" ? "API" : "Local"}`}
+                      onDelete={() => setSelectedProviderType("all")}
+                    />
+                  )}
+                  {selectedInputType && (
+                    <Chip
+                      size="small"
+                      label={`Input: ${selectedInputType}`}
+                      onDelete={() => setSelectedInputType("")}
+                    />
+                  )}
+                  {selectedOutputType && (
+                    <Chip
+                      size="small"
+                      label={`Output: ${selectedOutputType}`}
+                      onDelete={() => setSelectedOutputType("")}
+                    />
+                  )}
+                </FlexRow>
               </FlexRow>
-              <TypeFilterChips
-                selectedInputType={selectedInputType}
-                selectedOutputType={selectedOutputType}
-                setSelectedInputType={setSelectedInputType}
-                setSelectedOutputType={setSelectedOutputType}
-              />
+              <FlexRow
+                gap={1.5}
+                align="center"
+                className="filters-row"
+                sx={{ width: "100%", paddingRight: "0.25em" }}
+              >
+                <TypeFilterChips
+                  selectedInputType={selectedInputType}
+                  selectedOutputType={selectedOutputType}
+                  setSelectedInputType={setSelectedInputType}
+                  setSelectedOutputType={setSelectedOutputType}
+                />
+              </FlexRow>
             </FlexColumn>
             <NamespaceList
               namespaceTree={namespaceTree}

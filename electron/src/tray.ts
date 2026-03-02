@@ -1,5 +1,6 @@
 import { Tray, Menu, app, BrowserWindow, shell } from "electron";
 import path from "path";
+import { promises as fs } from "fs";
 import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
 import { createPackageManagerWindow, createWindow, createLogViewerWindow, createSettingsWindow } from "./window";
@@ -29,6 +30,8 @@ import {
 import { createMiniAppWindow, createChatWindow } from "./workflowWindow";
 import type { Workflow } from "./types";
 import { EventEmitter } from "events";
+import { getOllamaPath, getLlamaServerPath, getCondaEnvPath } from "./config";
+import { ensureOllamaInstalled, ensureLlamaCppInstalled } from "./installer";
 
 let trayInstance: Electron.Tray | null = null;
 
@@ -87,6 +90,24 @@ async function detectLlamaStatus(
     }
   }
   return { running: false, external: false, port: preferredPort };
+}
+
+async function isOllamaInstalled(): Promise<boolean> {
+  try {
+    await fs.access(getOllamaPath());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function isLlamaCppInstalled(): Promise<boolean> {
+  try {
+    await fs.access(getLlamaServerPath());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -379,6 +400,8 @@ async function updateTrayMenu(): Promise<void> {
   const startupSettings = getModelServiceStartupSettings(settings);
   const ollamaDetected = await detectOllamaStatus(state.ollamaPort);
   const llamaDetected = await detectLlamaStatus(state.llamaPort);
+  const ollamaInstalledInEnv = await isOllamaInstalled();
+  const llamaCppInstalledInEnv = await isLlamaCppInstalled();
   const ollamaManagedRunning = ollamaRunning;
   const llamaManagedRunning = llamaServerRunning;
   const ollamaRunningResolved = ollamaManagedRunning || ollamaDetected.running;
@@ -442,36 +465,57 @@ async function updateTrayMenu(): Promise<void> {
               label: ollamaLabel,
               enabled: false,
             },
-            {
-              label: "Start Ollama",
-              enabled: !ollamaRunningResolved,
-              click: async () => {
-                try {
-                  await startOllamaService();
-                } catch (error) {
-                  if (error instanceof Error) {
-                    logMessage(`Failed to start Ollama from tray: ${error.message}`, "error");
-                  }
-                } finally {
-                  void updateTrayMenu();
-                }
-              },
-            },
-            {
-              label: "Stop Ollama",
-              enabled: ollamaRunningResolved,
-              click: async () => {
-                try {
-                  await stopOllamaService();
-                } catch (error) {
-                  if (error instanceof Error) {
-                    logMessage(`Failed to stop Ollama from tray: ${error.message}`, "error");
-                  }
-                } finally {
-                  void updateTrayMenu();
-                }
-              },
-            },
+            ...(ollamaInstalledInEnv
+              ? [
+                  {
+                    label: "Start Ollama",
+                    enabled: !ollamaRunningResolved,
+                    click: async () => {
+                      try {
+                        await startOllamaService();
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to start Ollama from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                  {
+                    label: "Stop Ollama",
+                    enabled: ollamaRunningResolved,
+                    click: async () => {
+                      try {
+                        await stopOllamaService();
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to stop Ollama from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                ]
+              : [
+                  {
+                    label: "Install Ollama",
+                    click: async () => {
+                      try {
+                        logMessage("Installing Ollama from tray...", "info");
+                        await ensureOllamaInstalled(getCondaEnvPath());
+                        logMessage("Ollama installation complete", "info");
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to install Ollama from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                ]),
           ],
         },
         {
@@ -481,36 +525,57 @@ async function updateTrayMenu(): Promise<void> {
               label: llamaLabel,
               enabled: false,
             },
-            {
-              label: "Start Llama.cpp",
-              enabled: !llamaRunningResolved,
-              click: async () => {
-                try {
-                  await startLlamaCppService();
-                } catch (error) {
-                  if (error instanceof Error) {
-                    logMessage(`Failed to start Llama.cpp from tray: ${error.message}`, "error");
-                  }
-                } finally {
-                  void updateTrayMenu();
-                }
-              },
-            },
-            {
-              label: "Stop Llama.cpp",
-              enabled: llamaRunningResolved,
-              click: async () => {
-                try {
-                  await stopLlamaCppService();
-                } catch (error) {
-                  if (error instanceof Error) {
-                    logMessage(`Failed to stop Llama.cpp from tray: ${error.message}`, "error");
-                  }
-                } finally {
-                  void updateTrayMenu();
-                }
-              },
-            },
+            ...(llamaCppInstalledInEnv
+              ? [
+                  {
+                    label: "Start Llama.cpp",
+                    enabled: !llamaRunningResolved,
+                    click: async () => {
+                      try {
+                        await startLlamaCppService();
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to start Llama.cpp from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                  {
+                    label: "Stop Llama.cpp",
+                    enabled: llamaRunningResolved,
+                    click: async () => {
+                      try {
+                        await stopLlamaCppService();
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to stop Llama.cpp from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                ]
+              : [
+                  {
+                    label: "Install Llama.cpp",
+                    click: async () => {
+                      try {
+                        logMessage("Installing Llama.cpp from tray...", "info");
+                        await ensureLlamaCppInstalled(getCondaEnvPath());
+                        logMessage("Llama.cpp installation complete", "info");
+                      } catch (error) {
+                        if (error instanceof Error) {
+                          logMessage(`Failed to install Llama.cpp from tray: ${error.message}`, "error");
+                        }
+                      } finally {
+                        void updateTrayMenu();
+                      }
+                    },
+                  },
+                ]),
           ],
         },
         { type: "separator" },
