@@ -316,10 +316,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         });
       }
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       addNotification({
         type: "error",
-        content: `Export failed: ${err?.message || "Unknown error"}`,
+        content: `Export failed: ${err instanceof Error ? err.message : "Unknown error"}`,
         dismissable: true
       });
     }
