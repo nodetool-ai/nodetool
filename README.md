@@ -113,7 +113,11 @@ uv pip install git+https://github.com/nodetool-ai/nodetool-mlx
 
 ### Electron App
 
-Set your Conda path in `settings.yaml` and run `make electron`.
+The Electron app automatically detects your active Conda environment. Run `make electron` to start it.
+
+Conda settings are configured through the app's Settings panel and stored in:
+- **Linux/macOS**: `~/.config/nodetool/settings.yaml`
+- **Windows**: `%APPDATA%\nodetool\settings.yaml`
 
 ### Mobile App
 
