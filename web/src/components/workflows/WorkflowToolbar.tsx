@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { FC, useCallback, memo, useState } from "react";
+import { FC, useCallback, memo, useState, useMemo } from "react";
 import { Tooltip, Box, Menu, MenuItem, Chip } from "@mui/material";
 import SearchInput from "../search/SearchInput";
 import { ToolbarIconButton, DeleteButton } from "../ui_primitives";
@@ -241,10 +241,6 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
   const [tagsMenuAnchor, setTagsMenuAnchor] = useState<null | HTMLElement>(null);
 
-  const createToggleTagHandler = useCallback((tag: string) => {
-    return () => toggleTag(tag);
-  }, [toggleTag]);
-
   const handleToggleGraphPreview = useCallback(() => {
     setShowGraphPreview(!showGraphPreview);
   }, [setShowGraphPreview, showGraphPreview]);
@@ -291,12 +287,30 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     [setFilterValue]
   );
 
+  // Memoize style objects to prevent new references on each render
+  const flex1Style = useMemo(() => ({ flex: 1 }), []);
+  const flexGrow1Style = useMemo(() => ({ flexGrow: 1 }), []);
+
+  // Memoize tag handlers to prevent new function references in map()
+  // This is a performance optimization: prevents MenuItem and Chip from re-rendering
+  // when the parent component re-renders
+  const tagHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const tag of availableTags) {
+      handlers[tag] = () => toggleTag(tag);
+    }
+    return handlers;
+  }, [availableTags, toggleTag]);
+
+  // Memoize selected tags set for O(1) lookup
+  const selectedTagsSet = useMemo(() => new Set(selectedTags), [selectedTags]);
+
   return (
     <Box css={styles(theme)}>
       <div className="tools">
         <div className="search-row">
           <Tooltip title="Search workflows by name" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <div style={{ flex: 1 }}>
+            <div style={flex1Style}>
               <SearchInput
                 onSearchChange={handleSearchChange}
                 focusSearchInput={false}
@@ -330,10 +344,10 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 {availableTags.map((tag) => (
                   <MenuItem
                     key={tag}
-                    onClick={createToggleTagHandler(tag)}
+                    onClick={tagHandlers[tag]}
                     className="tag-menu-item"
                   >
-                    {selectedTags.includes(tag) ? (
+                    {selectedTagsSet.has(tag) ? (
                       <CheckIcon className="check-icon" fontSize="small" />
                     ) : (
                       <span className="empty-icon" />
@@ -421,7 +435,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             </MenuItem>
           </Menu>
 
-          <div style={{ flexGrow: 1 }} />
+          <div style={flexGrow1Style} />
 
           <ToolbarIconButton
             icon={<AddIcon fontSize="small" />}
@@ -442,7 +456,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 label={tag}
                 size="small"
                 className="active-tag-chip"
-                onDelete={() => toggleTag(tag)}
+                onDelete={tagHandlers[tag]}
               />
             ))}
             {selectedTags.length > 1 && (
