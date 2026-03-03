@@ -23,6 +23,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SyncIcon from "@mui/icons-material/Sync";
+import PushPinIcon from "@mui/icons-material/PushPin";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
@@ -35,12 +36,15 @@ import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
+import { usePinnedNodesStore } from "../../stores/PinnedNodesStore";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 
 interface NodeToolbarProps {
   nodeId: string | null;
 }
+
+const MAX_LABEL_LENGTH = 30;
 
 const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { getNode } = useReactFlow();
@@ -59,6 +63,9 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   );
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
+
+  const { isPinned, togglePin } = usePinnedNodesStore();
+  const isNodePinned = nodeId !== null && nodeData ? isPinned(nodeData.workflow_id || "", nodeId) : false;
 
   const { handlers, conditions } = useNodeContextMenu();
   const { runFromHere, isWorkflowRunning } = useRunFromHere(node as Node<NodeData> | null);
@@ -108,6 +115,15 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       updateNodeData(nodeId, { title: hasCommentTitle ? "" : "comment" });
     }
   }, [nodeId, hasCommentTitle, updateNodeData]);
+
+  const handleTogglePin = useCallback(() => {
+    if (nodeId !== null && nodeData && node?.type) {
+      const label = nodeData.title && nodeData.title !== "comment"
+        ? nodeData.title.slice(0, MAX_LABEL_LENGTH)
+        : undefined;
+      togglePin(nodeData.workflow_id || "", nodeId, node.type, label);
+    }
+  }, [nodeId, nodeData, node?.type, togglePin]);
 
   const handleRemoveFromGroup = useCallback(() => {
     if (node) {
@@ -253,6 +269,25 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
             </span>
           }
         />
+
+        <Tooltip
+          title={
+            <span>
+              {isNodePinned ? "Unpin Node" : "Pin Node"}
+            </span>
+          }
+          enterDelay={TOOLTIP_ENTER_DELAY}
+        >
+          <IconButton
+            className="nodrag"
+            onClick={handleTogglePin}
+            tabIndex={-1}
+            color={isNodePinned ? "primary" : "default"}
+            size="small"
+          >
+            <PushPinIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
 
         <Tooltip
           title={<span>Info</span>}
