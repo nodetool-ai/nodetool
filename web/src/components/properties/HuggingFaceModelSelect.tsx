@@ -10,8 +10,15 @@ import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface HuggingFaceModelSelectProps {
   modelType: string;
-  onChange: (value: any) => void;
-  value: any;
+  onChange: (value: HuggingFaceModelValue) => void;
+  value: HuggingFaceModelValue | null;
+}
+
+interface HuggingFaceModelValue {
+  type: string;
+  repo_id?: string;
+  id?: string;
+  path?: string;
 }
 
 type EndpointSuffix = "image/text-to-image" | "image/image-to-image" | null;
@@ -180,7 +187,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
       // Also check model.path property directly
       const [repo_id, pathFromId] = (model.id || "").split(":");
 
-      const modelToPass = {
+      const modelToPass: HuggingFaceModelValue = {
         type: modelType,
         repo_id: repo_id || model.id || "",
         path: pathFromId || model.path || undefined

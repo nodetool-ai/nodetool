@@ -2,12 +2,12 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import ASRModelMenuDialog from "../model_menu/ASRModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { ASRModel } from "../../stores/ApiTypes";
+import type { ASRModel, ASRModelValue } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 interface ASRModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: ASRModelValue) => void;
   value: string;
 }
 
@@ -50,7 +50,7 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
 
   const handleDialogModelSelect = useCallback(
     (model: ASRModel) => {
-      const modelToPass = {
+      const modelToPass: ASRModelValue = {
         type: "asr_model" as const,
         id: model.id,
         provider: model.provider,

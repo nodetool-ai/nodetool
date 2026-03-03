@@ -167,6 +167,39 @@ export interface TTSModelValue {
   selected_voice: string;
 }
 
+/**
+ * Property value for ASR model selections in node properties.
+ * Used by ASRModelSelect component onChange handlers.
+ */
+export interface ASRModelValue {
+  type: "asr_model";
+  id: string;
+  provider?: string;
+  name: string;
+}
+
+/**
+ * Property value for Embedding model selections in node properties.
+ * Used by EmbeddingModelSelect component onChange handlers.
+ */
+export interface EmbeddingModelValue {
+  type: "embedding_model";
+  id: string;
+  name: string;
+  provider?: string;
+}
+
+/**
+ * Property value for 3D model selections in node properties.
+ * Used by Model3DModelSelect component onChange handlers.
+ */
+export interface Model3DModelValue {
+  type: "model_3d_model";
+  id: string;
+  provider?: string;
+  name: string;
+}
+
 export type SystemStats = components["schemas"]["SystemStats"];
 export type ToolCall = components["schemas"]["ToolCall"];
 export type ToolCallUpdate = components["schemas"]["ToolCallUpdate"];
