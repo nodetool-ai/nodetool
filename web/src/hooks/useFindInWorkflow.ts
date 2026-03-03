@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
+import {
+  useFindInWorkflowStore,
+  SearchFilters
+} from "../stores/FindInWorkflowStore";
 import { useNodes } from "../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../stores/MetadataStore";
@@ -7,17 +10,90 @@ import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
 /**
+ * Node categories for filtering.
+ */
+export const NODE_CATEGORIES = [
+  { value: "all", label: "All Nodes" },
+  { value: "input", label: "Input Nodes" },
+  { value: "output", label: "Output Nodes" },
+  { value: "processing", label: "Processing Nodes" },
+  { value: "constant", label: "Constant Nodes" },
+  { value: "group", label: "Group Nodes" },
+  { value: "comment", label: "Comment Nodes" }
+] as const;
+
+/**
+ * Determine the category of a node based on its type and properties.
+ */
+const getNodeCategory = (node: Node<NodeData>): string => {
+  const nodeType = node.type ?? "";
+
+  if (nodeType.startsWith("input.") || nodeType === "InputNode") {
+    return "input";
+  }
+  if (nodeType.startsWith("output.") || nodeType === "OutputNode") {
+    return "output";
+  }
+  if (nodeType.startsWith("constant.") || nodeType === "ConstantNode") {
+    return "constant";
+  }
+  if (nodeType === "GroupNode" || nodeType.startsWith("group.")) {
+    return "group";
+  }
+  if (nodeType === "CommentNode" || nodeType.startsWith("comment.")) {
+    return "comment";
+  }
+  return "processing";
+};
+
+/**
+ * Recursively search for a term within node properties.
+ */
+const searchInProperties = (
+  properties: Record<string, unknown>,
+  searchTerm: string,
+  caseSensitive: boolean
+): boolean => {
+  for (const value of Object.values(properties)) {
+    if (value === null || value === undefined) {
+      continue;
+    }
+
+    if (typeof value === "string") {
+      const searchValue = caseSensitive ? value : value.toLowerCase();
+      const term = caseSensitive ? searchTerm : searchTerm.toLowerCase();
+      if (searchValue.includes(term)) {
+        return true;
+      }
+    } else if (typeof value === "object") {
+      if (searchInProperties(value as Record<string, unknown>, searchTerm, caseSensitive)) {
+        return true;
+      }
+    } else if (typeof value === "number" || typeof value === "boolean") {
+      const searchValue = String(value);
+      const term = caseSensitive ? searchTerm : searchTerm.toLowerCase();
+      const searchStr = caseSensitive ? searchValue : searchValue.toLowerCase();
+      if (searchStr.includes(term)) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+/**
  * Hook to implement "Find in Workflow" functionality.
- * 
+ *
  * Provides search capabilities for finding nodes within the current workflow.
- * Supports searching by node name, node type, or node ID with debounced
- * input and keyboard navigation through results.
- * 
+ * Supports searching by node name, node type, node ID with advanced filtering
+ * by category, case sensitivity, and property search.
+ *
  * @returns Object containing:
  *   - isOpen: Whether the find dialog is open
  *   - searchTerm: Current search term
  *   - results: Array of matching nodes with indices
  *   - selectedIndex: Currently selected result index
+ *   - filters: Current search filters
  *   - totalCount: Total number of matching results
  *   - openFind: Function to open the find dialog
  *   - closeFind: Function to close the find dialog
@@ -29,23 +105,30 @@ import { NodeData } from "../stores/NodeData";
  *   - clearSearch: Clear search term and results
  *   - selectNode: Programmatically select a result by index
  *   - getNodeDisplayName: Get display name for a node
- * 
+ *   - setFilters: Update search filters
+ *   - resetFilters: Reset filters to defaults
+ *
  * @example
  * ```typescript
- * const { 
- *   isOpen, 
- *   openFind, 
- *   performSearch, 
+ * const {
+ *   isOpen,
+ *   openFind,
+ *   performSearch,
  *   results,
- *   goToSelected 
+ *   filters,
+ *   setFilters,
+ *   goToSelected
  * } = useFindInWorkflow();
- * 
+ *
  * // Open find dialog
  * openFind();
- * 
+ *
  * // Search for nodes
  * performSearch("text");
- * 
+ *
+ * // Filter by category
+ * setFilters({ category: "input" });
+ *
  * // Navigate to result
  * goToSelected();
  * ```
@@ -55,6 +138,7 @@ export const useFindInWorkflow = () => {
   const searchTerm = useFindInWorkflowStore((state) => state.searchTerm);
   const results = useFindInWorkflowStore((state) => state.results);
   const selectedIndex = useFindInWorkflowStore((state) => state.selectedIndex);
+  const filters = useFindInWorkflowStore((state) => state.filters);
   const openFind = useFindInWorkflowStore((state) => state.openFind);
   const closeFind = useFindInWorkflowStore((state) => state.closeFind);
   const setSearchTerm = useFindInWorkflowStore((state) => state.setSearchTerm);
@@ -63,6 +147,8 @@ export const useFindInWorkflow = () => {
   const navigateNext = useFindInWorkflowStore((state) => state.navigateNext);
   const navigatePrevious = useFindInWorkflowStore((state) => state.navigatePrevious);
   const clearSearch = useFindInWorkflowStore((state) => state.clearSearch);
+  const setFilters = useFindInWorkflowStore((state) => state.setFilters);
+  const resetFilters = useFindInWorkflowStore((state) => state.resetFilters);
 
   const nodes = useNodes((state) => state.nodes);
   const { setCenter, fitView } = useReactFlow();
@@ -86,29 +172,64 @@ export const useFindInWorkflow = () => {
   );
 
   const searchNodes = useCallback(
-    (term: string, nodeList: Node<NodeData>[]): Node<NodeData>[] => {
+    (term: string, nodeList: Node<NodeData>[], searchFilters: SearchFilters): Node<NodeData>[] => {
       if (!term.trim()) {
         return [];
       }
 
-      const normalizedTerm = term.toLowerCase().trim();
-      const results: Node<NodeData>[] = [];
+      const { category, caseSensitive, searchProperties, searchType } = searchFilters;
+      const searchQuery = caseSensitive ? term.trim() : term.toLowerCase().trim();
+      const matches: Node<NodeData>[] = [];
 
       for (const node of nodeList) {
-        const displayName = getNodeDisplayName(node).toLowerCase();
-        const nodeType = (node.type ?? "").toLowerCase();
-        const nodeId = node.id.toLowerCase();
+        // Filter by category first
+        if (category !== "all") {
+          const nodeCategory = getNodeCategory(node);
+          if (nodeCategory !== category) {
+            continue;
+          }
+        }
 
-        if (
-          displayName.includes(normalizedTerm) ||
-          nodeType.includes(normalizedTerm) ||
-          nodeId.includes(normalizedTerm)
-        ) {
-          results.push(node);
+        let isMatch = false;
+
+        // Search in display name
+        const displayName = getNodeDisplayName(node);
+        const searchDisplayName = caseSensitive ? displayName : displayName.toLowerCase();
+        if (searchDisplayName.includes(searchQuery)) {
+          isMatch = true;
+        }
+
+        // Search in type if enabled
+        if (!isMatch && searchType) {
+          const nodeType = node.type ?? "";
+          const searchNodeType = caseSensitive ? nodeType : nodeType.toLowerCase();
+          if (searchNodeType.includes(searchQuery)) {
+            isMatch = true;
+          }
+        }
+
+        // Search in ID
+        if (!isMatch) {
+          const nodeId = node.id;
+          const searchNodeId = caseSensitive ? nodeId : nodeId.toLowerCase();
+          if (searchNodeId.includes(searchQuery)) {
+            isMatch = true;
+          }
+        }
+
+        // Search in properties if enabled
+        if (!isMatch && searchProperties && node.data?.properties) {
+          if (searchInProperties(node.data.properties, term, caseSensitive)) {
+            isMatch = true;
+          }
+        }
+
+        if (isMatch) {
+          matches.push(node);
         }
       }
 
-      return results;
+      return matches;
     },
     [getNodeDisplayName]
   );
@@ -120,12 +241,12 @@ export const useFindInWorkflow = () => {
         return;
       }
 
-      const matchingNodes = searchNodes(term, nodes);
+      const matchingNodes = searchNodes(term, nodes, filters);
       setResults(
         matchingNodes.map((node, index) => ({ node, matchIndex: index }))
       );
     },
-    [nodes, searchNodes, setResults]
+    [nodes, searchNodes, filters, setResults]
   );
 
   const debouncedSearch = useCallback(
@@ -144,6 +265,16 @@ export const useFindInWorkflow = () => {
     },
     [performSearch, setSearchTerm]
   );
+
+  // Re-run search when filters change (if there's a search term)
+  // Note: We intentionally don't include performSearch and searchTerm in dependencies
+  // because we want to re-run the search when filters change, not when performSearch changes
+   
+  useEffect(() => {
+    if (searchTerm.trim()) {
+      performSearch(searchTerm);
+    }
+  }, [filters]); // Only depend on filters, performSearch handles the rest
 
   useEffect(() => {
     return () => {
@@ -197,6 +328,7 @@ export const useFindInWorkflow = () => {
     searchTerm,
     results,
     selectedIndex,
+    filters,
     totalCount: results.length,
     openFind,
     closeFind,
@@ -207,6 +339,8 @@ export const useFindInWorkflow = () => {
     navigatePrevious,
     clearSearch,
     selectNode,
-    getNodeDisplayName
+    getNodeDisplayName,
+    setFilters,
+    resetFilters
   };
 };

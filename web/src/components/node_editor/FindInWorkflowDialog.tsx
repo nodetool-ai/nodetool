@@ -2,14 +2,29 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useEffect, useRef, useCallback } from "react";
-import { Box, Typography, List, ListItem, ListItemButton } from "@mui/material";
+import { memo, useEffect, useRef, useCallback, useState } from "react";
+import {
+  Box,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  Select,
+  SelectChangeEvent,
+  MenuItem,
+  FormControl,
+  Checkbox,
+  Collapse
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import TuneIcon from "@mui/icons-material/Tune";
 import { CloseButton } from "../ui_primitives/CloseButton";
-import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+import { useFindInWorkflow, NODE_CATEGORIES } from "../../hooks/useFindInWorkflow";
 
 const styles = (theme: Theme) =>
   css({
@@ -17,8 +32,8 @@ const styles = (theme: Theme) =>
       position: "fixed",
       top: "60px",
       right: "20px",
-      width: "300px",
-      maxHeight: "400px",
+      width: "380px",
+      maxHeight: "550px",
       zIndex: 20000,
       display: "flex",
       flexDirection: "column",
@@ -39,6 +54,28 @@ const styles = (theme: Theme) =>
       padding: "12px 16px",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.action.hover
+    },
+    "& .filter-toggle-button": {
+      padding: "4px 8px",
+      marginLeft: "8px",
+      borderRadius: "6px",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.default,
+      color: theme.vars.palette.text.secondary,
+      fontSize: "12px",
+      display: "flex",
+      alignItems: "center",
+      gap: "4px",
+      cursor: "pointer",
+      transition: "background-color 150ms",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover
+      },
+      "&.active": {
+        backgroundColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.primary.contrastText,
+        borderColor: theme.vars.palette.primary.main
+      }
     },
     "& .search-icon-wrapper": {
       display: "flex",
@@ -175,6 +212,41 @@ const styles = (theme: Theme) =>
     },
     "& .empty-text": {
       fontSize: "13px"
+    },
+    "& .filter-section": {
+      padding: "12px 16px",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.default
+    },
+    "& .filter-row": {
+      display: "flex",
+      alignItems: "center",
+      marginBottom: theme.spacing(1),
+      "&:last-child": {
+        marginBottom: 0
+      }
+    },
+    "& .filter-label": {
+      fontSize: "12px",
+      color: theme.vars.palette.text.secondary,
+      minWidth: "80px",
+      marginRight: theme.spacing(1)
+    },
+    "& .filter-select": {
+      flex: 1,
+      fontSize: "13px",
+      "& .MuiSelect-select": {
+        padding: "6px 12px"
+      }
+    },
+    "& .filter-checkbox": {
+      padding: "4px 8px",
+      "& .MuiSvgIcon-root": {
+        fontSize: "18px"
+      },
+      "& .MuiTypography-root": {
+        fontSize: "13px"
+      }
     }
   });
 
@@ -188,12 +260,14 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [showFilters, setShowFilters] = useState(false);
 
     const {
       isOpen,
       searchTerm,
       results,
       selectedIndex,
+      filters,
       closeFind,
       performSearch,
       goToSelected,
@@ -201,7 +275,9 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       navigatePrevious,
       clearSearch,
       selectNode,
-      getNodeDisplayName
+      getNodeDisplayName,
+      setFilters,
+      resetFilters
     } = useFindInWorkflow();
 
     useEffect(() => {
@@ -312,6 +388,49 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
       inputRef.current?.focus();
     }, [clearSearch]);
 
+    const handleToggleFilters = useCallback(() => {
+      setShowFilters((prev) => !prev);
+    }, []);
+
+    const handleCategoryChange = useCallback(
+      (event: SelectChangeEvent<string>) => {
+        setFilters({ category: event.target.value });
+      },
+      [setFilters]
+    );
+
+    const handleCaseSensitiveChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFilters({ caseSensitive: event.target.checked });
+      },
+      [setFilters]
+    );
+
+    const handleSearchPropertiesChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFilters({ searchProperties: event.target.checked });
+      },
+      [setFilters]
+    );
+
+    const handleSearchTypeChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFilters({ searchType: event.target.checked });
+      },
+      [setFilters]
+    );
+
+    const _handleSearchTypeChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFilters({ searchType: event.target.checked });
+      },
+      [setFilters]
+    );
+
+    const _handleResetFilters = useCallback(() => {
+      resetFilters();
+    }, [resetFilters]);
+
     if (!isOpen) {
       return null;
     }
@@ -367,6 +486,14 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               <ArrowDownwardIcon fontSize="small" />
             </button>
           </Box>
+          <button
+            className={`filter-toggle-button ${showFilters ? "active" : ""}`}
+            onClick={handleToggleFilters}
+            title="Toggle search filters"
+          >
+            <TuneIcon fontSize="small" />
+            {showFilters ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </button>
           <CloseButton
             onClick={closeFind}
             tooltip="Close (Escape)"
@@ -375,6 +502,51 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
             sx={{ marginLeft: "8px" }}
           />
         </Box>
+
+        <Collapse in={showFilters}>
+          <Box className="filter-section">
+            <Box className="filter-row">
+              <Typography className="filter-label">Category:</Typography>
+              <FormControl size="small" fullWidth>
+                <Select
+                  className="filter-select"
+                  value={filters.category}
+                  onChange={handleCategoryChange}
+                  displayEmpty
+                >
+                  {NODE_CATEGORIES.map((cat) => (
+                    <MenuItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box className="filter-row">
+              <Typography className="filter-label">Options:</Typography>
+              <Box sx={{ display: "flex", gap: 1, flex: 1 }}>
+                <Checkbox
+                  className="filter-checkbox"
+                  checked={filters.caseSensitive}
+                  onChange={handleCaseSensitiveChange}
+                  size="small"
+                />
+                <Typography variant="body2" sx={{ fontSize: "13px" }}>
+                  Case sensitive
+                </Typography>
+                <Checkbox
+                  className="filter-checkbox"
+                  checked={filters.searchProperties}
+                  onChange={handleSearchPropertiesChange}
+                  size="small"
+                />
+                <Typography variant="body2" sx={{ fontSize: "13px" }}>
+                  Search properties
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Collapse>
 
         <Box className="results-count">
           {results.length > 0 ? (
