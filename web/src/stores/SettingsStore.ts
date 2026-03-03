@@ -46,6 +46,8 @@ export interface Settings {
    * the downstream subgraph automatically (like "Run from here").
    */
   instantUpdate: boolean;
+  /** Show smart alignment guides when dragging nodes */
+  showAlignmentGuides: boolean;
   autosave: AutosaveSettings;
 }
 
@@ -70,6 +72,7 @@ interface SettingsStore {
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
+  setShowAlignmentGuides: (value: boolean) => void;
   updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
@@ -87,6 +90,7 @@ export const defaultSettings: Settings = {
   showWelcomeOnStartup: true,
   soundNotifications: true,
   instantUpdate: false,
+  showAlignmentGuides: true,
   autosave: { ...defaultAutosaveSettings }
 };
 
@@ -207,6 +211,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             instantUpdate: value
+          }
+        })),
+      setShowAlignmentGuides: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            showAlignmentGuides: value ?? defaultSettings.showAlignmentGuides
           }
         })),
       updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>
