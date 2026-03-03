@@ -13,7 +13,8 @@ import {
   ContentCopy,
   Layers,
   PowerSettingsNew,
-  PlayArrow
+  PlayArrow,
+  Save
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
@@ -24,6 +25,7 @@ import { ToolbarIconButton } from "../ui_primitives";
 interface SelectionActionToolbarProps {
   visible: boolean;
   onClose?: () => void;
+  onSaveAsTemplate?: () => void;
 }
 
 interface ActionButton {
@@ -79,6 +81,7 @@ const renderDivider = (index: number): React.ReactNode => (
 const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   visible,
   onClose,
+  onSaveAsTemplate
 }) => {
   // Use getSelectedNodeCount to avoid re-renders when nodes are moved (getSelectedNodes returns new array on move)
   const selectedCount = useNodes((state) => state.getSelectedNodeCount());
@@ -196,6 +199,18 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         action: selectionActions.bypassSelected
       },
       { divider: true },
+      ...(onSaveAsTemplate
+        ? [
+            {
+              icon: <Save fontSize="small" />,
+              label: "Save as Template",
+              slug: "saveAsTemplate",
+              action: onSaveAsTemplate,
+              disabled: false
+            } as ActionButton
+          ]
+        : []),
+      { divider: true } as DividerButton,
       {
         icon: <Delete fontSize="small" />,
         label: "Delete",
@@ -203,7 +218,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions, runSelectedNodes, isWorkflowRunning, selectedCount]
+    [canGroup, selectionActions, runSelectedNodes, isWorkflowRunning, selectedCount, onSaveAsTemplate]
   );
 
   // Memoize the combined button array to avoid creating new references on every render
