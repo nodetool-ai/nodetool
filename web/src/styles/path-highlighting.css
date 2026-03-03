@@ -1,0 +1,79 @@
+/**
+ * Path Highlighting Styles
+ *
+ * Visual styles for the experimental workflow execution path highlighting feature.
+ * 
+ * Nodes and edges can have three states:
+ * - .node-path-executing: Currently executing (pulsing glow animation)
+ * - .node-path-completed: Successfully executed (subtle glow/border)
+ * - .node-path-error: Execution failed (red glow/border)
+ *
+ * @experimental Part of the workflow path highlighting experimental feature.
+ */
+
+/* Node executing state - pulsing glow animation */
+.node-path-executing {
+  animation: pathExecutingPulse 2s ease-in-out infinite;
+}
+
+@keyframes pathExecutingPulse {
+  0%, 100% {
+    box-shadow: 0 0 12px 3px rgba(34, 197, 94, 0.4),
+                0 0 20px 6px rgba(34, 197, 94, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 16px 5px rgba(34, 197, 94, 0.6),
+                0 0 28px 10px rgba(34, 197, 94, 0.3);
+  }
+}
+
+/* Node completed state - subtle glow */
+.node-path-completed {
+  box-shadow: 0 0 8px 2px rgba(34, 197, 94, 0.25);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+/* Node error state - red glow */
+.node-path-error {
+  box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.4);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+}
+
+/* Edge completed state - brighter stroke */
+.react-flow__edge-edge-path-completed {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.4));
+}
+
+/* Edge executing state - animated stroke */
+.react-flow__edge-edge-path-executing {
+  stroke-width: 3;
+  animation: edgeExecutingPulse 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.5));
+}
+
+@keyframes edgeExecutingPulse {
+  0%, 100% {
+    stroke-opacity: 0.8;
+  }
+  50% {
+    stroke-opacity: 1;
+  }
+}
+
+/* Minimap node highlighting */
+.react-flow__minimap-node {
+  transition: all 0.2s ease;
+}
+
+.react-flow__minimap-node.node-path-executing {
+  fill: rgba(34, 197, 94, 0.8);
+}
+
+.react-flow__minimap-node.node-path-completed {
+  fill: rgba(34, 197, 94, 0.5);
+}
+
+.react-flow__minimap-node.node-path-error {
+  fill: rgba(239, 68, 68, 0.7);
+}

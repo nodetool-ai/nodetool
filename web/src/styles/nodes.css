@@ -1,8 +1,6 @@
-/* NODE STYLES (aggregated) */
-/* This file now aggregates split node styles to preserve import surface. */
-
-/* Order matters: base -> states -> resizer -> zoomed */
+/* Order matters: base -> states -> resizer -> zoomed -> highlighting */
 @import "./nodes.base.css";
 @import "./nodes.states.css";
 @import "./nodes.resizer.css";
 @import "./nodes.zoomed.css";
+@import "./path-highlighting.css";

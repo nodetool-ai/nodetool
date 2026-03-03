@@ -44,6 +44,7 @@ import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
+import PathHighlightingToggle from "./PathHighlightingToggle";
 import { useNodes } from "../../contexts/NodeContext";
 
 declare global {
@@ -185,6 +186,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 visible={selectedNodeCount >= 2}
               />
               <NodeInfoPanel />
+              <PathHighlightingToggle />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
