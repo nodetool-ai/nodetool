@@ -166,7 +166,6 @@
     }
 
     state.streamingText += (data.content || "");
-    state.isStreaming = !data.done;
 
     var html = NTMarkdown.render(state.streamingText);
     UI.updateLastAssistantMessage(html, data.done);

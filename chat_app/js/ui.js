@@ -201,6 +201,15 @@
     return wrapper;
   };
 
+  UI._safeUri = function (uri) {
+    // Allow only safe protocols to prevent XSS via javascript: or other dangerous URIs
+    if (!uri) { return ""; }
+    if (/^(https?:|data:image\/|data:audio\/|data:video\/|blob:)/i.test(uri)) {
+      return uri;
+    }
+    return "";
+  };
+
   UI._renderMessageContent = function (msg) {
     if (!msg.content) { return ""; }
 
@@ -217,10 +226,14 @@
           return NTMarkdown.render(part.text || "");
         }
         if (part.type === "image_url" && part.image) {
-          return '<img class="message-image" src="' + NTMarkdown.escapeHtml(part.image.uri || "") + '" alt="image" loading="lazy">';
+          var imgUri = UI._safeUri(part.image.uri || "");
+          if (!imgUri) { return ""; }
+          return '<img class="message-image" src="' + NTMarkdown.escapeHtml(imgUri) + '" alt="image" loading="lazy">';
         }
         if (part.type === "audio" && part.audio) {
-          return '<audio controls src="' + NTMarkdown.escapeHtml(part.audio.uri || "") + '" style="max-width:100%;margin-top:6px"></audio>';
+          var audioUri = UI._safeUri(part.audio.uri || "");
+          if (!audioUri) { return ""; }
+          return '<audio controls src="' + NTMarkdown.escapeHtml(audioUri) + '" style="max-width:100%;margin-top:6px"></audio>';
         }
         return "";
       }).join("");
