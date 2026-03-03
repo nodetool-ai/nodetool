@@ -236,6 +236,11 @@ const mockTheme = createTheme({
       filled: {},
       outlined: {}
     }
+  },
+  MuiInputBase: {
+    styleOverrides: {
+      root: {}
+    }
   }
 };
 
