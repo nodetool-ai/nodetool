@@ -20,6 +20,7 @@ import type { NodeStore } from "../../stores/NodeStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
+import WorkflowNotesPanel from "./WorkflowNotesPanel";
 import LogPanel from "./LogPanel";
 import PanelHeadline from "../ui/PanelHeadline";
 
@@ -506,6 +507,8 @@ const PanelRight: React.FC = () => {
                       />
                     </Box>
                   ) : null
+                ) : activeView === "notes" ? (
+                  <WorkflowNotesPanel />
                 ) : activeView === "workflowAssets" ? (
                   <Box
                     className="workflow-assets-panel"
@@ -551,6 +554,7 @@ const PanelRight: React.FC = () => {
         handleJobsToggle={() => handlePanelToggle("jobs")}
         handleWorkspaceToggle={() => handlePanelToggle("workspace")}
         handleVersionsToggle={() => handlePanelToggle("versions")}
+        handleNotesToggle={() => handlePanelToggle("notes")}
         handleWorkflowToggle={() => handlePanelToggle("workflow")}
         handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
         handleAgentToggle={() => handlePanelToggle("agent")}

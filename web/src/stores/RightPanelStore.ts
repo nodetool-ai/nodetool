@@ -13,7 +13,8 @@ export type RightPanelView =
   | "workflow"
   | "jobs"
   | "workflowAssets"
-  | "agent";
+  | "agent"
+  | "notes";
 
 interface PanelState {
   panelSize: number;
