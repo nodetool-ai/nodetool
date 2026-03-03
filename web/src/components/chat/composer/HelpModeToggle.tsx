@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import HelpIcon from "@mui/icons-material/Help";
 import { StateIconButton } from "../../ui_primitives";
 import { Typography } from "@mui/material";
@@ -14,6 +14,9 @@ export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
   onToggle,
   disabled = false
 }) => {
+  const handleToggle = useCallback(() => {
+    onToggle(!helpMode);
+  }, [helpMode, onToggle]);
   const tooltipContent = (
     <div style={{ textAlign: "center" }}>
       <Typography variant="inherit">
@@ -32,7 +35,7 @@ export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
       icon={<HelpIcon fontSize="small" />}
       tooltip={tooltipContent}
       tooltipPlacement="top"
-      onClick={() => onToggle(!helpMode)}
+      onClick={handleToggle}
       disabled={disabled}
       size="small"
       isActive={helpMode}
