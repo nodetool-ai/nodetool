@@ -61,7 +61,10 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     return shortcuts.filter((s) => s.category === categoryFilter);
   }, [shortcuts, categoryFilter]);
 
-  const activeShortcuts = expandShortcutsForOS(filtered, os === "mac");
+  const activeShortcuts = useMemo(
+    () => expandShortcutsForOS(filtered, os === "mac"),
+    [filtered, os]
+  );
 
   // Build mapping key -> titles for tooltip assignment
   const keyTitleMap = useMemo(() => {
@@ -105,16 +108,22 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     [allKeyMap, activeKeys]
   );
 
-  const highlightButtons = Object.keys(keyTitleMap).join(" ");
-  const inactiveButtons = inactiveKeys.join(" ");
+  const highlightButtons = useMemo(
+    () => Object.keys(keyTitleMap).join(" "),
+    [keyTitleMap]
+  );
+  const inactiveButtons = useMemo(
+    () => inactiveKeys.join(" "),
+    [inactiveKeys]
+  );
 
-  const handleOsToggle = (_: any, value: "mac" | "win") => {
+  const handleOsToggle = useCallback((_: any, value: "mac" | "win") => {
     if (value) {setOs(value);}
-  };
+  }, []);
 
-  const handleLayoutToggle = (_: any, value: "english" | "german") => {
+  const handleLayoutToggle = useCallback((_: any, value: "english" | "german") => {
     if (value) {setLayoutName(value);}
-  };
+  }, []);
 
   const layout = keyboardLayouts;
 
@@ -136,31 +145,37 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     () => allLayoutKeys.filter((key) => !allKeyMap[key]),
     [allLayoutKeys, allKeyMap]
   );
-  const neverShortcutButtons = neverShortcutKeys.join(" ");
+  const neverShortcutButtons = useMemo(
+    () => neverShortcutKeys.join(" "),
+    [neverShortcutKeys]
+  );
 
   // 3. Compose buttonTheme
-  const buttonTheme = [
-    {
-      class: "has-shortcut",
-      buttons: highlightButtons
-    },
-    ...(inactiveButtons
-      ? [
-          {
-            class: "has-shortcut-inactive",
-            buttons: inactiveButtons
-          }
-        ]
-      : []),
-    ...(neverShortcutButtons
-      ? [
-          {
-            class: "never-shortcut",
-            buttons: neverShortcutButtons
-          }
-        ]
-      : [])
-  ];
+  const buttonTheme = useMemo(
+    () => [
+      {
+        class: "has-shortcut",
+        buttons: highlightButtons
+      },
+      ...(inactiveButtons
+        ? [
+            {
+              class: "has-shortcut-inactive",
+              buttons: inactiveButtons
+            }
+          ]
+        : []),
+      ...(neverShortcutButtons
+        ? [
+            {
+              class: "never-shortcut",
+              buttons: neverShortcutButtons
+            }
+          ]
+        : [])
+    ],
+    [highlightButtons, inactiveButtons, neverShortcutButtons]
+  );
 
   const keySlugMap = useMemo(() => {
     const m: Record<string, string[]> = {};
@@ -237,17 +252,20 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     };
   }, [keyTitleMap, keySlugMap]);
 
-  const display = {
-    backspace: "⌫",
-    capslock: "⇪",
-    shift: "⇧",
-    control: os === "mac" ? "⌃" : "CTRL",
-    meta: os === "mac" ? "⌘" : "Win",
-    alt: os === "mac" ? "⌥" : "Alt",
-    enter: "⏎",
-    space: "SPACE",
-    escape: "ESC"
-  } as Record<string, string>;
+  const display = useMemo(
+    () => ({
+      backspace: "⌫",
+      capslock: "⇪",
+      shift: "⇧",
+      control: os === "mac" ? "⌃" : "CTRL",
+      meta: os === "mac" ? "⌘" : "Win",
+      alt: os === "mac" ? "⌥" : "Alt",
+      enter: "⏎",
+      space: "SPACE",
+      escape: "ESC"
+    } as Record<string, string>),
+    [os]
+  );
 
   const setPaused = useKeyPressedStore((state) => state.setPaused);
   useEffect(() => {
