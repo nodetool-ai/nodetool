@@ -322,7 +322,7 @@ const providerIconMap: Record<string, string> = {
 
 // Get icon URL for a provider
 const getProviderIconUrl = (provider: string): string | null => {
-  if (!provider) return null;
+  if (!provider) {return null;}
   
   // Direct match
   const normalized = provider.toLowerCase().trim();
