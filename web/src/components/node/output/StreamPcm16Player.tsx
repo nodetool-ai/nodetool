@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, memo } from "react";
 import { playPcm16Base64 } from "./audio";
 
 const StreamPcm16Player: React.FC<{
@@ -24,4 +24,4 @@ const StreamPcm16Player: React.FC<{
   return null;
 };
 
-export default StreamPcm16Player;
+export default memo(StreamPcm16Player);
