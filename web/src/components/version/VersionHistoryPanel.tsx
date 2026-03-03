@@ -24,7 +24,7 @@ import {
   Compare as CompareIcon,
   FilterList as FilterIcon
 } from "@mui/icons-material";
-import { VersionListItem } from "./VersionListItem";
+import VersionListItem from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
