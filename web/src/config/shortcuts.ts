@@ -522,6 +522,14 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
   {
+    title: "Documentation",
+    slug: "toggleDocumentation",
+    keyCombo: ["D"],
+    category: "panel",
+    description: "Show or hide Documentation panel",
+    registerCombo: true
+  },
+  {
     title: "Operator",
     slug: "toggleOperator",
     keyCombo: ["O"],

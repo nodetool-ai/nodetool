@@ -9,6 +9,7 @@ const dividerSx: SxProps = { my: 1, mx: "6px", borderColor: "rgba(255, 255, 255,
 // icons
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 import ArticleIcon from "@mui/icons-material/Article";
+import DescriptionIcon from "@mui/icons-material/Description";
 import FolderIcon from "@mui/icons-material/Folder";
 import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -27,7 +28,8 @@ interface VerticalToolbarProps {
     handleWorkflowToggle: () => void;
     handleWorkflowAssetsToggle: () => void;
     handleAgentToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent";
+    handleDocumentationToggle: () => void;
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent" | "documentation";
     panelVisible: boolean;
 }
 
@@ -41,6 +43,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handleWorkflowToggle,
     handleWorkflowAssetsToggle,
     handleAgentToggle,
+    handleDocumentationToggle,
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
@@ -208,6 +211,32 @@ const VerticalToolbar = memo(function VerticalToolbar({
                     }
                 >
                     <FolderSpecialIcon />
+                </IconButton>
+            </Tooltip>
+
+            {/* Documentation Button */}
+            <Tooltip
+                title={
+                    <div className="tooltip-span">
+                        <div className="tooltip-title">Documentation</div>
+                        <div className="tooltip-key">
+                            <kbd>D</kbd>
+                        </div>
+                    </div>
+                }
+                placement="left-start"
+                enterDelay={TOOLTIP_ENTER_DELAY}
+            >
+                <IconButton
+                    tabIndex={-1}
+                    onClick={handleDocumentationToggle}
+                    className={
+                        activeView === "documentation" && panelVisible
+                            ? "documentation active"
+                            : "documentation"
+                    }
+                >
+                    <DescriptionIcon />
                 </IconButton>
             </Tooltip>
 
