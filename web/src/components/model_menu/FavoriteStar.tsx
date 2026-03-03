@@ -2,12 +2,13 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback, memo } from "react";
 import { Tooltip } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import isEqual from "lodash/isEqual";
 
 export interface FavoriteStarProps {
   provider?: string;
@@ -47,10 +48,10 @@ const FavoriteStar: React.FC<FavoriteStarProps> = ({
     return favorites.has(`${provider}:${id}`);
   }, [favorites, provider, id]);
 
-  const handleClick: React.MouseEventHandler<HTMLSpanElement> = (e) => {
+  const handleClick = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
     if (stopPropagation) {e.stopPropagation();}
     toggleFavorite(provider, id);
-  };
+  }, [stopPropagation, toggleFavorite, provider, id]);
   const theme = useTheme();
   return (
     <Tooltip
@@ -81,4 +82,4 @@ const FavoriteStar: React.FC<FavoriteStarProps> = ({
   );
 };
 
-export default FavoriteStar;
+export default memo(FavoriteStar, isEqual);

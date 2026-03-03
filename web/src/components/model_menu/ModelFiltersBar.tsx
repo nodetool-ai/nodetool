@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { useCallback, memo } from "react";
 import {
   Box,
   Menu,
@@ -16,6 +16,7 @@ import useModelFiltersStore, {
   SizeBucket,
   TypeTag
 } from "../../stores/ModelFiltersStore";
+import isEqual from "lodash/isEqual";
 
 
 const barStyles = css({
@@ -61,12 +62,43 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
   const openType = Boolean(typeAnchor);
   const openSize = Boolean(sizeAnchor);
 
+  const handleTypeClick = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    setTypeAnchor(e.currentTarget);
+  }, []);
+
+  const handleSizeClick = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    setSizeAnchor(e.currentTarget);
+  }, []);
+
+  const handleTypeClose = useCallback(() => {
+    setTypeAnchor(null);
+  }, []);
+
+  const handleSizeClose = useCallback(() => {
+    setSizeAnchor(null);
+  }, []);
+
+  const handleTypeToggle = useCallback((e: React.MouseEvent<HTMLElement>, type: TypeTag) => {
+    e.stopPropagation();
+    toggleType(type);
+  }, [toggleType]);
+
+  const handleSizeSet = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
+    setSizeBucket(null);
+  }, [setSizeBucket]);
+
+  const handleSizeSelect = useCallback((e: React.MouseEvent<HTMLElement>, size: SizeBucket) => {
+    e.stopPropagation();
+    setSizeBucket(size);
+  }, [setSizeBucket]);
+
   return (
     <Box css={barStyles} className="model-menu__filters-bar">
       {/* Type dropdown (multi) */}
       <Tooltip title={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by Type"}>
         <IconButton
-          onClick={(e) => setTypeAnchor(e.currentTarget)}
+          onClick={handleTypeClick}
           size="small"
           color={selectedTypes.length || openType ? "primary" : "default"}
         >
@@ -76,16 +108,13 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
       <Menu
         anchorEl={typeAnchor}
         open={openType}
-        onClose={() => setTypeAnchor(null)}
+        onClose={handleTypeClose}
         keepMounted
       >
         {typeOptions.map((t) => (
           <MenuItem
             key={t}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleType(t);
-            }}
+            onClick={(e) => handleTypeToggle(e, t)}
           >
             <Checkbox size="small" checked={selectedTypes.includes(t)} />
             <ListItemText primary={t} />
@@ -96,7 +125,7 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
       {/* Size dropdown (single) */}
       <Tooltip title={sizeBucket ? `Size: ${sizeBucket}` : "Filter by Size"}>
         <IconButton
-          onClick={(e) => setSizeAnchor(e.currentTarget)}
+          onClick={handleSizeClick}
           size="small"
           color={sizeBucket || openSize ? "primary" : "default"}
         >
@@ -106,24 +135,18 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
       <Menu
         anchorEl={sizeAnchor}
         open={openSize}
-        onClose={() => setSizeAnchor(null)}
+        onClose={handleSizeClose}
         keepMounted
       >
         <MenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            setSizeBucket(null);
-          }}
+          onClick={handleSizeSet}
         >
           <ListItemText primary="Any size" />
         </MenuItem>
         {sizeOptions.map((s) => (
           <MenuItem
             key={s}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSizeBucket(s);
-            }}
+            onClick={(e) => handleSizeSelect(e, s)}
             selected={sizeBucket === s}
           >
             <ListItemText primary={s} />
@@ -135,4 +158,4 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
   );
 };
 
-export default ModelFiltersBar;
+export default memo(ModelFiltersBar, isEqual);
