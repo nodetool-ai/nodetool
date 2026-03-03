@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Nodetool
+Comment=Visual AI Workflow Builder - Build AI Workflows Visually, Run Them Anywhere
+Exec=nodetool %U
+Icon=nodetool
+Terminal=false
+Type=Application
+Categories=Development;IDE;
+Keywords=AI;workflow;node;visual;machine-learning;
+StartupWMClass=nodetool
+MimeType=x-scheme-handler/nodetool;
