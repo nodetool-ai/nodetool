@@ -9,6 +9,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useFileTabsStore } from "../../stores/FileTabsStore";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
+import { shallow } from "zustand/shallow";
 
 interface TabsBarProps {
   workflows: WorkflowAttributes[];
@@ -17,6 +18,7 @@ interface TabsBarProps {
 
 const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
   const tabsRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<number | null>(null);
   const [showScrollButtons, setShowScrollButtons] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -162,15 +164,20 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     navigate("/editor");
   }, [navigate, removeWorkflow, workflows]);
 
-  // File tab state and handlers
-  const openFileTabs = useFileTabsStore((state) => state.openFileTabs);
-  const activeFileTabId = useFileTabsStore((state) => state.activeFileTabId);
-  const closeFileTab = useFileTabsStore((state) => state.closeFileTab);
-  const setActiveFileTab = useFileTabsStore((state) => state.setActiveFileTab);
-  const closeAllFileTabs = useFileTabsStore((state) => state.closeAllFileTabs);
-  const closeOtherFileTabs = useFileTabsStore(
-    (state) => state.closeOtherFileTabs
-  );
+  // File tab state and handlers - combined into single selector with shallow equality
+  // to prevent unnecessary re-renders when unrelated state changes
+  const { openFileTabs, activeFileTabId, closeFileTab, setActiveFileTab, closeAllFileTabs, closeOtherFileTabs } =
+    useFileTabsStore(
+      (state) => ({
+        openFileTabs: state.openFileTabs,
+        activeFileTabId: state.activeFileTabId,
+        closeFileTab: state.closeFileTab,
+        setActiveFileTab: state.setActiveFileTab,
+        closeAllFileTabs: state.closeAllFileTabs,
+        closeOtherFileTabs: state.closeOtherFileTabs
+      }),
+      shallow
+    );
 
   const handleFileTabSelect = useCallback(
     (assetId: string) => {
@@ -208,6 +215,10 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
   const handleScroll = useCallback(
     (direction: "left" | "right") => {
       if (tabsRef.current) {
+        // Clear any pending timeout to avoid memory leaks
+        if (scrollTimeoutRef.current !== null) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
         const scrollAmount = 180;
         const newScrollLeft =
           tabsRef.current.scrollLeft +
@@ -216,7 +227,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
           left: newScrollLeft,
           behavior: "smooth"
         });
-        setTimeout(checkScrollability, 300);
+        scrollTimeoutRef.current = window.setTimeout(checkScrollability, 300);
       }
     },
     [checkScrollability]
@@ -250,6 +261,15 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
         tabsElement.removeEventListener("scroll", checkScrollability);
     }
   }, [checkScrollability]);
+
+  // Cleanup scroll timeout on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current !== null) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="tabs-container">
