@@ -29,6 +29,7 @@ Create and enhance video content:
 
 - [Color Boost Video](color-boost-video.md) - AI-powered color enhancement for video
 - [Story to Video Generator](story-to-video-generator.md) - Transform stories into visual videos
+- [Mindblowing Video Pipeline](mindblowing-video-pipeline.md) - Script + scene pipeline for cinematic short videos
 
 ## 🎵 Audio & Voice Workflows
 
