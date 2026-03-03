@@ -296,6 +296,40 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     }
   }, [images, onOpenInViewer]);
 
+  const handleTileDoubleClick = useCallback((index: number) => {
+    if (selectionMode) { return; }
+    if (onDoubleClick) {
+      onDoubleClick(index);
+    } else {
+      // Default: open in viewer
+      const img = images[index];
+      const url = urlMapRef.current.get(img);
+      if (url) {
+        setViewerUrl(url);
+        setViewerOpen(true);
+      }
+    }
+  }, [selectionMode, onDoubleClick, images]);
+
+  const handleTileClick = useCallback((index: number, event: React.MouseEvent) => {
+    if (selectionMode) {
+      toggleSelect(index, event);
+    }
+  }, [selectionMode, toggleSelect]);
+
+  // Memoized handlers for each tile to prevent inline function creation
+  const handleDownloadClick = useCallback((index: number) => (event: React.MouseEvent) => {
+    handleDownloadImage(index, event);
+  }, [handleDownloadImage]);
+
+  const handleOpenInViewerClick = useCallback((index: number) => (event: React.MouseEvent) => {
+    handleOpenInViewer(index, event);
+  }, [handleOpenInViewer]);
+
+  const handleCheckboxClick = useCallback((index: number) => (event: React.MouseEvent) => {
+    toggleSelect(index, event);
+  }, [toggleSelect]);
+
   const handleCloseViewer = useCallback(() => {
     setViewerOpen(false);
     setViewerUrl(null);
@@ -418,24 +452,8 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             <div
               key={key}
               className={`tile ${isSelected ? "selected" : ""}`}
-              onDoubleClick={() => {
-                if (selectionMode) { return; }
-                if (onDoubleClick) {
-                  onDoubleClick(idx);
-                } else {
-                  // Default: open in viewer
-                  const url = urlMapRef.current.get(img);
-                  if (url) {
-                    setViewerUrl(url);
-                    setViewerOpen(true);
-                  }
-                }
-              }}
-              onClick={(e) => {
-                if (selectionMode) {
-                  toggleSelect(idx, e);
-                }
-              }}
+              onDoubleClick={() => handleTileDoubleClick(idx)}
+              onClick={(e) => handleTileClick(idx, e)}
             >
               {urlMapRef.current.get(img) ? (
                 <img
@@ -460,7 +478,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                     <IconButton
                       className="tile-action-btn"
                       size="small"
-                      onClick={(e) => handleDownloadImage(idx, e)}
+                      onClick={handleDownloadClick(idx)}
                     >
                       <DownloadIcon />
                     </IconButton>
@@ -469,7 +487,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                     <IconButton
                       className="tile-action-btn"
                       size="small"
-                      onClick={(e) => handleOpenInViewer(idx, e)}
+                      onClick={handleOpenInViewerClick(idx)}
                     >
                       <OpenInNewIcon />
                     </IconButton>
@@ -480,7 +498,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 <Checkbox
                   className="select-checkbox"
                   checked={isSelected}
-                  onClick={(e) => toggleSelect(idx, e)}
+                  onClick={handleCheckboxClick(idx)}
                   icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
                   checkedIcon={<CheckBoxIcon fontSize="small" />}
                   sx={{ padding: "2px" }}

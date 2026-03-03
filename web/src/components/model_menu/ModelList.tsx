@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback } from "react";
+import React, { useCallback, memo } from "react";
 import {
   Box,
   List,
@@ -44,7 +44,7 @@ export interface ModelListProps<TModel extends ModelSelectorModel> {
   searchTerm?: string;
 }
 
-function ModelList<TModel extends ModelSelectorModel>({
+const ModelList = memo(function ModelList<TModel extends ModelSelectorModel>({
   models,
   onSelect,
   searchTerm = ""
@@ -325,7 +325,7 @@ function ModelList<TModel extends ModelSelectorModel>({
       )}
     </Box>
   );
-}
+}) as <TModel extends ModelSelectorModel>(props: ModelListProps<TModel>) => JSX.Element;
 
 export const LanguageModelList: React.FC<ModelListProps<LanguageModel>> = (
   props
