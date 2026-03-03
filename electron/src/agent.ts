@@ -17,6 +17,7 @@ import {
   type FrontendToolManifest,
 } from "./types.d";
 import { CodexQuerySession, listCodexModels } from "./codexAgent";
+import { PiQuerySession, listPiModels } from "./piAgent";
 import { app, ipcMain, type WebContents } from "electron";
 import path from "node:path";
 import { existsSync } from "node:fs";
@@ -1031,15 +1032,21 @@ export async function createAgentSession(
           resumeSessionId: options.resumeSessionId,
           systemPrompt: CODEX_SYSTEM_PROMPT,
         })
-      : new ClaudeQuerySession({
-          model: options.model,
-          workspacePath: options.workspacePath,
-          resumeSessionId: options.resumeSessionId,
-          systemPrompt:
-            process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
-              ? HELP_SYSTEM_PROMPT
-              : FAST_WORKFLOW_SYSTEM_PROMPT,
-        });
+      : provider === "pi"
+        ? new PiQuerySession({
+            model: options.model,
+            workspacePath: options.workspacePath,
+            resumeSessionId: options.resumeSessionId,
+          })
+        : new ClaudeQuerySession({
+            model: options.model,
+            workspacePath: options.workspacePath,
+            resumeSessionId: options.resumeSessionId,
+            systemPrompt:
+              process.env.NODETOOL_AGENT_VERBOSE_PROMPT === "1"
+                ? HELP_SYSTEM_PROMPT
+                : FAST_WORKFLOW_SYSTEM_PROMPT,
+          });
 
   activeSessions.set(tempId, session);
   logMessage(`${provider} agent session created: ${tempId}`);
@@ -1172,6 +1179,22 @@ export async function listAgentModels(
         {
           id: "gpt-5.3-codex",
           label: "gpt-5.3-codex",
+          isDefault: true,
+        },
+      ];
+    }
+  }
+
+  if (provider === "pi") {
+    const workspacePath = options.workspacePath || process.cwd();
+    try {
+      return await listPiModels(workspacePath);
+    } catch (error) {
+      logMessage(`Failed to list Pi models: ${error}`, "warn");
+      return [
+        {
+          id: "claude-sonnet-4-20250514",
+          label: "Claude Sonnet 4",
           isDefault: true,
         },
       ];

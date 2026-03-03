@@ -359,8 +359,8 @@ const AgentPanel: React.FC = () => {
     }
   }, [status]);
 
-  const providerLabel = provider === "codex" ? "Codex" : "Claude";
-  const draftProviderLabel = draftProvider === "codex" ? "Codex" : "Claude";
+  const providerLabel = provider === "codex" ? "Codex" : provider === "pi" ? "Pi" : "Claude";
+  const draftProviderLabel = draftProvider === "codex" ? "Codex" : draftProvider === "pi" ? "Pi" : "Claude";
   const canCreateSession =
     Boolean(draftWorkspacePath) &&
     Boolean(draftModel) &&
@@ -508,7 +508,7 @@ const AgentPanel: React.FC = () => {
   );
   const activeProviderLabel = useMemo(() => {
     const resolvedProvider = activeSessionEntry?.provider ?? provider;
-    return resolvedProvider === "codex" ? "Codex" : "Claude";
+    return resolvedProvider === "codex" ? "Codex" : resolvedProvider === "pi" ? "Pi" : "Claude";
   }, [activeSessionEntry?.provider, provider]);
   const resumeMenuOpen = Boolean(resumeAnchorEl);
 
@@ -602,7 +602,7 @@ const AgentPanel: React.FC = () => {
                       fontSize: theme.fontSizeSmaller
                     }}
                   >
-                    {entry.provider === "codex" ? "Codex" : "Claude"} •{" "}
+                    {entry.provider === "codex" ? "Codex" : entry.provider === "pi" ? "Pi" : "Claude"} •{" "}
                     {entry.id.slice(0, 12)}…
                   </span>
                 </MenuItem>
@@ -636,13 +636,14 @@ const AgentPanel: React.FC = () => {
               label="Provider"
               onChange={(event) => {
                 const nextProvider = event.target.value;
-                if (nextProvider === "claude" || nextProvider === "codex") {
+                if (nextProvider === "claude" || nextProvider === "codex" || nextProvider === "pi") {
                   setDraftProvider(nextProvider);
                 }
               }}
             >
               <MenuItem value="claude">Claude</MenuItem>
               <MenuItem value="codex">Codex</MenuItem>
+              <MenuItem value="pi">Pi</MenuItem>
             </Select>
           </FormControl>
 

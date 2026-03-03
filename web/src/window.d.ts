@@ -309,13 +309,13 @@ declare global {
       // Claude Agent SDK operations (available in Electron only)
       agent?: {
         createSession: (options: {
-          provider?: "claude" | "codex";
+          provider?: "claude" | "codex" | "pi";
           model: string;
           workspacePath?: string;
           resumeSessionId?: string;
         }) => Promise<string>;
         listModels: (options?: {
-          provider?: "claude" | "codex";
+          provider?: "claude" | "codex" | "pi";
           workspacePath?: string;
         }) => Promise<Array<{
           id: string;
