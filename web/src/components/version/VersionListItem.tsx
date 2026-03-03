@@ -196,7 +196,7 @@ const VersionListItem: React.FC<VersionListItemProps> = ({
         <Box sx={{ display: "flex", gap: 0.5 }}>
           {compareMode ? (
             <Tooltip title="Select for comparison">
-              <IconButton size="small" onClick={handleClick}>
+              <IconButton size="small" onClick={handleClick} aria-label="Select for comparison">
                 <CompareIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -205,7 +205,7 @@ const VersionListItem: React.FC<VersionListItemProps> = ({
           ) : (
             <>
               <Tooltip title="Restore this version">
-                <IconButton size="small" onClick={handleRestore}>
+                <IconButton size="small" onClick={handleRestore} aria-label="Restore this version">
                   <RestoreIcon fontSize="small" />
                 </IconButton>
               </Tooltip>

@@ -329,7 +329,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
-        <IconButton tabIndex={-1} onClick={handlePanelToggleClick}>
+        <IconButton tabIndex={-1} onClick={handlePanelToggleClick} aria-label="Toggle panel">
           <CodeIcon />
         </IconButton>
       </Tooltip>
