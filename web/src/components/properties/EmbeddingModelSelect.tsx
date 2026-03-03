@@ -2,12 +2,12 @@ import React, { useState, useCallback, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import EmbeddingModelMenuDialog from "../model_menu/EmbeddingModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { EmbeddingModel } from "../../stores/ApiTypes";
+import type { EmbeddingModel, EmbeddingModelValue } from "../../stores/ApiTypes";
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface EmbeddingModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: EmbeddingModelValue) => void;
   value: string;
   allowedProviders?: string[];
 }
@@ -40,12 +40,13 @@ const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
 
   const handleDialogModelSelect = useCallback(
     (model: EmbeddingModel) => {
-      onChange({
+      const modelValue: EmbeddingModelValue = {
         type: "embedding_model",
         id: model.id,
         name: model.name,
         provider: model.provider
-      });
+      };
+      onChange(modelValue);
       addRecent({
         provider: model.provider || "",
         id: model.id || "",

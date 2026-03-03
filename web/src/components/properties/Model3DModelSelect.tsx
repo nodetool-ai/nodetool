@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "lodash/isEqual";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
+import type { Model3DModelValue } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
@@ -48,7 +49,7 @@ const ModelMenuItem = React.memo<ModelMenuItemProps>(
 ModelMenuItem.displayName = "ModelMenuItem";
 
 interface Model3DModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: Model3DModelValue) => void;
   value: string;
   task?: "text_to_3d" | "image_to_3d";
 }
@@ -120,7 +121,7 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
 
   const handleModelSelect = useCallback(
     (model: Model3DModel) => {
-      const modelToPass = {
+      const modelToPass: Model3DModelValue = {
         type: "model_3d_model" as const,
         id: model.id,
         provider: model.provider,
