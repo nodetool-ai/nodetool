@@ -21,6 +21,7 @@ interface FindInWorkflowState {
   navigateNext: () => void;
   navigatePrevious: () => void;
   clearSearch: () => void;
+  selectAllResults: () => void;
 }
 
 export const useFindInWorkflowStore = create<FindInWorkflowState>((set, get) => ({
@@ -51,5 +52,14 @@ export const useFindInWorkflowStore = create<FindInWorkflowState>((set, get) => 
     const newIndex = selectedIndex > 0 ? selectedIndex - 1 : results.length - 1;
     set({ selectedIndex: newIndex });
   },
-  clearSearch: () => set({ searchTerm: "", results: [], selectedIndex: 0 })
+  clearSearch: () => set({ searchTerm: "", results: [], selectedIndex: 0 }),
+  selectAllResults: () => {
+    const { results } = get();
+    if (results.length === 0) {
+      return;
+    }
+    // Select all results by setting selected index to a special value (-2)
+    // that indicates "all selected" state
+    set({ selectedIndex: -2 });
+  }
 }));
