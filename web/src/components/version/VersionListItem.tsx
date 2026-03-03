@@ -79,7 +79,7 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const VersionListItem: React.FC<VersionListItemProps> = ({
+const VersionListItem = React.memo(function VersionListItem({
   version,
   isSelected,
   isCompareTarget,
@@ -89,7 +89,7 @@ const VersionListItem: React.FC<VersionListItemProps> = ({
   onDelete,
   onCompare,
   isRestoring = false
-}) => {
+}: VersionListItemProps) {
   const handleClick = useCallback(() => {
     if (compareMode) {
       onCompare(version.id);
@@ -99,7 +99,7 @@ const VersionListItem: React.FC<VersionListItemProps> = ({
   }, [compareMode, version.id, onSelect, onCompare]);
 
   const handleRestore = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       onRestore(version);
     },
@@ -107,7 +107,7 @@ const VersionListItem: React.FC<VersionListItemProps> = ({
   );
 
   const handleDelete = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       onDelete(version.id);
     },
@@ -219,9 +219,9 @@ const VersionListItem: React.FC<VersionListItemProps> = ({
       </ListItemSecondaryAction>
     </ListItem>
   );
-};
+});
 
-const MemoizedVersionListItem = React.memo(VersionListItem);
+VersionListItem.displayName = "VersionListItem";
 
-export { MemoizedVersionListItem as VersionListItem };
-export default MemoizedVersionListItem;
+export { VersionListItem };
+export default VersionListItem;
