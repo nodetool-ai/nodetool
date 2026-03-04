@@ -161,9 +161,6 @@ const MiniAppPage: React.FC = () => {
   const isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
-  // const notificationsCount = notifications?.length ?? 0;
-  // const showAlerts = submitError || notificationsCount > 0;
-
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId
       ? state.nodeStores[state.currentWorkflowId]
