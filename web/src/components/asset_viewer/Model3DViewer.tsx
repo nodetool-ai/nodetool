@@ -209,11 +209,12 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       transform: "translate(-50%, -50%)",
       display: "flex",
       flexDirection: "column",
-      alignItems: "center",
-      gap: "8px",
+      alignItems: "flex-start",
+      gap: "4px",
       zIndex: 10,
-      padding: "1em",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      padding: "1em 1.5em",
+      maxWidth: "90%",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
       borderRadius: "8px"
     },
     ".fullscreen-close-button": {
@@ -306,8 +307,10 @@ class ModelErrorBoundary extends Component<
     return { hasError: true };
   }
 
-  componentDidCatch(_error: unknown): void {
-    this.props.onError(new Error("Failed to load 3D model"));
+  componentDidCatch(error: unknown): void {
+    const message =
+      error instanceof Error ? error.message : String(error ?? "Unknown error");
+    this.props.onError(new Error(message));
   }
 
   render(): React.ReactNode {
@@ -500,10 +503,34 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   }, []);
 
   // Handle model error
-  const handleModelError = useCallback((error: Error) => {
-    setIsLoading(false);
-    setLoadError(error.message || "Failed to load 3D model");
-  }, []);
+  const handleModelError = useCallback(
+    (error: Error) => {
+      setIsLoading(false);
+      const fileName = asset?.name || modelUrl.split("/").pop() || "unknown";
+      const ext = fileName.includes(".")
+        ? fileName.split(".").pop()?.toLowerCase()
+        : "unknown";
+      const supported = ["glb", "gltf"];
+      const isSupported = ext ? supported.includes(ext) : false;
+
+      const lines = [`Failed to load 3D model: ${fileName}`];
+      if (ext && !isSupported) {
+        lines.push(
+          `Format ".${ext}" is not supported. Supported formats: ${supported.map((e) => `.${e}`).join(", ")}.`
+        );
+      }
+      if (error.message) {
+        lines.push(error.message);
+      }
+      if (modelUrl) {
+        const display =
+          modelUrl.length > 120 ? modelUrl.slice(0, 120) + "…" : modelUrl;
+        lines.push(`URL: ${display}`);
+      }
+      setLoadError(lines.join("\n"));
+    },
+    [asset?.name, modelUrl]
+  );
 
   // Reset loading state when URL changes
   useEffect(() => {
@@ -635,9 +662,20 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
           )}
           {loadError && (
             <div className="error-overlay">
-              <Typography variant="body2" color="error">
-                {loadError}
-              </Typography>
+              {loadError.split("\n").map((line, i) => (
+                <Typography
+                  key={i}
+                  variant="body2"
+                  color={i === 0 ? "error" : "textSecondary"}
+                  sx={{
+                    wordBreak: "break-word",
+                    fontSize: i === 0 ? "0.875rem" : "0.75rem",
+                    opacity: i === 0 ? 1 : 0.8
+                  }}
+                >
+                  {line}
+                </Typography>
+              ))}
             </div>
           )}
           <Canvas
