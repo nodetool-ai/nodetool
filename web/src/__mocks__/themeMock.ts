@@ -154,6 +154,11 @@ const mockTheme = createTheme({
     Button: {
       inheritContainedBg: "rgba(255, 255, 255, 0.08)",
       inheritContainedHoverBg: "rgba(255, 255, 255, 0.12)"
+    },
+    // Add LinearProgress palette for MUI v7 LinearProgress component
+    LinearProgress: {
+      primaryBg: "rgba(119, 180, 230, 0.3)",
+      primaryBgChannel: "119 180 230 / 0.3"
     }
   },
   // Provide spacing variables expected by MUI components (e.g., Button)

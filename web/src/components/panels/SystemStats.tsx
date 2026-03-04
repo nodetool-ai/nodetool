@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   Box,
   Tooltip,
@@ -36,7 +36,7 @@ const statsBoxSx = {
   cursor: "pointer"
 } as const;
 
-const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
+const SystemStatsDisplay: React.FC = memo(function SystemStatsDisplay() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const systemStats = useSystemStatsStore((state) => state.stats);
 
@@ -108,7 +108,7 @@ const SystemStatsDisplay: React.FC = React.memo(function SystemStatsDisplay() {
   );
 });
 
-const StatItem: React.FC<{ label: string; value: number }> = React.memo(function StatItem({
+const StatItem: React.FC<{ label: string; value: number }> = memo(function StatItem({
   label,
   value
 }) {
