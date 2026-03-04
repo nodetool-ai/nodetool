@@ -428,6 +428,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   // - Set to false: when user manually scrolls, or when streaming ends
   // - Checked: in auto-scroll effect to skip scrollToBottom during streaming
   const scrolledToUserMessageRef = useRef(false);
+  // Track the timeout for resetting scrolledToUserMessageRef to prevent memory leaks
+  const scrollResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
@@ -608,10 +610,21 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
       // Clear the flag after a short delay to allow the scroll to complete
       // but still prevent immediate auto-scroll during streaming
-      setTimeout(() => {
+      if (scrollResetTimeoutRef.current) {
+        clearTimeout(scrollResetTimeoutRef.current);
+      }
+      scrollResetTimeoutRef.current = setTimeout(() => {
         scrolledToUserMessageRef.current = false;
+        scrollResetTimeoutRef.current = null;
       }, 1000);
     }
+
+    return () => {
+      if (scrollResetTimeoutRef.current) {
+        clearTimeout(scrollResetTimeoutRef.current);
+        scrollResetTimeoutRef.current = null;
+      }
+    };
   }, [messages, scrollToLastUserMessage]);
 
   useEffect(() => {

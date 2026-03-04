@@ -265,6 +265,10 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const prevNextAmount = 5;
 
+  // Timeout refs for cleanup
+  const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const assetChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Compare mode state
   const [compareMode, setCompareMode] = useState(false);
   const [compareAssetA, setCompareAssetA] = useState<Asset | null>(null);
@@ -272,6 +276,18 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   // Navigation for image editor
   const navigate = useNavigate();
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      if (assetChangeTimeoutRef.current) {
+        clearTimeout(assetChangeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Reset compare mode when viewer closes
   useEffect(() => {
@@ -356,7 +372,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     try {
       await copyAssetToClipboard(assetContentType, assetSrc, assetName);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Clear any existing timeout before setting a new one
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => {
+        setCopied(false);
+        copiedTimeoutRef.current = null;
+      }, 2000);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
@@ -368,8 +391,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         return;
       }
       const newAsset = assetsToUse[index];
-      setTimeout(() => {
+      // Clear any existing timeout before setting a new one
+      if (assetChangeTimeoutRef.current) {
+        clearTimeout(assetChangeTimeoutRef.current);
+      }
+      assetChangeTimeoutRef.current = setTimeout(() => {
         setCurrentAsset(newAsset);
+        assetChangeTimeoutRef.current = null;
       }, 10);
       setCurrentIndex(index);
     },
