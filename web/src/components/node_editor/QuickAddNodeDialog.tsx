@@ -148,6 +148,7 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
 }) => {
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { getViewport } = useReactFlow();
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,
@@ -244,8 +245,13 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
         inputRef.current?.focus();
       };
       // Small delay to ensure dialog is rendered
-      setTimeout(focusInput, 50);
+      focusTimeoutRef.current = setTimeout(focusInput, 50);
     }
+    return () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
   }, [open]);
 
   // Keyboard navigation

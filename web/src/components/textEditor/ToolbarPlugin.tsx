@@ -6,7 +6,7 @@ import {
   $isRangeSelection,
   FORMAT_TEXT_COMMAND
 } from "lexical";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState, useRef } from "react";
 import FormatSizeIcon from "@mui/icons-material/FormatSize";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
@@ -49,6 +49,8 @@ const ToolbarPlugin = () => {
   const [isItalic, setIsItalic] = useState(false);
   const [isLargeFont, setIsLargeFont] = useState(false);
   const [copied, setCopied] = useState(false);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fontUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -78,6 +80,18 @@ const ToolbarPlugin = () => {
     });
   }, [editor, updateToolbar]);
 
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      if (fontUpdateTimeoutRef.current) {
+        clearTimeout(fontUpdateTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const toggleFontSize = useCallback(() => {
     editor.update(() => {
       const selection = $getSelection();
@@ -102,7 +116,11 @@ const ToolbarPlugin = () => {
         });
 
         // Apply CSS classes and data attributes (without inline font-size)
-        setTimeout(() => {
+        // Clear any existing timeout before setting a new one
+        if (fontUpdateTimeoutRef.current) {
+          clearTimeout(fontUpdateTimeoutRef.current);
+        }
+        fontUpdateTimeoutRef.current = setTimeout(() => {
           editor.getEditorState().read(() => {
             const newSelection = $getSelection();
             if ($isRangeSelection(newSelection)) {
@@ -146,7 +164,11 @@ const ToolbarPlugin = () => {
     const success = await copyAsMarkdown(editor);
     if (success) {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Clear any existing timeout before setting a new one
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
   }, [editor]);
 
