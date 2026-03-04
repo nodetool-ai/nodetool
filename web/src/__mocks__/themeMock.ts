@@ -61,6 +61,15 @@ const mockTheme = createTheme({
     warning: { main: "#ff9800" },
     success: { main: "#4caf50" },
     divider: "#2f2f2f",
+    background: {
+      default: "#202020",
+      paper: "#232323"
+    },
+    text: {
+      primary: "#ffffff",
+      secondary: "#bdbdbd",
+      disabled: "#9e9e9e"
+    },
     action: {
       hover: "rgba(255,255,255,0.08)",
       selected: "rgba(255,255,255,0.16)",
