@@ -38,6 +38,13 @@ const mockTheme = createTheme({
 
 // Add vars property directly to the theme object
 (mockTheme as any).vars = {
+  avatar: {
+    defaultColor: "#9e9e9e",
+    defaultAvatarColor: "#9e9e9e"
+  },
+  input: {
+    inputPlaceholder: "#9e9e9e"
+  },
   palette: {
     grey: {
       0: "#000000",
@@ -197,11 +204,11 @@ const mockTheme = createTheme({
 };
 
 // Add avatar properties for MUI Chip component
-(mockTheme as any).vars.avatar = {
+(mockTheme as any).avatar = {
   defaultColor: "#9e9e9e",
   defaultAvatarColor: "#9e9e9e"
 };
-(mockTheme as any).avatar = {
+(mockTheme as any).vars.avatar = {
   defaultColor: "#9e9e9e",
   defaultAvatarColor: "#9e9e9e"
 };

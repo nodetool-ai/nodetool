@@ -43,6 +43,7 @@ import type React from "react";
 import FindInWorkflowDialog from "./FindInWorkflowDialog";
 import SelectionActionToolbar from "./SelectionActionToolbar";
 import NodeInfoPanel from "./NodeInfoPanel";
+import ShortcutCheatSheet from "./ShortcutCheatSheet";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 
@@ -65,6 +66,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const selectedNodeCount = useNodes((state) => state.getSelectedNodeCount());
   const store = useNodeStoreRef();
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showCheatSheet, setShowCheatSheet] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const [quickAddNodeOpen, setQuickAddNodeOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     setPackageNameInput,
     handleSaveExampleConfirm,
     handleSaveExampleCancel
-  } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
+  } = useNodeEditorShortcuts(active, () => {
+    setShowCheatSheet((v) => !v);
+    setShowShortcuts(false);
+  });
 
   // Subscribe only to undo/redo functions to prevent re-renders on history changes
   const { undo, redo } = useTemporalNodes((state) => ({
@@ -185,6 +190,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 visible={selectedNodeCount >= 2}
               />
               <NodeInfoPanel />
+              <ShortcutCheatSheet
+                open={showCheatSheet}
+                onClose={() => setShowCheatSheet(false)}
+              />
               <NodeMenu focusSearchInput={true} />
               <CommandMenu
                 open={commandMenuOpen}
