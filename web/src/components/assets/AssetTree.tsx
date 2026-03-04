@@ -73,17 +73,35 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     return 1;
   }, []);
 
+  // Sort nodes helper
+  const sortNodes = useCallback((nodes: AssetTreeNode[]): AssetTreeNode[] => {
+    return [...nodes].sort((a, b) => {
+      if (a.content_type === "folder" && b.content_type !== "folder") {
+        return -1;
+      }
+      if (a.content_type !== "folder" && b.content_type === "folder") {
+        return 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, []);
+
   // Memoize the tree processing logic to avoid recreating the function on every render
+  // Process tree AND sort during data processing, not during rendering
   const processAssetTree = useCallback((nodes: Asset[]): AssetTreeNode[] => {
-    return nodes.map((node) => ({
-      ...node,
-      totalAssets: calculateTotalAssets(node),
-      children: (node as AssetTreeNode).children?.map((child) => ({
+    const processed = nodes.map((node) => {
+      const processedChildren = (node as AssetTreeNode).children?.map((child) => ({
         ...child,
         totalAssets: calculateTotalAssets(child)
-      }))
-    }));
-  }, [calculateTotalAssets]);
+      }));
+      return {
+        ...node,
+        totalAssets: calculateTotalAssets(node),
+        children: processedChildren ? sortNodes(processedChildren) : undefined
+      };
+    });
+    return sortNodes(processed);
+  }, [calculateTotalAssets, sortNodes]);
 
   useEffect(() => {
     const fetchAssetTree = async () => {
@@ -172,22 +190,8 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     }
   }, [folderIcon, imageIcon, audioIcon, videoIcon, textIcon, pdfIcon, wordIcon, excelIcon, powerpointIcon, zipIcon, unknownIcon]);
 
-  const sortNodes = useCallback((nodes: AssetTreeNode[]): AssetTreeNode[] => {
-    return [...nodes].sort((a, b) => {
-      if (a.content_type === "folder" && b.content_type !== "folder") {
-        return -1;
-      }
-      if (a.content_type !== "folder" && b.content_type === "folder") {
-        return 1;
-      }
-      return a.name.localeCompare(b.name);
-    });
-  }, []);
-
-  const sortedAssetTree = useMemo(() => sortNodes(assetTree), [assetTree, sortNodes]);
-
   const renderAssetTree = useCallback((nodes: AssetTreeNode[], depth = 0) => {
-    const sortedNodes = sortNodes(nodes);
+    // Nodes are already sorted during processing (processAssetTree), no need to sort here
 
     return (
       <List
@@ -196,7 +200,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         disablePadding
         sx={{ backgroundColor: "transparent" }}
       >
-        {sortedNodes.map((node) => (
+        {nodes.map((node) => (
           <React.Fragment key={node.id}>
             <ListItemButton
               onClick={createFolderToggleHandler(node.id)}
@@ -244,7 +248,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         ))}
       </List>
     );
-  }, [sortNodes, closedFolders, createFolderToggleHandler, getFileIcon, theme.vars.palette.grey]);
+  }, [closedFolders, createFolderToggleHandler, getFileIcon, theme.vars.palette.grey]);
 
   if (isLoading) {
     return <CircularProgress />;
@@ -252,7 +256,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
 
   return assetTree.length > 0 ? (
     <Box className="asset-tree" css={styles(theme)}>
-      {renderAssetTree(sortedAssetTree)}
+      {renderAssetTree(assetTree)}
     </Box>
   ) : (
     <Typography variant="body1">No assets found</Typography>

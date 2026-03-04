@@ -22,18 +22,24 @@ interface ModelMenuItemProps {
 }
 
 const ModelMenuItem = React.memo<ModelMenuItemProps>(
-  ({ model, isSelected, onSelect }) => (
-    <MenuItem
-      onClick={() => onSelect(model)}
-      selected={isSelected}
-      sx={{ pl: 3 }}
-    >
-      <ListItemText
-        primary={model.name || model.id}
-        secondary={model.supported_tasks?.join(", ")}
-      />
-    </MenuItem>
-  ),
+  ({ model, isSelected, onSelect }) => {
+    const handleClick = useCallback(() => {
+      onSelect(model);
+    }, [model, onSelect]);
+
+    return (
+      <MenuItem
+        onClick={handleClick}
+        selected={isSelected}
+        sx={{ pl: 3 }}
+      >
+        <ListItemText
+          primary={model.name || model.id}
+          secondary={model.supported_tasks?.join(", ")}
+        />
+      </MenuItem>
+    );
+  },
   (prevProps, nextProps) =>
     prevProps.model.id === nextProps.model.id &&
     prevProps.model.name === nextProps.model.name &&

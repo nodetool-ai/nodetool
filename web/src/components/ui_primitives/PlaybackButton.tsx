@@ -14,7 +14,7 @@
  * />
  */
 
-import React, { forwardRef, memo, useCallback } from "react";
+import React, { forwardRef, memo, useCallback, useMemo } from "react";
 import { IconButton, IconButtonProps, Tooltip } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
@@ -131,7 +131,7 @@ export const PlaybackButton = memo(
         }
       }, [playbackAction, state, onPlay, onPause, onStop]);
 
-      const getIcon = () => {
+      const icon = useMemo(() => {
         switch (playbackAction) {
           case "play":
             return <PlayArrowIcon />;
@@ -143,9 +143,9 @@ export const PlaybackButton = memo(
           default:
             return state === "playing" ? <PauseIcon /> : <PlayArrowIcon />;
         }
-      };
+      }, [playbackAction, state]);
 
-      const getTooltip = () => {
+      const tooltip = useMemo(() => {
         switch (playbackAction) {
           case "play":
             return "Play";
@@ -157,9 +157,9 @@ export const PlaybackButton = memo(
           default:
             return state === "playing" ? "Pause" : "Play";
         }
-      };
+      }, [playbackAction, state]);
 
-      const getSizeStyles = () => {
+      const sizeStyles = useMemo(() => {
         switch (buttonSize) {
           case "small":
             return {
@@ -180,10 +180,11 @@ export const PlaybackButton = memo(
               "& svg": { fontSize: 22 }
             };
         }
-      };
+      }, [buttonSize]);
 
-      const getColorStyles = () => {
-        if (playbackAction === "stop" || (playbackAction === "toggle" && state === "playing")) {
+      const colorStyles = useMemo(() => {
+        const isStopAction = playbackAction === "stop" || (playbackAction === "toggle" && state === "playing");
+        if (isStopAction) {
           return {
             color: theme.vars.palette.error.main,
             "&:hover": {
@@ -199,17 +200,18 @@ export const PlaybackButton = memo(
             color: "var(--palette-primary-light)"
           }
         };
-      };
+      }, [playbackAction, state, theme.vars.palette.error.main, theme.vars.palette.error.light]);
 
       return (
         <Tooltip
-          title={getTooltip()}
+          title={tooltip}
           enterDelay={TOOLTIP_ENTER_DELAY}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
           <IconButton
             ref={ref}
+            aria-label={tooltip}
             className={cn(
               "playback-button",
               nodrag && editorClassNames.nodrag,
@@ -220,15 +222,15 @@ export const PlaybackButton = memo(
             onClick={handleClick}
             tabIndex={-1}
             sx={{
-              ...getSizeStyles(),
-              ...getColorStyles(),
+              ...sizeStyles,
+              ...colorStyles,
               borderRadius: "50%",
               transition: "all 0.2s ease-in-out",
               ...sx
             }}
             {...props}
           >
-            {getIcon()}
+            {icon}
           </IconButton>
         </Tooltip>
       );
