@@ -415,21 +415,39 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return r;
   });
 
-  // Optimize: Use a more specific selector that only depends on the node's connected edges
-  // This prevents re-renders when unrelated edges change
-  const hasConnectedInput = useNodes((state: NodeStoreState) => {
-    // Check if any edge targets this node
-    // This selector will only re-render when edges array reference changes
-    // AND the connection status of this specific node changes
-    return state.edges.some((edge: Edge) => edge.target === id);
-  });
+  // Optimize: Use memoized selectors that only perform O(E) filter operations when the
+  // state.edges array reference actually changes (e.g. adding/removing edges), rather than
+  // on every store update (like during 60fps node drag operations).
+  // Returning primitive booleans prevents this node from re-rendering when unrelated edges change.
+  const hasConnectedInputSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastResult = false;
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) {
+        return lastResult;
+      }
+      lastEdges = state.edges;
+      lastResult = state.edges.some((edge: Edge) => edge.target === id);
+      return lastResult;
+    };
+  }, [id]);
+  const hasConnectedInput = useNodes(hasConnectedInputSelector);
 
-  // Check if this node has an incoming control edge (to show the control handle)
-  const hasControlEdge = useNodes((state: NodeStoreState) => {
-    return state.edges.some(
-      (edge: Edge) => edge.target === id && edge.targetHandle === CONTROL_HANDLE_ID
-    );
-  });
+  const hasControlEdgeSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastResult = false;
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) {
+        return lastResult;
+      }
+      lastEdges = state.edges;
+      lastResult = state.edges.some(
+        (edge: Edge) => edge.target === id && edge.targetHandle === CONTROL_HANDLE_ID
+      );
+      return lastResult;
+    };
+  }, [id]);
+  const hasControlEdge = useNodes(hasControlEdgeSelector);
 
   // Show control handle when dragging a control edge from an Agent node
   const isCreatingControlEdge = useConnectionStore(
