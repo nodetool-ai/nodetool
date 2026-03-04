@@ -242,12 +242,12 @@ const OpenOrCreateDialog = () => {
   const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
 
   const sortedWorkflows = useMemo(() =>
-    data?.workflows?.sort((a, b) => {
+    [...(data?.workflows || [])].sort((a, b) => {
       if (settings.workflowOrder === "name") {
         return a.name.localeCompare(b.name);
       }
       return b.updated_at.localeCompare(a.updated_at);
-    }) || [],
+    }),
     [data?.workflows, settings.workflowOrder]
   );
 

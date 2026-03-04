@@ -72,12 +72,12 @@ export const useDashboardData = () => {
 
   const sortedWorkflows = useMemo(() => {
     return (
-      workflowsData?.workflows.sort((a, b) => {
+      [...(workflowsData?.workflows || [])].sort((a, b) => {
         if (settings.workflowOrder === "name") {
           return a.name.localeCompare(b.name);
         }
         return b.updated_at.localeCompare(a.updated_at);
-      }) || []
+      })
     );
   }, [workflowsData, settings.workflowOrder]);
 

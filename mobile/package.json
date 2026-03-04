@@ -1,6 +1,6 @@
 {
   "name": "nodetool-mobile",
-  "version": "0.6.3-rc.37",
+  "version": "0.6.3-rc.38",
   "description": "React Native mobile app for NodeTool Mini Apps",
   "main": "index.ts",
   "scripts": {

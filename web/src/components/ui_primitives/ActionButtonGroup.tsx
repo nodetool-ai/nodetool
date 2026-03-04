@@ -112,6 +112,10 @@ export interface ActionButtonGroupProps {
    * Divider color
    */
   dividerColor?: string;
+  /**
+   * ARIA label for the group
+   */
+  "aria-label"?: string;
 }
 
 export const ActionButtonGroup = memo(
@@ -133,7 +137,8 @@ export const ActionButtonGroup = memo(
         backgroundColor,
         border,
         divider = false,
-        dividerColor
+        dividerColor,
+        "aria-label": ariaLabel
       },
       ref
     ) => {
@@ -169,6 +174,8 @@ export const ActionButtonGroup = memo(
       return (
         <Box
           ref={ref}
+          role="group"
+          aria-label={ariaLabel}
           className={cn(
             "action-button-group",
             nodrag && editorClassNames.nodrag,

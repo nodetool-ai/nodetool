@@ -13,7 +13,7 @@
  * />
  */
 
-import React, { forwardRef, memo, useCallback } from "react";
+import React, { forwardRef, memo, useCallback, useMemo } from "react";
 import { Button, ButtonProps, Fab, FabProps, Tooltip, CircularProgress } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -141,7 +141,7 @@ export const RunWorkflowButton = memo(
       const tooltip = isRunning ? stopLabel : runLabel;
       const icon = isRunning ? <StopIcon /> : <PlayArrowIcon />;
 
-      const getSizeStyles = () => {
+      const getSizeStyles = useMemo(() => {
         switch (size) {
           case "small":
             return variant === "fab"
@@ -156,9 +156,9 @@ export const RunWorkflowButton = memo(
               ? { width: 48, height: 48 }
               : { height: 36, minWidth: showLabel ? 100 : 36 };
         }
-      };
+      }, [size, variant, showLabel]);
 
-      const getColorStyles = () => {
+      const getColorStyles = useMemo(() => {
         if (isRunning) {
           return {
             backgroundColor: theme.vars.palette.error.main,
@@ -175,7 +175,8 @@ export const RunWorkflowButton = memo(
             backgroundColor: "var(--palette-primary-dark)"
           }
         };
-      };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [isRunning]);
 
       const content = isLoading ? (
         <CircularProgress size={size === "small" ? 16 : 20} color="inherit" />
@@ -202,8 +203,8 @@ export const RunWorkflowButton = memo(
       };
 
       const sharedSx = {
-        ...getSizeStyles(),
-        ...getColorStyles(),
+        ...getSizeStyles,
+        ...getColorStyles,
         transition: "all 0.2s ease-in-out",
         ...sx
       };

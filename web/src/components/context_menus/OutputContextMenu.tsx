@@ -18,6 +18,7 @@ import { getMousePosition } from "../../utils/MousePosition";
 import log from "loglevel";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
+import { NodeMetadata } from "../../stores/ApiTypes";
 import { labelForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
 import { constantForType } from "../../utils/NodeTypeMapping";
@@ -53,8 +54,8 @@ const OutputContextMenu: React.FC = () => {
   );
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const [outputNodeMetadata, setOutputNodeMetadata] = useState<any>();
-  const [saveNodeMetadata, setSaveNodeMetadata] = useState<any>();
+  const [outputNodeMetadata, setOutputNodeMetadata] = useState<unknown>();
+  const [saveNodeMetadata, setSaveNodeMetadata] = useState<unknown>();
   const {
     showMenu,
     typeMetadata: _typeMetadata,
@@ -118,7 +119,7 @@ const OutputContextMenu: React.FC = () => {
 
   const createNodeWithEdge = useCallback(
     (
-      metadata: any,
+      metadata: unknown,
       position: { x: number; y: number },
       nodeType: string,
       targetHandle: string | null = null
@@ -129,7 +130,7 @@ const OutputContextMenu: React.FC = () => {
       }
 
       const newNode = createNode(
-        metadata,
+        metadata as NodeMetadata,
         reactFlowInstance.screenToFlowPosition({
           x: position.x + 150,
           y: position.y
@@ -140,8 +141,9 @@ const OutputContextMenu: React.FC = () => {
         newNode.data.dynamic_properties[targetHandle] = true;
       }
 
-      if (metadata.style) {
-        newNode.style = metadata.style;
+      const extendedMetadata = metadata as NodeMetadata & { style?: unknown };
+      if (extendedMetadata.style) {
+        newNode.style = extendedMetadata.style as React.CSSProperties;
       }
 
       newNode.data.size = {
@@ -404,7 +406,7 @@ const OutputContextMenu: React.FC = () => {
           addButtonClassName="create-preview-node"
           IconComponent={<VisibilityIcon />}
         />
-        {outputNodeMetadata && (
+        {outputNodeMetadata != null && (
           <ContextMenuItem
             onClick={handleCreateOutputNode}
             label="Create Output Node"
@@ -418,7 +420,7 @@ const OutputContextMenu: React.FC = () => {
           addButtonClassName="create-reroute-node"
           IconComponent={<AltRouteIcon />}
         />
-        {saveNodeMetadata && (
+        {saveNodeMetadata != null && (
           <ContextMenuItem
             onClick={handleCreateSaveNode}
             label={`Create Save${

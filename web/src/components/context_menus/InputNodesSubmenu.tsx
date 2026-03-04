@@ -3,6 +3,7 @@ import { Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import { Node, XYPosition } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
+import { NodeMetadata } from "../../stores/ApiTypes";
 import useMetadataStore from "../../stores/MetadataStore";
 
 // Icons
@@ -15,9 +16,9 @@ interface InputNodesSubmenuProps {
   anchorEl: HTMLElement | null;
   onClose: () => void;
   createNode: (
-    metadata: any,
+    metadata: NodeMetadata,
     position: XYPosition,
-    properties?: Record<string, any>
+    properties?: Record<string, unknown>
   ) => Node<NodeData>;
   addNode: (node: Node<NodeData>) => void;
   getPosition: (event: React.MouseEvent) => XYPosition;

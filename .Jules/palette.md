@@ -11,3 +11,6 @@
 ## 2026-02-27 - Hidden Focus Traps in State Buttons
 **Learning:** `StateIconButton` (used for ThemeToggle, AgentMode) had hardcoded `tabIndex={-1}`, making critical global controls keyboard-inaccessible. This pattern of "canvas-first" components breaking standard UI accessibility persists.
 **Action:** When auditing UI primitives, check if they are "dual-use" (canvas vs. panel) and ensure `tabIndex` is configurable, defaulting to `0`.
+## 2024-06-18 - Missing ARIA Labels on Core UI Primitives
+**Learning:** Many core icon-based UI primitives (like `CircularActionButton`, `ToolbarIconButton`, `DownloadButton`, `PlaybackButton`) in this application were missing `aria-label`s, rendering them inaccessible to screen readers despite having visual tooltips. The tooltips were not automatically functioning as accessible names. Furthermore, grouped buttons (like in `ActionButtonGroup`) lacked semantic grouping structure (`role="group"`).
+**Action:** When creating or modifying custom icon-only components, always extract the string value from the `tooltip` prop (e.g., `typeof tooltip === 'string' ? tooltip : undefined`) to explicitly set the `aria-label` attribute on the underlying `IconButton` or `button` element. Use `role="group"` and `aria-label` for logical groupings of actions to provide proper context to screen readers.
