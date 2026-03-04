@@ -85,6 +85,7 @@ const SearchBar = memo(({
             <Switch
               checked={nodesOnlySearch}
               onChange={handleToggleChange}
+              inputProps={{ "aria-label": "Toggle Node Search" }}
               size="small"
             />
           }
