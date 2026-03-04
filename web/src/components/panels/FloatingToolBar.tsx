@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   Fab,
   Box,
@@ -107,21 +107,27 @@ const RunningTime: React.FC<{ isRunning: boolean }> = memo(
     const theme = useTheme();
     const elapsedSeconds = useRunningTime(isRunning);
     const { text, sizeKey } = formatRunningTime(elapsedSeconds);
-    const fontSizeMap = {
-      smaller: theme.fontSizeSmaller,
-      tiny: theme.fontSizeTiny,
-      tinyer: theme.fontSizeTinyer
-    };
 
-    return (
-      <span
-        style={{
+    // Memoize inline style to prevent recreation on every render
+    const runningTimeStyle = React.useMemo(
+      () => {
+        const fontSizeMap = {
+          smaller: theme.fontSizeSmaller,
+          tiny: theme.fontSizeTiny,
+          tinyer: theme.fontSizeTinyer
+        };
+        return {
           fontSize: fontSizeMap[sizeKey],
           fontWeight: 600,
-          fontFamily: "monospace",
+          fontFamily: "monospace" as const,
           letterSpacing: "-0.5px"
-        }}
-      >
+        };
+      },
+      [theme, sizeKey]
+    );
+
+    return (
+      <span style={runningTimeStyle}>
         {text}
       </span>
     );
@@ -440,6 +446,33 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleCloseAdvancedMenu();
   }, [handleToggleMiniMap, handleCloseAdvancedMenu]);
 
+  // Memoize Menu props to prevent recreation on every render
+  const actionsMenuProps = useMemo(
+    () => ({
+      anchorOrigin: { vertical: "top" as const, horizontal: "center" as const },
+      transformOrigin: { vertical: "bottom" as const, horizontal: "center" as const },
+      slotProps: {
+        paper: {
+          sx: { minWidth: "200px", maxWidth: "280px" }
+        }
+      }
+    }),
+    []
+  );
+
+  const advancedMenuProps = useMemo(
+    () => ({
+      anchorOrigin: { vertical: "top" as const, horizontal: "center" as const },
+      transformOrigin: { vertical: "bottom" as const, horizontal: "center" as const },
+      slotProps: {
+        paper: {
+          sx: { minWidth: "180px", maxWidth: "220px" }
+        }
+      }
+    }),
+    []
+  );
+
   if (!path.startsWith("/editor")) {
     return null;
   }
@@ -561,13 +594,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         anchorEl={actionsMenuAnchor}
         open={Boolean(actionsMenuAnchor)}
         onClose={handleCloseActionsMenu}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
-        slotProps={{
-          paper: {
-            sx: { minWidth: "200px", maxWidth: "280px" }
-          }
-        }}
+        {...actionsMenuProps}
       >
         <MenuItem onClick={handleToggleTerminalAndCloseMenu}>
           <ListItemIcon>
@@ -607,13 +634,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         anchorEl={advancedMenuAnchor}
         open={Boolean(advancedMenuAnchor)}
         onClose={handleCloseAdvancedMenu}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
-        slotProps={{
-          paper: {
-            sx: { minWidth: "180px", maxWidth: "220px" }
-          }
-        }}
+        {...advancedMenuProps}
       >
         <MenuItem
           className={cn(isMiniMapVisible && "minimap-active")}
