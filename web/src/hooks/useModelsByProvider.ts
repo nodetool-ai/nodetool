@@ -106,6 +106,13 @@ export const useLanguageModelsByProvider = (options?: {
     return { total, loaded, loading };
   }, [providers.length, queries]);
 
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
   return {
     models: allModels || [],
     isLoading,
@@ -113,7 +120,8 @@ export const useLanguageModelsByProvider = (options?: {
     error,
     providerErrors,
     loadingProgress,
-    allowedProviders: options?.allowedProviders
+    allowedProviders: options?.allowedProviders,
+    refetch
   };
 };
 
@@ -177,11 +185,19 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
 
   // Debug logging removed
 
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
   return {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
@@ -224,11 +240,19 @@ export const useTTSModelsByProvider = () => {
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
 
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
   return {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
@@ -271,11 +295,19 @@ export const useASRModelsByProvider = () => {
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
 
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
   return {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
@@ -323,11 +355,19 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
     allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task as any));
   }
 
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
   return {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
@@ -371,12 +411,23 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
   const isLoading = opts?.modelType ? query.isLoading : baseData.isLoading;
   const isFetching = opts?.modelType ? query.isFetching : baseData.isFetching;
   const error = opts?.modelType ? query.error : baseData.error;
+  const refetch = useMemo(
+    () => async () => {
+      if (opts?.modelType) {
+        await query.refetch();
+        return;
+      }
+      await baseData.refetch();
+    },
+    [opts?.modelType, query, baseData]
+  );
 
   return {
     models: models || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
 
