@@ -484,6 +484,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
 }) => {
   const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
   const input = useRef<HTMLInputElement>(null);
+  const focusInputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const executeAndClose = useCallback(
     (action: () => void) => {
@@ -506,10 +507,31 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       const inputElement = document.querySelector("input[cmdk-input]");
       (inputElement as HTMLInputElement)?.focus();
     };
+
     if (open) {
-      setTimeout(focusInput, 0);
+      // Clear any existing timeout before setting a new one
+      if (focusInputTimeoutRef.current) {
+        clearTimeout(focusInputTimeoutRef.current);
+      }
+      focusInputTimeoutRef.current = setTimeout(focusInput, 0);
     }
+
+    // Cleanup: clear timeout when component unmounts or open changes
+    return () => {
+      if (focusInputTimeoutRef.current) {
+        clearTimeout(focusInputTimeoutRef.current);
+      }
+    };
   }, [open]);
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (focusInputTimeoutRef.current) {
+        clearTimeout(focusInputTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
