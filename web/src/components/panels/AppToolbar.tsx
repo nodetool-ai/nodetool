@@ -15,7 +15,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useLocation } from "react-router-dom";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -509,6 +509,18 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
   const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
+  // Store timeout ref for cleanup
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleRun = useCallback(async () => {
     if (!isWorkflowRunning) {
       const currentState = nodeStore.getState();
@@ -523,7 +535,12 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
         run({}, workflow, currentState.nodes, currentState.edges);
       }
     }
-    setTimeout(() => {
+    // Clear previous timeout if exists
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    // Set new timeout and store reference for cleanup
+    saveTimeoutRef.current = setTimeout(() => {
       const w = getWorkflow(workflow.id);
       if (w) {
         saveWorkflow(w);

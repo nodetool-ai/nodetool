@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Typography, IconButton, Tooltip, CircularProgress } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -25,6 +25,16 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
   workflow
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Get set of bypassed node IDs and preview node IDs for filtering results
   const excludedNodeIds = useMemo(() => {
@@ -99,7 +109,16 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
 
         await navigator.clipboard.writeText(textToCopy);
         setCopiedId(result.id);
-        setTimeout(() => setCopiedId(null), 2000);
+
+        // Clear previous timeout if exists
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+        }
+
+        // Set new timeout and store reference
+        copyTimeoutRef.current = setTimeout(() => {
+          setCopiedId(null);
+        }, 2000);
       } catch (error) {
         console.error("Failed to copy:", error);
       }
