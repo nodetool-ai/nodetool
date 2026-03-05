@@ -1,5 +1,9 @@
 import React, { memo, useCallback } from "react";
 
+interface ExtendedCSSProperties extends React.CSSProperties {
+  WebkitAppRegion?: "-webkit-drag" | "no-drag" | "none";
+}
+
 const containerStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -32,21 +36,19 @@ const closeHoverStyle: React.CSSProperties = {
 
 const TitleBar: React.FC = memo(function TitleBar() {
   const minimize = useCallback(() => {
-    (window as any)?.api?.windowControls?.minimize?.();
+    window.api?.windowControls?.minimize?.();
   }, []);
 
   const maximize = useCallback(() => {
-    (window as any)?.api?.windowControls?.maximize?.();
+    window.api?.windowControls?.maximize?.();
   }, []);
 
   const close = useCallback(() => {
-    (window as any)?.api?.windowControls?.close?.();
+    window.api?.windowControls?.close?.();
   }, []);
 
   return (
-    <div
-      style={{ ...(containerStyle as any), WebkitAppRegion: "no-drag" } as any}
-    >
+    <div style={{ ...containerStyle, WebkitAppRegion: "no-drag" } as ExtendedCSSProperties}>
       <button
         style={baseButtonStyle}
         onMouseEnter={(e) => Object.assign(e.currentTarget.style, hoverStyle)}
