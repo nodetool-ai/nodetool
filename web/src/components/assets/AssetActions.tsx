@@ -317,6 +317,29 @@ const AssetActions = ({
       refetchAssetsAndFolders();
     });
   }, [createFolder, currentFolder?.id, createFolderName, addNotification, refetchAssetsAndFolders]);
+
+  const handleOpenCreateFolder = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    setCreateFolderAnchor(e.currentTarget);
+  }, []);
+
+  const handleSortChange = useCallback((e: unknown) => {
+    handleOrderChange(e, (e as React.ChangeEvent<HTMLSelectElement>).target.value as "name" | "date" | "size");
+  }, [handleOrderChange]);
+
+  const handleSizeFilter = useCallback((e: unknown) => {
+    handleSizeFilterChange(e, (e as React.ChangeEvent<HTMLSelectElement>).target.value as SizeFilterKey);
+  }, [handleSizeFilterChange]);
+
+  const handleFolderNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter") {
+      handleCreateFolder();
+    }
+  }, [handleCreateFolder]);
+
+  const handleFolderNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setCreateFolderName(e.target.value);
+  }, []);
+
   return (
     <div className="asset-actions" css={styles(theme)}>
       <UploadButton
@@ -332,7 +355,7 @@ const AssetActions = ({
           disableInteractive
         >
           <Button
-            onClick={(e) => setCreateFolderAnchor(e.currentTarget)}
+            onClick={handleOpenCreateFolder}
             tabIndex={-1}
           >
             <CreateNewFolderIcon />
@@ -386,7 +409,7 @@ const AssetActions = ({
           variant="standard"
           className="sort-assets"
           value={settings.assetsOrder}
-          onChange={(e) => handleOrderChange(e, e.target.value as "name" | "date" | "size")}
+          onChange={handleSortChange}
           displayEmpty
           inputProps={{ "aria-label": "Sort assets" }}
           tabIndex={-1}
@@ -412,7 +435,7 @@ const AssetActions = ({
               minWidth: "80px"
             }
           }}
-          onChange={(e) => handleSizeFilterChange(e, e.target.value as SizeFilterKey)}
+          onChange={handleSizeFilter}
           displayEmpty
           inputProps={{ "aria-label": "Filter by size" }}
           tabIndex={-1}
@@ -463,12 +486,8 @@ const AssetActions = ({
               autoFocus
               autoComplete="off"
               id="name"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleCreateFolder();
-                }
-              }}
-              onChange={(e) => setCreateFolderName(e.target.value)}
+              onKeyDown={handleFolderNameKeyDown}
+              onChange={handleFolderNameChange}
               fullWidth
             />
           </div>
