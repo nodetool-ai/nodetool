@@ -53,6 +53,22 @@ describe("workflowResultHydration", () => {
     });
   });
 
+  it("maps html assets to html refs", () => {
+    const result = assetToResultValue(
+      baseAsset({
+        id: "html-1",
+        name: "page.html",
+        content_type: "text/html"
+      })
+    );
+
+    expect(result).toMatchObject({
+      type: "html",
+      asset_id: "html-1",
+      uri: "asset://html-1.html"
+    });
+  });
+
   it("groups assets by node id and sorts by created_at", () => {
     const grouped = groupWorkflowAssetsByNodeResult([
       baseAsset({
@@ -99,4 +115,3 @@ describe("workflowResultHydration", () => {
     });
   });
 });
-
