@@ -175,10 +175,6 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
 }) => {
   const searchTerm = useNodeMenuStore((state) => state.searchTerm);
   const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
-  // const description = useMemo(
-  //   () => nodeMetadata?.description || "",
-  //   [nodeMetadata]
-  // );
 
   const description = useMemo(
     () =>
