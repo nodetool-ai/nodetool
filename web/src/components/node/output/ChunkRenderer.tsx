@@ -14,6 +14,18 @@ type Props = {
 
 export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
   const theme = useTheme();
+  const contentType = (chunk as any).content_type as string;
+
+  if (contentType === "html") {
+    return (
+      <iframe
+        srcDoc={(chunk.content as string) ?? ""}
+        sandbox=""
+        style={{ width: "100%", minHeight: 320, border: "none" }}
+        title="HTML chunk output"
+      />
+    );
+  }
 
   switch (chunk.content_type) {
     case "image":

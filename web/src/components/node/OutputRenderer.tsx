@@ -303,6 +303,49 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   const { scrollRef, handleMouseDown } = useDraggableScroll();
 
   const type = useMemo(() => typeFor(value), [value]);
+  const documentDataPreview = useMemo(() => {
+    if (type !== "document") {
+      return { url: "", isPdf: false };
+    }
+
+    let bytes: Uint8Array | null = null;
+    const data = value?.data;
+
+    if (data instanceof Uint8Array) {
+      bytes = data;
+    } else if (Array.isArray(data)) {
+      bytes = new Uint8Array(data);
+    } else if (data && typeof data === "object") {
+      const numericEntries = Object.entries(data)
+        .filter(([k, v]) => /^\d+$/.test(k) && typeof v === "number")
+        .sort((a, b) => Number(a[0]) - Number(b[0]));
+      if (numericEntries.length > 0) {
+        bytes = new Uint8Array(numericEntries.map(([, v]) => Number(v)));
+      }
+    }
+
+    if (!bytes || bytes.length === 0) {
+      return { url: "", isPdf: false };
+    }
+
+    const isPdf =
+      bytes.length >= 4 &&
+      bytes[0] === 0x25 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x44 &&
+      bytes[3] === 0x46;
+    const mimeType = isPdf ? "application/pdf" : "application/octet-stream";
+    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+    return { url, isPdf };
+  }, [type, value]);
+
+  useEffect(() => {
+    return () => {
+      if (documentDataPreview.url) {
+        URL.revokeObjectURL(documentDataPreview.url);
+      }
+    };
+  }, [documentDataPreview.url]);
 
   const computedViewer = useImageAssets(value);
   useRevokeBlobUrls(computedViewer.urls);
@@ -391,6 +434,79 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             />
           </div>
         );
+      }
+      case "html": {
+        const uri =
+          value?.uri && typeof value.uri === "string" && !value.uri.startsWith("memory://")
+            ? resolveAssetUri(value.uri)
+            : "";
+        if (uri) {
+          return (
+            <iframe
+              src={uri}
+              sandbox=""
+              style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
+              title="HTML output"
+            />
+          );
+        }
+
+        let html = "";
+        if (typeof value?.data === "string") {
+          html = value.data;
+        } else if (value?.data instanceof Uint8Array) {
+          html = new TextDecoder("utf-8").decode(value.data);
+        } else if (Array.isArray(value?.data)) {
+          html = new TextDecoder("utf-8").decode(new Uint8Array(value.data));
+        }
+
+        if (!html) {
+          return <TextRenderer text="" showActions={showTextActions} />;
+        }
+
+        return (
+          <iframe
+            srcDoc={html}
+            sandbox=""
+            style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
+            title="HTML output"
+          />
+        );
+      }
+      case "document": {
+        const rawUri =
+          value?.uri && typeof value.uri === "string" ? value.uri : "";
+        const uriFromRef =
+          rawUri && !rawUri.startsWith("memory://") ? resolveAssetUri(rawUri) : "";
+        const uri = uriFromRef || documentDataPreview.url;
+        const mimeType = uriFromRef ? getMimeTypeFromUri(uriFromRef) : undefined;
+        const isPdf =
+          documentDataPreview.isPdf ||
+          mimeType === "application/pdf" ||
+          rawUri.toLowerCase().endsWith(".pdf") ||
+          uri.toLowerCase().endsWith(".pdf");
+
+        if (uri && isPdf) {
+          return (
+            <iframe
+              src={uri}
+              style={{ width: "100%", height: "100%", minHeight: 360, border: "none" }}
+              title="PDF output"
+            />
+          );
+        }
+
+        if (uri) {
+          return (
+            <div className="output value" style={{ padding: "0.75em" }}>
+              <a href={uri} target="_blank" rel="noreferrer">
+                Open document
+              </a>
+            </div>
+          );
+        }
+
+        return <JSONRenderer value={value} showActions={showTextActions} />;
       }
       case "video":
         return (
@@ -614,7 +730,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 <AssetGrid values={value} onOpenIndex={onDoubleClickAsset} />
               );
             }
-            if (["audio", "video"].includes(value[0].type)) {
+            if (["audio", "video", "html"].includes(value[0].type)) {
               const seen = new Map<string, number>();
               return (
                 <Container>

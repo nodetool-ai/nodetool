@@ -15,6 +15,7 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
   "video/mp4": ".mp4",
   "video/webm": ".webm",
   "video/quicktime": ".mov",
+  "text/html": ".html",
   "application/pdf": ".pdf",
   "model/gltf-binary": ".glb",
   "model/gltf+json": ".gltf"
@@ -74,6 +75,10 @@ export const assetToResultValue = (asset: Asset): Record<string, unknown> => {
     };
   }
 
+  if (normalized === "text/html") {
+    return { type: "html", uri, asset_id: asset.id, metadata };
+  }
+
   if (normalized === "application/pdf" || normalized.startsWith("text/")) {
     return { type: "document", uri, asset_id: asset.id, metadata };
   }
@@ -129,4 +134,3 @@ export const hydrateWorkflowResultsFromAssets = async (
     );
   }
 };
-
