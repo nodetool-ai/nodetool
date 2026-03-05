@@ -78,7 +78,6 @@ const Dashboard: React.FC = () => {
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
 
   const [dockviewApi, setDockviewApi] = useState<DockviewApi | null>(null);
-  // const [availablePanels, setAvailablePanels] = useState<any[]>([]);
   const [availablePanels, setAvailablePanels] = useState<PanelInfo[]>([]);
 
   const isMountedRef = useRef(true);
