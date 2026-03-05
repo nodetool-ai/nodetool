@@ -387,7 +387,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   }, []);
 
   return (
-    <div className="preview-image-grid" css={styles(theme as any, gap)} ref={containerRef}>
+    <div className="preview-image-grid" css={styles(theme, gap)} ref={containerRef}>
       {/* Selection mode toggle button */}
       {showSelectionFeatures && (
         <Button
