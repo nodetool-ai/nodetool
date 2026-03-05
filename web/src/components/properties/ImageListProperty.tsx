@@ -227,6 +227,15 @@ const ImageListProperty = (props: PropertyProps) => {
     }
   }, []);
 
+  // Memoize load handlers for each image to prevent re-renders
+  const loadHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const image of images) {
+      handlers[image.uri] = () => handleImageLoad(image.uri);
+    }
+    return handlers;
+  }, [images, handleImageLoad]);
+
   // Handle file drops (both internal nodetool assets and external files)
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -482,7 +491,7 @@ const ImageListProperty = (props: PropertyProps) => {
                   src={image.uri}
                   alt={`Image ${index + 1}`}
                   draggable={false}
-                  onLoad={() => handleImageLoad(image.uri)}
+                  onLoad={loadHandlers[image.uri]}
                 />
                 {imageDimensions[image.uri] && (
                   <ImageDimensions
