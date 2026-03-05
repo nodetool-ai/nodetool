@@ -70,9 +70,24 @@ $(WEB_BUILD_MARKER): $(WEB_SOURCES)
 	cd web && npm run build
 	@touch $(WEB_BUILD_MARKER)
 
-electron: $(WEB_BUILD_MARKER)
-	@echo "Building electron vite..."
+# Electron build optimization
+ELECTRON_DIR := electron
+ELECTRON_BUILD_MARKER := $(ELECTRON_DIR)/dist-electron/.build_marker
+ELECTRON_SOURCES := $(shell find $(ELECTRON_DIR)/src -type f 2>/dev/null) \
+	$(shell find $(ELECTRON_DIR)/pages -type f 2>/dev/null) \
+	$(shell find $(ELECTRON_DIR)/assets -type f 2>/dev/null) \
+	$(ELECTRON_DIR)/package.json \
+	$(ELECTRON_DIR)/package-lock.json \
+	$(ELECTRON_DIR)/vite.config.ts \
+	$(ELECTRON_DIR)/tsconfig.json \
+	$(ELECTRON_DIR)/index.html
+
+$(ELECTRON_BUILD_MARKER): $(ELECTRON_SOURCES)
+	@echo "Building Electron main/preload bundle..."
 	cd electron && npm run vite:build
+	@touch $(ELECTRON_BUILD_MARKER)
+
+electron: $(WEB_BUILD_MARKER) $(ELECTRON_BUILD_MARKER)
 	@echo "Starting electron app..."
 	cd electron && npm start
 
