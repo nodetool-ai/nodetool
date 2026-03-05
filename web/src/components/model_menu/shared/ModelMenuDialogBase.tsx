@@ -13,9 +13,11 @@ import {
   Tooltip,
   CircularProgress,
   Typography,
-  Collapse
+  Collapse,
+  IconButton
 } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 import StarIcon from "@mui/icons-material/Star"; // Favorite
 import HistoryIcon from "@mui/icons-material/History"; // Recent
@@ -45,6 +47,7 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
     error: unknown;
     providerErrors?: Array<{ provider: string; error: unknown }>;
     loadingProgress?: { total: number; loaded: number; loading: number };
+    refetch?: () => Promise<unknown> | unknown;
   };
   onModelChange?: (model: TModel) => void;
   title?: string;
@@ -62,7 +65,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   searchPlaceholder = "Search models...",
   storeHook
 }: ModelMenuBaseProps<TModel>) {
-  const { models, isLoading, isFetching, error: fetchedError, providerErrors, loadingProgress } = modelData;
+  const { models, isLoading, isFetching, error: fetchedError, providerErrors, loadingProgress, refetch } = modelData;
 
   const isError = !!fetchedError;
   const theme = useTheme();
@@ -113,6 +116,13 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     },
     [onModelChange]
   );
+
+  const handleRefresh = useCallback(async () => {
+    if (!refetch || isFetching) {
+      return;
+    }
+    await refetch();
+  }, [refetch, isFetching]);
 
   // Reset custom view when provider changes
   React.useEffect(() => {
@@ -211,6 +221,18 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               width="100%"
             />
           </Box>
+          <Tooltip title="Refresh models">
+            <span>
+              <IconButton
+                size="small"
+                onClick={handleRefresh}
+                disabled={!refetch || !!isFetching}
+                aria-label="refresh models"
+              >
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
           <ModelFiltersBar />
         </Box>
       </Box>

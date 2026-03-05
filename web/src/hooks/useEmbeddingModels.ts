@@ -67,10 +67,18 @@ export const useEmbeddingModelsByProvider = (options?: {
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
 
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
   return {
     models: allModels || [],
     isLoading,
     isFetching,
-    error
+    error,
+    refetch
   };
 };
