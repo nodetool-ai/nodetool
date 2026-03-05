@@ -31,7 +31,7 @@ interface VerticalToolbarProps {
     panelVisible: boolean;
 }
 
-const VerticalToolbar = memo(function VerticalToolbar({
+function VerticalToolbar({
     handleInspectorToggle,
     handleAssistantToggle,
     handleLogsToggle,
@@ -260,6 +260,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
             </Tooltip>
         </div>
     );
-});
+};
 
 export default memo(VerticalToolbar);
