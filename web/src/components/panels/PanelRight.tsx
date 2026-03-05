@@ -436,6 +436,17 @@ const PanelRight: React.FC = () => {
     storeState.setWorkflowDirty(true);
   };
 
+  // Memoize toolbar toggle handlers to prevent unnecessary VerticalToolbar re-renders
+  const handleInspectorToggle = useCallback(() => handlePanelToggle("inspector"), [handlePanelToggle]);
+  const handleAssistantToggle = useCallback(() => handlePanelToggle("assistant"), [handlePanelToggle]);
+  const handleLogsToggle = useCallback(() => handlePanelToggle("logs"), [handlePanelToggle]);
+  const handleJobsToggle = useCallback(() => handlePanelToggle("jobs"), [handlePanelToggle]);
+  const handleWorkspaceToggle = useCallback(() => handlePanelToggle("workspace"), [handlePanelToggle]);
+  const handleVersionsToggle = useCallback(() => handlePanelToggle("versions"), [handlePanelToggle]);
+  const handleWorkflowToggle = useCallback(() => handlePanelToggle("workflow"), [handlePanelToggle]);
+  const handleWorkflowAssetsToggle = useCallback(() => handlePanelToggle("workflowAssets"), [handlePanelToggle]);
+  const handleAgentToggle = useCallback(() => handlePanelToggle("agent"), [handlePanelToggle]);
+
   return (
     <div css={styles(theme)} className="panel-right-container">
       {/* Drawer content - appears left of toolbar when visible */}
@@ -545,15 +556,15 @@ const PanelRight: React.FC = () => {
 
       {/* Fixed toolbar - always on the right edge */}
       <VerticalToolbar
-        handleInspectorToggle={() => handlePanelToggle("inspector")}
-        handleAssistantToggle={() => handlePanelToggle("assistant")}
-        handleLogsToggle={() => handlePanelToggle("logs")}
-        handleJobsToggle={() => handlePanelToggle("jobs")}
-        handleWorkspaceToggle={() => handlePanelToggle("workspace")}
-        handleVersionsToggle={() => handlePanelToggle("versions")}
-        handleWorkflowToggle={() => handlePanelToggle("workflow")}
-        handleWorkflowAssetsToggle={() => handlePanelToggle("workflowAssets")}
-        handleAgentToggle={() => handlePanelToggle("agent")}
+        handleInspectorToggle={handleInspectorToggle}
+        handleAssistantToggle={handleAssistantToggle}
+        handleLogsToggle={handleLogsToggle}
+        handleJobsToggle={handleJobsToggle}
+        handleWorkspaceToggle={handleWorkspaceToggle}
+        handleVersionsToggle={handleVersionsToggle}
+        handleWorkflowToggle={handleWorkflowToggle}
+        handleWorkflowAssetsToggle={handleWorkflowAssetsToggle}
+        handleAgentToggle={handleAgentToggle}
         activeView={activeView}
         panelVisible={isVisible}
       />
