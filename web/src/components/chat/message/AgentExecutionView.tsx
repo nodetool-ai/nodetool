@@ -335,6 +335,7 @@ const formatToolArgs = (args: any): string => {
     // If it's a simple object with few keys, simpler display? For now just indent
     return JSON.stringify(obj, null, 2);
   } catch {
+    // JSON parse/stringify failed, return as string
     return String(args);
   }
 };

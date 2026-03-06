@@ -112,7 +112,7 @@ const AudioVisualizer = memo(({
       try {
         audioContext.close();
       } catch {
-        // noop
+        // Audio context cleanup may fail if already closed, ignore
       }
       analyserRef.current = null;
       audioContextRef.current = null;

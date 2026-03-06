@@ -274,7 +274,9 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       if (parts && parts.includes(".")) {
         filename = decodeURIComponent(parts);
       }
-    } catch { }
+    } catch {
+      // Filename extraction failed, use fallback
+    }
 
     link.download = filename;
     document.body.appendChild(link);

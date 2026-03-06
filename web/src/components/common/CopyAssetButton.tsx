@@ -116,6 +116,7 @@ async function copyAssetToClipboardBrowser(
       log.info("Text content copied to clipboard via browser API");
       return;
     } catch {
+      // Text fetch failed, fall back to copying URL
       await navigator.clipboard.writeText(absoluteUrl);
       log.info("URL copied to clipboard as text (fallback)");
       return;

@@ -152,6 +152,7 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
         resultType: Array.isArray(result) ? "array" : "object"
       };
     } catch {
+      // JSON.stringify failed, convert to string
       return {
         displayValue: String(result),
         isPrimitive: true,
