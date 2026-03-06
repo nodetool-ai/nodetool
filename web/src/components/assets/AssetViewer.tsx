@@ -273,6 +273,18 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   // Navigation for image editor
   const navigate = useNavigate();
 
+  // Copy to clipboard timeout ref for cleanup
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Reset compare mode when viewer closes
   useEffect(() => {
     if (!open) {
@@ -356,7 +368,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     try {
       await copyAssetToClipboard(assetContentType, assetSrc, assetName);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+
+      // Clear previous timeout if exists
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+
+      // Set new timeout and store reference for cleanup
+      copyTimeoutRef.current = setTimeout(() => {
+        setCopied(false);
+      }, 2000);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
