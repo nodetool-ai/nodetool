@@ -146,6 +146,7 @@ export function useImageAssets(value: unknown) {
             url = URL.createObjectURL(blob);
             urls.push(url);
           } catch {
+            // Blob creation failed (may be due to shared ArrayBuffer), use empty URL
             url = "";
           }
         }
