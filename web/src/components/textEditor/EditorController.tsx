@@ -367,6 +367,7 @@ const EditorController = ({
         return "";
       });
     } catch {
+      // Editor state read failed (editor may be disposed), return empty string
       return "";
     }
   }, [editor]);
