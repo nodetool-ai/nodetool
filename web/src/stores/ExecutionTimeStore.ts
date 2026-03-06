@@ -84,13 +84,20 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
   },
 
   clearTimings: (workflowId: string) => {
-    set((state) => ({
-      timings: Object.fromEntries(
-        Object.entries(state.timings).filter(
-          ([key]) => !key.startsWith(workflowId)
-        )
-      )
-    }));
+    set((state) => {
+      // ⚡ Bolt: Using for...in loop instead of Object.entries().filter()
+      // to avoid creating expensive intermediate arrays during bulk filtering.
+      const newTimings: Record<string, ExecutionTiming> = {};
+      let changed = false;
+      for (const key in state.timings) {
+        if (!key.startsWith(workflowId)) {
+          newTimings[key] = state.timings[key];
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? { timings: newTimings } : state;
+    });
   }
 }));
 

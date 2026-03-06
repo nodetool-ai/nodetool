@@ -27,21 +27,34 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
       const keysToRemove = new Set(
         Array.from(nodeIds).map((id) => hashKey(workflowId, id))
       );
-      set((state) => ({
-        errors: Object.fromEntries(
-          Object.entries(state.errors).filter(
-            ([key]) => !keysToRemove.has(key)
-          )
-        )
-      }));
+      set((state) => {
+        // ⚡ Bolt: Using shallow copy and delete instead of Object.entries().filter()
+        // to avoid creating expensive intermediate arrays.
+        const newErrors = { ...state.errors };
+        let changed = false;
+        for (const key of keysToRemove) {
+          if (key in newErrors) {
+            delete newErrors[key];
+            changed = true;
+          }
+        }
+        return changed ? { errors: newErrors } : state;
+      });
     } else {
-      set((state) => ({
-        errors: Object.fromEntries(
-          Object.entries(state.errors).filter(
-            ([key]) => !key.startsWith(workflowId)
-          )
-        )
-      }));
+      set((state) => {
+        // ⚡ Bolt: Using for...in loop instead of Object.entries().filter()
+        // to avoid creating expensive intermediate arrays during bulk filtering.
+        const newErrors: Record<string, NodeError> = {};
+        let changed = false;
+        for (const key in state.errors) {
+          if (!key.startsWith(workflowId)) {
+            newErrors[key] = state.errors[key];
+          } else {
+            changed = true;
+          }
+        }
+        return changed ? { errors: newErrors } : state;
+      });
     }
   },
   /**
