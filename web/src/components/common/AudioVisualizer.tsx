@@ -20,9 +20,16 @@ const AudioVisualizer = memo(({
     const canvas = canvasRef.current;
     if (!stream || !canvas) {return;}
 
-    const AudioCtx =
-      (window as any).AudioContext || (window as any).webkitAudioContext;
-    const audioContext: AudioContext = new AudioCtx();
+    // Get AudioContext constructor from window (with webkit prefix fallback for Safari)
+    const AudioContextConstructor =
+      (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+        .AudioContext ||
+      (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioContextConstructor) {
+      return; // Browser doesn't support AudioContext
+    }
+    const audioContext: AudioContext = new AudioContextConstructor();
     audioContextRef.current = audioContext;
 
     const analyser = audioContext.createAnalyser();
