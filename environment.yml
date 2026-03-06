@@ -6,7 +6,6 @@ dependencies:
   - python=3.11
   - ffmpeg>=6,<7
   - cairo
-  - conda-forge::imagemagick
   - git
   - x264
   - x265
