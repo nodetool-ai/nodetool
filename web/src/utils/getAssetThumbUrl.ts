@@ -15,10 +15,15 @@ export const getAssetThumbUrl = (
   if (asset.data && asset.type === "image") {
     try {
       // Convert to Uint8Array if it's not already
-      const uint8Array =
-        asset.data instanceof Uint8Array
-          ? asset.data
-          : new Uint8Array(Object.values(asset.data as any));
+      let uint8Array: Uint8Array;
+      if (asset.data instanceof Uint8Array) {
+        uint8Array = asset.data;
+      } else if (typeof asset.data === "object" && asset.data !== null) {
+        // Handle object-based binary data (e.g., {0: 123, 1: 456, ...})
+        uint8Array = new Uint8Array(Object.values(asset.data as Record<string, number>));
+      } else {
+        throw new Error("Invalid data type for thumbnail");
+      }
 
       // Create a blob URL from the binary data
       return URL.createObjectURL(new Blob([uint8Array], { type: "image/png" }));
