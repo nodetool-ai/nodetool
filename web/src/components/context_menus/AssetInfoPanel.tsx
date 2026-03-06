@@ -60,6 +60,7 @@ function formatDate(dateStr: string): string {
       minute: "2-digit"
     });
   } catch {
+    // Date formatting failed, return original string
     return dateStr;
   }
 }

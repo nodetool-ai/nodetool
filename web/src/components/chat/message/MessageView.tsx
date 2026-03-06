@@ -49,6 +49,7 @@ const PrettyJson: React.FC<{ value: any }> = React.memo(({ value }) => {
       }
       return JSON.stringify(value, null, 2);
     } catch {
+      // JSON.stringify failed, return value as-is or convert to string
       return typeof value === "string" ? value : String(value);
     }
   }, [value]);
@@ -415,6 +416,7 @@ export const MessageView: React.FC<
         const date = new Date(dateStr);
         return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       } catch {
+        // Date parsing failed, return null
         return null;
       }
     };

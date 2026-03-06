@@ -94,6 +94,7 @@ const Dashboard: React.FC = () => {
     try {
       return JSON.parse(model);
     } catch {
+      // JSON parsing failed, return default model
       return DEFAULT_MODEL;
     }
   }, []);

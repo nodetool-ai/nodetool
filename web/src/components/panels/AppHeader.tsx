@@ -170,6 +170,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
         navigate(`/chat/${newThreadId}`);
       }
     } catch {
+      // Thread creation failed, navigate to chat without thread
       navigate(`/chat`);
     }
   }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
