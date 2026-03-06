@@ -238,14 +238,21 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   );
 
   // Focus input when dialog opens
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (open) {
       const focusInput = () => {
         inputRef.current?.focus();
       };
       // Small delay to ensure dialog is rendered
-      setTimeout(focusInput, 50);
+      focusTimeoutRef.current = setTimeout(focusInput, 50);
     }
+    return () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
   }, [open]);
 
   // Keyboard navigation

@@ -344,6 +344,17 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleCopyToClipboard = useCallback(async () => {
     const assetSrc = currentAsset?.get_url || url;
     const assetContentType = currentAsset?.content_type || contentType;
@@ -356,7 +367,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     try {
       await copyAssetToClipboard(assetContentType, assetSrc, assetName);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Clear previous timeout if exists
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+      // Set new timeout and store reference for cleanup
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
@@ -368,9 +384,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         return;
       }
       const newAsset = assetsToUse[index];
-      setTimeout(() => {
-        setCurrentAsset(newAsset);
-      }, 10);
+      setCurrentAsset(newAsset);
       setCurrentIndex(index);
     },
     [assetsToUse]
