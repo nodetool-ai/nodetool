@@ -244,7 +244,8 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
         inputRef.current?.focus();
       };
       // Small delay to ensure dialog is rendered
-      setTimeout(focusInput, 50);
+      const timeoutId = setTimeout(focusInput, 50);
+      return () => clearTimeout(timeoutId);
     }
   }, [open]);
 
