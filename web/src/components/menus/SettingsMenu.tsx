@@ -34,7 +34,8 @@ import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import type { SettingsStore } from "../../stores/SettingsStore";
 import SettingsSidebar from "./SettingsSidebar";
 import { useMutation } from "@tanstack/react-query";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -72,29 +73,42 @@ interface SettingsMenuProps {
 function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const session = useAuth((state) => state.session);
   const _navigate = useNavigate();
-  const isMenuOpen = useSettingsStore((state) => state.isMenuOpen);
-  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
-  const settingsTab = useSettingsStore((state) => state.settingsTab);
-  const setGridSnap = useSettingsStore((state) => state.setGridSnap);
-  const setConnectionSnap = useSettingsStore(
-    (state) => state.setConnectionSnap
+
+  // Memoize store selector function to prevent re-renders
+  const settingsStoreSelector = useMemo(
+    () => (state: SettingsStore) => ({
+      isMenuOpen: state.isMenuOpen,
+      setMenuOpen: state.setMenuOpen,
+      settingsTab: state.settingsTab,
+      setGridSnap: state.setGridSnap,
+      setConnectionSnap: state.setConnectionSnap,
+      setPanControls: state.setPanControls,
+      setSelectionMode: state.setSelectionMode,
+      setTimeFormat: state.setTimeFormat,
+      setSelectNodesOnDrag: state.setSelectNodesOnDrag,
+      setShowWelcomeOnStartup: state.setShowWelcomeOnStartup,
+      setSoundNotifications: state.setSoundNotifications,
+      updateAutosaveSettings: state.updateAutosaveSettings,
+      settings: state.settings,
+    }),
+    []
   );
-  const setPanControls = useSettingsStore((state) => state.setPanControls);
-  const setSelectionMode = useSettingsStore((state) => state.setSelectionMode);
-  const setTimeFormat = useSettingsStore((state) => state.setTimeFormat);
-  const setSelectNodesOnDrag = useSettingsStore(
-    (state) => state.setSelectNodesOnDrag
-  );
-  const setShowWelcomeOnStartup = useSettingsStore(
-    (state) => state.setShowWelcomeOnStartup
-  );
-  const setSoundNotifications = useSettingsStore(
-    (state) => state.setSoundNotifications
-  );
-  const updateAutosaveSettings = useSettingsStore(
-    (state) => state.updateAutosaveSettings
-  );
-  const settings = useSettingsStore((state) => state.settings);
+
+  const {
+    isMenuOpen,
+    setMenuOpen,
+    settingsTab,
+    setGridSnap,
+    setConnectionSnap,
+    setPanControls,
+    setSelectionMode,
+    setTimeFormat,
+    setSelectNodesOnDrag,
+    setShowWelcomeOnStartup,
+    setSoundNotifications,
+    updateAutosaveSettings,
+    settings,
+  } = useSettingsStore(settingsStoreSelector);
 
   const [activeSection, setActiveSection] = useState("editor");
   const [lastExportPath, setLastExportPath] = useState<string | null>(null);

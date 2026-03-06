@@ -49,7 +49,7 @@ export interface Settings {
   autosave: AutosaveSettings;
 }
 
-interface SettingsStore {
+export interface SettingsStore {
   settings: Settings;
   isMenuOpen: boolean;
   settingsTab: number;
