@@ -73,6 +73,7 @@ export function playPcm16Base64(
     source.start(startTime);
     sharedNextStartTime = startTime + buffer.duration;
   } catch {
+    // Scheduled start failed (already started), start immediately
     source.start();
     sharedNextStartTime = ctx.currentTime + buffer.duration;
   }

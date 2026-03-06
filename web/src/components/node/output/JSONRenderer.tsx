@@ -152,6 +152,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
             const parsed = JSON.parse(decodedString);
             jsonString = JSON.stringify(parsed, null, 2);
           } catch {
+            // JSON parsing failed, use decoded string as-is
             jsonString = decodedString;
           }
         } else if (Array.isArray(data)) {
@@ -163,6 +164,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
               const parsed = JSON.parse(decodedString);
               jsonString = JSON.stringify(parsed, null, 2);
             } catch {
+              // JSON parsing failed, use decoded string as-is
               jsonString = decodedString;
             }
           } else {
@@ -197,6 +199,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
           ? Prism.highlight(jsonString, Prism.languages.json, "json")
           : jsonString;
     } catch {
+      // Prism highlighting failed, return unhighlighted JSON
       highlighted = jsonString;
     }
 

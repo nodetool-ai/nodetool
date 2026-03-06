@@ -149,6 +149,7 @@ const stableKeyForOutputValue = (v: any): string => {
     try {
       return `json:${hashStringBounded(JSON.stringify(v))}`;
     } catch {
+      // JSON.stringify failed, return generic type
       return "object";
     }
   }

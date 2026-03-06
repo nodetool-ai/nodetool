@@ -208,6 +208,7 @@ const formatTime = (ts: number) => {
       second: "2-digit" 
     });
   } catch {
+    // Date formatting failed, return timestamp as string
     return "" + ts;
   }
 };
