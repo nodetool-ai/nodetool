@@ -30,12 +30,7 @@ import {
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { WORKFLOW_NODE_TYPE } from "../node/WorkflowNode";
 
-interface PaneContextMenuProps {
-  top?: number;
-  left?: number;
-  [x: string]: any;
-}
-const PaneContextMenu: React.FC<PaneContextMenuProps> = () => {
+const PaneContextMenu: React.FC = () => {
   const { handlePaste } = useCopyPaste();
   const reactFlowInstance = useReactFlow();
   const { isClipboardValid } = useClipboard();
