@@ -258,7 +258,21 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const changeAssetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentAsset, setCurrentAsset] = useState<Asset | undefined>(asset);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      if (changeAssetTimeoutRef.current) {
+        clearTimeout(changeAssetTimeoutRef.current);
+      }
+    };
+  }, []);
   const getAsset = useAssetStore((state) => state.get);
 
   const [currentFolderName, setCurrentFolderName] = useState<string | null>();
@@ -356,7 +370,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     try {
       await copyAssetToClipboard(assetContentType, assetSrc, assetName);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Clear any existing timeout before setting a new one
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
@@ -368,7 +386,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         return;
       }
       const newAsset = assetsToUse[index];
-      setTimeout(() => {
+      // Clear any existing timeout before setting a new one
+      if (changeAssetTimeoutRef.current) {
+        clearTimeout(changeAssetTimeoutRef.current);
+      }
+      changeAssetTimeoutRef.current = setTimeout(() => {
         setCurrentAsset(newAsset);
       }, 10);
       setCurrentIndex(index);
