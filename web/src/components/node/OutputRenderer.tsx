@@ -839,7 +839,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     handleMouseDown,
     scrollRef,
     showTextActions,
-    handleModel3DClick
+    handleModel3DClick,
+    documentDataPreview
   ]);
 
   const handleCloseAsset = useCallback(() => {
