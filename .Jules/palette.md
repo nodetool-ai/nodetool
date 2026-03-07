@@ -17,3 +17,6 @@
 ## 2024-03-04 - ARIA Labels on Material-UI Switch Components
 **Learning:** For Material UI `<Switch>` components, particularly those without wrapping `FormControlLabel` (like icon toggles), an `inputProps={{ "aria-label": "..." }}` must be explicitly provided for screen readers to recognize the toggle's purpose.
 **Action:** When adding or auditing `<Switch>` components that toggle visual modes or act as standalone icons, always apply descriptive `inputProps` for accessibility.
+## 2023-10-27 - Explicit tabIndex={0} on native buttons is a functional no-op
+**Learning:** Adding `tabIndex={0}` to components that wrap native HTML buttons or MUI `IconButton` elements does not actively change or improve keyboard accessibility, as they are inherently focusable and included in the tab order by default. It fails the requirement to provide an "immediate, visible impact" on UX.
+**Action:** Focus on semantic accessibility improvements, such as ensuring screen readers receive appropriate context (e.g., dynamically generating `aria-label` for stateful or count-based components like `NotificationBadge`), rather than redundant HTML attributes. When writing verification scripts for the `/layouttest` page, remember to write logic to switch to the correct tab category before trying to select elements.
