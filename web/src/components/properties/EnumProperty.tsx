@@ -18,6 +18,12 @@ const formatEnumLabel = (value: string | number): string => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
+// Extended property type to include legacy values/enum fields
+interface EnumPropertyExtra {
+  values?: (string | number)[];
+  enum?: (string | number)[];
+}
+
 const EnumProperty: React.FC<PropertyProps> = ({
   property,
   propertyIndex,
@@ -32,12 +38,13 @@ const EnumProperty: React.FC<PropertyProps> = ({
   );
 
   const values = useMemo(() => {
+    const extras = property.json_schema_extra as EnumPropertyExtra | undefined;
     return property.type.values ||
            (property.type.type_args?.[0]?.values) ||
-           (property.json_schema_extra as { values?: (string | number)[]; enum?: (string | number)[] } | undefined)?.values ||
-           (property.json_schema_extra as { values?: (string | number)[]; enum?: (string | number)[] } | undefined)?.enum ||
-           (property as any).values ||
-           (property as any).enum;
+           extras?.values ||
+           extras?.enum ||
+           (property as EnumPropertyExtra).values ||
+           (property as EnumPropertyExtra).enum;
   }, [property]);
 
   const options = useMemo(() => {
