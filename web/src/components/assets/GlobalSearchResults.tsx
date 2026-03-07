@@ -313,6 +313,20 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     clearDrag();
   }, [clearDrag]);
 
+  // Create stable handlers for each asset to prevent inline function recreation
+  const createAssetHandlers = useCallback(
+    (asset: AssetWithPath) => ({
+      onDragStart: (e: React.DragEvent) => handleDragStart(e, asset),
+      onClick: (e: React.MouseEvent) => {
+        e.stopPropagation();
+        handleSelectAsset(asset.id);
+      },
+      onDoubleClick: () => onAssetDoubleClick?.(asset),
+      onContextMenu: (e: React.MouseEvent) => handleContextMenu(e, asset.id)
+    }),
+    [handleDragStart, handleSelectAsset, onAssetDoubleClick, handleContextMenu]
+  );
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
@@ -395,20 +409,19 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
               asset.get_url &&
               asset.get_url !== "/images/placeholder.png";
 
+            const assetHandlers = createAssetHandlers(asset);
+
             return (
               <div
                 key={asset.id}
                 className={`global-search-result-item search-result-item ${isSelected ? "selected global-search-selected" : ""
                   }`}
                 draggable={true}
-                onDragStart={(e) => handleDragStart(e, asset)}
+                onDragStart={assetHandlers.onDragStart}
                 onDragEnd={handleDragEnd}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelectAsset(asset.id);
-                }}
-                onDoubleClick={() => onAssetDoubleClick?.(asset)}
-                onContextMenu={(e) => handleContextMenu(e, asset.id)}
+                onClick={assetHandlers.onClick}
+                onDoubleClick={assetHandlers.onDoubleClick}
+                onContextMenu={assetHandlers.onContextMenu}
                 data-testid={`global-search-result-${asset.id}`}
                 data-asset-id={asset.id}
                 data-asset-name={asset.name}
