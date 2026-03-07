@@ -101,6 +101,8 @@ const Alert: React.FC = memo(() => {
   const [_show, setShow] = useState<Record<string, boolean>>({});
   // Store timeout IDs in a ref so they persist across effect re-runs
   const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>[]>>(new Map());
+  // Track the timeout created in handleClose to prevent memory leaks
+  const handleCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup all timeouts on unmount
   useEffect(() => {
@@ -110,6 +112,10 @@ const Alert: React.FC = memo(() => {
         timeouts.forEach(clearTimeout);
       });
       timeoutsMap.clear();
+      // Clean up the handleClose timeout
+      if (handleCloseTimeoutRef.current) {
+        clearTimeout(handleCloseTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -199,7 +205,12 @@ const Alert: React.FC = memo(() => {
 
   const handleClose = (id: string) => {
     setShow((s) => ({ ...s, [id]: false }));
-    setTimeout(() => {
+    // Clear any existing timeout to prevent memory leaks
+    if (handleCloseTimeoutRef.current) {
+      clearTimeout(handleCloseTimeoutRef.current);
+    }
+    // Track the new timeout
+    handleCloseTimeoutRef.current = setTimeout(() => {
       removeNotification(id);
       setVisibleNotifications((prev) =>
         prev.filter((notification) => notification.id !== id)
