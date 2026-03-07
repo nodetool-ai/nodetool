@@ -244,9 +244,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         next.add(scrollToNamespace);
         return next;
       });
-      
+
       // Scroll to the namespace element after a short delay to allow expansion
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         const element = namespaceRefs.current.get(scrollToNamespace);
         if (element) {
           element.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -254,6 +254,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
         // Signal completion
         onScrollToNamespaceComplete?.();
       }, 50);
+
+      // Cleanup: clear timeout if component unmounts or dependencies change
+      return () => clearTimeout(timeoutId);
     }
   }, [scrollToNamespace, onScrollToNamespaceComplete]);
   
