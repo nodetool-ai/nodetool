@@ -66,7 +66,7 @@ describe('ThemeStore', () => {
 
   it('setTheme updates colors when switching modes', () => {
     const { result } = renderHook(() => useThemeStore());
-    const initialColors = result.current.colors;
+    const _initialColors = result.current.colors;
     
     act(() => {
       result.current.setTheme('light');
@@ -132,9 +132,9 @@ describe('ThemeStore', () => {
     act(() => {
       result.current.setTheme('system');
     });
-    
-    const colorsBefore = result.current.colors;
-    
+
+    const _colorsBefore = result.current.colors;
+
     act(() => {
       result.current.updateSystemTheme();
     });

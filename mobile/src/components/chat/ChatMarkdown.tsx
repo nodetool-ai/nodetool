@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, ScrollView, Platform, Text } from 'react-native';
+import { StyleSheet, View, ScrollView, Platform } from 'react-native';
 import Markdown, { RenderRules } from 'react-native-markdown-display';
 import SyntaxHighlighter from 'react-native-syntax-highlighter';
 import { atomDark, tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
