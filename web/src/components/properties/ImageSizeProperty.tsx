@@ -11,6 +11,7 @@ import MoreVert from "@mui/icons-material/MoreVert";
 import SwapHoriz from "@mui/icons-material/SwapHoriz";
 import { useNodes } from "../../contexts/NodeContext";
 import { ImageSizePresetsMenu } from "./ImageSizePresetsMenu";
+import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 
 type ImageSizeValue = {
   width: number;
@@ -22,11 +23,8 @@ const ImageSizeProperty = (props: PropertyProps) => {
   const { property, nodeId, value, onChange, tabIndex } = props;
 
   // Check if connected
-  const isConnected = useNodes((state) => {
-    return state.edges.some(
-      (edge) => edge.target === nodeId && edge.targetHandle === property.name
-    );
-  });
+  const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
+  const isConnected = useNodes(isConnectedSelector);
 
   // Ensure value is an object with defaults - memoized to prevent useCallback dependency changes
   const safeValue: ImageSizeValue = useMemo(() => {
