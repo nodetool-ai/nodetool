@@ -203,6 +203,7 @@ const NodeInfoPanel: React.FC = memo(() => {
   const { getNode, setCenter } = useReactFlow();
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const nodeInfo = useMemo((): NodeInfo | null => {
     if (!inspectedNodeId) {
@@ -214,7 +215,7 @@ const NodeInfoPanel: React.FC = memo(() => {
     }
 
     const nodeType = node.type || "unknown";
-    const metadata = useMetadataStore.getState().getMetadata(nodeType);
+    const metadata = getMetadata(nodeType);
 
     return {
       id: node.id,
@@ -227,7 +228,7 @@ const NodeInfoPanel: React.FC = memo(() => {
       errorMessage: node.data.errorMessage as string | undefined,
       executionStatus: node.data.executionStatus as "pending" | "running" | "completed" | "error" | undefined
     };
-  }, [getNode, inspectedNodeId]);
+  }, [getNode, inspectedNodeId, getMetadata]);
 
   const parsedDescription = useMemo(() => {
     if (!nodeInfo?.description) {
