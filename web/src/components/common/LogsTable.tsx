@@ -17,7 +17,7 @@ export type LogRow = {
   workflowName?: string;
   timestamp: number;
   content: string;
-  data?: any;
+  data?: unknown;
 };
 
 export type LogsTableProps = {
