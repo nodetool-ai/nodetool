@@ -78,6 +78,7 @@ export const TagButton: React.FC<TagButtonProps> = memo(({
         variant={selected ? "filled" : "outlined"}
         size={size}
         disabled={disabled}
+        aria-pressed={selected}
       />
     ) : (
       <Button
@@ -87,6 +88,7 @@ export const TagButton: React.FC<TagButtonProps> = memo(({
         size={size}
         disabled={disabled}
         className={buttonClassName}
+        aria-pressed={selected}
       >
         {displayLabel}
       </Button>
