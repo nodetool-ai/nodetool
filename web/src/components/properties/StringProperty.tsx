@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useRef, useState, useCallback, memo } from "react";
+import { useEffect, useRef, useState, useCallback, memo, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
@@ -11,6 +11,7 @@ import type { NodeData } from "../../stores/NodeData";
 import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
+import type { Edge } from "@xyflow/react";
 
 const STRING_INPUT_NODE_TYPE = "nodetool.input.StringInput";
 
@@ -52,34 +53,59 @@ const StringProperty = ({
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const { isConnected, stringInputConfig } = useNodes(
-    useCallback(
-      (state) => {
-        const connected = state.edges.some(
-          (edge) =>
-            edge.target === nodeId && edge.targetHandle === property.name
-        );
+    useMemo(
+      () => {
+        let lastEdges: Edge[] | null = null;
+        let lastIsConnected = false;
 
-        if (nodeType !== STRING_INPUT_NODE_TYPE || property.name !== "value") {
-          return { isConnected: connected, stringInputConfig: null };
-        }
+        let lastResult: { isConnected: boolean; stringInputConfig: null | { maxLength: number; lineMode: "multi_line" | "single_line" } } | null = null;
 
-        const node = state.findNode(nodeId);
-        const props = (node?.data as NodeData | undefined)?.properties ?? {};
-        const maxLengthRaw = props?.max_length;
-        const maxLength =
-          typeof maxLengthRaw === "number" && Number.isFinite(maxLengthRaw)
-            ? Math.max(0, Math.floor(maxLengthRaw))
-            : 0;
-        const lineMode =
-          props?.line_mode === "multi_line" ||
-          props?.line_mode === "multiline" ||
-          props?.multiline === true
-            ? "multi_line"
-            : "single_line";
+        return (state: import("../../stores/NodeStore").NodeStoreState) => {
+          let connected = lastIsConnected;
+          let edgesChanged = false;
+          if (state.edges !== lastEdges) {
+            lastEdges = state.edges;
+            connected = state.edges.some(
+              (edge: Edge) =>
+                edge.target === nodeId && edge.targetHandle === property.name
+            );
+            edgesChanged = lastIsConnected !== connected;
+            lastIsConnected = connected;
+          }
 
-        return {
-          isConnected: connected,
-          stringInputConfig: { maxLength, lineMode } as const
+          if (nodeType !== STRING_INPUT_NODE_TYPE || property.name !== "value") {
+            if (!lastResult || edgesChanged || lastResult.stringInputConfig !== null) {
+              lastResult = { isConnected: connected, stringInputConfig: null };
+            }
+            return lastResult;
+          }
+
+          const node = state.findNode(nodeId);
+          const props = (node?.data as NodeData | undefined)?.properties ?? {};
+          const maxLengthRaw = props?.max_length;
+          const maxLength =
+            typeof maxLengthRaw === "number" && Number.isFinite(maxLengthRaw)
+              ? Math.max(0, Math.floor(maxLengthRaw))
+              : 0;
+          const lineMode =
+            props?.line_mode === "multi_line" ||
+            props?.line_mode === "multiline" ||
+            props?.multiline === true
+              ? "multi_line"
+              : "single_line";
+
+          if (
+            !lastResult ||
+            edgesChanged ||
+            lastResult.stringInputConfig?.maxLength !== maxLength ||
+            lastResult.stringInputConfig?.lineMode !== lineMode
+          ) {
+            lastResult = {
+              isConnected: connected,
+              stringInputConfig: { maxLength, lineMode } as const
+            };
+          }
+          return lastResult;
         };
       },
       [nodeId, nodeType, property.name]

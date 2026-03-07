@@ -8,6 +8,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useCallback } from "react";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
+import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
 import { Button, TextField, Tooltip } from "@mui/material";
@@ -114,13 +115,8 @@ const Model3DProperty = (props: PropertyProps) => {
   const { asset, uri } = useAsset({ model3d: props.value });
   const theme = useTheme();
 
-  const isConnected = useNodes((state) => {
-    return state.edges.some(
-      (edge) =>
-        edge.target === props.nodeId &&
-        edge.targetHandle === props.property.name
-    );
-  });
+  const isConnectedSelector = useIsConnectedSelector(props.nodeId, props.property.name);
+  const isConnected = useNodes(isConnectedSelector);
 
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [openViewer, setOpenViewer] = useState(false);
