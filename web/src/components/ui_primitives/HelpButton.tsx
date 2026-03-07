@@ -29,6 +29,8 @@ export interface HelpButtonProps {
   tooltipPlacement?: "top" | "bottom" | "left" | "right";
   /** Additional className */
   className?: string;
+  /** Tab index for keyboard navigation */
+  tabIndex?: number;
 }
 
 const styles = (theme: Theme) => css`
@@ -77,7 +79,8 @@ export const HelpButton: React.FC<HelpButtonProps> = memo(({
   active = false,
   disabled = false,
   tooltipPlacement = "top",
-  className
+  className,
+  tabIndex = 0
 }) => {
   const theme = useTheme();
   const iconSize = size === "large" ? "medium" : "small";
@@ -97,6 +100,7 @@ export const HelpButton: React.FC<HelpButtonProps> = memo(({
       onClick={handleClick}
       disabled={disabled}
       aria-label={tooltip}
+      tabIndex={tabIndex}
     >
       {getIcon(iconVariant, iconSize)}
     </IconButton>
