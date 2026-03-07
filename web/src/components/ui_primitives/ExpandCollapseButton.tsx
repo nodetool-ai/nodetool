@@ -73,6 +73,11 @@ export interface ExpandCollapseButtonProps
    * @default "small"
    */
   buttonSize?: "small" | "medium";
+  /**
+   * Tab index for keyboard navigation
+   * @default 0
+   */
+  tabIndex?: number;
 }
 
 /**
@@ -91,6 +96,7 @@ export const ExpandCollapseButton = memo(
         buttonSize = "small",
         className,
         sx,
+        tabIndex = 0,
         ...props
       },
       ref
@@ -138,6 +144,7 @@ export const ExpandCollapseButton = memo(
               className
             )}
             aria-label={tooltip}
+            tabIndex={tabIndex}
             sx={{
               ...getSizeStyles(),
               color: theme.vars.palette.grey[300],
