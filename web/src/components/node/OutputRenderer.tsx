@@ -835,6 +835,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   }, [
     value,
     type,
+    documentDataPreview,
     onDoubleClickAsset,
     videoRef,
     handleMouseDown,
