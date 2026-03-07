@@ -29,6 +29,8 @@ export interface NotificationBadgeProps {
   children: React.ReactNode;
   /** Additional className */
   className?: string;
+  /** Custom aria-label to override the default generated one */
+  ariaLabel?: string;
 }
 
 const styles = (theme: Theme, animate: boolean) => css`
@@ -76,9 +78,30 @@ const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
   size = "medium",
   animate = true,
   children,
-  className
+  className,
+  ariaLabel
 }) => {
   const theme = useTheme();
+
+  const getAriaLabel = () => {
+    if (ariaLabel) {
+      return ariaLabel;
+    }
+    if (tooltip) {
+      return tooltip;
+    }
+
+    // Provide a reasonable default for screen readers
+    if (!showZero && count === 0) {
+      return undefined;
+    }
+
+    if (dot) {
+      return "New notification";
+    }
+
+    return `${count > max ? `${max}+` : count} notification${count === 1 ? "" : "s"}`;
+  };
   
   const badgeContent = (
     <Badge
@@ -90,6 +113,7 @@ const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
       variant={dot ? "dot" : "standard"}
       anchorOrigin={anchorOrigin}
       invisible={!showZero && count === 0}
+      aria-label={getAriaLabel()}
     >
       {children}
     </Badge>
