@@ -11,6 +11,7 @@ import type { NodeData } from "../../stores/NodeData";
 import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
+import type { Edge } from "@xyflow/react";
 
 const STRING_INPUT_NODE_TYPE = "nodetool.input.StringInput";
 
@@ -52,34 +53,44 @@ const StringProperty = ({
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const { isConnected, stringInputConfig } = useNodes(
-    useCallback(
-      (state) => {
-        const connected = state.edges.some(
-          (edge) =>
-            edge.target === nodeId && edge.targetHandle === property.name
-        );
+    useMemo(
+      () => {
+        let lastEdges: Edge[] | null = null;
+        let lastIsConnected = false;
 
-        if (nodeType !== STRING_INPUT_NODE_TYPE || property.name !== "value") {
-          return { isConnected: connected, stringInputConfig: null };
-        }
+        return (state: import("../../stores/NodeStore").NodeStoreState) => {
+          let connected = lastIsConnected;
+          if (state.edges !== lastEdges) {
+            lastEdges = state.edges;
+            connected = state.edges.some(
+              (edge: Edge) =>
+                edge.target === nodeId && edge.targetHandle === property.name
+            );
+            lastIsConnected = connected;
+          }
 
-        const node = state.findNode(nodeId);
-        const props = (node?.data as NodeData | undefined)?.properties ?? {};
-        const maxLengthRaw = props?.max_length;
-        const maxLength =
-          typeof maxLengthRaw === "number" && Number.isFinite(maxLengthRaw)
-            ? Math.max(0, Math.floor(maxLengthRaw))
-            : 0;
-        const lineMode =
-          props?.line_mode === "multi_line" ||
-          props?.line_mode === "multiline" ||
-          props?.multiline === true
-            ? "multi_line"
-            : "single_line";
+          if (nodeType !== STRING_INPUT_NODE_TYPE || property.name !== "value") {
+            return { isConnected: connected, stringInputConfig: null };
+          }
 
-        return {
-          isConnected: connected,
-          stringInputConfig: { maxLength, lineMode } as const
+          const node = state.findNode(nodeId);
+          const props = (node?.data as NodeData | undefined)?.properties ?? {};
+          const maxLengthRaw = props?.max_length;
+          const maxLength =
+            typeof maxLengthRaw === "number" && Number.isFinite(maxLengthRaw)
+              ? Math.max(0, Math.floor(maxLengthRaw))
+              : 0;
+          const lineMode =
+            props?.line_mode === "multi_line" ||
+            props?.line_mode === "multiline" ||
+            props?.multiline === true
+              ? "multi_line"
+              : "single_line";
+
+          return {
+            isConnected: connected,
+            stringInputConfig: { maxLength, lineMode } as const
+          };
         };
       },
       [nodeId, nodeType, property.name]
