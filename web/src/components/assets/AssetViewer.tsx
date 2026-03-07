@@ -344,6 +344,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleCopyToClipboard = useCallback(async () => {
     const assetSrc = currentAsset?.get_url || url;
     const assetContentType = currentAsset?.content_type || contentType;
@@ -356,7 +357,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     try {
       await copyAssetToClipboard(assetContentType, assetSrc, assetName);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Clear any existing timeout before setting a new one
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
@@ -368,13 +373,24 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         return;
       }
       const newAsset = assetsToUse[index];
-      setTimeout(() => {
+      // Use requestAnimationFrame for deferred updates instead of setTimeout
+      // This automatically gets cancelled if component unmounts
+      requestAnimationFrame(() => {
         setCurrentAsset(newAsset);
-      }, 10);
+      });
       setCurrentIndex(index);
     },
     [assetsToUse]
   );
+
+  // Cleanup copied timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (currentAsset?.parent_id) {

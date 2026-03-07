@@ -206,7 +206,8 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
 
     useEffect(() => {
       if (isOpen) {
-        setTimeout(() => inputRef.current?.focus(), 50);
+        const timeoutId = setTimeout(() => inputRef.current?.focus(), 50);
+        return () => clearTimeout(timeoutId);
       }
     }, [isOpen]);
 
