@@ -1,5 +1,4 @@
-import { useThemeStore, ThemeMode } from '../stores/ThemeStore';
-import { ThemeColors } from '../utils/theme';
+import { useThemeStore } from '../stores/ThemeStore';
 import { Appearance } from 'react-native';
 
 export const useTheme = () => {

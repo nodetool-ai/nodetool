@@ -9,13 +9,9 @@ import {
   JobUpdate,
   NodeProgress,
   NodeUpdate,
-  TaskUpdate,
-  PlanningUpdate,
   Workflow,
   MsgpackData,
   RunJobRequest,
-  GraphNode,
-  GraphEdge,
 } from "../types/workflow";
 
 export type MessageHandler = (
