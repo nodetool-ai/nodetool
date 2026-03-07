@@ -178,15 +178,24 @@ export interface CircularActionButtonProps {
 }
 
 const getThemeColor = (theme: Theme, colorKey: string): string => {
-  // Check if it's a theme palette color
+  // Type-safe palette color accessor
+  const palette = theme.vars.palette as Record<string, Record<string, string> | { main: string }>;
+
+  // Check if it's a theme palette color (e.g., "primary.main" or just "primary")
   const parts = colorKey.split(".");
-  if (parts.length === 2 && parts[0] in theme.vars.palette) {
+  if (parts.length === 2 && parts[0] in palette) {
     const [category, variant] = parts;
-    return (theme.vars.palette as any)[category]?.[variant] || colorKey;
+    const categoryPalette = palette[category];
+    if (categoryPalette && typeof categoryPalette === "object" && variant in categoryPalette) {
+      return (categoryPalette as Record<string, string>)[variant] || colorKey;
+    }
   }
   // Check if it's a direct palette key
-  if (colorKey in theme.vars.palette) {
-    return (theme.vars.palette as any)[colorKey]?.main || colorKey;
+  if (colorKey in palette) {
+    const colorEntry = palette[colorKey];
+    if (colorEntry && typeof colorEntry === "object" && "main" in colorEntry) {
+      return colorEntry.main || colorKey;
+    }
   }
   // Otherwise return as-is (assume it's a CSS color)
   return colorKey;
