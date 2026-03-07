@@ -8,3 +8,6 @@
 ## 2024-03-07 - Zustand Selector Optimization
 **Learning:** Returning objects with a `useCallback` inside `useNodes` evaluates every render and reallocates memory, limiting selector cache utility. The correct pattern is wrapping an internal selector definition in `useMemo` so that the closure variables (e.g. `lastEdges`) are preserved across renders.
 **Action:** Use `useMemo` with an inner closure for custom memoized selectors in Zustand stores instead of `useCallback` when trying to cache values between store state changes.
+## 2024-03-07 - Zustand Selector Optimization returning object literals
+**Learning:** Even if `useMemo` caches the closure of a Zustand selector properly, if the selector returns an object literal like `{ isConnected, stringInputConfig }`, Zustand's default strict equality (`===`) will cause an infinite re-render loop if the object identity changes on every call, leading to canvas freezing (like `.react-flow` timing out in Playwright).
+**Action:** When returning objects from custom Zustand selectors, cache the entire returned object literal inside the selector closure (e.g. `let lastResult = ...`) and only return a new object reference if the underlying primitive values actually changed. Alternatively, pass `shallow` as the equality function.

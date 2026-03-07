@@ -58,19 +58,26 @@ const StringProperty = ({
         let lastEdges: Edge[] | null = null;
         let lastIsConnected = false;
 
+        let lastResult: { isConnected: boolean; stringInputConfig: null | { maxLength: number; lineMode: "multi_line" | "single_line" } } | null = null;
+
         return (state: import("../../stores/NodeStore").NodeStoreState) => {
           let connected = lastIsConnected;
+          let edgesChanged = false;
           if (state.edges !== lastEdges) {
             lastEdges = state.edges;
             connected = state.edges.some(
               (edge: Edge) =>
                 edge.target === nodeId && edge.targetHandle === property.name
             );
+            edgesChanged = lastIsConnected !== connected;
             lastIsConnected = connected;
           }
 
           if (nodeType !== STRING_INPUT_NODE_TYPE || property.name !== "value") {
-            return { isConnected: connected, stringInputConfig: null };
+            if (!lastResult || edgesChanged || lastResult.stringInputConfig !== null) {
+              lastResult = { isConnected: connected, stringInputConfig: null };
+            }
+            return lastResult;
           }
 
           const node = state.findNode(nodeId);
@@ -87,10 +94,18 @@ const StringProperty = ({
               ? "multi_line"
               : "single_line";
 
-          return {
-            isConnected: connected,
-            stringInputConfig: { maxLength, lineMode } as const
-          };
+          if (
+            !lastResult ||
+            edgesChanged ||
+            lastResult.stringInputConfig?.maxLength !== maxLength ||
+            lastResult.stringInputConfig?.lineMode !== lineMode
+          ) {
+            lastResult = {
+              isConnected: connected,
+              stringInputConfig: { maxLength, lineMode } as const
+            };
+          }
+          return lastResult;
         };
       },
       [nodeId, nodeType, property.name]
