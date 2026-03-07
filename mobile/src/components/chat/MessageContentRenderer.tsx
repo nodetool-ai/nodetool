@@ -113,6 +113,17 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
   const [position, setPosition] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
 
+  const onPlaybackStatusUpdate = React.useCallback((status: any) => {
+    if (status.isLoaded) {
+      setPosition(status.positionMillis || 0);
+      setIsPlaying(status.isPlaying);
+      if (status.didJustFinish) {
+        setIsPlaying(false);
+        setPosition(0);
+      }
+    }
+  }, []);
+
   const loadSound = React.useCallback(async () => {
     try {
       const { Audio } = await import('expo-av');
@@ -128,18 +139,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
     } catch (error) {
       console.error('Failed to load audio:', error);
     }
-  }, [uri]);
-
-  const onPlaybackStatusUpdate = React.useCallback((status: any) => {
-    if (status.isLoaded) {
-      setPosition(status.positionMillis || 0);
-      setIsPlaying(status.isPlaying);
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setPosition(0);
-      }
-    }
-  }, []);
+  }, [uri, onPlaybackStatusUpdate]);
 
   React.useEffect(() => {
     loadSound();
@@ -148,7 +148,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
         sound.unloadAsync();
       }
     };
-  }, [uri]);
+  }, [loadSound, sound]);
 
   const togglePlayback = async () => {
     if (!sound) {return;}

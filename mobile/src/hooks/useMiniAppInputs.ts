@@ -84,7 +84,7 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow | null) => {
     if (Object.keys(initialValues).length > 0) {
         setInputValues(prev => ({ ...prev, ...initialValues }));
     }
-  }, [inputDefinitions, selectedWorkflow]); // Check dependencies carefully to avoid loops
+  }, [inputDefinitions, selectedWorkflow, inputValues]); // Check dependencies carefully to avoid loops
 
   const updateInputValue = useCallback(
     (name: string, value: unknown) => {

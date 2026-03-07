@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -48,18 +48,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
   
   const scrollViewRef = React.useRef<ScrollView>(null);
 
-  useEffect(() => {
-    loadWorkflow();
-    return () => {
-      cleanup();
-    };
-  }, [workflowId]);
-
-  useEffect(() => {
-    navigation.setOptions({ title: workflowName || 'Mini App' });
-  }, [navigation, workflowName]);
-
-  const loadWorkflow = async () => {
+  const loadWorkflow = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await apiService.getWorkflow(workflowId);
@@ -70,7 +59,18 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [workflowId]);
+
+  useEffect(() => {
+    loadWorkflow();
+    return () => {
+      cleanup();
+    };
+  }, [workflowId, cleanup, loadWorkflow]);
+
+  useEffect(() => {
+    navigation.setOptions({ title: workflowName || 'Mini App' });
+  }, [navigation, workflowName]);
 
   const handleRun = async () => {
     // Validate inputs
@@ -199,7 +199,7 @@ export default function MiniAppScreen({ navigation, route }: MiniAppScreenProps)
                <ScrollView 
                   style={styles.terminalScroll} 
                   nestedScrollEnabled
-                  onContentSizeChange={(w, h) => {
+                  onContentSizeChange={(_w, _h) => {
                     scrollViewRef.current?.scrollTo({ y: 100000, animated: true }); 
                   }}
                >

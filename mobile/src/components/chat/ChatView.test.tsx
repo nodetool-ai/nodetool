@@ -5,7 +5,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ChatView } from './ChatView';
-import { Message, ChatStatus, MessageContent } from '../../types';
+import { Message, ChatStatus } from '../../types';
 
 // Mock child components
 jest.mock('./ChatMessageList', () => ({
