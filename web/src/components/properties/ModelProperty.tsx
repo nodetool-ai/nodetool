@@ -15,6 +15,7 @@ import ASRModelSelect from "./ASRModelSelect";
 import VideoModelSelect from "./VideoModelSelect";
 import Model3DModelSelect from "./Model3DModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
+import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -56,15 +57,10 @@ const styles = (theme: Theme) =>
 const ModelProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const modelType = props.property.type.type;
-  const edges = useNodes((state) => state.edges);
   const theme = useTheme();
-  const isConnected = useMemo(() => {
-    return edges.some(
-      (edge) =>
-        edge.target === props.nodeId &&
-        edge.targetHandle === props.property.name
-    );
-  }, [edges, props.nodeId, props.property.name]);
+
+  const isConnectedSelector = useIsConnectedSelector(props.nodeId, props.property.name);
+  const isConnected = useNodes(isConnectedSelector);
 
   const modelClass = useMemo(
     () => `model-type-${modelType.replace(/\./g, "-")}`,
