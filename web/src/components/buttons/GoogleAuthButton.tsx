@@ -19,9 +19,17 @@ const GoogleAuthButton = memo(function GoogleAuthButton() {
     await signInWithProvider("google");
   }, [state, signInWithProvider]);
   const theme = useTheme();
+  const isDisabled = state === "loading" || state === "logged_in";
+
   return (
     <div css={styles(theme)}>
-      <button className="gsi-material-button" onClick={handleClick}>
+      <button
+        className="gsi-material-button"
+        onClick={handleClick}
+        type="button"
+        aria-label="Sign in with Google"
+        disabled={isDisabled}
+      >
         <div className="gsi-material-button-state"></div>
         <div className="gsi-material-button-content-wrapper">
           <div className="gsi-material-button-icon">
@@ -30,6 +38,8 @@ const GoogleAuthButton = memo(function GoogleAuthButton() {
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 48 48"
               xmlnsXlink="http://www.w3.org/1999/xlink"
+              aria-hidden="true"
+              role="presentation"
             >
               <path
                 fill="#EA4335"
