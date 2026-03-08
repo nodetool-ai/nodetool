@@ -40,7 +40,7 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
   return (
     <Box css={styles(theme)}>
       <Grid container spacing={2} className="models-grid">
-        {models.map((model, index) => {
+        {models.map((model) => {
           const modelId = model.id;
           return (
             <Grid
@@ -52,7 +52,7 @@ const ModelDownloadList: React.FC<ModelDownloadListProps> = ({ models }) => {
                   lg: "span 12"
                 }
               }}
-              key={index}
+              key={model.id}
             >
               <Box className="model-container">
                 {!downloads[modelId] && (
