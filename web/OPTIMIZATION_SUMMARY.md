@@ -118,3 +118,24 @@ Verify by checking React Profiler during node drag operations. Total scripting t
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `cd web && npm run lint`: Passed.
 - Ran `make test-web`: All tests passed.
+
+# ⚡ Bolt: CollectionProperty Performance Optimization
+
+## 💡 What
+Refactored `CollectionProperty.tsx` to use `useIsConnectedSelector` instead of subscribing to the entire `state.edges` array via `useNodes`.
+
+## 🎯 Why
+Previously, the `CollectionProperty` component would re-render whenever *any* edge in the graph was added, removed, or updated because it was subscribed to the full `state.edges` array. By using the specialized `useIsConnectedSelector`, the component correctly evaluates whether its specific incoming connection changed at the selector level, significantly reducing unnecessary React re-renders.
+
+## 📊 Impact
+- **Eliminates Unnecessary Re-renders:** The component now only re-renders when its specific connection state changes.
+- **Reduces Main Thread Work:** Prevents O(N) array filtering/`some` operations per Zustand state update (such as during node dragging or unrelated edge additions).
+- **Improved Responsiveness:** Smoother editing and interaction in workflows utilizing collection properties.
+
+## 🔬 Measurement
+Verify by checking React Profiler. Prior to the change, adding or removing an edge anywhere in the canvas would cause `CollectionProperty` to re-render. Now, it correctly ignores unrelated edge changes.
+
+## 🧪 Testing
+- Ran `cd web && npm run typecheck`: Passed.
+- Ran `cd web && npm run lint`: Passed.
+- Ran `make test-web`: All tests passed.
