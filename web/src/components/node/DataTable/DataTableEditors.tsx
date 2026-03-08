@@ -31,14 +31,25 @@ export const integerEditor: Editor = (
     }
   }
 
-  editor.addEventListener("change", onChange);
-  editor.addEventListener("blur", onChange);
-  editor.addEventListener("keydown", function (e) {
+  function onKeyDown(e: KeyboardEvent) {
     if (e.key === "Enter") {
       onChange();
     } else if (e.key === "Escape") {
       cancel(null);
     }
+  }
+
+  editor.addEventListener("change", onChange);
+  editor.addEventListener("blur", onChange);
+  editor.addEventListener("keydown", onKeyDown);
+
+  onRendered(() => {
+    // Cleanup function to remove event listeners when editor is destroyed
+    return () => {
+      editor.removeEventListener("change", onChange);
+      editor.removeEventListener("blur", onChange);
+      editor.removeEventListener("keydown", onKeyDown);
+    };
   });
 
   return editor;
@@ -66,14 +77,25 @@ export const floatEditor: Editor = (
     }
   }
 
-  editor.addEventListener("change", onChange);
-  editor.addEventListener("blur", onChange);
-  editor.addEventListener("keydown", function (e) {
+  function onKeyDown(e: KeyboardEvent) {
     if (e.key === "Enter") {
       onChange();
     } else if (e.key === "Escape") {
       cancel(null);
     }
+  }
+
+  editor.addEventListener("change", onChange);
+  editor.addEventListener("blur", onChange);
+  editor.addEventListener("keydown", onKeyDown);
+
+  onRendered(() => {
+    // Cleanup function to remove event listeners when editor is destroyed
+    return () => {
+      editor.removeEventListener("change", onChange);
+      editor.removeEventListener("blur", onChange);
+      editor.removeEventListener("keydown", onKeyDown);
+    };
   });
 
   return editor;
@@ -101,6 +123,10 @@ export const datetimeEditor: Editor = (
     }
   };
 
+  function onBlur() {
+    cancel(null);
+  }
+
   onRendered(() => {
     const root = createRoot(editor);
     datePickerRoots.set(editor, { root });
@@ -111,16 +137,17 @@ export const datetimeEditor: Editor = (
       />
     );
 
+    editor.addEventListener("blur", onBlur);
+
     return () => {
       const entry = datePickerRoots.get(editor);
       if (entry) {
         entry.root.unmount();
         datePickerRoots.delete(editor);
       }
+      editor.removeEventListener("blur", onBlur);
     };
   });
-
-  editor.addEventListener("blur", () => cancel(null));
 
   return editor;
 };
