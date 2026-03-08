@@ -13,6 +13,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { IconForType } from "../../config/data_types";
+import { getAssetCategory } from "./assetGridUtils";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { useTheme } from "@mui/material/styles";
@@ -333,7 +334,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   };
 
   const getAssetType = (contentType: string) => {
-    return contentType.split("/")[0] || "other";
+    return getAssetCategory(contentType);
   };
 
   // Determine which columns to show based on container width

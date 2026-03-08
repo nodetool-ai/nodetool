@@ -96,7 +96,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   // *before* we compute the prepared items that depend on it, so that the
   // hook order remains stable.
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
-    new Set(["folder", "image", "audio", "video", "text", "other"])
+    new Set(["folder", "image", "audio", "video", "model_3d", "text", "other"])
   );
 
   // Prepare items (adds dividers, respects expanded types)
