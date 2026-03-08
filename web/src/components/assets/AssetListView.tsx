@@ -10,6 +10,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { IconForType } from "../../config/data_types";
+import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -37,6 +38,7 @@ const TYPE_MAP: Record<string, string> = {
   image: "Images",
   video: "Videos",
   audio: "Audio",
+  model_3d: "3D Models",
   text: "Text",
   application: "Files",
   other: "Other"
@@ -250,7 +252,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
       const type =
         asset.content_type === "folder"
           ? "folder"
-          : asset.content_type.split("/")[0] || "other";
+          : getAssetCategory(asset.content_type);
 
       if (!grouped[type]) {
         grouped[type] = [];
@@ -262,7 +264,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   }, [assets]);
 
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
-    new Set(["folder", "image", "audio", "video", "text", "other"])
+    new Set(["folder", "image", "audio", "video", "model_3d", "text", "other"])
   );
 
   const toggleExpanded = useCallback((type: string) => {
@@ -457,7 +459,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
               />
             ) : (
               <IconForType
-                iconName={asset.content_type?.split("/")[0] || "other"}
+                iconName={getAssetCategory(asset.content_type)}
                 showTooltip={false}
                 containerStyle={{
                   width: "24px",
