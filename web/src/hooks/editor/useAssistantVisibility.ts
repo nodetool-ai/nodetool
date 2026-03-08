@@ -44,6 +44,3 @@ export function useAssistantVisibility(
     toggleAssistantVisible
   } as const;
 }
-
-
-

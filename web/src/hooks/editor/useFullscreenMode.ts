@@ -35,7 +35,3 @@ export function useFullscreenMode(options: UseFullscreenModeOptions = {}) {
   return { isFullscreen, setIsFullscreen, toggleFullscreen } as const;
 }
 
-
-
-
-

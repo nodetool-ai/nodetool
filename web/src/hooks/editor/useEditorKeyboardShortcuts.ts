@@ -16,7 +16,3 @@ export function useEditorKeyboardShortcuts(options: {
   useCombo(["Meta", "shift", "e"], onToggleEditorMode, false);
 }
 
-
-
-
-
