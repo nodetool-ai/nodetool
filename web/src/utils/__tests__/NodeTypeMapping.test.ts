@@ -15,6 +15,7 @@ describe('NodeTypeMapping utilities', () => {
       expect(contentTypeToNodeType('video/mp4')).toBe('video');
       expect(contentTypeToNodeType('audio/webm')).toBe('audio');
       expect(contentTypeToNodeType('application/pdf')).toBe('document');
+      expect(contentTypeToNodeType('model/gltf-binary')).toBe('model_3d');
       expect(contentTypeToNodeType('folder')).toBe('folder');
     });
 
@@ -29,6 +30,7 @@ describe('NodeTypeMapping utilities', () => {
       expect(inputForType('dataframe')).toBe('nodetool.input.DataFrameInput');
       expect(inputForType('audio')).toBe('nodetool.input.AudioInput');
       expect(inputForType('document')).toBe('nodetool.input.DocumentInput');
+      expect(inputForType('model_3d')).toBe('nodetool.input.Model3DInput');
     });
 
     test('returns null for unknown type', () => {
@@ -54,6 +56,7 @@ describe('NodeTypeMapping utilities', () => {
       expect(constantForType('str')).toBe('nodetool.constant.String');
       expect(constantForType('text')).toBe('nodetool.constant.Text');
       expect(constantForType('image')).toBe('nodetool.constant.Image');
+      expect(constantForType('model_3d')).toBe('nodetool.constant.Model3D');
       expect(constantForType('folder')).toBe('nodetool.input.Folder');
     });
 
@@ -117,6 +120,12 @@ describe('NodeTypeMapping utilities', () => {
       );
     });
 
+    test('converts Model3D constant to Model3DInput', () => {
+      expect(constantToInputType('nodetool.constant.Model3D')).toBe(
+        'nodetool.input.Model3DInput'
+      );
+    });
+
     test('returns null for non-convertible constant type', () => {
       expect(constantToInputType('nodetool.constant.List')).toBeNull();
       expect(constantToInputType('nodetool.constant.Date')).toBeNull();
@@ -176,6 +185,12 @@ describe('NodeTypeMapping utilities', () => {
     test('converts DataFrameInput to DataFrame constant', () => {
       expect(inputToConstantType('nodetool.input.DataFrameInput')).toBe(
         'nodetool.constant.DataFrame'
+      );
+    });
+
+    test('converts Model3DInput to Model3D constant', () => {
+      expect(inputToConstantType('nodetool.input.Model3DInput')).toBe(
+        'nodetool.constant.Model3D'
       );
     });
 
