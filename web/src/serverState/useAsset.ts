@@ -48,5 +48,11 @@ export function useAsset(props: UseAssetProps): {
     enabled: !!assetResource?.asset_id
   });
 
-  return { asset, uri: assetResource?.uri || asset?.get_url || undefined };
+  const resourceUri = assetResource?.uri;
+  const uri =
+    !resourceUri || resourceUri.startsWith("asset://")
+      ? asset?.get_url || resourceUri || undefined
+      : resourceUri;
+
+  return { asset, uri };
 }

@@ -37,4 +37,13 @@ describe('useAsset', () => {
       expect.objectContaining({ queryKey: ['asset', undefined], enabled: false })
     );
   });
+
+  it('prefers fetched asset URL for asset scheme URIs', () => {
+    const { result } = renderHook(() =>
+      useAsset({ model3d: { asset_id: '123', uri: 'asset://123' } as any })
+    );
+
+    expect(result.current.asset).toEqual(mockAsset);
+    expect(result.current.uri).toBe(mockAsset.get_url);
+  });
 });
