@@ -20,6 +20,7 @@ import CollectionItem from "./CollectionItem";
 import { useCollectionStore } from "../../stores/CollectionStore";
 import { DialogActionButtons } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
+import { UseMutationResult } from "@tanstack/react-query";
 
 const CollectionList = () => {
   // Group related state to reduce selector calls
@@ -239,7 +240,7 @@ const CollectionList = () => {
                         status: "idle",
                         submittedAt: 0,
                         variables: undefined
-                      } as any
+                      } as UseMutationResult<void, Error, string>
                     }
                   />
                 ))}
@@ -273,8 +274,8 @@ const CollectionList = () => {
               The following files encountered errors during indexing:
             </Typography>
             <List sx={{ pl: 2 }}>
-              {indexErrors.map((error, index) => (
-                <ListItem key={index} sx={{ display: "list-item" }}>
+              {indexErrors.map((error) => (
+                <ListItem key={error.file} sx={{ display: "list-item" }}>
                   <strong>{error.file}</strong>: {error.error}
                 </ListItem>
               ))}
