@@ -343,6 +343,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
   const initialRenderRef = useRef(true);
+  const suppressResultOverlay = type === "nodetool.constant.Model3D";
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
@@ -464,6 +465,10 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
+    if (suppressResultOverlay) {
+      setShowResultOverlay(false);
+      return;
+    }
     // Reset overlay when node starts running again
     if (status === "running" || status === "starting") {
       setShowResultOverlay(false);
@@ -501,7 +506,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     nodeType.isOutputNode,
     nodeType.isConstantNode,
     status,
-    data.showResultPreference
+    data.showResultPreference,
+    suppressResultOverlay
   ]);
 
   const handleShowInputs = useCallback(() => {
@@ -514,21 +520,30 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [isConstantInputLockedResult, id, updateNodeData]);
 
   const handleShowResults = useCallback(() => {
+    if (suppressResultOverlay) {
+      return;
+    }
     setShowResultOverlay(true);
     // Save preference: user wants to see results after workflow runs
     updateNodeData(id, { showResultPreference: true });
-  }, [id, updateNodeData]);
+  }, [id, suppressResultOverlay, updateNodeData]);
 
   // Compute if overlay is actually visible (mirrors logic in NodeContent)
   const isEmptyResult = (obj: unknown) =>
     obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
   const shouldAlwaysShowResult =
-    nodeType.isOutputNode || isConstantInputLockedResult;
-  const isOverlayVisible = shouldAlwaysShowResult
+    !suppressResultOverlay &&
+    (nodeType.isOutputNode || isConstantInputLockedResult);
+  const isOverlayVisible = suppressResultOverlay
+    ? false
+    : shouldAlwaysShowResult
     ? result && !isEmptyResult(result)
     : showResultOverlay && result && !isEmptyResult(result);
   const hasToggleableResult =
-    !shouldAlwaysShowResult && result && !isEmptyResult(result);
+    !suppressResultOverlay &&
+    !shouldAlwaysShowResult &&
+    result &&
+    !isEmptyResult(result);
 
   const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
   const toolCall = useResultsStore((state) =>
