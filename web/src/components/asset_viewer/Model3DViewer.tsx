@@ -26,12 +26,11 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Canvas, useThree, useFrame, ThreeEvent } from "@react-three/fiber";
+import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
 import {
   OrbitControls,
   Grid,
   useGLTF,
-  Center,
   Environment,
   ContactShadows,
   Html
@@ -100,6 +99,7 @@ export interface Model3DViewerProps {
   url?: string;
   compact?: boolean;
   onClick?: () => void;
+  onDoubleClick?: () => void;
 }
 
 const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
@@ -111,8 +111,10 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       alignItems: "center",
       width: "100%",
       height: compact ? "100%" : "calc(100% - 120px)",
+      minHeight: 0,
       marginTop: compact ? 0 : "1em",
-      position: "relative"
+      position: "relative",
+      overflow: "hidden"
     },
     ".model-container": {
       width: compact ? "100%" : "100%",
@@ -122,14 +124,18 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       justifyContent: "center",
       alignItems: "center",
       position: "relative",
-      cursor: compact ? "pointer" : "default",
+      cursor: compact ? "grab" : "default",
       backgroundColor: backgroundColor,
-      borderRadius: compact ? "4px" : 0
+      borderRadius: compact ? "4px" : 0,
+      overflow: "hidden"
     },
     ".canvas-container": {
       width: "100%",
       height: "100%",
-      position: "relative"
+      minHeight: 0,
+      position: "relative",
+      display: "flex",
+      flex: 1
     },
     ".loading-overlay": {
       position: "absolute",
@@ -234,11 +240,12 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
 interface ModelProps {
   url: string;
   wireframe: boolean;
-  onLoad?: () => void;
+  onLoad?: (bounds: THREE.Box3) => void;
   onClick?: () => void;
+  onDoubleClick?: () => void;
 }
 
-function Model({ url, wireframe, onLoad, onClick }: ModelProps) {
+function Model({ url, wireframe, onLoad, onClick, onDoubleClick }: ModelProps) {
   const { scene } = useGLTF(url);
 
   // Clone scene to avoid modifying original
@@ -264,8 +271,9 @@ function Model({ url, wireframe, onLoad, onClick }: ModelProps) {
 
   // Signal load complete
   useEffect(() => {
-    onLoad?.();
-  }, [onLoad]);
+    const bounds = new THREE.Box3().setFromObject(clonedScene);
+    onLoad?.(bounds);
+  }, [clonedScene, onLoad]);
 
   const handleClick = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
@@ -275,11 +283,19 @@ function Model({ url, wireframe, onLoad, onClick }: ModelProps) {
     [onClick]
   );
 
+  const handleDoubleClick = useCallback(
+    (e: ThreeEvent<MouseEvent>) => {
+      e.stopPropagation();
+      onDoubleClick?.();
+    },
+    [onDoubleClick]
+  );
+
   return (
-    <Center>
+    <>
       {/* eslint-disable-next-line react/no-unknown-property */}
-      <primitive object={clonedScene} onClick={handleClick} />
-    </Center>
+      <primitive object={clonedScene} onClick={handleClick} onDoubleClick={handleDoubleClick} />
+    </>
   );
 }
 
@@ -355,6 +371,7 @@ function SceneHelpers({ showGrid, showAxes }: SceneHelpersProps) {
 // Camera reset component
 interface CameraControllerProps {
   resetTrigger: number;
+  modelBounds: THREE.Box3 | null;
 }
 
 // Type for OrbitControls-like objects
@@ -374,36 +391,62 @@ function isOrbitControlsLike(obj: unknown): obj is OrbitControlsLike {
   );
 }
 
-function CameraController({ resetTrigger }: CameraControllerProps) {
+function CameraController({
+  resetTrigger,
+  modelBounds
+}: CameraControllerProps) {
   const { camera, controls } = useThree();
 
-  useEffect(() => {
-    if (resetTrigger > 0) {
+  const fitCameraToModel = useCallback(() => {
+    const perspectiveCamera =
+      camera instanceof THREE.PerspectiveCamera ? camera : null;
+
+    if (!perspectiveCamera || !modelBounds || modelBounds.isEmpty()) {
       camera.position.set(3, 2, 3);
       camera.lookAt(0, 0, 0);
       if (isOrbitControlsLike(controls)) {
         controls.target.set(0, 0, 0);
         controls.update();
       }
+      return;
     }
-  }, [resetTrigger, camera, controls]);
 
-  return null;
-}
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    modelBounds.getSize(size);
+    modelBounds.getCenter(center);
 
-// Auto-rotate component for compact mode
-interface AutoRotateProps {
-  enabled: boolean;
-}
+    const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+    const fitHeightDistance =
+      maxDim /
+      (2 * Math.tan(THREE.MathUtils.degToRad(perspectiveCamera.fov / 2)));
+    const fitWidthDistance =
+      fitHeightDistance / Math.max(perspectiveCamera.aspect, 0.1);
+    const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.35;
+    const direction = new THREE.Vector3(1, 0.65, 1).normalize();
+    const nextPosition = center.clone().add(direction.multiplyScalar(distance));
 
-function AutoRotate({ enabled }: AutoRotateProps) {
-  const { scene } = useThree();
+    perspectiveCamera.position.copy(nextPosition);
+    perspectiveCamera.near = Math.max(distance / 100, 0.01);
+    perspectiveCamera.far = Math.max(distance * 20, 100);
+    perspectiveCamera.lookAt(center);
+    perspectiveCamera.updateProjectionMatrix();
 
-  useFrame((_, delta) => {
-    if (enabled && scene.children.length > 0) {
-      scene.rotation.y += delta * 0.3;
+    if (isOrbitControlsLike(controls)) {
+      controls.target.copy(center);
+      controls.update();
     }
-  });
+  }, [camera, controls, modelBounds]);
+
+  useEffect(() => {
+    fitCameraToModel();
+  }, [fitCameraToModel]);
+
+  useEffect(() => {
+    if (resetTrigger > 0) {
+      fitCameraToModel();
+    }
+  }, [fitCameraToModel, resetTrigger]);
 
   return null;
 }
@@ -466,7 +509,8 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   asset,
   url,
   compact = false,
-  onClick
+  onClick,
+  onDoubleClick
 }) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -484,6 +528,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     useState<BackgroundColor>("dark");
   const [resetCameraTrigger, setResetCameraTrigger] = useState(0);
   const [screenshotTrigger, setScreenshotTrigger] = useState(0);
+  const [modelBounds, setModelBounds] = useState<THREE.Box3 | null>(null);
 
   const modelUrl = asset?.get_url || url || "";
   const { captureScreenshot } = useScreenshotCapture();
@@ -497,15 +542,17 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   );
 
   // Handle model load
-  const handleModelLoad = useCallback(() => {
+  const handleModelLoad = useCallback((bounds: THREE.Box3) => {
     setIsLoading(false);
     setLoadError(null);
+    setModelBounds(bounds.clone());
   }, []);
 
   // Handle model error
   const handleModelError = useCallback(
     (error: Error) => {
       setIsLoading(false);
+      setModelBounds(null);
       const fileName = asset?.name || modelUrl.split("/").pop() || "unknown";
       const ext = fileName.includes(".")
         ? fileName.split(".").pop()?.toLowerCase()
@@ -648,6 +695,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
       <div
         className={cn("model-container", reactFlowClasses.nodrag)}
         onClick={compact ? onClick : undefined}
+        onDoubleClick={compact ? onDoubleClick : undefined}
       >
         <div className="canvas-container">
           {isLoading && !loadError && (
@@ -716,6 +764,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   wireframe={wireframe}
                   onLoad={handleModelLoad}
                   onClick={compact ? onClick : undefined}
+                  onDoubleClick={compact ? onDoubleClick : undefined}
                 />
 
                 {/* Scene helpers */}
@@ -734,10 +783,10 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 />
 
                 {/* Camera controller */}
-                <CameraController resetTrigger={resetCameraTrigger} />
-
-                {/* Auto rotate for compact mode */}
-                {compact && <AutoRotate enabled={true} />}
+                <CameraController
+                  resetTrigger={resetCameraTrigger}
+                  modelBounds={modelBounds}
+                />
 
                 {/* Screenshot handler */}
                 <ScreenshotHandler

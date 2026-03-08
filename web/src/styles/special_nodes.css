@@ -148,6 +148,64 @@
   align-items: stretch !important;
 }
 
+/* Let Constant.Model3D use the full body area */
+.react-flow__node-nodetool\.constant\.Model3D .node-content-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D .node-inputs {
+  margin: 0 !important;
+  padding: 0.5em;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D .node-property.model_3d {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .property-label {
+  display: none;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .property-input-container,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .model3d-property,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .drop-container,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .dropzone.dropped,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .model-preview {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .handle-popup {
+  left: -8px !important;
+}
+
 /* Collapsed Loop node - styles moved to collapsed.css */
 
 /* Datatable */

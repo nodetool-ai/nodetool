@@ -362,9 +362,12 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     [computedViewer.assets, setOpenAsset]
   );
 
-  const handleModel3DClick = useCallback((url: string, contentType?: string) => () => {
-    setOpenModel3D({ url, contentType });
-  }, []);
+  const handleModel3DDoubleClick = useCallback(
+    (url: string, contentType?: string) => () => {
+      setOpenModel3D({ url, contentType });
+    },
+    []
+  );
 
   const videoRef = useVideoSrc(type === "video" ? value : undefined);
 
@@ -536,11 +539,19 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           (format === "gltf" ? "model/gltf+json" : "model/gltf-binary");
 
         return (
-          <div style={{ width: "100%", height: "100%", minHeight: 0 }}>
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              minHeight: 0,
+              display: "flex",
+              flex: 1
+            }}
+          >
             <LazyModel3DViewer
               url={url}
               compact={true}
-              onClick={handleModel3DClick(url, contentType)}
+              onDoubleClick={handleModel3DDoubleClick(url, contentType)}
             />
           </div>
         );
@@ -841,7 +852,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     handleMouseDown,
     scrollRef,
     showTextActions,
-    handleModel3DClick
+    handleModel3DDoubleClick
   ]);
 
   const handleCloseAsset = useCallback(() => {

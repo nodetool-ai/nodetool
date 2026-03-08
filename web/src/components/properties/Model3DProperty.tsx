@@ -14,15 +14,24 @@ import { Asset } from "../../stores/ApiTypes";
 import { Button, TextField, Tooltip } from "@mui/material";
 import AssetViewer from "../assets/AssetViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
+import { resolveAssetUri } from "../node/output/hooks";
 
 const styles = (theme: Theme) =>
   css({
+    "&": {
+      height: "100%",
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column"
+    },
     "& .property-label": {
       marginBottom: "5px"
     },
     ".drop-container": {
       position: "relative",
       width: "100%",
+      flex: 1,
+      minHeight: 0,
       marginTop: "-3px",
       display: "flex",
       flexDirection: "column",
@@ -74,6 +83,7 @@ const styles = (theme: Theme) =>
     ".dropzone": {
       minHeight: "80px",
       width: "100%",
+      flex: 1,
       border: "0",
       maxWidth: "none",
       textAlign: "center",
@@ -81,6 +91,8 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[800],
       borderRadius: "4px",
       cursor: "pointer",
+      display: "flex",
+      flexDirection: "column",
       "&.drag-over": {
         backgroundColor: theme.vars.palette.grey[600],
         outline: `2px dashed ${theme.vars.palette.grey[100]}`,
@@ -91,7 +103,9 @@ const styles = (theme: Theme) =>
       width: "100%",
       border: "0",
       maxWidth: "none",
-      minHeight: "100px"
+      minHeight: 0,
+      height: "100%",
+      flex: 1
     },
     ".dropzone p": {
       textAlign: "center",
@@ -105,8 +119,16 @@ const styles = (theme: Theme) =>
     },
     ".model-preview": {
       width: "100%",
-      height: "100px",
-      position: "relative"
+      height: "100%",
+      minHeight: "100px",
+      flex: 1,
+      position: "relative",
+      display: "flex"
+    },
+    ".model-preview > *": {
+      width: "100%",
+      height: "100%",
+      flex: 1
     }
   });
 
@@ -114,6 +136,7 @@ const Model3DProperty = (props: PropertyProps) => {
   const id = `model3d-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ model3d: props.value });
   const theme = useTheme();
+  const previewUrl = resolveAssetUri(uri);
 
   const isConnectedSelector = useIsConnectedSelector(props.nodeId, props.property.name);
   const isConnected = useNodes(isConnectedSelector);
@@ -161,10 +184,10 @@ const Model3DProperty = (props: PropertyProps) => {
   );
 
   const handlePreviewClick = useCallback(() => {
-    if (uri) {
+    if (previewUrl) {
       setOpenViewer(true);
     }
-  }, [uri]);
+  }, [previewUrl]);
 
   const handleCloseViewer = useCallback(() => {
     setOpenViewer(false);
@@ -214,11 +237,15 @@ const Model3DProperty = (props: PropertyProps) => {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={uri ? handlePreviewClick : undefined}
+            onDoubleClick={uri ? handlePreviewClick : undefined}
           >
             {uri ? (
               <div className="model-preview">
-                <LazyModel3DViewer url={uri} compact={true} onClick={handlePreviewClick} />
+                <LazyModel3DViewer
+                  url={previewUrl}
+                  compact={true}
+                  onDoubleClick={handlePreviewClick}
+                />
               </div>
             ) : (
               <p className="prop-drop">Drop 3D model (GLB, GLTF)</p>
@@ -228,7 +255,7 @@ const Model3DProperty = (props: PropertyProps) => {
           <AssetViewer
             contentType="model/gltf-binary"
             asset={asset}
-            url={uri}
+            url={previewUrl}
             open={openViewer}
             onClose={handleCloseViewer}
           />

@@ -23,6 +23,7 @@ interface LazyModel3DViewerProps {
   url?: string;
   compact?: boolean;
   onClick?: () => void;
+  onDoubleClick?: () => void;
 }
 
 /**
@@ -66,11 +67,18 @@ const LazyModel3DViewer: React.FC<LazyModel3DViewerProps> = ({
   asset,
   url,
   compact = false,
-  onClick
+  onClick,
+  onDoubleClick
 }) => {
   return (
     <Suspense fallback={<Model3DViewerLoadingFallback compact={compact} />}>
-      <Model3DViewer asset={asset} url={url} compact={compact} onClick={onClick} />
+      <Model3DViewer
+        asset={asset}
+        url={url}
+        compact={compact}
+        onClick={onClick}
+        onDoubleClick={onDoubleClick}
+      />
     </Suspense>
   );
 };
