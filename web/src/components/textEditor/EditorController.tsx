@@ -12,12 +12,46 @@ import {
   COMMAND_PRIORITY_CRITICAL,
   $getSelection,
   $isRangeSelection,
-  TextNode
+  TextNode,
+  LexicalNode,
+  ElementNode
 } from "lexical";
 import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
 import { sanitizeText } from "../../utils/sanitize";
 import { SearchParam } from "../../types/text_editor";
+
+// Type definitions for experimental browser APIs not yet in TypeScript lib
+interface CSSHighlightRegistry {
+  set(name: string, highlight: CustomHighlight): void;
+  delete(name: string): void;
+}
+
+interface CustomHighlight extends Iterable<Range> {
+  priority?: number;
+}
+
+interface CSSWithHighlights {
+  highlights?: CSSHighlightRegistry;
+}
+
+interface WindowWithHighlight extends Window {
+  Highlight: new (...ranges: Range[]) => CustomHighlight;
+}
+
+interface DocumentFragmentDirective {
+  show(fragments: Array<{
+    prefix?: string;
+    textStart: string;
+    textEnd?: string;
+    suffix?: string;
+  }>): void;
+}
+
+// Use a type intersection to avoid conflict with existing Document.fragmentDeclaration
+type DocumentWithFragmentDirective = Document & {
+  fragmentDirective?: DocumentFragmentDirective;
+};
 
 interface EditorControllerProps {
   onCanUndoChange: (canUndo: boolean) => void;
@@ -75,8 +109,9 @@ const EditorController = ({
 
   const clearHighlights = useCallback(() => {
     // Clear both native and polyfilled highlights
-    (CSS as any)?.highlights?.delete?.(highlightAllName);
-    (CSS as any)?.highlights?.delete?.(highlightCurrentName);
+    const cssWithHighlights = CSS as unknown as CSSWithHighlights;
+    cssWithHighlights?.highlights?.delete?.(highlightAllName);
+    cssWithHighlights?.highlights?.delete?.(highlightCurrentName);
 
     // No DOM-wrapper fallback anymore; CSS Highlight API handles highlight
     // clearing via CSS.highlights.delete above.
@@ -187,7 +222,9 @@ const EditorController = ({
     (matchIndexes: number[], matchLength: number, currentIndex: number) => {
       clearHighlights();
 
-      const hs = (CSS as any)?.highlights;
+      const cssWithHighlights = CSS as unknown as CSSWithHighlights;
+      const hs = cssWithHighlights?.highlights;
+      const windowWithHighlight = window as unknown as WindowWithHighlight;
 
       // Native CSS Highlight API is preferred
       if (hs && typeof hs.set === "function") {
@@ -197,14 +234,14 @@ const EditorController = ({
           const r = createRangeForMatch(start, matchLength);
           if (r) {ranges.push(r);}
         }
-        if (ranges.length > 0) {
-          hs.set(highlightAllName, new (window as any).Highlight(...ranges));
+        if (ranges.length > 0 && windowWithHighlight.Highlight) {
+          hs.set(highlightAllName, new windowWithHighlight.Highlight(...ranges));
 
           const currentRange = ranges[currentIndex] || ranges[0];
           if (currentRange) {
             hs.set(
               highlightCurrentName,
-              new (window as any).Highlight(currentRange)
+              new windowWithHighlight.Highlight(currentRange)
             );
             currentRange.startContainer?.parentElement?.scrollIntoView({
               block: "center"
@@ -228,11 +265,13 @@ const EditorController = ({
           };
         });
 
+        const docWithFragmentDirective = document as unknown as DocumentWithFragmentDirective;
         if (
           fragments.length > 0 &&
-          typeof (document as any).fragmentDirective.show === "function"
+          docWithFragmentDirective.fragmentDirective &&
+          typeof docWithFragmentDirective.fragmentDirective.show === "function"
         ) {
-          (document as any).fragmentDirective.show(fragments);
+          docWithFragmentDirective.fragmentDirective.show(fragments);
 
           // The polyfill doesn't have a concept of a "current" match,
           // so we can't style it differently or scroll to it.
@@ -501,7 +540,7 @@ const EditorController = ({
       editor.update(() => {
         // Collect text nodes manually to avoid using deprecated $nodesOfType
         const textNodes: TextNode[] = [];
-        const stack: any[] = [$getRoot()];
+        const stack: LexicalNode[] = [$getRoot()];
 
         while (stack.length > 0) {
           const node = stack.pop();
@@ -511,8 +550,8 @@ const EditorController = ({
             textNodes.push(node);
           }
 
-          // Push children (if any) onto the stack
-          if (typeof node.getChildren === "function") {
+          // Push children (if any) onto the stack - only ElementNode has getChildren
+          if (node instanceof ElementNode && typeof node.getChildren === "function") {
             const children = node.getChildren();
             if (Array.isArray(children)) {
               stack.push(...children);
