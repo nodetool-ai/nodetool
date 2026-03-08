@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo, useEffect, memo } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef, memo } from "react";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -220,6 +220,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   const [colorMode, setColorMode] = useState<ColorMode>(preferredColorMode);
   const [activeTab, setActiveTab] = useState<TabType>("swatches");
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [gradient, setGradient] = useState<GradientValue>({
     type: "linear",
     angle: 90,
@@ -242,6 +243,15 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   useEffect(() => {
     onChange(color, alpha);
   }, [color, alpha, onChange]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle saturation/brightness change
   const handleSaturationChange = useCallback(
@@ -321,7 +331,12 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 
       navigator.clipboard.writeText(textToCopy);
       setCopiedFormat(format);
-      setTimeout(() => setCopiedFormat(null), 1500);
+
+      // Clear any existing timeout before setting a new one
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => setCopiedFormat(null), 1500);
     },
     [color, alpha]
   );
