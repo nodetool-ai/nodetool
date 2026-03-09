@@ -52,6 +52,9 @@ export const installIpcLogBridge = () => {
     return (...args: unknown[]) => {
       inLoglevelDispatch = true;
       try {
+        if (args[0] && /SystemStats/.test(args[0]?.toString())) {
+          return;
+        }
         rawMethod(...args);
       } finally {
         inLoglevelDispatch = false;
