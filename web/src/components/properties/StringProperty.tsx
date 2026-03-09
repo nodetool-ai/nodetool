@@ -1,19 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useRef, useState, useCallback, memo, useMemo } from "react";
+import { useState, useCallback, memo, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import isEqual from "lodash/isEqual";
-import { IconButton, Tooltip, Typography } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
 import { useNodes } from "../../contexts/NodeContext";
-import type { NodeData } from "../../stores/NodeData";
 import { CopyButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import type { Edge } from "@xyflow/react";
-
-const STRING_INPUT_NODE_TYPE = "nodetool.input.StringInput";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -37,6 +34,35 @@ const determineCodeLanguage = (nodeType: string) => {
   return "text";
 };
 
+const propertyStyles = css({
+  ".property-row": {
+    width: "100%",
+    display: "flex",
+    flexDirection: "column"
+  },
+  ".property-row > .property-label": {
+    order: 1
+  },
+  ".value-container": {
+    width: "100%",
+    order: 2
+  },
+  ".string-action-buttons": {
+    position: "absolute",
+    right: 0,
+    top: "-3px",
+    opacity: 0.8,
+    zIndex: 10
+  },
+  ".string-action-buttons .MuiIconButton-root": {
+    margin: "0 0 0 5px",
+    padding: 0
+  },
+  ".string-action-buttons .MuiIconButton-root svg": {
+    fontSize: "0.75rem"
+  }
+});
+
 const StringProperty = ({
   property,
   propertyIndex,
@@ -52,347 +78,54 @@ const StringProperty = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const { isConnected, stringInputConfig } = useNodes(
-    useMemo(
-      () => {
-        let lastEdges: Edge[] | null = null;
-        let lastIsConnected = false;
 
-        let lastResult: { isConnected: boolean; stringInputConfig: null | { maxLength: number; lineMode: "multi_line" | "single_line" } } | null = null;
-
-        return (state: import("../../stores/NodeStore").NodeStoreState) => {
-          let connected = lastIsConnected;
-          let edgesChanged = false;
-          if (state.edges !== lastEdges) {
-            lastEdges = state.edges;
-            connected = state.edges.some(
-              (edge: Edge) =>
-                edge.target === nodeId && edge.targetHandle === property.name
-            );
-            edgesChanged = lastIsConnected !== connected;
-            lastIsConnected = connected;
-          }
-
-          if (nodeType !== STRING_INPUT_NODE_TYPE || property.name !== "value") {
-            if (!lastResult || edgesChanged || lastResult.stringInputConfig !== null) {
-              lastResult = { isConnected: connected, stringInputConfig: null };
-            }
-            return lastResult;
-          }
-
-          const node = state.findNode(nodeId);
-          const props = (node?.data as NodeData | undefined)?.properties ?? {};
-          const maxLengthRaw = props?.max_length;
-          const maxLength =
-            typeof maxLengthRaw === "number" && Number.isFinite(maxLengthRaw)
-              ? Math.max(0, Math.floor(maxLengthRaw))
-              : 0;
-          const lineMode =
-            props?.line_mode === "multi_line" ||
-            props?.line_mode === "multiline" ||
-            props?.multiline === true
-              ? "multi_line"
-              : "single_line";
-
-          if (
-            !lastResult ||
-            edgesChanged ||
-            lastResult.stringInputConfig?.maxLength !== maxLength ||
-            lastResult.stringInputConfig?.lineMode !== lineMode
-          ) {
-            lastResult = {
-              isConnected: connected,
-              stringInputConfig: { maxLength, lineMode } as const
-            };
-          }
+  const isConnected = useNodes(
+    useMemo(() => {
+      let lastEdges: Edge[] | null = null;
+      let lastResult = false;
+      return (state: import("../../stores/NodeStore").NodeStoreState) => {
+        if (state.edges === lastEdges) {
           return lastResult;
-        };
-      },
-      [nodeId, nodeType, property.name]
-    )
+        }
+        lastEdges = state.edges;
+        lastResult = state.edges.some(
+          (edge: Edge) =>
+            edge.target === nodeId && edge.targetHandle === property.name
+        );
+        return lastResult;
+      };
+    }, [nodeId, property.name])
   );
 
-  const showTextEditor = !isConnected;
-  const isConstant = nodeType.startsWith("nodetool.constant.");
-  const isConstantStringNode = nodeType === "nodetool.constant.String";
   const codeLanguage = determineCodeLanguage(nodeType);
-  const isStringInputValue =
-    nodeType === STRING_INPUT_NODE_TYPE && property.name === "value";
-  const maxLength = isStringInputValue
-    ? (stringInputConfig?.maxLength ?? 0)
-    : 0;
-  const multiline = isStringInputValue
-    ? (stringInputConfig?.lineMode ?? "single_line") === "multi_line"
-    : true;
-
-  const externalValue = typeof value === "string" ? value : "";
-  const [draftValue, setDraftValue] = useState<string>(externalValue);
-  const lastExternalValueRef = useRef<string>(externalValue);
-
-  // Keep local draft in sync with store updates only when the user hasn't diverged.
-  // This prevents trimming (stored value) from overwriting an over-limit draft on blur.
-  useEffect(() => {
-    if (!isStringInputValue) {
-      return;
-    }
-
-    const prevExternal = lastExternalValueRef.current;
-    if (externalValue !== prevExternal && draftValue === prevExternal) {
-      setDraftValue(externalValue);
-    }
-    lastExternalValueRef.current = externalValue;
-  }, [draftValue, externalValue, isStringInputValue]);
-
-  const exceedsMaxLength =
-    isStringInputValue && maxLength > 0 && draftValue.length > maxLength;
+  const stringValue = typeof value === "string" ? value : "";
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
       const next = !prev;
       if (next) {
-        // Notify all other modals to close themselves
         window.dispatchEvent(new Event("close-text-editor-modal"));
       }
       return next;
     });
   }, []);
 
-  if (showTextEditor) {
+  if (isConnected) {
     return (
-      <div
-        className={`string-property ${isConstant ? "constant-node" : ""}`}
-        css={css({
-          ".property-row": {
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            ...(isConstantStringNode
-              ? {
-                  flex: "1 1 auto",
-                  minHeight: 0
-                }
-              : {})
-          },
-          ".property-row > .property-label": {
-            order: 1
-          },
-          ".value-container": {
-            width: "100%",
-            order: 2,
-            ...(isConstantStringNode
-              ? {
-                  display: "flex",
-                  flexDirection: "column",
-                  flex: "1 1 auto",
-                  minHeight: 0
-                }
-              : {})
-          },
-          ".string-action-buttons": {
-            position: "absolute",
-            right: isConstantStringNode ? "1em" : 0,
-            top: isConstantStringNode ? ".5em" : "-3px",
-            opacity: 0.8,
-            zIndex: 10
-          },
-          ".string-action-buttons .MuiIconButton-root": {
-            margin: "0 0 0 5px",
-            padding: 0
-          },
-          ".string-action-buttons .MuiIconButton-root svg": {
-            fontSize: "0.75rem"
-          }
-        })}
-      >
-        <div
-          className="property-row"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
+      <div className="string-property" css={propertyStyles}>
+        <div className="property-row">
           <PropertyLabel
             name={property.name}
             description={property.description}
             id={id}
-            isDynamicProperty={isDynamicProperty}
           />
-          {isHovered && (
-            <div className="string-action-buttons">
-              <Tooltip title="Open Editor" placement="bottom">
-                <IconButton size="small" onClick={toggleExpand}>
-                  <OpenInFullIcon />
-                </IconButton>
-              </Tooltip>
-              <CopyButton value={value} buttonSize="small" />
-            </div>
-          )}
-          <div
-            className="value-container"
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <NodeTextField
-              className={cn(
-                "string-value-input",
-                isFocused && editorClassNames.nowheel
-              )}
-              sx={
-                isConstantStringNode
-                  ? {
-                      height: "100%",
-                      "& .MuiInputBase-root": {
-                        height: "100%",
-                        alignItems: "stretch"
-                      },
-                      "& .MuiInputBase-inputMultiline": {
-                        height: "100% !important",
-                        maxHeight: "none !important",
-                        overflow: "auto !important",
-                        resize: "none !important"
-                      }
-                    }
-                  : isConstant
-                    ? {
-                        "& .MuiInputBase-inputMultiline": {
-                          maxHeight: "300px"
-                        }
-                      }
-                    : undefined
-              }
-              value={
-                isStringInputValue
-                  ? draftValue
-                  : typeof value === "string"
-                    ? value
-                    : ""
-              }
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const raw = e.target.value ?? "";
-                if (isStringInputValue) {
-                  setDraftValue(raw);
-                  onChange(
-                    maxLength === 0 ? raw : raw.slice(0, Math.max(0, maxLength))
-                  );
-                  return;
-                }
-                onChange(raw);
-              }}
-              onFocus={(e) => {
-                e.preventDefault();
-                setIsFocused(true);
-              }}
-              onBlur={() => {
-                setIsFocused(false);
-              }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-              }}
-              tabIndex={tabIndex}
-              multiline={multiline}
-              minRows={
-                multiline
-                  ? isStringInputValue
-                    ? 4
-                    : isConstantStringNode
-                      ? 6
-                      : 3
-                  : 1
-              }
-              maxRows={
-                isConstantStringNode
-                  ? 200
-                  : isConstant
-                    ? 20
-                    : multiline
-                      ? isStringInputValue
-                        ? 12
-                        : 3
-                      : 1
-              }
-              slotProps={{
-                // Intentionally do NOT set html maxLength for StringInput:
-                // allow typing beyond limit, but only propagate up to maxLength.
-                htmlInput: isStringInputValue
-                  ? undefined
-                  : isConstantStringNode
-                    ? {
-                        style: {
-                          maxHeight: "none",
-                          overflowY: "auto"
-                        }
-                      }
-                    : undefined
-              }}
-              autoFocus={false}
-              changed={changed}
-            />
-            {isStringInputValue && maxLength > 0 && (
-              <Tooltip
-                title={
-                  exceedsMaxLength
-                    ? `${draftValue.length - maxLength} characters over the limit; extra characters will not be sent.`
-                    : "Max length. Extra characters will not be sent."
-                }
-                placement="bottom"
-              >
-                <Typography
-                  variant="caption"
-                  color={exceedsMaxLength ? "warning.main" : "text.secondary"}
-                  sx={{
-                    display: "block",
-                    marginTop: 0.5,
-                    width: "fit-content"
-                  }}
-                >
-                  {draftValue.length}/{maxLength}
-                </Typography>
-              </Tooltip>
-            )}
-          </div>
         </div>
-        {isExpanded && (
-          <TextEditorModal
-            value={
-              isStringInputValue
-                ? draftValue
-                : typeof value === "string"
-                  ? value
-                  : ""
-            }
-            language={codeLanguage}
-            onChange={(next) => {
-              if (!isStringInputValue) {
-                onChange(next);
-                return;
-              }
-              const raw = typeof next === "string" ? next : "";
-              setDraftValue(raw);
-              onChange(
-                maxLength === 0 ? raw : raw.slice(0, Math.max(0, maxLength))
-              );
-            }}
-            onClose={toggleExpand}
-            propertyName={property.name}
-            propertyDescription={property.description || ""}
-          />
-        )}
       </div>
     );
   }
 
   return (
-    <div
-      className={`string-property ${isConstant ? "constant-node" : ""}`}
-      css={css({
-        ".property-row": {
-          width: "100%",
-          display: "flex",
-          flexDirection: "column"
-        }
-      })}
-    >
+    <div className="string-property" css={propertyStyles}>
       <div
         className="property-row"
         onMouseEnter={() => setIsHovered(true)}
@@ -402,8 +135,64 @@ const StringProperty = ({
           name={property.name}
           description={property.description}
           id={id}
+          isDynamicProperty={isDynamicProperty}
         />
+        {isHovered && (
+          <div className="string-action-buttons">
+            <Tooltip title="Open Editor" placement="bottom">
+              <IconButton size="small" onClick={toggleExpand}>
+                <OpenInFullIcon />
+              </IconButton>
+            </Tooltip>
+            <CopyButton value={value} buttonSize="small" />
+          </div>
+        )}
+        <div
+          className="value-container"
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <NodeTextField
+            className={cn(
+              "string-value-input",
+              isFocused && editorClassNames.nowheel
+            )}
+            value={stringValue}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              onChange(e.target.value ?? "");
+            }}
+            onFocus={(e) => {
+              e.preventDefault();
+              setIsFocused(true);
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+            tabIndex={tabIndex}
+            multiline
+            minRows={3}
+            maxRows={3}
+            autoFocus={false}
+            changed={changed}
+          />
+        </div>
       </div>
+      {isExpanded && (
+        <TextEditorModal
+          value={stringValue}
+          language={codeLanguage}
+          onChange={(next) => onChange(next)}
+          onClose={toggleExpand}
+          propertyName={property.name}
+          propertyDescription={property.description || ""}
+        />
+      )}
     </div>
   );
 };
