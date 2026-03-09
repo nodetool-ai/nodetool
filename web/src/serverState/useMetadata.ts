@@ -81,7 +81,7 @@ export const loadMetadata = async () => {
   });
 
   const recommendedModels = data.reduce<UnifiedModel[]>(
-    (result, md) => [...result, ...md.recommended_models],
+    (result, md) => [...result, ...(md.recommended_models ?? [])],
     []
   );
 
