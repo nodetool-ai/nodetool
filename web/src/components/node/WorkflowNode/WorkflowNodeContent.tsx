@@ -45,20 +45,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
       data.dynamic_properties as Record<string, unknown>
     );
 
-    // TODO: Add workflow info display when needed
-    // const subWorkflowId = data.workflow_id as string | undefined;
-    // const { isLoading, isError, data: subWorkflow } = useQuery({
-    //   queryKey: ["workflow", subWorkflowId],
-    //   queryFn: async () => {
-    //     if (!subWorkflowId) return null;
-    //     const workflow = await client.GET("/api/workflows/{id}", {
-    //       params: { path: { id: subWorkflowId } }
-    //     }).then((res) => res.data as Workflow);
-    //     return workflow;
-    //   },
-    //   enabled: Boolean(subWorkflowId)
-    // });
-
     return (
       <Box
         sx={{
@@ -147,15 +133,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
         {status === "running" && (
           <NodeProgress id={id} workflowId={workflowId} />
         )}
-        {/* Workflow info footer */}
-        {/* {isLoading && (
-          <LoadingSpinner />
-        )}
-        {isError && (
-          <Typography variant="caption" color="error">
-            Error loading workflow
-          </Typography>
-        )} */}
         <Box
           sx={{
             flexShrink: 0,
@@ -166,9 +143,7 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             borderColor: "divider"
           }}
         >
-          <Typography variant="caption" color="text.secondary">
-            {/* {subWorkflow?.name && <> · {subWorkflow.name}</>} */}
-          </Typography>
+          <Typography variant="caption" color="text.secondary" />
         </Box>
       </Box>
     );
