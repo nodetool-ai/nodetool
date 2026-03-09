@@ -251,13 +251,22 @@ const OpenOrCreateDialog = () => {
     [data?.workflows, settings.workflowOrder]
   );
 
+  // Memoize click handlers for each workflow to prevent inline function creation
+  const workflowClickHandlers = useMemo(() => {
+    const handlers: Record<string, () => void> = {};
+    for (const workflow of sortedWorkflows) {
+      handlers[workflow.id] = () => onClickWorkflow(workflow);
+    }
+    return handlers;
+  }, [sortedWorkflows, onClickWorkflow]);
+
   // Memoize workflow list items to prevent unnecessary re-renders
   const workflowListItems = useMemo(() =>
     sortedWorkflows.map((workflow: Workflow, index: number) => (
       <Box
         key={`${workflow.id}-${index}`}
         className="workflow list"
-        onClick={() => onClickWorkflow(workflow)}
+        onClick={workflowClickHandlers[workflow.id]}
       >
         <Box
           className="image-wrapper"
@@ -292,7 +301,7 @@ const OpenOrCreateDialog = () => {
         </div>
       </Box>
     )),
-    [sortedWorkflows, onClickWorkflow, settings]
+    [sortedWorkflows, workflowClickHandlers, settings]
   );
 
   // List view
