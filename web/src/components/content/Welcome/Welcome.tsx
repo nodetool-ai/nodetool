@@ -80,6 +80,17 @@ const InlineModelDownload: React.FC<{
   }));
   const downloadKey = model.repo_id || model.id;
   const inProgress = !!downloads[downloadKey];
+
+  const handleDownload = useCallback(() => {
+    startDownload(
+      model.repo_id || "",
+      model.type || "hf.model",
+      model.path ?? null,
+      model.allow_patterns ?? null,
+      model.ignore_patterns ?? null
+    );
+  }, [model.repo_id, model.type, model.path, model.allow_patterns, model.ignore_patterns, startDownload]);
+
   if (inProgress) {
     return (
       <Box
@@ -100,15 +111,7 @@ const InlineModelDownload: React.FC<{
       aria-label={`Download ${model.repo_id || model.id}`}
       sx={{ ml: 1, verticalAlign: "middle" }}
       className={`model-download-button ${isDefault ? "default-model" : ""}`}
-      onClick={() =>
-        startDownload(
-          model.repo_id || "",
-          model.type || "hf.model",
-          model.path ?? null,
-          model.allow_patterns ?? null,
-          model.ignore_patterns ?? null
-        )
-      }
+      onClick={handleDownload}
     >
       {label ?? "Download"}
     </Button>
@@ -286,9 +289,9 @@ const Welcome = () => {
   }), []);
   const subtitleStyle = useMemo(() => ({ marginLeft: "1em" }), []);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: TabValue) => {
+  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: TabValue) => {
     setTabValue(newValue);
-  };
+  }, []);
 
   const highlightText = useCallback((text: string, term: string) => {
     if (!term) {return text;}
@@ -346,11 +349,11 @@ const Welcome = () => {
     return content;
   };
 
-  const handleToggleWelcomeOnStartup = (
+  const handleToggleWelcomeOnStartup = useCallback((
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     updateSettings({ showWelcomeOnStartup: event.target.checked });
-  };
+  }, [updateSettings]);
 
   // Featured local models to display in the setup section
   const featuredLocalModelIds = [
@@ -409,9 +412,7 @@ const Welcome = () => {
             </Tooltip>
           </div>
           <Button
-            onClick={() => {
-              navigate("/dashboard");
-            }}
+            onClick={() => navigate("/dashboard")}
             className="start-button"
           >
             Open Dashboard
