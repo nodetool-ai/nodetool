@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { createAssetFile } from "./createAssetFile";
+import { resolveAssetUri } from "../components/node/output/hooks";
 
 interface DownloadOptions {
   nodeId: string;
@@ -38,13 +39,14 @@ export const downloadPreviewAssets = async ({
         ? (payload as { uri?: string }).uri
         : undefined;
     if (uri) {
+      const resolvedUri = resolveAssetUri(uri);
       console.warn(
         "[downloadPreviewAssets] Falling back to direct URI download due to error",
         error
       );
       const anchor = document.createElement("a");
-      anchor.href = uri;
-      anchor.download = uri.split("/").pop() ?? "preview_download";
+      anchor.href = resolvedUri;
+      anchor.download = resolvedUri.split("/").pop() ?? "preview_download";
       anchor.rel = "noopener";
       document.body.appendChild(anchor);
       anchor.click();
