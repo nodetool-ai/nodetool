@@ -224,7 +224,10 @@ eas build --platform ios --local
 For more details, see:
 - [EAS Build Documentation](https://docs.expo.dev/build/introduction/)
 - [EAS Submit Documentation](https://docs.expo.dev/submit/introduction/)
-- [Mobile Architecture](ARCHITECTURE.md)
+
+## Documentation
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — Mobile app architecture, technical details, and component structure
 
 ## Troubleshooting
 

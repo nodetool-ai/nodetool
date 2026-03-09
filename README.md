@@ -155,6 +155,14 @@ cd electron && npm run test:e2e
 
 For detailed testing documentation, see **[web/TESTING.md](web/TESTING.md)**.
 
+## Development Documentation
+
+For code contributions and development guidelines:
+- **[AGENTS.md](AGENTS.md)** — Project-wide coding standards and build instructions
+- **[web/src/AGENTS.md](web/src/AGENTS.md)** — Web UI development guidelines
+- **[web/TESTING.md](web/TESTING.md)** — Comprehensive testing guide (Jest, React Testing Library, Playwright)
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** — AI assistant coding patterns
+
 ## Contributing
 
 We welcome:
