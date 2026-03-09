@@ -180,6 +180,9 @@
 
 .react-flow__node-nodetool\.constant\.Model3D
   .node-property.model_3d
+  .dropzone,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
   .property-input-container,
 .react-flow__node-nodetool\.constant\.Model3D
   .node-property.model_3d
@@ -192,12 +195,22 @@
   .dropzone.dropped,
 .react-flow__node-nodetool\.constant\.Model3D
   .node-property.model_3d
-  .model-preview {
+  .model-preview,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .model-3d-viewer,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .model-container,
+.react-flow__node-nodetool\.constant\.Model3D
+  .node-property.model_3d
+  .canvas-container {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
+  width: 100%;
 }
 
 .react-flow__node-nodetool\.constant\.Model3D

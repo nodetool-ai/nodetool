@@ -81,8 +81,9 @@ const styles = (theme: Theme) =>
       border: "0"
     },
     ".dropzone": {
-      minHeight: "80px",
+      minHeight: 0,
       width: "100%",
+      height: "100%",
       flex: 1,
       border: "0",
       maxWidth: "none",
@@ -120,7 +121,7 @@ const styles = (theme: Theme) =>
     ".model-preview": {
       width: "100%",
       height: "100%",
-      minHeight: "100px",
+      minHeight: 0,
       flex: 1,
       position: "relative",
       display: "flex"
