@@ -13,6 +13,7 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import log from "loglevel";
 
 interface VideoItem {
   uri: string;
@@ -292,7 +293,7 @@ const VideoListProperty = (props: PropertyProps) => {
         const newVideos = await Promise.all(uploadPromises);
         handleAddVideos(newVideos);
       } catch (error) {
-        console.error("Failed to upload videos:", error);
+        log.error("Failed to upload videos:", error);
       }
     },
     [uploadAsset, handleAddVideos, filteredAssets, globalSearchResults, selectedAssets]
@@ -356,7 +357,7 @@ const VideoListProperty = (props: PropertyProps) => {
         handleAddVideos(newVideos);
       }
     } catch (error) {
-      console.error("Error opening file picker:", error);
+      log.error("Error opening file picker:", error);
     }
   }, [uploadAsset, handleAddVideos]);
 
@@ -398,7 +399,7 @@ const VideoListProperty = (props: PropertyProps) => {
       const newVideos = await Promise.all(uploadPromises);
       handleAddVideos(newVideos);
     } catch (error) {
-      console.error("Failed to upload videos:", error);
+      log.error("Failed to upload videos:", error);
     }
 
     // Reset input so same file can be selected again
