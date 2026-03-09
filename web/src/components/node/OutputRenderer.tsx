@@ -53,6 +53,7 @@ import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
+import { isTextLikeChunk } from "./outputChunkUtils";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -669,7 +670,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (typeof value[0] === "object") {
             if (value[0].type === "chunk") {
               const chunks = value as Chunk[];
-              const allText = chunks.every((c) => c.content_type === "text");
+              const allText = chunks.every((c) => isTextLikeChunk(c));
               if (allText) {
                 const { text, truncated, totalChunks } =
                   concatTextChunksSafely(chunks);
