@@ -21,6 +21,7 @@ import { CloseButton } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import { client } from "../../stores/ApiClient";
+import log from "loglevel";
 import VibeCodingChat from "./VibeCodingChat";
 import VibeCodingPreview from "./VibeCodingPreview";
 import type { Theme } from "@mui/material/styles";
@@ -154,7 +155,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         severity: "success"
       });
     } catch (error: unknown) {
-      console.error("Failed to save:", error);
+      log.error("Failed to save:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to save app";
       setSnackbar({
@@ -188,7 +189,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         severity: "success"
       });
     } catch (error: unknown) {
-      console.error("Failed to clear:", error);
+      log.error("Failed to clear:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to clear app";
       setSnackbar({
