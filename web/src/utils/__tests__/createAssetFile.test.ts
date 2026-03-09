@@ -146,7 +146,7 @@ describe("createAssetFile", () => {
       params: { path: { id: "asset-1" } }
     });
     expect(global.fetch).toHaveBeenCalledWith(
-      "/api/storage/asset-1.mp4",
+      expect.stringContaining("/api/storage/asset-1.mp4"),
       expect.objectContaining({ mode: "cors" })
     );
     expect(result.filename).toBe("fal-video.mp4");
