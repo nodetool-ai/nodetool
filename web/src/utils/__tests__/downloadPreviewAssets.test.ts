@@ -122,6 +122,36 @@ describe("downloadPreviewAssets", () => {
     consoleWarnSpy.mockRestore();
   });
 
+  it("resolves asset:// URIs in direct-download fallback", async () => {
+    mockCreateAssetFile.mockRejectedValue(new Error("Failed to create asset"));
+
+    const mockAnchor = {
+      href: "",
+      download: "",
+      click: jest.fn(),
+    };
+
+    const createElementSpy = jest.spyOn(document, "createElement").mockReturnValue(mockAnchor as unknown as HTMLAnchorElement);
+    const appendChildSpy = jest.spyOn(document.body, "appendChild").mockImplementation();
+    const removeChildSpy = jest.spyOn(document.body, "removeChild").mockImplementation();
+    const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+
+    await downloadPreviewAssets({
+      nodeId: "test-node",
+      previewValue: { uri: "asset://123.mp4" },
+    });
+
+    expect(consoleWarnSpy).toHaveBeenCalled();
+    expect(mockAnchor.href).toBe("/api/storage/123.mp4");
+    expect(mockAnchor.download).toBe("123.mp4");
+    expect(mockAnchor.click).toHaveBeenCalled();
+
+    createElementSpy.mockRestore();
+    appendChildSpy.mockRestore();
+    removeChildSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
   it("rethrows error when createAssetFile fails and no URI available", async () => {
     mockCreateAssetFile.mockRejectedValue(new Error("Creation failed"));
 
