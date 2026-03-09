@@ -59,7 +59,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
     setLocked(!locked);
   }, [locked, safeValue.width, safeValue.height]);
 
-  const handleWidthChange = useCallback((_: any, val: number) => {
+  const handleWidthChange = useCallback((_event: React.ChangeEvent<HTMLInputElement> | null, val: number) => {
     const current = valueRef.current;
     if (lockedRef.current) {
         const newHeight = Math.round(val / ratioRef.current);
@@ -69,7 +69,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
     }
   }, [onChange]);
 
-  const handleHeightChange = useCallback((_: any, val: number) => {
+  const handleHeightChange = useCallback((_event: React.ChangeEvent<HTMLInputElement> | null, val: number) => {
     const current = valueRef.current;
     if (lockedRef.current) {
         const newWidth = Math.round(val * ratioRef.current);
