@@ -60,12 +60,22 @@ const styles = (theme: Theme) =>
         flexDirection: "column"
       },
       ".preview-node-content .content": {
-        overflow: "hidden"
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        height: "100%",
+        minHeight: 0
       },
       ".preview-node-content > .content": {
         flex: 1,
         minHeight: 0,
-        height: "auto"
+        height: "100%"
+      },
+      ".preview-node-content > .content > *": {
+        flex: 1,
+        minHeight: 0,
+        width: "100%"
       },
       ".preview-node-content > .output": {
         flex: 1,
@@ -450,7 +460,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           className={`content ${
             isScrollable ? "scrollable nowheel" : "noscroll"
           } nodrag`}
-          style={{ width: "100%" }}
+          style={{ width: "100%", height: "100%" }}
           tabIndex={0}
           onFocus={handleContentFocus}
           onBlur={handleContentBlur}
