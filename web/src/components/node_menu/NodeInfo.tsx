@@ -270,7 +270,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         )}
       </Typography>
 
-      {nodeMetadata.the_model_info.cover_image_url ? (
+      {nodeMetadata.the_model_info?.cover_image_url ? (
         isLoading ? (
           <div className="preview-image loading"></div>
         ) : (
