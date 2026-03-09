@@ -112,6 +112,8 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       alignItems: "center",
       width: "100%",
       height: compact ? "100%" : "calc(100% - 120px)",
+      flex: "1 1 auto",
+      alignSelf: "stretch",
       minHeight: 0,
       marginTop: compact ? 0 : "1em",
       position: "relative",
@@ -122,6 +124,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       height: compact ? "100%" : "100%",
       minHeight: compact ? "60px" : "300px",
       flex: 1,
+      alignSelf: "stretch",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
@@ -138,6 +141,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       position: "relative",
       display: "flex",
       flex: 1,
+      alignSelf: "stretch",
       overflow: "hidden"
     },
     ".loading-overlay": {
@@ -757,6 +761,8 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               width: "100%",
               height: "100%",
               minHeight: 0,
+              maxWidth: "100%",
+              maxHeight: "100%",
               flex: 1
             }}
           >
