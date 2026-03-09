@@ -216,14 +216,18 @@ export const useVibeCodingStore = create<VibeCodingState>()(
     }),
     {
       name: "vibecoding-store",
-      partialize: (state) => ({
+      partialize: (state) => {
         // Only persist sessions with unsaved changes
-        sessions: Object.fromEntries(
-          Object.entries(state.sessions).filter(
-            ([, session]) => session.currentHtml !== session.savedHtml
-          )
-        )
-      })
+        // Optimization: Use for...in loop to avoid intermediate array allocation
+        const sessionsToPersist: Record<string, VibeCodingSession> = {};
+        for (const key in state.sessions) {
+          const session = state.sessions[key];
+          if (session && session.currentHtml !== session.savedHtml) {
+            sessionsToPersist[key] = session;
+          }
+        }
+        return { sessions: sessionsToPersist };
+      }
     }
   )
 );
