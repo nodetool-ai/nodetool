@@ -14,6 +14,7 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import log from "loglevel";
 
 interface AudioItem {
   uri: string;
@@ -312,7 +313,7 @@ const AudioListProperty = (props: PropertyProps) => {
         const newAudios = await Promise.all(uploadPromises);
         handleAddAudios(newAudios);
       } catch (error) {
-        console.error("Failed to upload audio files:", error);
+        log.error("Failed to upload audio files:", error);
       }
     },
     [uploadAsset, handleAddAudios, filteredAssets, globalSearchResults, selectedAssets]
@@ -376,7 +377,7 @@ const AudioListProperty = (props: PropertyProps) => {
         handleAddAudios(newAudios);
       }
     } catch (error) {
-      console.error("Error opening file picker:", error);
+      log.error("Error opening file picker:", error);
     }
   }, [uploadAsset, handleAddAudios]);
 
@@ -418,7 +419,7 @@ const AudioListProperty = (props: PropertyProps) => {
       const newAudios = await Promise.all(uploadPromises);
       handleAddAudios(newAudios);
     } catch (error) {
-      console.error("Failed to upload audio files:", error);
+      log.error("Failed to upload audio files:", error);
     }
 
     // Reset input so same file can be selected again

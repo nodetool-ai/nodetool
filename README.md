@@ -12,7 +12,7 @@
 
 NodeTool is an open-source visual programming tool for building AI workflows. Connect LLMs, real-time systems, build AI agents and generate media through a drag-and-drop node interface.
 
-![Screenshot](screen2.png)
+![Screen](screen3.png)
 
 ## Why NodeTool
 

@@ -17,6 +17,7 @@ import isEqual from "lodash/isEqual";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
+import log from "loglevel";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -240,7 +241,7 @@ const PropertyDropzone = ({
         onChange({ uri: asset.get_url || "", type: contentType });
       },
       onFailed: (error) => {
-        console.error("Failed to upload asset:", error);
+        log.error("Failed to upload asset:", error);
       }
     });
 
@@ -293,7 +294,7 @@ const PropertyDropzone = ({
         const fileData = await window.api.clipboard?.readFileBuffer(filePath);
 
         if (!fileData) {
-          console.error("Failed to read file");
+          log.error("Failed to read file");
           return;
         }
 
@@ -317,12 +318,12 @@ const PropertyDropzone = ({
             onChange({ uri: asset.get_url || "", type: contentType });
           },
           onFailed: (error) => {
-            console.error("Failed to upload asset:", error);
+            log.error("Failed to upload asset:", error);
           }
         });
       }
     } catch (error) {
-      console.error("Error opening file picker:", error);
+      log.error("Error opening file picker:", error);
     }
   }, [contentType, onChange, uploadAssetFn]);
 

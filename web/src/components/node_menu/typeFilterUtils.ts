@@ -7,7 +7,7 @@ const hashType = (type: TypeMetadata): string => {
   if (type) {
     // Include type_name for enums to prevent different enums from colliding
     const enumIdentity = type.type === "enum" && type.type_name ? `@${type.type_name}` : "";
-    return `${type.type}${enumIdentity}_${type.type_args.map((t) => hashType(t)).join("_")}`;
+    return `${type.type}${enumIdentity}_${(type.type_args ?? []).map((t) => hashType(t)).join("_")}`;
   }
   return "";
 };
