@@ -240,6 +240,14 @@ const VerticalToolbar = memo(function VerticalToolbar({
     handlePanelToggle();
   }, [handlePanelToggle]);
 
+  const handleWorkflowGridClick = useCallback(() => {
+    onViewChange("workflowGrid");
+  }, [onViewChange]);
+
+  const handleAssetsClick = useCallback(() => {
+    onViewChange("assets");
+  }, [onViewChange]);
+
   return (
     <div className="vertical-toolbar">
       {/* Drawer views section - My Stuff */}
@@ -257,7 +265,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("workflowGrid")}
+          onClick={handleWorkflowGridClick}
           className={
             activeView === "workflowGrid" && panelVisible ? "active" : ""
           }
@@ -272,7 +280,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
-          onClick={() => onViewChange("assets")}
+          onClick={handleAssetsClick}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
           <IconForType iconName="asset" showTooltip={false} iconSize="small" />

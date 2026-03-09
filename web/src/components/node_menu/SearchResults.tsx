@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useMemo } from "react";
 import {
   Box,
   List,
@@ -17,10 +17,24 @@ const SearchResults = memo(({
   results,
   handleCreateNode
 }: SearchResultsProps) => {
-  const renderNode = useCallback((node: NodeMetadata) => {
+  // Cache node handlers to prevent inline function recreation
+  // Use useMemo to rebuild cache only when results or handleCreateNode changes
+  const nodeHandlers = useMemo(() => {
+    const handlers = new Map<string, () => void>();
+    results.forEach((node) => {
+      if (!handlers.has(node.title)) {
+        handlers.set(node.title, () => handleCreateNode(node));
+      }
+    });
+    return handlers;
+  }, [results, handleCreateNode]);
+
+  const renderNode = (node: NodeMetadata) => {
     const words = node.node_type?.split(".");
+    const handleClick = nodeHandlers.get(node.title);
+
     return (
-      <ListItemButton key={node.title} onClick={() => handleCreateNode(node)}>
+      <ListItemButton key={node.title} onClick={handleClick}>
         {words.map((word, idx) => (
           <Box key={idx} sx={{ display: "flex" }}>
             <ListItemText sx={{ ml: 2 }}>
@@ -33,7 +47,7 @@ const SearchResults = memo(({
         ))}
       </ListItemButton>
     );
-  }, [handleCreateNode]);
+  };
 
   return (
     <List sx={{ overflowY: "scroll", maxHeight: "55vh" }}>

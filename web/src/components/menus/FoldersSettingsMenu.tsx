@@ -149,6 +149,12 @@ const FoldersSettings = () => {
   const canOpenFolders = isElectron && isLocalhost && isFileExplorerAvailable();
   const canOpenSystemFolders = isElectron && isLocalhost && isSystemDirectoryAvailable();
 
+  // Create stable handlers for folder buttons using useCallback
+  // to prevent inline function recreation on every render
+  const handleOpenFolder = useCallback((folderPath: string) => {
+    openInExplorer(folderPath);
+  }, []);
+
   // Helper to create open button for a folder setting
   const renderOpenButton = (settingValue: string | undefined) => {
     if (!canOpenFolders || !settingValue) {
@@ -158,7 +164,7 @@ const FoldersSettings = () => {
       <ToolbarIconButton
         icon={<FolderOutlinedIcon fontSize="small" />}
         tooltip="Open folder in file explorer"
-        onClick={() => openInExplorer(settingValue)}
+        onClick={() => handleOpenFolder(settingValue)}
         sx={{ ml: 1 }}
       />
     );
