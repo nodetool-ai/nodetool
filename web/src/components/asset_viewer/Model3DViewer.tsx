@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useState,
   useEffect,
+  useLayoutEffect,
   useMemo,
   memo
 } from "react";
@@ -120,6 +121,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       width: compact ? "100%" : "100%",
       height: compact ? "100%" : "100%",
       minHeight: compact ? "60px" : "300px",
+      flex: 1,
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
@@ -135,7 +137,8 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       minHeight: 0,
       position: "relative",
       display: "flex",
-      flex: 1
+      flex: 1,
+      overflow: "hidden"
     },
     ".loading-overlay": {
       position: "absolute",
@@ -250,6 +253,16 @@ function Model({ url, wireframe, onLoad, onClick, onDoubleClick }: ModelProps) {
 
   // Clone scene to avoid modifying original
   const clonedScene = useMemo(() => scene.clone(), [scene]);
+  const initialBounds = useMemo(() => new THREE.Box3().setFromObject(clonedScene), [clonedScene]);
+  const initialCenter = useMemo(
+    () => initialBounds.getCenter(new THREE.Vector3()),
+    [initialBounds]
+  );
+
+  useLayoutEffect(() => {
+    clonedScene.position.sub(initialCenter);
+    clonedScene.updateMatrixWorld(true);
+  }, [clonedScene, initialCenter]);
 
   // Apply wireframe mode to all mesh materials
   useEffect(() => {
@@ -395,7 +408,7 @@ function CameraController({
   resetTrigger,
   modelBounds
 }: CameraControllerProps) {
-  const { camera, controls } = useThree();
+  const { camera, controls, size } = useThree();
 
   const fitCameraToModel = useCallback(() => {
     const perspectiveCamera =
@@ -439,8 +452,17 @@ function CameraController({
   }, [camera, controls, modelBounds]);
 
   useEffect(() => {
-    fitCameraToModel();
-  }, [fitCameraToModel]);
+    if (size.width <= 0 || size.height <= 0) {
+      return;
+    }
+
+    // Wait until the canvas has applied its latest measured size before fitting.
+    const rafId = requestAnimationFrame(() => {
+      fitCameraToModel();
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [fitCameraToModel, size.height, size.width]);
 
   useEffect(() => {
     if (resetTrigger > 0) {
@@ -729,7 +751,14 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
           <Canvas
             camera={{ position: [3, 2, 3], fov: 50 }}
             gl={{ preserveDrawingBuffer: true }}
-            style={{ background: bgColorValue }}
+            style={{
+              background: bgColorValue,
+              display: "block",
+              width: "100%",
+              height: "100%",
+              minHeight: 0,
+              flex: 1
+            }}
           >
             <ModelErrorBoundary onError={handleModelError} fallback={null}>
               <Suspense

@@ -1225,16 +1225,21 @@ export const createNodeStore = (
             const nodeId = get().generateNodeId();
             useResultsStore.getState().clearResults(nodeId);
 
-            // Set default size for Preview and CompareImages nodes
+            // Set default size for nodes that host rich previews so content
+            // fills a stable box instead of driving the initial layout.
             const isPreviewNode =
               metadata.node_type === "nodetool.workflows.base_node.Preview";
             const isCompareImagesNode =
               metadata.node_type === "nodetool.compare.CompareImages";
+            const isModel3DConstantNode =
+              metadata.node_type === "nodetool.constant.Model3D";
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
             } else if (isCompareImagesNode) {
               defaultStyle = { width: 450, height: 350 };
+            } else if (isModel3DConstantNode) {
+              defaultStyle = { width: 320, height: 320 };
             } else {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };
             }
