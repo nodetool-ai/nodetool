@@ -109,7 +109,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-start",
-      alignItems: "center",
+      alignItems: "stretch",
       width: "100%",
       height: compact ? "100%" : "calc(100% - 120px)",
       flex: "1 1 auto",
@@ -143,6 +143,18 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       flex: 1,
       alignSelf: "stretch",
       overflow: "hidden"
+    },
+    ".canvas-container > div": {
+      width: "100% !important",
+      height: "100% !important",
+      minHeight: 0,
+      flex: 1
+    },
+    ".canvas-container canvas": {
+      display: "block",
+      width: "100% !important",
+      height: "100% !important",
+      minHeight: 0
     },
     ".loading-overlay": {
       position: "absolute",
