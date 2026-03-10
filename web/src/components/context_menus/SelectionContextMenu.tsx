@@ -21,6 +21,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { useNodes } from "../../contexts/NodeContext";
+import isEqual from "lodash/isEqual";
 
 interface SelectionContextMenuProps {
   top?: number;
@@ -44,8 +45,25 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
   );
-  // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
-  const selectedNodes = useNodes((state) => state.nodes.filter((node) => node.selected));
+  // Use simplified selector with custom equality to avoid re-renders during drag operations.
+  // Only extract the properties needed by this component and its hooks:
+  // - id, parentId, data for context menu logic and hooks
+  // - position, measured for useSurroundWithGroup and useRemoveFromGroup hooks
+  // This prevents unnecessary re-renders when other node properties change.
+  // Note: data reference is stable during position updates, so this is efficient.
+  const selectedNodes = useNodes(
+    (state) =>
+      state.nodes
+        .filter((node) => node.selected)
+        .map((node) => ({
+          id: node.id,
+          parentId: node.parentId,
+          data: node.data,
+          position: node.position,
+          measured: node.measured
+        })),
+    isEqual
+  );
 
   // any has parent
   const anyHasParent = useMemo(() => {
