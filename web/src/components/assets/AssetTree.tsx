@@ -145,9 +145,23 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     });
   }, []);
 
-  const createFolderToggleHandler = useCallback((assetId: string) => {
-    return () => handleToggleFolder(assetId);
-  }, [handleToggleFolder]);
+  // Create a stable map of toggle handlers keyed by asset ID
+  // This prevents creating new functions on every render for each node
+  const folderToggleHandlers = useMemo(() => {
+    const handlers = new Map<string, () => void>();
+    const collectAssetIds = (nodes: AssetTreeNode[]) => {
+      nodes.forEach((node) => {
+        if (node.content_type === "folder") {
+          handlers.set(node.id, () => handleToggleFolder(node.id));
+          if (node.children) {
+            collectAssetIds(node.children);
+          }
+        }
+      });
+    };
+    collectAssetIds(assetTree);
+    return handlers;
+  }, [assetTree, handleToggleFolder]);
 
   const getFileIcon = useCallback((contentType: string) => {
     switch (contentType) {
@@ -203,7 +217,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         {nodes.map((node) => (
           <React.Fragment key={node.id}>
             <ListItemButton
-              onClick={createFolderToggleHandler(node.id)}
+              onClick={folderToggleHandlers.get(node.id)}
               style={{ paddingLeft: `${depth * 16}px` }}
             >
               <ListItemIcon
@@ -248,7 +262,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         ))}
       </List>
     );
-  }, [closedFolders, createFolderToggleHandler, getFileIcon, theme.vars.palette.grey]);
+  }, [closedFolders, folderToggleHandlers, getFileIcon, theme.vars.palette.grey]);
 
   if (isLoading) {
     return <CircularProgress />;
