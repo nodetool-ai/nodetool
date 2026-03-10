@@ -352,7 +352,7 @@ describe("PrefixTreeSearch", () => {
       const duration = performance.now() - start;
 
       expect(results.length).toBeGreaterThan(0);
-      expect(duration).toBeLessThan(PERF_THRESHOLD_SMALL);
+      assertPerf(duration, PERF_THRESHOLD_SMALL);
 
       console.log(`[PERF] Search 100 nodes: ${duration.toFixed(2)}ms`);
     });
@@ -368,7 +368,7 @@ describe("PrefixTreeSearch", () => {
       const duration = performance.now() - start;
 
       expect(results.length).toBeGreaterThan(0);
-      expect(duration).toBeLessThan(PERF_THRESHOLD_MEDIUM);
+      assertPerf(duration, PERF_THRESHOLD_MEDIUM);
 
       console.log(`[PERF] Search 1000 nodes: ${duration.toFixed(2)}ms`);
     });
@@ -384,7 +384,7 @@ describe("PrefixTreeSearch", () => {
       const duration = performance.now() - start;
 
       expect(results.length).toBeGreaterThan(0);
-      expect(duration).toBeLessThan(PERF_THRESHOLD_LARGE);
+      assertPerf(duration, PERF_THRESHOLD_LARGE);
 
       console.log(`[PERF] Search 5000 nodes: ${duration.toFixed(2)}ms`);
     });
@@ -462,7 +462,7 @@ describe("PrefixTreeSearch", () => {
       const avgTime = duration / queries.length;
 
       // Average search time should be less than 10ms
-      expect(avgTime).toBeLessThan(10);
+      assertPerf(avgTime, 10);
 
       console.log(
         `[PERF] ${queries.length} searches avg: ${avgTime.toFixed(2)}ms`
@@ -481,7 +481,7 @@ describe("PrefixTreeSearch", () => {
 
       // CRITICAL: This threshold should not increase
       // If this test fails, the search algorithm has regressed
-      expect(duration).toBeLessThan(PERF_THRESHOLD_MEDIUM);
+      assertPerf(duration, PERF_THRESHOLD_MEDIUM);
 
       if (duration > PERF_THRESHOLD_MEDIUM * 0.8) {
         console.warn(
