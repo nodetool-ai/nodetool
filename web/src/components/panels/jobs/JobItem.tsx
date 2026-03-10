@@ -223,13 +223,20 @@ const JobItem = ({ job }: { job: Job }) => {
           "&:hover": { backgroundColor: "action.hover" }
         }}
         secondaryAction={
-          <IconButton edge="end" size="small" onClick={handleExpandClick}>
-            {expanded ? (
-              <KeyboardArrowUpIcon fontSize="small" />
-            ) : (
-              <KeyboardArrowDownIcon fontSize="small" />
-            )}
-          </IconButton>
+          <Tooltip title={expanded ? "Collapse" : "Expand"}>
+            <IconButton
+              edge="end"
+              size="small"
+              onClick={handleExpandClick}
+              aria-label={expanded ? "Collapse job details" : "Expand job details"}
+            >
+              {expanded ? (
+                <KeyboardArrowUpIcon fontSize="small" />
+              ) : (
+                <KeyboardArrowDownIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
         }
       >
         <ListItemIcon sx={{ minWidth: 40 }}>{getStatusIcon()}</ListItemIcon>
@@ -264,25 +271,28 @@ const JobItem = ({ job }: { job: Job }) => {
         {(job.status === "running" ||
           job.status === "queued" ||
           job.status === "starting") && (
-          <IconButton
-            size="small"
-            onClick={handleStop}
-            disabled={cancelling}
-            sx={{
-              mr: 1,
-              color: "error.main",
-              "&:hover": {
-                backgroundColor: "error.light",
-                color: "error.contrastText"
-              }
-            }}
-          >
-            {cancelling ? (
-              <CircularProgress size={16} color="warning" />
-            ) : (
-              <StopIcon fontSize="small" />
-            )}
-          </IconButton>
+          <Tooltip title={cancelling ? "Cancelling..." : "Stop job"}>
+            <IconButton
+              size="small"
+              onClick={handleStop}
+              disabled={cancelling}
+              aria-label={`Stop job ${workflowName}`}
+              sx={{
+                mr: 1,
+                color: "error.main",
+                "&:hover": {
+                  backgroundColor: "error.light",
+                  color: "error.contrastText"
+                }
+              }}
+            >
+              {cancelling ? (
+                <CircularProgress size={16} color="warning" />
+              ) : (
+                <StopIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
         )}
         <ListItemText sx={{ flex: "0 0 auto", textAlign: "right", mr: 1 }}>
           <Typography

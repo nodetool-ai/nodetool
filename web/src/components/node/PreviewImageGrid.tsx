@@ -443,7 +443,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 <img
                   className="img"
                   src={urlMapRef.current.get(img) as string}
-                  alt={`image-${idx + 1}`}
+                  alt={`Generated image ${idx + 1} of ${images.length}`}
                   loading="lazy"
                   draggable={false}
                 />

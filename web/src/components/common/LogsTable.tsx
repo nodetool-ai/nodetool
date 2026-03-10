@@ -332,13 +332,16 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
           />
           {r.data !== undefined && r.data !== null && (
             <>
-              <IconButton 
-                size="small" 
-                onClick={handleClick}
-                sx={{ padding: "2px" }}
-              >
-                <DataObjectIcon fontSize="inherit" />
-              </IconButton>
+              <Tooltip title="View log data">
+                <IconButton
+                  size="small"
+                  onClick={handleClick}
+                  sx={{ padding: "2px" }}
+                  aria-label="View log data"
+                >
+                  <DataObjectIcon fontSize="inherit" />
+                </IconButton>
+              </Tooltip>
               <Popover
                 open={open}
                 anchorEl={anchorEl}

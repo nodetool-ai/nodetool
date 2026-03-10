@@ -149,6 +149,13 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
     addSwatch(currentColor);
   }, [addSwatch, currentColor]);
 
+  const handleAddSwatchKeyPress = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleAddSwatch();
+    }
+  }, [handleAddSwatch]);
+
   const handleSwatchContextMenu = useCallback(
     (e: React.MouseEvent<HTMLDivElement>, swatchId: string) => {
       e.preventDefault();
@@ -215,6 +222,16 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
     [handleColorSelect]
   );
 
+  const handleSwatchKeyPress = useCallback(
+    (color: string) => (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleColorSelect(color);
+      }
+    },
+    [handleColorSelect]
+  );
+
   const handlePaletteRemove = useCallback(
     (id: string) => () => {
       handleRemovePalette(id);
@@ -258,6 +275,10 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
                   className="color-swatch"
                   style={{ backgroundColor: color }}
                   onClick={handleRecentColorClick(color)}
+                  onKeyDown={handleSwatchKeyPress(color)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Select recent color ${color}`}
                 />
               </Tooltip>
             ))
@@ -279,12 +300,23 @@ const SwatchPanel: React.FC<SwatchPanelProps> = React.memo(({
                 className="color-swatch"
                 style={{ backgroundColor: swatch.color }}
                 onClick={handleSwatchColorClick(swatch.color)}
+                onKeyDown={handleSwatchKeyPress(swatch.color)}
                 onContextMenu={(e) => handleSwatchContextMenu(e, swatch.id)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Select color ${swatch.name || swatch.color}`}
               />
             </Tooltip>
           ))}
           <Tooltip title="Save current color">
-            <div className="add-swatch-button" onClick={handleAddSwatch}>
+            <div
+              className="add-swatch-button"
+              onClick={handleAddSwatch}
+              onKeyDown={handleAddSwatchKeyPress}
+              role="button"
+              tabIndex={0}
+              aria-label="Save current color to swatches"
+            >
               <AddIcon sx={{ fontSize: 16 }} />
             </div>
           </Tooltip>

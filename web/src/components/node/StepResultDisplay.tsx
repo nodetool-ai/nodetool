@@ -165,6 +165,13 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
     setExpanded(!expanded);
   };
 
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleToggle();
+    }
+  };
+
   // For primitive types, show inline without expand
   if (isPrimitive && displayValue.length < 100) {
     return (
@@ -185,7 +192,14 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
 
   return (
     <div className="step-result-container" css={styles(theme)}>
-      <div className="step-result-header" onClick={handleToggle}>
+      <div
+        className="step-result-header"
+        onClick={handleToggle}
+        onKeyDown={handleKeyPress}
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+      >
         <CheckCircleOutlineIcon className="step-result-icon" />
         <Typography className="step-result-title">
           Step Completed

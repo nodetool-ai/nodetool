@@ -510,16 +510,25 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                             }
                           }}
                         />
-                        <IconButton
-                          size="small"
-                          onClick={createUpdateHandler(workspace.id)}
-                          color="primary"
-                        >
-                          <CheckIcon />
-                        </IconButton>
-                        <IconButton size="small" onClick={handleCancelEdit}>
-                          <CancelIcon />
-                        </IconButton>
+                        <Tooltip title="Save">
+                          <IconButton
+                            size="small"
+                            onClick={createUpdateHandler(workspace.id)}
+                            color="primary"
+                            aria-label="Save workspace name"
+                          >
+                            <CheckIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Cancel">
+                          <IconButton
+                            size="small"
+                            onClick={handleCancelEdit}
+                            aria-label="Cancel editing workspace name"
+                          >
+                            <CancelIcon />
+                          </IconButton>
+                        </Tooltip>
                       </div>
                     ) : (
                       <>
@@ -564,18 +573,20 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           />
                         </div>
                         <ListItemSecondaryAction>
-                          <Tooltip title="Edit">
+                          <Tooltip title="Edit workspace">
                             <IconButton
                               size="small"
                               onClick={createStartEditHandler(workspace)}
+                              aria-label={`Edit workspace ${workspace.name}`}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete">
+                          <Tooltip title="Delete workspace">
                             <IconButton
                               size="small"
                               onClick={createDeleteWorkspaceHandler(workspace.id)}
+                              aria-label={`Delete workspace ${workspace.name}`}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>

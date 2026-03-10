@@ -743,15 +743,15 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           return (
                             <img
                               className="model-menu__provider-icon-image"
-                              src={iconUrl} 
-                              alt="" 
-                              style={{ 
-                                width: 24, 
-                                height: 24, 
+                              src={iconUrl}
+                              alt={isHuggingFaceProvider(p) ? getProviderBaseName(p) : formatGenericProviderName(p)}
+                              style={{
+                                width: 24,
+                                height: 24,
                                 objectFit: 'contain',
-                                filter: selected === p ? 'brightness(0) invert(1)' : 
+                                filter: selected === p ? 'brightness(0) invert(1)' :
                                   (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
-                              }} 
+                              }}
                             />
                           );
                         }
@@ -785,14 +785,14 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                 {iconUrl ? (
                                   <img
                                     className="model-menu__provider-inline-icon-image"
-                                    src={iconUrl} 
-                                    alt="" 
-                                    style={{ 
-                                      width: 22, 
-                                      height: 22, 
+                                    src={iconUrl}
+                                    alt={isHuggingFaceProvider(p) ? getProviderBaseName(p) : formatGenericProviderName(p)}
+                                    style={{
+                                      width: 22,
+                                      height: 22,
                                       objectFit: 'contain',
                                       filter: (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
-                                    }} 
+                                    }}
                                   />
                                 ) : null}
                               </Box>
