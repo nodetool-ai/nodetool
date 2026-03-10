@@ -7,17 +7,15 @@ import { memo, useMemo } from "react";
 import isEqual from "lodash/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import Select from "../inputs/Select";
+import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 
 const CollectionProperty = (props: PropertyProps) => {
   const id = `collection-${props.property.name}-${props.propertyIndex}`;
-  const edges = useNodes((state) => state.edges);
-  const isConnected = useMemo(() => {
-    return edges.some(
-      (edge) =>
-        edge.target === props.nodeId &&
-        edge.targetHandle === props.property.name
-    );
-  }, [edges, props.nodeId, props.property.name]);
+  const isConnectedSelector = useIsConnectedSelector(
+    props.nodeId,
+    props.property.name
+  );
+  const isConnected = useNodes(isConnectedSelector);
 
   const { data, error, isLoading } = useQuery<CollectionList>({
     queryKey: ["collections"],
