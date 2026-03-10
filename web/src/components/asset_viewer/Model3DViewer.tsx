@@ -49,6 +49,17 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import CloseIcon from "@mui/icons-material/Close";
 import { cn, reactFlowClasses } from "../ui_primitives";
 
+// Custom AmbientLight component to avoid React casing warnings
+interface AmbientLightProps {
+  intensity?: number;
+  color?: THREE.ColorRepresentation;
+}
+
+function AmbientLight({ intensity = 1, color = 0xffffff }: AmbientLightProps) {
+  // eslint-disable-next-line react/no-unknown-property
+  return <primitive object={new THREE.AmbientLight(color, intensity)} />;
+}
+
 // Lighting presets (must match drei Environment preset types)
 type LightingPreset =
   | "studio"
@@ -787,8 +798,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 }
               >
                 {/* Lighting based on preset */}
-                {/* eslint-disable-next-line react/no-unknown-property */}
-                <ambientLight intensity={0.3} />
+                <AmbientLight intensity={0.3} />
                 <Environment
                   preset={lightingPreset}
                   background={backgroundColor === "gradient"}
