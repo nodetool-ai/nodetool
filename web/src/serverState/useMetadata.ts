@@ -1,3 +1,4 @@
+import log from "loglevel";
 import { NodeTypes } from "@xyflow/react";
 import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
@@ -68,7 +69,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
 export const loadMetadata = async () => {
   const { data, error } = await client.GET("/api/nodes/metadata", {});
   if (error) {
-    console.error(error);
+    log.error(error);
     return "error";
   }
 

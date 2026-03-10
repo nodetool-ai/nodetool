@@ -1,5 +1,6 @@
 /// <reference types="vite-plugin-svgr/client" />
 import React, { useEffect, useRef, useState } from "react";
+import log from "loglevel";
 import Any from "../icons/data_types/nodetool/enum.svg?react";
 import AssistantIcon from "../icons/data_types/nodetool/assistant.svg?react";
 
@@ -45,7 +46,7 @@ export function useDynamicSvgImport(iconName: string) {
         }
       } catch (_) {
         // Fallback to default icon on error
-        console.warn(`Failed to load icon ${iconName}, using fallback`);
+        log.warn(`Failed to load icon ${iconName}, using fallback`);
       } finally {
         setLoading(false);
       }
