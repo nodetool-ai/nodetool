@@ -4,8 +4,6 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import AssetGrid from "./AssetGrid";
 import { Box } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useTheme } from "@mui/material/styles";
@@ -99,12 +97,6 @@ const styles = (theme: Theme) =>
 const AssetExplorer: React.FC = memo(() => {
   const theme = useTheme();
   const { folderFiles } = useAssets();
-  const _navigate = useNavigate();
-  const { currentWorkflowId } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId
-  }));
-  void _navigate;
-  void currentWorkflowId;
   return (
     <Box css={styles(theme)}>
       <Box
