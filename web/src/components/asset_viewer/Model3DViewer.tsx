@@ -543,6 +543,12 @@ function ScreenshotHandler({
   return null;
 }
 
+// Wrapper component for THREE.AmbientLight to use proper PascalCase
+const AmbientLight: React.FC<{ intensity: number }> = ({ intensity }) => {
+  // eslint-disable-next-line react/no-unknown-property
+  return <ambientLight intensity={intensity} />;
+};
+
 const Model3DViewer: React.FC<Model3DViewerProps> = ({
   asset,
   url,
@@ -787,8 +793,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 }
               >
                 {/* Lighting based on preset */}
-                {/* eslint-disable-next-line react/no-unknown-property */}
-                <ambientLight intensity={0.3} />
+                <AmbientLight intensity={0.3} />
                 <Environment
                   preset={lightingPreset}
                   background={backgroundColor === "gradient"}
