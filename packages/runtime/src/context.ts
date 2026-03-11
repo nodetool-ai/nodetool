@@ -513,8 +513,27 @@ export class ProcessingContext {
     if (cached) return cached;
 
     if (!this._providerResolver) {
-      const providers = await import("./providers/index.js");
-      const resolved = await providers.getProvider(providerId);
+      const { getRegisteredProvider } = await import("./providers/index.js");
+      const reg = getRegisteredProvider(providerId);
+      if (!reg) {
+        throw new Error(`No provider registered for "${providerId}"`);
+      }
+      // Resolve any missing secret kwargs from the context's own secret resolver
+      const kwargs = { ...reg.kwargs };
+      for (const [key, value] of Object.entries(kwargs)) {
+        if (!value) {
+          const envVal = process.env[key];
+          if (envVal) {
+            kwargs[key] = envVal;
+          } else {
+            const secret = await this.getSecret(key);
+            if (secret) {
+              kwargs[key] = secret;
+            }
+          }
+        }
+      }
+      const resolved = new reg.cls(kwargs);
       this._providers.set(providerId, resolved);
       return resolved;
     }
