@@ -15,9 +15,14 @@ import type { ProcessingContext } from "@nodetool/runtime";
 // Types
 // ---------------------------------------------------------------------------
 
+type MessageContentPart =
+  | { type: "text"; text: string }
+  | { type: "image"; image: { data: string; mimeType: string } }
+  | { type: "audio"; audio: { data: string; mimeType: string } };
+
 type ProviderMessage = {
   role: "system" | "user" | "assistant" | "tool";
-  content?: string | null;
+  content?: string | MessageContentPart[] | null;
 };
 type ProviderLike = {
   generateMessage(args: {
@@ -25,6 +30,13 @@ type ProviderLike = {
     model: string;
     maxTokens?: number;
   }): Promise<{ content?: string | null }>;
+};
+
+type AssetRef = {
+  type: string;
+  uri?: string;
+  data?: unknown;
+  asset_id?: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -46,6 +58,87 @@ const PROVIDER_KEY_MAP: Record<string, string> = {
   mistral: "MISTRAL_API_KEY",
 };
 
+// ---------------------------------------------------------------------------
+// Asset extraction helpers
+// ---------------------------------------------------------------------------
+
+function isAssetRef(v: unknown): v is AssetRef {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  const obj = v as Record<string, unknown>;
+  return typeof obj.type === "string" && (typeof obj.uri === "string" || obj.data != null);
+}
+
+function guessMime(asset: AssetRef): string {
+  const t = asset.type.toLowerCase();
+  if (t.includes("image")) return "image/png";
+  if (t.includes("audio")) return "audio/wav";
+  if (t.includes("video")) return "video/mp4";
+  return "application/octet-stream";
+}
+
+/** Read asset bytes from storage or inline data. */
+async function getAssetBytes(
+  asset: AssetRef,
+  context?: ProcessingContext
+): Promise<Uint8Array | null> {
+  // Inline base64 data
+  if (asset.data) {
+    if (asset.data instanceof Uint8Array) return asset.data;
+    if (typeof asset.data === "string") {
+      try {
+        return Buffer.from(asset.data, "base64");
+      } catch { /* fall through */ }
+    }
+  }
+  // Load from storage via URI
+  if (asset.uri && context?.storage) {
+    try {
+      return await context.storage.retrieve(asset.uri);
+    } catch { /* fall through */ }
+  }
+  return null;
+}
+
+/** Collect all asset refs from known input fields. */
+function collectAssets(inputs: Record<string, unknown>): AssetRef[] {
+  const assets: AssetRef[] = [];
+  const assetFields = ["image", "audio", "video", "document", "images", "audios", "videos", "documents"];
+  for (const field of assetFields) {
+    const val = inputs[field];
+    if (!val) continue;
+    if (Array.isArray(val)) {
+      for (const item of val) {
+        if (isAssetRef(item)) assets.push(item);
+      }
+    } else if (isAssetRef(val)) {
+      assets.push(val);
+    }
+  }
+  return assets;
+}
+
+/** Build multimodal content parts from assets. */
+async function buildAssetContentParts(
+  assets: AssetRef[],
+  context?: ProcessingContext
+): Promise<MessageContentPart[]> {
+  const parts: MessageContentPart[] = [];
+  for (const asset of assets) {
+    const bytes = await getAssetBytes(asset, context);
+    if (!bytes || bytes.length === 0) continue;
+    const mime = guessMime(asset);
+    const base64 = Buffer.from(bytes).toString("base64");
+    const assetType = asset.type.toLowerCase();
+    if (assetType.includes("image")) {
+      parts.push({ type: "image", image: { data: base64, mimeType: mime } });
+    } else if (assetType.includes("audio")) {
+      parts.push({ type: "audio", audio: { data: base64, mimeType: mime } });
+    }
+    // Video and document are described in text rather than sent as content
+  }
+  return parts;
+}
+
 function resolveApiKey(
   inputs: Record<string, unknown>,
   provider: string
@@ -60,13 +153,55 @@ function resolveApiKey(
 // Direct HTTP chat completion (fallback when no provider resolver)
 // ---------------------------------------------------------------------------
 
+/** Convert internal content parts to OpenAI API format. */
+function toOpenAIContent(content: string | MessageContentPart[]): unknown {
+  if (typeof content === "string") return content;
+  return content.map((p) => {
+    if (p.type === "text") return { type: "text", text: p.text };
+    if (p.type === "image") {
+      return {
+        type: "image_url",
+        image_url: { url: `data:${p.image.mimeType};base64,${p.image.data}` },
+      };
+    }
+    if (p.type === "audio") {
+      return {
+        type: "input_audio",
+        input_audio: { data: p.audio.data, format: "wav" },
+      };
+    }
+    return { type: "text", text: "[unsupported content]" };
+  });
+}
+
+/** Convert internal content parts to Anthropic API format. */
+function toAnthropicContent(content: string | MessageContentPart[]): unknown {
+  if (typeof content === "string") return content;
+  return content.map((p) => {
+    if (p.type === "text") return { type: "text", text: p.text };
+    if (p.type === "image") {
+      return {
+        type: "image",
+        source: { type: "base64", media_type: p.image.mimeType, data: p.image.data },
+      };
+    }
+    // Audio not directly supported by Anthropic messages API
+    return { type: "text", text: "[audio input attached]" };
+  });
+}
+
 async function callChatCompletionDirect(
   apiKey: string,
   provider: string,
   modelId: string,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  assetParts: MessageContentPart[] = []
 ): Promise<string> {
+  const userContent = assetParts.length > 0
+    ? [{ type: "text" as const, text: userPrompt }, ...assetParts]
+    : userPrompt;
+
   if (provider === "openai") {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -78,7 +213,7 @@ async function callChatCompletionDirect(
         model: modelId,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "user", content: toOpenAIContent(userContent) },
         ],
         max_tokens: 4096,
       }),
@@ -107,7 +242,7 @@ async function callChatCompletionDirect(
         model: modelId,
         max_tokens: 4096,
         system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
+        messages: [{ role: "user", content: toAnthropicContent(userContent) }],
       }),
     });
     if (!response.ok) {
@@ -137,7 +272,13 @@ async function callChatCompletionDirect(
         model: modelId,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          {
+            role: "user",
+            content: typeof userContent === "string" ? userContent : userContent.filter(p => p.type === "text").map(p => (p as { text: string }).text).join("\n"),
+            ...(assetParts.some(p => p.type === "image") ? {
+              images: assetParts.filter(p => p.type === "image").map(p => (p as { type: "image"; image: { data: string } }).image.data),
+            } : {}),
+          },
         ],
         stream: false,
       }),
@@ -169,8 +310,15 @@ async function callChatCompletion(
   provider: string,
   modelId: string,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  assetParts: MessageContentPart[] = []
 ): Promise<string> {
+  // Build user message content — text + any asset parts
+  const userContent: string | MessageContentPart[] =
+    assetParts.length > 0
+      ? [{ type: "text" as const, text: userPrompt }, ...assetParts]
+      : userPrompt;
+
   // Path 1: use runtime provider if available
   if (context && typeof context.getProvider === "function") {
     try {
@@ -179,7 +327,7 @@ async function callChatCompletion(
       )) as ProviderLike;
       const messages: ProviderMessage[] = [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "user", content: userContent },
       ];
       const result = await providerImpl.generateMessage({
         model: modelId,
@@ -210,7 +358,8 @@ async function callChatCompletion(
     provider,
     modelId,
     systemPrompt,
-    userPrompt
+    userPrompt,
+    assetParts
   );
 }
 
@@ -243,6 +392,10 @@ class SkillNode extends BaseNode {
       throw new Error("Select a model for this skill.");
     }
 
+    // Collect asset inputs and convert to multimodal content parts
+    const assets = collectAssets(inputs);
+    const assetParts = await buildAssetContentParts(assets, context);
+
     const systemPrompt = (this.constructor as typeof SkillNode)._systemPrompt;
     const text = await callChatCompletion(
       inputs,
@@ -250,7 +403,8 @@ class SkillNode extends BaseNode {
       provider,
       modelId,
       systemPrompt,
-      prompt
+      prompt,
+      assetParts
     );
     return { text };
   }
@@ -801,10 +955,10 @@ export class HttpApiSkillNode extends SkillNode {
   "name": "",
   "path": null,
   "supported_tasks": []
-}, title: "Model", description: "Model used for task planning and execution reasoning." })
+}, title: "Model", description: "Model used for API planning and response interpretation." })
   declare model: any;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the requested task." })
+  @prop({ type: "str", default: "", title: "Prompt", description: "Prompt describing the HTTP API task." })
   declare prompt: any;
 
   @prop({ type: "int", default: 180, title: "Timeout Seconds", description: "Maximum runtime for agent execution.", min: 1, max: 3600 })
@@ -954,10 +1108,33 @@ export class PdfLibSkillNode extends SkillNode {
     "6) Include exact commands/scripts used when reporting.\n\n" +
     "Advanced PDF reference:\n" +
     "- pypdfium2: fast rendering/text extraction.\n" +
+    "  Example render: page.render(scale=2.0).to_pil().save('page_1.png').\n" +
+    "  Example text: page.get_text().\n" +
     "- pdf-lib (JS): PDFDocument.load/create, copyPages, addPage, drawText, drawRectangle, save.\n" +
+    "  Use Node scripts for merge/split/edit and form-safe updates.\n" +
     "- pdfjs-dist (JS): getDocument, getPage, getTextContent, getAnnotations for browser pipelines.\n" +
-    "- poppler-utils: pdftotext, pdftoppm, pdfimages.\n" +
-    "- qpdf: --split-pages, --pages, --linearize, --optimize-level, --check.\n\n" +
+    "- poppler-utils:\n" +
+    "  pdftotext -bbox-layout for coordinates;\n" +
+    "  pdftoppm for rasterization;\n" +
+    "  pdfimages -all for embedded image extraction.\n" +
+    "- qpdf:\n" +
+    "  --split-pages, --pages for page selection/merge;\n" +
+    "  --linearize and --optimize-level for optimization;\n" +
+    "  --check for validation and structure diagnostics.\n" +
+    "- pdfplumber: coordinate-aware extraction and table extraction tuning.\n" +
+    "- reportlab: structured PDF generation and styled tables.\n\n" +
+    "Performance and reliability guidelines:\n" +
+    "- For large PDFs, process pages/chunks instead of loading everything at once.\n" +
+    "- Prefer pdfimages for image extraction speed, pdftotext for plain text speed.\n" +
+    "- Use OCR fallback only for scanned/image PDFs.\n" +
+    "- Validate encrypted/corrupt files with qpdf before deep processing.\n\n" +
+    "Common command examples:\n" +
+    "- Text with coordinates: pdftotext -bbox-layout document.pdf output.xml\n" +
+    "- Render 300 DPI pages: pdftoppm -png -r 300 document.pdf out\n" +
+    "- Extract embedded images: pdfimages -all document.pdf images/img\n" +
+    "- Merge selected pages: qpdf --empty --pages a.pdf 1-3 b.pdf 2,4 -- merged.pdf\n" +
+    "- Linearize for web: qpdf --linearize input.pdf optimized.pdf\n" +
+    "- Check integrity: qpdf --check input.pdf\n\n" +
     "Output rules:\n" +
     "- Keep responses concise.\n" +
     "- If a final PDF was produced, publish it with set_output_document.\n" +
@@ -1022,12 +1199,22 @@ export class PptxSkillNode extends SkillNode {
     "- Use margin: 0 when precise alignment with shapes/icons is required.\n" +
     "- Bullets: use bullet: true; never insert unicode bullet characters manually.\n" +
     "- For multi-line runs in arrays, set breakLine: true between lines.\n" +
-    "- Avoid lineSpacing with bullets; prefer paraSpaceAfter.\n\n" +
+    "- Avoid lineSpacing with bullets; prefer paraSpaceAfter.\n" +
+    "- Shapes/charts/tables/images are supported, including shadows and transparency.\n" +
+    "- Image sources: path/url/base64; use sizing contain/cover/crop patterns.\n" +
+    "- For crisp icons, render high-res SVG->PNG then place with addImage.\n" +
+    "- Slide masters can define reusable placeholders/background objects.\n\n" +
     "Critical pitfalls to avoid:\n" +
     "- NEVER include '#' in hex colors. Use 'FF0000', not '#FF0000'.\n" +
-    "- NEVER use 8-char hex for opacity in colors. Use opacity field.\n" +
+    "- NEVER use 8-char hex for opacity in colors (e.g. 00000020). Use opacity field.\n" +
     "- Shadow offset must be non-negative.\n" +
-    "- Do not reuse option objects across calls because PptxGenJS may mutate them.";
+    "- Do not reuse option objects across calls because PptxGenJS may mutate them.\n" +
+    "- Do not rely on RECTANGLE overlays to hide rounded corners on ROUNDED_RECTANGLE.\n\n" +
+    "Example baseline workflow:\n" +
+    "- Create script file (e.g. scripts/build_pptx.js) using pptxgenjs.\n" +
+    "- Add slides/text/shapes/tables/charts/images as requested.\n" +
+    "- pres.writeFile({ fileName: 'out/deck.pptx' }).\n" +
+    "- Call set_output_document with out/deck.pptx.";
   @prop({ type: "language_model", default: {
   "type": "language_model",
   "provider": "empty",
