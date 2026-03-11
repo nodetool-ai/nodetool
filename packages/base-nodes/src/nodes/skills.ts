@@ -384,10 +384,13 @@ async function callChatCompletion(
 
   // Path 1: use runtime provider if available
   if (context && typeof context.getProvider === "function") {
+    let providerImpl: ProviderLike | null = null;
     try {
-      const providerImpl = (await context.getProvider(
-        provider
-      )) as ProviderLike;
+      providerImpl = (await context.getProvider(provider)) as ProviderLike;
+    } catch {
+      // Provider resolution failed — fall through to direct HTTP
+    }
+    if (providerImpl) {
       const messages: ProviderMessage[] = [
         { role: "system", content: systemPrompt },
         { role: "user", content: userContent },
@@ -402,8 +405,6 @@ async function callChatCompletion(
           ? result.content
           : JSON.stringify(result.content ?? "");
       return text;
-    } catch {
-      // Fall through to direct HTTP if provider resolution fails
     }
   }
 
@@ -457,7 +458,8 @@ class SkillNode extends BaseNode {
 
     // Collect asset inputs and convert to multimodal content parts
     // Check both edge inputs and static node properties (this)
-    const assets = collectAssets(inputs, this as unknown as Record<string, unknown>);
+    const self = this as unknown as Record<string, unknown>;
+    const assets = collectAssets(inputs, self);
     const assetParts = await buildAssetContentParts(assets, context, "image");
 
     const systemPrompt = (this.constructor as typeof SkillNode)._systemPrompt;
@@ -470,7 +472,26 @@ class SkillNode extends BaseNode {
       prompt,
       assetParts
     );
-    return { text };
+
+    // Build result with all declared output handles.
+    // Pass through input assets for output handles the LLM can't produce directly.
+    const result: Record<string, unknown> = { text };
+    const outputTypes = (this.constructor as typeof SkillNode).metadataOutputTypes ?? {};
+    for (const [key, outputType] of Object.entries(outputTypes)) {
+      if (key === "text") continue; // already set
+      if (outputType === "image" || outputType === "audio" || outputType === "video" || outputType === "document") {
+        // Pass through the input asset as the output (best we can do without agent tools)
+        const assetVal = inputs[key] ?? self[key];
+        if (assetVal && typeof assetVal === "object" && !Array.isArray(assetVal)) {
+          const ref = assetVal as Record<string, unknown>;
+          // Only pass through if asset has actual data or non-empty URI
+          if (ref.data || (typeof ref.uri === "string" && ref.uri.length > 0)) {
+            result[key] = assetVal;
+          }
+        }
+      }
+    }
+    return result;
   }
 }
 
