@@ -60,7 +60,8 @@ const styles = (theme: Theme) =>
       }
     },
     ".navigate": {
-      flex: "1 1 auto"
+      flex: "1 1 auto",
+      WebkitAppRegion: "no-drag"
     },
     // Mode pills - segmented control style
     ".mode-pills": {
@@ -127,7 +128,8 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       marginLeft: "1em",
       marginRight: "4px",
-      gap: "4px"
+      gap: "4px",
+      WebkitAppRegion: "no-drag"
     }
     // Mobile styles handled via separate CSS file
   });
@@ -283,7 +285,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
   return (
     <div css={headerStyles} className="app-header">
       <Toolbar variant="dense" className="toolbar" tabIndex={-1} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <FlexRow className="navigate" gap={1} align="center" sx={{ WebkitAppRegion: "no-drag" } as any}>
+        <FlexRow className="navigate" gap={1} align="center">
           {/* Logo - clicks to Dashboard */}
           <Tooltip title="Go to Dashboard" enterDelay={TOOLTIP_ENTER_DELAY} placement="bottom">
             <div className="logo-container" onClick={handleLogoClick}>
@@ -300,10 +302,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
           <ModePills currentPath={path} />
           <Box sx={{ flexGrow: 1 }} />
         </FlexRow>
-        <div
-          className="buttons-right"
-          style={{ WebkitAppRegion: "no-drag" } as any}
-        >
+        <div className="buttons-right">
           <TemplatesButton isActive={path.startsWith("/templates")} />
           <RightSideButtons />
         </div>
