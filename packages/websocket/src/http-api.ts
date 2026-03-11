@@ -265,12 +265,12 @@ function parseLimit(url: URL, defaultLimit = 100): number {
 }
 
 async function createWorkflow(body: WorkflowRequestBody, userId: string): Promise<Workflow> {
-  if (!body || typeof body.name !== "string" || typeof body.access !== "string") {
+  if (!body || typeof body.name !== "string") {
     throw new Error("Invalid workflow");
   }
-  if (!body.graph || !Array.isArray(body.graph.nodes) || !Array.isArray(body.graph.edges)) {
-    throw new Error("Invalid workflow");
-  }
+  const graph = body.graph && Array.isArray(body.graph.nodes) && Array.isArray(body.graph.edges)
+    ? body.graph
+    : { nodes: [], edges: [] };
 
   return (await Workflow.create({
     user_id: userId,
@@ -283,7 +283,7 @@ async function createWorkflow(body: WorkflowRequestBody, userId: string): Promis
     thumbnail: body.thumbnail ?? null,
     thumbnail_url: body.thumbnail_url ?? null,
     access: body.access === "public" ? "public" : "private",
-    graph: body.graph,
+    graph,
     settings: body.settings ?? null,
     run_mode: body.run_mode ?? "workflow",
     workspace_id: body.workspace_id ?? null,
@@ -296,12 +296,12 @@ async function updateWorkflow(
   body: WorkflowRequestBody,
   userId: string
 ): Promise<Workflow> {
-  if (!body || typeof body.name !== "string" || typeof body.access !== "string") {
+  if (!body || typeof body.name !== "string") {
     throw new Error("Invalid workflow");
   }
-  if (!body.graph || !Array.isArray(body.graph.nodes) || !Array.isArray(body.graph.edges)) {
-    throw new Error("Invalid workflow");
-  }
+  const graph = body.graph && Array.isArray(body.graph.nodes) && Array.isArray(body.graph.edges)
+    ? body.graph
+    : { nodes: [], edges: [] };
 
   const existing = (await Workflow.get(id)) as Workflow | null;
 
@@ -317,7 +317,7 @@ async function updateWorkflow(
     existing.package_name = body.package_name ?? null;
     if (body.thumbnail !== undefined) existing.thumbnail = body.thumbnail;
     existing.access = body.access === "public" ? "public" : "private";
-    existing.graph = body.graph;
+    existing.graph = graph;
     existing.settings = body.settings ?? null;
     if (body.run_mode !== undefined && body.run_mode !== null) existing.run_mode = body.run_mode;
     existing.workspace_id = body.workspace_id ?? null;
