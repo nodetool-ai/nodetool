@@ -5,7 +5,7 @@
  * Useful for creating sections within a page or dialog.
  */
 
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import { Box, BoxProps, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -96,9 +96,16 @@ export const Panel: React.FC<PanelProps> = ({
   ...props
 }) => {
   const theme = useTheme();
-  
-  const paddingValue = typeof padding === "number" 
-    ? padding 
+
+  // Generate unique ID for accessibility using a ref to ensure stability
+  const idRef = useRef<string>();
+  if (!idRef.current) {
+    idRef.current = `panel-content-${Math.random().toString(36).substr(2, 9)}`;
+  }
+  const contentId = idRef.current;
+
+  const paddingValue = typeof padding === "number"
+    ? padding
     : PADDING_VARIANTS[padding];
 
   const getBackgroundColor = () => {
@@ -113,6 +120,14 @@ export const Panel: React.FC<PanelProps> = ({
 
   const hasHeader = title || subtitle || headerAction;
 
+  // Handle keyboard events for collapsible panel (Enter and Space keys)
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (collapsible && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      onToggleCollapse?.();
+    }
+  }, [collapsible, onToggleCollapse]);
+
   return (
     <Box
       sx={{
@@ -126,15 +141,29 @@ export const Panel: React.FC<PanelProps> = ({
     >
       {hasHeader && (
         <Box
+          role={collapsible ? "button" : undefined}
+          tabIndex={collapsible ? 0 : undefined}
+          aria-expanded={collapsible ? !collapsed : undefined}
+          aria-controls={collapsible ? contentId : undefined}
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             padding: theme.spacing(paddingValue, paddingValue, paddingValue / 2, paddingValue),
             borderBottom: collapsed ? undefined : `1px solid ${theme.vars.palette.divider}`,
-            cursor: collapsible ? "pointer" : undefined
+            cursor: collapsible ? "pointer" : undefined,
+            ...(collapsible && {
+              "&:hover": {
+                backgroundColor: theme.vars.palette.action.hover
+              },
+              "&:focus-visible": {
+                outline: `2px solid ${theme.vars.palette.primary.main}`,
+                outlineOffset: -2
+              }
+            })
           }}
           onClick={collapsible ? onToggleCollapse : undefined}
+          onKeyDown={collapsible ? handleKeyDown : undefined}
         >
           <Box sx={{ flex: 1 }}>
             {title && (
@@ -168,7 +197,11 @@ export const Panel: React.FC<PanelProps> = ({
             </Box>
           )}
           {collapsible && (
-            <Box sx={{ ml: 1 }}>
+            <Box
+              sx={{ ml: 1 }}
+              aria-hidden="true"
+              role="presentation"
+            >
               {collapsed ? "▼" : "▲"}
             </Box>
           )}
@@ -177,10 +210,15 @@ export const Panel: React.FC<PanelProps> = ({
 
       {!collapsed && (
         <>
-          <Box sx={{ padding: theme.spacing(paddingValue) }}>
+          <Box
+            id={contentId}
+            role={collapsible ? "region" : undefined}
+            aria-labelledby={collapsible && hasHeader ? undefined : undefined}
+            sx={{ padding: theme.spacing(paddingValue) }}
+          >
             {children}
           </Box>
-          
+
           {footer && (
             <Box
               sx={{
