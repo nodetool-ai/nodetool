@@ -134,12 +134,34 @@ export abstract class BaseNode {
     yield await this.process(inputs, context);
   }
 
+  /**
+   * Resolve requiredSettings from the context's secret store and inject
+   * them as `inputs._secrets` so node process() can access API keys.
+   */
+  private async _injectSecrets(
+    inputs: Record<string, unknown>,
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const ctor = this.constructor as typeof BaseNode;
+    const required = ctor.requiredSettings;
+    if (!required || required.length === 0 || !context) return inputs;
+
+    const secrets: Record<string, string> = {};
+    for (const key of required) {
+      const value = await context.getSecret(key);
+      if (value) secrets[key] = value;
+    }
+    if (Object.keys(secrets).length === 0) return inputs;
+    return { ...inputs, _secrets: { ...secrets, ...((inputs._secrets as Record<string, string>) ?? {}) } };
+  }
+
   toExecutor(): NodeExecutor {
     return {
-      process: (inputs: Record<string, unknown>, context?: ProcessingContext) =>
-        this.process(inputs, context),
-      genProcess: (inputs: Record<string, unknown>, context?: ProcessingContext) =>
-        this.genProcess(inputs, context),
+      process: async (inputs: Record<string, unknown>, context?: ProcessingContext) =>
+        this.process(await this._injectSecrets(inputs, context), context),
+      genProcess: async function* (this: BaseNode, inputs: Record<string, unknown>, context?: ProcessingContext) {
+        yield* this.genProcess(await this._injectSecrets(inputs, context), context);
+      }.bind(this) as NodeExecutor["genProcess"],
       preProcess: () => this.preProcess(),
       finalize: () => this.finalize(),
       initialize: () => this.initialize(),

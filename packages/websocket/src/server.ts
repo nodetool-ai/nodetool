@@ -21,6 +21,7 @@ import {
   OpenAIProvider,
   MistralProvider,
   GroqProvider,
+  setSecretResolver,
 } from "@nodetool/runtime";
 import { getSecret } from "@nodetool/security";
 import { UnifiedWebSocketRunner, type WebSocketConnection } from "./unified-websocket-runner.js";
@@ -110,6 +111,9 @@ try {
     Secret.createTable(),
   ]);
   log.info("Database ready", { path: dbPath });
+
+  // Wire up the provider registry so it can resolve secrets from the DB
+  setSecretResolver((key) => getSecret(key, "1").then((v) => v ?? undefined));
 } catch (err) {
   log.error("Database setup failed", err instanceof Error ? err : new Error(String(err)));
 }
@@ -283,6 +287,12 @@ class WsAdapter implements WebSocketConnection {
 }
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+  if (req.url === "/health") {
+    res.statusCode = 200;
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ status: "ok" }));
+    return;
+  }
   if (req.url?.startsWith("/api/") || req.url?.startsWith("/v1/") || req.url?.startsWith("/admin/")) {
     void handleNodeHttpRequest(req, res, apiOptions);
     return;
