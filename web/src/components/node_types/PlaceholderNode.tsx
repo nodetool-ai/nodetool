@@ -14,6 +14,8 @@ import { useNodes } from "../../contexts/NodeContext";
 import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import type { Edge } from "@xyflow/react";
+import type { NodeStoreState } from "../../stores/NodeStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const humanizeType = (type: string) => {
@@ -138,8 +140,33 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const nodeData = props.data;
   const nodeTitle = humanizeType(nodeType?.split(".").pop() || "");
   const hasParent = props.parentId !== null;
-  const edges = useNodes((n) => n.edges);
-  const incomingEdges = edges.filter((e) => e.target === props.id);
+  const incomingEdgeHandles = useNodes(
+    useMemo(() => {
+      let lastEdges: Edge[] | null = null;
+      let lastResult: string[] = [];
+      return (state: NodeStoreState) => {
+        if (state.edges === lastEdges) {
+          return lastResult;
+        }
+        lastEdges = state.edges;
+
+        const newHandles = state.edges
+          .filter((e) => e.target === props.id)
+          .map((e) => e.targetHandle || "");
+
+        // Only return new reference if contents actually changed
+        if (
+          newHandles.length === lastResult.length &&
+          newHandles.every((val, index) => val === lastResult[index])
+        ) {
+          return lastResult;
+        }
+
+        lastResult = newHandles;
+        return lastResult;
+      };
+    }, [props.id])
+  );
 
   // Resolve the type/namespace to display strictly from originalType when available
   const resolvedType = useMemo(() => {
@@ -179,9 +206,9 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       optional: true,
       required: false
     }));
-    incomingEdges.forEach((edge) => {
+    incomingEdgeHandles.forEach((handle) => {
       props.push({
-        name: edge.targetHandle || "",
+        name: handle,
         type: { type: "any", optional: true, type_args: [] },
         default: null,
         optional: true,
@@ -189,7 +216,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       });
     });
     return props;
-  }, [nodeData, incomingEdges]);
+  }, [nodeData, incomingEdgeHandles]);
 
   // Compute a better header title for missing node
   const computedHeaderTitle = useMemo(() => {
