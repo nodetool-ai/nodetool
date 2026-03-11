@@ -13,6 +13,7 @@ import {
   OpenAIProvider,
   AnthropicProvider,
 } from "@nodetool/runtime";
+import { getSecret } from "@nodetool/security";
 import type {
   Message,
   ProviderTool,
@@ -156,21 +157,26 @@ function isToolCall(item: ProviderStreamItem): item is ToolCall {
   return "name" in item && "id" in item && !("type" in item);
 }
 
+/** Resolve a secret: encrypted DB first (user "1"), then env var. */
+async function resolveKey(key: string): Promise<string | undefined> {
+  return (await getSecret(key, "1")) ?? undefined;
+}
+
 /**
  * Resolve a provider from the model name. Uses simple prefix matching.
  * If an explicit provider is given in options, returns that instead.
  */
-export function resolveProvider(model: string, options?: OpenAIApiOptions): BaseProvider {
+export async function resolveProvider(model: string, options?: OpenAIApiOptions): Promise<BaseProvider> {
   if (options?.provider) {
     return options.provider;
   }
 
   if (model.startsWith("gpt-") || model.startsWith("o1") || model.startsWith("o3")) {
-    return new OpenAIProvider({ OPENAI_API_KEY: process.env.OPENAI_API_KEY });
+    return new OpenAIProvider({ OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY") });
   }
 
   if (model.startsWith("claude-")) {
-    return new AnthropicProvider({ ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY });
+    return new AnthropicProvider({ ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY") });
   }
 
   // Default to Ollama
@@ -331,7 +337,7 @@ async function handleChatCompletions(
 
   let provider: BaseProvider;
   try {
-    provider = resolveProvider(model, options);
+    provider = await resolveProvider(model, options);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return errorResponse(500, `Failed to initialize provider: ${msg}`, "server_error");

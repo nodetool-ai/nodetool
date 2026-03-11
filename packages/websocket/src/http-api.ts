@@ -13,6 +13,7 @@ import {
   setGlobalAdapterResolver,
 } from "@nodetool/models";
 import { loadPythonPackageMetadata, type NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
+import { getSecret } from "@nodetool/security";
 import { handleModelsApiRequest } from "./models-api.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
@@ -1592,7 +1593,8 @@ export async function handleApiRequest(
 
   if (pathname === "/api/nodes/replicate_status") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    const configured = Boolean(process.env.REPLICATE_API_TOKEN);
+    const replicateKey = process.env.REPLICATE_API_TOKEN ?? await getSecret("REPLICATE_API_TOKEN", "1");
+    const configured = Boolean(replicateKey);
     return jsonResponse({ configured });
   }
 

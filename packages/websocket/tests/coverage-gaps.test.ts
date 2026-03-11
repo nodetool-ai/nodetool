@@ -527,7 +527,7 @@ describe("Models API: /all endpoint", () => {
 describe("OpenAI API: resolveProvider", () => {
   it("resolves OpenAI provider for gpt- models", async () => {
     const { resolveProvider } = await import("../src/openai-api.js");
-    const provider = resolveProvider("gpt-4o");
+    const provider = await resolveProvider("gpt-4o");
     expect(provider).toBeDefined();
   });
 
@@ -535,7 +535,7 @@ describe("OpenAI API: resolveProvider", () => {
     const { resolveProvider } = await import("../src/openai-api.js");
     // AnthropicProvider may throw if no API key; that's fine - we just test the code path
     try {
-      const provider = resolveProvider("claude-sonnet-4-20250514");
+      const provider = await resolveProvider("claude-sonnet-4-20250514");
       expect(provider).toBeDefined();
     } catch (e) {
       // Expected when ANTHROPIC_API_KEY is not set
@@ -545,26 +545,26 @@ describe("OpenAI API: resolveProvider", () => {
 
   it("resolves Ollama provider for unknown models", async () => {
     const { resolveProvider } = await import("../src/openai-api.js");
-    const provider = resolveProvider("llama3.2:latest");
+    const provider = await resolveProvider("llama3.2:latest");
     expect(provider).toBeDefined();
   });
 
   it("resolves o1 model to OpenAI", async () => {
     const { resolveProvider } = await import("../src/openai-api.js");
-    const provider = resolveProvider("o1-preview");
+    const provider = await resolveProvider("o1-preview");
     expect(provider).toBeDefined();
   });
 
   it("resolves o3 model to OpenAI", async () => {
     const { resolveProvider } = await import("../src/openai-api.js");
-    const provider = resolveProvider("o3-mini");
+    const provider = await resolveProvider("o3-mini");
     expect(provider).toBeDefined();
   });
 
   it("returns explicit provider when given", async () => {
     const { resolveProvider } = await import("../src/openai-api.js");
     const explicit = { provider: "custom" } as any;
-    const provider = resolveProvider("any-model", { provider: explicit });
+    const provider = await resolveProvider("any-model", { provider: explicit });
     expect(provider).toBe(explicit);
   });
 });

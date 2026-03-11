@@ -13,6 +13,10 @@
  * New secrets must be created via the TS endpoints for TS runtime access.
  */
 
+import { createLogger } from "@nodetool/config";
+
+const log = createLogger("nodetool.security.secret-helper");
+
 /** Cache for resolved secrets: "userId:key" -> value */
 const secretCache = new Map<string, string | null>();
 
@@ -134,8 +138,8 @@ export async function getSecret(
           }
         }
       }
-    } catch {
-      // Database lookup failed -- fall through to env
+    } catch (err) {
+      log.error("Secret DB lookup/decryption failed", { key, userId, error: String(err) });
     }
   }
 
