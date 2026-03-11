@@ -73,6 +73,12 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
 async function isCondaEnvironmentInstalled(): Promise<boolean> {
   logMessage("=== Checking Conda Environment Installation ===");
 
+  // In dev mode, skip the conda env check — the system node is used directly
+  if (process.env.NT_ELECTRON_DEV_MODE === "1") {
+    logMessage("Dev mode detected, skipping conda environment check");
+    return true;
+  }
+
   let nodeExecutablePath: string | null = null;
 
   try {
