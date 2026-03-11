@@ -192,9 +192,9 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // DOM, and set an explicit height on the React Flow node.
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
-    if (!textarea) {return;}
+    if (!textarea) return;
     const nodeEl = textarea.closest(".react-flow__node") as HTMLElement;
-    if (!nodeEl) {return;}
+    if (!nodeEl) return;
 
     // Measure overhead (everything except the textarea) from the live DOM.
     const currentNodeH = nodeEl.offsetHeight;
