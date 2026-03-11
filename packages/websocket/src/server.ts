@@ -310,25 +310,74 @@ wss.on("error", (error: Error) => {
 
 server.on("upgrade", (request, socket, head) => {
   const url = new URL(request.url ?? "/", `http://${host}:${port}`);
-  if (url.pathname !== "/ws") {
-    socket.destroy();
+
+  if (url.pathname === "/ws") {
+    wss.handleUpgrade(request, socket, head, (ws: any) => {
+      ws.on("error", (error: Error) => {
+        log.error("WebSocket client error", error);
+      });
+      const runner = new UnifiedWebSocketRunner({
+        resolveExecutor: (node) => registry.resolve(node),
+        resolveNodeType: graphNodeTypeResolver,
+        resolveProvider,
+        resolveTools,
+      });
+      log.info("WebSocket client connected");
+      void runner.run(new WsAdapter(ws)).catch((error) => {
+        log.error("Runner crashed", error instanceof Error ? error : new Error(String(error)));
+      });
+    });
     return;
   }
-  wss.handleUpgrade(request, socket, head, (ws: any) => {
-    ws.on("error", (error: Error) => {
-      log.error("WebSocket client error", error);
+
+  if (url.pathname === "/ws/terminal") {
+    wss.handleUpgrade(request, socket, head, (ws: any) => {
+      ws.on("error", (error: Error) => {
+        log.error("Terminal WebSocket error", error);
+      });
+      log.info("Terminal WebSocket client connected");
+      ws.send(JSON.stringify({ type: "output", data: "Terminal connected.\r\n" }));
+      ws.on("message", (raw: any) => {
+        try {
+          const msg = JSON.parse(raw.toString());
+          if (msg.type === "input") {
+            // Echo input back for now
+            ws.send(JSON.stringify({ type: "output", data: msg.data }));
+          }
+        } catch {
+          // ignore non-JSON messages
+        }
+      });
     });
-    const runner = new UnifiedWebSocketRunner({
-      resolveExecutor: (node) => registry.resolve(node),
-      resolveNodeType: graphNodeTypeResolver,
-      resolveProvider,
-      resolveTools,
+    return;
+  }
+
+  if (url.pathname === "/ws/download") {
+    wss.handleUpgrade(request, socket, head, (ws: any) => {
+      ws.on("error", (error: Error) => {
+        log.error("Download WebSocket error", error);
+      });
+      log.info("Download WebSocket client connected");
+      ws.on("message", (raw: any) => {
+        try {
+          const msg = JSON.parse(raw.toString());
+          if (msg.command === "start_download") {
+            // TODO: implement HuggingFace model download
+            ws.send(JSON.stringify({
+              status: "error",
+              repo_id: msg.repo_id,
+              error: "Model download not yet implemented in TS backend",
+            }));
+          }
+        } catch {
+          // ignore non-JSON messages
+        }
+      });
     });
-    log.info("WebSocket client connected");
-    void runner.run(new WsAdapter(ws)).catch((error) => {
-      log.error("Runner crashed", error instanceof Error ? error : new Error(String(error)));
-    });
-  });
+    return;
+  }
+
+  socket.destroy();
 });
 
 server.listen(port, host, () => {
