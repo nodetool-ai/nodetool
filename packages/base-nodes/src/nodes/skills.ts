@@ -65,32 +65,89 @@ const PROVIDER_KEY_MAP: Record<string, string> = {
 function isAssetRef(v: unknown): v is AssetRef {
   if (!v || typeof v !== "object" || Array.isArray(v)) return false;
   const obj = v as Record<string, unknown>;
-  return typeof obj.type === "string" && (typeof obj.uri === "string" || obj.data != null);
+  // Match objects with explicit type field (ImageRef from UI properties)
+  // OR objects with data/uri but no type (imageRef() output from upstream nodes)
+  const hasType = typeof obj.type === "string" && obj.type.length > 0;
+  const hasData = obj.data != null;
+  const hasUri = typeof obj.uri === "string" && obj.uri.length > 0;
+  return (hasType && (hasUri || hasData)) || (!hasType && (hasData || hasUri));
 }
 
-function guessMime(asset: AssetRef): string {
-  const t = asset.type.toLowerCase();
-  if (t.includes("image")) return "image/png";
-  if (t.includes("audio")) return "audio/wav";
-  if (t.includes("video")) return "video/mp4";
+/** Infer the asset kind from type field, field name context, uri, or mimeType. */
+function inferAssetKind(asset: AssetRef, fieldHint?: string): "image" | "audio" | "video" | "unknown" {
+  // Check explicit type field
+  const t = (asset.type || "").toLowerCase();
+  if (t.includes("image")) return "image";
+  if (t.includes("audio")) return "audio";
+  if (t.includes("video")) return "video";
+  // Check mimeType field (set by image nodes)
+  const mime = String((asset as Record<string, unknown>).mimeType ?? "").toLowerCase();
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("audio/")) return "audio";
+  if (mime.startsWith("video/")) return "video";
+  // Check URI extension
+  const uri = (asset.uri ?? "").toLowerCase();
+  if (/\.(png|jpe?g|gif|webp|bmp|tiff?|svg)(\?|$)/.test(uri)) return "image";
+  if (/\.(wav|mp3|flac|ogg|aac|m4a)(\?|$)/.test(uri)) return "audio";
+  if (/\.(mp4|mov|avi|mkv|webm)(\?|$)/.test(uri)) return "video";
+  // Fall back to field name hint
+  if (fieldHint) {
+    const h = fieldHint.toLowerCase();
+    if (h.includes("image")) return "image";
+    if (h.includes("audio")) return "audio";
+    if (h.includes("video")) return "video";
+  }
+  return "unknown";
+}
+
+function guessMime(asset: AssetRef, fieldHint?: string): string {
+  // Use explicit mimeType if present
+  const explicit = String((asset as Record<string, unknown>).mimeType ?? "").trim();
+  if (explicit && explicit.includes("/")) return explicit;
+  const kind = inferAssetKind(asset, fieldHint);
+  if (kind === "image") return "image/png";
+  if (kind === "audio") return "audio/wav";
+  if (kind === "video") return "video/mp4";
   return "application/octet-stream";
 }
 
-/** Read asset bytes from storage or inline data. */
+/** Read asset bytes from inline data, data: URI, file:// URI, or storage. */
 async function getAssetBytes(
   asset: AssetRef,
   context?: ProcessingContext
 ): Promise<Uint8Array | null> {
-  // Inline base64 data
+  // Inline base64 data (string or Uint8Array)
   if (asset.data) {
     if (asset.data instanceof Uint8Array) return asset.data;
-    if (typeof asset.data === "string") {
+    if (typeof asset.data === "string" && asset.data.length > 0) {
+      // Handle data: URI format
+      const dataUriMatch = (asset.data as string).match(/^data:[^;]*;base64,(.+)$/s);
+      if (dataUriMatch) {
+        return Buffer.from(dataUriMatch[1], "base64");
+      }
+      // Plain base64 string
       try {
         return Buffer.from(asset.data, "base64");
       } catch { /* fall through */ }
     }
   }
-  // Load from storage via URI
+  // Handle data: URIs in the uri field
+  if (asset.uri) {
+    const uriDataMatch = asset.uri.match(/^data:[^;]*;base64,(.+)$/s);
+    if (uriDataMatch) {
+      return Buffer.from(uriDataMatch[1], "base64");
+    }
+    // Handle file:// URIs directly (no storage adapter needed)
+    if (asset.uri.startsWith("file://")) {
+      try {
+        const { readFile } = await import("node:fs/promises");
+        const { fileURLToPath } = await import("node:url");
+        const filePath = fileURLToPath(asset.uri);
+        return await readFile(filePath);
+      } catch { /* fall through */ }
+    }
+  }
+  // Load from storage via URI (if storage adapter available)
   if (asset.uri && context?.storage) {
     try {
       return await context.storage.retrieve(asset.uri);
@@ -99,12 +156,16 @@ async function getAssetBytes(
   return null;
 }
 
-/** Collect all asset refs from known input fields. */
-function collectAssets(inputs: Record<string, unknown>): AssetRef[] {
+/**
+ * Collect all asset refs from known input fields.
+ * Checks both dynamic `inputs` (from edges) and static `self` properties (from node config).
+ */
+function collectAssets(inputs: Record<string, unknown>, self?: Record<string, unknown>): AssetRef[] {
   const assets: AssetRef[] = [];
   const assetFields = ["image", "audio", "video", "document", "images", "audios", "videos", "documents"];
   for (const field of assetFields) {
-    const val = inputs[field];
+    // Prefer edge input, fall back to static node property
+    const val = inputs[field] ?? (self ? self[field] : undefined);
     if (!val) continue;
     if (Array.isArray(val)) {
       for (const item of val) {
@@ -120,18 +181,20 @@ function collectAssets(inputs: Record<string, unknown>): AssetRef[] {
 /** Build multimodal content parts from assets. */
 async function buildAssetContentParts(
   assets: AssetRef[],
-  context?: ProcessingContext
+  context?: ProcessingContext,
+  fieldHint?: string
 ): Promise<MessageContentPart[]> {
   const parts: MessageContentPart[] = [];
   for (const asset of assets) {
     const bytes = await getAssetBytes(asset, context);
     if (!bytes || bytes.length === 0) continue;
-    const mime = guessMime(asset);
+    const kind = inferAssetKind(asset, fieldHint);
+    const mime = guessMime(asset, fieldHint);
     const base64 = Buffer.from(bytes).toString("base64");
-    const assetType = asset.type.toLowerCase();
-    if (assetType.includes("image")) {
-      parts.push({ type: "image", image: { data: base64, mimeType: mime } });
-    } else if (assetType.includes("audio")) {
+    if (kind === "image" || kind === "unknown") {
+      // Default unknown assets to image (most common multimodal case)
+      parts.push({ type: "image", image: { data: base64, mimeType: mime === "application/octet-stream" ? "image/png" : mime } });
+    } else if (kind === "audio") {
       parts.push({ type: "audio", audio: { data: base64, mimeType: mime } });
     }
     // Video and document are described in text rather than sent as content
@@ -393,8 +456,9 @@ class SkillNode extends BaseNode {
     }
 
     // Collect asset inputs and convert to multimodal content parts
-    const assets = collectAssets(inputs);
-    const assetParts = await buildAssetContentParts(assets, context);
+    // Check both edge inputs and static node properties (this)
+    const assets = collectAssets(inputs, this as unknown as Record<string, unknown>);
+    const assetParts = await buildAssetContentParts(assets, context, "image");
 
     const systemPrompt = (this.constructor as typeof SkillNode)._systemPrompt;
     const text = await callChatCompletion(
