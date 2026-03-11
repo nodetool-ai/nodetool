@@ -1,6 +1,48 @@
 {
+  "name": "nodetool",
+  "private": true,
+  "workspaces": [
+    "packages/protocol",
+    "packages/kernel",
+    "packages/runtime",
+    "packages/models",
+    "packages/node-sdk",
+    "packages/base-nodes",
+    "packages/websocket",
+    "packages/agents",
+    "packages/chat",
+    "packages/security",
+    "packages/auth",
+    "packages/cli",
+    "packages/storage",
+    "packages/config",
+    "web",
+    "electron"
+  ],
+  "scripts": {
+    "build:packages": "npm run build --workspace=packages/protocol && npm run build --workspace=packages/config && npm run build --workspace=packages/security && npm run build --workspace=packages/auth && npm run build --workspace=packages/storage && npm run build --workspace=packages/runtime && npm run build --workspace=packages/kernel && npm run build --workspace=packages/node-sdk && npm run build --workspace=packages/models && npm run build --workspace=packages/base-nodes && npm run build --workspace=packages/agents && npm run build --workspace=packages/chat && npm run build --workspace=packages/websocket",
+    "build:web": "npm run build --workspace=web",
+    "build": "npm run build:packages && npm run build:web",
+    "test:packages": "npm run test --workspaces --if-present",
+    "dev": "concurrently \"npm run dev --workspace=packages/websocket\" \"npm run start --workspace=web\"",
+    "dev:web": "npm run start --workspace=web",
+    "dev:server": "npm run dev --workspace=packages/websocket",
+    "lint": "eslint packages/*/src",
+    "workflow": "node ./scripts/run-workflow.mjs",
+    "chat": "node ./packages/cli/dist/index.js",
+    "nodetool": "node ./packages/cli/dist/nodetool.js"
+  },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.8"
+    "@types/node": "^25.0.8",
+    "@vitest/coverage-v8": "^1.6.1",
+    "concurrently": "^9.0.0",
+    "eslint": "^10.0.3",
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^1.6.1"
+  },
+  "dependencies": {
+    "keytar": "^7.9.0"
   }
 }
