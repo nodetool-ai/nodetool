@@ -244,9 +244,10 @@ export function createStorageHandler(
   opts?: StorageHandlerOptions
 ): (request: Request) => Promise<Response> {
   const storagePath =
+    process.env.ASSET_FOLDER ??
     opts?.storagePath ??
     process.env.STORAGE_PATH ??
-    path.join(os.homedir(), ".local", "share", "nodetool", "storage");
+    path.join(os.homedir(), ".local", "share", "nodetool", "assets");
 
   const tempStoragePath =
     opts?.tempStoragePath ??

@@ -1,4 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
+import nodePath from "node:path";
+import os from "node:os";
 import { createLogger } from "@nodetool/config";
 import {
   Workflow,
@@ -28,6 +31,31 @@ import { handleCollectionRequest } from "./collection-api.js";
 import { handleDebugExportRequest } from "./debug-api.js";
 
 const log = createLogger("nodetool.websocket.http");
+
+// ── Content type to file extension mapping ─────────────────────────
+const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
+  "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif",
+  "image/svg+xml": "svg", "image/webp": "webp", "image/tiff": "tiff", "image/bmp": "bmp",
+  "text/plain": "txt", "text/csv": "csv", "text/html": "html",
+  "application/json": "json", "application/pdf": "pdf", "application/zip": "zip",
+  "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav", "audio/ogg": "ogg",
+  "audio/aac": "aac", "audio/x-wav": "wav", "audio/x-flac": "flac", "audio/x-m4a": "m4a",
+  "video/mp4": "mp4", "video/mpeg": "mpeg", "video/quicktime": "mov",
+  "video/x-msvideo": "avi", "video/webm": "webm",
+};
+
+function getFileExtension(contentType: string): string {
+  return CONTENT_TYPE_TO_EXTENSION[contentType] ?? "bin";
+}
+
+function getAssetFileName(assetId: string, contentType: string): string {
+  return `${assetId}.${getFileExtension(contentType)}`;
+}
+
+function getAssetStoragePath(opts?: StorageHandlerOptions): string {
+  return process.env.ASSET_FOLDER ?? opts?.storagePath ?? process.env.STORAGE_PATH ??
+    nodePath.join(os.homedir(), ".local", "share", "nodetool", "assets");
+}
 
 type JsonObject = Record<string, unknown>;
 
@@ -1249,6 +1277,14 @@ interface AssetUpdateBody {
 }
 
 function toAssetResponse(asset: Asset): JsonObject {
+  const isFolder = asset.content_type === "folder";
+  const fileName = isFolder ? null : getAssetFileName(asset.id, asset.content_type);
+  const getUrl = fileName ? `/api/storage/${fileName}` : null;
+
+  const hasThumbnail = asset.content_type.startsWith("image/") || asset.content_type.startsWith("video/");
+  const updatedTs = asset.updated_at ? Math.floor(new Date(asset.updated_at).getTime() / 1000) : 0;
+  const thumbUrl = hasThumbnail ? `/api/assets/${asset.id}/thumbnail?t=${updatedTs}` : null;
+
   return {
     id: asset.id,
     user_id: asset.user_id,
@@ -1259,8 +1295,8 @@ function toAssetResponse(asset: Asset): JsonObject {
     size: asset.size ?? null,
     metadata: asset.metadata ?? null,
     created_at: asset.created_at,
-    get_url: null,
-    thumb_url: null,
+    get_url: getUrl,
+    thumb_url: thumbUrl,
     duration: asset.duration ?? null,
     node_id: asset.node_id ?? null,
     job_id: asset.job_id ?? null,
@@ -1340,22 +1376,22 @@ async function handleAssetsRoot(request: Request, options: HttpApiOptions): Prom
   if (request.method === "POST") {
     const contentType = request.headers.get("content-type") ?? "";
     let body: AssetCreateBody | null = null;
-    let fileDataBase64: string | null = null;
+    let fileBuffer: Buffer | null = null;
     let fileSize: number | null = null;
 
     if (contentType.toLowerCase().includes("multipart/form-data")) {
       try {
         const fd = await request.formData();
         const file = fd.get("file") as File | null;
-        const assetJson = fd.get("asset");
+        // Frontend sends metadata as "json" field
+        const assetJson = fd.get("json") ?? fd.get("asset");
         if (assetJson && typeof assetJson === "string") {
           body = JSON.parse(assetJson) as AssetCreateBody;
         }
         if (file) {
           const arrayBuffer = await file.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          fileDataBase64 = buffer.toString("base64");
-          fileSize = buffer.byteLength;
+          fileBuffer = Buffer.from(arrayBuffer);
+          fileSize = fileBuffer.byteLength;
           // Use file metadata if not supplied in the asset JSON field
           if (!body) {
             body = {
@@ -1386,9 +1422,6 @@ async function handleAssetsRoot(request: Request, options: HttpApiOptions): Prom
     }
 
     const metadata: Record<string, unknown> = body.metadata ?? {};
-    if (fileDataBase64 !== null) {
-      metadata.data = fileDataBase64;
-    }
 
     const asset = (await Asset.create({
       user_id: userId,
@@ -1401,6 +1434,15 @@ async function handleAssetsRoot(request: Request, options: HttpApiOptions): Prom
       metadata: Object.keys(metadata).length > 0 ? metadata : (body.metadata ?? null),
       size: fileSize ?? body.size ?? null,
     })) as Asset;
+
+    // Write file to storage directory so it's accessible via /api/storage/
+    if (fileBuffer) {
+      const storagePath = getAssetStoragePath(options.storage);
+      const fileName = getAssetFileName(asset.id, asset.content_type);
+      const filePath = nodePath.join(storagePath, fileName);
+      await mkdir(storagePath, { recursive: true });
+      await writeFile(filePath, fileBuffer);
+    }
 
     return jsonResponse(toAssetResponse(asset));
   }
@@ -1462,10 +1504,14 @@ async function handleAssetById(
       } else {
         buf = Buffer.from(body.data, "utf-8");
       }
-      const existingMetadata: Record<string, unknown> = asset.metadata ?? {};
-      existingMetadata.data = buf.toString("base64");
-      asset.metadata = existingMetadata;
       asset.size = buf.byteLength;
+
+      // Write data to storage directory
+      const storagePath = getAssetStoragePath(options.storage);
+      const fileName = getAssetFileName(asset.id, asset.content_type);
+      const filePath = nodePath.join(storagePath, fileName);
+      await mkdir(storagePath, { recursive: true });
+      await writeFile(filePath, buf);
     }
 
     await asset.save();
@@ -1559,10 +1605,50 @@ async function handleAssetThumbnail(
   const asset = await Asset.find(userId, assetId);
   if (!asset) return errorResponse(404, "Asset not found");
 
-  // If there's a thumbnail URL stored, redirect
-  const thumbUrl = (asset.metadata as Record<string, unknown> | null)?.thumbnail_url as string | undefined;
-  if (thumbUrl) {
-    return new Response(null, { status: 302, headers: { location: thumbUrl } });
+  if (!asset.hasThumbnail) {
+    return errorResponse(400, `Asset type '${asset.content_type}' does not support thumbnails`);
+  }
+
+  const storagePath = getAssetStoragePath(options.storage);
+
+  // Try to serve a pre-generated thumbnail ({id}_thumb.jpg)
+  const thumbFileName = `${asset.id}_thumb.jpg`;
+  const thumbFilePath = nodePath.join(storagePath, thumbFileName);
+  try {
+    const thumbStat = await stat(thumbFilePath);
+    const data = await readFile(thumbFilePath);
+    return new Response(data, {
+      status: 200,
+      headers: {
+        "Content-Type": "image/jpeg",
+        "Content-Length": String(thumbStat.size),
+        "Cache-Control": "public, max-age=86400",
+        "Last-Modified": thumbStat.mtime.toUTCString(),
+      },
+    });
+  } catch {
+    // No pre-generated thumbnail, fall through
+  }
+
+  // Fall back to serving the original file (for images)
+  if (asset.content_type.startsWith("image/")) {
+    const fileName = getAssetFileName(asset.id, asset.content_type);
+    const filePath = nodePath.join(storagePath, fileName);
+    try {
+      const fileStat = await stat(filePath);
+      const data = await readFile(filePath);
+      return new Response(data, {
+        status: 200,
+        headers: {
+          "Content-Type": asset.content_type,
+          "Content-Length": String(fileStat.size),
+          "Cache-Control": "public, max-age=86400",
+          "Last-Modified": fileStat.mtime.toUTCString(),
+        },
+      });
+    } catch {
+      // File not found on disk
+    }
   }
 
   return errorResponse(404, "No thumbnail available");
