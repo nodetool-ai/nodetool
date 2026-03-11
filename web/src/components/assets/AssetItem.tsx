@@ -521,18 +521,19 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             </Typography>
           )}
           {showFileSize &&
-            (asset as any).size !== undefined &&
-            (asset as any).size > 0 &&
+            asset.size !== undefined &&
+            asset.size !== null &&
+            asset.size > 0 &&
             assetItemSize > 3 && (
               <Typography
                 className="filesize info"
-                title={`File size: ${formatFileSize((asset as any).size)}`}
+                title={`File size: ${formatFileSize(asset.size)}`}
                 style={{
                   color: "white",
                   backgroundColor: "var(--palette-grey-700)"
                 }}
               >
-                {formatFileSize((asset as any).size)}
+                {formatFileSize(asset.size)}
               </Typography>
             )}
           {showName && assetItemSize > 2 && (
