@@ -118,3 +118,26 @@ Verify by checking React Profiler during node drag operations. Total scripting t
 - Ran `cd web && npm run typecheck`: Passed.
 - Ran `cd web && npm run lint`: Passed.
 - Ran `make test-web`: All tests passed.
+
+# ⚡ Bolt: CollectionProperty Connection Status Performance Optimization
+
+## 💡 What
+Updated `CollectionProperty.tsx` to use the `useIsConnectedSelector` hook.
+This replaces an inline `.some()` edge lookup with a memoized Zustand selector that caches the previous `state.edges` array reference.
+
+## 🎯 Why
+Previously, the `CollectionProperty` component would evaluate `state.edges.some(...)` on every Zustand state update to check if it had an incoming connection.
+Because React Flow updates the node/edge state on every frame during drag operations (60fps), this caused the component to loop over E edges 60 times a second, even when the edges themselves hadn't changed.
+This aligns `CollectionProperty` with the other property components (e.g. `ModelProperty`, `ImageSizeProperty`) that were previously optimized.
+
+## 📊 Impact
+- **Eliminates Unnecessary Computations:** Reduces O(N*E) array iterations per drag frame to O(1) selector executions when edges are unmodified.
+- **Improved Responsiveness:** Frees up main thread time for smoother graph interactions, especially in workflows with many collection properties.
+
+## 🔬 Measurement
+Verify by checking React Profiler during node drag operations. Total scripting time per frame is reduced compared to evaluating all edges constantly. The `CollectionProperty` will no longer recalculate connections on unrelated graph changes.
+
+## 🧪 Testing
+- Ran `cd web && npm run typecheck`: Passed.
+- Ran `cd web && npm run lint`: Passed.
+- Ran `make test-web`: All tests passed.
