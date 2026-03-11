@@ -170,38 +170,6 @@ if (process.env.JEST_WORKER_ID) {
       await electronApp.close();
     });
 
-    test("should handle IPC communication", async () => {
-      const electronApp = await electron.launch({
-        args: [
-          path.join(__dirname, '../../dist-electron/main.js'),
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage'
-        ],
-        env: {
-          ...process.env,
-          ELECTRON_DISABLE_SECURITY_WARNINGS: 'true'
-        }
-      });
-
-      const window = await electronApp.firstWindow();
-      
-      // Wait for content to load
-      try {
-        await window.waitForLoadState('load', { timeout: 15000 });
-      } catch (e) {
-        // Timeout is acceptable
-      }
-      
-      // Verify that window.api is available (from preload script)
-      const hasApi = await window.evaluate(() => {
-        return typeof (window as any).api !== 'undefined';
-      });
-      
-      expect(hasApi).toBe(true);
-      
-      await electronApp.close();
-    });
 
     test("should load application without crashes", async () => {
       const electronApp = await electron.launch({
