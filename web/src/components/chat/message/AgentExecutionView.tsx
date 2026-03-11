@@ -646,7 +646,6 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
                         const stepKey = step.id || step.instructions;
                         const stepResult = execution.stepResults.get(stepKey);
                          const isCurrent = currentStep && (currentStep.id ? currentStep.id === step.id : currentStep.instructions === step.instructions);
-                         const _isRunning = (step.start_time > 0 && !step.completed) || (isCurrent && !step.completed);
                          const stepToolCalls = stepKey ? toolCallsByStep?.[stepKey] || [] : [];
 
                          return (

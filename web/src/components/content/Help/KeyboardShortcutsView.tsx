@@ -16,7 +16,6 @@ import {
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import { isMac } from "../../../utils/platform";
 import "../../../styles/keyboard.css";
-import { useTheme } from "@mui/material/styles";
 import { keyboardLayouts } from "./keyboard_layouts";
 import { useKeyPressedStore } from "../../../stores/KeyPressedStore";
 
@@ -31,7 +30,6 @@ interface KeyboardShortcutsViewProps {
 const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   shortcuts = NODE_EDITOR_SHORTCUTS
 }) => {
-  const _theme = useTheme();
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
   const [layoutName, setLayoutName] = useState<"english" | "german">(() => {
     if (typeof navigator !== "undefined") {
