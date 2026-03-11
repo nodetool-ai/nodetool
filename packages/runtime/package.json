@@ -1,0 +1,32 @@
+{
+  "name": "@nodetool/runtime",
+  "version": "0.1.0",
+  "description": "Processing context, message queue, and output normalization",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.33.1",
+    "@nodetool/config": "*",
+    "@nodetool/protocol": "*",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
+    "@opentelemetry/resources": "^2.6.0",
+    "@opentelemetry/sdk-node": "^0.203.0",
+    "@opentelemetry/sdk-trace-base": "^2.6.0",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@traceloop/node-server-sdk": "^0.22.8",
+    "openai": "^4.104.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  }
+}

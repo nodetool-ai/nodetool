@@ -1,0 +1,28 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "text", "type": "test.Input", "name": "text" },
+      { "id": "old", "type": "test.Input", "name": "old" },
+      { "id": "new", "type": "test.Input", "name": "new" },
+      { "id": "replace", "type": "nodetool.text.Replace" },
+      { "id": "sink", "type": "nodetool.control.Reroute", "name": "result" }
+    ],
+    "edges": [
+      { "source": "text", "sourceHandle": "value", "target": "replace", "targetHandle": "text" },
+      { "source": "old", "sourceHandle": "value", "target": "replace", "targetHandle": "old" },
+      { "source": "new", "sourceHandle": "value", "target": "replace", "targetHandle": "new" },
+      {
+        "source": "replace",
+        "sourceHandle": "output",
+        "target": "sink",
+        "targetHandle": "input_value"
+      }
+    ]
+  },
+  "params": {
+    "text": "a-b-a-b",
+    "old": "a",
+    "new": "x"
+  }
+}
+

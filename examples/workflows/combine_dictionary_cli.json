@@ -1,0 +1,35 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "left", "type": "test.Input", "name": "dict_a" },
+      { "id": "right", "type": "test.Input", "name": "dict_b" },
+      { "id": "combine", "type": "nodetool.dictionary.Combine" },
+      { "id": "sink", "type": "nodetool.control.Reroute", "name": "merged" }
+    ],
+    "edges": [
+      {
+        "source": "left",
+        "sourceHandle": "value",
+        "target": "combine",
+        "targetHandle": "dict_a"
+      },
+      {
+        "source": "right",
+        "sourceHandle": "value",
+        "target": "combine",
+        "targetHandle": "dict_b"
+      },
+      {
+        "source": "combine",
+        "sourceHandle": "output",
+        "target": "sink",
+        "targetHandle": "input_value"
+      }
+    ]
+  },
+  "params": {
+    "dict_a": { "left": 1, "shared": "L" },
+    "dict_b": { "right": 2, "shared": "R" }
+  }
+}
+
