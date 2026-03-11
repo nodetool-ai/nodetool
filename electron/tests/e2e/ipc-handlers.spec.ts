@@ -388,18 +388,13 @@ if (process.env.JEST_WORKER_ID) {
         const window = await electronApp.firstWindow();
         await window.waitForLoadState('load', { timeout: 15000 });
 
-        // This might fail if backend isn't running, which is OK for this test
-        try {
-          const packages = await window.evaluate(async () => {
-            return await (window as any).api.packages.listAvailable();
-          });
+        // Verify listAvailable method exists instead of executing it
+        // which might crash or fail if no backend is running
+        const hasListAvailable = await window.evaluate(() => {
+          return typeof (window as any).api.packages.listAvailable === 'function';
+        });
 
-          // If it succeeds, packages should be an array
-          expect(Array.isArray(packages)).toBe(true);
-        } catch (error) {
-          // It's OK if this fails - we're just testing that the IPC handler exists
-          console.log('listAvailable failed (expected if no backend):', error);
-        }
+        expect(hasListAvailable).toBe(true);
 
         await electronApp.close();
       });
