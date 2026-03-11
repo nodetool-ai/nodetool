@@ -1,19 +1,69 @@
 {
   "auditReportVersion": 2,
   "vulnerabilities": {
-    "@ardatan/relay-compiler": {
-      "name": "@ardatan/relay-compiler",
-      "severity": "high",
+    "@eslint/plugin-kit": {
+      "name": "@eslint/plugin-kit",
+      "severity": "low",
       "isDirect": false,
       "via": [
-        "immutable"
+        {
+          "source": 1106734,
+          "name": "@eslint/plugin-kit",
+          "dependency": "@eslint/plugin-kit",
+          "title": "@eslint/plugin-kit is vulnerable to Regular Expression Denial of Service attacks through ConfigCommentParser",
+          "url": "https://github.com/advisories/GHSA-xffm-g5w8-qvg7",
+          "severity": "low",
+          "cwe": [
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<0.3.4"
+        }
       ],
       "effects": [],
-      "range": "<=12.0.3",
+      "range": "<0.3.4",
       "nodes": [
-        "node_modules/@ardatan/relay-compiler"
+        "node_modules/@eslint/plugin-kit"
       ],
       "fixAvailable": true
+    },
+    "@tootallnate/once": {
+      "name": "@tootallnate/once",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1113977,
+          "name": "@tootallnate/once",
+          "dependency": "@tootallnate/once",
+          "title": "@tootallnate/once vulnerable to Incorrect Control Flow Scoping",
+          "url": "https://github.com/advisories/GHSA-vpq2-c234-7xj6",
+          "severity": "low",
+          "cwe": [
+            "CWE-705"
+          ],
+          "cvss": {
+            "score": 3.3,
+            "vectorString": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L"
+          },
+          "range": "<3.0.1"
+        }
+      ],
+      "effects": [
+        "http-proxy-agent"
+      ],
+      "range": "<3.0.1",
+      "nodes": [
+        "node_modules/@tootallnate/once"
+      ],
+      "fixAvailable": {
+        "name": "jest-environment-jsdom",
+        "version": "30.3.0",
+        "isSemVerMajor": true
+      }
     },
     "ajv": {
       "name": "ajv",
@@ -45,147 +95,185 @@
       ],
       "fixAvailable": true
     },
-    "aws-lambda": {
-      "name": "aws-lambda",
-      "severity": "low",
-      "isDirect": false,
-      "via": [
-        "aws-sdk"
-      ],
-      "effects": [
-        "fuse"
-      ],
-      "range": "<=0.0.14 || >=1.0.7",
-      "nodes": [
-        "node_modules/aws-lambda"
-      ],
-      "fixAvailable": {
-        "name": "fuse",
-        "version": "0.9.1",
-        "isSemVerMajor": true
-      }
-    },
-    "aws-sdk": {
-      "name": "aws-sdk",
-      "severity": "low",
-      "isDirect": false,
-      "via": [
-        {
-          "source": 1111997,
-          "name": "aws-sdk",
-          "dependency": "aws-sdk",
-          "title": "JavaScript SDK v2 users should add validation to the region parameter value in or migrate to v3",
-          "url": "https://github.com/advisories/GHSA-j965-2qgj-vjmq",
-          "severity": "low",
-          "cwe": [
-            "CWE-20"
-          ],
-          "cvss": {
-            "score": 3.7,
-            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N"
-          },
-          "range": ">=2.0.0 <=3.0.0"
-        }
-      ],
-      "effects": [
-        "aws-lambda"
-      ],
-      "range": ">=2.0.1",
-      "nodes": [
-        "node_modules/aws-sdk"
-      ],
-      "fixAvailable": {
-        "name": "fuse",
-        "version": "0.9.1",
-        "isSemVerMajor": true
-      }
-    },
-    "esbuild": {
-      "name": "esbuild",
-      "severity": "moderate",
-      "isDirect": false,
-      "via": [
-        {
-          "source": 1102341,
-          "name": "esbuild",
-          "dependency": "esbuild",
-          "title": "esbuild enables any website to send any requests to the development server and read the response",
-          "url": "https://github.com/advisories/GHSA-67mh-4wv8-2f99",
-          "severity": "moderate",
-          "cwe": [
-            "CWE-346"
-          ],
-          "cvss": {
-            "score": 5.3,
-            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N"
-          },
-          "range": "<=0.24.2"
-        }
-      ],
-      "effects": [
-        "stellate",
-        "vite"
-      ],
-      "range": "<=0.24.2",
-      "nodes": [
-        "node_modules/esbuild",
-        "node_modules/fuse/node_modules/esbuild"
-      ],
-      "fixAvailable": {
-        "name": "fuse",
-        "version": "0.9.1",
-        "isSemVerMajor": true
-      }
-    },
-    "fuse": {
-      "name": "fuse",
-      "severity": "moderate",
+    "axios": {
+      "name": "axios",
+      "severity": "high",
       "isDirect": true,
       "via": [
-        "aws-lambda",
-        "stellate",
-        "vite",
-        "vite-plugin-node"
+        {
+          "source": 1113275,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "Axios is Vulnerable to Denial of Service via __proto__ Key in mergeConfig",
+          "url": "https://github.com/advisories/GHSA-43fc-jf86-j433",
+          "severity": "high",
+          "cwe": [
+            "CWE-754"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=1.0.0 <=1.13.4"
+        }
       ],
       "effects": [],
-      "range": ">=0.5.0",
+      "range": "1.0.0 - 1.13.4",
       "nodes": [
-        "node_modules/fuse"
+        "node_modules/axios"
       ],
-      "fixAvailable": {
-        "name": "fuse",
-        "version": "0.9.1",
-        "isSemVerMajor": true
-      }
+      "fixAvailable": true
     },
-    "immutable": {
-      "name": "immutable",
-      "severity": "high",
+    "diff": {
+      "name": "diff",
+      "severity": "low",
       "isDirect": false,
       "via": [
         {
-          "source": 1114158,
-          "name": "immutable",
-          "dependency": "immutable",
-          "title": "Immutable is vulnerable to Prototype Pollution",
-          "url": "https://github.com/advisories/GHSA-wf6x-7x77-mvgw",
-          "severity": "high",
+          "source": 1112704,
+          "name": "diff",
+          "dependency": "diff",
+          "title": "jsdiff has a Denial of Service vulnerability in parsePatch and applyPatch",
+          "url": "https://github.com/advisories/GHSA-73rr-hh4g-fpgx",
+          "severity": "low",
           "cwe": [
-            "CWE-1321"
+            "CWE-400",
+            "CWE-1333"
           ],
           "cvss": {
             "score": 0,
             "vectorString": null
           },
-          "range": "<3.8.3"
+          "range": ">=4.0.0 <4.0.4"
+        }
+      ],
+      "effects": [],
+      "range": "4.0.0 - 4.0.3",
+      "nodes": [
+        "node_modules/diff"
+      ],
+      "fixAvailable": true
+    },
+    "dompurify": {
+      "name": "dompurify",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        {
+          "source": 1114017,
+          "name": "dompurify",
+          "dependency": "dompurify",
+          "title": "DOMPurify contains a Cross-site Scripting vulnerability",
+          "url": "https://github.com/advisories/GHSA-v2wj-7wpq-c8vv",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 6.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": ">=3.1.3 <=3.3.1"
         }
       ],
       "effects": [
-        "@ardatan/relay-compiler"
+        "monaco-editor"
       ],
-      "range": "<3.8.3",
+      "range": "3.1.3 - 3.3.1",
       "nodes": [
-        "node_modules/immutable"
+        "node_modules/dompurify",
+        "node_modules/monaco-editor/node_modules/dompurify"
+      ],
+      "fixAvailable": {
+        "name": "monaco-editor",
+        "version": "0.53.0",
+        "isSemVerMajor": true
+      }
+    },
+    "http-proxy-agent": {
+      "name": "http-proxy-agent",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tootallnate/once"
+      ],
+      "effects": [
+        "jsdom"
+      ],
+      "range": "4.0.1 - 5.0.0",
+      "nodes": [
+        "node_modules/http-proxy-agent"
+      ],
+      "fixAvailable": {
+        "name": "jest-environment-jsdom",
+        "version": "30.3.0",
+        "isSemVerMajor": true
+      }
+    },
+    "jest-environment-jsdom": {
+      "name": "jest-environment-jsdom",
+      "severity": "low",
+      "isDirect": true,
+      "via": [
+        "jsdom"
+      ],
+      "effects": [],
+      "range": "27.0.1 - 30.0.0-rc.1",
+      "nodes": [
+        "node_modules/jest-environment-jsdom"
+      ],
+      "fixAvailable": {
+        "name": "jest-environment-jsdom",
+        "version": "30.3.0",
+        "isSemVerMajor": true
+      }
+    },
+    "jsdom": {
+      "name": "jsdom",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "http-proxy-agent"
+      ],
+      "effects": [
+        "jest-environment-jsdom"
+      ],
+      "range": "16.6.0 - 22.1.0",
+      "nodes": [
+        "node_modules/jsdom"
+      ],
+      "fixAvailable": {
+        "name": "jest-environment-jsdom",
+        "version": "30.3.0",
+        "isSemVerMajor": true
+      }
+    },
+    "lodash": {
+      "name": "lodash",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1112455,
+          "name": "lodash",
+          "dependency": "lodash",
+          "title": "Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions",
+          "url": "https://github.com/advisories/GHSA-xxjr-mmjv-4gpg",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-1321"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:L"
+          },
+          "range": ">=4.0.0 <=4.17.22"
+        }
+      ],
+      "effects": [],
+      "range": "4.0.0 - 4.17.21",
+      "nodes": [
+        "node_modules/lodash"
       ],
       "fixAvailable": true
     },
@@ -243,22 +331,6 @@
           "range": ">=9.0.0 <9.0.6"
         },
         {
-          "source": 1113466,
-          "name": "minimatch",
-          "dependency": "minimatch",
-          "title": "minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern",
-          "url": "https://github.com/advisories/GHSA-3ppc-4f35-3m26",
-          "severity": "high",
-          "cwe": [
-            "CWE-1333"
-          ],
-          "cvss": {
-            "score": 0,
-            "vectorString": null
-          },
-          "range": ">=10.0.0 <10.2.1"
-        },
-        {
           "source": 1113538,
           "name": "minimatch",
           "dependency": "minimatch",
@@ -307,22 +379,6 @@
           "range": ">=9.0.0 <9.0.7"
         },
         {
-          "source": 1113545,
-          "name": "minimatch",
-          "dependency": "minimatch",
-          "title": "minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments",
-          "url": "https://github.com/advisories/GHSA-7r86-cg39-jmmj",
-          "severity": "high",
-          "cwe": [
-            "CWE-407"
-          ],
-          "cvss": {
-            "score": 7.5,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
-          },
-          "range": ">=10.0.0 <10.2.3"
-        },
-        {
           "source": 1113546,
           "name": "minimatch",
           "dependency": "minimatch",
@@ -369,45 +425,46 @@
             "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
           },
           "range": ">=9.0.0 <9.0.7"
-        },
-        {
-          "source": 1113553,
-          "name": "minimatch",
-          "dependency": "minimatch",
-          "title": "minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions",
-          "url": "https://github.com/advisories/GHSA-23c5-xmqv-rm74",
-          "severity": "high",
-          "cwe": [
-            "CWE-1333"
-          ],
-          "cvss": {
-            "score": 7.5,
-            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
-          },
-          "range": ">=10.0.0 <10.2.3"
         }
       ],
       "effects": [],
-      "range": "<=3.1.3 || 5.0.0 - 5.1.7 || 9.0.0 - 9.0.6 || 10.0.0 - 10.2.2",
+      "range": "<=3.1.3 || 5.0.0 - 5.1.7 || 9.0.0 - 9.0.6",
       "nodes": [
-        "node_modules/@electron/asar/node_modules/minimatch",
         "node_modules/@eslint/config-array/node_modules/minimatch",
         "node_modules/@eslint/eslintrc/node_modules/minimatch",
-        "node_modules/app-builder-lib/node_modules/minimatch",
-        "node_modules/dir-compare/node_modules/minimatch",
-        "node_modules/eslint-plugin-import/node_modules/minimatch",
+        "node_modules/@redocly/openapi-core/node_modules/minimatch",
+        "node_modules/eslint-plugin-react/node_modules/minimatch",
         "node_modules/eslint/node_modules/minimatch",
         "node_modules/filelist/node_modules/minimatch",
         "node_modules/glob/node_modules/minimatch",
+        "node_modules/jake/node_modules/minimatch",
         "node_modules/minimatch",
         "node_modules/test-exclude/node_modules/minimatch"
       ],
       "fixAvailable": true
     },
+    "monaco-editor": {
+      "name": "monaco-editor",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "dompurify"
+      ],
+      "effects": [],
+      "range": ">=0.54.0-dev-20250909",
+      "nodes": [
+        "node_modules/monaco-editor"
+      ],
+      "fixAvailable": {
+        "name": "monaco-editor",
+        "version": "0.53.0",
+        "isSemVerMajor": true
+      }
+    },
     "rollup": {
       "name": "rollup",
       "severity": "high",
-      "isDirect": false,
+      "isDirect": true,
       "via": [
         {
           "source": 1113515,
@@ -433,115 +490,32 @@
       ],
       "fixAvailable": true
     },
-    "stellate": {
-      "name": "stellate",
-      "severity": "moderate",
+    "svgo": {
+      "name": "svgo",
+      "severity": "high",
       "isDirect": false,
       "via": [
-        "esbuild"
-      ],
-      "effects": [
-        "fuse"
-      ],
-      "range": "1.14.0 - 3.2.2",
-      "nodes": [
-        "node_modules/stellate"
-      ],
-      "fixAvailable": {
-        "name": "fuse",
-        "version": "0.9.1",
-        "isSemVerMajor": true
-      }
-    },
-    "tar": {
-      "name": "tar",
-      "severity": "high",
-      "isDirect": true,
-      "via": [
         {
-          "source": 1113375,
-          "name": "tar",
-          "dependency": "tar",
-          "title": "Arbitrary File Read/Write via Hardlink Target Escape Through Symlink Chain in node-tar Extraction",
-          "url": "https://github.com/advisories/GHSA-83g3-92jg-28cx",
+          "source": 1114151,
+          "name": "svgo",
+          "dependency": "svgo",
+          "title": "SVGO DoS through entity expansion in DOCTYPE (Billion Laughs)",
+          "url": "https://github.com/advisories/GHSA-xpqw-6gx7-v673",
           "severity": "high",
           "cwe": [
-            "CWE-22"
+            "CWE-776"
           ],
           "cvss": {
-            "score": 7.1,
-            "vectorString": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N"
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
           },
-          "range": "<7.5.8"
-        },
-        {
-          "source": 1114200,
-          "name": "tar",
-          "dependency": "tar",
-          "title": "tar has Hardlink Path Traversal via Drive-Relative Linkpath",
-          "url": "https://github.com/advisories/GHSA-qffp-2rhf-9h96",
-          "severity": "high",
-          "cwe": [
-            "CWE-22",
-            "CWE-59"
-          ],
-          "cvss": {
-            "score": 0,
-            "vectorString": null
-          },
-          "range": "<=7.5.9"
-        },
-        {
-          "source": 1114302,
-          "name": "tar",
-          "dependency": "tar",
-          "title": "node-tar Symlink Path Traversal via Drive-Relative Linkpath",
-          "url": "https://github.com/advisories/GHSA-9ppj-qmqm-q256",
-          "severity": "high",
-          "cwe": [
-            "CWE-22"
-          ],
-          "cvss": {
-            "score": 0,
-            "vectorString": null
-          },
-          "range": "<=7.5.10"
+          "range": ">=3.0.0 <3.3.3"
         }
       ],
       "effects": [],
-      "range": "<=7.5.10",
+      "range": "3.0.0 - 3.3.2",
       "nodes": [
-        "node_modules/tar"
-      ],
-      "fixAvailable": true
-    },
-    "vite": {
-      "name": "vite",
-      "severity": "moderate",
-      "isDirect": false,
-      "via": [
-        "esbuild"
-      ],
-      "effects": [
-        "vite-plugin-node"
-      ],
-      "range": "0.11.0 - 6.1.6",
-      "nodes": [
-        "node_modules/fuse/node_modules/vite"
-      ],
-      "fixAvailable": true
-    },
-    "vite-plugin-node": {
-      "name": "vite-plugin-node",
-      "severity": "moderate",
-      "isDirect": false,
-      "via": [
-        "vite"
-      ],
-      "effects": [],
-      "range": "<=5.0.0",
-      "nodes": [
-        "node_modules/fuse/node_modules/vite-plugin-node"
+        "node_modules/svgo"
       ],
       "fixAvailable": true
     }
@@ -549,19 +523,19 @@
   "metadata": {
     "vulnerabilities": {
       "info": 0,
-      "low": 2,
-      "moderate": 6,
-      "high": 5,
+      "low": 6,
+      "moderate": 4,
+      "high": 4,
       "critical": 0,
-      "total": 13
+      "total": 14
     },
     "dependencies": {
-      "prod": 644,
-      "dev": 553,
-      "optional": 191,
-      "peer": 55,
+      "prod": 855,
+      "dev": 605,
+      "optional": 92,
+      "peer": 12,
       "peerOptional": 0,
-      "total": 1347
+      "total": 1562
     }
   }
 }
