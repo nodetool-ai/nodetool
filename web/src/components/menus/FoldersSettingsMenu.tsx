@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, memo } from "react";
 import { Typography, Box } from "@mui/material";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
@@ -40,6 +40,33 @@ const FolderButton = ({ label, onClick }: FolderButtonProps) => (
     }}
   />
 );
+
+interface OpenFolderButtonProps {
+  settingValue: string | undefined;
+}
+
+const OpenFolderButton = memo(({ settingValue }: OpenFolderButtonProps) => {
+  const handleClick = useCallback(() => {
+    if (settingValue) {
+      openInExplorer(settingValue);
+    }
+  }, [settingValue]);
+
+  if (!settingValue) {
+    return null;
+  }
+
+  return (
+    <ToolbarIconButton
+      icon={<FolderOutlinedIcon fontSize="small" />}
+      tooltip="Open folder in file explorer"
+      onClick={handleClick}
+      sx={{ ml: 1 }}
+    />
+  );
+});
+
+OpenFolderButton.displayName = "OpenFolderButton";
 
 const FoldersSettings = () => {
   const queryClient = useQueryClient();
@@ -149,21 +176,6 @@ const FoldersSettings = () => {
   const canOpenFolders = isElectron && isLocalhost && isFileExplorerAvailable();
   const canOpenSystemFolders = isElectron && isLocalhost && isSystemDirectoryAvailable();
 
-  // Helper to create open button for a folder setting
-  const renderOpenButton = (settingValue: string | undefined) => {
-    if (!canOpenFolders || !settingValue) {
-      return null;
-    }
-    return (
-      <ToolbarIconButton
-        icon={<FolderOutlinedIcon fontSize="small" />}
-        tooltip="Open folder in file explorer"
-        onClick={() => openInExplorer(settingValue)}
-        sx={{ ml: 1 }}
-      />
-    );
-  };
-
   return (
     <>
       {isLoading && (
@@ -260,7 +272,7 @@ const FoldersSettings = () => {
                               onKeyDown={(e) => e.stopPropagation()}
                               sx={{ flex: 1 }}
                             />
-                            {renderOpenButton(settingValues[setting.env_var])}
+                            <OpenFolderButton settingValue={settingValues[setting.env_var]} />
                           </Box>
                           {setting.description && (
                             <Typography className="description">
