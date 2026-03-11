@@ -179,7 +179,6 @@ export type WorkflowVersionSaveType = _WorkflowVersionSaveType;
 export type CreateWorkflowVersionRequest = _CreateWorkflowVersionRequest;
 export type AutosaveWorkflowRequest = _AutosaveWorkflowRequest;
 export type AutosaveResponse = _AutosaveResponse;
-
 // Thread & Message
 export type Thread = _Thread;
 export type ThreadList = _ThreadList;
@@ -234,7 +233,6 @@ export type SecretResponse = _SecretResponse;
 export type SettingWithValue = _SettingWithValue;
 export type SettingsResponse = _SettingsResponse;
 export type SettingsUpdateRequest = _SettingsUpdateRequest;
-
 // Task/Agent
 export type Task = _Task;
 export type TaskPlan = _TaskPlan;
@@ -334,31 +332,18 @@ export type Image = _ImageRef;
 export type Document = _DocumentRef;
 export type Audio = _AudioRef;
 export type Video = _VideoRef;
-
-/**
- * Property value for HuggingFace model selections in node properties.
- * Used by HuggingFaceModelSelect component onChange handlers.
- */
 export interface HuggingFaceModelValue {
   type: "hf.text_to_image" | "hf.image_to_image";
   repo_id: string;
   path?: string;
 }
 
-/**
- * Combined type for HuggingFace model values that can be either the new format (with repo_id)
- * or the legacy format (with id, provider, name).
- */
 export type HuggingFaceModelValueInput = HuggingFaceModelValue & {
   id?: string;
   provider?: string;
   name?: string;
 };
 
-/**
- * Property value for 3D model selections in node properties.
- * Used by Model3DModelSelect component onChange handlers.
- */
 export interface Model3DModelValue {
   type: "model_3d_model";
   id: string;
@@ -366,10 +351,6 @@ export interface Model3DModelValue {
   name: string;
 }
 
-/**
- * Property value for inference provider model selections in node properties.
- * Used by InferenceProviderModelSelect component onChange handlers.
- */
 export type InferenceProviderModelValue =
   | { type: "inference_provider_automatic_speech_recognition_model"; provider: InferenceProvider; model_id: string }
   | { type: "inference_provider_audio_classification_model"; provider: InferenceProvider; model_id: string }
