@@ -206,7 +206,6 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   }, [previewNodes]);
 
   const nodeCount = graph.nodes?.length || 0;
-  const _edgeCount = graph.edges?.length || 0;
 
   if (nodeCount === 0) {
     return (
