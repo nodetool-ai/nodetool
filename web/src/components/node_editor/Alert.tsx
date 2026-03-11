@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import React, { useEffect, useState, useRef, createRef, memo } from "react";
+import React, { useEffect, useState, useRef, createRef, memo, useCallback } from "react";
 import { Alert as MUIAlert, AlertColor, Button } from "@mui/material";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
@@ -84,6 +84,73 @@ const styles = () =>
       }
     }
   });
+
+
+interface NotificationItemProps {
+  notification: Notification;
+  nodeRef: React.RefObject<HTMLLIElement>;
+  onClose: (id: string) => void;
+}
+
+const NotificationItem = memo(function NotificationItem({
+  notification,
+  nodeRef,
+  onClose
+}: NotificationItemProps) {
+  const handleClose = useCallback(() => {
+    onClose(notification.id);
+  }, [notification.id, onClose]);
+
+  const handleActionClick = useCallback(async () => {
+    await notification.action?.onClick();
+    onClose(notification.id);
+  }, [notification.action, notification.id, onClose]);
+
+  return (
+    <CSSTransition
+      key={notification.id}
+      nodeRef={nodeRef}
+      timeout={300}
+      classNames="alert"
+      onExited={() => {
+        // Ref will be cleaned up by parent
+      }}
+    >
+      <li ref={nodeRef} style={{ position: "relative" }}>
+        <MUIAlert
+          severity={mapTypeToSeverity(notification.type)}
+          onClose={
+            notification.type === "error" || notification.dismissable
+              ? handleClose
+              : undefined
+          }
+          action={
+            notification.action ? (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={handleActionClick}
+              >
+                {notification.action.label}
+              </Button>
+            ) : undefined
+          }
+        >
+          {notification.content}
+        </MUIAlert>
+        {(notification.dismissable || notification.type === "error") && (
+          <CopyButton
+            value={notification.content}
+            className={`copy-button ${notification.action ? "has-action" : ""}`}
+            tooltip="Copy to clipboard"
+          />
+        )}
+      </li>
+    </CSSTransition>
+  );
+});
+
+NotificationItem.displayName = "NotificationItem";
 
 const Alert: React.FC = memo(() => {
   // Use separate selectors to avoid re-rendering when unrelated store values change
@@ -203,7 +270,7 @@ const Alert: React.FC = memo(() => {
     updateLastDisplayedTimestamp
   ]);
 
-  const handleClose = (id: string) => {
+  const handleClose = useCallback((id: string) => {
     setShow((s) => ({ ...s, [id]: false }));
     // Clear any existing timeout to prevent memory leaks
     if (handleCloseTimeoutRef.current) {
@@ -216,7 +283,7 @@ const Alert: React.FC = memo(() => {
         prev.filter((notification) => notification.id !== id)
       );
     }, TRANSITION_DURATION);
-  };
+  }, [removeNotification]);
 
   return (
     <TransitionGroup component="ul" css={styles()} className="alert-list">
@@ -227,49 +294,12 @@ const Alert: React.FC = memo(() => {
         const nodeRef = nodeRefs.current[notification.id];
 
         return (
-          <CSSTransition
+          <NotificationItem
             key={notification.id}
+            notification={notification}
             nodeRef={nodeRef}
-            timeout={300}
-            classNames="alert"
-            onExited={() => {
-              delete nodeRefs.current[notification.id];
-            }}
-          >
-            <li ref={nodeRef} style={{ position: "relative" }}>
-              <MUIAlert
-                severity={mapTypeToSeverity(notification.type)}
-                onClose={
-                  notification.type === "error" || notification.dismissable
-                    ? () => handleClose(notification.id)
-                    : undefined
-                }
-                action={
-                  notification.action ? (
-                    <Button
-                      color="inherit"
-                      size="small"
-                      onClick={async () => {
-                        await notification.action?.onClick();
-                        handleClose(notification.id);
-                      }}
-                    >
-                      {notification.action.label}
-                    </Button>
-                  ) : undefined
-                }
-              >
-                {notification.content}
-              </MUIAlert>
-              {(notification.dismissable || notification.type === "error") && (
-                <CopyButton
-                  value={notification.content}
-                  className={`copy-button ${notification.action ? "has-action" : ""}`}
-                  tooltip="Copy to clipboard"
-                />
-              )}
-            </li>
-          </CSSTransition>
+            onClose={handleClose}
+          />
         );
       })}
     </TransitionGroup>
