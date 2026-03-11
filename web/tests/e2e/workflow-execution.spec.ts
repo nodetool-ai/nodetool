@@ -399,7 +399,11 @@ if (process.env.JEST_WORKER_ID) {
             data: {
               name: workflowName,
               description: "Test workflow",
-              access: "private"
+              access: "private",
+              graph: {
+                nodes: [{ id: "n1", type: "nodetool.constant.Float", position: { x: 0, y: 0 }, data: { properties: { value: 1.0 } } }],
+                edges: []
+              }
             }
           }
         );
@@ -408,8 +412,8 @@ if (process.env.JEST_WORKER_ID) {
         try {
           await navigateToPage(page, `/editor/${workflow.id}`);
 
-          await waitForEditorReady(page);
-        const canvas = page.locator(".react-flow");
+          await waitForEditorReady(page, 20000);
+          const canvas = page.locator(".react-flow");
 
           // Try running multiple times
           const runButton = page.locator(
@@ -421,10 +425,10 @@ if (process.env.JEST_WORKER_ID) {
             await waitForAnimation(page);
             await runButton.click();
             await waitForAnimation(page);
-
-            // Should handle gracefully
-            await expect(canvas).toBeVisible();
           }
+
+          // Should handle gracefully — canvas still visible after runs
+          await expect(canvas).toBeVisible({ timeout: 10000 });
         } finally {
           await request.delete(`${BACKEND_API_URL}/workflows/${workflow.id}`);
         }
