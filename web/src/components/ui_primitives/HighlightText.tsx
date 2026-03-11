@@ -3,6 +3,7 @@ import { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import log from "loglevel";
 
 // Convert hex color to RGB values
 const hexToRgb = (hex: string) => {
@@ -58,7 +59,7 @@ const tokenize = (text: string, query: string | null): TextPart[] => {
     });
   } catch (error) {
     // If regex fails, return original text
-    console.warn("Tokenize error:", error);
+    log.warn("Tokenize error:", error);
     return [{ text, match: false }];
   }
 };
