@@ -7,9 +7,6 @@ import { readSettings, updateSetting } from "./settings";
 
 // Base paths
 const resourcesPath: string = process.resourcesPath;
-const srcPath: string = app.isPackaged
-  ? path.join(resourcesPath, "src")
-  : path.join(__dirname, "..", "..", "src");
 
 const webPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "web")
@@ -123,13 +120,13 @@ const getCondaEnvPath = (): string => {
 };
 
 /**
- * Retrieves the path to the uv executable
- * @returns {string} Path to uv executable
+ * Retrieves the path to the Node.js binary in the conda environment
+ * @returns {string} Path to Node.js executable
  */
-const getUVPath = (): string =>
+const getNodePath = (): string =>
   process.platform === "win32"
-    ? path.join(getCondaEnvPath(), "Library", "bin", "uv.exe")
-    : path.join(getCondaEnvPath(), "bin", "uv");
+    ? path.join(getCondaEnvPath(), "node.exe")
+    : path.join(getCondaEnvPath(), "bin", "node");
 
 /**
  * Retrieves the path to the Python executable
@@ -282,7 +279,6 @@ const getProcessEnv = (): ProcessEnv => {
     path.join(condaPath, "Library", "mingw-w64", "bin"),
     path.join(condaPath, "Library", "usr", "bin"),
     path.join(condaPath, "Library", "bin"),
-    path.join(condaPath, "Lib", "site-packages", "torch", "lib"),
     path.join(condaPath, "Scripts"),
     baseEnv.PATH || "",
   ];
@@ -292,12 +288,6 @@ const getProcessEnv = (): ProcessEnv => {
     baseEnv.PATH || "",
   ];
 
-  // Create dedicated cache directories inside app userData
-  // This fixes macOS permission issues when Electron spawns uv
-  const userDataPath = app.getPath("userData");
-  const uvCacheDir = path.join(userDataPath, "uv-cache");
-  const xdgCacheHome = path.join(userDataPath, "cache");
-  
   // Set HOME if not already set (needed on macOS for GUI processes)
   const homeDir = baseEnv.HOME || os.homedir();
 
@@ -307,8 +297,6 @@ const getProcessEnv = (): ProcessEnv => {
 
   // Ensure cache directories exist
   try {
-    fs.mkdirSync(uvCacheDir, { recursive: true });
-    fs.mkdirSync(xdgCacheHome, { recursive: true });
     fs.mkdirSync(hfHome, { recursive: true });
   } catch (error) {
     logMessage(`Warning: Failed to create cache directories: ${error}`, "warn");
@@ -317,12 +305,7 @@ const getProcessEnv = (): ProcessEnv => {
   return {
     ...baseEnv,
     HOME: homeDir,
-    XDG_CACHE_HOME: xdgCacheHome,
-    UV_CACHE_DIR: uvCacheDir,
     HF_HOME: hfHome,
-    PYTHONPATH: srcPath,
-    PYTHONUNBUFFERED: "1",
-    PYTHONNOUSERSITE: "1",
     PATH:
       process.platform === "win32"
         ? pathSegmentsWin.filter(Boolean).join(path.delimiter)
@@ -332,15 +315,14 @@ const getProcessEnv = (): ProcessEnv => {
 
 export {
   getCondaEnvPath,
+  getNodePath,
   getPythonPath,
-  getUVPath,
   getOllamaPath,
   getLlamaServerPath,
   getOllamaModelsPath,
   getCondaLockFilePath,
   getProcessEnv,
   getSystemDataPath,
-  srcPath,
   PID_FILE_PATH,
   PID_DIRECTORY,
   webPath,

@@ -4,11 +4,10 @@ import * as os from "os";
 import { app, dialog } from "electron";
 import * as path from "path";
 
-import { getPythonPath, getProcessEnv, getUVPath } from "./config";
+import { getNodePath, getProcessEnv } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
-import { getTorchIndexUrlAsync } from "./torchPlatformCache";
 
 /**
  * Python environment manager for the Electron shell.
@@ -68,18 +67,16 @@ async function verifyApplicationPaths(): Promise<ValidationResult> {
 }
 
 /**
- * Check if the Python environment is installed
- * Verifies both Python and uv executables exist to detect partial/corrupted installs
+ * Check if the conda environment is installed
+ * Verifies the Node.js executable exists in the conda environment
  */
 async function isCondaEnvironmentInstalled(): Promise<boolean> {
   logMessage("=== Checking Conda Environment Installation ===");
 
-  let pythonExecutablePath: string | null = null;
-  let uvExecutablePath: string | null = null;
-  
+  let nodeExecutablePath: string | null = null;
+
   try {
-    pythonExecutablePath = getPythonPath();
-    uvExecutablePath = getUVPath();
+    nodeExecutablePath = getNodePath();
   } catch (error) {
     // If we cannot even resolve paths, treat as not installed so installer is triggered
     logMessage(
@@ -89,134 +86,24 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
     return false;
   }
 
-  logMessage(`Python executable path: ${pythonExecutablePath}`);
-  logMessage(`UV executable path: ${uvExecutablePath}`);
+  logMessage(`Node executable path: ${nodeExecutablePath}`);
 
-  // Check Python and UV executables in parallel
-  const [pythonExists, uvExists] = await Promise.all([
-    fs.access(pythonExecutablePath).then(
-      () => {
-        logMessage(`✓ Python executable found at ${pythonExecutablePath}`);
-        return true;
-      },
-      (error) => {
-        logMessage(
-          `✗ Python executable not found at ${pythonExecutablePath}`,
-          "error",
-        );
-        logMessage(`Access error: ${error}`, "error");
-        return false;
-      }
-    ),
-    fs.access(uvExecutablePath).then(
-      () => {
-        logMessage(`✓ UV executable found at ${uvExecutablePath}`);
-        return true;
-      },
-      (error) => {
-        logMessage(
-          `✗ UV executable not found at ${uvExecutablePath} - environment appears incomplete`,
-          "error",
-        );
-        logMessage(`Access error: ${error}`, "error");
-        logMessage("Will trigger reinstallation to complete the environment setup");
-        return false;
-      }
-    ),
-  ]);
-
-  return pythonExists && uvExists;
-}
-
-/**
- * Convert npm/semver version to PEP 440 (Python) version format
- * e.g., "0.6.2-rc.9" -> "0.6.2rc9"
- */
-function convertToPep440Version(npmVersion: string): string {
-  // Remove the '-' before prerelease tags and '.' within them
-  // npm: 0.6.2-rc.9 -> pip: 0.6.2rc9
-  return npmVersion.replace(/-([a-zA-Z]+)\.?(\d*)/, "$1$2");
-}
-
-/**
- * Update the Python environment packages using wheel-based package index
- */
-async function updateCondaEnvironment(
-  packages: string[]
-): Promise<void> {
-  try {
-    emitBootMessage(`Updating python packages...`);
-
-    const uvExecutable = getUVPath();
-    const PACKAGE_INDEX_URL =
-      "https://nodetool-ai.github.io/nodetool-registry/simple/";
-
-    // Get version from package.json via Electron's app.getVersion()
-    const appVersion = app.getVersion();
-    const pipVersion = convertToPep440Version(appVersion);
-    logMessage(`Pinning packages to version: ${pipVersion} (from ${appVersion})`);
-
-    // Convert repo IDs to package names for wheel installation, pinned to app version
-    const corePackages = [
-      `nodetool-core==${pipVersion}`,
-      `nodetool-base==${pipVersion}`,
-    ];
-
-    // Convert additional packages from repo format to package names, pinned to app version
-    const additionalPackages = packages.map((repoId) => {
-      if (!repoId) {
-        return repoId;
-      }
-
-      const trimmed = repoId.trim();
-      if (!trimmed) {
-        return trimmed;
-      }
-
-      let packageName: string;
-      if (!trimmed.includes("/")) {
-        packageName = trimmed;
-      } else {
-        const [, name = ""] = trimmed.split("/", 2);
-        packageName = name || trimmed;
-      }
-
-      // Pin to the same version as the app
-      return `${packageName}==${pipVersion}`;
-    });
-
-    const allPackages = [...corePackages, ...additionalPackages];
-
-    // Get the torch platform index URL (e.g., cu128 for CUDA 12.8)
-    const torchIndexUrl = await getTorchIndexUrlAsync();
-
-    const installCommand: string[] = [
-      uvExecutable,
-      "pip",
-      "install",
-      "--extra-index-url",
-      PACKAGE_INDEX_URL,
-      // Add PyTorch index URL for the detected GPU platform
-      ...(torchIndexUrl ? ["--extra-index-url", torchIndexUrl] : []),
-      "--index-strategy",
-      "unsafe-best-match",
-      "--system",
-      ...allPackages,
-    ];
-
-    if (torchIndexUrl) {
-      logMessage(`Using torch index URL: ${torchIndexUrl}`);
+  const nodeExists = await fs.access(nodeExecutablePath).then(
+    () => {
+      logMessage(`Node executable found at ${nodeExecutablePath}`);
+      return true;
+    },
+    (error) => {
+      logMessage(
+        `Node executable not found at ${nodeExecutablePath}`,
+        "error",
+      );
+      logMessage(`Access error: ${error}`, "error");
+      return false;
     }
-    logMessage(`Running command: ${installCommand.join(" ")}`);
-    await runCommand(installCommand);
+  );
 
-    logMessage(
-      "Python packages update completed successfully from wheel index",
-    );
-  } catch (error: any) {
-    logMessage(`Failed to update Pip packages: ${error.message}`, "error");
-    throw error;
-  }
+  return nodeExists;
 }
 
 /**
@@ -343,7 +230,6 @@ function getDefaultInstallLocation(): string {
 export {
   verifyApplicationPaths,
   isCondaEnvironmentInstalled,
-  updateCondaEnvironment,
   getDefaultInstallLocation,
   runCommand,
   isOllamaInstalled,
