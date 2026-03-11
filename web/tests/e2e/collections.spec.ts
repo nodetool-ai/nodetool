@@ -66,6 +66,11 @@ if (process.env.JEST_WORKER_ID) {
           }
         }
       );
+      // Skip if ChromaDB is not available (503 = service unavailable)
+      if (createResponse.status() === 503) {
+        test.skip(true, "ChromaDB not available");
+        return;
+      }
       expect(createResponse.ok()).toBe(true);
 
       // Step 2: Navigate to collections page and verify collection exists
