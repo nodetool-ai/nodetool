@@ -440,8 +440,8 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
   const [selectIsOpen, setSelectIsOpen] = useState(false);
 
   const handleModeChange = useCallback(
-    (event: React.ChangeEvent<{ value: unknown }>) => {
-      const newMode = event.target.value as string;
+    (_event: unknown, value: unknown) => {
+      const newMode = value as string;
 
       const updatedWorkflow = {
         ...workflow,
@@ -471,7 +471,7 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
           tabIndex={-1}
           inputProps={{ tabIndex: -1 }}
           value={workflowMode}
-          onChange={handleModeChange as any}
+          onChange={handleModeChange}
           onOpen={() => setSelectIsOpen(true)}
           onClose={() => setSelectIsOpen(false)}
           displayEmpty
@@ -636,11 +636,8 @@ const RunAsAppButton = memo(function RunAsAppButton() {
 
   const handleRunAsApp = useCallback(() => {
     if (workflowId) {
-      const api = (window as any)["api"] as
-        | { runApp: (workflowId: string) => void }
-        | undefined;
-      if (api) {
-        api.runApp(workflowId);
+      if (window.api?.runApp) {
+        window.api.runApp(workflowId);
       } else {
         window.open(
           "http://localhost:5173/index.html?workflow_id=" + workflowId,
