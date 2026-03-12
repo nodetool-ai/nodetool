@@ -4,11 +4,12 @@
  * Handles all /api/collections/* routes backed by ChromaDB.
  */
 
-import { ChromaClient, ChromaNotFoundError } from "chromadb";
+import { ChromaNotFoundError } from "chromadb";
 import { writeFile, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Workflow } from "@nodetool/models";
+import { getChromaClient } from "@nodetool/vectorstore";
 import type { HttpApiOptions } from "./http-api.js";
 
 type JsonObject = Record<string, unknown>;
@@ -32,16 +33,6 @@ async function parseJsonBody<T>(request: Request): Promise<T | null> {
   } catch {
     return null;
   }
-}
-
-function getChromaClient(): ChromaClient {
-  const url = process.env.CHROMA_URL ?? "http://localhost:8000";
-  const parsed = new URL(url);
-  return new ChromaClient({
-    host: parsed.hostname,
-    port: Number(parsed.port) || 8000,
-    ssl: parsed.protocol === "https:",
-  });
 }
 
 interface CollectionCreateBody {
@@ -71,7 +62,7 @@ export async function handleCollectionRequest(
 
   if (!pathname.startsWith("/api/collections")) return null;
 
-  const client = getChromaClient();
+  const client = await getChromaClient();
 
   try {
     // POST /api/collections/:name/index

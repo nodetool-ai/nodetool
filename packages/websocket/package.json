@@ -23,6 +23,7 @@
     "@nodetool/fal-nodes": "*",
     "@nodetool/config": "*",
     "@nodetool/huggingface": "*",
+    "@nodetool/vectorstore": "*",
     "@nodetool/kernel": "*",
     "@nodetool/models": "*",
     "@nodetool/node-sdk": "*",
