@@ -55,8 +55,6 @@ import {
   isAgentNodeType
 } from "../../stores/graphEdgeToReactFlowEdge";
 import useConnectionStore from "../../stores/ConnectionStore";
-import useBreakpointsStore from "../../stores/BreakpointsStore";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import type { NodeStoreState } from "../../stores/NodeStore";
 
 // CONSTANTS
@@ -405,10 +403,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   ]);
 
   // Style
-  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
-  const hasBreakpoint = useBreakpointsStore((state) =>
-    currentWorkflowId && id ? state.hasBreakpoint(currentWorkflowId, id) : false
-  );
   const styleProps = useMemo(
     () => getStyleProps(parentId, nodeType, isLoading, metadata),
     [parentId, nodeType, isLoading, metadata]
@@ -666,7 +660,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   return (
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
-      className={`${styleProps.className}${hasBreakpoint ? " has-breakpoint" : ""}`}
+      className={styleProps.className}
       sx={containerSx}
     >
       <Handle

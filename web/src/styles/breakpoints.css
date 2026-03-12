@@ -1,0 +1,216 @@
+/**
+ * Visual Debugging with Breakpoints Styles
+ *
+ * EXPERIMENTAL FEATURE: Visual Debugging with Breakpoints
+ *
+ * These styles add visual indicators for nodes with breakpoints set.
+ * A red dot indicator appears in the top-left corner of nodes with
+ * active breakpoints.
+ *
+ * @experimental - This is an experimental feature for visual debugging.
+ */
+
+/* 
+   BREAKPOINT INDICATOR
+   
+   A red dot that appears in the top-left corner of nodes with breakpoints.
+   The dot is positioned absolutely and is always visible regardless of
+   the node's content.
+*/
+
+/* Base breakpoint indicator styling */
+.react-flow__node.has-breakpoint::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 14px;
+  height: 14px;
+  background-color: #ef4444;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  z-index: 10000;
+  box-shadow: 
+    0 0 0 2px rgba(239, 68, 68, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+/* 
+   BREAKPOINT INDICATOR ANIMATIONS
+   
+   Subtle pulse animation to make breakpoints more noticeable.
+*/
+
+@keyframes breakpointPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+/* Apply pulse animation to breakpoint indicator */
+.react-flow__node.has-breakpoint::before {
+  animation: breakpointPulse 2s ease-in-out infinite;
+}
+
+/* 
+   BREAKPOINT INDICATOR ON SELECTED NODES
+   
+   Enhanced styling when a node with a breakpoint is selected.
+*/
+
+.react-flow__node.has-breakpoint.selected::before {
+  width: 16px;
+  height: 16px;
+  top: -8px;
+  left: -8px;
+  background-color: #dc2626;
+  box-shadow: 
+    0 0 0 3px rgba(239, 68, 68, 0.4),
+    0 0 0 5px rgba(255, 255, 255, 0.8),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* 
+   BREAKPOINT INDICATOR ON BYPASSED NODES
+   
+   Slightly dimmed for bypassed nodes with breakpoints.
+*/
+
+.react-flow__node.has-breakpoint.bypassed::before {
+  opacity: 0.5;
+  background-color: #9ca3af;
+  border-color: #d1d5db;
+  box-shadow: 
+    0 0 0 2px rgba(156, 163, 175, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 
+   BREAKPOINT INDICATOR ON DARK BACKGROUND
+   
+   Enhanced border for dark themes.
+*/
+
+@media (prefers-color-scheme: dark) {
+  .react-flow__node.has-breakpoint::before {
+    border-color: #1f2937;
+    box-shadow: 
+      0 0 0 2px rgba(239, 68, 68, 0.3),
+      0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+  
+  .react-flow__node.has-breakpoint.selected::before {
+    border-color: #1f2937;
+    box-shadow: 
+      0 0 0 3px rgba(239, 68, 68, 0.4),
+      0 0 0 5px rgba(31, 41, 55, 0.8),
+      0 2px 6px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* 
+   BREAKPOINT HIT INDICATOR
+   
+   Animation for when execution hits a breakpoint.
+   The indicator flashes and scales up to draw attention.
+*/
+
+@keyframes breakpointHit {
+  0% {
+    transform: scale(1);
+    background-color: #ef4444;
+  }
+  25% {
+    transform: scale(1.5);
+    background-color: #fbbf24;
+  }
+  50% {
+    transform: scale(1.8);
+    background-color: #fbbf24;
+    box-shadow: 
+      0 0 0 6px rgba(251, 191, 36, 0.5),
+      0 0 12px rgba(251, 191, 36, 0.3);
+  }
+  75% {
+    transform: scale(1.5);
+    background-color: #fbbf24;
+  }
+  100% {
+    transform: scale(1);
+    background-color: #ef4444;
+  }
+}
+
+/* Apply hit animation when breakpoint is triggered */
+.react-flow__node.has-breakpoint.breakpoint-hit::before {
+  animation: 
+    breakpointHit 0.6s ease-out,
+    breakpointPulse 2s ease-in-out 0.6s infinite;
+}
+
+/* 
+   CONTEXT MENU BREAKPOINT ITEM
+   
+   Styling for the breakpoint menu item in the context menu.
+*/
+
+.context-menu .breakpoint-active {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.context-menu .breakpoint-active .MuiTypography-root {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.context-menu .breakpoint-active svg {
+  color: #dc2626;
+}
+
+/* 
+   ACCESSIBILITY: REDUCED MOTION
+   
+   Respect user's reduced motion preference.
+*/
+
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__node.has-breakpoint::before {
+    animation: none;
+  }
+  
+  .react-flow__node.has-breakpoint.breakpoint-hit::before {
+    animation: none;
+    background-color: #fbbf24;
+    transform: scale(1.2);
+  }
+}
+
+/* 
+   HIGH CONTRAST MODE
+   
+   Enhanced visibility for high contrast mode.
+*/
+
+@media (prefers-contrast: high) {
+  .react-flow__node.has-breakpoint::before {
+    width: 18px;
+    height: 18px;
+    top: -9px;
+    left: -9px;
+    border-width: 3px;
+  }
+  
+  .react-flow__node.has-breakpoint.selected::before {
+    width: 20px;
+    height: 20px;
+    top: -10px;
+    left: -10px;
+  }
+}

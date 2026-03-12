@@ -15,11 +15,14 @@ import DataArrayIcon from "@mui/icons-material/DataArray";
 import SyncIcon from "@mui/icons-material/Sync";
 import QueueIcon from "@mui/icons-material/Queue";
 import SouthIcon from "@mui/icons-material/South";
+import BugReportIcon from "@mui/icons-material/BugReport";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../stores/ApiClient";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useNodes } from "../../contexts/NodeContext";
+import useBreakpointsStore from "../../stores/BreakpointsStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -31,6 +34,11 @@ const NodeContextMenu: React.FC = () => {
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
   const updateNodeData = useNodes((state) => state.updateNodeData);
+  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
+  const hasBreakpoint = useBreakpointsStore((state) => 
+    currentWorkflowId && node?.id ? state.hasBreakpoint(currentWorkflowId, node.id) : false
+  );
+  const toggleBreakpoint = useBreakpointsStore((state) => state.toggleBreakpoint);
 
   const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
 
@@ -47,6 +55,13 @@ const NodeContextMenu: React.FC = () => {
 
   const handleSyncModeOnAny = useCallback(() => handleSelectMode("on_any"), [handleSelectMode]);
   const handleSyncModeZipAll = useCallback(() => handleSelectMode("zip_all"), [handleSelectMode]);
+
+  const handleToggleBreakpoint = useCallback(() => {
+    if (node?.id && currentWorkflowId) {
+      toggleBreakpoint(currentWorkflowId, node.id);
+    }
+    closeContextMenu();
+  }, [node, currentWorkflowId, toggleBreakpoint, closeContextMenu]);
 
   const menuItems = [
     conditions.isInGroup && (
@@ -109,6 +124,23 @@ const NodeContextMenu: React.FC = () => {
           </div>
         </div>
       }
+    />,
+    <ContextMenuItem
+      key="toggle-breakpoint"
+      onClick={handleToggleBreakpoint}
+      label={hasBreakpoint ? "Remove Breakpoint" : "Toggle Breakpoint"}
+      IconComponent={<BugReportIcon />}
+      tooltip={
+        <div className="tooltip-span">
+          <div className="tooltip-title">
+            {hasBreakpoint ? "Remove Breakpoint" : "Toggle Breakpoint"}
+          </div>
+          <div className="tooltip-key">
+            <kbd>CTRL</kbd>+<kbd>SHIFT</kbd>+<kbd>B</kbd>
+          </div>
+        </div>
+      }
+      addButtonClassName={hasBreakpoint ? "breakpoint-active" : ""}
     />,
     <ContextMenuItem
       key="toggle-comment"
