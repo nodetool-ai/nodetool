@@ -551,7 +551,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
   ];
 
   const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
-  let accumulatedText = "";
+  let lastAssistantText = "";
   let iteration = 0;
   let shouldContinue = true;
 
@@ -580,7 +580,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     }
 
     if (assistantText) {
-      accumulatedText = assistantText;
+      lastAssistantText = assistantText;
     }
 
     if (assistantText || assistantToolCalls.length > 0) {
@@ -616,7 +616,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoop
     log.warn("runAgentLoop reached max iterations", { maxIterations, providerId, modelId });
   }
 
-  return { text: accumulatedText, messages };
+  return { text: lastAssistantText, messages };
 }
 
 function getStructuredOutputSchema(node: BaseNode): Record<string, unknown> | null {
