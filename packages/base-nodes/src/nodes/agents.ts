@@ -506,6 +506,119 @@ export function serializeToolResult(value: unknown): unknown {
   return Object.fromEntries(Object.entries(record).map(([key, item]) => [key, serializeToolResult(item)]));
 }
 
+export interface AgentLoopOptions {
+  context: ProcessingContext;
+  providerId: string;
+  modelId: string;
+  systemPrompt: string;
+  prompt: string;
+  tools: ToolLike[];
+  contentParts?: MessageContent[];
+  maxTokens?: number;
+  maxIterations?: number;
+}
+
+export interface AgentLoopResult {
+  text: string;
+  messages: Message[];
+}
+
+export async function runAgentLoop(options: AgentLoopOptions): Promise<AgentLoopResult> {
+  const {
+    context,
+    providerId,
+    modelId,
+    systemPrompt,
+    prompt,
+    tools,
+    contentParts,
+    maxTokens = 4096,
+    maxIterations = 10,
+  } = options;
+
+  if (!context || typeof context.getProvider !== "function") {
+    throw new Error("Processing context with provider access is required");
+  }
+
+  const userContent: MessageContent[] = [{ type: "text", text: prompt }];
+  if (contentParts) {
+    userContent.push(...contentParts);
+  }
+
+  const messages: Message[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userContent },
+  ];
+
+  const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
+  let accumulatedText = "";
+  let iteration = 0;
+  let shouldContinue = true;
+
+  while (shouldContinue && iteration < maxIterations) {
+    shouldContinue = false;
+    iteration++;
+
+    const provider = await context.getProvider(providerId);
+    const assistantToolCalls: ToolCall[] = [];
+    let assistantText = "";
+
+    for await (const item of streamProviderMessages(provider, {
+      messages,
+      model: modelId,
+      tools: providerTools,
+      maxTokens,
+    })) {
+      if (isChunkItem(item)) {
+        if (!item.thinking) {
+          assistantText += item.content ?? "";
+        }
+      }
+      if (isToolCallItem(item)) {
+        assistantToolCalls.push(item);
+      }
+    }
+
+    if (assistantText) {
+      accumulatedText = assistantText;
+    }
+
+    if (assistantText || assistantToolCalls.length > 0) {
+      messages.push({
+        role: "assistant",
+        content: [{ type: "text", text: assistantText }],
+        toolCalls: assistantToolCalls.length > 0 ? assistantToolCalls : null,
+      });
+    }
+
+    for (const toolCall of assistantToolCalls) {
+      const tool = tools.find((t) => t.name === toolCall.name);
+      if (!tool || typeof tool.process !== "function") {
+        messages.push({
+          role: "tool",
+          toolCallId: toolCall.id,
+          content: JSON.stringify({ error: `Unknown tool: ${toolCall.name}` }),
+        });
+        shouldContinue = true;
+        continue;
+      }
+      const result = await tool.process(context, toolCall.args);
+      messages.push({
+        role: "tool",
+        toolCallId: toolCall.id,
+        content: JSON.stringify(serializeToolResult(result)),
+      });
+      shouldContinue = true;
+    }
+  }
+
+  if (iteration >= maxIterations) {
+    log.warn("runAgentLoop reached max iterations", { maxIterations, providerId, modelId });
+  }
+
+  return { text: accumulatedText, messages };
+}
+
 function getStructuredOutputSchema(node: BaseNode): Record<string, unknown> | null {
   const outputs = (node as { _dynamic_outputs?: unknown })._dynamic_outputs;
   if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return null;
