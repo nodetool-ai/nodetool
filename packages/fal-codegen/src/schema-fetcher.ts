@@ -54,7 +54,14 @@ export class SchemaFetcher {
     }
 
     const url = `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=${endpointId}`;
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+    let response: Response;
+    try {
+      response = await fetch(url, { signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
     if (!response.ok) {
       throw new Error(
         `Failed to fetch schema for ${endpointId}: ${response.status} ${response.statusText}`,

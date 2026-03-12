@@ -390,7 +390,7 @@ export class SchemaParser {
         }
       }
 
-      const inner = this.jsonTypeToTs(items, undefined, "");
+      const inner = this.jsonTypeToTs(items, undefined, propName);
       return {
         tsType: `${inner.tsType}[]`,
         propType: `list[${inner.propType}]`,
@@ -614,19 +614,20 @@ export class SchemaParser {
    * - "3D Model"   → "MODEL_3D"
    * - "DPM++ 2M"   → "DPM_PLUS_PLUS_2M"
    */
-  toEnumValue(value: string): string {
+  toEnumValue(value: unknown): string {
+    const strValue = String(value);
     // Handle ratios early (before removing colons)
-    if (/^\d+:\d+$/.test(value.trim())) {
-      const replaced = value.trim().replace(":", "_");
+    if (/^\d+:\d+$/.test(strValue.trim())) {
+      const replaced = strValue.trim().replace(":", "_");
       return `RATIO_${replaced}`.toUpperCase();
     }
 
     // Handle numeric values
-    if (/^\d+$/.test(value.trim())) {
-      return `VALUE_${value.trim()}`;
+    if (/^\d+$/.test(strValue.trim())) {
+      return `VALUE_${strValue.trim()}`;
     }
 
-    let v = value;
+    let v = strValue;
 
     // Replace ++ with _PLUS_PLUS_, + with _PLUS_
     v = v.replace(/\+\+/g, "_PLUS_PLUS_").replace(/\+/g, "_PLUS_");

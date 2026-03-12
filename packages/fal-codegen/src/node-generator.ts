@@ -27,10 +27,18 @@ function moduleNameToId(moduleName: string): string {
   return moduleName.replace(/-/g, "_");
 }
 
+/** Reserved names that collide with process() parameters or JS keywords */
+const RESERVED_VAR_NAMES = new Set(["inputs", "args", "res", "apiKey", "output"]);
+
 /** Convert a camelCase/PascalCase fieldName to lowerCamelCase variable name */
 function fieldToVarName(name: string): string {
   // snake_case → camelCase
-  return name.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+  let varName = name.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+  // Avoid collisions with process() locals
+  if (RESERVED_VAR_NAMES.has(varName)) {
+    varName = `field_${varName}`;
+  }
+  return varName;
 }
 
 /** Return a cast expression for the given propType */
