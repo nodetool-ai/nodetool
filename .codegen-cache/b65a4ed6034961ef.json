@@ -1,0 +1,329 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/hunyuan-video-img2vid-lora",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/hunyuan-video-img2vid-lora queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/hunyuan-video-img2vid-lora",
+      "category": "image-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/hunyuan-video.webp?v=1",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/hunyuan-video-img2vid-lora",
+      "documentationUrl": "https://fal.ai/models/fal-ai/hunyuan-video-img2vid-lora/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "HunyuanVideoImg2vidLoraInput": {
+        "title": "Input",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A low angle shot of a man walking down a street, illuminated by the neon signs of the bars around him"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to generate the video from."
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed to use for generating the video."
+          },
+          "image_url": {
+            "examples": [
+              "https://d3phaj0sisr2ct.cloudfront.net/research/eugene.jpg"
+            ],
+            "title": "Image URL",
+            "type": "string",
+            "description": "The URL to the image to generate the video from. The image must be 960x544 or it will get cropped and resized to that size."
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "image_url",
+          "seed"
+        ],
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "HunyuanVideoImg2vidLoraOutput": {
+        "title": "Output",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for generating the video."
+          },
+          "video": {
+            "examples": [
+              {
+                "content_type": "video/mp4",
+                "url": "https://storage.googleapis.com/falserverless/gallery/man-smiles.mp4"
+              }
+            ],
+            "title": "Video",
+            "description": "The generated video",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "type": "integer",
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "type": "string",
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "type": "string",
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/hunyuan-video-img2vid-lora/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-video-img2vid-lora/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-video-img2vid-lora": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HunyuanVideoImg2vidLoraInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-video-img2vid-lora/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HunyuanVideoImg2vidLoraOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,479 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for bria/reimagine/3.2",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the bria/reimagine/3.2 queue.",
+    "x-fal-metadata": {
+      "endpointId": "bria/reimagine/3.2",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://fal.media/files/koala/jkGFvEL6cLvJsAPkL48qP_f74234f867b84e23aaf691d48124fb85.jpg",
+      "playgroundUrl": "https://fal.ai/models/bria/reimagine/3.2",
+      "documentationUrl": "https://fal.ai/models/bria/reimagine/3.2/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Reimagine32Input": {
+        "title": "InputModel",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Delicate, watercolor-style letters infused with shades of blue and green, accompanied by artistic, blooming flowers that blend harmoniously into a light background, giving a serene and artistic touch."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "Prompt for image generation."
+          },
+          "depth_preprocess": {
+            "title": "Depth Preprocess",
+            "type": "boolean",
+            "description": "Depth image preprocess.",
+            "default": true
+          },
+          "canny_preprocess": {
+            "title": "Canny Preprocess",
+            "type": "boolean",
+            "description": "Canny image preprocess.",
+            "default": true
+          },
+          "depth_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth Image Url",
+            "description": "Depth control image (file or URL).",
+            "examples": [
+              "https://bria-image-repository.s3.us-east-1.amazonaws.com/BRIA+(1).png"
+            ],
+            "default": ""
+          },
+          "guidance_scale": {
+            "description": "Guidance scale for text.",
+            "type": "number",
+            "minimum": 1,
+            "title": "Guidance Scale",
+            "maximum": 10,
+            "default": 5
+          },
+          "canny_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canny Image Url",
+            "description": "Canny edge control image (file or URL).",
+            "examples": [
+              "https://bria-image-repository.s3.us-east-1.amazonaws.com/BRIA+(1).png"
+            ],
+            "default": ""
+          },
+          "negative_prompt": {
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "Negative prompt for image generation.",
+            "default": "Logo,Watermark,Ugly,Morbid,Extra fingers,Poorly drawn hands,Mutation,Blurry,Extra limbs,Gross proportions,Missing arms,Mutated hands,Long neck,Duplicate,Mutilated,Mutilated hands,Poorly drawn face,Deformed,Bad anatomy,Cloned face,Malformed limbs,Missing legs,Too many fingers"
+          },
+          "depth_scale": {
+            "description": "Depth control strength (0.0 to 1.0).",
+            "type": "number",
+            "minimum": 0,
+            "title": "Depth Scale",
+            "maximum": 1,
+            "default": 0.5
+          },
+          "aspect_ratio": {
+            "enum": [
+              "1:1",
+              "2:3",
+              "3:2",
+              "3:4",
+              "4:3",
+              "4:5",
+              "5:4",
+              "9:16",
+              "16:9"
+            ],
+            "title": "Aspect Ratio",
+            "type": "string",
+            "description": "Aspect ratio. Options: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9",
+            "default": "1:1"
+          },
+          "prompt_enhancer": {
+            "title": "Prompt Enhancer",
+            "type": "boolean",
+            "description": "Whether to improve the prompt.",
+            "default": true
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If true, returns the image directly in the response (increases latency).",
+            "default": false
+          },
+          "truncate_prompt": {
+            "title": "Truncate Prompt",
+            "type": "boolean",
+            "description": "Whether to truncate the prompt.",
+            "default": true
+          },
+          "num_inference_steps": {
+            "description": "Number of inference steps.",
+            "type": "integer",
+            "minimum": 20,
+            "title": "Num Inference Steps",
+            "maximum": 50,
+            "default": 30
+          },
+          "canny_scale": {
+            "description": "Canny edge control strength (0.0 to 1.0).",
+            "type": "number",
+            "minimum": 0,
+            "title": "Canny Scale",
+            "maximum": 1,
+            "default": 0.5
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Random seed for reproducibility.",
+            "default": 5555
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "num_inference_steps",
+          "seed",
+          "aspect_ratio",
+          "negative_prompt",
+          "guidance_scale",
+          "truncate_prompt",
+          "prompt_enhancer",
+          "sync_mode",
+          "depth_image_url",
+          "depth_scale",
+          "depth_preprocess",
+          "canny_image_url",
+          "canny_preprocess",
+          "canny_scale"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "Reimagine32Output": {
+        "title": "OutputModel",
+        "type": "object",
+        "properties": {
+          "image": {
+            "description": "Generated image.",
+            "$ref": "#/components/schemas/Image"
+          }
+        },
+        "x-fal-order-properties": [
+          "image"
+        ],
+        "required": [
+          "image"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height",
+            "description": "The height of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width",
+            "description": "The width of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/bria/reimagine/3.2/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bria/reimagine/3.2/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bria/reimagine/3.2": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reimagine32Input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bria/reimagine/3.2/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reimagine32Output"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

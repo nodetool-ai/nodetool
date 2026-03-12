@@ -1,0 +1,416 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/pixverse/v4.5/image-to-video/fast",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/pixverse/v4.5/image-to-video/fast queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/pixverse/v4.5/image-to-video/fast",
+      "category": "image-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/pixverse-v3.5.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/pixverse/v4.5/image-to-video/fast",
+      "documentationUrl": "https://fal.ai/models/fal-ai/pixverse/v4.5/image-to-video/fast/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "PixverseV45ImageToVideoFastInput": {
+        "title": "FastImageToVideoRequestV4",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A woman warrior with her hammer walking with his glacier wolf."
+            ],
+            "title": "Prompt",
+            "type": "string"
+          },
+          "resolution": {
+            "enum": [
+              "360p",
+              "540p",
+              "720p"
+            ],
+            "description": "The resolution of the generated video",
+            "type": "string",
+            "title": "Resolution",
+            "default": "720p"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "enum": [
+                  "anime",
+                  "3d_animation",
+                  "clay",
+                  "comic",
+                  "cyberpunk"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style",
+            "description": "The style of the generated video"
+          },
+          "camera_movement": {
+            "anyOf": [
+              {
+                "enum": [
+                  "horizontal_left",
+                  "horizontal_right",
+                  "vertical_up",
+                  "vertical_down",
+                  "zoom_in",
+                  "zoom_out",
+                  "crane_up",
+                  "quickly_zoom_in",
+                  "quickly_zoom_out",
+                  "smooth_zoom_in",
+                  "camera_rotation",
+                  "robo_arm",
+                  "super_dolly_out",
+                  "whip_pan",
+                  "hitchcock",
+                  "left_follow",
+                  "right_follow",
+                  "pan_left",
+                  "pan_right",
+                  "fix_bg"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Camera Movement",
+            "description": "The type of camera movement to apply to the video"
+          },
+          "image_url": {
+            "examples": [
+              "https://v3.fal.media/files/zebra/qL93Je8ezvzQgDOEzTjKF_KhGKZTEebZcDw6T5rwQPK_output.png"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "URL of the image to use as the first frame"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same video every time.\n        "
+          },
+          "negative_prompt": {
+            "examples": [
+              "blurry, low quality, low resolution, pixelated, noisy, grainy, out of focus, poorly lit, poorly exposed, poorly composed, poorly framed, poorly cropped, poorly color corrected, poorly color graded"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "Negative prompt to be used for the generation",
+            "default": ""
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "resolution",
+          "negative_prompt",
+          "style",
+          "seed",
+          "image_url",
+          "camera_movement"
+        ],
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "PixverseV45ImageToVideoFastOutput": {
+        "title": "I2VOutputV4",
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "file_size": 6420765,
+                "file_name": "output.mp4",
+                "content_type": "video/mp4",
+                "url": "https://fal.media/files/koala/HEWK7BBwqWrz7F5nAZzp7_output.mp4"
+              }
+            ],
+            "description": "The generated video",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/pixverse/v4.5/image-to-video/fast/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pixverse/v4.5/image-to-video/fast/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pixverse/v4.5/image-to-video/fast": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PixverseV45ImageToVideoFastInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pixverse/v4.5/image-to-video/fast/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PixverseV45ImageToVideoFastOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

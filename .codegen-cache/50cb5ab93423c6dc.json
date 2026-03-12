@@ -1,0 +1,495 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ip-adapter-face-id",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ip-adapter-face-id queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ip-adapter-face-id",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/ip-adapter-face-id.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ip-adapter-face-id",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ip-adapter-face-id/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "IpAdapterFaceIdInput": {
+        "x-fal-order-properties": [
+          "model_type",
+          "prompt",
+          "face_image_url",
+          "face_images_data_url",
+          "negative_prompt",
+          "seed",
+          "guidance_scale",
+          "num_inference_steps",
+          "num_samples",
+          "width",
+          "height",
+          "face_id_det_size",
+          "base_1_5_model_repo",
+          "base_sdxl_model_repo"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Man cyberpunk, synthwave night city, futuristic, high quality, highly detailed, high resolution, sharp, hyper realistic, extremely detailed"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to use for generating the image. Be as descriptive as possible for best results."
+          },
+          "seed": {
+            "examples": [
+              42
+            ],
+            "title": "Seed",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        "
+          },
+          "width": {
+            "minimum": 512,
+            "title": "Width",
+            "type": "integer",
+            "maximum": 1024,
+            "description": "\n            The width of the generated image.\n        ",
+            "default": 512
+          },
+          "face_id_det_size": {
+            "minimum": 64,
+            "title": "Face Id Det Size",
+            "type": "integer",
+            "maximum": 640,
+            "description": "\n            The size of the face detection model. The higher the number the more accurate\n            the detection will be but it will also take longer to run. The higher the number the more\n            likely it will fail to find a face as well. Lower it if you are having trouble\n            finding a face in the image.\n        ",
+            "default": 640
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "title": "Guidance scale (CFG)",
+            "type": "number",
+            "maximum": 16,
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "default": 7.5
+          },
+          "negative_prompt": {
+            "examples": [
+              "blurry, low resolution, bad, ugly, low quality, pixelated, interpolated, compression artifacts, noisey, grainy"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "\n            The negative prompt to use.Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "default": "blurry, low resolution, bad, ugly, low quality, pixelated, interpolated, compression artifacts, noisey, grainy"
+          },
+          "height": {
+            "minimum": 512,
+            "title": "Height",
+            "type": "integer",
+            "maximum": 1024,
+            "description": "\n            The height of the generated image.\n        ",
+            "default": 512
+          },
+          "num_samples": {
+            "minimum": 1,
+            "title": "Num Samples",
+            "type": "integer",
+            "maximum": 4,
+            "description": "\n            The number of samples for face id. The more samples the better the image will\n            be but it will also take longer to generate. Default is 4.\n        ",
+            "default": 4
+          },
+          "base_sdxl_model_repo": {
+            "title": "Base Sdxl Model Repo",
+            "type": "string",
+            "description": "The URL to the base SDXL model. Default is SG161222/RealVisXL_V3.0",
+            "default": "SG161222/RealVisXL_V3.0"
+          },
+          "base_1_5_model_repo": {
+            "title": "Base 1 5 Model Repo",
+            "type": "string",
+            "description": "The URL to the base 1.5 model. Default is SG161222/Realistic_Vision_V4.0_noVAE",
+            "default": "SG161222/Realistic_Vision_V4.0_noVAE"
+          },
+          "face_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/upscale/image%20(8).png"
+            ],
+            "title": "Face Image Url",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An image of a face to match. If an image with a size of 640x640 is not provided, it will be scaled and cropped to that size."
+          },
+          "model_type": {
+            "examples": [
+              "1_5-v1",
+              "1_5-v1-plus",
+              "1_5-v2-plus",
+              "SDXL-v1",
+              "SDXL-v2-plus",
+              "1_5-auraface-v1"
+            ],
+            "title": "Model Type",
+            "type": "string",
+            "enum": [
+              "1_5-v1",
+              "1_5-v1-plus",
+              "1_5-v2-plus",
+              "SDXL-v1",
+              "SDXL-v2-plus",
+              "1_5-auraface-v1"
+            ],
+            "description": "The model type to use. 1_5 is the default and is recommended for most use cases.",
+            "default": "1_5-v1"
+          },
+          "face_images_data_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Face Images Data Url",
+            "description": "\n            URL to zip archive with images of faces. The images embedding will be averaged to\n            create a more accurate face id.\n        "
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "title": "Num Inference Steps",
+            "type": "integer",
+            "maximum": 200,
+            "description": "\n            The number of inference steps to use for generating the image. The more steps\n            the better the image will be but it will also take longer to generate.\n        ",
+            "default": 50
+          }
+        },
+        "title": "IpAdapterFaceIdInput",
+        "required": [
+          "prompt"
+        ]
+      },
+      "IpAdapterFaceIdOutput": {
+        "x-fal-order-properties": [
+          "image",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "image": {
+            "description": "The generated image file info.",
+            "$ref": "#/components/schemas/Image"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          }
+        },
+        "title": "IpAdapterFaceIdOutput",
+        "required": [
+          "image",
+          "seed"
+        ]
+      },
+      "Image": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "description": "Represents an image file.",
+        "title": "Image",
+        "properties": {
+          "height": {
+            "examples": [
+              1024
+            ],
+            "title": "Height",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image in pixels."
+          },
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "title": "Width",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image in pixels."
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ip-adapter-face-id/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ip-adapter-face-id/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ip-adapter-face-id": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IpAdapterFaceIdInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ip-adapter-face-id/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IpAdapterFaceIdOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

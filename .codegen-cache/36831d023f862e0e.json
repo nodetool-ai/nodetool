@@ -1,0 +1,292 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/arbiter/image",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/arbiter/image queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/arbiter/image",
+      "category": "vision",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a87e5ca/ZaCjvwux8DGFjjTamngMy_d770c80051204269911a228ced51b682.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/arbiter/image",
+      "documentationUrl": "https://fal.ai/models/fal-ai/arbiter/image/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ArbiterImageInput": {
+        "title": "ImageMultiMeasurementInput",
+        "type": "object",
+        "properties": {
+          "measurements": {
+            "title": "Measurements",
+            "type": "array",
+            "description": "The measurements to use for the measurement.",
+            "items": {
+              "enum": [
+                "arniqa",
+                "clip_iqa",
+                "musiq",
+                "nima",
+                "lapvar"
+              ],
+              "type": "string"
+            }
+          },
+          "inputs": {
+            "title": "Inputs",
+            "type": "array",
+            "description": "The inputs to use for the measurement.",
+            "items": {
+              "$ref": "#/components/schemas/ImageInput"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "measurements",
+          "inputs"
+        ],
+        "required": [
+          "measurements",
+          "inputs"
+        ]
+      },
+      "ArbiterImageOutput": {
+        "title": "MultiMeasurementOutput",
+        "type": "object",
+        "properties": {
+          "values": {
+            "title": "Values",
+            "type": "array",
+            "description": "The values of the measurements.",
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "additionalProperties": {
+                      "type": "number"
+                    },
+                    "type": "object"
+                  }
+                ]
+              },
+              "type": "object"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "values"
+        ]
+      },
+      "ImageInput": {
+        "title": "ImageInput",
+        "type": "object",
+        "properties": {
+          "hypothesis": {
+            "title": "Hypothesis",
+            "type": "string",
+            "description": "The image to use for the measurement."
+          }
+        },
+        "x-fal-order-properties": [
+          "hypothesis"
+        ],
+        "required": [
+          "hypothesis"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/arbiter/image/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/arbiter/image/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/arbiter/image": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArbiterImageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/arbiter/image/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArbiterImageOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

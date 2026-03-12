@@ -1,0 +1,515 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/pulid",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/pulid queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/pulid",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://fal.media/files/tiger/fM1msKxGhFY7BO3J_vNiE.png",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/pulid",
+      "documentationUrl": "https://fal.ai/models/fal-ai/pulid/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "PulidInput": {
+        "title": "InputModel",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "portrait, impressionist painting, loose brushwork, vibrant color, light and shadow play"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "Prompt to generate the face from"
+          },
+          "num_images": {
+            "minimum": 1,
+            "title": "Num Images",
+            "type": "integer",
+            "description": "Number of images to generate",
+            "maximum": 8,
+            "default": 1
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Image Size",
+            "description": "Size of the generated image",
+            "default": {
+              "height": 1024,
+              "width": 768
+            }
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducibility"
+          },
+          "id_scale": {
+            "title": "Id Scale",
+            "type": "number",
+            "description": "ID scale",
+            "maximum": 5,
+            "exclusiveMinimum": 0,
+            "default": 0.8
+          },
+          "id_mix": {
+            "title": "Id Mix",
+            "type": "boolean",
+            "description": "if you want to mix two ID image, please turn this on, otherwise, turn this off",
+            "default": false
+          },
+          "guidance_scale": {
+            "minimum": 1,
+            "title": "Guidance Scale",
+            "type": "number",
+            "description": "Guidance scale",
+            "maximum": 1.5,
+            "default": 1.2
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "title": "Num Inference Steps",
+            "type": "integer",
+            "description": "Number of steps to take",
+            "maximum": 12,
+            "default": 4
+          },
+          "reference_images": {
+            "examples": [
+              [
+                {
+                  "image_url": "https://storage.googleapis.com/falserverless/pulid/img2.png"
+                },
+                {
+                  "image_url": "https://storage.googleapis.com/falserverless/pulid/img1.png"
+                }
+              ]
+            ],
+            "title": "Reference Images",
+            "type": "array",
+            "description": "List of reference faces, ideally 4 images.",
+            "items": {
+              "$ref": "#/components/schemas/ReferenceFace"
+            }
+          },
+          "negative_prompt": {
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "Negative prompt to generate the face from",
+            "default": "flaws in the eyes, flaws in the face, flaws, lowres, non-HDRi, low quality, worst quality,artifacts noise, text, watermark, glitch, deformed, mutated, ugly, disfigured, hands, low resolution, partially rendered objects,  deformed or partially rendered eyes, deformed, deformed eyeballs, cross-eyed,blurry"
+          },
+          "mode": {
+            "enum": [
+              "fidelity",
+              "extreme style"
+            ],
+            "title": "Mode",
+            "type": "string",
+            "description": "Mode of generation",
+            "default": "fidelity"
+          }
+        },
+        "x-fal-order-properties": [
+          "reference_images",
+          "prompt",
+          "negative_prompt",
+          "num_images",
+          "guidance_scale",
+          "num_inference_steps",
+          "seed",
+          "image_size",
+          "id_scale",
+          "mode",
+          "id_mix"
+        ],
+        "required": [
+          "reference_images",
+          "prompt"
+        ]
+      },
+      "PulidOutput": {
+        "title": "OutputModel",
+        "type": "object",
+        "properties": {
+          "images": {
+            "title": "Images",
+            "type": "array",
+            "description": "List of generated images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Random seed used for reproducibility"
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "seed"
+        ],
+        "required": [
+          "images",
+          "seed"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer",
+            "description": "The height of the generated image.",
+            "maximum": 14142,
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer",
+            "description": "The width of the generated image.",
+            "maximum": 14142,
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "ReferenceFace": {
+        "title": "ReferenceFace",
+        "type": "object",
+        "properties": {
+          "image_url": {
+            "title": "Image Url",
+            "type": "string",
+            "description": "URL of the reference face image"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "height": {
+            "examples": [
+              1024
+            ],
+            "title": "Height",
+            "description": "The height of the image in pixels.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "title": "Width",
+            "description": "The width of the image in pixels.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/pulid/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pulid/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pulid": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PulidInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/pulid/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PulidOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

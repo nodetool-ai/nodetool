@@ -11,7 +11,21 @@ import {
 } from "../src/fal-base.js";
 
 /* ------------------------------------------------------------------ */
-/*  Fetch mock helpers                                                 */
+/*  Mock @fal-ai/client SDK                                            */
+/* ------------------------------------------------------------------ */
+
+const mockSubscribe = vi.fn();
+const mockStorageUpload = vi.fn();
+
+vi.mock("@fal-ai/client", () => ({
+  createFalClient: vi.fn(() => ({
+    subscribe: mockSubscribe,
+    storage: { upload: mockStorageUpload },
+  })),
+}));
+
+/* ------------------------------------------------------------------ */
+/*  Fetch mock for imageToDataUrl / assetToFalUrl fallback paths       */
 /* ------------------------------------------------------------------ */
 
 const originalFetch = globalThis.fetch;
@@ -20,6 +34,8 @@ let mockFetch: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   mockFetch = vi.fn();
   globalThis.fetch = mockFetch;
+  mockSubscribe.mockReset();
+  mockStorageUpload.mockReset();
   delete process.env.FAL_API_KEY;
 });
 
@@ -27,16 +43,6 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
   delete process.env.FAL_API_KEY;
 });
-
-function jsonResponse(body: unknown, status = 200): Response {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => body,
-    text: async () => JSON.stringify(body),
-    arrayBuffer: async () => new Uint8Array([116, 101, 115, 116]).buffer,
-  } as unknown as Response;
-}
 
 /* ================================================================== */
 /*  getFalApiKey                                                        */
@@ -102,16 +108,22 @@ describe("removeNulls", () => {
     expect("z" in (obj.nested as Record<string, unknown>)).toBe(false);
   });
 
-  it("does not remove falsy non-null values (0, false, empty string)", () => {
-    const obj: Record<string, unknown> = { a: 0, b: false, c: "" };
+  it("does not remove falsy non-null values (0, false)", () => {
+    const obj: Record<string, unknown> = { a: 0, b: false };
     removeNulls(obj);
-    expect(obj).toEqual({ a: 0, b: false, c: "" });
+    expect(obj).toEqual({ a: 0, b: false });
+  });
+
+  it("removes empty strings", () => {
+    const obj: Record<string, unknown> = { a: "keep", b: "", c: 1 };
+    removeNulls(obj);
+    expect(obj).toEqual({ a: "keep", c: 1 });
+    expect("b" in obj).toBe(false);
   });
 
   it("does not recurse into arrays", () => {
     const obj: Record<string, unknown> = { arr: [null, 1, 2] };
     removeNulls(obj);
-    // Array itself is kept as-is (not recursed into)
     expect(obj.arr).toEqual([null, 1, 2]);
   });
 
@@ -127,45 +139,16 @@ describe("removeNulls", () => {
 /* ================================================================== */
 
 describe("isRefSet", () => {
-  it("returns false for null", () => {
-    expect(isRefSet(null)).toBe(false);
-  });
-
-  it("returns false for undefined", () => {
-    expect(isRefSet(undefined)).toBe(false);
-  });
-
-  it("returns false for empty object", () => {
-    expect(isRefSet({})).toBe(false);
-  });
-
-  it("returns false for non-object (string)", () => {
-    expect(isRefSet("hello")).toBe(false);
-  });
-
-  it("returns false for non-object (number)", () => {
-    expect(isRefSet(42)).toBe(false);
-  });
-
-  it("returns false for non-object (boolean)", () => {
-    expect(isRefSet(true)).toBe(false);
-  });
-
-  it("returns true for { data: 'abc' }", () => {
-    expect(isRefSet({ data: "abc" })).toBe(true);
-  });
-
-  it("returns true for { uri: 'https://example.com/img.png' }", () => {
-    expect(isRefSet({ uri: "https://example.com/img.png" })).toBe(true);
-  });
-
-  it("returns true for { asset_id: '123' }", () => {
-    expect(isRefSet({ asset_id: "123" })).toBe(true);
-  });
-
-  it("returns true for object with all three fields", () => {
-    expect(isRefSet({ data: "abc", uri: "https://x.com", asset_id: "id" })).toBe(true);
-  });
+  it("returns false for null", () => expect(isRefSet(null)).toBe(false));
+  it("returns false for undefined", () => expect(isRefSet(undefined)).toBe(false));
+  it("returns false for empty object", () => expect(isRefSet({})).toBe(false));
+  it("returns false for non-object (string)", () => expect(isRefSet("hello")).toBe(false));
+  it("returns false for non-object (number)", () => expect(isRefSet(42)).toBe(false));
+  it("returns false for non-object (boolean)", () => expect(isRefSet(true)).toBe(false));
+  it("returns true for { data: 'abc' }", () => expect(isRefSet({ data: "abc" })).toBe(true));
+  it("returns true for { uri: 'https://...' }", () => expect(isRefSet({ uri: "https://example.com/img.png" })).toBe(true));
+  it("returns true for { asset_id: '123' }", () => expect(isRefSet({ asset_id: "123" })).toBe(true));
+  it("returns true for object with all three fields", () => expect(isRefSet({ data: "abc", uri: "https://x.com", asset_id: "id" })).toBe(true));
 });
 
 /* ================================================================== */
@@ -173,33 +156,16 @@ describe("isRefSet", () => {
 /* ================================================================== */
 
 describe("inferContentType", () => {
-  it("returns image/png for 'image'", () => {
-    expect(inferContentType("image")).toBe("image/png");
-  });
-
-  it("returns video/mp4 for 'video'", () => {
-    expect(inferContentType("video")).toBe("video/mp4");
-  });
-
-  it("returns audio/wav for 'audio'", () => {
-    expect(inferContentType("audio")).toBe("audio/wav");
-  });
-
-  it("returns application/octet-stream for unknown string", () => {
-    expect(inferContentType("document")).toBe("application/octet-stream");
-  });
-
-  it("returns application/octet-stream for undefined", () => {
-    expect(inferContentType(undefined)).toBe("application/octet-stream");
-  });
-
-  it("returns application/octet-stream for empty string", () => {
-    expect(inferContentType("")).toBe("application/octet-stream");
-  });
+  it("returns image/png for 'image'", () => expect(inferContentType("image")).toBe("image/png"));
+  it("returns video/mp4 for 'video'", () => expect(inferContentType("video")).toBe("video/mp4"));
+  it("returns audio/wav for 'audio'", () => expect(inferContentType("audio")).toBe("audio/wav"));
+  it("returns application/octet-stream for unknown", () => expect(inferContentType("document")).toBe("application/octet-stream"));
+  it("returns application/octet-stream for undefined", () => expect(inferContentType(undefined)).toBe("application/octet-stream"));
+  it("returns application/octet-stream for empty string", () => expect(inferContentType("")).toBe("application/octet-stream"));
 });
 
 /* ================================================================== */
-/*  falSubmit                                                           */
+/*  falSubmit (uses SDK client.subscribe)                               */
 /* ================================================================== */
 
 describe("falSubmit", () => {
@@ -207,112 +173,37 @@ describe("falSubmit", () => {
   const endpoint = "fal-ai/flux/dev";
   const args = { prompt: "a beautiful sunset" };
 
-  it("successful submit → poll (COMPLETED) → fetch result", async () => {
-    mockFetch.mockImplementation(async (url: string | URL) => {
-      const urlStr = String(url);
-      if (urlStr.includes("/requests") && !urlStr.includes("/status") && !urlStr.endsWith("/req_123")) {
-        return jsonResponse(
-          { request_id: "req_123", response_url: "", status_url: "", cancel_url: "" },
-          201
-        );
-      }
-      if (urlStr.includes("/status")) {
-        return jsonResponse({ status: "COMPLETED" });
-      }
-      if (urlStr.endsWith("/req_123")) {
-        return jsonResponse({ images: [{ url: "https://fal.media/result.png" }] });
-      }
-      return jsonResponse({ error: "unknown" }, 404);
+  it("returns result.data from SDK subscribe", async () => {
+    mockSubscribe.mockResolvedValueOnce({
+      data: { images: [{ url: "https://fal.media/result.png" }] },
+      requestId: "req_123",
     });
 
-    const result = await falSubmit(apiKey, endpoint, args, 0, 5);
-    expect(result).toHaveProperty("images");
-  });
-
-  it("submit returns non-ok status → throws", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse({ error: "bad request" }, 400));
-    await expect(falSubmit(apiKey, endpoint, args, 0, 1)).rejects.toThrow(
-      "FAL submit failed"
-    );
-  });
-
-  it("submit response has no request_id → throws", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse({}, 201));
-    await expect(falSubmit(apiKey, endpoint, args, 0, 1)).rejects.toThrow(
-      "No request_id"
-    );
-  });
-
-  it("job FAILED status → throws", async () => {
-    mockFetch.mockImplementation(async (url: string | URL) => {
-      const urlStr = String(url);
-      if (urlStr.includes("/requests") && !urlStr.includes("/status")) {
-        return jsonResponse({ request_id: "req_fail" }, 201);
-      }
-      if (urlStr.includes("/status")) {
-        return jsonResponse({ status: "FAILED", error: "out of memory" });
-      }
-      return jsonResponse({}, 404);
+    const result = await falSubmit(apiKey, endpoint, args);
+    expect(result).toEqual({ images: [{ url: "https://fal.media/result.png" }] });
+    expect(mockSubscribe).toHaveBeenCalledWith(endpoint, {
+      input: args,
+      logs: true,
     });
-    await expect(falSubmit(apiKey, endpoint, args, 0, 5)).rejects.toThrow(
-      "FAL job failed"
-    );
   });
 
-  it("status check returns non-ok → throws", async () => {
-    mockFetch.mockImplementation(async (url: string | URL) => {
-      const urlStr = String(url);
-      if (urlStr.includes("/requests") && !urlStr.includes("/status")) {
-        return jsonResponse({ request_id: "req_se" }, 201);
-      }
-      if (urlStr.includes("/status")) {
-        return jsonResponse({ error: "server error" }, 500);
-      }
-      return jsonResponse({}, 404);
+  it("falls back to result itself when data is missing", async () => {
+    mockSubscribe.mockResolvedValueOnce({
+      images: [{ url: "https://fal.media/result.png" }],
     });
-    await expect(falSubmit(apiKey, endpoint, args, 0, 3)).rejects.toThrow(
-      "FAL status check failed"
-    );
+
+    const result = await falSubmit(apiKey, endpoint, args);
+    expect(result).toEqual({ images: [{ url: "https://fal.media/result.png" }] });
   });
 
-  it("times out when never COMPLETED", async () => {
-    mockFetch.mockImplementation(async (url: string | URL) => {
-      const urlStr = String(url);
-      if (urlStr.includes("/requests") && !urlStr.includes("/status")) {
-        return jsonResponse({ request_id: "req_to" }, 201);
-      }
-      if (urlStr.includes("/status")) {
-        return jsonResponse({ status: "IN_PROGRESS" });
-      }
-      return jsonResponse({}, 404);
-    });
-    await expect(falSubmit(apiKey, endpoint, args, 0, 2)).rejects.toThrow(
-      "FAL job timed out"
-    );
-  });
-
-  it("result fetch returns non-ok → throws", async () => {
-    mockFetch.mockImplementation(async (url: string | URL) => {
-      const urlStr = String(url);
-      if (urlStr.includes("/requests") && !urlStr.includes("/status") && !urlStr.endsWith("/req_rf")) {
-        return jsonResponse({ request_id: "req_rf" }, 201);
-      }
-      if (urlStr.includes("/status")) {
-        return jsonResponse({ status: "COMPLETED" });
-      }
-      if (urlStr.endsWith("/req_rf")) {
-        return jsonResponse({ error: "not found" }, 404);
-      }
-      return jsonResponse({}, 404);
-    });
-    await expect(falSubmit(apiKey, endpoint, args, 0, 5)).rejects.toThrow(
-      "FAL result fetch failed"
-    );
+  it("propagates SDK errors", async () => {
+    mockSubscribe.mockRejectedValueOnce(new Error("API error: 422"));
+    await expect(falSubmit(apiKey, endpoint, args)).rejects.toThrow("API error: 422");
   });
 });
 
 /* ================================================================== */
-/*  falUpload                                                           */
+/*  falUpload (uses SDK client.storage.upload)                          */
 /* ================================================================== */
 
 describe("falUpload", () => {
@@ -320,46 +211,21 @@ describe("falUpload", () => {
   const data = new Uint8Array([1, 2, 3, 4]);
   const contentType = "image/png";
 
-  it("successful upload returns access_url", async () => {
-    mockFetch
-      .mockResolvedValueOnce(jsonResponse({ token: "tok123", base_url: "https://v3.fal.media" }))
-      .mockResolvedValueOnce(jsonResponse({ access_url: "https://v3.fal.media/files/abc.png" }));
+  it("returns URL from SDK storage.upload", async () => {
+    mockStorageUpload.mockResolvedValueOnce("https://v3.fal.media/files/abc.png");
 
     const url = await falUpload(apiKey, data, contentType);
     expect(url).toBe("https://v3.fal.media/files/abc.png");
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockStorageUpload).toHaveBeenCalledTimes(1);
+    // Verify a Blob was passed
+    const blob = mockStorageUpload.mock.calls[0][0];
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.type).toBe("image/png");
   });
 
-  it("token endpoint returns non-ok → throws", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse({ error: "unauthorized" }, 401));
-    await expect(falUpload(apiKey, data, contentType)).rejects.toThrow(
-      "FAL upload token failed"
-    );
-  });
-
-  it("token response missing token → throws", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse({ base_url: "https://v3.fal.media" }));
-    await expect(falUpload(apiKey, data, contentType)).rejects.toThrow(
-      "No token in FAL upload response"
-    );
-  });
-
-  it("upload endpoint returns non-ok → throws", async () => {
-    mockFetch
-      .mockResolvedValueOnce(jsonResponse({ token: "tok123", base_url: "https://v3.fal.media" }))
-      .mockResolvedValueOnce(jsonResponse({ error: "upload failed" }, 500));
-    await expect(falUpload(apiKey, data, contentType)).rejects.toThrow(
-      "FAL file upload failed"
-    );
-  });
-
-  it("upload response missing access_url → throws", async () => {
-    mockFetch
-      .mockResolvedValueOnce(jsonResponse({ token: "tok123", base_url: "https://v3.fal.media" }))
-      .mockResolvedValueOnce(jsonResponse({ other_field: "value" }));
-    await expect(falUpload(apiKey, data, contentType)).rejects.toThrow(
-      "No access_url in FAL upload response"
-    );
+  it("propagates SDK upload errors", async () => {
+    mockStorageUpload.mockRejectedValueOnce(new Error("upload failed"));
+    await expect(falUpload(apiKey, data, contentType)).rejects.toThrow("upload failed");
   });
 });
 
@@ -370,24 +236,32 @@ describe("falUpload", () => {
 describe("assetToFalUrl", () => {
   const apiKey = "test-fal-key";
 
-  it("returns external HTTPS URI directly (no upload)", async () => {
-    const url = await assetToFalUrl(apiKey, { uri: "https://cdn.example.com/img.png" });
-    expect(url).toBe("https://cdn.example.com/img.png");
-    expect(mockFetch).not.toHaveBeenCalled();
+  it("returns FAL CDN URI directly (no upload)", async () => {
+    const url = await assetToFalUrl(apiKey, { uri: "https://v3.fal.media/files/abc.png" });
+    expect(url).toBe("https://v3.fal.media/files/abc.png");
+    expect(mockStorageUpload).not.toHaveBeenCalled();
   });
 
-  it("does not return localhost HTTPS URI directly (tries upload)", async () => {
-    const b64 = Buffer.from("fake").toString("base64");
-    // No data so returns null after skipping localhost URI
+  it("fetches and uploads external HTTPS URI to FAL CDN", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+      headers: new Headers({ "content-type": "image/png" }),
+    } as unknown as Response);
+    mockStorageUpload.mockResolvedValueOnce("https://v3.fal.media/files/uploaded.png");
+
+    const url = await assetToFalUrl(apiKey, { uri: "https://cdn.example.com/img.png" });
+    expect(url).toBe("https://v3.fal.media/files/uploaded.png");
+  });
+
+  it("does not return localhost HTTPS URI directly", async () => {
     const url = await assetToFalUrl(apiKey, { uri: "https://localhost:8080/img.png" });
     expect(url).toBeNull();
   });
 
   it("uploads when data is present", async () => {
     const b64 = Buffer.from("fake-image-bytes").toString("base64");
-    mockFetch
-      .mockResolvedValueOnce(jsonResponse({ token: "tok", base_url: "https://v3.fal.media" }))
-      .mockResolvedValueOnce(jsonResponse({ access_url: "https://v3.fal.media/files/img.png" }));
+    mockStorageUpload.mockResolvedValueOnce("https://v3.fal.media/files/img.png");
 
     const url = await assetToFalUrl(apiKey, { data: b64, type: "image" });
     expect(url).toBe("https://v3.fal.media/files/img.png");
@@ -396,6 +270,18 @@ describe("assetToFalUrl", () => {
   it("returns null when no uri and no data", async () => {
     const url = await assetToFalUrl(apiKey, { type: "image" });
     expect(url).toBeNull();
+  });
+
+  it("fetches and uploads non-HTTPS URI", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([10, 20]).buffer,
+      headers: new Headers({ "content-type": "image/jpeg" }),
+    } as unknown as Response);
+    mockStorageUpload.mockResolvedValueOnce("https://v3.fal.media/files/uploaded.jpg");
+
+    const url = await assetToFalUrl(apiKey, { uri: "http://local/img.jpg" });
+    expect(url).toBe("https://v3.fal.media/files/uploaded.jpg");
   });
 });
 
@@ -416,6 +302,7 @@ describe("imageToDataUrl", () => {
       ok: true,
       status: 200,
       arrayBuffer: async () => new Uint8Array([10, 20, 30]).buffer,
+      headers: { get: () => null },
     } as unknown as Response);
 
     const url = await imageToDataUrl({ uri: "https://cdn.example.com/img.png" });
@@ -424,12 +311,16 @@ describe("imageToDataUrl", () => {
   });
 
   it("returns null for empty ref", async () => {
-    const url = await imageToDataUrl({});
-    expect(url).toBeNull();
+    expect(await imageToDataUrl({})).toBeNull();
   });
 
   it("returns null for non-HTTPS URI (no data)", async () => {
-    const url = await imageToDataUrl({ uri: "http://insecure.example.com/img.png" });
-    expect(url).toBeNull();
+    expect(await imageToDataUrl({ uri: "http://insecure.example.com/img.png" })).toBeNull();
+  });
+
+  it("infers MIME from URI extension", async () => {
+    const b64 = Buffer.from("jpeg-bytes").toString("base64");
+    const url = await imageToDataUrl({ data: b64, uri: "https://x.com/photo.jpg" });
+    expect(url).toBe(`data:image/jpeg;base64,${b64}`);
   });
 });

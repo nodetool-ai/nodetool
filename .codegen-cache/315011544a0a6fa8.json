@@ -1,0 +1,381 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/image-apps-v2/product-photography",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/image-apps-v2/product-photography queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/image-apps-v2/product-photography",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://v3.fal.media/files/penguin/g36T9svKmdie3DHtxJz5x_67cde98934654713bf484b258e2384f3.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/image-apps-v2/product-photography",
+      "documentationUrl": "https://fal.ai/models/fal-ai/image-apps-v2/product-photography/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ImageAppsV2ProductPhotographyInput": {
+        "x-fal-order-properties": [
+          "product_image_url",
+          "aspect_ratio"
+        ],
+        "type": "object",
+        "properties": {
+          "aspect_ratio": {
+            "description": "Aspect ratio for 4K output",
+            "$ref": "#/components/schemas/AspectRatio"
+          },
+          "product_image_url": {
+            "examples": [
+              "https://v3.fal.media/files/tiger/WqtPStHkOu6W0lZcIlXD8_156e3c91cb3a4d12b7380cc43b5e4c67.png"
+            ],
+            "description": "Image URL of the product to create professional studio photography",
+            "type": "string",
+            "title": "Product Image Url"
+          }
+        },
+        "title": "ProductPhotographyInput",
+        "required": [
+          "product_image_url"
+        ]
+      },
+      "ImageAppsV2ProductPhotographyOutput": {
+        "x-fal-order-properties": [
+          "images"
+        ],
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "url": "https://v3b.fal.media/files/b/panda/NggkU_5Ne-SB-Ltgr0lbH_b76a99a276374ff9b13f399e57c54cb6.png"
+                }
+              ]
+            ],
+            "description": "Professional studio product photography",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          }
+        },
+        "title": "ProductPhotographyOutput",
+        "required": [
+          "images"
+        ]
+      },
+      "AspectRatio": {
+        "x-fal-order-properties": [
+          "ratio"
+        ],
+        "type": "object",
+        "properties": {
+          "ratio": {
+            "enum": [
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4"
+            ],
+            "title": "Ratio",
+            "type": "string",
+            "description": "Aspect ratio for 4K resolution output",
+            "default": "1:1"
+          }
+        },
+        "title": "AspectRatio",
+        "description": "Aspect ratio model that calculates 4K resolution dimensions"
+      },
+      "Image": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "description": "Represents an image file.",
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image in pixels.",
+            "title": "Height",
+            "examples": [
+              1024
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image in pixels.",
+            "title": "Width",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/image-apps-v2/product-photography/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/image-apps-v2/product-photography/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/image-apps-v2/product-photography": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageAppsV2ProductPhotographyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/image-apps-v2/product-photography/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageAppsV2ProductPhotographyOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

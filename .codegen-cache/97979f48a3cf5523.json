@@ -1,0 +1,505 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/flux-2-lora-gallery/hdr-style",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/flux-2-lora-gallery/hdr-style queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/flux-2-lora-gallery/hdr-style",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/rabbit/XhRCpnCkio1p3CnaNTQyQ_839690f21013420f8d0bb5d101fd329d.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/flux-2-lora-gallery/hdr-style",
+      "documentationUrl": "https://fal.ai/models/fal-ai/flux-2-lora-gallery/hdr-style/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Flux2LoraGalleryHdrStyleInput": {
+        "description": "Input model for HDR Style endpoint - Generate HDR style images with vibrant colors",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A wonderful tropical landscape",
+              "A mystical forest with glowing mushrooms, intricate details and volumetric lighting",
+              "Futuristic cityscape at night, photorealistic rendering with ray tracing",
+              "Portrait with ultra detailed skin texture, natural lighting, 8K quality"
+            ],
+            "description": "The prompt to generate an HDR style image. The trigger word 'Hyp3rRe4list1c' will be automatically prepended.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "num_images": {
+            "minimum": 1,
+            "description": "Number of images to generate",
+            "type": "integer",
+            "maximum": 4,
+            "title": "Num Images",
+            "default": 1
+          },
+          "acceleration": {
+            "enum": [
+              "none",
+              "regular"
+            ],
+            "description": "Acceleration level for image generation. 'regular' balances speed and quality.",
+            "type": "string",
+            "title": "Acceleration",
+            "default": "regular"
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "description": "The size of the generated image.",
+            "title": "Image Size",
+            "default": "landscape_4_3"
+          },
+          "lora_scale": {
+            "minimum": 0,
+            "description": "The strength of the HDR style effect.",
+            "type": "number",
+            "maximum": 2,
+            "title": "Lora Scale",
+            "default": 1
+          },
+          "output_format": {
+            "enum": [
+              "png",
+              "jpeg",
+              "webp"
+            ],
+            "description": "The format of the output image",
+            "type": "string",
+            "title": "Output Format",
+            "default": "png"
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and won't be saved in history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "enable_safety_checker": {
+            "description": "Whether to enable the safety checker for the generated image.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "description": "The number of inference steps to perform.",
+            "type": "integer",
+            "maximum": 50,
+            "title": "Num Inference Steps",
+            "default": 40
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "description": "The CFG (Classifier Free Guidance) scale. Controls how closely the model follows the prompt.",
+            "type": "number",
+            "maximum": 20,
+            "title": "Guidance Scale",
+            "default": 2.5
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for reproducibility. Same seed with same prompt will produce same result.",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "image_size",
+          "guidance_scale",
+          "num_inference_steps",
+          "acceleration",
+          "seed",
+          "sync_mode",
+          "enable_safety_checker",
+          "output_format",
+          "num_images",
+          "lora_scale"
+        ],
+        "title": "HdrStyleInput",
+        "required": [
+          "prompt"
+        ]
+      },
+      "Flux2LoraGalleryHdrStyleOutput": {
+        "title": "HdrStyleOutput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "description": "The prompt used for generation",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "images": {
+            "examples": [
+              [
+                {
+                  "url": "https://v3b.fal.media/files/b/penguin/3gPcw3pH__e6teqtOEku9.png"
+                }
+              ]
+            ],
+            "description": "The generated HDR style images",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "description": "The seed used for generation",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "seed",
+          "prompt"
+        ],
+        "required": [
+          "images",
+          "seed",
+          "prompt"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "description": "The height of the generated image.",
+            "type": "integer",
+            "maximum": 14142,
+            "title": "Height",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "description": "The width of the generated image.",
+            "type": "integer",
+            "maximum": 14142,
+            "title": "Width",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image in pixels.",
+            "title": "Height",
+            "examples": [
+              1024
+            ]
+          },
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image in pixels.",
+            "title": "Width",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/flux-2-lora-gallery/hdr-style/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/flux-2-lora-gallery/hdr-style/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/flux-2-lora-gallery/hdr-style": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Flux2LoraGalleryHdrStyleInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/flux-2-lora-gallery/hdr-style/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Flux2LoraGalleryHdrStyleOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

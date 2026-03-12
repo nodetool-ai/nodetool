@@ -1,0 +1,372 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/imagen3/fast",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/imagen3/fast queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/imagen3/fast",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/web-examples/imagen3/imagen.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/imagen3/fast",
+      "documentationUrl": "https://fal.ai/models/fal-ai/imagen3/fast/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Imagen3FastInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "aspect_ratio",
+          "num_images",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A serene landscape with mountains reflected in a crystal clear lake at sunset"
+            ],
+            "description": "The text prompt describing what you want to see",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "1:1",
+              "16:9",
+              "9:16",
+              "3:4",
+              "4:3"
+            ],
+            "description": "The aspect ratio of the generated image",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "1:1"
+          },
+          "num_images": {
+            "minimum": 1,
+            "description": "Number of images to generate (1-4)",
+            "type": "integer",
+            "title": "Num Images",
+            "maximum": 4,
+            "default": 1
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for reproducible generation",
+            "title": "Seed"
+          },
+          "negative_prompt": {
+            "description": "A description of what to discourage in the generated images",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": ""
+          }
+        },
+        "title": "TextToImageInput",
+        "required": [
+          "prompt"
+        ]
+      },
+      "Imagen3FastOutput": {
+        "x-fal-order-properties": [
+          "images",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "url": "https://v3.fal.media/files/kangaroo/c0RfXzCisqX6YRkIF7apw_output.png"
+                }
+              ]
+            ],
+            "title": "Images",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/File"
+            }
+          },
+          "seed": {
+            "examples": [
+              42
+            ],
+            "description": "Seed used for generation",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "title": "Output",
+        "required": [
+          "images",
+          "seed"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/imagen3/fast/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imagen3/fast/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imagen3/fast": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Imagen3FastInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/imagen3/fast/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Imagen3FastOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

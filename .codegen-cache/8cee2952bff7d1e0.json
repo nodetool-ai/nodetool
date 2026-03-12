@@ -1,0 +1,422 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/cat-vton",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/cat-vton queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/cat-vton",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/idm-vton.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/cat-vton",
+      "documentationUrl": "https://fal.ai/models/fal-ai/cat-vton/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "CatVtonInput": {
+        "title": "CATVTONInput",
+        "type": "object",
+        "properties": {
+          "garment_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/catvton/tshirt.jpg"
+            ],
+            "title": "Garment Image Url",
+            "type": "string",
+            "description": "Url to the garment image."
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Image Size",
+            "description": "The size of the generated image.",
+            "default": "portrait_4_3"
+          },
+          "human_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/catvton/man5.jpg"
+            ],
+            "title": "Human Image Url",
+            "type": "string",
+            "description": "Url for the human image."
+          },
+          "cloth_type": {
+            "enum": [
+              "upper",
+              "lower",
+              "overall",
+              "inner",
+              "outer"
+            ],
+            "title": "Cloth Type",
+            "type": "string",
+            "description": "\n        Type of the Cloth to be tried on.\n\n        Options:\n        upper: Upper body cloth\n        lower: Lower body cloth\n        overall: Full body cloth\n        inner: Inner cloth, like T-shirt inside a jacket\n        outer: Outer cloth, like a jacket over a T-shirt\n        ",
+            "examples": [
+              "upper",
+              "lower",
+              "overall",
+              "inner",
+              "outer"
+            ]
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "maximum": 20,
+            "type": "number",
+            "title": "Guidance scale (CFG)",
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "default": 2.5
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "description": "The number of inference steps to perform.",
+            "default": 30
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            The same seed and the same input given to the same version of the model\n            will output the same image every time.\n        "
+          }
+        },
+        "x-fal-order-properties": [
+          "human_image_url",
+          "garment_image_url",
+          "cloth_type",
+          "image_size",
+          "num_inference_steps",
+          "guidance_scale",
+          "seed"
+        ],
+        "required": [
+          "human_image_url",
+          "garment_image_url",
+          "cloth_type"
+        ]
+      },
+      "CatVtonOutput": {
+        "title": "CATVTONOutput",
+        "type": "object",
+        "properties": {
+          "image": {
+            "title": "Image",
+            "description": "The output image.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Image"
+              }
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "image"
+        ],
+        "required": [
+          "image"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Height",
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Width",
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "Image": {
+        "title": "Image",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "type": "integer",
+            "description": "The size of the file in bytes."
+          },
+          "height": {
+            "examples": [
+              1024
+            ],
+            "title": "Height",
+            "type": "integer",
+            "description": "The height of the image in pixels."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "title": "Width",
+            "type": "integer",
+            "description": "The width of the image in pixels."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "type": "string",
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "type": "string",
+            "description": "The mime type of the file."
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "description": "Represents an image file.",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data",
+          "width",
+          "height"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/cat-vton/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/cat-vton/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/cat-vton": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatVtonInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/cat-vton/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatVtonOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,468 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/hunyuan-image/v3/instruct/text-to-image",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/hunyuan-image/v3/instruct/text-to-image queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/hunyuan-image/v3/instruct/text-to-image",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a8c3642/VkrnVjTwaSw6OOn2WTWNX_64a98d021f7842a58c7dfc3b2218fdab.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/hunyuan-image/v3/instruct/text-to-image",
+      "documentationUrl": "https://fal.ai/models/fal-ai/hunyuan-image/v3/instruct/text-to-image/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "HunyuanImageV3InstructTextToImageInput": {
+        "title": "HunyuanImageRequest",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Macro photograph of a peacock feather showing individual barbs, barbules, and the iridescent microstructure creating color."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The text prompt to generate an image from."
+          },
+          "num_images": {
+            "minimum": 1,
+            "maximum": 4,
+            "type": "integer",
+            "title": "Num Images",
+            "description": "The number of images to generate.",
+            "default": 1
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "auto",
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Image Size",
+            "description": "The desired size of the generated image. If auto, image size will be determined by the model.",
+            "default": "auto"
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png"
+            ],
+            "title": "Output Format",
+            "type": "string",
+            "description": "The format of the generated image.",
+            "default": "png"
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "default": false
+          },
+          "guidance_scale": {
+            "minimum": 1,
+            "maximum": 20,
+            "type": "number",
+            "title": "Guidance Scale",
+            "description": "Controls how much the model adheres to the prompt. Higher values mean stricter adherence.",
+            "default": 3.5
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducible results. If None, a random seed is used."
+          },
+          "enable_safety_checker": {
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, the safety checker will be enabled.",
+            "default": true
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "image_size",
+          "num_images",
+          "guidance_scale",
+          "seed",
+          "enable_safety_checker",
+          "sync_mode",
+          "output_format"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "HunyuanImageV3InstructTextToImageOutput": {
+        "title": "HunyuanImageTextToImageResponse",
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "height": 1024,
+                  "content_type": "image/png",
+                  "url": "https://v3b.fal.media/files/b/0a8c37ef/niSZAZpVwwixexdtx1AAf.png",
+                  "width": 1024
+                }
+              ]
+            ],
+            "description": "A list of the generated images.",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The base seed used for the generation process."
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "seed"
+        ],
+        "required": [
+          "images",
+          "seed"
+        ]
+      },
+      "ImageSize": {
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Height",
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Width",
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "title": "ImageSize"
+      },
+      "Image": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "description": "Represents an image file.",
+        "title": "Image",
+        "properties": {
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height",
+            "examples": [
+              1024
+            ],
+            "description": "The height of the image in pixels."
+          },
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width",
+            "examples": [
+              1024
+            ],
+            "description": "The width of the image in pixels."
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/hunyuan-image/v3/instruct/text-to-image/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-image/v3/instruct/text-to-image/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-image/v3/instruct/text-to-image": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HunyuanImageV3InstructTextToImageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-image/v3/instruct/text-to-image/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HunyuanImageV3InstructTextToImageOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

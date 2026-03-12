@@ -1,0 +1,487 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/cogvideox-5b/image-to-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/cogvideox-5b/image-to-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/cogvideox-5b/image-to-video",
+      "category": "image-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/model_tests/cogvideox/panda.gif.gif",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/cogvideox-5b/image-to-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/cogvideox-5b/image-to-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Cogvideox5bImageToVideoInput": {
+        "title": "ImageToVideoInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A low angle shot of a man walking down a street, illuminated by the neon signs of the bars around him"
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to generate the video from."
+          },
+          "use_rife": {
+            "title": "Use Rife",
+            "type": "boolean",
+            "description": "Use RIFE for video interpolation",
+            "default": true
+          },
+          "image_url": {
+            "examples": [
+              "https://d3phaj0sisr2ct.cloudfront.net/research/eugene.jpg"
+            ],
+            "title": "Image URL",
+            "type": "string",
+            "description": "The URL to the image to generate the video from."
+          },
+          "loras": {
+            "description": "\n            The LoRAs to use for the image generation. We currently support one lora.\n        ",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoraWeight"
+            },
+            "examples": [],
+            "title": "Loras",
+            "default": []
+          },
+          "video_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "title": "Video Size",
+            "description": "The size of the generated video.",
+            "default": {
+              "height": 480,
+              "width": 720
+            }
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "maximum": 20,
+            "type": "number",
+            "title": "Guidance scale (CFG)",
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related video to show you.\n        ",
+            "default": 7
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same video every time.\n        "
+          },
+          "export_fps": {
+            "minimum": 4,
+            "maximum": 32,
+            "type": "integer",
+            "title": "Export Fps",
+            "description": "The target FPS of the video",
+            "default": 16
+          },
+          "negative_prompt": {
+            "examples": [
+              "Distorted, discontinuous, Ugly, blurry, low resolution, motionless, static, disfigured, disconnected limbs, Ugly faces, incomplete arms"
+            ],
+            "title": "Negative Prompt",
+            "type": "string",
+            "description": "The negative prompt to generate video from",
+            "default": ""
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "maximum": 50,
+            "type": "integer",
+            "title": "Num Inference Steps",
+            "description": "The number of inference steps to perform.",
+            "default": 50
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "video_size",
+          "negative_prompt",
+          "loras",
+          "num_inference_steps",
+          "seed",
+          "guidance_scale",
+          "use_rife",
+          "export_fps",
+          "image_url"
+        ],
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "Cogvideox5bImageToVideoOutput": {
+        "title": "Output",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt used for generating the video."
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "\n            Seed of the generated video. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        "
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings"
+          },
+          "video": {
+            "description": "The URL to the generated video",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "timings",
+          "seed",
+          "prompt"
+        ],
+        "required": [
+          "video",
+          "timings",
+          "seed",
+          "prompt"
+        ]
+      },
+      "LoraWeight": {
+        "title": "LoraWeight",
+        "type": "object",
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string",
+            "description": "URL or the path to the LoRA weights."
+          },
+          "scale": {
+            "minimum": 0,
+            "maximum": 4,
+            "type": "number",
+            "title": "Scale",
+            "description": "\n            The scale of the LoRA weight. This is used to scale the LoRA weight\n            before merging it with the base model.\n        ",
+            "default": 1
+          }
+        },
+        "x-fal-order-properties": [
+          "path",
+          "scale"
+        ],
+        "required": [
+          "path"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Height",
+            "description": "The height of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "title": "Width",
+            "description": "The width of the generated image.",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/cogvideox-5b/image-to-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/cogvideox-5b/image-to-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/cogvideox-5b/image-to-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cogvideox5bImageToVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/cogvideox-5b/image-to-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cogvideox5bImageToVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,423 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/seedvr/upscale/video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/seedvr/upscale/video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/seedvr/upscale/video",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://v3.fal.media/files/koala/cAs3xUC9Lx-jlQh-27-60_4dddbb5a9bac42da86ddf20a5b9d30b3.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/seedvr/upscale/video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/seedvr/upscale/video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "SeedvrUpscaleVideoInput": {
+        "title": "SeedVRVideoInput",
+        "type": "object",
+        "properties": {
+          "video_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/seedvr-input.mp4"
+            ],
+            "title": "Video Url",
+            "type": "string",
+            "description": "The input video to be processed"
+          },
+          "upscale_mode": {
+            "enum": [
+              "target",
+              "factor"
+            ],
+            "title": "Upscale Mode",
+            "type": "string",
+            "description": "The mode to use for the upscale. If 'target', the upscale factor will be calculated based on the target resolution. If 'factor', the upscale factor will be used directly.",
+            "default": "factor"
+          },
+          "noise_scale": {
+            "description": "The noise scale to use for the generation process.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Noise Scale",
+            "maximum": 1,
+            "multipleOf": 0.001,
+            "default": 0.1
+          },
+          "output_format": {
+            "enum": [
+              "X264 (.mp4)",
+              "VP9 (.webm)",
+              "PRORES4444 (.mov)",
+              "GIF (.gif)"
+            ],
+            "title": "Output Format",
+            "type": "string",
+            "description": "The format of the output video.",
+            "default": "X264 (.mp4)"
+          },
+          "target_resolution": {
+            "enum": [
+              "720p",
+              "1080p",
+              "1440p",
+              "2160p"
+            ],
+            "title": "Target Resolution",
+            "type": "string",
+            "description": "The target resolution to upscale to when `upscale_mode` is `target`.",
+            "default": "1080p"
+          },
+          "output_write_mode": {
+            "enum": [
+              "fast",
+              "balanced",
+              "small"
+            ],
+            "title": "Output Write Mode",
+            "type": "string",
+            "description": "The write mode of the output video.",
+            "default": "balanced"
+          },
+          "output_quality": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "maximum"
+            ],
+            "title": "Output Quality",
+            "type": "string",
+            "description": "The quality of the output video.",
+            "default": "high"
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "default": false
+          },
+          "upscale_factor": {
+            "minimum": 1,
+            "title": "Upscale Factor",
+            "type": "number",
+            "description": "Upscaling factor to be used. Will multiply the dimensions with this factor when `upscale_mode` is `factor`.",
+            "maximum": 10,
+            "default": 2
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "The random seed used for the generation process."
+          }
+        },
+        "x-fal-order-properties": [
+          "video_url",
+          "upscale_mode",
+          "upscale_factor",
+          "target_resolution",
+          "seed",
+          "noise_scale",
+          "output_format",
+          "output_quality",
+          "output_write_mode",
+          "sync_mode"
+        ],
+        "required": [
+          "video_url"
+        ]
+      },
+      "SeedvrUpscaleVideoOutput": {
+        "title": "SeedVRVideoOutput",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The random seed used for the generation process."
+          },
+          "video": {
+            "examples": [
+              {
+                "content_type": "video/mp4",
+                "url": "https://storage.googleapis.com/falserverless/example_outputs/seedvr-output.mp4"
+              }
+            ],
+            "description": "Upscaled video file after processing",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/seedvr/upscale/video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/seedvr/upscale/video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/seedvr/upscale/video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeedvrUpscaleVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/seedvr/upscale/video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedvrUpscaleVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

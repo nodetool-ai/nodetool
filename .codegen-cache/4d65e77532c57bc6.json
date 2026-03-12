@@ -1,0 +1,567 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/hyper3d/rodin",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/hyper3d/rodin queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/hyper3d/rodin",
+      "category": "image-to-3d",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/hyper3d-rodin.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/hyper3d/rodin",
+      "documentationUrl": "https://fal.ai/models/fal-ai/hyper3d/rodin/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Hyper3dRodinInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "input_image_urls",
+          "condition_mode",
+          "seed",
+          "geometry_file_format",
+          "material",
+          "quality",
+          "use_hyper",
+          "tier",
+          "TAPose",
+          "bbox_condition",
+          "addons"
+        ],
+        "type": "object",
+        "properties": {
+          "tier": {
+            "enum": [
+              "Regular",
+              "Sketch"
+            ],
+            "description": "Tier of generation. For Rodin Sketch, set to Sketch. For Rodin Regular, set to Regular.",
+            "type": "string",
+            "title": "Tier",
+            "default": "Regular"
+          },
+          "condition_mode": {
+            "enum": [
+              "fuse",
+              "concat"
+            ],
+            "description": "For fuse mode, One or more images are required.It will generate a model by extracting and fusing features of objects from multiple images.For concat mode, need to upload multiple multi-view images of the same object and generate the model. (You can upload multi-view images in any order, regardless of the order of view.)",
+            "type": "string",
+            "title": "Condition Mode",
+            "default": "concat"
+          },
+          "prompt": {
+            "examples": [
+              "A futuristic robot with sleek metallic design."
+            ],
+            "description": "A textual prompt to guide model generation. Required for Text-to-3D mode. Optional for Image-to-3D mode.",
+            "type": "string",
+            "title": "Prompt",
+            "default": ""
+          },
+          "bbox_condition": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An array that specifies the dimensions and scaling factor of the bounding box. Typically, this array contains 3 elements, Length(X-axis), Width(Y-axis) and Height(Z-axis).",
+            "title": "Bbox Condition",
+            "example": [
+              100,
+              50,
+              150
+            ]
+          },
+          "quality": {
+            "enum": [
+              "high",
+              "medium",
+              "low",
+              "extra-low"
+            ],
+            "description": "Generation quality. Possible values: high, medium, low, extra-low. Default is medium.",
+            "type": "string",
+            "title": "Quality",
+            "default": "medium"
+          },
+          "TAPose": {
+            "description": "When generating the human-like model, this parameter control the generation result to T/A Pose.",
+            "type": "boolean",
+            "title": "T/A Pose",
+            "default": false
+          },
+          "input_image_urls": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/video_models/robot.png"
+            ],
+            "description": "URL of images to use while generating the 3D model. Required for Image-to-3D mode. Optional for Text-to-3D mode.",
+            "type": "array",
+            "title": "Input Image Urls",
+            "items": {
+              "type": "string",
+              "_fal_ui_field": "image"
+            }
+          },
+          "geometry_file_format": {
+            "enum": [
+              "glb",
+              "usdz",
+              "fbx",
+              "obj",
+              "stl"
+            ],
+            "description": "Format of the geometry file. Possible values: glb, usdz, fbx, obj, stl. Default is glb.",
+            "type": "string",
+            "title": "Geometry File Format",
+            "default": "glb"
+          },
+          "addons": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "HighPack"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Generation add-on features. Default is []. Possible values are HighPack. The HighPack option will provide 4K resolution textures instead of the default 1K, as well as models with high-poly. It will cost triple the billable units.",
+            "title": "Addons"
+          },
+          "use_hyper": {
+            "description": "Whether to export the model using hyper mode. Default is false.",
+            "type": "boolean",
+            "title": "Use Hyper",
+            "default": false
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "maximum": 65535,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Seed value for randomization, ranging from 0 to 65535. Optional.",
+            "title": "Seed"
+          },
+          "material": {
+            "enum": [
+              "PBR",
+              "Shaded"
+            ],
+            "description": "Material type. Possible values: PBR, Shaded. Default is PBR.",
+            "type": "string",
+            "examples": [
+              "Shaded"
+            ],
+            "title": "Material",
+            "default": "PBR"
+          }
+        },
+        "title": "Rodin3DInput"
+      },
+      "Hyper3dRodinOutput": {
+        "x-fal-order-properties": [
+          "model_mesh",
+          "seed",
+          "textures"
+        ],
+        "type": "object",
+        "properties": {
+          "model_mesh": {
+            "examples": [
+              {
+                "url": "https://v3.fal.media/files/koala/VlX4JqNI8F9HO2ETp_B7t_base_basic_pbr.glb"
+              }
+            ],
+            "description": "Generated 3D object file.",
+            "$ref": "#/components/schemas/File"
+          },
+          "textures": {
+            "description": "Generated textures for the 3D object.",
+            "type": "array",
+            "title": "Textures",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "description": "Seed value used for generation.",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "title": "ObjectOutput",
+        "required": [
+          "model_mesh",
+          "seed",
+          "textures"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      },
+      "Image": {
+        "description": "Represents an image file.",
+        "type": "object",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image in pixels.",
+            "examples": [
+              1024
+            ],
+            "title": "Height"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image in pixels.",
+            "examples": [
+              1024
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/hyper3d/rodin/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hyper3d/rodin/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hyper3d/rodin": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Hyper3dRodinInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hyper3d/rodin/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Hyper3dRodinOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,391 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for openrouter/router/vision",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the openrouter/router/vision queue.",
+    "x-fal-metadata": {
+      "endpointId": "openrouter/router/vision",
+      "category": "vision",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/penguin/v-wl5CGbHxNVatcGXntIY_e14c7922d88348769a90469d1c206501.jpg",
+      "playgroundUrl": "https://fal.ai/models/openrouter/router/vision",
+      "documentationUrl": "https://fal.ai/models/openrouter/router/vision/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "RouterVisionInput": {
+        "x-fal-order-properties": [
+          "image_urls",
+          "prompt",
+          "system_prompt",
+          "model",
+          "reasoning",
+          "temperature",
+          "max_tokens"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Caption this image for a text-to-image model with as much detail as possible."
+            ],
+            "description": "Prompt to be used for the image",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "system_prompt": {
+            "examples": [
+              "Only answer the question, do not provide any additional information or add any prefix/suffix other than the answer of the original question. Don't use markdown."
+            ],
+            "description": "System prompt to provide context or instructions to the model",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Prompt"
+          },
+          "reasoning": {
+            "description": "Should reasoning be the part of the final answer.",
+            "type": "boolean",
+            "title": "Reasoning",
+            "default": false
+          },
+          "model": {
+            "examples": [
+              "google/gemini-2.5-flash",
+              "anthropic/claude-sonnet-4.6",
+              "anthropic/claude-sonnet-4.5",
+              "openai/gpt-4o",
+              "qwen/qwen3-vl-235b-a22b-instruct",
+              "x-ai/grok-4-fast"
+            ],
+            "description": "Name of the model to use. Charged based on actual token usage.",
+            "type": "string",
+            "title": "Model"
+          },
+          "max_tokens": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "This sets the upper limit for the number of tokens the model can generate in response. It won't produce more than this limit. The maximum value is the context length minus the prompt length.",
+            "title": "Max Tokens"
+          },
+          "temperature": {
+            "minimum": 0,
+            "description": "This setting influences the variety in the model's responses. Lower values lead to more predictable and typical responses, while higher values encourage more diverse and less common responses. At 0, the model always gives the same response for a given input.",
+            "type": "number",
+            "maximum": 2,
+            "title": "Temperature",
+            "default": 1
+          },
+          "image_urls": {
+            "examples": [
+              [
+                "https://fal.media/files/tiger/4Ew1xYW6oZCs6STQVC7V8_86440216d0fe42e4b826d03a2121468e.jpg"
+              ]
+            ],
+            "description": "List of image URLs to be processed",
+            "type": "array",
+            "title": "Image Urls",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "title": "VisionInput",
+        "required": [
+          "prompt",
+          "image_urls",
+          "model"
+        ]
+      },
+      "RouterVisionOutput": {
+        "x-fal-order-properties": [
+          "output",
+          "usage"
+        ],
+        "type": "object",
+        "properties": {
+          "usage": {
+            "examples": [
+              {
+                "prompt_tokens": 1340,
+                "total_tokens": 1403,
+                "completion_tokens": 63,
+                "cost": 0.0005595
+              }
+            ],
+            "description": "Token usage information",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UsageInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output": {
+            "examples": [
+              "A close-up of a tiger's face focusing on its bright orange iris and the area around its eye, with white fur eyebrows and a contrasting black and rich orange striped fur pattern. The word \"FLUX\" is overlaid in bold, white, brush-stroke styled text across the tiger's face."
+            ],
+            "description": "Generated output",
+            "type": "string",
+            "title": "Output"
+          }
+        },
+        "title": "VisionOutput",
+        "required": [
+          "output",
+          "usage"
+        ]
+      },
+      "UsageInfo": {
+        "x-fal-order-properties": [
+          "prompt_tokens",
+          "completion_tokens",
+          "total_tokens",
+          "cost"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Tokens"
+          },
+          "total_tokens": {
+            "title": "Total Tokens",
+            "type": "integer",
+            "default": 0
+          },
+          "completion_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Tokens"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "number"
+          }
+        },
+        "title": "UsageInfo",
+        "required": [
+          "cost"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/openrouter/router/vision/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openrouter/router/vision/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openrouter/router/vision": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouterVisionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openrouter/router/vision/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouterVisionOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

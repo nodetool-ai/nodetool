@@ -1,0 +1,465 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/step1x-edit",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/step1x-edit queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/step1x-edit",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Sound-3.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/step1x-edit",
+      "documentationUrl": "https://fal.ai/models/fal-ai/step1x-edit/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Step1xEditInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "image_url",
+          "negative_prompt",
+          "seed",
+          "guidance_scale",
+          "num_inference_steps",
+          "sync_mode",
+          "enable_safety_checker",
+          "output_format"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "make head band red"
+            ],
+            "description": "The prompt to generate an image from.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png"
+            ],
+            "description": "The format of the generated image.",
+            "type": "string",
+            "title": "Output Format",
+            "default": "jpeg"
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/girl_2.png"
+            ],
+            "description": "The image URL to generate an image from. Needs to match the dimensions of the mask.",
+            "type": "string",
+            "title": "Image URL"
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "enable_safety_checker": {
+            "description": "If set to true, the safety checker will be enabled.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "description": "The number of inference steps to perform.",
+            "type": "integer",
+            "maximum": 50,
+            "title": "Num Inference Steps",
+            "default": 30
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        ",
+            "title": "Seed"
+          },
+          "negative_prompt": {
+            "examples": [
+              ""
+            ],
+            "description": "\n            The negative prompt to use. Use it to address details that you don't want\n            in the image. This could be colors, objects, scenery and even the small details\n            (e.g. moustache, blurry, low resolution).\n        ",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": ""
+          },
+          "guidance_scale": {
+            "minimum": 0,
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+            "type": "number",
+            "maximum": 20,
+            "title": "Guidance scale (CFG)",
+            "default": 4
+          }
+        },
+        "title": "TextToImageInput",
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "Step1xEditOutput": {
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "description": "The prompt used for generating the image.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "images": {
+            "examples": [
+              [
+                {
+                  "height": 1024,
+                  "content_type": "image/jpeg",
+                  "url": "https://v3.fal.media/files/kangaroo/kFPr5gC_Rr9JZbTTakEMd.jpeg",
+                  "width": 672
+                }
+              ]
+            ],
+            "description": "The generated images",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "has_nsfw_concepts": {
+            "description": "Whether the generated images contain NSFW concepts.",
+            "type": "array",
+            "title": "Has Nsfw Concepts",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings"
+          }
+        },
+        "title": "ImageOutput",
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ]
+      },
+      "Image": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "description": "Represents an image file.",
+        "title": "Image",
+        "properties": {
+          "height": {
+            "examples": [
+              1024
+            ],
+            "description": "The height of the image in pixels.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "description": "The width of the image in pixels.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/step1x-edit/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/step1x-edit/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/step1x-edit": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Step1xEditInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/step1x-edit/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Step1xEditOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

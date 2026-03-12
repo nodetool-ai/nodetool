@@ -1,0 +1,404 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for beatoven/music-generation",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the beatoven/music-generation queue.",
+    "x-fal-metadata": {
+      "endpointId": "beatoven/music-generation",
+      "category": "text-to-audio",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/rabbit/-fqZhGXxiW3usZOZ267NO_9c5cd9c1-62d9-4ed9-8c8e-3c148614c137.png",
+      "playgroundUrl": "https://fal.ai/models/beatoven/music-generation",
+      "documentationUrl": "https://fal.ai/models/beatoven/music-generation/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MusicGenerationInput": {
+        "description": "Input schema for music generation with form controls for the playground.",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Jazz music for a late-night restaurant setting",
+              "A lush, ambient soundscape featuring serene sounds, and a gentle, melancholic piano melody",
+              "Hip-hop music, mellow keys and vinyl crackle",
+              "House music with synthesizers, driving bass and a steady 4/4 beat",
+              "Classical piano melody with emotional depth and gentle strings"
+            ],
+            "description": "Describe the music you want to generate",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "duration": {
+            "description": "Length of the generated music in seconds",
+            "type": "number",
+            "minimum": 5,
+            "maximum": 150,
+            "examples": [
+              90,
+              47,
+              150
+            ],
+            "title": "Duration",
+            "default": 90
+          },
+          "refinement": {
+            "description": "Refinement level - higher values may improve quality but take longer",
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 200,
+            "examples": [
+              100,
+              200
+            ],
+            "title": "Refinement",
+            "default": 100
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "maximum": 2147483647,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for reproducible results - leave empty for random generation",
+            "title": "Seed"
+          },
+          "negative_prompt": {
+            "examples": [
+              "noise",
+              "distortion",
+              "heavy drums",
+              "high-hats"
+            ],
+            "description": "Describe what you want to avoid in the music (instruments, styles, moods). Leave blank for none.",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": ""
+          },
+          "creativity": {
+            "description": "Creativity level - higher values allow more creative interpretation of the prompt",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "examples": [
+              16,
+              14,
+              11
+            ],
+            "title": "Creativity",
+            "default": 16
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "duration",
+          "refinement",
+          "creativity",
+          "seed"
+        ],
+        "title": "MusicGenerationInput",
+        "required": [
+          "prompt"
+        ]
+      },
+      "MusicGenerationOutput": {
+        "description": "Output schema for music generation.",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "description": "The processed prompt used for generation",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "metadata": {
+            "description": "Generation metadata including duration, sample rate, and parameters",
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Metadata"
+          },
+          "audio": {
+            "examples": [
+              {
+                "url": "https://v3b.fal.media/files/b/rabbit/DBesSNPP6NwfhwMftene-_music_ZfniDF.wav"
+              }
+            ],
+            "description": "Generated audio file in WAV format",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "audio",
+          "prompt",
+          "metadata"
+        ],
+        "title": "MusicGenerationOutput",
+        "required": [
+          "audio",
+          "prompt",
+          "metadata"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/beatoven/music-generation/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/beatoven/music-generation/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/beatoven/music-generation": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicGenerationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/beatoven/music-generation/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicGenerationOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,404 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/era-3d",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/era-3d queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/era-3d",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/model_tests/era3d/pignormals.png",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/era-3d",
+      "documentationUrl": "https://fal.ai/models/fal-ai/era-3d/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Era3dInput": {
+        "title": "Era3DInput",
+        "type": "object",
+        "properties": {
+          "cfg": {
+            "minimum": 0,
+            "maximum": 20,
+            "type": "number",
+            "title": "Cfg",
+            "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.",
+            "default": 4
+          },
+          "background_removal": {
+            "title": "Background Removal",
+            "type": "boolean",
+            "description": "Background removal",
+            "default": true
+          },
+          "steps": {
+            "minimum": 1,
+            "maximum": 200,
+            "type": "integer",
+            "title": "Steps",
+            "description": "Number of steps to run the model for",
+            "default": 40
+          },
+          "crop_size": {
+            "minimum": 256,
+            "maximum": 512,
+            "type": "integer",
+            "title": "Crop Size",
+            "description": "Size of the image to crop to",
+            "default": 400
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Seed for random number generation",
+            "default": -1
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/era3d/DnvGjd9CCS-ESmLgTYgOn.png"
+            ],
+            "title": "Image Url",
+            "type": "string",
+            "description": "URL of the image to remove background from"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "cfg",
+          "steps",
+          "crop_size",
+          "seed",
+          "background_removal"
+        ],
+        "required": [
+          "image_url"
+        ]
+      },
+      "Era3dOutput": {
+        "title": "Era3DOutput",
+        "type": "object",
+        "properties": {
+          "images": {
+            "title": "Images",
+            "type": "array",
+            "description": "Images with background removed",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "Seed used for random number generation"
+          },
+          "normal_images": {
+            "title": "Normal Images",
+            "type": "array",
+            "description": "Normal images with background removed",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "normal_images",
+          "seed"
+        ],
+        "required": [
+          "images",
+          "normal_images",
+          "seed"
+        ]
+      },
+      "Image": {
+        "title": "Image",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height",
+            "description": "The height of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width",
+            "description": "The width of the image in pixels.",
+            "examples": [
+              1024
+            ]
+          }
+        },
+        "description": "Represents an image file.",
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/era-3d/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/era-3d/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/era-3d": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Era3dInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/era-3d/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Era3dOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

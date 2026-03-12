@@ -1,0 +1,405 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/hunyuan-video-lora",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/hunyuan-video-lora queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/hunyuan-video-lora",
+      "category": "text-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/hunyuan-video.webp?v=1",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/hunyuan-video-lora",
+      "documentationUrl": "https://fal.ai/models/fal-ai/hunyuan-video-lora/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "HunyuanVideoLoraInput": {
+        "title": "HunyuanT2VRequest",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to generate the video from."
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "title": "Aspect Ratio (W:H)",
+            "type": "string",
+            "description": "The aspect ratio of the video to generate.",
+            "default": "16:9"
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "580p",
+              "720p"
+            ],
+            "title": "Resolution",
+            "type": "string",
+            "description": "The resolution of the video to generate.",
+            "default": "720p"
+          },
+          "loras": {
+            "description": "\n            The LoRAs to use for the image generation. You can use any number of LoRAs\n            and they will be merged together to generate the final image.\n        ",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoraWeight"
+            },
+            "examples": [],
+            "title": "Loras",
+            "default": []
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, the safety checker will be enabled.",
+            "default": false
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed to use for generating the video."
+          },
+          "num_frames": {
+            "enum": [
+              "129",
+              "85"
+            ],
+            "title": "Number of Frames",
+            "type": "string",
+            "description": "The number of frames to generate.",
+            "default": 129
+          },
+          "pro_mode": {
+            "title": "Pro Mode",
+            "type": "boolean",
+            "description": "By default, generations are done with 35 steps. Pro mode does 55 steps which results in higher quality videos but will take more time and cost 2x more billing units.",
+            "default": false
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "seed",
+          "pro_mode",
+          "aspect_ratio",
+          "resolution",
+          "num_frames",
+          "enable_safety_checker",
+          "loras"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "HunyuanVideoLoraOutput": {
+        "title": "HunyuanT2VResponse",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for generating the video."
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://v3.fal.media/files/kangaroo/y5-1YTGpun17eSeggZMzX_video-1733468228.mp4"
+              }
+            ],
+            "title": "Video",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ]
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "LoraWeight": {
+        "title": "LoraWeight",
+        "type": "object",
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string",
+            "description": "URL or the path to the LoRA weights."
+          },
+          "scale": {
+            "minimum": 0,
+            "maximum": 4,
+            "type": "number",
+            "title": "Scale",
+            "description": "\n            The scale of the LoRA weight. This is used to scale the LoRA weight\n            before merging it with the base model.\n        ",
+            "default": 1
+          }
+        },
+        "x-fal-order-properties": [
+          "path",
+          "scale"
+        ],
+        "required": [
+          "path"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "type": "integer",
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "type": "string",
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "type": "string",
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "file_data": {
+            "format": "binary",
+            "title": "File Data",
+            "type": "string",
+            "description": "File data"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "file_data"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/hunyuan-video-lora/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-video-lora/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-video-lora": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HunyuanVideoLoraInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-video-lora/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HunyuanVideoLoraOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,560 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/ltx-video-trainer",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/ltx-video-trainer queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/ltx-video-trainer",
+      "category": "training",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Training-3.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/ltx-video-trainer",
+      "documentationUrl": "https://fal.ai/models/fal-ai/ltx-video-trainer/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "LtxVideoTrainerInput": {
+        "title": "Input",
+        "type": "object",
+        "properties": {
+          "number_of_steps": {
+            "description": "The number of steps to train for.",
+            "type": "integer",
+            "minimum": 100,
+            "title": "Number Of Steps",
+            "maximum": 20000,
+            "examples": [
+              1000
+            ],
+            "step": 100,
+            "default": 1000
+          },
+          "frame_rate": {
+            "description": "The target frames per second for the video.",
+            "type": "integer",
+            "examples": [
+              25
+            ],
+            "maximum": 60,
+            "minimum": 8,
+            "title": "Frame Rate",
+            "default": 25
+          },
+          "validation": {
+            "title": "Validation",
+            "type": "array",
+            "maxItems": 2,
+            "description": "A list of validation prompts to use during training. When providing an image, _all_ validation inputs must have an image.",
+            "items": {
+              "$ref": "#/components/schemas/Validation"
+            },
+            "default": []
+          },
+          "learning_rate": {
+            "description": "The rate at which the model learns. Higher values can lead to faster training, but over-fitting.",
+            "type": "number",
+            "minimum": 0.000001,
+            "title": "Learning Rate",
+            "maximum": 1,
+            "examples": [
+              0.0002
+            ],
+            "step": 0.0001,
+            "default": 0.0002
+          },
+          "number_of_frames": {
+            "description": "The number of frames to use for training. This is the number of frames per second multiplied by the number of seconds.",
+            "type": "integer",
+            "examples": [
+              81
+            ],
+            "maximum": 121,
+            "minimum": 25,
+            "title": "Number Of Frames",
+            "default": 81
+          },
+          "validation_reverse": {
+            "title": "Validation Reverse",
+            "type": "boolean",
+            "description": "If true, the validation videos will be reversed. This is useful for effects that are learned in reverse and then applied in reverse.",
+            "default": false
+          },
+          "training_data_url": {
+            "title": "Training Data Url",
+            "type": "string",
+            "description": "URL to zip archive with videos or images. Try to use at least 10 files, although more is better.\n\n        **Supported video formats:** .mp4, .mov, .avi, .mkv\n        **Supported image formats:** .png, .jpg, .jpeg\n\n        Note: The dataset must contain ONLY videos OR ONLY images - mixed datasets are not supported.\n\n        The archive can also contain text files with captions. Each text file should have the same name as the media file it corresponds to."
+          },
+          "split_input_duration_threshold": {
+            "description": "The duration threshold in seconds. If a video is longer than this, it will be split into scenes. If you provide captions for a split video, the caption will be applied to each scene. If you do not provide captions, scenes will be auto-captioned.",
+            "type": "number",
+            "examples": [
+              30
+            ],
+            "maximum": 60,
+            "minimum": 1,
+            "title": "Split Input Duration Threshold",
+            "default": 30
+          },
+          "rank": {
+            "examples": [
+              128
+            ],
+            "title": "Rank",
+            "type": "integer",
+            "enum": [
+              8,
+              16,
+              32,
+              64,
+              128
+            ],
+            "description": "The rank of the LoRA.",
+            "default": 128
+          },
+          "aspect_ratio": {
+            "examples": [
+              "1:1"
+            ],
+            "title": "Aspect Ratio",
+            "type": "string",
+            "enum": [
+              "16:9",
+              "1:1",
+              "9:16"
+            ],
+            "description": "The aspect ratio to use for training. This is the aspect ratio of the video.",
+            "default": "1:1"
+          },
+          "trigger_phrase": {
+            "examples": [
+              ""
+            ],
+            "title": "Trigger Phrase",
+            "type": "string",
+            "description": "The phrase that will trigger the model to generate an image.",
+            "default": ""
+          },
+          "split_input_into_scenes": {
+            "examples": [
+              true
+            ],
+            "title": "Split Input Into Scenes",
+            "type": "boolean",
+            "description": "If true, videos above a certain duration threshold will be split into scenes. If you provide captions for a split video, the caption will be applied to each scene. If you do not provide captions, scenes will be auto-captioned. This option has no effect on image datasets.",
+            "default": true
+          },
+          "resolution": {
+            "examples": [
+              "medium"
+            ],
+            "title": "Resolution",
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "description": "The resolution to use for training. This is the resolution of the video.",
+            "default": "medium"
+          },
+          "validation_resolution": {
+            "examples": [
+              "high"
+            ],
+            "title": "Validation Resolution",
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "description": "The resolution to use for validation.",
+            "default": "high"
+          },
+          "validation_number_of_frames": {
+            "description": "The number of frames to use for validation.",
+            "type": "integer",
+            "examples": [
+              81
+            ],
+            "maximum": 121,
+            "minimum": 8,
+            "title": "Validation Number Of Frames",
+            "default": 81
+          },
+          "validation_aspect_ratio": {
+            "examples": [
+              "1:1"
+            ],
+            "title": "Validation Aspect Ratio",
+            "type": "string",
+            "enum": [
+              "16:9",
+              "1:1",
+              "9:16"
+            ],
+            "description": "The aspect ratio to use for validation.",
+            "default": "1:1"
+          },
+          "validation_negative_prompt": {
+            "title": "Validation Negative Prompt",
+            "type": "string",
+            "description": "A negative prompt to use for validation.",
+            "default": "blurry, low quality, bad quality, out of focus"
+          },
+          "auto_scale_input": {
+            "examples": [
+              false
+            ],
+            "title": "Auto Scale Input",
+            "type": "boolean",
+            "description": "If true, videos will be automatically scaled to the target frame count and fps. This option has no effect on image datasets.",
+            "default": false
+          }
+        },
+        "x-fal-order-properties": [
+          "training_data_url",
+          "rank",
+          "number_of_steps",
+          "number_of_frames",
+          "frame_rate",
+          "resolution",
+          "aspect_ratio",
+          "learning_rate",
+          "trigger_phrase",
+          "auto_scale_input",
+          "split_input_into_scenes",
+          "split_input_duration_threshold",
+          "validation",
+          "validation_negative_prompt",
+          "validation_number_of_frames",
+          "validation_resolution",
+          "validation_aspect_ratio",
+          "validation_reverse"
+        ],
+        "required": [
+          "training_data_url"
+        ]
+      },
+      "LtxVideoTrainerOutput": {
+        "title": "TrainingOutput",
+        "type": "object",
+        "properties": {
+          "lora_file": {
+            "description": "URL to the trained LoRA weights.",
+            "$ref": "#/components/schemas/File"
+          },
+          "config_file": {
+            "description": "Configuration used for setting up the inference endpoints.",
+            "$ref": "#/components/schemas/File"
+          },
+          "video": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The URL to the validations video."
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "lora_file",
+          "config_file"
+        ],
+        "required": [
+          "lora_file",
+          "config_file"
+        ]
+      },
+      "Validation": {
+        "title": "Validation",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string",
+            "description": "The prompt to use for validation."
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url",
+            "description": "An image to use for image-to-video validation. If provided for one validation, _all_ validation inputs must have an image."
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "image_url"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/ltx-video-trainer/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-trainer/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-trainer": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LtxVideoTrainerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/ltx-video-trainer/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LtxVideoTrainerOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

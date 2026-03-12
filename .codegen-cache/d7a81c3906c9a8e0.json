@@ -1,0 +1,570 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/workflow-utilities/auto-subtitle",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/workflow-utilities/auto-subtitle queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/workflow-utilities/auto-subtitle",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/zebra/-R1ZjOAerDNnOUrhWNeUv_22f1d53a808040bd99ec01459e4f9547.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/workflow-utilities/auto-subtitle",
+      "documentationUrl": "https://fal.ai/models/fal-ai/workflow-utilities/auto-subtitle/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "WorkflowUtilitiesAutoSubtitleInput": {
+        "title": "AutoSubtitleInput",
+        "type": "object",
+        "properties": {
+          "font_weight": {
+            "enum": [
+              "normal",
+              "bold",
+              "black"
+            ],
+            "title": "Font Weight",
+            "type": "string",
+            "description": "Font weight (TikTok style typically uses bold or black)",
+            "default": "bold"
+          },
+          "video_url": {
+            "examples": [
+              "https://v3b.fal.media/files/b/kangaroo/oUCiZjQwEy6bIQdPUSLDF_output.mp4"
+            ],
+            "title": "Video Url",
+            "type": "string",
+            "description": "URL of the video file to add automatic subtitles to",
+            "max_file_size": 100000000
+          },
+          "stroke_width": {
+            "minimum": 0,
+            "maximum": 10,
+            "type": "integer",
+            "title": "Stroke Width",
+            "description": "Text stroke/outline width in pixels (0 for no stroke)",
+            "default": 3
+          },
+          "font_color": {
+            "enum": [
+              "white",
+              "black",
+              "red",
+              "green",
+              "blue",
+              "yellow",
+              "orange",
+              "purple",
+              "pink",
+              "brown",
+              "gray",
+              "cyan",
+              "magenta"
+            ],
+            "title": "Font Color",
+            "type": "string",
+            "description": "Subtitle text color for non-active words",
+            "default": "white"
+          },
+          "font_size": {
+            "minimum": 20,
+            "maximum": 150,
+            "type": "integer",
+            "title": "Font Size",
+            "description": "Font size for subtitles (TikTok style uses larger text)",
+            "default": 100
+          },
+          "highlight_color": {
+            "enum": [
+              "white",
+              "black",
+              "red",
+              "green",
+              "blue",
+              "yellow",
+              "orange",
+              "purple",
+              "pink",
+              "brown",
+              "gray",
+              "cyan",
+              "magenta"
+            ],
+            "title": "Highlight Color",
+            "type": "string",
+            "description": "Color for the currently speaking word (karaoke-style highlight)",
+            "default": "purple"
+          },
+          "language": {
+            "examples": [
+              "en",
+              "es",
+              "fr",
+              "de",
+              "it",
+              "eng",
+              "spa",
+              "fra"
+            ],
+            "title": "Language",
+            "type": "string",
+            "description": "Language code for transcription (e.g., 'en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'ja', 'zh', 'ko') or 3-letter ISO code (e.g., 'eng', 'spa', 'fra')",
+            "default": "en"
+          },
+          "background_opacity": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Background Opacity",
+            "description": "Background opacity (0.0 = fully transparent, 1.0 = fully opaque)",
+            "default": 0
+          },
+          "stroke_color": {
+            "enum": [
+              "black",
+              "white",
+              "red",
+              "green",
+              "blue",
+              "yellow",
+              "orange",
+              "purple",
+              "pink",
+              "brown",
+              "gray",
+              "cyan",
+              "magenta"
+            ],
+            "title": "Stroke Color",
+            "type": "string",
+            "description": "Text stroke/outline color",
+            "default": "black"
+          },
+          "y_offset": {
+            "minimum": -200,
+            "maximum": 200,
+            "type": "integer",
+            "title": "Y Offset",
+            "description": "Vertical offset in pixels (positive = move down, negative = move up)",
+            "default": 75
+          },
+          "enable_animation": {
+            "title": "Enable Animation",
+            "type": "boolean",
+            "description": "Enable animation effects for subtitles (bounce style entrance)",
+            "default": true
+          },
+          "font_name": {
+            "examples": [
+              "Montserrat",
+              "Poppins",
+              "Bebas Neue",
+              "Oswald",
+              "Inter",
+              "Roboto",
+              "BBH Sans Hegarty"
+            ],
+            "title": "Font Name",
+            "type": "string",
+            "description": "Any Google Font name from fonts.google.com (e.g., 'Montserrat', 'Poppins', 'BBH Sans Hegarty')",
+            "default": "Montserrat"
+          },
+          "position": {
+            "enum": [
+              "top",
+              "center",
+              "bottom"
+            ],
+            "title": "Position",
+            "type": "string",
+            "description": "Vertical position of subtitles",
+            "default": "bottom"
+          },
+          "words_per_subtitle": {
+            "description": "Maximum number of words per subtitle segment. Use 1 for single-word display, 2-3 for short phrases, or 8-12 for full sentences.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "title": "Words Per Subtitle",
+            "examples": [
+              1,
+              3,
+              6,
+              12
+            ],
+            "default": 3
+          },
+          "background_color": {
+            "enum": [
+              "black",
+              "white",
+              "red",
+              "green",
+              "blue",
+              "yellow",
+              "orange",
+              "purple",
+              "pink",
+              "brown",
+              "gray",
+              "cyan",
+              "magenta",
+              "none",
+              "transparent"
+            ],
+            "title": "Background Color",
+            "type": "string",
+            "description": "Background color behind text ('none' or 'transparent' for no background)",
+            "default": "none"
+          }
+        },
+        "x-fal-order-properties": [
+          "video_url",
+          "language",
+          "font_name",
+          "font_size",
+          "font_weight",
+          "font_color",
+          "highlight_color",
+          "stroke_width",
+          "stroke_color",
+          "background_color",
+          "background_opacity",
+          "position",
+          "y_offset",
+          "words_per_subtitle",
+          "enable_animation"
+        ],
+        "description": "Input model for automatic subtitle generation and styling",
+        "required": [
+          "video_url"
+        ]
+      },
+      "WorkflowUtilitiesAutoSubtitleOutput": {
+        "title": "AutoSubtitleOutput",
+        "type": "object",
+        "properties": {
+          "transcription": {
+            "title": "Transcription",
+            "type": "string",
+            "description": "Full transcription text"
+          },
+          "subtitle_count": {
+            "title": "Subtitle Count",
+            "type": "integer",
+            "description": "Number of subtitle segments generated"
+          },
+          "transcription_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcription Metadata",
+            "description": "Additional transcription metadata from ElevenLabs (language, segments, etc.)"
+          },
+          "words": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Words",
+            "description": "Word-level timing information from transcription service"
+          },
+          "video": {
+            "examples": [
+              {
+                "file_size": 16789234,
+                "file_name": "output.mp4",
+                "content_type": "video/mp4",
+                "url": "https://v3b.fal.media/files/b/monkey/HPBSoe-QsAxSIkDh7Zn76_output.mp4"
+              }
+            ],
+            "description": "The video with automatic subtitles",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "transcription",
+          "subtitle_count",
+          "words",
+          "transcription_metadata"
+        ],
+        "description": "Output model for video with automatic subtitles",
+        "required": [
+          "video",
+          "transcription",
+          "subtitle_count"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes."
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided."
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file."
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/workflow-utilities/auto-subtitle/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/workflow-utilities/auto-subtitle/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/workflow-utilities/auto-subtitle": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowUtilitiesAutoSubtitleInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/workflow-utilities/auto-subtitle/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowUtilitiesAutoSubtitleOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,478 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/fast-lightning-sdxl",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/fast-lightning-sdxl queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/fast-lightning-sdxl",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://storage.googleapis.com/falserverless/gallery/stable-diffusion-xl-lightning.webp",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/fast-lightning-sdxl",
+      "documentationUrl": "https://fal.ai/models/fal-ai/fast-lightning-sdxl/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "FastLightningSdxlInput": {
+        "title": "TextToImageLightningInput",
+        "type": "object",
+        "properties": {
+          "format": {
+            "enum": [
+              "jpeg",
+              "png"
+            ],
+            "description": "The format of the generated image.",
+            "type": "string",
+            "title": "Format",
+            "default": "jpeg"
+          },
+          "num_images": {
+            "minimum": 1,
+            "maximum": 8,
+            "type": "integer",
+            "description": "The number of images to generate.",
+            "title": "Num Images",
+            "default": 1
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9"
+                ],
+                "type": "string"
+              }
+            ],
+            "description": "The size of the generated image.",
+            "title": "Image Size",
+            "default": "square_hd"
+          },
+          "prompt": {
+            "examples": [
+              "photo of a girl smiling during a sunset, with lightnings in the background"
+            ],
+            "description": "The prompt to use for generating the image. Be as descriptive as possible for best results.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "embeddings": {
+            "description": "The list of embeddings to use.",
+            "type": "array",
+            "title": "Embeddings",
+            "items": {
+              "$ref": "#/components/schemas/Embedding"
+            },
+            "default": []
+          },
+          "expand_prompt": {
+            "description": "If set to true, the prompt will be expanded with additional prompts.",
+            "type": "boolean",
+            "title": "Expand Prompt",
+            "default": false
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "safety_checker_version": {
+            "enum": [
+              "v1",
+              "v2"
+            ],
+            "description": "The version of the safety checker to use. v1 is the default CompVis safety checker. v2 uses a custom ViT model.",
+            "type": "string",
+            "title": "Safety Checker Version",
+            "default": "v1"
+          },
+          "request_id": {
+            "description": "\n            An id bound to a request, can be used with response to identify the request\n            itself.\n        ",
+            "type": "string",
+            "title": "Request Id",
+            "default": ""
+          },
+          "num_inference_steps": {
+            "enum": [
+              "1",
+              "2",
+              "4",
+              "8"
+            ],
+            "description": "The number of inference steps to perform.",
+            "type": "string",
+            "title": "Num Inference Steps",
+            "default": 4
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "\n            The same seed and the same prompt given to the same version of Stable Diffusion\n            will output the same image every time.\n        ",
+            "title": "Seed",
+            "default": null
+          },
+          "enable_safety_checker": {
+            "description": "If set to true, the safety checker will be enabled.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "FastLightningSdxlOutput": {
+        "title": "Output",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "description": "The prompt used for generating the image.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "images": {
+            "description": "The generated image files info.",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            }
+          },
+          "timings": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings"
+          },
+          "has_nsfw_concepts": {
+            "description": "Whether the generated images contain NSFW concepts.",
+            "type": "array",
+            "title": "Has Nsfw Concepts",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "seed": {
+            "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ],
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ]
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "height": {
+            "maximum": 14142,
+            "type": "integer",
+            "description": "The height of the generated image.",
+            "title": "Height",
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "maximum": 14142,
+            "type": "integer",
+            "description": "The width of the generated image.",
+            "title": "Width",
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        }
+      },
+      "Embedding": {
+        "title": "Embedding",
+        "type": "object",
+        "properties": {
+          "tokens": {
+            "description": "The list of tokens to use for the embedding.",
+            "type": "array",
+            "title": "Tokens",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "<s0>",
+              "<s1>"
+            ]
+          },
+          "path": {
+            "examples": [
+              "https://civitai.com/api/download/models/135931",
+              "https://filebin.net/3chfqasxpqu21y8n/my-custom-lora-v1.safetensors"
+            ],
+            "description": "URL or the path to the embedding weights.",
+            "type": "string",
+            "title": "Path"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "Image": {
+        "title": "Image",
+        "type": "object",
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "default": "image/jpeg"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "width",
+          "height",
+          "content_type"
+        ],
+        "required": [
+          "url",
+          "width",
+          "height"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/fast-lightning-sdxl/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fast-lightning-sdxl/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fast-lightning-sdxl": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FastLightningSdxlInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/fast-lightning-sdxl/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastLightningSdxlOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

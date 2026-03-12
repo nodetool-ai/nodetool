@@ -1,0 +1,397 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/magi-distilled",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/magi-distilled queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/magi-distilled",
+      "category": "text-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/for%20videos-1.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/magi-distilled",
+      "documentationUrl": "https://fal.ai/models/fal-ai/magi-distilled/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "MagiDistilledInput": {
+        "title": "MagiTextToVideoRequest",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Close-up shot: the old sea captain stares intently, pipe in mouth, wisps of smoke curling around his weathered face. The camera begins a slow clockwise orbit, pulling back. Finally, the camera rises high above, revealing the entire wooden sailing ship cutting through the waves, the captain unmoved, gazing toward the distant horizon."
+            ],
+            "title": "Prompt",
+            "type": "string",
+            "description": "The text prompt to guide video generation."
+          },
+          "resolution": {
+            "enum": [
+              "480p",
+              "720p"
+            ],
+            "title": "Resolution",
+            "type": "string",
+            "description": "Resolution of the generated video (480p or 720p). 480p is 0.5 billing units, and 720p is 1 billing unit.",
+            "default": "720p"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "auto",
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "title": "Aspect Ratio",
+            "type": "string",
+            "description": "Aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image.",
+            "default": "auto"
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "title": "Enable Safety Checker",
+            "type": "boolean",
+            "description": "If set to true, the safety checker will be enabled.",
+            "default": true
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for reproducibility. If None, a random seed is chosen."
+          },
+          "num_frames": {
+            "anyOf": [
+              {
+                "minimum": 96,
+                "maximum": 192,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Frames",
+            "description": "Number of frames to generate. Must be between 96 and 192 (inclusive). Each additional 24 frames beyond 96 incurs an additional billing unit.",
+            "default": 96
+          },
+          "num_inference_steps": {
+            "enum": [
+              4,
+              8,
+              16,
+              32
+            ],
+            "title": "Num Inference Steps",
+            "type": "integer",
+            "description": "Number of inference steps for sampling. Higher values give better quality but take longer.",
+            "default": 16
+          }
+        },
+        "x-fal-order-properties": [
+          "prompt",
+          "num_frames",
+          "seed",
+          "resolution",
+          "num_inference_steps",
+          "enable_safety_checker",
+          "aspect_ratio"
+        ],
+        "required": [
+          "prompt"
+        ]
+      },
+      "MagiDistilledOutput": {
+        "title": "MagiResponse",
+        "type": "object",
+        "properties": {
+          "seed": {
+            "title": "Seed",
+            "type": "integer",
+            "description": "The seed used for generation."
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://v3.fal.media/files/rabbit/lTH9PY_LQG0FjueBxMfDN_0395dec3-0c4a-4c25-8399-ebb198b73a30.mp4"
+              }
+            ],
+            "description": "The generated video file.",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/magi-distilled/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/magi-distilled/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/magi-distilled": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MagiDistilledInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/magi-distilled/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MagiDistilledOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

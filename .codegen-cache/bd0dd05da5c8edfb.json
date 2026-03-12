@@ -1,0 +1,488 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/kling-video/v1.5/pro/image-to-video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/kling-video/v1.5/pro/image-to-video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/kling-video/v1.5/pro/image-to-video",
+      "category": "image-to-video",
+      "thumbnailUrl": "https://fal.media/files/elephant/28-vTrv3W2BT-u8_cy7mt.png",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/kling-video/v1.5/pro/image-to-video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/kling-video/v1.5/pro/image-to-video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "KlingVideoV15ProImageToVideoInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "image_url",
+          "duration",
+          "aspect_ratio",
+          "tail_image_url",
+          "negative_prompt",
+          "cfg_scale",
+          "static_mask_url",
+          "dynamic_masks"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Snowflakes fall as a car moves along the road."
+            ],
+            "maxLength": 2500,
+            "type": "string",
+            "title": "Prompt"
+          },
+          "duration": {
+            "enum": [
+              "5",
+              "10"
+            ],
+            "description": "The duration of the generated video in seconds",
+            "type": "string",
+            "title": "Duration",
+            "default": "5"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ],
+            "description": "The aspect ratio of the generated video frame",
+            "type": "string",
+            "title": "Aspect Ratio",
+            "default": "16:9"
+          },
+          "tail_image_url": {
+            "anyOf": [
+              {
+                "_fal_ui_field": "image",
+                "type": "string",
+                "ui": {
+                  "field": "image"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL of the image to be used for the end of the video",
+            "title": "Tail Image Url"
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/kling/kling_input.jpeg"
+            ],
+            "title": "Image Url",
+            "_fal_ui_field": "image",
+            "type": "string"
+          },
+          "static_mask_url": {
+            "anyOf": [
+              {
+                "_fal_ui_field": "image_mask",
+                "type": "string",
+                "ui": {
+                  "field": "image_mask"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL of the image for Static Brush Application Area (Mask image created by users using the motion brush)",
+            "title": "Static Mask Url",
+            "examples": [
+              "https://storage.googleapis.com/falserverless/kling/new_static_mask.png"
+            ]
+          },
+          "dynamic_masks": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DynamicMask"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "List of dynamic masks",
+            "title": "Dynamic Masks"
+          },
+          "negative_prompt": {
+            "maxLength": 2500,
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": "blur, distort, and low quality"
+          },
+          "cfg_scale": {
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number",
+            "title": "Cfg Scale",
+            "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt.\n        ",
+            "default": 0.5
+          }
+        },
+        "title": "KlingV15ProImageToVideoRequest",
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "KlingVideoV15ProImageToVideoOutput": {
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/kling/kling_i2v_output.mp4"
+              }
+            ],
+            "description": "The generated video",
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "I2VOutput",
+        "required": [
+          "video"
+        ]
+      },
+      "DynamicMask": {
+        "x-fal-order-properties": [
+          "mask_url",
+          "trajectories"
+        ],
+        "type": "object",
+        "properties": {
+          "trajectories": {
+            "examples": [
+              [
+                {
+                  "y": 219,
+                  "x": 279
+                },
+                {
+                  "y": 65,
+                  "x": 417
+                }
+              ]
+            ],
+            "description": "List of trajectories",
+            "type": "array",
+            "title": "Trajectories",
+            "items": {
+              "$ref": "#/components/schemas/Trajectory"
+            }
+          },
+          "mask_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/kling/new_dynamic_mask.png"
+            ],
+            "description": "URL of the image for Dynamic Brush Application Area (Mask image created by users using the motion brush)",
+            "_fal_ui_field": "image_mask",
+            "title": "Mask Url",
+            "type": "string"
+          }
+        },
+        "title": "DynamicMask",
+        "required": [
+          "mask_url"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "examples": [
+              4404019
+            ]
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      },
+      "Trajectory": {
+        "x-fal-order-properties": [
+          "x",
+          "y"
+        ],
+        "type": "object",
+        "properties": {
+          "y": {
+            "examples": [
+              219
+            ],
+            "description": "Y coordinate of the motion trajectory",
+            "type": "integer",
+            "title": "Y"
+          },
+          "x": {
+            "examples": [
+              279
+            ],
+            "description": "X coordinate of the motion trajectory",
+            "type": "integer",
+            "title": "X"
+          }
+        },
+        "title": "Trajectory",
+        "required": [
+          "x",
+          "y"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/kling-video/v1.5/pro/image-to-video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling-video/v1.5/pro/image-to-video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling-video/v1.5/pro/image-to-video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KlingVideoV15ProImageToVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/kling-video/v1.5/pro/image-to-video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KlingVideoV15ProImageToVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

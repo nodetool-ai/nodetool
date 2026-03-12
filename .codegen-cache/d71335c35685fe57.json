@@ -1,0 +1,394 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for imagineart/imagineart-1.5-preview/text-to-image",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the imagineart/imagineart-1.5-preview/text-to-image queue.",
+    "x-fal-metadata": {
+      "endpointId": "imagineart/imagineart-1.5-preview/text-to-image",
+      "category": "text-to-image",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/penguin/dzrNfvK_MHMcQvZSBju-R_9731ad76917e41e4bd48796e82fa9bc3.jpg",
+      "playgroundUrl": "https://fal.ai/models/imagineart/imagineart-1.5-preview/text-to-image",
+      "documentationUrl": "https://fal.ai/models/imagineart/imagineart-1.5-preview/text-to-image/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "Imagineart15PreviewTextToImageInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "aspect_ratio",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A high-angle, realistic photograph capturing a spontaneous moment of pure joy on a bright, sunny day. A young woman with long, wavy brown hair is sitting on the curb of an urban street, her head tilted all the way back as she laughs or shouts ecstatically up at the sky. She is wearing large black sunglasses, which have a bright glare from the sun, a white ribbed tank top with black trim, and black jeans. One of her hands is raised towards her face, fingers loosely curled near her sunglasses. The background is dominated by the strong graphic pattern of a black asphalt road with thick, white painted lines of a crosswalk. The lighting is harsh and direct, creating high contrast and deep shadows on the pavement, and brightly illuminating the woman's sun-kissed skin. The shot has a candid, in-the-moment feel, emphasizing the carefree and happy mood."
+            ],
+            "description": "Text prompt describing the desired image",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:1",
+              "1:3",
+              "3:2",
+              "2:3"
+            ],
+            "description": "Image aspect ratio: 1:1, 3:1, 1:3, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3",
+            "type": "string",
+            "examples": [
+              "1:1",
+              "3:1",
+              "1:3",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3"
+            ],
+            "title": "Aspect Ratio",
+            "default": "1:1"
+          },
+          "seed": {
+            "examples": [
+              0
+            ],
+            "description": "Seed for the image generation",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "title": "ImagineArt_1_5_Input",
+        "required": [
+          "prompt"
+        ]
+      },
+      "Imagineart15PreviewTextToImageOutput": {
+        "x-fal-order-properties": [
+          "images"
+        ],
+        "type": "object",
+        "properties": {
+          "images": {
+            "examples": [
+              [
+                {
+                  "height": 2048,
+                  "content_type": "image/webp",
+                  "url": "https://fal.media/files/tiger/ou4RvYdGLTWe2rMzHhrnE_generated_imagineart_1_5_2.webp",
+                  "width": 2048
+                }
+              ]
+            ],
+            "description": "Generated image",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/Image-Output"
+            }
+          }
+        },
+        "title": "ImagineArt_1_5_Output",
+        "required": [
+          "images"
+        ]
+      },
+      "Image-Output": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "description": "Represents an image file.",
+        "title": "Image",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size"
+          },
+          "height": {
+            "examples": [
+              1024
+            ],
+            "description": "The height of the image in pixels.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "examples": [
+              1024
+            ],
+            "description": "The width of the image in pixels.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/imagineart/imagineart-1.5-preview/text-to-image/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imagineart/imagineart-1.5-preview/text-to-image/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imagineart/imagineart-1.5-preview/text-to-image": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Imagineart15PreviewTextToImageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imagineart/imagineart-1.5-preview/text-to-image/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Imagineart15PreviewTextToImageOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

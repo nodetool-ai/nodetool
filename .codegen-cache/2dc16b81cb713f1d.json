@@ -1,0 +1,456 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/film/video",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/film/video queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/film/video",
+      "category": "video-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/for%20videos.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/film/video",
+      "documentationUrl": "https://fal.ai/models/fal-ai/film/video/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "FilmVideoInput": {
+        "title": "FILMVideoInput",
+        "type": "object",
+        "properties": {
+          "video_write_mode": {
+            "enum": [
+              "fast",
+              "balanced",
+              "small"
+            ],
+            "title": "Video Write Mode",
+            "type": "string",
+            "examples": [
+              "balanced"
+            ],
+            "description": "The write mode of the output video. Only applicable if output_type is 'video'.",
+            "default": "balanced"
+          },
+          "video_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/interpolation-video-input.mp4"
+            ],
+            "title": "Video URL",
+            "type": "string",
+            "description": "The URL of the video to use for interpolation."
+          },
+          "loop": {
+            "title": "Loop",
+            "type": "boolean",
+            "description": "If True, the final frame will be looped back to the first frame to create a seamless loop. If False, the final frame will not loop back.",
+            "default": false
+          },
+          "use_calculated_fps": {
+            "title": "Use Calculated FPS",
+            "type": "boolean",
+            "description": "If True, the function will use the calculated FPS of the input video multiplied by the number of frames to determine the output FPS. If False, the passed FPS will be used.",
+            "default": true
+          },
+          "fps": {
+            "minimum": 1,
+            "title": "Frames Per Second",
+            "type": "integer",
+            "maximum": 60,
+            "description": "Frames per second for the output video. Only applicable if use_calculated_fps is False.",
+            "default": 8
+          },
+          "video_quality": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "maximum"
+            ],
+            "title": "Video Quality",
+            "type": "string",
+            "examples": [
+              "high"
+            ],
+            "description": "The quality of the output video. Only applicable if output_type is 'video'.",
+            "default": "high"
+          },
+          "sync_mode": {
+            "title": "Sync Mode",
+            "type": "boolean",
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "default": false
+          },
+          "use_scene_detection": {
+            "title": "Use Scene Detection",
+            "type": "boolean",
+            "description": "If True, the input video will be split into scenes before interpolation. This removes smear frames between scenes, but can result in false positives if the scene detection is not accurate. If False, the entire video will be treated as a single scene.",
+            "default": false
+          },
+          "num_frames": {
+            "description": "The number of frames to generate between the input video frames.",
+            "type": "integer",
+            "minimum": 1,
+            "title": "Number of Frames",
+            "maximum": 4,
+            "default": 1
+          }
+        },
+        "x-fal-order-properties": [
+          "video_url",
+          "num_frames",
+          "use_scene_detection",
+          "use_calculated_fps",
+          "fps",
+          "loop",
+          "sync_mode",
+          "video_quality",
+          "video_write_mode"
+        ],
+        "required": [
+          "video_url"
+        ]
+      },
+      "FilmVideoOutput": {
+        "title": "FILMVideoOutput",
+        "type": "object",
+        "properties": {
+          "video": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/example_outputs/film-video-output.mp4"
+              }
+            ],
+            "description": "The generated video file with interpolated frames.",
+            "$ref": "#/components/schemas/VideoFile"
+          }
+        },
+        "x-fal-order-properties": [
+          "video"
+        ],
+        "required": [
+          "video"
+        ]
+      },
+      "VideoFile": {
+        "title": "VideoFile",
+        "type": "object",
+        "properties": {
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height",
+            "description": "The height of the video"
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration",
+            "description": "The duration of the video"
+          },
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size",
+            "description": "The size of the file in bytes.",
+            "examples": [
+              4404019
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string",
+            "description": "The URL where the file can be downloaded from."
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width",
+            "description": "The width of the video"
+          },
+          "fps": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fps",
+            "description": "The FPS of the video"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name",
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "examples": [
+              "z9RV14K95DvU.png"
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type",
+            "description": "The mime type of the file.",
+            "examples": [
+              "image/png"
+            ]
+          },
+          "num_frames": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Frames",
+            "description": "The number of frames in the video"
+          }
+        },
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height",
+          "fps",
+          "duration",
+          "num_frames"
+        ],
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/film/video/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/film/video/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/film/video": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FilmVideoInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/film/video/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilmVideoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

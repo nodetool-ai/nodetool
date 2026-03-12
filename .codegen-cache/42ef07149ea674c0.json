@@ -1,0 +1,564 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/z-image/turbo/inpaint",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/z-image/turbo/inpaint queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/z-image/turbo/inpaint",
+      "category": "image-to-image",
+      "thumbnailUrl": "https://v3b.fal.media/files/b/0a86d0c9/znBEfEDmFTeNP6Fm_dfGw_98585a0351414d37a69e4cf0c7f0305a.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/z-image/turbo/inpaint",
+      "documentationUrl": "https://fal.ai/models/fal-ai/z-image/turbo/inpaint/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "ZImageTurboInpaintInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "image_size",
+          "num_inference_steps",
+          "seed",
+          "sync_mode",
+          "num_images",
+          "enable_safety_checker",
+          "output_format",
+          "acceleration",
+          "enable_prompt_expansion",
+          "image_url",
+          "control_scale",
+          "control_start",
+          "control_end",
+          "mask_image_url",
+          "strength"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "A young Asian woman with long, vibrant purple hair stands on a sunlit sandy beach, posing confidently with her left hand resting on her hip. She gazes directly at the camera with a neutral expression. A sleek black ribbon bow is tied neatly on the right side of her head, just above her ear. She wears a flowing white cotton dress with a fitted bodice and a flared skirt that reaches mid-calf, slightly lifted by a gentle sea breeze. The beach behind her features fine, pale golden sand with subtle footprints, leading to calm turquoise waves under a clear blue sky with soft, wispy clouds. The lighting is natural daylight, casting soft shadows to her left, indicating late afternoon sun. The horizon line is visible in the background, with a faint silhouette of distant dunes. Her skin tone is fair with a natural glow, and her facial features are delicately defined. The composition is centered on her figure, framed from mid-thigh up, with shallow depth of field blurring the distant waves slightly."
+            ],
+            "description": "The prompt to generate an image from.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "image_size": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageSize"
+              },
+              {
+                "enum": [
+                  "square_hd",
+                  "square",
+                  "portrait_4_3",
+                  "portrait_16_9",
+                  "landscape_4_3",
+                  "landscape_16_9",
+                  "auto"
+                ],
+                "type": "string"
+              }
+            ],
+            "description": "The size of the generated image.",
+            "title": "Image Size",
+            "default": "auto"
+          },
+          "acceleration": {
+            "enum": [
+              "none",
+              "regular",
+              "high"
+            ],
+            "title": "Acceleration",
+            "type": "string",
+            "description": "The acceleration level to use.",
+            "default": "regular"
+          },
+          "mask_image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/whls/z-image-inpaint-mask.jpg"
+            ],
+            "description": "URL of Mask for Inpaint generation.",
+            "type": "string",
+            "title": "Mask Image URL"
+          },
+          "control_end": {
+            "description": "The end of the controlnet conditioning.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Control End",
+            "maximum": 1,
+            "default": 0.8
+          },
+          "enable_safety_checker": {
+            "description": "If set to true, the safety checker will be enabled.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "control_start": {
+            "description": "The start of the controlnet conditioning.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Control Start",
+            "maximum": 1,
+            "default": 0
+          },
+          "num_images": {
+            "minimum": 1,
+            "description": "The number of images to generate.",
+            "type": "integer",
+            "maximum": 4,
+            "title": "Number of Images",
+            "default": 1
+          },
+          "output_format": {
+            "enum": [
+              "jpeg",
+              "png",
+              "webp"
+            ],
+            "title": "Output Format",
+            "type": "string",
+            "description": "The format of the generated image.",
+            "default": "png"
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/example_inputs/inpaint-input.jpg"
+            ],
+            "description": "URL of Image for Inpaint generation.",
+            "type": "string",
+            "title": "Image URL"
+          },
+          "sync_mode": {
+            "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+            "type": "boolean",
+            "title": "Sync Mode",
+            "default": false
+          },
+          "strength": {
+            "description": "The strength of the inpaint conditioning.",
+            "type": "number",
+            "maximum": 1,
+            "title": "Strength",
+            "exclusiveMinimum": 0,
+            "default": 1
+          },
+          "control_scale": {
+            "description": "The scale of the controlnet conditioning.",
+            "type": "number",
+            "minimum": 0,
+            "title": "Control Scale",
+            "maximum": 1,
+            "default": 0.75
+          },
+          "enable_prompt_expansion": {
+            "description": "Whether to enable prompt expansion. Note: this will increase the price by 0.0025 credits per request.",
+            "type": "boolean",
+            "title": "Enable Prompt Expansion",
+            "default": false
+          },
+          "num_inference_steps": {
+            "minimum": 1,
+            "description": "The number of inference steps to perform.",
+            "type": "integer",
+            "maximum": 8,
+            "title": "Number of Inference Steps",
+            "default": 8
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        ",
+            "title": "Seed"
+          }
+        },
+        "title": "ZImageTurboInpaintInput",
+        "required": [
+          "prompt",
+          "image_url",
+          "mask_image_url"
+        ]
+      },
+      "ZImageTurboInpaintOutput": {
+        "x-fal-order-properties": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "description": "The prompt used for generating the image.",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "images": {
+            "examples": [
+              [
+                {
+                  "height": 888,
+                  "content_type": "image/png",
+                  "url": "https://storage.googleapis.com/falserverless/example_outputs/z-image-inpaint-output.png",
+                  "width": 512
+                }
+              ]
+            ],
+            "description": "The generated image files info.",
+            "type": "array",
+            "title": "Images",
+            "items": {
+              "$ref": "#/components/schemas/ImageFile"
+            }
+          },
+          "timings": {
+            "description": "The timings of the generation process.",
+            "type": "object",
+            "title": "Timings",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "has_nsfw_concepts": {
+            "description": "Whether the generated images contain NSFW concepts.",
+            "type": "array",
+            "title": "Has Nsfw Concepts",
+            "items": {
+              "type": "boolean"
+            }
+          },
+          "seed": {
+            "description": "Seed of the generated Image. It will be the same value of the one passed in the input or the randomly generated that was used in case none was passed.",
+            "type": "integer",
+            "title": "Seed"
+          }
+        },
+        "title": "ZImageTurboInpaintOutput",
+        "required": [
+          "images",
+          "timings",
+          "seed",
+          "has_nsfw_concepts",
+          "prompt"
+        ]
+      },
+      "ImageSize": {
+        "x-fal-order-properties": [
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "height": {
+            "description": "The height of the generated image.",
+            "type": "integer",
+            "title": "Height",
+            "maximum": 14142,
+            "exclusiveMinimum": 0,
+            "default": 512
+          },
+          "width": {
+            "description": "The width of the generated image.",
+            "type": "integer",
+            "title": "Width",
+            "maximum": 14142,
+            "exclusiveMinimum": 0,
+            "default": 512
+          }
+        },
+        "title": "ImageSize"
+      },
+      "ImageFile": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size",
+          "width",
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The height of the image",
+            "title": "Height"
+          },
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "title": "File Size",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "title": "File Name",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "title": "Content Type",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The width of the image",
+            "title": "Width"
+          }
+        },
+        "title": "ImageFile",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/z-image/turbo/inpaint/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/z-image/turbo/inpaint/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/z-image/turbo/inpaint": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ZImageTurboInpaintInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/z-image/turbo/inpaint/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZImageTurboInpaintOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

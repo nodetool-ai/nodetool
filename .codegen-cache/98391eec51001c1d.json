@@ -1,0 +1,292 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/llava-next",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/llava-next queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/llava-next",
+      "category": "vision",
+      "thumbnailUrl": "https://fal-cdn.batuhan-941.workers.dev/files/rabbit/GkS_M-jVZnM3ioJCCkwhh.jpeg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/llava-next",
+      "documentationUrl": "https://fal.ai/models/fal-ai/llava-next/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "LlavaNextInput": {
+        "title": "LLavaInput",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Do you know who drew this painting?"
+            ],
+            "description": "Prompt to be used for the image",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "top_p": {
+            "minimum": 0,
+            "description": "Top P for sampling",
+            "type": "number",
+            "maximum": 1,
+            "title": "Top P",
+            "default": 1
+          },
+          "max_tokens": {
+            "min": 32,
+            "description": "Maximum number of tokens to generate",
+            "type": "integer",
+            "title": "Max Tokens",
+            "max": 1024,
+            "default": 64
+          },
+          "temperature": {
+            "description": "Temperature for sampling",
+            "type": "number",
+            "title": "Temperature",
+            "maximum": 1,
+            "exclusiveMinimum": 0,
+            "default": 0.2
+          },
+          "image_url": {
+            "examples": [
+              "https://llava-vl.github.io/static/images/monalisa.jpg"
+            ],
+            "description": "URL of the image to be processed",
+            "type": "string",
+            "title": "Image URL"
+          }
+        },
+        "x-fal-order-properties": [
+          "image_url",
+          "prompt",
+          "max_tokens",
+          "temperature",
+          "top_p"
+        ],
+        "required": [
+          "image_url",
+          "prompt"
+        ]
+      },
+      "LlavaNextOutput": {
+        "title": "LLavaOutput",
+        "type": "object",
+        "properties": {
+          "partial": {
+            "description": "Whether the output is partial",
+            "type": "boolean",
+            "title": "Partial",
+            "default": false
+          },
+          "output": {
+            "examples": [
+              "Leonardo da Vinci"
+            ],
+            "description": "Generated output",
+            "type": "string",
+            "title": "Output"
+          }
+        },
+        "x-fal-order-properties": [
+          "output",
+          "partial"
+        ],
+        "required": [
+          "output"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/llava-next/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/llava-next/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/llava-next": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlavaNextInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/llava-next/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlavaNextOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}

@@ -1,0 +1,431 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Queue OpenAPI for fal-ai/hunyuan-custom",
+    "version": "1.0.0",
+    "description": "The OpenAPI schema for the fal-ai/hunyuan-custom queue.",
+    "x-fal-metadata": {
+      "endpointId": "fal-ai/hunyuan-custom",
+      "category": "image-to-video",
+      "thumbnailUrl": "https://storage.googleapis.com/fal_cdn/fal/Sound-3.jpg",
+      "playgroundUrl": "https://fal.ai/models/fal-ai/hunyuan-custom",
+      "documentationUrl": "https://fal.ai/models/fal-ai/hunyuan-custom/api"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Fal Key"
+      }
+    },
+    "schemas": {
+      "QueueStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "IN_QUEUE",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "description": "The request id."
+          },
+          "response_url": {
+            "type": "string",
+            "description": "The response url."
+          },
+          "status_url": {
+            "type": "string",
+            "description": "The status url."
+          },
+          "cancel_url": {
+            "type": "string",
+            "description": "The cancel url."
+          },
+          "logs": {
+            "type": "object",
+            "description": "The logs.",
+            "additionalProperties": true
+          },
+          "metrics": {
+            "type": "object",
+            "description": "The metrics.",
+            "additionalProperties": true
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "The queue position."
+          }
+        },
+        "required": [
+          "status",
+          "request_id"
+        ]
+      },
+      "HunyuanCustomInput": {
+        "x-fal-order-properties": [
+          "prompt",
+          "negative_prompt",
+          "image_url",
+          "num_inference_steps",
+          "seed",
+          "aspect_ratio",
+          "resolution",
+          "fps",
+          "cfg_scale",
+          "num_frames",
+          "enable_prompt_expansion",
+          "enable_safety_checker"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "examples": [
+              "Realistic, High-quality. A woman is playing a violin."
+            ],
+            "description": "Text prompt for video generation (max 500 characters).",
+            "type": "string",
+            "title": "Prompt"
+          },
+          "resolution": {
+            "enum": [
+              "512p",
+              "720p"
+            ],
+            "description": "The resolution of the video to generate. 720p generations cost 1.5x more than 480p generations.",
+            "type": "string",
+            "title": "Resolution",
+            "default": "512p"
+          },
+          "aspect_ratio": {
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "description": "The aspect ratio of the video to generate.",
+            "type": "string",
+            "title": "Aspect Ratio (W:H)",
+            "default": "16:9"
+          },
+          "enable_prompt_expansion": {
+            "examples": [
+              true
+            ],
+            "description": "Whether to enable prompt expansion.",
+            "type": "boolean",
+            "title": "Enable Prompt Expansion",
+            "default": true
+          },
+          "num_frames": {
+            "minimum": 81,
+            "description": "The number of frames to generate.",
+            "type": "integer",
+            "maximum": 129,
+            "title": "Number of Frames",
+            "default": 129
+          },
+          "fps": {
+            "minimum": 16,
+            "description": "The frames per second of the generated video.",
+            "type": "integer",
+            "maximum": 30,
+            "title": "Frames per second",
+            "default": 25
+          },
+          "image_url": {
+            "examples": [
+              "https://storage.googleapis.com/falserverless/model_tests/hidream/woman.png"
+            ],
+            "description": "URL of the image input.",
+            "type": "string",
+            "title": "Image Url"
+          },
+          "enable_safety_checker": {
+            "examples": [
+              true
+            ],
+            "description": "If set to true, the safety checker will be enabled.",
+            "type": "boolean",
+            "title": "Enable Safety Checker",
+            "default": true
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The seed to use for generating the video.",
+            "title": "Seed"
+          },
+          "num_inference_steps": {
+            "minimum": 10,
+            "description": "The number of inference steps to run. Lower gets faster results, higher gets better results.",
+            "type": "integer",
+            "maximum": 30,
+            "title": "Num Inference Steps",
+            "default": 30
+          },
+          "negative_prompt": {
+            "examples": [
+              "Ugly, blurry."
+            ],
+            "description": "Negative prompt for video generation.",
+            "type": "string",
+            "title": "Negative Prompt",
+            "default": "Aerial view, aerial view, overexposed, low quality, deformation, a poor composition, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring, text, subtitles, static, picture, black border."
+          },
+          "cfg_scale": {
+            "minimum": 1.5,
+            "description": "Classifier-Free Guidance scale for the generation.",
+            "type": "number",
+            "maximum": 13,
+            "title": "CFG Scale",
+            "default": 7.5
+          }
+        },
+        "title": "HunyuanCustomRequest",
+        "required": [
+          "prompt",
+          "image_url"
+        ]
+      },
+      "HunyuanCustomOutput": {
+        "x-fal-order-properties": [
+          "video",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "seed": {
+            "description": "The seed used for generating the video.",
+            "type": "integer",
+            "title": "Seed"
+          },
+          "video": {
+            "examples": [
+              {
+                "url": "https://storage.googleapis.com/falserverless/example_outputs/test/p1/uQ4ddGyJ9U6cymnns0l6o_input-image-1747117169.mp4"
+              }
+            ],
+            "$ref": "#/components/schemas/File"
+          }
+        },
+        "title": "HunyuanCustomResponse",
+        "required": [
+          "video",
+          "seed"
+        ]
+      },
+      "File": {
+        "x-fal-order-properties": [
+          "url",
+          "content_type",
+          "file_name",
+          "file_size"
+        ],
+        "type": "object",
+        "properties": {
+          "file_size": {
+            "examples": [
+              4404019
+            ],
+            "description": "The size of the file in bytes.",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size"
+          },
+          "file_name": {
+            "examples": [
+              "z9RV14K95DvU.png"
+            ],
+            "description": "The name of the file. It will be auto-generated if not provided.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "content_type": {
+            "examples": [
+              "image/png"
+            ],
+            "description": "The mime type of the file.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "url": {
+            "description": "The URL where the file can be downloaded from.",
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "title": "File",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/fal-ai/hunyuan-custom/requests/{request_id}/status": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          },
+          {
+            "name": "logs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "Whether to include logs (`1`) in the response or not (`0`)."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-custom/requests/{request_id}/cancel": {
+      "put": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the request was cancelled successfully."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-custom": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HunyuanCustomInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fal-ai/hunyuan-custom/requests/{request_id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Request ID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Result of the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HunyuanCustomOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://queue.fal.run"
+    }
+  ],
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
+}
