@@ -1,15 +1,13 @@
 /**
- * Provider-based embedding functions for ChromaDB.
+ * Provider-based embedding functions.
  *
- * Implements the ChromaDB `EmbeddingFunction` interface using provider APIs
- * (OpenAI, Ollama, Gemini, Mistral) instead of local SentenceTransformer models.
- *
- * Port of nodetool-core's `integrations/vectorstores/chroma/provider_embedding_function.py`.
+ * Implements the EmbeddingFunction interface using provider APIs
+ * (OpenAI, Ollama, Gemini, Mistral).
  */
 
 import { createLogger } from "@nodetool/config";
 import { getSecret } from "@nodetool/security";
-import type { EmbeddingFunction } from "chromadb";
+import type { EmbeddingFunction } from "./sqlite-vec-store.js";
 
 const log = createLogger("nodetool.vectorstore.embedding");
 
@@ -30,7 +28,7 @@ export interface ProviderEmbeddingOptions {
 // ---------------------------------------------------------------------------
 
 /**
- * ChromaDB embedding function that calls a remote provider API.
+ * Embedding function that calls a remote provider API.
  *
  * Lazily resolves API keys from secrets / environment on first call.
  */

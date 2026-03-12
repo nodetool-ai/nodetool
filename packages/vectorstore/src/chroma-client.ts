@@ -1,104 +1,9 @@
 /**
- * ChromaDB client utilities.
+ * Document splitting utilities.
  *
- * Provides client initialization (local or remote), collection management,
- * and document splitting.
- *
- * Port of nodetool-core's `integrations/vectorstores/chroma/chroma_client.py`.
+ * Kept from the original ChromaDB client module. The ChromaDB client
+ * has been replaced by sqlite-vec-store.ts.
  */
-
-import { ChromaClient } from "chromadb";
-import { createLogger } from "@nodetool/config";
-import { getSecret } from "@nodetool/security";
-import { getProviderEmbeddingFunction } from "./embedding.js";
-import type { EmbeddingFunction } from "chromadb";
-
-const log = createLogger("nodetool.vectorstore.chroma");
-
-// ---------------------------------------------------------------------------
-// Client initialization
-// ---------------------------------------------------------------------------
-
-/**
- * Get a ChromaDB client instance.
- *
- * Supports both remote (HTTP with token auth) and local (embedded) modes,
- * determined by the `CHROMA_URL` environment variable / secret.
- *
- * @param userId  Optional user ID for multi-tenant setups (remote only).
- */
-export async function getChromaClient(
-  userId?: string | null,
-): Promise<ChromaClient> {
-  const url = (await getSecret("CHROMA_URL", userId ?? "1")) ?? process.env.CHROMA_URL;
-  const token = (await getSecret("CHROMA_TOKEN", userId ?? "1")) ?? process.env.CHROMA_TOKEN;
-
-  if (url) {
-    const parsed = new URL(url);
-    const clientOpts: Record<string, unknown> = {
-      host: parsed.hostname,
-      port: Number(parsed.port) || 8000,
-      ssl: parsed.protocol === "https:",
-    };
-
-    if (token) {
-      clientOpts.auth = { Authorization: `Bearer ${token}` };
-    }
-
-    return new ChromaClient(clientOpts);
-  }
-
-  // Local / default — connect to localhost
-  return new ChromaClient({
-    host: "localhost",
-    port: 8000,
-  });
-}
-
-/**
- * Get a single collection by name.
- *
- * @param name              Collection name.
- * @param embeddingFunction Optional embedding function override.
- */
-export async function getCollection(
-  name: string,
-  embeddingFunction?: EmbeddingFunction | null,
-) {
-  if (!name) throw new Error("Collection name cannot be empty");
-  const client = await getChromaClient();
-  return client.getCollection({ name, embeddingFunction: embeddingFunction ?? undefined });
-}
-
-/**
- * Get all collections, automatically resolving embedding functions from
- * each collection's metadata (`embedding_model`, `embedding_provider`).
- */
-export async function getAllCollections() {
-  const client = await getChromaClient();
-  const collections = await client.listCollections();
-  const result = [];
-
-  for (const col of collections) {
-    const metadata = col.metadata ?? {};
-    const model = metadata.embedding_model as string | undefined;
-    const provider = metadata.embedding_provider as string | undefined;
-
-    let ef: EmbeddingFunction | undefined;
-    if (model) {
-      log.debug(`Resolving embedding function for '${col.name}' with model '${model}'`);
-      ef = getProviderEmbeddingFunction(model, provider) ?? undefined;
-    }
-
-    const withEf = await client.getCollection({
-      name: col.name,
-      embeddingFunction: ef,
-    });
-    result.push(withEf);
-  }
-
-  return result;
-}
 
 // ---------------------------------------------------------------------------
 // Document splitting
@@ -198,7 +103,6 @@ interface SplitPart {
 
 function splitBySeparator(text: string, sep: string): SplitPart[] {
   const parts: SplitPart[] = [];
-  let idx = 0;
   let pos = 0;
 
   while (true) {
@@ -216,7 +120,6 @@ function splitBySeparator(text: string, sep: string): SplitPart[] {
       parts.push({ text: segment, offset: pos });
     }
     pos = next + sep.length;
-    idx++;
   }
 
   return parts;
