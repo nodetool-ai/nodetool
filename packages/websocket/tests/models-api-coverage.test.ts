@@ -216,18 +216,27 @@ describe("Models API: all endpoint", () => {
 });
 
 describe("Models API: huggingface endpoints", () => {
-  it("GET /api/models/huggingface returns empty array", async () => {
+  it("GET /api/models/huggingface returns array", async () => {
     const res = await handleModelsApiRequest(makeRequest("/huggingface"));
     expect(res!.status).toBe(200);
-    expect(await jsonBody(res!)).toEqual([]);
+    const data = await jsonBody(res!);
+    expect(Array.isArray(data)).toBe(true);
   });
 
-  it("DELETE /api/models/huggingface returns false", async () => {
+  it("DELETE /api/models/huggingface without repo_id returns 400", async () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface", { method: "DELETE" })
     );
+    expect(res!.status).toBe(400);
+  });
+
+  it("DELETE /api/models/huggingface with repo_id returns boolean", async () => {
+    const res = await handleModelsApiRequest(
+      makeRequest("/huggingface?repo_id=nonexistent/model", { method: "DELETE" })
+    );
     expect(res!.status).toBe(200);
-    expect(await jsonBody(res!)).toBe(false);
+    const data = await jsonBody(res!);
+    expect(typeof data).toBe("boolean");
   });
 
   it("POST /api/models/huggingface returns 405", async () => {
@@ -237,12 +246,13 @@ describe("Models API: huggingface endpoints", () => {
     expect(res!.status).toBe(405);
   });
 
-  it("GET /api/models/huggingface/search returns empty array", async () => {
+  it("GET /api/models/huggingface/search returns array", async () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/search")
     );
     expect(res!.status).toBe(200);
-    expect(await jsonBody(res!)).toEqual([]);
+    const data = await jsonBody(res!);
+    expect(Array.isArray(data)).toBe(true);
   });
 
   it("POST /api/models/huggingface/search returns 405", async () => {
@@ -252,12 +262,13 @@ describe("Models API: huggingface endpoints", () => {
     expect(res!.status).toBe(405);
   });
 
-  it("GET /api/models/huggingface/type/something returns empty array", async () => {
+  it("GET /api/models/huggingface/type/something returns array", async () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/type/language_model")
     );
     expect(res!.status).toBe(200);
-    expect(await jsonBody(res!)).toEqual([]);
+    const data = await jsonBody(res!);
+    expect(Array.isArray(data)).toBe(true);
   });
 
   it("POST /api/models/huggingface/type/something returns 405", async () => {
@@ -636,12 +647,23 @@ describe("Models API: pull_ollama_model", () => {
 });
 
 describe("Models API: huggingface/file_info", () => {
-  it("POST /api/models/huggingface/file_info returns empty array", async () => {
+  it("POST /api/models/huggingface/file_info without body returns 400", async () => {
     const res = await handleModelsApiRequest(
       makeRequest("/huggingface/file_info", { method: "POST" })
     );
+    expect(res!.status).toBe(400);
+  });
+
+  it("POST /api/models/huggingface/file_info with body returns array", async () => {
+    const res = await handleModelsApiRequest(
+      makeRequest("/huggingface/file_info", {
+        method: "POST",
+        body: [{ repo_id: "test/model", path: "config.json" }],
+      })
+    );
     expect(res!.status).toBe(200);
-    expect(await jsonBody(res!)).toEqual([]);
+    const data = await jsonBody(res!);
+    expect(Array.isArray(data)).toBe(true);
   });
 
   it("GET /api/models/huggingface/file_info returns 405", async () => {

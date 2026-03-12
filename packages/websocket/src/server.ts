@@ -360,20 +360,35 @@ server.on("upgrade", (request, socket, head) => {
         log.error("Download WebSocket error", error);
       });
       log.info("Download WebSocket client connected");
-      ws.on("message", (raw: any) => {
-        try {
-          const msg = JSON.parse(raw.toString());
-          if (msg.command === "start_download") {
-            // TODO: implement HuggingFace model download
-            ws.send(JSON.stringify({
-              status: "error",
-              repo_id: msg.repo_id,
-              error: "Model download not yet implemented in TS backend",
-            }));
+
+      // Lazy import to avoid circular deps at module level
+      import("@nodetool/huggingface").then(({ getDownloadManager }) => {
+        ws.on("message", async (raw: any) => {
+          try {
+            const msg = JSON.parse(raw.toString());
+            if (msg.command === "start_download") {
+              const manager = await getDownloadManager();
+              await manager.startDownload(msg.repo_id ?? "", {
+                path: msg.path ?? null,
+                allowPatterns: msg.allow_patterns ?? null,
+                ignorePatterns: msg.ignore_patterns ?? null,
+                cacheDir: msg.cache_dir ?? null,
+                modelType: msg.model_type ?? null,
+                onProgress: (update) => {
+                  try { ws.send(JSON.stringify(update)); } catch { /* client gone */ }
+                },
+              });
+            } else if (msg.command === "cancel_download") {
+              const manager = await getDownloadManager();
+              manager.cancelDownload(msg.repo_id ?? msg.id ?? "");
+            }
+          } catch (err) {
+            const error = err instanceof Error ? err.message : String(err);
+            ws.send(JSON.stringify({ status: "error", error }));
           }
-        } catch {
-          // ignore non-JSON messages
-        }
+        });
+      }).catch((err: unknown) => {
+        log.error("Failed to load @nodetool/huggingface", err instanceof Error ? err : new Error(String(err)));
       });
     });
     return;

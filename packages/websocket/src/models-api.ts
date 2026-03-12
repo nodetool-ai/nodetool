@@ -25,6 +25,14 @@ import {
   type VideoModel,
 } from "@nodetool/runtime";
 import { getSecret } from "@nodetool/security";
+import {
+  readCachedHfModels,
+  searchCachedHfModels,
+  getModelsByHfType,
+  deleteCachedHfModel,
+  getHuggingfaceFileInfos,
+  type HFFileRequest,
+} from "@nodetool/huggingface";
 
 export interface UnifiedModel {
   id: string;
@@ -807,20 +815,57 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   }
 
   if (path === "/huggingface") {
-    if (request.method === "GET") return jsonResponse([]);
-    if (request.method === "DELETE") return jsonResponse(false);
+    if (request.method === "GET") {
+      if (isProduction()) return jsonResponse([]);
+      try {
+        const models = await readCachedHfModels();
+        return jsonResponse(models);
+      } catch {
+        return jsonResponse([]);
+      }
+    }
+    if (request.method === "DELETE") {
+      const repoId = url.searchParams.get("repo_id");
+      if (!repoId) return errorResponse(400, "Missing repo_id parameter");
+      if (isProduction()) return jsonResponse(false);
+      try {
+        const deleted = await deleteCachedHfModel(repoId);
+        return jsonResponse(deleted);
+      } catch {
+        return jsonResponse(false);
+      }
+    }
     return errorResponse(405, "Method not allowed");
   }
 
   if (path === "/huggingface/search") {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
     if (isProduction()) return jsonResponse([]);
-    return jsonResponse([]);
+    const rawQuery = url.searchParams.get("query") ?? undefined;
+    const type = url.searchParams.get("type") ?? undefined;
+    // Wrap bare queries with wildcards so "whisper" matches "openai/whisper-small"
+    const query = rawQuery && !rawQuery.includes("*") ? `*${rawQuery}*` : rawQuery;
+    try {
+      const models = await searchCachedHfModels(
+        query ? [query] : undefined,
+        type ? [type] : undefined,
+      );
+      return jsonResponse(models);
+    } catch {
+      return jsonResponse([]);
+    }
   }
 
   if (path.startsWith("/huggingface/type/")) {
     if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-    return jsonResponse([]);
+    const modelType = decodeURIComponent(path.slice("/huggingface/type/".length));
+    if (!modelType) return jsonResponse([]);
+    try {
+      const models = await getModelsByHfType(modelType);
+      return jsonResponse(models);
+    } catch {
+      return jsonResponse([]);
+    }
   }
 
   if (path === "/ollama") {
@@ -940,7 +985,15 @@ export async function handleModelsApiRequest(request: Request): Promise<Response
   if (path === "/huggingface/file_info") {
     if (request.method !== "POST") return errorResponse(405, "Method not allowed");
     if (isProduction()) return jsonResponse([]);
-    return jsonResponse([]);
+    const body = await parseJsonBody<HFFileRequest[]>(request);
+    if (!body) return errorResponse(400, "Invalid JSON body");
+    try {
+      const token = await resolveKey("HF_TOKEN");
+      const infos = await getHuggingfaceFileInfos(body, token);
+      return jsonResponse(infos);
+    } catch {
+      return jsonResponse([]);
+    }
   }
 
   return null;
