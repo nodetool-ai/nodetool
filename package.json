@@ -8,6 +8,8 @@
     "packages/models",
     "packages/node-sdk",
     "packages/base-nodes",
+    "packages/fal-codegen",
+    "packages/fal-nodes",
     "packages/websocket",
     "packages/agents",
     "packages/chat",
@@ -16,6 +18,7 @@
     "packages/cli",
     "packages/storage",
     "packages/config",
+    "packages/deploy",
     "web",
     "electron"
   ],
