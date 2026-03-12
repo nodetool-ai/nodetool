@@ -1,12 +1,12 @@
 /**
- * ChromaDB vector database nodes for NodeTool.
+ * Vector database nodes for NodeTool (sqlite-vec backed).
  * Provides collection management, indexing, and querying operations.
  */
 
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
 import {
-  getChromaClient,
+  getVecStore,
   getCollection,
   OllamaEmbeddingFunction,
 } from "@nodetool/vectorstore";
@@ -60,8 +60,8 @@ export class CollectionNode extends BaseNode {
       throw new Error("Collection name cannot be empty");
     }
 
-    const client = await getChromaClient();
-    await client.getOrCreateCollection({
+    const store = await getVecStore();
+    await store.getOrCreateCollection({
       name,
       metadata: { embedding_model: embeddingModel.repo_id ?? "" },
     });
@@ -952,7 +952,7 @@ export class HybridSearchNode extends BaseNode {
       keywordResult = await collection.query({
         queryTexts: [text],
         nResults: nResults * 2,
-        whereDocument: keywordQuery as import("chromadb").WhereDocument,
+        whereDocument: keywordQuery as Record<string, unknown>,
         include: ["documents", "metadatas", "distances"],
       });
     }

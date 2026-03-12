@@ -1,15 +1,14 @@
 /**
  * Collection API handler.
  *
- * Handles all /api/collections/* routes backed by ChromaDB.
+ * Handles all /api/collections/* routes backed by sqlite-vec.
  */
 
-import { ChromaNotFoundError } from "chromadb";
 import { writeFile, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Workflow } from "@nodetool/models";
-import { getChromaClient } from "@nodetool/vectorstore";
+import { getVecStore, VecNotFoundError } from "@nodetool/vectorstore";
 import type { HttpApiOptions } from "./http-api.js";
 
 type JsonObject = Record<string, unknown>;
@@ -62,14 +61,13 @@ export async function handleCollectionRequest(
 
   if (!pathname.startsWith("/api/collections")) return null;
 
-  const client = await getChromaClient();
-
   try {
+    const store = await getVecStore();
+
     // POST /api/collections/:name/index
     const indexMatch = pathname.match(/^\/api\/collections\/([^/]+)\/index$/);
     if (indexMatch) {
       if (request.method !== "POST") return errorResponse(405, "Method not allowed");
-      // indexMatch[1] contains the collection name, needed when ingestion is implemented
 
       // Parse multipart form data for file upload
       const contentType = request.headers.get("content-type") ?? "";
@@ -90,9 +88,7 @@ export async function handleCollectionRequest(
         const buffer = Buffer.from(await file.arrayBuffer());
         await writeFile(tmpPath, buffer);
 
-        // TODO: Implement actual document ingestion into ChromaDB collection.
-        // This requires a text extraction + chunking + embedding pipeline.
-        // For now, return a stub response.
+        // TODO: Implement actual document ingestion pipeline.
         return jsonResponse({ path: file.name, error: null });
       } finally {
         await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
@@ -102,7 +98,7 @@ export async function handleCollectionRequest(
     // GET /api/collections
     if (pathname === "/api/collections") {
       if (request.method === "GET") {
-        const collections = await client.listCollections();
+        const collections = await store.listCollections();
         const results: JsonObject[] = [];
 
         for (const col of collections) {
@@ -142,10 +138,9 @@ export async function handleCollectionRequest(
         if (body.embedding_model) metadata.embedding_model = body.embedding_model;
         if (body.embedding_provider) metadata.embedding_provider = body.embedding_provider;
 
-        const collection = await client.createCollection({
+        const collection = await store.createCollection({
           name: body.name,
           metadata,
-          embeddingFunction: null,
         });
 
         return jsonResponse({
@@ -165,7 +160,7 @@ export async function handleCollectionRequest(
 
     // GET /api/collections/:name
     if (request.method === "GET") {
-      const collection = await client.getCollection({ name });
+      const collection = await store.getCollection({ name });
       const count = await collection.count();
       return jsonResponse({
         name: collection.name,
@@ -176,7 +171,7 @@ export async function handleCollectionRequest(
 
     // PUT /api/collections/:name
     if (request.method === "PUT") {
-      const collection = await client.getCollection({ name });
+      const collection = await store.getCollection({ name });
       const body = await parseJsonBody<CollectionModifyBody>(request);
       if (!body) return errorResponse(400, "Invalid JSON body");
 
@@ -196,24 +191,16 @@ export async function handleCollectionRequest(
 
     // DELETE /api/collections/:name
     if (request.method === "DELETE") {
-      await client.deleteCollection({ name });
+      await store.deleteCollection({ name });
       return jsonResponse({ message: `Collection ${name} deleted successfully` });
     }
 
     return errorResponse(405, "Method not allowed");
   } catch (err: unknown) {
-    if (err instanceof ChromaNotFoundError) {
+    if (err instanceof VecNotFoundError) {
       return errorResponse(404, "Collection not found");
     }
     const msg = err instanceof Error ? err.message : String(err);
-    // When ChromaDB is unavailable, return empty results for GET requests
-    // instead of a 503 error so the UI doesn't break
-    if (request.method === "GET" && msg.includes("connect")) {
-      if (pathname === "/api/collections") {
-        return jsonResponse({ collections: [], count: 0 });
-      }
-      return errorResponse(404, "Collection not found (ChromaDB unavailable)");
-    }
-    return errorResponse(503, `ChromaDB service unavailable: ${msg}`);
+    return errorResponse(500, `Vector store error: ${msg}`);
   }
 }
