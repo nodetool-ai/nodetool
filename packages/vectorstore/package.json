@@ -1,0 +1,24 @@
+{
+  "name": "@nodetool/vectorstore",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "ChromaDB vector store integration for NodeTool",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool/config": "*",
+    "@nodetool/security": "*",
+    "chromadb": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.1"
+  }
+}

@@ -778,14 +778,8 @@ export class UnifiedWebSocketRunner {
     if (!collections.length || !queryText) return "";
 
     try {
-      const { ChromaClient } = await import("chromadb");
-      const url = process.env.CHROMA_URL ?? "http://localhost:8000";
-      const parsed = new URL(url);
-      const client = new ChromaClient({
-        host: parsed.hostname,
-        port: Number(parsed.port) || 8000,
-        ssl: parsed.protocol === "https:",
-      });
+      const { getChromaClient } = await import("@nodetool/vectorstore");
+      const client = await getChromaClient();
 
       const allResults: string[] = [];
 

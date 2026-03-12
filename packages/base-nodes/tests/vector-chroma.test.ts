@@ -950,6 +950,7 @@ describe("IndexAggregatedTextNode", () => {
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
+      text: async () => "Internal Server Error",
     }) as unknown as typeof fetch;
 
     const node = new IndexAggregatedTextNode();
@@ -960,7 +961,7 @@ describe("IndexAggregatedTextNode", () => {
         document_id: "id",
         text_chunks: ["x"],
       })
-    ).rejects.toThrow("Ollama embed request failed");
+    ).rejects.toThrow("Ollama embedding failed");
 
     restoreFetch();
   });

@@ -3,45 +3,22 @@
  * Provides collection management, indexing, and querying operations.
  */
 
-import { ChromaClient } from "chromadb";
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
+import {
+  getChromaClient,
+  getCollection,
+  OllamaEmbeddingFunction,
+} from "@nodetool/vectorstore";
 
 // ---------------------------------------------------------------------------
 // Client helpers
 // ---------------------------------------------------------------------------
 
-function getChromaClient(): ChromaClient {
-  const url = process.env.CHROMA_URL || "http://localhost:8000";
-  const token = process.env.CHROMA_TOKEN;
-
-  if (token) {
-    return new ChromaClient({
-      path: url,
-      auth: { Authorization: `Bearer ${token}` },
-    });
-  }
-  return new ChromaClient({ path: url });
-}
-
-async function getCollection(name: string) {
-  const client = getChromaClient();
-  return client.getCollection({ name });
-}
-
 async function getOllamaEmbedding(model: string, text: string): Promise<number[]> {
-  const ollamaUrl = process.env.OLLAMA_API_URL || "http://127.0.0.1:11434";
-  const resp = await fetch(`${ollamaUrl}/api/embed`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, input: text }),
-  });
-  if (!resp.ok) {
-    throw new Error(`Ollama embed request failed: ${resp.status} ${resp.statusText}`);
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (await resp.json()) as any;
-  return data.embeddings[0] as number[];
+  const ef = new OllamaEmbeddingFunction(model);
+  const result = await ef.generate([text]);
+  return result[0];
 }
 
 // ---------------------------------------------------------------------------
@@ -83,7 +60,7 @@ export class CollectionNode extends BaseNode {
       throw new Error("Collection name cannot be empty");
     }
 
-    const client = getChromaClient();
+    const client = await getChromaClient();
     await client.getOrCreateCollection({
       name,
       metadata: { embedding_model: embeddingModel.repo_id ?? "" },
