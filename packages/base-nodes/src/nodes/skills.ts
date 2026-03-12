@@ -354,6 +354,20 @@ class SkillNode extends BaseNode {
     const assets = collectAssets(inputs, self);
     const assetParts = await buildAssetContentParts(assets, context, "image");
 
+    // Copy asset files into workspace so the agent can access them via bash
+    const { writeFile: writeFileAsync } = await import("node:fs/promises");
+    const workspaceFiles: string[] = [];
+    for (let i = 0; i < assets.length; i++) {
+      const bytes = await getAssetBytes(assets[i], context);
+      if (!bytes || bytes.length === 0) continue;
+      const kind = inferAssetKind(assets[i], "image");
+      const mime = guessMime(assets[i], "image");
+      const ext = mime.split("/")[1]?.replace("jpeg", "jpg") ?? "bin";
+      const fileName = `input_${kind}_${i}.${ext}`;
+      await writeFileAsync(path.join(workspaceDir, fileName), bytes);
+      workspaceFiles.push(fileName);
+    }
+
     // Build tools
     const tools = this.getTools(workspaceDir);
 
@@ -368,13 +382,19 @@ class SkillNode extends BaseNode {
       return { type: "text" as const, text: (part as any).text ?? "" };
     });
 
+    // Augment prompt with workspace file info
+    let augmentedPrompt = prompt;
+    if (workspaceFiles.length > 0) {
+      augmentedPrompt += `\n\nInput files available in the workspace directory:\n${workspaceFiles.map(f => `- ${f}`).join("\n")}`;
+    }
+
     const systemPrompt = (this.constructor as typeof SkillNode)._systemPrompt;
     const { text } = await runAgentLoop({
       context,
       providerId,
       modelId,
       systemPrompt,
-      prompt,
+      prompt: augmentedPrompt,
       tools,
       contentParts: contentParts.length > 0 ? contentParts : undefined,
       maxTokens: 4096,
