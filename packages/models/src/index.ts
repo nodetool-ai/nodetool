@@ -82,3 +82,31 @@ export {
   removeConnectedSlots,
 } from "./api-graph.js";
 export type { ApiNode, ApiEdge, ApiGraph } from "./api-graph.js";
+
+// ── Migrations ─────────────────────────────────────────────────────
+export {
+  MigrationError,
+  LockError,
+  ChecksumError,
+  BaselineError,
+  MigrationDiscoveryError,
+  RollbackError,
+  DatabaseState,
+  APPLICATION_TABLES,
+  MIGRATION_TRACKING_TABLE,
+  MIGRATION_LOCK_TABLE,
+  detectDatabaseState,
+  SQLiteMigrationAdapter,
+  PostgresMigrationAdapter,
+  migrations,
+  MigrationRunner,
+} from "./migrations/index.js";
+export type {
+  MigrationDBAdapter,
+  SqlParams,
+  Row as MigrationRow,
+  MigrationDef,
+  Migration,
+  AppliedMigration,
+  MigrationStatus,
+} from "./migrations/index.js";
