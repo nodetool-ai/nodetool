@@ -25,3 +25,4 @@ export {
   type ExecuteResult,
   type ProgressEvent,
 } from "./python-bridge.js";
+export { PythonNodeExecutor } from "./python-node-executor.js";
